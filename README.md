@@ -41,4 +41,6 @@ See [extension setup](laterbox-extension/README.md), [deployment](docs/deploymen
 
 ## License and support
 
+See [CHANGELOG.md](CHANGELOG.md) for notable updates.
+
 See [LICENSE](LICENSE), [SECURITY.md](SECURITY.md), [SUPPORT.md](SUPPORT.md), and [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
