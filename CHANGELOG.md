@@ -13,6 +13,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 - **[Email] Resend template and digest service for unseen inbox items**: Added a branded Resend email template and delivery service showcasing unseen inbox items that have been waiting without being opened. Supports Open Graph preview images and non-letterboxed media covers, styled with LaterBox's warm-canvas palette, dark headers, logo, and action buttons prompting users to review or reschedule items directly on the Web or via deep links in the mobile app. The email sending feature is restricted exclusively to active Pro subscribers.
 
 ### Changed
+- **[Docs] README prerequisites**: Specify Node.js 22 to match the web and extension CI toolchain.
 - **[Docs] Native project documentation refresh**: Replace the web starter README, document Kotlin/Compose setup and releases, correct workflow and macOS readiness claims, and update contributor, architecture, and extension navigation after retiring Flutter.
 - **[Docs] README navigation**: Added a direct link to the changelog from the README.
 - **[Items] Add seen tracking for inbox items upon opening details**: Added a `seen` status attribute to items on both Web and iOS, persisting it locally and across cloud synchronization. When opening an item's details view or side panel, items in the inbox are automatically marked as seen while leaving non-inbox items unchanged.
