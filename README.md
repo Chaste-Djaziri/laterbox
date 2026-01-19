@@ -18,7 +18,7 @@ Windows and Linux native applications are future work. The Apple project contain
 
 ## Development
 
-For the web app, install Node.js and run:
+For the web app and browser extensions, use Node.js 22 to match CI. Start the web app with:
 
 ```sh
 cd laterbox-web
