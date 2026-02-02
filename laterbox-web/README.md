@@ -16,3 +16,12 @@ Open http://localhost:3000.
 ## Extension integration
 
 For local extension capture, run `npm run dev -- --port 8080` and open http://localhost:8080/home. Use the same localhost origin throughout approval and import. See [extension setup](../laterbox-extension/README.md).
+
+## Verification
+
+```sh
+npx tsc --noEmit --incremental false
+npm test
+```
+
+These checks match the web type and unit-test checks in release CI.
