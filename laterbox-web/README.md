@@ -25,3 +25,7 @@ npm test
 ```
 
 These checks match the web type and unit-test checks in release CI.
+
+## Cloudflare preview
+
+Run `npm run preview` to build through OpenNext and preview on the Cloudflare runtime. `npm run build` builds Next.js; it does not deploy a Worker.
