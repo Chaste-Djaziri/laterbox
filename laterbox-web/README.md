@@ -33,3 +33,7 @@ Run `npm run preview` to build through OpenNext and preview on the Cloudflare ru
 ## Deployment
 
 `npm run deploy` builds and deploys through OpenNext. CI deploys eligible main-branch runs using `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`; pull requests run validation and build without deployment. See [deployment](../docs/deployment.md).
+
+## Application source
+
+Routes live in `src/app/`, reusable UI in `src/components/`, and application services in `src/lib/`. `src/lib/docs-data.ts` supplies the in-app documentation content.
