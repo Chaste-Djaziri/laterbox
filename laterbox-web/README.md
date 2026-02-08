@@ -37,3 +37,7 @@ Run `npm run preview` to build through OpenNext and preview on the Cloudflare ru
 ## Application source
 
 Routes live in `src/app/`, reusable UI in `src/components/`, and application services in `src/lib/`. `src/lib/docs-data.ts` supplies the in-app documentation content.
+
+## Authentication and local data
+
+Start with `src/lib/store/AuthContext.tsx` and `src/lib/supabase/client.ts` for account integration. Local capture queues and attachments are implemented in `src/lib/utils/`; extension imports are in `src/lib/extension/local-import.ts`.
