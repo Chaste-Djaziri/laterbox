@@ -41,3 +41,7 @@ Routes live in `src/app/`, reusable UI in `src/components/`, and application ser
 ## Authentication and local data
 
 Start with `src/lib/store/AuthContext.tsx` and `src/lib/supabase/client.ts` for account integration. Local capture queues and attachments are implemented in `src/lib/utils/`; extension imports are in `src/lib/extension/local-import.ts`.
+
+## Backend contracts
+
+Server routes are in `src/app/api/`. Shared PostgreSQL migrations and edge functions live in `../supabase/`; the release workflow runs their notification, capture, and extension connection contract tests.
