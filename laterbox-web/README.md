@@ -45,3 +45,7 @@ Start with `src/lib/store/AuthContext.tsx` and `src/lib/supabase/client.ts` for 
 ## Backend contracts
 
 Server routes are in `src/app/api/`. Shared PostgreSQL migrations and edge functions live in `../supabase/`; the release workflow runs their notification, capture, and extension connection contract tests.
+
+## Runtime configuration
+
+Review `wrangler.jsonc` and `open-next.config.ts` for Worker configuration. `npm run cf-typegen` generates the `CloudflareEnv` bindings interface. Keep server credentials in deployment secrets.
