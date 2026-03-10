@@ -19,3 +19,7 @@ From this directory run:
 ```
 
 Install the debug APK from `app/build/outputs/apk/debug/` on an emulator or device.
+
+## Unit tests
+
+Run `./gradlew test --no-daemon`. CI also runs `python3 -m unittest discover -s ci -p "test_*.py"` for release tooling.
