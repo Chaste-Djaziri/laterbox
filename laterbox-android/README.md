@@ -23,3 +23,7 @@ Install the debug APK from `app/build/outputs/apk/debug/` on an emulator or devi
 ## Unit tests
 
 Run `./gradlew test --no-daemon`. CI also runs `python3 -m unittest discover -s ci -p "test_*.py"` for release tooling.
+
+## Data and synchronization
+
+Room entities and DAOs live in `app/src/main/java/com/example/laterbox/data/local/`. `data/DataRepository.kt` coordinates data access and `data/sync/SyncWorker.kt` contains background synchronization.
