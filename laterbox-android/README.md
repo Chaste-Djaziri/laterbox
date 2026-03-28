@@ -27,3 +27,7 @@ Run `./gradlew test --no-daemon`. CI also runs `python3 -m unittest discover -s 
 ## Data and synchronization
 
 Room entities and DAOs live in `app/src/main/java/com/example/laterbox/data/local/`. `data/DataRepository.kt` coordinates data access and `data/sync/SyncWorker.kt` contains background synchronization.
+
+## Capture and navigation
+
+`ShareActivity.kt` handles native sharing. `MainActivity.kt`, `AppNavigation.kt`, and `ui/` contain app entry, navigation, and Compose screens beneath `app/src/main/java/com/example/laterbox/`.
