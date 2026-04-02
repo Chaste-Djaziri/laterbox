@@ -31,3 +31,7 @@ Room entities and DAOs live in `app/src/main/java/com/example/laterbox/data/loca
 ## Capture and navigation
 
 `ShareActivity.kt` handles native sharing. `MainActivity.kt`, `AppNavigation.kt`, and `ui/` contain app entry, navigation, and Compose screens beneath `app/src/main/java/com/example/laterbox/`.
+
+## Release version
+
+`app/build.gradle.kts` reads version name and fallback build number from root `version.json`. CI runs `ci/version_code.py` and supplies `ANDROID_VERSION_CODE` for the release build.
