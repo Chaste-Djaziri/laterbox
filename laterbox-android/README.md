@@ -35,3 +35,7 @@ Room entities and DAOs live in `app/src/main/java/com/example/laterbox/data/loca
 ## Release version
 
 `app/build.gradle.kts` reads version name and fallback build number from root `version.json`. CI runs `ci/version_code.py` and supplies `ANDROID_VERSION_CODE` for the release build.
+
+## Release artifacts
+
+`.github/workflows/android.yml` builds release AAB, release APK, and debug APK outputs. It retains R8 mappings under `app/build/outputs/mapping/release/` and verifies the release bundle with `ci/verify_r8.py`.
