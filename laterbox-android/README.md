@@ -39,3 +39,7 @@ Room entities and DAOs live in `app/src/main/java/com/example/laterbox/data/loca
 ## Release artifacts
 
 `.github/workflows/android.yml` builds release AAB, release APK, and debug APK outputs. It retains R8 mappings under `app/build/outputs/mapping/release/` and verifies the release bundle with `ci/verify_r8.py`.
+
+## Signing and Play submission
+
+Configure a persistent release keystore for store uploads. CI can generate a fallback keystore for builds, but that key does not replace your existing Play upload identity. Play submission requires the configured service account and a main-branch non-PR run; the default track is internal.
