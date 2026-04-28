@@ -3,7 +3,9 @@
 # 0001. Local attachments import
 
 **Date**: 2026-08-20
-**Status**: Accepted
+**Status**: Historical — accepted for the retired cross-platform implementation
+
+The Drift and `file_picker` design below is preserved as historical context. Use SwiftData and native Apple services or Room and Kotlin services when planning current client work; validate requirements against each implementation.
 
 ## Summary
 
