@@ -1,6 +1,6 @@
 # LaterBox capability matrix
 
-This is the release contract for product parity. A platform may advertise a capability only when its entry is marked **Ready** and its required verification is recorded in the release checklist.
+This is the release contract for product parity. macOS entries are verification targets: the current Apple release scheme targets iOS, and the native macOS release target has not been verified. A platform may advertise a capability only when its entry is marked **Ready** and its required verification is recorded in the release checklist.
 
 | Capability | macOS MVP | iOS | Android | Windows | Web | Extension | Access | Data contract |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
