@@ -2,7 +2,7 @@
 
 This is the release contract for product parity. macOS entries are verification targets: the current Apple release scheme targets iOS, and the native macOS release target has not been verified. A platform may advertise a capability only when its entry is marked **Ready** and its required verification is recorded in the release checklist.
 
-| Capability | macOS MVP | iOS | Android | Windows | Web | Extension | Access | Data contract |
+| Capability | macOS target | iOS | Android | Windows | Web | Extension | Access | Data contract |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | Save URL, text, note, and file | Ready | Parity target | Parity target | Parity target | Parity target | Ready | Free | Local SQLite write succeeds offline; sync is idempotent when Pro returns online. |
 | Schedule and return | Ready | Parity target | Parity target | Parity target | Parity target | N/A | Free | One canonical return timestamp and item lifecycle across clients. |
