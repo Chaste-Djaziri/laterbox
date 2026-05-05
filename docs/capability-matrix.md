@@ -15,7 +15,7 @@ This is the release contract for product parity. macOS entries are verification 
 | Safari / browser capture | Verification required | Safari target | Chrome target | Browser target | N/A | Verification required | Pro for connected sync | Browser sends only explicit user-selected content. |
 | Clipboard monitoring | Verification required | Opt-in target | Opt-in target | Parity target | N/A | N/A | Pro automation | Candidates are never persisted or uploaded before confirmation. |
 | Watch Mode / screen context | Verification required | N/A | N/A | Deferred | N/A | N/A | Pro automation | Requires explicit Screen Recording permission and an obvious active state. |
-| Notch companion | Ready on supported Macs | Dynamic Island target | N/A | N/A | N/A | N/A | Pro automation | No-op on hardware without a notch; captures still work. |
+| Notch companion | Verification required on supported Macs | Dynamic Island target | N/A | N/A | N/A | N/A | Pro automation | No-op on hardware without a notch; captures still work. |
 | Return notifications | Verification required | Parity target | Parity target | Parity target | Web target | N/A | Free local; Pro remote | Permission denial leaves in-app return queues usable. |
 
 ## Platform rules
