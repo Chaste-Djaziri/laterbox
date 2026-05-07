@@ -8,7 +8,7 @@ This is the release contract for product parity. macOS entries are verification 
 | Schedule and return | Verification required | Parity target | Parity target | Parity target | Parity target | N/A | Free | One canonical return timestamp and item lifecycle across clients. |
 | Search, reader, collections, export | Verification required | Parity target | Parity target | Parity target | Parity target | N/A | Free | Local data remains available without an account. |
 | Account sync and cloud attachments | Verification required | Parity target | Parity target | Parity target | Verification required | Ready | Pro | Authenticated data is account-scoped and conflict-safe. |
-| Paid access | StoreKit | StoreKit | Play Billing | Deferred | Paddle | N/A | Pro | Entitlement is account-bound; restore and refresh never create duplicate access. |
+| Paid access | StoreKit target | StoreKit | Play Billing | Deferred | Paddle | N/A | Pro | Entitlement is account-bound; restore and refresh never create duplicate access. |
 | Global quick capture | Verification required | N/A | N/A | Parity target | In-app only | N/A | Free | Failed launches retain the capture draft. |
 | Menu bar / system tray | Verification required | N/A | N/A | Parity target | N/A | N/A | Free | Open and Quick Capture are always recoverable actions. |
 | Native sharing / Services | Verification required | Parity target | Parity target | Parity target | N/A | Browser share | Free | Failed deliveries stay queued until retried or discarded. |
