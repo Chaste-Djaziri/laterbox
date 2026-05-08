@@ -4,7 +4,7 @@ This is the release contract for product parity. macOS entries are verification 
 
 | Capability | macOS target | iOS | Android | Windows | Web | Extension | Access | Data contract |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Save URL, text, note, and file | Verification required | Parity target | Parity target | Parity target | Parity target | Verification required | Free | Local SQLite write succeeds offline; sync is idempotent when Pro returns online. |
+| Save URL, text, note, and file | Verification required | Parity target | Parity target | Parity target | Parity target | Verification required | Free | Platform-local persistence succeeds offline; sync is idempotent when Pro returns online. |
 | Schedule and return | Verification required | Parity target | Parity target | Parity target | Parity target | N/A | Free | One canonical return timestamp and item lifecycle across clients. |
 | Search, reader, collections, export | Verification required | Parity target | Parity target | Parity target | Parity target | N/A | Free | Local data remains available without an account. |
 | Account sync and cloud attachments | Verification required | Parity target | Parity target | Parity target | Verification required | Ready | Pro | Authenticated data is account-scoped and conflict-safe. |
