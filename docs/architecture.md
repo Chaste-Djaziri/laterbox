@@ -16,3 +16,7 @@ LaterBox has separate native Apple and Android applications, a Next.js web appli
 `assets/` contains shared branding. `version.json` supplies release metadata, including the Android build configuration. `scripts/bump_version.js` synchronizes the maintained Apple, web, and extension version files.
 
 Windows and Linux native clients are not yet present. Removing their legacy runners does not create replacement applications.
+
+## Apple source map
+
+Native models are in `laterbox-ios/laterbox-ios/Models/`, views in `Views/`, and integrations in `Services/`. `IOSCloudSync.swift` and `SyncCoordinator.swift` are starting points for sync work; `SharedCaptureImporter.swift` handles shared capture imports.
