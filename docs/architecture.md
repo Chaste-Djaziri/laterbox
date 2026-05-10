@@ -20,3 +20,7 @@ Windows and Linux native clients are not yet present. Removing their legacy runn
 ## Apple source map
 
 Native models are in `laterbox-ios/laterbox-ios/Models/`, views in `Views/`, and integrations in `Services/`. `IOSCloudSync.swift` and `SyncCoordinator.swift` are starting points for sync work; `SharedCaptureImporter.swift` handles shared capture imports.
+
+## Android source map
+
+Native source is under `laterbox-android/app/src/main/java/com/example/laterbox/`. Room models live in `data/local/`, background synchronization in `data/sync/`, and Compose screens in `ui/`. See [Android setup](../laterbox-android/README.md).
