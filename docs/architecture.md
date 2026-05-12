@@ -24,3 +24,7 @@ Native models are in `laterbox-ios/laterbox-ios/Models/`, views in `Views/`, and
 ## Android source map
 
 Native source is under `laterbox-android/app/src/main/java/com/example/laterbox/`. Room models live in `data/local/`, background synchronization in `data/sync/`, and Compose screens in `ui/`. See [Android setup](../laterbox-android/README.md).
+
+## Web source map
+
+`laterbox-web/src/app/api/` owns Next.js server endpoints. `src/lib/store/` holds application contexts, `src/lib/supabase/` owns the Supabase client contract, and `src/lib/extension/` owns web-side extension integration.
