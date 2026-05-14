@@ -28,3 +28,7 @@ Native source is under `laterbox-android/app/src/main/java/com/example/laterbox/
 ## Web source map
 
 `laterbox-web/src/app/api/` owns Next.js server endpoints. `src/lib/store/` holds application contexts, `src/lib/supabase/` owns the Supabase client contract, and `src/lib/extension/` owns web-side extension integration.
+
+## Capture backend
+
+Browser connection and capture edge functions are in `supabase/functions/extension-connect/` and `supabase/functions/capture/`. Their adjacent tests are part of web release validation. Database changes belong in `supabase/migrations/`.
