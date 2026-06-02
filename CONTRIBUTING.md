@@ -15,3 +15,7 @@ Run checks for the subsystem you change:
 Never commit secrets, signing keys, generated builds, or local SDK configuration. Describe the problem, behavior, and verification in reviews using the [review template](.github/PULL_REQUEST_TEMPLATE.md).
 
 See [SUPPORT.md](SUPPORT.md) for help, [SECURITY.md](SECURITY.md) to report vulnerabilities, and [LICENSE](LICENSE) for licensing terms.
+
+## Native project setup
+
+Use [Apple CI and tooling](laterbox-ios/ci/README.md) for Xcode and [Android setup](laterbox-android/README.md) for Gradle. Native app changes use Swift or Kotlin in their respective projects; the retired root cross-platform application is no longer a build target.
