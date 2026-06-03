@@ -19,3 +19,7 @@ See [SUPPORT.md](SUPPORT.md) for help, [SECURITY.md](SECURITY.md) to report vuln
 ## Native project setup
 
 Use [Apple CI and tooling](laterbox-ios/ci/README.md) for Xcode and [Android setup](laterbox-android/README.md) for Gradle. Native app changes use Swift or Kotlin in their respective projects; the retired root cross-platform application is no longer a build target.
+
+## Documentation verification
+
+For documentation edits, verify referenced paths and package commands against the current source, and run `git diff --check`. Keep historical designs explicitly marked so obsolete commands do not become setup instructions.
