@@ -23,3 +23,7 @@ Use [Apple CI and tooling](laterbox-ios/ci/README.md) for Xcode and [Android set
 ## Documentation verification
 
 For documentation edits, verify referenced paths and package commands against the current source, and run `git diff --check`. Keep historical designs explicitly marked so obsolete commands do not become setup instructions.
+
+## Workflow ownership
+
+Apple release checks live in `.github/workflows/ios.yml`, Android checks in `android.yml`, web and backend checks in `release.yml`, and extension packaging in `extensions.yml`. Consult each workflow for its exact path filters and release conditions.
