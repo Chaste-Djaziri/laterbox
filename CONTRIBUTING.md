@@ -27,3 +27,7 @@ For documentation edits, verify referenced paths and package commands against th
 ## Workflow ownership
 
 Apple release checks live in `.github/workflows/ios.yml`, Android checks in `android.yml`, web and backend checks in `release.yml`, and extension packaging in `extensions.yml`. Consult each workflow for its exact path filters and release conditions.
+
+## Database changes
+
+Place schema changes in `supabase/migrations/` and verify affected contracts in `supabase/tests/` or the adjacent edge-function test files. Keep account ownership and Row-Level Security consistent with the clients consuming the schema.
