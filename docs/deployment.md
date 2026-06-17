@@ -23,3 +23,7 @@ Build browser bundles from `laterbox-extension/` using `npm run build:all`. The 
 Deploy migrations and functions from `supabase/` using the project's existing Supabase workflow. Preserve Row-Level Security and keep service credentials server-side.
 
 Windows and Linux native packaging is future work; the legacy platform runners and packaging scripts have been removed.
+
+## Android automation
+
+`.github/workflows/android.yml` runs Gradle tests and produces AAB/APK artifacts. Main-branch release runs attach Android files to GitHub Releases and submit to Play when service-account credentials are configured. See [Android release setup](../laterbox-android/README.md).
