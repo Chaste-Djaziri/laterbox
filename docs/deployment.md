@@ -27,3 +27,7 @@ Windows and Linux native packaging is future work; the legacy platform runners a
 ## Android automation
 
 `.github/workflows/android.yml` runs Gradle tests and produces AAB/APK artifacts. Main-branch release runs attach Android files to GitHub Releases and submit to Play when service-account credentials are configured. See [Android release setup](../laterbox-android/README.md).
+
+## Extension automation
+
+`.github/workflows/extensions.yml` validates types, tests capture behavior, and runs `npm run package`. It uploads browser ZIP artifacts and attaches them to GitHub Releases on eligible main runs; browser-store publication remains a separate step.
