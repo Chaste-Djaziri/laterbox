@@ -31,3 +31,7 @@ Windows and Linux native packaging is future work; the legacy platform runners a
 ## Extension automation
 
 `.github/workflows/extensions.yml` validates types, tests capture behavior, and runs `npm run package`. It uploads browser ZIP artifacts and attaches them to GitHub Releases on eligible main runs; browser-store publication remains a separate step.
+
+## Web release triggers
+
+The web workflow watches web source, extension source, root `version.json`, and its own workflow on main pushes. Supabase changes also trigger PR contract checks. Inspect `release.yml` before relying on a backend-only push to deploy anything.
