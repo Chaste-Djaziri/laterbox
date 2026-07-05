@@ -35,3 +35,7 @@ Windows and Linux native packaging is future work; the legacy platform runners a
 ## Web release triggers
 
 The web workflow watches web source, extension source, root `version.json`, and its own workflow on main pushes. Supabase changes also trigger PR contract checks. Inspect `release.yml` before relying on a backend-only push to deploy anything.
+
+## Build output locations
+
+Web CI retains `.open-next/`; Android retains APK, AAB, and R8 mapping artifacts; extension ZIPs are built under `laterbox-extension/dist/`. Apple output handling is documented in the [native CI guide](../laterbox-ios/ci/README.md).
