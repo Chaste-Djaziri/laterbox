@@ -84,3 +84,7 @@ Run `npm test`, `npm run typecheck`, `npm run build:all`, and `npm run zip`. Bac
 ## Free extension rollout
 
 Apply `supabase/migrations/202610100001_free_extension_capture.sql`, then deploy the capture function and web app before releasing the extension. Other Pro features remain paid. Local captures stay in the guest library when signing in; they are never automatically uploaded. Browser-profile storage is local to this browser and origin, so export important captures before clearing browser data.
+
+## Package command
+
+`npm run package` builds all hosted browser targets and creates ZIP archives. The ZIP script also copies downloads into `../laterbox-web/public/downloads/`; review generated output before staging repository changes.
