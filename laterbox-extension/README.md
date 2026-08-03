@@ -88,3 +88,7 @@ Apply `supabase/migrations/202610100001_free_extension_capture.sql`, then deploy
 ## Package command
 
 `npm run package` builds all hosted browser targets and creates ZIP archives. The ZIP script also copies downloads into `../laterbox-web/public/downloads/`; review generated output before staging repository changes.
+
+## CI ownership
+
+The dedicated extension workflow is `.github/workflows/extensions.yml`. The web release workflow also packages extensions so web download assets accompany the Cloudflare build. See [deployment](../docs/deployment.md) for release conditions.
