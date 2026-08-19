@@ -64,9 +64,13 @@ void main() {
   });
 
   testWidgets('offers authentication and guest mode', (tester) async {
+    final database = AppDatabase(NativeDatabase.memory());
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [guestModeProvider.overrideWith((ref) => false)],
+        overrides: [
+          guestModeProvider.overrideWith((ref) => false),
+          appDatabaseProvider.overrideWithValue(database),
+        ],
         child: const LaterBoxApp(),
       ),
     );
@@ -79,5 +83,9 @@ void main() {
     await tester.tap(find.text('Continue without account'));
     await tester.pumpAndSettle();
     expect(find.text('Inbox'), findsOneWidget);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(milliseconds: 1));
+    await database.close();
   });
 }
