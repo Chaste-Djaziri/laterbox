@@ -33,8 +33,7 @@ body {
   background: #ffffff;
 }
 
-.eyebrow,
-label {
+.eyebrow {
   color: #6c6b63;
   font-size: 11px;
   font-weight: 800;
@@ -57,20 +56,16 @@ h1 {
   white-space: nowrap;
 }
 
-form {
+.connection-panel {
   display: grid;
   gap: 8px;
   margin-top: 18px;
 }
 
-input {
-  width: 100%;
-  padding: 11px 12px;
-  border: 1px solid #e4e0d5;
-  border-radius: 10px;
-  background: #ffffff;
-  color: #171711;
-  font: inherit;
+.connection-panel p {
+  margin: 0 0 4px;
+  color: #6c6b63;
+  font-size: 13px;
 }
 
 button {
@@ -88,6 +83,14 @@ button {
 button:disabled {
   cursor: wait;
   opacity: 0.6;
+}
+
+.link-button {
+  margin-top: 2px;
+  padding: 4px;
+  background: transparent;
+  color: #6c6b63;
+  font-size: 12px;
 }
 
 .status {
