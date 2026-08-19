@@ -9,12 +9,13 @@ import '../../../shared/models/laterbox_item.dart';
 import 'local_item_data_source.dart';
 
 class ItemRepository {
-  ItemRepository(
-    this._local, {
+  factory ItemRepository(
+    LocalItemDataSource local, {
     required Future<void> Function() onSaved,
     Uuid uuid = const Uuid(),
-  }) : _onSaved = onSaved,
-       _uuid = uuid;
+  }) => ItemRepository._(local, onSaved, uuid);
+
+  ItemRepository._(this._local, this._onSaved, this._uuid);
 
   final LocalItemDataSource _local;
   final Future<void> Function() _onSaved;
