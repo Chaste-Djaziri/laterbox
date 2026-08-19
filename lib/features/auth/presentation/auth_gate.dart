@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/auth/auth_provider.dart';
-import '../../inbox/presentation/inbox_screen.dart';
+import '../../home/presentation/home_shell.dart';
 import 'auth_screen.dart';
 
 class AuthGate extends ConsumerWidget {
@@ -18,10 +18,9 @@ class AuthGate extends ConsumerWidget {
         body: Center(child: CircularProgressIndicator.adaptive()),
       ),
       error: (error, stackTrace) =>
-          guestMode ? const InboxScreen() : const AuthScreen(),
-      data: (state) => state.isAuthenticated || guestMode
-          ? const InboxScreen()
-          : const AuthScreen(),
+          guestMode ? const HomeShell() : const AuthScreen(),
+      data: (state) =>
+          state.isAuthenticated || guestMode ? const HomeShell() : const AuthScreen(),
     );
   }
 }
