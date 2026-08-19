@@ -5,9 +5,7 @@ import '../../features/auth/presentation/auth_gate.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   final router = GoRouter(
-    routes: [
-      GoRoute(path: '/', builder: (context, state) => const AuthGate()),
-    ],
+    routes: [GoRoute(path: '/', builder: (context, state) => const AuthGate())],
   );
   ref.onDispose(router.dispose);
   return router;
