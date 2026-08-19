@@ -82,7 +82,28 @@ void main() {
 
     await tester.tap(find.text('Continue without account'));
     await tester.pumpAndSettle();
-    expect(find.text('Inbox'), findsOneWidget);
+    expect(find.text('Inbox'), findsWidgets);
+    expect(
+      find.descendant(
+        of: find.byType(NavigationBar),
+        matching: find.text('Inbox'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byType(NavigationBar),
+        matching: find.text('Search'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byType(NavigationBar),
+        matching: find.text('Library'),
+      ),
+      findsOneWidget,
+    );
 
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(milliseconds: 1));
