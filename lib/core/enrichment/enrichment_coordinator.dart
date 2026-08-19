@@ -7,6 +7,7 @@ import '../../core/database/app_database.dart';
 import '../../features/enrichment/data/enrichment_repository.dart';
 import '../../features/enrichment/domain/enrichment_result.dart';
 import '../../features/enrichment/domain/enrichment_service.dart';
+import '../../shared/models/item_status.dart';
 import '../../shared/models/laterbox_item.dart';
 
 /// Watches for URL items that need enrichment, drains the queue with a single
@@ -96,7 +97,7 @@ class EnrichmentCoordinator {
       text: item.textContent,
       type: item.type,
       favorite: item.favorite,
-      archived: item.archived,
+      status: ItemStatus.fromDatabase(item.status),
       createdAt: item.createdAt,
     );
   }
