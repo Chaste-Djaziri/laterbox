@@ -68,6 +68,10 @@ class RemoteItemMetadata {
     this.enrichedAt,
     required this.createdAt,
     required this.updatedAt,
+    this.contentType,
+    this.classificationSource,
+    this.classificationConfidence,
+    this.structuredData,
   });
 
   factory RemoteItemMetadata.fromJson(Map<String, dynamic> json) {
@@ -89,6 +93,11 @@ class RemoteItemMetadata {
           : DateTime.parse(json['enriched_at'] as String).toUtc(),
       createdAt: DateTime.parse(json['created_at'] as String).toUtc(),
       updatedAt: DateTime.parse(json['updated_at'] as String).toUtc(),
+      contentType: json['content_type'] as String?,
+      classificationSource: json['classification_source'] as String?,
+      classificationConfidence:
+          (json['classification_confidence'] as num?)?.toDouble(),
+      structuredData: json['structured_data'] as String?,
     );
   }
 
@@ -107,6 +116,10 @@ class RemoteItemMetadata {
   final DateTime? enrichedAt;
   final DateTime createdAt;
   final DateTime updatedAt;
+  final String? contentType;
+  final String? classificationSource;
+  final double? classificationConfidence;
+  final String? structuredData;
 }
 
 extension on ItemMetadataData {
@@ -126,5 +139,9 @@ extension on ItemMetadataData {
     'enriched_at': enrichedAt?.toUtc().toIso8601String(),
     'created_at': createdAt.toUtc().toIso8601String(),
     'updated_at': updatedAt.toUtc().toIso8601String(),
+    'content_type': contentType,
+    'classification_source': classificationSource,
+    'classification_confidence': classificationConfidence,
+    'structured_data': structuredData,
   };
 }
