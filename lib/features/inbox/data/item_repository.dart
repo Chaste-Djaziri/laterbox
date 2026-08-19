@@ -6,7 +6,6 @@ import 'package:uuid/uuid.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/sync/sync_status.dart';
 import '../../../shared/models/laterbox_item.dart';
-import '../../enrichment/domain/item_metadata.dart';
 import '../../enrichment/domain/url_utils.dart';
 import 'local_item_data_source.dart';
 
@@ -26,27 +25,19 @@ class ItemRepository {
   final Uuid _uuid;
 
   Stream<List<LaterBoxItem>> watchInboxItems() {
-    return _local
-        .watchInboxItemsWithMetadata(_userId)
-        .map(
-          (rows) => rows
-              .map(
-                (row) => LaterBoxItem(
-                  id: row.$1.id,
-                  url: row.$1.url,
-                  title: row.$1.title,
-                  text: row.$1.textContent,
-                  type: row.$1.type,
-                  favorite: row.$1.favorite,
-                  archived: row.$1.archived,
-                  createdAt: row.$1.createdAt,
-                  metadata: row.$2 == null
-                      ? null
-                      : EnrichedMetadata.fromDrift(row.$2!),
-                ),
-              )
-              .toList(),
-        );
+    return _local.watchInboxItemsWithMetadata(_userId).map(
+      (rows) => rows
+          .map((row) => LaterBoxItem.fromDriftRows(row.$1, row.$2))
+          .toList(),
+    );
+  }
+
+  Stream<List<LaterBoxItem>> watchAllItems() {
+    return _local.watchAllItemsWithMetadata(_userId).map(
+      (rows) => rows
+          .map((row) => LaterBoxItem.fromDriftRows(row.$1, row.$2))
+          .toList(),
+    );
   }
 
   Future<void> save(String value, {String? id, DateTime? createdAt}) async {
