@@ -15,7 +15,19 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           redirectUri: state.uri.queryParameters['redirect_uri'] ?? '',
         ),
       ),
-      GoRoute(path: '/', builder: (context, state) => const AuthGate()),
+      GoRoute(
+        path: '/inbox',
+        builder: (context, state) => const AuthGate(initialIndex: 0),
+      ),
+      GoRoute(
+        path: '/search',
+        builder: (context, state) => const AuthGate(initialIndex: 1),
+      ),
+      GoRoute(
+        path: '/library',
+        builder: (context, state) => const AuthGate(initialIndex: 2),
+      ),
+      GoRoute(path: '/', redirect: (context, state) => '/inbox'),
     ],
   );
   ref.onDispose(router.dispose);
