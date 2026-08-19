@@ -11,7 +11,6 @@ void main() {
     tester,
   ) async {
     final database = AppDatabase(NativeDatabase.memory());
-    addTearDown(database.close);
 
     await tester.pumpWidget(
       ProviderScope(
@@ -34,11 +33,14 @@ void main() {
 
     expect(find.text('GITHUB.COM'), findsOneWidget);
     expect(find.text('https://github.com/flutter/flutter'), findsOneWidget);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+    await database.close();
   });
 
   testWidgets('shows validation when capture is empty', (tester) async {
     final database = AppDatabase(NativeDatabase.memory());
-    addTearDown(database.close);
 
     await tester.pumpWidget(
       ProviderScope(
@@ -54,5 +56,9 @@ void main() {
     await tester.pump();
 
     expect(find.text('Paste a URL or some text to save.'), findsOneWidget);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+    await database.close();
   });
 }
