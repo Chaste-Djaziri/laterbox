@@ -111,6 +111,11 @@ void main() {
   test('a remote edit newer than the local copy wins', () async {
     await seedItem('item-a');
     await notes.save('item-a', 'user-1', 'Local stale version');
+    await (database.update(
+      database.itemNotes,
+    )..where((note) => note.itemId.equals('item-a'))).write(
+      ItemNotesCompanion(updatedAt: Value(DateTime.utc(2026, 8, 19, 11))),
+    );
     final newer = DateTime.utc(2026, 8, 19, 12);
     remoteNotes.notes = [
       RemoteItemNote(
