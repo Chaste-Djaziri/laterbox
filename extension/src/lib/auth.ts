@@ -37,6 +37,7 @@ export async function connectLaterBox(): Promise<string> {
     url: connectUrl.toString(),
     interactive: true,
   });
+  if (!finalUrl) throw new Error("LaterBox connection was cancelled");
   const callback = new URL(finalUrl);
   if (
     callback.searchParams.get("status") !== "approved" ||
