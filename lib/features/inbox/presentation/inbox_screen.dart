@@ -109,8 +109,12 @@ class _ItemCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final uri = item.url == null ? null : Uri.tryParse(item.url!);
-    final eyebrow = uri?.host.replaceFirst('www.', '') ?? 'Note';
-    final title = item.title ?? item.url ?? item.text ?? 'Untitled';
+    final eyebrow =
+        item.metadata?.domain ?? uri?.host.replaceFirst('www.', '') ?? 'Note';
+    final title =
+        item.metadata?.title ?? item.title ?? item.url ?? item.text ?? 'Untitled';
+    final description = item.metadata?.description;
+    final faviconUrl = item.metadata?.faviconUrl;
 
     return Semantics(
       label: '$eyebrow, $title, saved ${timeago.format(item.createdAt)}',
@@ -121,34 +125,102 @@ class _ItemCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: Theme.of(context).colorScheme.outline),
         ),
-        child: Column(
+        child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              eyebrow.toUpperCase(),
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 1.1,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              title,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.titleMedium
-                  ?.copyWith(fontWeight: FontWeight.w700),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              timeago.format(item.createdAt),
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
+            _CardGlyph(eyebrow: eyebrow, faviconUrl: faviconUrl),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    eyebrow.toUpperCase(),
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 1.1,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.titleMedium
+                        ?.copyWith(fontWeight: FontWeight.w700),
+                  ),
+                  if (description != null && description.isNotEmpty) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      description,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 12),
+                  Text(
+                    timeago.format(item.createdAt),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _CardGlyph extends StatelessWidget {
+  const _CardGlyph({required this.eyebrow, this.faviconUrl});
+
+  final String eyebrow;
+  final String? faviconUrl;
+
+  @override
+  Widget build(BuildContext context) {
+    final initial = eyebrow.isEmpty ? '?' : eyebrow[0].toUpperCase();
+    final fallback = Container(
+      width: 44,
+      height: 44,
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        initial,
+        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+          fontWeight: FontWeight.w800,
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
+      ),
+    );
+
+    if (faviconUrl == null || faviconUrl!.isEmpty) return fallback;
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          fallback,
+          Positioned.fill(
+            child: Image.network(
+              faviconUrl!,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) =>
+                  const SizedBox.shrink(),
+            ),
+          ),
+        ],
       ),
     );
   }
