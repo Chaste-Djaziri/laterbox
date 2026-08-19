@@ -8,7 +8,10 @@
   </head>
   <body>
     <main class="popup">
-      <header class="brand">LaterBox</header>
+      <header class="brand">
+        <span>LaterBox</span>
+        <span class="brand-mark" aria-hidden="true"></span>
+      </header>
       <section class="capture-preview" aria-live="polite">
         <p id="domain" class="eyebrow">CURRENT PAGE</p>
         <h1 id="title">Loading page...</h1>
@@ -24,6 +27,7 @@
         <button id="connect" type="button">Connect LaterBox</button>
       </section>
       <section id="connected" class="connection-panel" hidden>
+        <p class="connected-label"><span class="status-dot"></span>Connected to LaterBox</p>
         <button id="save" type="button">Save to LaterBox</button>
         <button id="disconnect" class="link-button" type="button">Disconnect</button>
       </section>
