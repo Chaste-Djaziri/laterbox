@@ -4,6 +4,8 @@ import '../../features/enrichment/data/local_metadata_data_source.dart';
 import '../../features/enrichment/data/remote_metadata_data_source.dart';
 import '../../features/inbox/data/local_item_data_source.dart';
 import '../../features/inbox/data/remote_item_data_source.dart';
+import '../../features/notes/data/local_item_note_data_source.dart';
+import '../../features/notes/data/remote_item_note_data_source.dart';
 import '../database/app_database.dart';
 import 'sync_result.dart';
 
@@ -16,6 +18,8 @@ class SyncService {
     RemoteMetadataDataSource? remoteMetadata,
     LocalCollectionDataSource? localCollections,
     RemoteCollectionDataSource? remoteCollections,
+    LocalItemNoteDataSource? localNotes,
+    RemoteItemNoteDataSource? remoteNotes,
   }) => SyncService._(
     local,
     remote,
@@ -24,6 +28,8 @@ class SyncService {
     remoteMetadata,
     localCollections,
     remoteCollections,
+    localNotes,
+    remoteNotes,
   );
 
   SyncService._(
@@ -34,6 +40,8 @@ class SyncService {
     this._remoteMetadata,
     this._localCollections,
     this._remoteCollections,
+    this._localNotes,
+    this._remoteNotes,
   );
 
   final LocalItemDataSource _local;
@@ -43,6 +51,8 @@ class SyncService {
   final RemoteMetadataDataSource? _remoteMetadata;
   final LocalCollectionDataSource? _localCollections;
   final RemoteCollectionDataSource? _remoteCollections;
+  final LocalItemNoteDataSource? _localNotes;
+  final RemoteItemNoteDataSource? _remoteNotes;
   Future<SyncResult>? _activeSync;
   int _pushed = 0;
   int _pulled = 0;
@@ -107,11 +117,27 @@ class SyncService {
     }
 
     await _syncCollections(userId);
+    await _syncNotes(userId);
 
     return SyncResult(
       pushed: _pushed,
       pulled: _pulled,
       failed: _failed,
+    );
+  }
+
+  Future<void> _syncNotes(String userId) async {
+    final local = _localNotes;
+    final remote = _remoteNotes;
+    if (local == null || remote == null) return;
+    await _syncEntity(
+      fetchRemote: () => remote.fetchNotes(userId),
+      applyRemote: (RemoteItemNote row, syncedAt) =>
+          local.applyRemoteNote(row, syncedAt),
+      needingSync: () => local.notesNeedingSync(userId),
+      upsert: (ItemNote row) => remote.upsertNote(row),
+      markSynced: (row, syncedAt) => local.markSynced(row.itemId, syncedAt),
+      markFailed: (row) => local.markFailed(row.itemId),
     );
   }
 
