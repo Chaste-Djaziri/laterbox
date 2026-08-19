@@ -18,10 +18,7 @@ class AuthRepository {
   }
 
   Future<void> signUp({required String email, required String password}) async {
-    await _requiredClient.auth.signUp(
-      email: email.trim(),
-      password: password,
-    );
+    await _requiredClient.auth.signUp(email: email.trim(), password: password);
   }
 
   Future<void> signOut() => _requiredClient.auth.signOut();
