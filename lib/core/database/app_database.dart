@@ -42,10 +42,15 @@ class AppDatabase extends _$AppDatabase {
     },
   );
 
-  Stream<List<Item>> watchInboxItems() {
+  Stream<List<Item>> watchInboxItems(String? userId) {
     return (select(items)
           ..where(
-            (item) => item.archived.equals(false) & item.deletedAt.isNull(),
+            (item) =>
+                item.archived.equals(false) &
+                item.deletedAt.isNull() &
+                (userId == null
+                    ? item.userId.isNull()
+                    : item.userId.equals(userId)),
           )
           ..orderBy([(item) => OrderingTerm.desc(item.createdAt)]))
         .watch();
