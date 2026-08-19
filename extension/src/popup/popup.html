@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LaterBox</title>
+  </head>
+  <body>
+    <main class="popup">
+      <header class="brand">LaterBox</header>
+      <section class="capture-preview" aria-live="polite">
+        <p id="domain" class="eyebrow">CURRENT PAGE</p>
+        <h1 id="title">Loading page...</h1>
+        <p id="url" class="url"></p>
+      </section>
+      <form id="capture-form">
+        <label for="token">Developer access token</label>
+        <input id="token" type="password" autocomplete="off" placeholder="Paste Supabase access token" />
+        <button id="save" type="submit">Save to LaterBox</button>
+      </form>
+      <p id="status" class="status" role="status"></p>
+    </main>
+    <script type="module" src="./popup.ts"></script>
+  </body>
+</html>
