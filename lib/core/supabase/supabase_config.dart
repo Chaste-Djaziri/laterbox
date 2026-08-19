@@ -1,11 +1,12 @@
 import 'package:flutter/foundation.dart';
 
+import 'localhost_url.dart';
+
 abstract final class SupabaseConfig {
   static const _configuredUrl = String.fromEnvironment('SUPABASE_URL');
   static const _configuredPublishableKey = String.fromEnvironment(
     'SUPABASE_PUBLISHABLE_KEY',
   );
-  static const _localUrl = 'http://127.0.0.1:54321';
   static const _localPublishableKey =
       'sb_publishable_ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH';
 
@@ -15,7 +16,7 @@ abstract final class SupabaseConfig {
       ? _configuredUrl
       : kReleaseMode
       ? ''
-      : _localUrl;
+      : localDebugSupabaseUrl;
 
   static String get publishableKey => _configuredPublishableKey.isNotEmpty
       ? _configuredPublishableKey
