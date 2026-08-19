@@ -137,11 +137,16 @@ class AppDatabase extends _$AppDatabase {
           );
         }
         if (!itemColumns.contains('updated_at')) {
+          // SQLite forbids non-constant defaults (CURRENT_TIMESTAMP) in
+          // ADD COLUMN, so add it plain and backfill from created_at.
           await migrator.database.customStatement(
-            'ALTER TABLE collection_items ADD COLUMN updated_at '
-            'TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP',
+            'ALTER TABLE collection_items ADD COLUMN updated_at TIMESTAMP',
           );
         }
+        await migrator.database.customStatement(
+          'UPDATE collection_items SET updated_at = created_at '
+          'WHERE updated_at IS NULL',
+        );
       }
     },
   );
