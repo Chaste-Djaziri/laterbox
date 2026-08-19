@@ -18,6 +18,26 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
   void handleContextMenu(info, tab);
 });
 
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message?.type !== "save-page") return false;
+  void savePageMessage(message, sender).then(sendResponse);
+  return true;
+});
+
+async function savePageMessage(
+  message: { url?: unknown; title?: unknown },
+  sender: chrome.runtime.MessageSender,
+) {
+  const url = typeof message.url === "string" ? message.url : sender.tab?.url;
+  if (!url || !/^https?:\/\//i.test(url)) return { status: "needsAuth" };
+  return saveCapture({
+    url,
+    title: typeof message.title === "string" ? message.title : sender.tab?.title,
+    source: "browserExtension",
+    createdAt: new Date().toISOString(),
+  });
+}
+
 async function createContextMenus(): Promise<void> {
   await chrome.contextMenus.removeAll();
   chrome.contextMenus.create({
