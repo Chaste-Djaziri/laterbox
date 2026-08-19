@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 part 'app_database.g.dart';
 
@@ -110,7 +111,18 @@ class ItemMetadata extends Table {
 ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor])
-    : super(executor ?? driftDatabase(name: 'laterbox'));
+    : super(
+        executor ??
+            driftDatabase(
+              name: 'laterbox',
+              web: kIsWeb
+                  ? DriftWebOptions(
+                      sqlite3Wasm: Uri.parse('sqlite3.wasm'),
+                      driftWorker: Uri.parse('drift_worker.dart.js'),
+                    )
+                  : null,
+            ),
+      );
 
   @override
   int get schemaVersion => 7;
