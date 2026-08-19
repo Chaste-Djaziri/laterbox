@@ -12,6 +12,12 @@ class LocalItemDataSource {
     return _database.watchInboxItems(userId);
   }
 
+  Stream<List<(Item, ItemMetadataData?)>> watchInboxItemsWithMetadata(
+    String? userId,
+  ) {
+    return _database.watchInboxItemsWithMetadata(userId);
+  }
+
   Future<void> insert(ItemsCompanion item) => _database.saveItem(item);
 
   Future<bool> exists(String id) async => (await _database.itemById(id)) != null;
