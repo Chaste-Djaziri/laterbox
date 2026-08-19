@@ -14,11 +14,14 @@
         <h1 id="title">Loading page...</h1>
         <p id="url" class="url"></p>
       </section>
-      <form id="capture-form">
-        <label for="token">Developer access token</label>
-        <input id="token" type="password" autocomplete="off" placeholder="Paste Supabase access token" />
-        <button id="save" type="submit">Save to LaterBox</button>
-      </form>
+      <section id="disconnected" class="connection-panel">
+        <p>Connect LaterBox to start saving across devices.</p>
+        <button id="connect" type="button">Connect LaterBox</button>
+      </section>
+      <section id="connected" class="connection-panel" hidden>
+        <button id="save" type="button">Save to LaterBox</button>
+        <button id="disconnect" class="link-button" type="button">Disconnect</button>
+      </section>
       <p id="status" class="status" role="status"></p>
     </main>
     <script type="module" src="./popup.ts"></script>
