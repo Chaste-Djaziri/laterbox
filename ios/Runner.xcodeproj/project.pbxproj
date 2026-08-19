@@ -87,6 +87,7 @@
 		97C147001CF9000F007C117D /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		97C147021CF9000F007C117D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		DF0BD1CC0F5F06A5B822E62A /* ShareExtension.entitlements */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.entitlements; path = ShareExtension.entitlements; sourceTree = "<group>"; };
+		E23A7C1D0C2F0A5B91D4E6F2 /* Config.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; path = Config.xcconfig; sourceTree = "<group>"; };
 		FCB1B3708562319D1001CDC2 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
 /* End PBXFileReference section */
 
@@ -191,6 +192,7 @@
 				2DA375F1BEA43B31C44401EE /* ShareCaptureQueue.swift */,
 				5B1C6724B393DC5F8E64A4EF /* Info.plist */,
 				DF0BD1CC0F5F06A5B822E62A /* ShareExtension.entitlements */,
+				E23A7C1D0C2F0A5B91D4E6F2 /* Config.xcconfig */,
 			);
 			name = ShareExtension;
 			path = ShareExtension;
@@ -553,6 +555,7 @@
 		};
 		6784477DC6DF6109B87A267C /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = E23A7C1D0C2F0A5B91D4E6F2 /* Config.xcconfig */;
 			buildSettings = {
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				CLANG_ENABLE_OBJC_WEAK = NO;
@@ -738,6 +741,7 @@
 		};
 		A9F9105422EF6C2ECA921396 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = E23A7C1D0C2F0A5B91D4E6F2 /* Config.xcconfig */;
 			buildSettings = {
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				CLANG_ENABLE_OBJC_WEAK = NO;
@@ -763,6 +767,7 @@
 		};
 		CEE5AAF9333C4FFE2D8157CC /* Profile */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = E23A7C1D0C2F0A5B91D4E6F2 /* Config.xcconfig */;
 			buildSettings = {
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				CLANG_ENABLE_OBJC_WEAK = NO;
