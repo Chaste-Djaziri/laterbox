@@ -11,7 +11,7 @@ class Items extends Table {
   TextColumn get textContent => text().nullable()();
   TextColumn get type => text().withDefault(const Constant('unknown'))();
   BoolColumn get favorite => boolean().withDefault(const Constant(false))();
-  BoolColumn get archived => boolean().withDefault(const Constant(false))();
+  TextColumn get status => text().withDefault(const Constant('inbox'))();
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
   TextColumn get syncStatus => text().withDefault(const Constant('pending'))();
@@ -20,6 +20,35 @@ class Items extends Table {
 
   @override
   Set<Column<Object>> get primaryKey => {id};
+}
+
+class Collections extends Table {
+  TextColumn get id => text()();
+  TextColumn get userId => text().nullable()();
+  TextColumn get name => text()();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+  DateTimeColumn get deletedAt => dateTime().nullable()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
+class CollectionItems extends Table {
+  TextColumn get collectionId => text().references(
+        Collections,
+        #id,
+        onDelete: KeyAction.cascade,
+      )();
+  TextColumn get itemId => text().references(
+        Items,
+        #id,
+        onDelete: KeyAction.cascade,
+      )();
+  DateTimeColumn get createdAt => dateTime()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {collectionId, itemId};
 }
 
 class ItemMetadata extends Table {
@@ -43,13 +72,13 @@ class ItemMetadata extends Table {
   Set<Column<Object>> get primaryKey => {itemId};
 }
 
-@DriftDatabase(tables: [Items, ItemMetadata])
+@DriftDatabase(tables: [Items, ItemMetadata, Collections, CollectionItems])
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor])
     : super(executor ?? driftDatabase(name: 'laterbox'));
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -63,6 +92,16 @@ class AppDatabase extends _$AppDatabase {
       if (from < 3) {
         await migrator.createTable(itemMetadata);
       }
+      if (from < 4) {
+        await migrator.addColumn(items, items.status);
+        await migrator.createTable(collections);
+        await migrator.createTable(collectionItems);
+        await migrator.database.customStatement(
+          "UPDATE items SET status = 'archived' WHERE archived = 1",
+        );
+        await migrator.database
+            .customStatement('ALTER TABLE items DROP COLUMN archived');
+      }
     },
   );
 
@@ -70,7 +109,7 @@ class AppDatabase extends _$AppDatabase {
     return (select(items)
           ..where(
             (item) =>
-                item.archived.equals(false) &
+                item.status.equals('inbox') &
                 item.deletedAt.isNull() &
                 (userId == null
                     ? item.userId.isNull()
@@ -127,7 +166,7 @@ class AppDatabase extends _$AppDatabase {
     String? userId,
   ) {
     final query = _itemsWithMetadataQuery(userId)
-      ..where(items.archived.equals(false))
+      ..where(items.status.equals('inbox'))
       ..orderBy([OrderingTerm.desc(items.createdAt)]);
     return query.watch().map(_mapJoinedRows);
   }
@@ -139,6 +178,43 @@ class AppDatabase extends _$AppDatabase {
     final query = _itemsWithMetadataQuery(userId)
       ..orderBy([OrderingTerm.desc(items.createdAt)]);
     return query.watch().map(_mapJoinedRows);
+  }
+
+  /// Non-deleted items with the given status, newest first.
+  Stream<List<(Item, ItemMetadataData?)>> watchItemsWithStatus(
+    String? userId,
+    String status,
+  ) {
+    final query = _itemsWithMetadataQuery(userId)
+      ..where(items.status.equals(status))
+      ..orderBy([OrderingTerm.desc(items.createdAt)]);
+    return query.watch().map(_mapJoinedRows);
+  }
+
+  /// Non-deleted favorites, newest first.
+  Stream<List<(Item, ItemMetadataData?)>> watchFavoriteItemsWithMetadata(
+    String? userId,
+  ) {
+    final query = _itemsWithMetadataQuery(userId)
+      ..where(items.favorite.equals(true))
+      ..orderBy([OrderingTerm.desc(items.createdAt)]);
+    return query.watch().map(_mapJoinedRows);
+  }
+
+  /// A single item (with its metadata) that stays live as rows change.
+  Stream<(Item, ItemMetadataData?)?> watchItemWithMetadata(String id) {
+    final query = select(items).join([
+      leftOuterJoin(itemMetadata, itemMetadata.itemId.equalsExp(items.id)),
+    ])
+      ..where(items.id.equals(id));
+    return query
+        .watchSingleOrNull()
+        .map((row) => row == null
+            ? null
+            : (
+                row.readTable(items),
+                row.readTableOrNull(itemMetadata),
+              ));
   }
 
   /// Local-only LIKE search across item text, URL and enriched metadata
@@ -222,7 +298,7 @@ class AppDatabase extends _$AppDatabase {
       leftOuterJoin(itemMetadata, itemMetadata.itemId.equalsExp(items.id)),
     ])
       ..where(
-        items.archived.equals(false) &
+        items.status.isNotValue('archived') &
             items.deletedAt.isNull() &
             items.url.isNotNull() &
             (userId == null
@@ -251,5 +327,175 @@ class AppDatabase extends _$AppDatabase {
     return (select(
       itemMetadata,
     )..where((metadata) => metadata.userId.equals(userId))).get();
+  }
+
+  Future<void> updateItemStatus(String id, String status) {
+    return (update(items)..where((item) => item.id.equals(id))).write(
+      ItemsCompanion(
+        status: Value(status),
+        updatedAt: Value(DateTime.now()),
+        syncStatus: const Value('pending'),
+      ),
+    );
+  }
+
+  Future<void> updateItemFavorite(String id, bool favorite) {
+    return (update(items)..where((item) => item.id.equals(id))).write(
+      ItemsCompanion(
+        favorite: Value(favorite),
+        updatedAt: Value(DateTime.now()),
+        syncStatus: const Value('pending'),
+      ),
+    );
+  }
+
+  Future<void> softDeleteItem(String id) {
+    return (update(items)..where((item) => item.id.equals(id))).write(
+      ItemsCompanion(
+        deletedAt: Value(DateTime.now()),
+        updatedAt: Value(DateTime.now()),
+        syncStatus: const Value('pending'),
+      ),
+    );
+  }
+
+  Future<void> createCollection(String id, String? userId, String name) {
+    final now = DateTime.now();
+    return into(collections).insert(
+      CollectionsCompanion.insert(
+        id: id,
+        userId: Value(userId),
+        name: name,
+        createdAt: now,
+        updatedAt: now,
+      ),
+    );
+  }
+
+  Future<void> renameCollection(String id, String name) {
+    return (update(collections)..where((c) => c.id.equals(id))).write(
+      CollectionsCompanion(
+        name: Value(name),
+        updatedAt: Value(DateTime.now()),
+      ),
+    );
+  }
+
+  Future<void> softDeleteCollection(String id) {
+    return (update(collections)..where((c) => c.id.equals(id))).write(
+      CollectionsCompanion(
+        deletedAt: Value(DateTime.now()),
+        updatedAt: Value(DateTime.now()),
+      ),
+    );
+  }
+
+  Future<void> addItemToCollection(String collectionId, String itemId) {
+    return into(collectionItems).insert(
+      CollectionItemsCompanion.insert(
+        collectionId: collectionId,
+        itemId: itemId,
+        createdAt: DateTime.now(),
+      ),
+    );
+  }
+
+  Future<void> removeItemFromCollection(String collectionId, String itemId) {
+    return (delete(collectionItems)
+          ..where(
+            (row) =>
+                row.collectionId.equals(collectionId) &
+                row.itemId.equals(itemId),
+          ))
+        .go();
+  }
+
+  Stream<List<Collection>> watchCollections(String? userId) {
+    return (select(collections)
+          ..where(
+            (collection) =>
+                collection.deletedAt.isNull() &
+                (userId == null
+                    ? collection.userId.isNull()
+                    : collection.userId.equals(userId)),
+          )
+          ..orderBy([(collection) => OrderingTerm.asc(collection.createdAt)]))
+        .watch();
+  }
+
+  Stream<List<Collection>> watchCollectionsForItem(
+    String itemId,
+    String? userId,
+  ) {
+    final query = select(collections).join([
+      innerJoin(
+        collectionItems,
+        collectionItems.collectionId.equalsExp(collections.id),
+      ),
+    ])
+      ..where(
+        collectionItems.itemId.equals(itemId) &
+            collections.deletedAt.isNull() &
+            (userId == null
+                ? collections.userId.isNull()
+                : collections.userId.equals(userId)),
+      )
+      ..orderBy([OrderingTerm.asc(collections.createdAt)]);
+    return query.watch().map(
+      (rows) => rows.map((row) => row.readTable(collections)).toList(),
+    );
+  }
+
+  /// Non-deleted collections with the number of non-deleted items each
+  /// currently contains.
+  Stream<List<(Collection, int)>> watchCollectionCounts(String? userId) {
+    final count = collectionItems.itemId.count();
+    final query = select(collections).join([
+      leftOuterJoin(
+        collectionItems,
+        collectionItems.collectionId.equalsExp(collections.id),
+      ),
+    ])
+      ..where(
+        collections.deletedAt.isNull() &
+            (userId == null
+                ? collections.userId.isNull()
+                : collections.userId.equals(userId)),
+      )
+      ..addColumns([count])
+      ..groupBy([collections.id])
+      ..orderBy([OrderingTerm.asc(collections.createdAt)]);
+    return query.watch().map(
+      (rows) => rows
+          .map(
+            (row) => (
+              row.readTable(collections),
+              row.read(count) ?? 0,
+            ),
+          )
+          .toList(),
+    );
+  }
+
+  Stream<List<(Item, ItemMetadataData?)>> watchItemsInCollection(
+    String collectionId,
+    String? userId,
+  ) {
+    final query = select(items).join([
+      innerJoin(
+        collectionItems,
+        collectionItems.itemId.equalsExp(items.id),
+      ),
+      leftOuterJoin(itemMetadata, itemMetadata.itemId.equalsExp(items.id)),
+    ])
+      ..where(
+        collectionItems.collectionId.equals(collectionId) &
+            items.deletedAt.isNull() &
+            (userId == null
+                ? items.userId.isNull()
+                : items.userId.equals(userId)),
+      )
+      ..orderBy([OrderingTerm.desc(collectionItems.createdAt)]);
+    return query.watch().map(_mapJoinedRows);
   }
 }
