@@ -8,7 +8,9 @@ class LocalItemDataSource {
 
   final AppDatabase _database;
 
-  Stream<List<Item>> watchInboxItems() => _database.watchInboxItems();
+  Stream<List<Item>> watchInboxItems(String? userId) {
+    return _database.watchInboxItems(userId);
+  }
 
   Future<void> insert(ItemsCompanion item) => _database.saveItem(item);
 
