@@ -16,5 +16,5 @@ export type Capture = {
 
 export type CaptureResult = {
   id?: string;
-  status: "saved" | "queued";
+  status: "saved" | "queued" | "needsAuth";
 };
