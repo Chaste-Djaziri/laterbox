@@ -9,18 +9,16 @@ abstract final class AppTheme {
   static const outline = Color(0xFFE4E0D5);
 
   static ThemeData get light {
-    final scheme = ColorScheme.fromSeed(
-      seedColor: accent,
-      surface: paper,
-    ).copyWith(
-      primary: ink,
-      onPrimary: surface,
-      secondary: accent,
-      onSecondary: ink,
-      onSurface: ink,
-      outline: outline,
-      onSurfaceVariant: muted,
-    );
+    final scheme = ColorScheme.fromSeed(seedColor: accent, surface: paper)
+        .copyWith(
+          primary: ink,
+          onPrimary: surface,
+          secondary: accent,
+          onSecondary: ink,
+          onSurface: ink,
+          outline: outline,
+          onSurfaceVariant: muted,
+        );
 
     return ThemeData(
       useMaterial3: true,
