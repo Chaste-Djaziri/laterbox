@@ -26,9 +26,14 @@ class LocalItemDataSource {
 
   Stream<List<(Item, ItemMetadataData?, ItemNote?)>> searchItemsWithMetadata(
     String? userId,
-    String query,
-  ) {
-    return _database.searchItems(userId, query);
+    String query, {
+    String? contentType,
+  }) {
+    return _database.searchItems(
+      userId,
+      query,
+      contentType: contentType,
+    );
   }
 
   Stream<(Item, ItemMetadataData?)?> watchItemWithMetadata(String id) {
@@ -86,6 +91,17 @@ class LocalItemDataSource {
     String? userId,
   ) {
     return _database.watchFavoriteItemsWithMetadata(userId);
+  }
+
+  Stream<List<(String, int)>> watchTypeCounts(String? userId) {
+    return _database.watchTypeCounts(userId);
+  }
+
+  Stream<List<(Item, ItemMetadataData?)>> watchItemsByType(
+    String? userId,
+    String type,
+  ) {
+    return _database.watchItemsByType(userId, type);
   }
 
   Future<void> updateStatus(String id, String status) {
