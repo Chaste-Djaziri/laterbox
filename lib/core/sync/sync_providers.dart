@@ -7,6 +7,8 @@ import '../../features/collections/data/remote_collection_data_source.dart';
 import '../../features/enrichment/data/local_metadata_data_source.dart';
 import '../../features/enrichment/data/remote_metadata_data_source.dart';
 import '../../features/inbox/data/remote_item_data_source.dart';
+import '../../features/notes/data/local_item_note_data_source.dart';
+import '../../features/notes/data/remote_item_note_data_source.dart';
 import '../database/database_providers.dart';
 import '../supabase/supabase_provider.dart';
 import 'sync_coordinator.dart';
@@ -23,6 +25,13 @@ final remoteCollectionDataSourceProvider =
   return client == null ? null : SupabaseRemoteCollectionDataSource(client);
 });
 
+final remoteItemNoteDataSourceProvider = Provider<RemoteItemNoteDataSource?>(
+  (ref) {
+    final client = ref.watch(supabaseClientProvider);
+    return client == null ? null : SupabaseRemoteItemNoteDataSource(client);
+  },
+);
+
 final syncServiceProvider = Provider<SyncService>((ref) {
   final client = ref.watch(supabaseClientProvider);
   return SyncService(
@@ -35,6 +44,8 @@ final syncServiceProvider = Provider<SyncService>((ref) {
         : SupabaseRemoteMetadataDataSource(client),
     localCollections: ref.watch(localCollectionDataSourceProvider),
     remoteCollections: ref.watch(remoteCollectionDataSourceProvider),
+    localNotes: LocalItemNoteDataSource(ref.watch(appDatabaseProvider)),
+    remoteNotes: ref.watch(remoteItemNoteDataSourceProvider),
   );
 });
 
