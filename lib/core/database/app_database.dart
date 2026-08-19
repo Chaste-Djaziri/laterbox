@@ -110,22 +110,46 @@ class AppDatabase extends _$AppDatabase {
             .customStatement('ALTER TABLE items DROP COLUMN archived');
       }
       if (from < 5) {
-        await migrator.addColumn(collections, collections.syncStatus);
-        await migrator.addColumn(collections, collections.lastSyncedAt);
-        await migrator.addColumn(collectionItems, collectionItems.userId);
-        await migrator.addColumn(collectionItems, collectionItems.deletedAt);
-        await migrator.addColumn(collectionItems, collectionItems.syncStatus);
-        await migrator.addColumn(
-          collectionItems,
-          collectionItems.lastSyncedAt,
-        );
-        await migrator.database.customStatement(
-          'ALTER TABLE collection_items ADD COLUMN updated_at '
-          'TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP',
-        );
+        // Defensive: a crash or stale version stamp can leave the v5 columns
+        // behind while user_version still reports 4, which would otherwise
+        // fail with "duplicate column name". Check each column first.
+        final collectionColumns = await _columnNames('collections');
+        final itemColumns = await _columnNames('collection_items');
+        if (!collectionColumns.contains('sync_status')) {
+          await migrator.addColumn(collections, collections.syncStatus);
+        }
+        if (!collectionColumns.contains('last_synced_at')) {
+          await migrator.addColumn(collections, collections.lastSyncedAt);
+        }
+        if (!itemColumns.contains('user_id')) {
+          await migrator.addColumn(collectionItems, collectionItems.userId);
+        }
+        if (!itemColumns.contains('deleted_at')) {
+          await migrator.addColumn(collectionItems, collectionItems.deletedAt);
+        }
+        if (!itemColumns.contains('sync_status')) {
+          await migrator.addColumn(collectionItems, collectionItems.syncStatus);
+        }
+        if (!itemColumns.contains('last_synced_at')) {
+          await migrator.addColumn(
+            collectionItems,
+            collectionItems.lastSyncedAt,
+          );
+        }
+        if (!itemColumns.contains('updated_at')) {
+          await migrator.database.customStatement(
+            'ALTER TABLE collection_items ADD COLUMN updated_at '
+            'TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP',
+          );
+        }
       }
     },
   );
+
+  Future<Set<String>> _columnNames(String table) async {
+    final rows = await customSelect('PRAGMA table_info($table)').get();
+    return rows.map((row) => row.data['name'] as String).toSet();
+  }
 
   Stream<List<Item>> watchInboxItems(String? userId) {
     return (select(items)
