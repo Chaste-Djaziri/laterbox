@@ -28,6 +28,8 @@ class Collections extends Table {
   TextColumn get name => text()();
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
+  TextColumn get syncStatus => text().withDefault(const Constant('pending'))();
+  DateTimeColumn get lastSyncedAt => dateTime().nullable()();
   DateTimeColumn get deletedAt => dateTime().nullable()();
 
   @override
@@ -45,7 +47,12 @@ class CollectionItems extends Table {
         #id,
         onDelete: KeyAction.cascade,
       )();
+  TextColumn get userId => text().nullable()();
   DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+  TextColumn get syncStatus => text().withDefault(const Constant('pending'))();
+  DateTimeColumn get lastSyncedAt => dateTime().nullable()();
+  DateTimeColumn get deletedAt => dateTime().nullable()();
 
   @override
   Set<Column<Object>> get primaryKey => {collectionId, itemId};
@@ -78,7 +85,7 @@ class AppDatabase extends _$AppDatabase {
     : super(executor ?? driftDatabase(name: 'laterbox'));
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -101,6 +108,21 @@ class AppDatabase extends _$AppDatabase {
         );
         await migrator.database
             .customStatement('ALTER TABLE items DROP COLUMN archived');
+      }
+      if (from < 5) {
+        await migrator.addColumn(collections, collections.syncStatus);
+        await migrator.addColumn(collections, collections.lastSyncedAt);
+        await migrator.addColumn(collectionItems, collectionItems.userId);
+        await migrator.addColumn(collectionItems, collectionItems.deletedAt);
+        await migrator.addColumn(collectionItems, collectionItems.syncStatus);
+        await migrator.addColumn(
+          collectionItems,
+          collectionItems.lastSyncedAt,
+        );
+        await migrator.database.customStatement(
+          'ALTER TABLE collection_items ADD COLUMN updated_at '
+          'TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP',
+        );
       }
     },
   );
@@ -377,6 +399,7 @@ class AppDatabase extends _$AppDatabase {
       CollectionsCompanion(
         name: Value(name),
         updatedAt: Value(DateTime.now()),
+        syncStatus: const Value('pending'),
       ),
     );
   }
@@ -386,28 +409,59 @@ class AppDatabase extends _$AppDatabase {
       CollectionsCompanion(
         deletedAt: Value(DateTime.now()),
         updatedAt: Value(DateTime.now()),
+        syncStatus: const Value('pending'),
       ),
     );
   }
 
-  Future<void> addItemToCollection(String collectionId, String itemId) {
-    return into(collectionItems).insert(
-      CollectionItemsCompanion.insert(
-        collectionId: collectionId,
-        itemId: itemId,
-        createdAt: DateTime.now(),
-      ),
-    );
+  /// Adds an item to a collection. If the membership was previously removed
+  /// (soft deleted) it is restored rather than re-inserted, keeping its
+  /// original userId and createdAt.
+  Future<void> addItemToCollection(String collectionId, String itemId) async {
+    final now = DateTime.now();
+    final existing = await collectionItemById(collectionId, itemId);
+    if (existing == null) {
+      await into(collectionItems).insert(
+        CollectionItemsCompanion.insert(
+          collectionId: collectionId,
+          itemId: itemId,
+          createdAt: now,
+          updatedAt: now,
+        ),
+      );
+    } else {
+      await (update(collectionItems)
+            ..where(
+              (row) =>
+                  row.collectionId.equals(collectionId) &
+                  row.itemId.equals(itemId),
+            ))
+          .write(
+        CollectionItemsCompanion(
+          deletedAt: const Value(null),
+          updatedAt: Value(now),
+          syncStatus: const Value('pending'),
+        ),
+      );
+    }
   }
 
+  /// Removes an item from a collection by soft deleting the membership
+  /// (tombstone), so a later sync can never resurrect it accidentally.
   Future<void> removeItemFromCollection(String collectionId, String itemId) {
-    return (delete(collectionItems)
+    return (update(collectionItems)
           ..where(
             (row) =>
                 row.collectionId.equals(collectionId) &
                 row.itemId.equals(itemId),
           ))
-        .go();
+        .write(
+      CollectionItemsCompanion(
+        deletedAt: Value(DateTime.now()),
+        updatedAt: Value(DateTime.now()),
+        syncStatus: const Value('pending'),
+      ),
+    );
   }
 
   Stream<List<Collection>> watchCollections(String? userId) {
@@ -435,6 +489,7 @@ class AppDatabase extends _$AppDatabase {
     ])
       ..where(
         collectionItems.itemId.equals(itemId) &
+            collectionItems.deletedAt.isNull() &
             collections.deletedAt.isNull() &
             (userId == null
                 ? collections.userId.isNull()
@@ -449,7 +504,8 @@ class AppDatabase extends _$AppDatabase {
   /// Non-deleted collections with the number of non-deleted items each
   /// currently contains.
   Stream<List<(Collection, int)>> watchCollectionCounts(String? userId) {
-    final count = collectionItems.itemId.count();
+    final count =
+        collectionItems.itemId.count(filter: collectionItems.deletedAt.isNull());
     final query = select(collections).join([
       leftOuterJoin(
         collectionItems,
@@ -490,6 +546,7 @@ class AppDatabase extends _$AppDatabase {
     ])
       ..where(
         collectionItems.collectionId.equals(collectionId) &
+            collectionItems.deletedAt.isNull() &
             items.deletedAt.isNull() &
             (userId == null
                 ? items.userId.isNull()
@@ -497,5 +554,111 @@ class AppDatabase extends _$AppDatabase {
       )
       ..orderBy([OrderingTerm.desc(collectionItems.createdAt)]);
     return query.watch().map(_mapJoinedRows);
+  }
+
+  Future<Collection?> collectionById(String id) {
+    return (select(
+      collections,
+    )..where((collection) => collection.id.equals(id))).getSingleOrNull();
+  }
+
+  Future<CollectionItem?> collectionItemById(
+    String collectionId,
+    String itemId,
+  ) {
+    return (select(
+      collectionItems,
+    )..where(
+        (row) =>
+            row.collectionId.equals(collectionId) & row.itemId.equals(itemId),
+      )).getSingleOrNull();
+  }
+
+  /// Claims pending guest collections for the signed-in user, then returns
+  /// every collection still waiting to be pushed.
+  Future<List<Collection>> collectionsNeedingSync(String userId) async {
+    await (update(collections)..where(
+          (collection) =>
+              collection.userId.isNull() &
+              collection.syncStatus.isIn(const ['pending', 'failed']),
+        ))
+        .write(CollectionsCompanion(userId: Value(userId)));
+
+    return (select(collections)..where(
+          (collection) =>
+              collection.userId.equals(userId) &
+              collection.syncStatus.isIn(const ['pending', 'failed']),
+        ))
+        .get();
+  }
+
+  /// Claims pending guest memberships for the signed-in user, then returns
+  /// every membership still waiting to be pushed.
+  Future<List<CollectionItem>> collectionItemsNeedingSync(String userId) async {
+    await (update(collectionItems)..where(
+          (row) =>
+              row.userId.isNull() &
+              row.syncStatus.isIn(const ['pending', 'failed']),
+        ))
+        .write(CollectionItemsCompanion(userId: Value(userId)));
+
+    return (select(collectionItems)..where(
+          (row) =>
+              row.userId.equals(userId) &
+              row.syncStatus.isIn(const ['pending', 'failed']),
+        ))
+        .get();
+  }
+
+  Future<void> upsertRemoteCollection(CollectionsCompanion collection) {
+    return into(collections).insertOnConflictUpdate(collection);
+  }
+
+  Future<void> upsertRemoteCollectionItem(CollectionItemsCompanion row) {
+    return into(collectionItems).insertOnConflictUpdate(row);
+  }
+
+  Future<void> markCollectionSynced(String id, DateTime syncedAt) {
+    return (update(collections)..where((c) => c.id.equals(id))).write(
+      CollectionsCompanion(
+        syncStatus: const Value('synced'),
+        lastSyncedAt: Value(syncedAt),
+      ),
+    );
+  }
+
+  Future<void> markCollectionFailed(String id) {
+    return (update(collections)..where((c) => c.id.equals(id))).write(
+      const CollectionsCompanion(syncStatus: Value('failed')),
+    );
+  }
+
+  Future<void> markCollectionItemSynced(
+    String collectionId,
+    String itemId,
+    DateTime syncedAt,
+  ) {
+    return (update(collectionItems)
+          ..where(
+            (row) =>
+                row.collectionId.equals(collectionId) &
+                row.itemId.equals(itemId),
+          ))
+        .write(
+      CollectionItemsCompanion(
+        syncStatus: const Value('synced'),
+        lastSyncedAt: Value(syncedAt),
+      ),
+    );
+  }
+
+  Future<void> markCollectionItemFailed(String collectionId, String itemId) {
+    return (update(collectionItems)
+          ..where(
+            (row) =>
+                row.collectionId.equals(collectionId) &
+                row.itemId.equals(itemId),
+          ))
+        .write(const CollectionItemsCompanion(syncStatus: Value('failed')));
   }
 }
