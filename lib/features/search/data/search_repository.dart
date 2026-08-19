@@ -17,10 +17,17 @@ class SearchRepository {
   final LocalItemDataSource _local;
   final String? Function() _currentUserId;
 
-  Stream<List<SearchResult>> search(SearchQuery query) {
+  Stream<List<SearchResult>> search(
+    SearchQuery query, {
+    String? contentType,
+  }) {
     if (query.isEmpty) return Stream.value(const []);
     return _local
-        .searchItemsWithMetadata(_currentUserId(), query.value)
+        .searchItemsWithMetadata(
+          _currentUserId(),
+          query.value,
+          contentType: contentType,
+        )
         .map((rows) => _rank(rows, query.value));
   }
 
