@@ -102,6 +102,7 @@ async function saveCurrentPage(): Promise<void> {
     setStatus("Saved to LaterBox.", "success");
     window.setTimeout(() => window.close(), 700);
   } else if (result.status === "needsAuth") {
+    await disconnectLaterBox();
     await updateConnectionState();
     setStatus("Saved on this browser. Connect LaterBox to sync.");
     saveButton.disabled = false;
