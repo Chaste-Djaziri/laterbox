@@ -44,3 +44,5 @@ The popup connects through the LaterBox web approval screen. The extension store
 5. Select `extension/dist`.
 
 The extension also adds page, link, and selection context menu actions. Failed captures remain in `chrome.storage.local` and retry when the service worker starts or the popup opens.
+
+Supported social and media pages also receive a small in-page save button for posts, reels, videos, and other page URLs. Opening the popup while text is selected shows a highlight card that saves the exact selection as a quoted note with its source title and URL.
