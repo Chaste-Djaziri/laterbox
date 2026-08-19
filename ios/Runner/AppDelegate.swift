@@ -17,7 +17,7 @@ import UIKit
 
     let channel = FlutterMethodChannel(
       name: "laterbox/ios_share",
-      binaryMessenger: engineBridge.binaryMessenger
+      binaryMessenger: engineBridge.applicationRegistrar.messenger()
     )
     channel.setMethodCallHandler { call, result in
       switch call.method {
