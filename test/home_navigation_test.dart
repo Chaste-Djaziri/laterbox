@@ -81,6 +81,13 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Library'), findsWidgets);
+    expect(find.text('All Items'), findsOneWidget);
+    expect(find.text('Favorites'), findsOneWidget);
+    expect(find.text('Archived'), findsOneWidget);
+
+    await tester.tap(find.text('All Items'));
+    await tester.pumpAndSettle();
+
     expect(find.text('Flutter notes'), findsOneWidget);
     expect(find.text('Dart notes'), findsOneWidget);
 
