@@ -760,15 +760,889 @@ class ItemsCompanion extends UpdateCompanion<Item> {
   }
 }
 
+class $ItemMetadataTable extends ItemMetadata
+    with TableInfo<$ItemMetadataTable, ItemMetadataData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ItemMetadataTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _itemIdMeta = const VerificationMeta('itemId');
+  @override
+  late final GeneratedColumn<String> itemId = GeneratedColumn<String>(
+    'item_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _userIdMeta = const VerificationMeta('userId');
+  @override
+  late final GeneratedColumn<String> userId = GeneratedColumn<String>(
+    'user_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _domainMeta = const VerificationMeta('domain');
+  @override
+  late final GeneratedColumn<String> domain = GeneratedColumn<String>(
+    'domain',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _siteNameMeta = const VerificationMeta(
+    'siteName',
+  );
+  @override
+  late final GeneratedColumn<String> siteName = GeneratedColumn<String>(
+    'site_name',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _titleMeta = const VerificationMeta('title');
+  @override
+  late final GeneratedColumn<String> title = GeneratedColumn<String>(
+    'title',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _descriptionMeta = const VerificationMeta(
+    'description',
+  );
+  @override
+  late final GeneratedColumn<String> description = GeneratedColumn<String>(
+    'description',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _faviconUrlMeta = const VerificationMeta(
+    'faviconUrl',
+  );
+  @override
+  late final GeneratedColumn<String> faviconUrl = GeneratedColumn<String>(
+    'favicon_url',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _previewImageUrlMeta = const VerificationMeta(
+    'previewImageUrl',
+  );
+  @override
+  late final GeneratedColumn<String> previewImageUrl = GeneratedColumn<String>(
+    'preview_image_url',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
+  @override
+  late final GeneratedColumn<String> status = GeneratedColumn<String>(
+    'status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('pending'),
+  );
+  static const VerificationMeta _attemptCountMeta = const VerificationMeta(
+    'attemptCount',
+  );
+  @override
+  late final GeneratedColumn<int> attemptCount = GeneratedColumn<int>(
+    'attempt_count',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _lastErrorMeta = const VerificationMeta(
+    'lastError',
+  );
+  @override
+  late final GeneratedColumn<String> lastError = GeneratedColumn<String>(
+    'last_error',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _metadataVersionMeta = const VerificationMeta(
+    'metadataVersion',
+  );
+  @override
+  late final GeneratedColumn<int> metadataVersion = GeneratedColumn<int>(
+    'metadata_version',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(1),
+  );
+  static const VerificationMeta _enrichedAtMeta = const VerificationMeta(
+    'enrichedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> enrichedAt = GeneratedColumn<DateTime>(
+    'enriched_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    itemId,
+    userId,
+    domain,
+    siteName,
+    title,
+    description,
+    faviconUrl,
+    previewImageUrl,
+    status,
+    attemptCount,
+    lastError,
+    metadataVersion,
+    enrichedAt,
+    createdAt,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'item_metadata';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ItemMetadataData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('item_id')) {
+      context.handle(
+        _itemIdMeta,
+        itemId.isAcceptableOrUnknown(data['item_id']!, _itemIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_itemIdMeta);
+    }
+    if (data.containsKey('user_id')) {
+      context.handle(
+        _userIdMeta,
+        userId.isAcceptableOrUnknown(data['user_id']!, _userIdMeta),
+      );
+    }
+    if (data.containsKey('domain')) {
+      context.handle(
+        _domainMeta,
+        domain.isAcceptableOrUnknown(data['domain']!, _domainMeta),
+      );
+    }
+    if (data.containsKey('site_name')) {
+      context.handle(
+        _siteNameMeta,
+        siteName.isAcceptableOrUnknown(data['site_name']!, _siteNameMeta),
+      );
+    }
+    if (data.containsKey('title')) {
+      context.handle(
+        _titleMeta,
+        title.isAcceptableOrUnknown(data['title']!, _titleMeta),
+      );
+    }
+    if (data.containsKey('description')) {
+      context.handle(
+        _descriptionMeta,
+        description.isAcceptableOrUnknown(
+          data['description']!,
+          _descriptionMeta,
+        ),
+      );
+    }
+    if (data.containsKey('favicon_url')) {
+      context.handle(
+        _faviconUrlMeta,
+        faviconUrl.isAcceptableOrUnknown(data['favicon_url']!, _faviconUrlMeta),
+      );
+    }
+    if (data.containsKey('preview_image_url')) {
+      context.handle(
+        _previewImageUrlMeta,
+        previewImageUrl.isAcceptableOrUnknown(
+          data['preview_image_url']!,
+          _previewImageUrlMeta,
+        ),
+      );
+    }
+    if (data.containsKey('status')) {
+      context.handle(
+        _statusMeta,
+        status.isAcceptableOrUnknown(data['status']!, _statusMeta),
+      );
+    }
+    if (data.containsKey('attempt_count')) {
+      context.handle(
+        _attemptCountMeta,
+        attemptCount.isAcceptableOrUnknown(
+          data['attempt_count']!,
+          _attemptCountMeta,
+        ),
+      );
+    }
+    if (data.containsKey('last_error')) {
+      context.handle(
+        _lastErrorMeta,
+        lastError.isAcceptableOrUnknown(data['last_error']!, _lastErrorMeta),
+      );
+    }
+    if (data.containsKey('metadata_version')) {
+      context.handle(
+        _metadataVersionMeta,
+        metadataVersion.isAcceptableOrUnknown(
+          data['metadata_version']!,
+          _metadataVersionMeta,
+        ),
+      );
+    }
+    if (data.containsKey('enriched_at')) {
+      context.handle(
+        _enrichedAtMeta,
+        enrichedAt.isAcceptableOrUnknown(data['enriched_at']!, _enrichedAtMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {itemId};
+  @override
+  ItemMetadataData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ItemMetadataData(
+      itemId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}item_id'],
+      )!,
+      userId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}user_id'],
+      ),
+      domain: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}domain'],
+      ),
+      siteName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}site_name'],
+      ),
+      title: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}title'],
+      ),
+      description: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}description'],
+      ),
+      faviconUrl: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}favicon_url'],
+      ),
+      previewImageUrl: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}preview_image_url'],
+      ),
+      status: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}status'],
+      )!,
+      attemptCount: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}attempt_count'],
+      )!,
+      lastError: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}last_error'],
+      ),
+      metadataVersion: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}metadata_version'],
+      )!,
+      enrichedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}enriched_at'],
+      ),
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $ItemMetadataTable createAlias(String alias) {
+    return $ItemMetadataTable(attachedDatabase, alias);
+  }
+}
+
+class ItemMetadataData extends DataClass
+    implements Insertable<ItemMetadataData> {
+  final String itemId;
+  final String? userId;
+  final String? domain;
+  final String? siteName;
+  final String? title;
+  final String? description;
+  final String? faviconUrl;
+  final String? previewImageUrl;
+  final String status;
+  final int attemptCount;
+  final String? lastError;
+  final int metadataVersion;
+  final DateTime? enrichedAt;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  const ItemMetadataData({
+    required this.itemId,
+    this.userId,
+    this.domain,
+    this.siteName,
+    this.title,
+    this.description,
+    this.faviconUrl,
+    this.previewImageUrl,
+    required this.status,
+    required this.attemptCount,
+    this.lastError,
+    required this.metadataVersion,
+    this.enrichedAt,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['item_id'] = Variable<String>(itemId);
+    if (!nullToAbsent || userId != null) {
+      map['user_id'] = Variable<String>(userId);
+    }
+    if (!nullToAbsent || domain != null) {
+      map['domain'] = Variable<String>(domain);
+    }
+    if (!nullToAbsent || siteName != null) {
+      map['site_name'] = Variable<String>(siteName);
+    }
+    if (!nullToAbsent || title != null) {
+      map['title'] = Variable<String>(title);
+    }
+    if (!nullToAbsent || description != null) {
+      map['description'] = Variable<String>(description);
+    }
+    if (!nullToAbsent || faviconUrl != null) {
+      map['favicon_url'] = Variable<String>(faviconUrl);
+    }
+    if (!nullToAbsent || previewImageUrl != null) {
+      map['preview_image_url'] = Variable<String>(previewImageUrl);
+    }
+    map['status'] = Variable<String>(status);
+    map['attempt_count'] = Variable<int>(attemptCount);
+    if (!nullToAbsent || lastError != null) {
+      map['last_error'] = Variable<String>(lastError);
+    }
+    map['metadata_version'] = Variable<int>(metadataVersion);
+    if (!nullToAbsent || enrichedAt != null) {
+      map['enriched_at'] = Variable<DateTime>(enrichedAt);
+    }
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  ItemMetadataCompanion toCompanion(bool nullToAbsent) {
+    return ItemMetadataCompanion(
+      itemId: Value(itemId),
+      userId: userId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(userId),
+      domain: domain == null && nullToAbsent
+          ? const Value.absent()
+          : Value(domain),
+      siteName: siteName == null && nullToAbsent
+          ? const Value.absent()
+          : Value(siteName),
+      title: title == null && nullToAbsent
+          ? const Value.absent()
+          : Value(title),
+      description: description == null && nullToAbsent
+          ? const Value.absent()
+          : Value(description),
+      faviconUrl: faviconUrl == null && nullToAbsent
+          ? const Value.absent()
+          : Value(faviconUrl),
+      previewImageUrl: previewImageUrl == null && nullToAbsent
+          ? const Value.absent()
+          : Value(previewImageUrl),
+      status: Value(status),
+      attemptCount: Value(attemptCount),
+      lastError: lastError == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastError),
+      metadataVersion: Value(metadataVersion),
+      enrichedAt: enrichedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(enrichedAt),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory ItemMetadataData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ItemMetadataData(
+      itemId: serializer.fromJson<String>(json['itemId']),
+      userId: serializer.fromJson<String?>(json['userId']),
+      domain: serializer.fromJson<String?>(json['domain']),
+      siteName: serializer.fromJson<String?>(json['siteName']),
+      title: serializer.fromJson<String?>(json['title']),
+      description: serializer.fromJson<String?>(json['description']),
+      faviconUrl: serializer.fromJson<String?>(json['faviconUrl']),
+      previewImageUrl: serializer.fromJson<String?>(json['previewImageUrl']),
+      status: serializer.fromJson<String>(json['status']),
+      attemptCount: serializer.fromJson<int>(json['attemptCount']),
+      lastError: serializer.fromJson<String?>(json['lastError']),
+      metadataVersion: serializer.fromJson<int>(json['metadataVersion']),
+      enrichedAt: serializer.fromJson<DateTime?>(json['enrichedAt']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'itemId': serializer.toJson<String>(itemId),
+      'userId': serializer.toJson<String?>(userId),
+      'domain': serializer.toJson<String?>(domain),
+      'siteName': serializer.toJson<String?>(siteName),
+      'title': serializer.toJson<String?>(title),
+      'description': serializer.toJson<String?>(description),
+      'faviconUrl': serializer.toJson<String?>(faviconUrl),
+      'previewImageUrl': serializer.toJson<String?>(previewImageUrl),
+      'status': serializer.toJson<String>(status),
+      'attemptCount': serializer.toJson<int>(attemptCount),
+      'lastError': serializer.toJson<String?>(lastError),
+      'metadataVersion': serializer.toJson<int>(metadataVersion),
+      'enrichedAt': serializer.toJson<DateTime?>(enrichedAt),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  ItemMetadataData copyWith({
+    String? itemId,
+    Value<String?> userId = const Value.absent(),
+    Value<String?> domain = const Value.absent(),
+    Value<String?> siteName = const Value.absent(),
+    Value<String?> title = const Value.absent(),
+    Value<String?> description = const Value.absent(),
+    Value<String?> faviconUrl = const Value.absent(),
+    Value<String?> previewImageUrl = const Value.absent(),
+    String? status,
+    int? attemptCount,
+    Value<String?> lastError = const Value.absent(),
+    int? metadataVersion,
+    Value<DateTime?> enrichedAt = const Value.absent(),
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) => ItemMetadataData(
+    itemId: itemId ?? this.itemId,
+    userId: userId.present ? userId.value : this.userId,
+    domain: domain.present ? domain.value : this.domain,
+    siteName: siteName.present ? siteName.value : this.siteName,
+    title: title.present ? title.value : this.title,
+    description: description.present ? description.value : this.description,
+    faviconUrl: faviconUrl.present ? faviconUrl.value : this.faviconUrl,
+    previewImageUrl: previewImageUrl.present
+        ? previewImageUrl.value
+        : this.previewImageUrl,
+    status: status ?? this.status,
+    attemptCount: attemptCount ?? this.attemptCount,
+    lastError: lastError.present ? lastError.value : this.lastError,
+    metadataVersion: metadataVersion ?? this.metadataVersion,
+    enrichedAt: enrichedAt.present ? enrichedAt.value : this.enrichedAt,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  ItemMetadataData copyWithCompanion(ItemMetadataCompanion data) {
+    return ItemMetadataData(
+      itemId: data.itemId.present ? data.itemId.value : this.itemId,
+      userId: data.userId.present ? data.userId.value : this.userId,
+      domain: data.domain.present ? data.domain.value : this.domain,
+      siteName: data.siteName.present ? data.siteName.value : this.siteName,
+      title: data.title.present ? data.title.value : this.title,
+      description: data.description.present
+          ? data.description.value
+          : this.description,
+      faviconUrl: data.faviconUrl.present
+          ? data.faviconUrl.value
+          : this.faviconUrl,
+      previewImageUrl: data.previewImageUrl.present
+          ? data.previewImageUrl.value
+          : this.previewImageUrl,
+      status: data.status.present ? data.status.value : this.status,
+      attemptCount: data.attemptCount.present
+          ? data.attemptCount.value
+          : this.attemptCount,
+      lastError: data.lastError.present ? data.lastError.value : this.lastError,
+      metadataVersion: data.metadataVersion.present
+          ? data.metadataVersion.value
+          : this.metadataVersion,
+      enrichedAt: data.enrichedAt.present
+          ? data.enrichedAt.value
+          : this.enrichedAt,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ItemMetadataData(')
+          ..write('itemId: $itemId, ')
+          ..write('userId: $userId, ')
+          ..write('domain: $domain, ')
+          ..write('siteName: $siteName, ')
+          ..write('title: $title, ')
+          ..write('description: $description, ')
+          ..write('faviconUrl: $faviconUrl, ')
+          ..write('previewImageUrl: $previewImageUrl, ')
+          ..write('status: $status, ')
+          ..write('attemptCount: $attemptCount, ')
+          ..write('lastError: $lastError, ')
+          ..write('metadataVersion: $metadataVersion, ')
+          ..write('enrichedAt: $enrichedAt, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    itemId,
+    userId,
+    domain,
+    siteName,
+    title,
+    description,
+    faviconUrl,
+    previewImageUrl,
+    status,
+    attemptCount,
+    lastError,
+    metadataVersion,
+    enrichedAt,
+    createdAt,
+    updatedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ItemMetadataData &&
+          other.itemId == this.itemId &&
+          other.userId == this.userId &&
+          other.domain == this.domain &&
+          other.siteName == this.siteName &&
+          other.title == this.title &&
+          other.description == this.description &&
+          other.faviconUrl == this.faviconUrl &&
+          other.previewImageUrl == this.previewImageUrl &&
+          other.status == this.status &&
+          other.attemptCount == this.attemptCount &&
+          other.lastError == this.lastError &&
+          other.metadataVersion == this.metadataVersion &&
+          other.enrichedAt == this.enrichedAt &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class ItemMetadataCompanion extends UpdateCompanion<ItemMetadataData> {
+  final Value<String> itemId;
+  final Value<String?> userId;
+  final Value<String?> domain;
+  final Value<String?> siteName;
+  final Value<String?> title;
+  final Value<String?> description;
+  final Value<String?> faviconUrl;
+  final Value<String?> previewImageUrl;
+  final Value<String> status;
+  final Value<int> attemptCount;
+  final Value<String?> lastError;
+  final Value<int> metadataVersion;
+  final Value<DateTime?> enrichedAt;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<int> rowid;
+  const ItemMetadataCompanion({
+    this.itemId = const Value.absent(),
+    this.userId = const Value.absent(),
+    this.domain = const Value.absent(),
+    this.siteName = const Value.absent(),
+    this.title = const Value.absent(),
+    this.description = const Value.absent(),
+    this.faviconUrl = const Value.absent(),
+    this.previewImageUrl = const Value.absent(),
+    this.status = const Value.absent(),
+    this.attemptCount = const Value.absent(),
+    this.lastError = const Value.absent(),
+    this.metadataVersion = const Value.absent(),
+    this.enrichedAt = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ItemMetadataCompanion.insert({
+    required String itemId,
+    this.userId = const Value.absent(),
+    this.domain = const Value.absent(),
+    this.siteName = const Value.absent(),
+    this.title = const Value.absent(),
+    this.description = const Value.absent(),
+    this.faviconUrl = const Value.absent(),
+    this.previewImageUrl = const Value.absent(),
+    this.status = const Value.absent(),
+    this.attemptCount = const Value.absent(),
+    this.lastError = const Value.absent(),
+    this.metadataVersion = const Value.absent(),
+    this.enrichedAt = const Value.absent(),
+    required DateTime createdAt,
+    required DateTime updatedAt,
+    this.rowid = const Value.absent(),
+  }) : itemId = Value(itemId),
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt);
+  static Insertable<ItemMetadataData> custom({
+    Expression<String>? itemId,
+    Expression<String>? userId,
+    Expression<String>? domain,
+    Expression<String>? siteName,
+    Expression<String>? title,
+    Expression<String>? description,
+    Expression<String>? faviconUrl,
+    Expression<String>? previewImageUrl,
+    Expression<String>? status,
+    Expression<int>? attemptCount,
+    Expression<String>? lastError,
+    Expression<int>? metadataVersion,
+    Expression<DateTime>? enrichedAt,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (itemId != null) 'item_id': itemId,
+      if (userId != null) 'user_id': userId,
+      if (domain != null) 'domain': domain,
+      if (siteName != null) 'site_name': siteName,
+      if (title != null) 'title': title,
+      if (description != null) 'description': description,
+      if (faviconUrl != null) 'favicon_url': faviconUrl,
+      if (previewImageUrl != null) 'preview_image_url': previewImageUrl,
+      if (status != null) 'status': status,
+      if (attemptCount != null) 'attempt_count': attemptCount,
+      if (lastError != null) 'last_error': lastError,
+      if (metadataVersion != null) 'metadata_version': metadataVersion,
+      if (enrichedAt != null) 'enriched_at': enrichedAt,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ItemMetadataCompanion copyWith({
+    Value<String>? itemId,
+    Value<String?>? userId,
+    Value<String?>? domain,
+    Value<String?>? siteName,
+    Value<String?>? title,
+    Value<String?>? description,
+    Value<String?>? faviconUrl,
+    Value<String?>? previewImageUrl,
+    Value<String>? status,
+    Value<int>? attemptCount,
+    Value<String?>? lastError,
+    Value<int>? metadataVersion,
+    Value<DateTime?>? enrichedAt,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return ItemMetadataCompanion(
+      itemId: itemId ?? this.itemId,
+      userId: userId ?? this.userId,
+      domain: domain ?? this.domain,
+      siteName: siteName ?? this.siteName,
+      title: title ?? this.title,
+      description: description ?? this.description,
+      faviconUrl: faviconUrl ?? this.faviconUrl,
+      previewImageUrl: previewImageUrl ?? this.previewImageUrl,
+      status: status ?? this.status,
+      attemptCount: attemptCount ?? this.attemptCount,
+      lastError: lastError ?? this.lastError,
+      metadataVersion: metadataVersion ?? this.metadataVersion,
+      enrichedAt: enrichedAt ?? this.enrichedAt,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (itemId.present) {
+      map['item_id'] = Variable<String>(itemId.value);
+    }
+    if (userId.present) {
+      map['user_id'] = Variable<String>(userId.value);
+    }
+    if (domain.present) {
+      map['domain'] = Variable<String>(domain.value);
+    }
+    if (siteName.present) {
+      map['site_name'] = Variable<String>(siteName.value);
+    }
+    if (title.present) {
+      map['title'] = Variable<String>(title.value);
+    }
+    if (description.present) {
+      map['description'] = Variable<String>(description.value);
+    }
+    if (faviconUrl.present) {
+      map['favicon_url'] = Variable<String>(faviconUrl.value);
+    }
+    if (previewImageUrl.present) {
+      map['preview_image_url'] = Variable<String>(previewImageUrl.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(status.value);
+    }
+    if (attemptCount.present) {
+      map['attempt_count'] = Variable<int>(attemptCount.value);
+    }
+    if (lastError.present) {
+      map['last_error'] = Variable<String>(lastError.value);
+    }
+    if (metadataVersion.present) {
+      map['metadata_version'] = Variable<int>(metadataVersion.value);
+    }
+    if (enrichedAt.present) {
+      map['enriched_at'] = Variable<DateTime>(enrichedAt.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ItemMetadataCompanion(')
+          ..write('itemId: $itemId, ')
+          ..write('userId: $userId, ')
+          ..write('domain: $domain, ')
+          ..write('siteName: $siteName, ')
+          ..write('title: $title, ')
+          ..write('description: $description, ')
+          ..write('faviconUrl: $faviconUrl, ')
+          ..write('previewImageUrl: $previewImageUrl, ')
+          ..write('status: $status, ')
+          ..write('attemptCount: $attemptCount, ')
+          ..write('lastError: $lastError, ')
+          ..write('metadataVersion: $metadataVersion, ')
+          ..write('enrichedAt: $enrichedAt, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
   late final $ItemsTable items = $ItemsTable(this);
+  late final $ItemMetadataTable itemMetadata = $ItemMetadataTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
   @override
-  List<DatabaseSchemaEntity> get allSchemaEntities => [items];
+  List<DatabaseSchemaEntity> get allSchemaEntities => [items, itemMetadata];
 }
 
 typedef $$ItemsTableCreateCompanionBuilder = ItemsCompanion Function({
@@ -1120,10 +1994,414 @@ typedef $$ItemsTableProcessedTableManager =
       Item,
       PrefetchHooks Function()
     >;
+typedef $$ItemMetadataTableCreateCompanionBuilder =
+    ItemMetadataCompanion Function({
+      required String itemId,
+      Value<String?> userId,
+      Value<String?> domain,
+      Value<String?> siteName,
+      Value<String?> title,
+      Value<String?> description,
+      Value<String?> faviconUrl,
+      Value<String?> previewImageUrl,
+      Value<String> status,
+      Value<int> attemptCount,
+      Value<String?> lastError,
+      Value<int> metadataVersion,
+      Value<DateTime?> enrichedAt,
+      required DateTime createdAt,
+      required DateTime updatedAt,
+      Value<int> rowid,
+    });
+typedef $$ItemMetadataTableUpdateCompanionBuilder =
+    ItemMetadataCompanion Function({
+      Value<String> itemId,
+      Value<String?> userId,
+      Value<String?> domain,
+      Value<String?> siteName,
+      Value<String?> title,
+      Value<String?> description,
+      Value<String?> faviconUrl,
+      Value<String?> previewImageUrl,
+      Value<String> status,
+      Value<int> attemptCount,
+      Value<String?> lastError,
+      Value<int> metadataVersion,
+      Value<DateTime?> enrichedAt,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<int> rowid,
+    });
+
+class $$ItemMetadataTableFilterComposer
+    extends Composer<_$AppDatabase, $ItemMetadataTable> {
+  $$ItemMetadataTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get itemId => $composableBuilder(
+    column: $table.itemId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get domain => $composableBuilder(
+    column: $table.domain,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get siteName => $composableBuilder(
+    column: $table.siteName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get faviconUrl => $composableBuilder(
+    column: $table.faviconUrl,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get previewImageUrl => $composableBuilder(
+    column: $table.previewImageUrl,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get attemptCount => $composableBuilder(
+    column: $table.attemptCount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get lastError => $composableBuilder(
+    column: $table.lastError,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get metadataVersion => $composableBuilder(
+    column: $table.metadataVersion,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get enrichedAt => $composableBuilder(
+    column: $table.enrichedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$ItemMetadataTableOrderingComposer
+    extends Composer<_$AppDatabase, $ItemMetadataTable> {
+  $$ItemMetadataTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get itemId => $composableBuilder(
+    column: $table.itemId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get domain => $composableBuilder(
+    column: $table.domain,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get siteName => $composableBuilder(
+    column: $table.siteName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get faviconUrl => $composableBuilder(
+    column: $table.faviconUrl,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get previewImageUrl => $composableBuilder(
+    column: $table.previewImageUrl,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get attemptCount => $composableBuilder(
+    column: $table.attemptCount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get lastError => $composableBuilder(
+    column: $table.lastError,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get metadataVersion => $composableBuilder(
+    column: $table.metadataVersion,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get enrichedAt => $composableBuilder(
+    column: $table.enrichedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$ItemMetadataTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ItemMetadataTable> {
+  $$ItemMetadataTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get itemId =>
+      $composableBuilder(column: $table.itemId, builder: (column) => column);
+
+  GeneratedColumn<String> get userId =>
+      $composableBuilder(column: $table.userId, builder: (column) => column);
+
+  GeneratedColumn<String> get domain =>
+      $composableBuilder(column: $table.domain, builder: (column) => column);
+
+  GeneratedColumn<String> get siteName =>
+      $composableBuilder(column: $table.siteName, builder: (column) => column);
+
+  GeneratedColumn<String> get title =>
+      $composableBuilder(column: $table.title, builder: (column) => column);
+
+  GeneratedColumn<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get faviconUrl => $composableBuilder(
+    column: $table.faviconUrl,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get previewImageUrl => $composableBuilder(
+    column: $table.previewImageUrl,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<int> get attemptCount => $composableBuilder(
+    column: $table.attemptCount,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get lastError =>
+      $composableBuilder(column: $table.lastError, builder: (column) => column);
+
+  GeneratedColumn<int> get metadataVersion => $composableBuilder(
+    column: $table.metadataVersion,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get enrichedAt => $composableBuilder(
+    column: $table.enrichedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$ItemMetadataTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $ItemMetadataTable,
+          ItemMetadataData,
+          $$ItemMetadataTableFilterComposer,
+          $$ItemMetadataTableOrderingComposer,
+          $$ItemMetadataTableAnnotationComposer,
+          $$ItemMetadataTableCreateCompanionBuilder,
+          $$ItemMetadataTableUpdateCompanionBuilder,
+          (
+            ItemMetadataData,
+            BaseReferences<_$AppDatabase, $ItemMetadataTable, ItemMetadataData>,
+          ),
+          ItemMetadataData,
+          PrefetchHooks Function()
+        > {
+  $$ItemMetadataTableTableManager(_$AppDatabase db, $ItemMetadataTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ItemMetadataTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ItemMetadataTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$ItemMetadataTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> itemId = const Value.absent(),
+                Value<String?> userId = const Value.absent(),
+                Value<String?> domain = const Value.absent(),
+                Value<String?> siteName = const Value.absent(),
+                Value<String?> title = const Value.absent(),
+                Value<String?> description = const Value.absent(),
+                Value<String?> faviconUrl = const Value.absent(),
+                Value<String?> previewImageUrl = const Value.absent(),
+                Value<String> status = const Value.absent(),
+                Value<int> attemptCount = const Value.absent(),
+                Value<String?> lastError = const Value.absent(),
+                Value<int> metadataVersion = const Value.absent(),
+                Value<DateTime?> enrichedAt = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ItemMetadataCompanion(
+                itemId: itemId,
+                userId: userId,
+                domain: domain,
+                siteName: siteName,
+                title: title,
+                description: description,
+                faviconUrl: faviconUrl,
+                previewImageUrl: previewImageUrl,
+                status: status,
+                attemptCount: attemptCount,
+                lastError: lastError,
+                metadataVersion: metadataVersion,
+                enrichedAt: enrichedAt,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String itemId,
+                Value<String?> userId = const Value.absent(),
+                Value<String?> domain = const Value.absent(),
+                Value<String?> siteName = const Value.absent(),
+                Value<String?> title = const Value.absent(),
+                Value<String?> description = const Value.absent(),
+                Value<String?> faviconUrl = const Value.absent(),
+                Value<String?> previewImageUrl = const Value.absent(),
+                Value<String> status = const Value.absent(),
+                Value<int> attemptCount = const Value.absent(),
+                Value<String?> lastError = const Value.absent(),
+                Value<int> metadataVersion = const Value.absent(),
+                Value<DateTime?> enrichedAt = const Value.absent(),
+                required DateTime createdAt,
+                required DateTime updatedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => ItemMetadataCompanion.insert(
+                itemId: itemId,
+                userId: userId,
+                domain: domain,
+                siteName: siteName,
+                title: title,
+                description: description,
+                faviconUrl: faviconUrl,
+                previewImageUrl: previewImageUrl,
+                status: status,
+                attemptCount: attemptCount,
+                lastError: lastError,
+                metadataVersion: metadataVersion,
+                enrichedAt: enrichedAt,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$ItemMetadataTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $ItemMetadataTable,
+      ItemMetadataData,
+      $$ItemMetadataTableFilterComposer,
+      $$ItemMetadataTableOrderingComposer,
+      $$ItemMetadataTableAnnotationComposer,
+      $$ItemMetadataTableCreateCompanionBuilder,
+      $$ItemMetadataTableUpdateCompanionBuilder,
+      (
+        ItemMetadataData,
+        BaseReferences<_$AppDatabase, $ItemMetadataTable, ItemMetadataData>,
+      ),
+      ItemMetadataData,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
   $AppDatabaseManager(this._db);
   $$ItemsTableTableManager get items =>
       $$ItemsTableTableManager(_db, _db.items);
+  $$ItemMetadataTableTableManager get itemMetadata =>
+      $$ItemMetadataTableTableManager(_db, _db.itemMetadata);
 }
