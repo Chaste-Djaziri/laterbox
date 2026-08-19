@@ -8,6 +8,16 @@ import type { Capture, CaptureResult } from "../types/capture";
 
 const captureEndpoint = import.meta.env.VITE_CAPTURE_API_URL ?? "";
 
+export function formatHighlight(selection: string, url: string, title?: string): string {
+  const quote = selection
+    .trim()
+    .split("\n")
+    .map((line) => `> ${line.trim()}`)
+    .join("\n");
+  const source = title?.trim() ? `${title.trim()}\n${url}` : url;
+  return `${quote}\n\nSource: ${source}`;
+}
+
 export async function saveCapture(capture: Capture): Promise<CaptureResult> {
   const token = await getAccessToken();
   if (!captureEndpoint || !token) {
