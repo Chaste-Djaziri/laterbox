@@ -46,38 +46,32 @@ void main() {
     );
   }
 
+  Finder navigationDestination(String label) {
+    final navigationType = find.byType(NavigationBar).evaluate().isNotEmpty
+        ? NavigationBar
+        : NavigationRail;
+    return find.descendant(
+      of: find.byType(navigationType),
+      matching: find.text(label),
+    );
+  }
+
   testWidgets('navigates between Inbox, Search and Library', (tester) async {
     final database = await seedDatabase();
     await pumpApp(tester, database);
     await tester.pumpAndSettle();
 
-    expect(
-      find.descendant(
-        of: find.byType(NavigationBar),
-        matching: find.text('Inbox'),
-      ),
-      findsOneWidget,
-    );
+    expect(navigationDestination('Inbox'), findsOneWidget);
     expect(find.text('Flutter notes'), findsOneWidget);
 
-    await tester.tap(
-      find.descendant(
-        of: find.byType(NavigationBar),
-        matching: find.text('Search'),
-      ),
-    );
+    await tester.tap(navigationDestination('Search'));
     await tester.pumpAndSettle();
 
     expect(find.text('Recent'), findsOneWidget);
     expect(find.text('Flutter notes'), findsOneWidget);
     expect(find.text('Dart notes'), findsOneWidget);
 
-    await tester.tap(
-      find.descendant(
-        of: find.byType(NavigationBar),
-        matching: find.text('Library'),
-      ),
-    );
+    await tester.tap(navigationDestination('Library'));
     await tester.pumpAndSettle();
 
     expect(find.text('Library'), findsWidgets);
@@ -101,12 +95,7 @@ void main() {
     await pumpApp(tester, database);
     await tester.pumpAndSettle();
 
-    await tester.tap(
-      find.descendant(
-        of: find.byType(NavigationBar),
-        matching: find.text('Search'),
-      ),
-    );
+    await tester.tap(navigationDestination('Search'));
     await tester.pumpAndSettle();
 
     await tester.enterText(find.byType(TextField), 'flutter');
