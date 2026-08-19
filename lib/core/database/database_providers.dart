@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../features/inbox/data/item_repository.dart';
+import '../../features/inbox/data/local_item_data_source.dart';
 import 'app_database.dart';
 
 final appDatabaseProvider = Provider<AppDatabase>((ref) {
@@ -9,6 +9,6 @@ final appDatabaseProvider = Provider<AppDatabase>((ref) {
   return database;
 });
 
-final itemRepositoryProvider = Provider<ItemRepository>((ref) {
-  return ItemRepository(ref.watch(appDatabaseProvider));
+final localItemDataSourceProvider = Provider<LocalItemDataSource>((ref) {
+  return LocalItemDataSource(ref.watch(appDatabaseProvider));
 });
