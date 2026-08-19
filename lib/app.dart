@@ -1,14 +1,52 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
+import 'features/capture/domain/capture_providers.dart';
 
-class LaterBoxApp extends ConsumerWidget {
+class LaterBoxApp extends ConsumerStatefulWidget {
   const LaterBoxApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<LaterBoxApp> createState() => _LaterBoxAppState();
+}
+
+class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
+    with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _capturePendingShares();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _capturePendingShares();
+  }
+
+  Future<void> _capturePendingShares() async {
+    try {
+      final payload = await ref.read(androidShareReceiverProvider).consume();
+      if (payload == null) return;
+      await ref.read(captureServiceProvider).save(payload);
+    } on MissingPluginException {
+      // Not running on Android; there is nothing to consume.
+    } on Object catch (error, stackTrace) {
+      debugPrint('Failed to capture shared item: $error\n$stackTrace');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return MaterialApp.router(
       title: 'LaterBox',
       debugShowCheckedModeBanner: false,
