@@ -38,7 +38,7 @@ class RemoteItem {
     this.textContent,
     required this.type,
     required this.favorite,
-    required this.archived,
+    required this.status,
     required this.createdAt,
     required this.updatedAt,
     this.deletedAt,
@@ -53,7 +53,7 @@ class RemoteItem {
       textContent: json['text_content'] as String?,
       type: json['type'] as String,
       favorite: json['favorite'] as bool,
-      archived: json['archived'] as bool,
+      status: json['status'] as String? ?? 'inbox',
       createdAt: DateTime.parse(json['created_at'] as String).toUtc(),
       updatedAt: DateTime.parse(json['updated_at'] as String).toUtc(),
       deletedAt: json['deleted_at'] == null
@@ -69,7 +69,7 @@ class RemoteItem {
   final String? textContent;
   final String type;
   final bool favorite;
-  final bool archived;
+  final String status;
   final DateTime createdAt;
   final DateTime updatedAt;
   final DateTime? deletedAt;
@@ -84,7 +84,7 @@ extension on Item {
     'text_content': textContent,
     'type': type,
     'favorite': favorite,
-    'archived': archived,
+    'status': status,
     'created_at': createdAt.toUtc().toIso8601String(),
     'updated_at': updatedAt.toUtc().toIso8601String(),
     'deleted_at': deletedAt?.toUtc().toIso8601String(),
