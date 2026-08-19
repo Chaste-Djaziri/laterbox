@@ -6,10 +6,7 @@ import '../../features/inbox/presentation/inbox_screen.dart';
 final appRouterProvider = Provider<GoRouter>((ref) {
   final router = GoRouter(
     routes: [
-      GoRoute(
-        path: '/',
-        builder: (context, state) => const InboxScreen(),
-      ),
+      GoRoute(path: '/', builder: (context, state) => const InboxScreen()),
     ],
   );
   ref.onDispose(router.dispose);
