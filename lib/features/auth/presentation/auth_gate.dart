@@ -6,7 +6,9 @@ import '../../home/presentation/home_shell.dart';
 import 'auth_screen.dart';
 
 class AuthGate extends ConsumerWidget {
-  const AuthGate({super.key});
+  const AuthGate({super.key, this.initialIndex = 0});
+
+  final int initialIndex;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -17,10 +19,12 @@ class AuthGate extends ConsumerWidget {
       loading: () => const Scaffold(
         body: Center(child: CircularProgressIndicator.adaptive()),
       ),
-      error: (error, stackTrace) =>
-          guestMode ? const HomeShell() : const AuthScreen(),
-      data: (state) =>
-          state.isAuthenticated || guestMode ? const HomeShell() : const AuthScreen(),
+      error: (error, stackTrace) => guestMode
+          ? HomeShell(selectedIndex: initialIndex)
+          : const AuthScreen(),
+      data: (state) => state.isAuthenticated || guestMode
+          ? HomeShell(selectedIndex: initialIndex)
+          : const AuthScreen(),
     );
   }
 }
