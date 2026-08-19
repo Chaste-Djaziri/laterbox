@@ -31,6 +31,10 @@ class LocalItemDataSource {
     return _database.searchItems(userId, query);
   }
 
+  Stream<(Item, ItemMetadataData?)?> watchItemWithMetadata(String id) {
+    return _database.watchItemWithMetadata(id);
+  }
+
   Future<void> insert(ItemsCompanion item) => _database.saveItem(item);
 
   Future<bool> exists(String id) async => (await _database.itemById(id)) != null;
@@ -60,7 +64,7 @@ class LocalItemDataSource {
         textContent: Value(remote.textContent),
         type: Value(remote.type),
         favorite: Value(remote.favorite),
-        archived: Value(remote.archived),
+        status: Value(remote.status),
         createdAt: remote.createdAt,
         updatedAt: remote.updatedAt,
         syncStatus: const Value('synced'),
@@ -69,5 +73,30 @@ class LocalItemDataSource {
       ),
     );
     return true;
+  }
+
+  Stream<List<(Item, ItemMetadataData?)>> watchItemsWithStatus(
+    String? userId,
+    String status,
+  ) {
+    return _database.watchItemsWithStatus(userId, status);
+  }
+
+  Stream<List<(Item, ItemMetadataData?)>> watchFavoriteItemsWithMetadata(
+    String? userId,
+  ) {
+    return _database.watchFavoriteItemsWithMetadata(userId);
+  }
+
+  Future<void> updateStatus(String id, String status) {
+    return _database.updateItemStatus(id, status);
+  }
+
+  Future<void> updateFavorite(String id, bool favorite) {
+    return _database.updateItemFavorite(id, favorite);
+  }
+
+  Future<void> softDelete(String id) {
+    return _database.softDeleteItem(id);
   }
 }
