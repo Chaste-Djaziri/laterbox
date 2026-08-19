@@ -1,0 +1,163 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:timeago/timeago.dart' as timeago;
+
+import '../../../shared/models/laterbox_item.dart';
+import '../../../shared/widgets/item_actions.dart';
+import '../../../shared/widgets/item_card.dart';
+import '../../collections/presentation/collection_providers.dart';
+import 'detail_providers.dart';
+
+/// The permanent home for a single item: rich preview, open-original, and the
+/// full set of lifecycle actions without cluttering the cards.
+class ItemDetailScreen extends ConsumerStatefulWidget {
+  const ItemDetailScreen({super.key, required this.itemId});
+
+  final String itemId;
+
+  @override
+  ConsumerState<ItemDetailScreen> createState() => _ItemDetailScreenState();
+}
+
+class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
+  @override
+  Widget build(BuildContext context) {
+    ref.listen(itemDetailProvider(widget.itemId), (previous, next) {
+      final wasPresent = previous?.value != null;
+      final nowAbsent = next.value == null;
+      if (wasPresent && nowAbsent && mounted) {
+        Navigator.of(context).pop();
+      }
+    });
+
+    final item = ref.watch(itemDetailProvider(widget.itemId)).value;
+
+    return Scaffold(
+      appBar: AppBar(
+        actions: [
+          if (item != null)
+            IconButton(
+              tooltip: 'More actions',
+              onPressed: () => showItemActions(context, ref, item),
+              icon: const Icon(Icons.more_horiz_rounded),
+            ),
+          const SizedBox(width: 4),
+        ],
+      ),
+      body: item == null
+          ? const Center(child: CircularProgressIndicator.adaptive())
+          : _ItemDetailBody(item: item),
+    );
+  }
+}
+
+class _ItemDetailBody extends ConsumerWidget {
+  const _ItemDetailBody({required this.item});
+
+  final LaterBoxItem item;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final uri = item.url == null ? null : Uri.tryParse(item.url!);
+    final eyebrow =
+        item.metadata?.domain ?? uri?.host.replaceFirst('www.', '') ?? 'Note';
+    final title =
+        item.metadata?.title ?? item.title ?? item.url ?? item.text ?? 'Untitled';
+    final description = item.metadata?.description;
+    final collections = ref.watch(collectionsForItemProvider(item.id)).value;
+
+    return ListView(
+      padding: const EdgeInsets.only(bottom: 40),
+      children: [
+        if (item.metadata?.previewImageUrl case final cover?)
+          ItemCoverImage(url: cover),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                eyebrow.toUpperCase(),
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1.2,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                title,
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.6,
+                ),
+              ),
+              if (description != null && description.isNotEmpty) ...[
+                const SizedBox(height: 10),
+                Text(
+                  description,
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    height: 1.4,
+                  ),
+                ),
+              ],
+              if (item.url != null) ...[
+                const SizedBox(height: 20),
+                FilledButton.icon(
+                  onPressed: () => openOriginal(context, item.url!),
+                  icon: const Icon(Icons.open_in_new_rounded, size: 18),
+                  label: const Text('Open original'),
+                ),
+              ],
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        const Divider(height: 32),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: Column(
+            children: [
+              ListTile(
+                leading: const Icon(Icons.folder_outlined),
+                title: const Text('Collection'),
+                subtitle: Text(
+                  (collections?.isEmpty ?? true)
+                      ? 'Not in a collection'
+                      : collections!
+                          .map((collection) => collection.name)
+                          .join(', '),
+                ),
+                trailing: const Icon(Icons.chevron_right_rounded),
+                onTap: () => showCollectionPicker(context, ref, item.id),
+              ),
+              ListTile(
+                leading: const Icon(Icons.schedule_rounded),
+                title: const Text('Saved'),
+                subtitle: Text(
+                  '${timeago.format(item.createdAt)} · '
+                  '${_formatDate(item.createdAt)}',
+                ),
+              ),
+              if (item.url != null)
+                ListTile(
+                  leading: const Icon(Icons.link_rounded),
+                  title: const Text('URL'),
+                  subtitle: Text(item.url!, maxLines: 1),
+                  onTap: () => openOriginal(context, item.url!),
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  String _formatDate(DateTime date) {
+    final local = date.toLocal();
+    String two(int value) => value.toString().padLeft(2, '0');
+    return '${two(local.day)}/${two(local.month)}/${local.year} '
+        '${two(local.hour)}:${two(local.minute)}';
+  }
+}
