@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:timeago/timeago.dart' as timeago;
 
+import '../../features/enrichment/domain/content_type.dart';
 import '../../features/detail/presentation/item_detail_screen.dart';
 import '../models/laterbox_item.dart';
 import 'item_actions.dart';
@@ -63,18 +64,20 @@ class ItemCard extends ConsumerWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          eyebrow.toUpperCase(),
-                          style: Theme.of(context).textTheme.labelSmall
-                              ?.copyWith(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onSurfaceVariant,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: 1.1,
-                              ),
-                        ),
-                        const SizedBox(height: 8),
+                         Text(
+                           eyebrow.toUpperCase(),
+                           style: Theme.of(context).textTheme.labelSmall
+                               ?.copyWith(
+                                 color: Theme.of(context)
+                                     .colorScheme
+                                     .onSurfaceVariant,
+                                 fontWeight: FontWeight.w800,
+                                 letterSpacing: 1.1,
+                               ),
+                         ),
+                         const SizedBox(height: 6),
+                         ItemTypeBadge(item: item),
+                         const SizedBox(height: 4),
                         Text(
                           title,
                           maxLines: 2,
@@ -214,6 +217,48 @@ class _CardGlyph extends StatelessWidget {
               fit: BoxFit.cover,
               errorBuilder: (context, error, stackTrace) =>
                   const SizedBox.shrink(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// A small type pill shown on [ItemCard]. Only non-link/unknown classifications
+/// render; their confidence must be strong enough to be meaningful (>= 0.5).
+class ItemTypeBadge extends StatelessWidget {
+  const ItemTypeBadge({super.key, required this.item});
+
+  final LaterBoxItem item;
+
+  @override
+  Widget build(BuildContext context) {
+    final classification = item.metadata?.classification;
+    if (classification == null) return const SizedBox.shrink();
+    final type = classification.type;
+    if (type == ContentType.link || type == ContentType.unknown) {
+      return const SizedBox.shrink();
+    }
+    if (classification.confidence < 0.5) return const SizedBox.shrink();
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: Theme.of(context)
+            .colorScheme
+            .secondaryContainer
+            .withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(type.icon, size: 14),
+          const SizedBox(width: 4),
+          Text(
+            type.label,
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: Theme.of(context).colorScheme.onSecondaryContainer,
             ),
           ),
         ],
