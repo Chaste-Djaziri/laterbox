@@ -14,6 +14,8 @@ class LocalItemDataSource {
 
   Future<void> insert(ItemsCompanion item) => _database.saveItem(item);
 
+  Future<bool> exists(String id) async => (await _database.itemById(id)) != null;
+
   Future<List<Item>> itemsNeedingSync(String userId) {
     return _database.itemsNeedingSync(userId);
   }
