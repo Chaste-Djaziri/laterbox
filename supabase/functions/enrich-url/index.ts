@@ -30,7 +30,7 @@ const json = (data: unknown, status: number) =>
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 
-Deno.serve(async (req) => {
+const handler = async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { status: 204, headers: corsHeaders });
   }
@@ -63,13 +63,21 @@ Deno.serve(async (req) => {
     console.error("enrich-url internal error", error);
     return json({ error: "Internal error" }, 500);
   }
-});
+};
+
+// Only start the server when run directly (not when imported by tests).
+if (import.meta.main) {
+  Deno.serve(handler);
+}
 
 async function enrich(raw: string) {
   const target = parseAndValidateUrl(raw);
   const { html, finalUrl } = await fetchHtml(target);
   const parsed = parseHtml(html, finalUrl);
   const finalUri = new URL(finalUrl);
+
+  const jsonLd = extractJsonLd(html);
+  const classification = classify(finalUri, parsed.ogType, jsonLd);
 
   return {
     domain: stripWww(finalUri.hostname),
@@ -78,7 +86,327 @@ async function enrich(raw: string) {
     description: parsed.description,
     faviconUrl: parsed.favicon,
     previewImageUrl: parsed.previewImage,
+    classification: {
+      contentType: classification.type,
+      confidence: classification.confidence,
+      source: classification.source,
+      structuredData: classification.structuredData,
+    },
   };
+}
+
+/**
+ * Parse every `<script type="application/ld+json">` block in the document.
+ * Each block may contain a single object, an array of objects, or a `@graph`
+ * array of objects. Malformed blocks are skipped so one bad JSON-LD element
+ * never breaks enrichment. Returns all parsed objects (flattened from graphs).
+ */
+export function extractJsonLd(html: string): Record<string, unknown>[] {
+  const scriptPattern = /<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi;
+  const blocks: Record<string, unknown>[] = [];
+  let match: RegExpExecArray | null;
+  while ((match = scriptPattern.exec(html)) !== null) {
+    const raw = match[1]?.trim();
+    if (!raw) continue;
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      continue; // one malformed block should not poison the rest
+    }
+    collectJsonLdObjects(parsed, blocks);
+  }
+  return blocks;
+}
+
+function collectJsonLdObjects(
+  value: unknown,
+  out: Record<string, unknown>[],
+): void {
+  if (Array.isArray(value)) {
+    for (const item of value) collectJsonLdObjects(item, out);
+    return;
+  }
+  if (value !== null && typeof value === "object") {
+    out.push(value as Record<string, unknown>);
+    const graph = (value as Record<string, unknown>)["@graph"];
+    if (Array.isArray(graph)) {
+      for (const item of graph) collectJsonLdObjects(item, out);
+    }
+  }
+}
+
+/**
+ * Resolve the `@type` values present on an object, supporting both a single
+ * string and an array of strings.
+ */
+function typesOf(obj: Record<string, unknown>): string[] {
+  const t = obj["@type"];
+  if (!t) return [];
+  if (typeof t === "string") return [t];
+  if (Array.isArray(t)) return t.filter((x) => typeof x === "string");
+  return [];
+}
+
+/**
+ * Classification priority:
+ *   1. Strong domain/path rules
+ *   2. JSON-LD @type
+ *   3. Open Graph og:type
+ *   4. URL-path heuristics
+ *   5. link fallback
+ */
+export function classify(
+  uri: URL,
+  ogType: string | null,
+  jsonLd: Record<string, unknown>[],
+): Classification {
+  const domain = stripWww(uri.hostname).toLowerCase();
+  const path = uri.pathname.toLowerCase();
+
+  const fromDomain = classifyByDomain(domain, path);
+  if (fromDomain !== null) return fromDomain;
+
+  const types = unique(
+    jsonLd.flatMap((obj) => typesOf(obj)),
+  );
+  const fromJsonLd = classifyByJsonLdTypes(types, jsonLd);
+  if (fromJsonLd !== null) return fromJsonLd;
+
+  if (ogType) {
+    const fromOg = classifyByOgType(ogType);
+    if (fromOg !== null) return fromOg;
+  }
+
+  const fromPath = classifyByPath(path);
+  if (fromPath !== null) return fromPath;
+
+  return { type: "link", confidence: 0.5, source: "heuristic", structuredData: null };
+}
+
+export interface Classification {
+  type: string;
+  confidence: number;
+  source: string;
+  structuredData: Record<string, unknown> | null;
+}
+
+/** 1. Strong domain/path rules. */
+export function classifyByDomain(
+  domain: string,
+  path: string,
+): Classification | null {
+  if (domain.endsWith("youtube.com") || domain === "youtu.be") {
+    return { type: "video", confidence: 0.98, source: "domainRule", structuredData: null };
+  }
+  if (
+    domain === "github.com" &&
+    path.split("/").filter(Boolean).length >= 2
+  ) {
+    const parts = path.split("/").filter(Boolean);
+    const owner = parts[0]!;
+    const repository = parts[1]!;
+    return {
+      type: "repository",
+      confidence: 0.95,
+      source: "domainRule",
+      structuredData: { owner, repository },
+    };
+  }
+  if (domain === "gitlab.com" || domain.endsWith(".gitlab.io")) {
+    const parts = path.split("/").filter(Boolean);
+    const owner = parts[0] ?? null;
+    const repository = parts[1] ?? null;
+    return {
+      type: "repository",
+      confidence: 0.9,
+      source: "domainRule",
+      structuredData:
+        owner && repository ? { owner, repository } : null,
+    };
+  }
+  if (
+    domain.includes("amazon.") ||
+    domain.endsWith("amazon.com") ||
+    domain.includes("amazonaws.com")
+  ) {
+    return { type: "product", confidence: 0.9, source: "domainRule", structuredData: null };
+  }
+  if (
+    domain === "open.spotify.com" ||
+    (domain === "spotify.com" && path.startsWith("/track"))
+  ) {
+    return { type: "music", confidence: 0.92, source: "domainRule", structuredData: null };
+  }
+  if (
+    domain === "eventbrite.com" ||
+    domain === "ticketmaster.com" ||
+    domain.endsWith("ticketmaster.com")
+  ) {
+    return { type: "event", confidence: 0.8, source: "domainRule", structuredData: null };
+  }
+  if (domain === "maps.google.com") {
+    return { type: "place", confidence: 0.85, source: "domainRule", structuredData: null };
+  }
+  if (domain === "books.google.com" || domain === "goodreads.com") {
+    return { type: "book", confidence: 0.85, source: "domainRule", structuredData: null };
+  }
+  return null;
+}
+
+/** 2. JSON-LD @type mappings. */
+export function classifyByJsonLdTypes(
+  types: string[],
+  jsonLd: Record<string, unknown>[],
+): Classification | null {
+  if (types.length === 0) return null;
+
+  // Try each type in order; pick the first that maps to our taxonomy.
+  for (const rawType of types) {
+    const mapped = typeByJsonLdType(rawType);
+    if (mapped === null) continue;
+
+    const match = jsonLd.find((obj) =>
+      typesOf(obj).some(
+        (t) => t.toLowerCase() === rawType.toLowerCase(),
+      ),
+    );
+    const structuredData = extractStructuredData(mapped, match ?? null);
+    const confidence = types.length > 1 ? 0.9 : 0.85;
+    return { type: mapped, confidence, source: "jsonLd", structuredData };
+  }
+  return null;
+}
+
+export function typeByJsonLdType(type: string): string | null {
+  const t = type.toLowerCase();
+  switch (t) {
+    case "article":
+    case "newsarticle":
+    case "blogposting":
+    case "techarticle":
+    case "scholarlyarticle":
+    case "researchpublication":
+      return "article";
+    case "videoobject":
+    case "clip":
+    case "movie":
+      return "video";
+    case "product":
+    case "productgroup":
+      return "product";
+    case "event":
+    case "sportsevent":
+    case "festival":
+    case "musicevent":
+    case "theaterevent":
+      return "event";
+    case "place":
+    case "localbusiness":
+    case "restaurant":
+    case "store":
+    case "hotel":
+      return "place";
+    case "book":
+    case "audiobook":
+      return "book";
+    case "musicrecording":
+    case "musicrelease":
+    case "musicalbum":
+    case "song":
+      return "music";
+    case "softwaresourcecode":
+    case "softwareapplication":
+    case "codeproject":
+      return "repository";
+    default:
+      return null; // unknown Schema.org type degrades to link
+  }
+}
+
+/** 3. Open Graph og:type mappings. */
+export function classifyByOgType(ogType: string): Classification | null {
+  const t = ogType.toLowerCase();
+  if (
+    t === "video.movie" ||
+    t === "video.episode" ||
+    t === "video.tv_show" ||
+    t === "video.other" ||
+    t === "video"
+  ) {
+    return { type: "video", confidence: 0.7, source: "ogType", structuredData: null };
+  }
+  if (t === "article" || t === "article:book" || t === "article:tag") {
+    return { type: "article", confidence: 0.7, source: "ogType", structuredData: null };
+  }
+  if (
+    t === "music.song" ||
+    t === "music.album" ||
+    t === "music.playlist" ||
+    t === "music.radio_station"
+  ) {
+    return { type: "music", confidence: 0.7, source: "ogType", structuredData: null };
+  }
+  if (t === "product" || t === "product.group") {
+    return { type: "product", confidence: 0.7, source: "ogType", structuredData: null };
+  }
+  if (t === "event" || t === "event.sports_event") {
+    return { type: "event", confidence: 0.7, source: "ogType", structuredData: null };
+  }
+  if (t === "place") {
+    return { type: "place", confidence: 0.65, source: "ogType", structuredData: null };
+  }
+  // og:type "website"/"profile"/"article:tag" and friends → link.
+  return null;
+}
+
+/** 4. Weak URL-path heuristics. */
+function classifyByPath(path: string): Classification | null {
+  if (path.includes("/watch") || path.includes("/embed/")) {
+    return { type: "video", confidence: 0.4, source: "heuristic", structuredData: null };
+  }
+  return null;
+}
+
+/**
+ * Extract only the allowlisted, type-specific properties from the JSON-LD
+ * object that matched the classification. Keeps the persisted payload small.
+ */
+function extractStructuredData(
+  type: string,
+  obj: Record<string, unknown> | null,
+): Record<string, unknown> | null {
+  if (!obj) return null;
+  const allowlist = STRUCTURED_DATA_FIELDS[type];
+  if (!allowlist) return null;
+
+  const result: Record<string, unknown> = {};
+  for (const field of allowlist) {
+    if (Object.prototype.hasOwnProperty.call(obj, field)) {
+      result[field] = obj[field];
+    }
+  }
+  return Object.keys(result).length > 0 ? result : null;
+}
+
+const STRUCTURED_DATA_FIELDS: Record<string, string[]> = {
+  article: ["headline", "author", "datePublished", "dateModified"],
+  video: ["name", "duration", "uploadDate", "thumbnailUrl"],
+  repository: ["owner", "repository"],
+  product: ["name", "brand", "sku", "image"],
+  event: ["name", "startDate", "endDate", "location"],
+  place: ["name", "address", "geo"],
+  book: ["name", "author", "isbn", "datePublished"],
+  music: ["name", "duration", "uploadDate", "byArtist"],
+};
+
+function unique(values: string[]): string[] {
+  return Array.from(new Set(values));
+}
+
+export function extractOgType(html: string): string | null {
+  const value = extractMeta(html, "og:type");
+  return value && value.length > 0 ? value : null;
 }
 
 function parseAndValidateUrl(raw: string): URL {
@@ -250,10 +578,12 @@ function parseHtml(html: string, finalUrl: string): {
   favicon: string | null;
   siteName: string | null;
   previewImage: string | null;
+  ogType: string | null;
 } {
   const base = extractBaseUrl(html, finalUrl);
   return {
-    title: firstMeta(html, ["og:title", "twitter:title"]) ?? extractTitle(html),
+    title:
+      firstMeta(html, ["og:title", "twitter:title"]) ?? extractTitle(html),
     description:
       firstMeta(html, ["og:description", "twitter:description"]) ??
       extractMeta(html, "description"),
@@ -270,6 +600,7 @@ function parseHtml(html: string, finalUrl: string): {
       ]),
       base,
     ),
+    ogType: extractOgType(html),
   };
 }
 
