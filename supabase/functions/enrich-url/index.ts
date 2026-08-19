@@ -1,4 +1,5 @@
-// enrich-url: fetches a URL and returns deterministic HTML metadata only.
+// enrich-url: fetches a URL and returns deterministic HTML, Open Graph and
+// Twitter Card metadata. Open Graph wins, then Twitter Card, then plain HTML.
 //
 // Security model: this function is effectively public (guest mode), so it
 // enforces strict SSRF protections: http/https only, private/loopback/link-
@@ -67,7 +68,7 @@ Deno.serve(async (req) => {
 async function enrich(raw: string) {
   const target = parseAndValidateUrl(raw);
   const { html, finalUrl } = await fetchHtml(target);
-  const parsed = parseHtml(html);
+  const parsed = parseHtml(html, finalUrl);
   const finalUri = new URL(finalUrl);
 
   return {
@@ -75,8 +76,8 @@ async function enrich(raw: string) {
     siteName: parsed.siteName,
     title: parsed.title,
     description: parsed.description,
-    faviconUrl: parsed.favicon ? new URL(parsed.favicon, finalUrl).toString() : null,
-    previewImageUrl: null,
+    faviconUrl: parsed.favicon,
+    previewImageUrl: parsed.previewImage,
   };
 }
 
@@ -243,18 +244,41 @@ async function readBodyLimited(
   return new TextDecoder().decode(combined);
 }
 
-function parseHtml(html: string): {
+function parseHtml(html: string, finalUrl: string): {
   title: string | null;
   description: string | null;
   favicon: string | null;
   siteName: string | null;
+  previewImage: string | null;
 } {
+  const base = extractBaseUrl(html, finalUrl);
   return {
-    title: extractTitle(html),
-    description: extractMeta(html, "description"),
-    favicon: extractFavicon(html),
-    siteName: extractMeta(html, "application-name"),
+    title: firstMeta(html, ["og:title", "twitter:title"]) ?? extractTitle(html),
+    description:
+      firstMeta(html, ["og:description", "twitter:description"]) ??
+      extractMeta(html, "description"),
+    favicon: resolveAbsoluteUrl(extractFavicon(html), base),
+    siteName:
+      extractMeta(html, "og:site_name") ??
+      extractMeta(html, "application-name"),
+    previewImage: resolveAbsoluteUrl(
+      firstMeta(html, [
+        "og:image",
+        "og:image:secure_url",
+        "twitter:image",
+        "twitter:image:src",
+      ]),
+      base,
+    ),
   };
+}
+
+function firstMeta(html: string, keys: string[]): string | null {
+  for (const key of keys) {
+    const value = extractMeta(html, key);
+    if (value) return value;
+  }
+  return null;
 }
 
 function extractTitle(html: string): string | null {
@@ -264,9 +288,10 @@ function extractTitle(html: string): string | null {
   return title.length === 0 ? null : title;
 }
 
-function extractMeta(html: string, name: string): string | null {
+function extractMeta(html: string, key: string): string | null {
+  const escaped = key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const pattern = new RegExp(
-    `<meta[^>]+name=["']${name}["'][^>]*>|<meta[^>]+(?=[^>]*name=["']${name}["'])[^>]*>`,
+    `<meta[^>]+(?:name|property)=["']${escaped}["'][^>]*>`,
     "i",
   );
   const match = html.match(pattern);
@@ -275,6 +300,31 @@ function extractMeta(html: string, name: string): string | null {
   if (!content) return null;
   const value = decodeEntities(content[1]).replace(/\s+/g, " ").trim();
   return value.length === 0 ? null : value;
+}
+
+function extractBaseUrl(html: string, finalUrl: string): string {
+  const match = html.match(/<base[^>]+href=["']([^"']*)["'][^>]*>/i);
+  if (!match) return finalUrl;
+  try {
+    return new URL(decodeEntities(match[1]).trim(), finalUrl).toString();
+  } catch {
+    return finalUrl;
+  }
+}
+
+function resolveAbsoluteUrl(value: string | null, base: string): string | null {
+  if (!value) return null;
+  const trimmed = value.trim();
+  if (trimmed.length === 0) return null;
+  try {
+    const resolved = new URL(trimmed, base).toString();
+    if (resolved.startsWith("http://") || resolved.startsWith("https://")) {
+      return resolved;
+    }
+  } catch {
+    // Unresolvable URL; treat as absent.
+  }
+  return null;
 }
 
 function extractFavicon(html: string): string | null {
