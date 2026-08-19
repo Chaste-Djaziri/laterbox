@@ -1,4 +1,11 @@
-enum CaptureSource { manual, androidShare, iosShare }
+enum CaptureSource {
+  manual,
+  androidShare,
+  iosShare,
+  browserExtension,
+  desktopQuickCapture,
+  api,
+}
 
 class CapturePayload {
   const CapturePayload({
