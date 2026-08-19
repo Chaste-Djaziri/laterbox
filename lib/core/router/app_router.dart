@@ -7,7 +7,6 @@ import '../../features/extension/presentation/extension_connect_screen.dart';
 final appRouterProvider = Provider<GoRouter>((ref) {
   final router = GoRouter(
     routes: [
-      GoRoute(path: '/', builder: (context, state) => const AuthGate()),
       GoRoute(
         path: '/extension/connect',
         builder: (context, state) => ExtensionConnectScreen(
@@ -16,6 +15,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           redirectUri: state.uri.queryParameters['redirect_uri'] ?? '',
         ),
       ),
+      GoRoute(path: '/', builder: (context, state) => const AuthGate()),
     ],
   );
   ref.onDispose(router.dispose);
