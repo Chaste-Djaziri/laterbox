@@ -8,10 +8,20 @@ class AndroidShareReceiver {
   static const channelName = 'laterbox/android_share';
   static const MethodChannel _channel = MethodChannel(channelName);
 
-  Future<CapturePayload?> consume() async {
-    final text = await _channel.invokeMethod<String?>('consumeShare');
-    final value = text?.trim();
-    if (value == null || value.isEmpty) return null;
-    return CapturePayload.fromValue(value, source: CaptureSource.androidShare);
+  Future<List<CapturePayload>> consumePendingShares() async {
+    final raw = await _channel.invokeMethod<List<dynamic>>('consumeShares');
+    if (raw == null || raw.isEmpty) return const [];
+
+    return raw
+        .whereType<String>()
+        .map((value) => value.trim())
+        .where((value) => value.isNotEmpty)
+        .map(
+          (value) => CapturePayload.fromValue(
+            value,
+            source: CaptureSource.androidShare,
+          ),
+        )
+        .toList();
   }
 }
