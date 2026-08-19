@@ -1,4 +1,4 @@
-import { flushQueue, saveCapture } from "../lib/capture";
+import { flushQueue, formatHighlight, saveCapture } from "../lib/capture";
 import type { Capture } from "../types/capture";
 
 const PAGE_MENU = "save-page";
@@ -50,8 +50,8 @@ async function handleContextMenu(
 
   if (info.menuItemId === LINK_MENU && info.linkUrl) {
     capture.url = info.linkUrl;
-  } else if (info.menuItemId === SELECTION_MENU && info.selectionText) {
-    capture.text = info.selectionText;
+  } else if (info.menuItemId === SELECTION_MENU && info.selectionText && pageUrl) {
+    capture.text = formatHighlight(info.selectionText, pageUrl, tab?.title);
     capture.url = undefined;
   } else if (info.menuItemId === PAGE_MENU && pageUrl) {
     capture.url = pageUrl;
