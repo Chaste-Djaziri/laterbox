@@ -1,27 +1,24 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../capture/presentation/capture_sheet.dart';
 import '../../inbox/presentation/inbox_screen.dart';
 import '../../library/presentation/library_screen.dart';
 import '../../search/presentation/search_screen.dart';
 
-class HomeShell extends ConsumerStatefulWidget {
-  const HomeShell({super.key});
+class HomeShell extends ConsumerWidget {
+  const HomeShell({super.key, required this.selectedIndex});
 
-  @override
-  ConsumerState<HomeShell> createState() => _HomeShellState();
-}
-
-class _HomeShellState extends ConsumerState<HomeShell> {
-  int _index = 0;
+  final int selectedIndex;
 
   static const List<Widget> _screens = [
     InboxScreen(),
     SearchScreen(),
     LibraryScreen(),
   ];
+  static const List<String> _paths = ['/inbox', '/search', '/library'];
 
   Future<void> _openCapture(BuildContext context) {
     return showModalBottomSheet<void>(
@@ -37,29 +34,28 @@ class _HomeShellState extends ConsumerState<HomeShell> {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final width = MediaQuery.sizeOf(context).width;
-    final isDesktop = _isDesktopPlatform || width >= 900;
+    final isDesktop = _isDesktopPlatform() || width >= 900;
 
     return Scaffold(
       body: isDesktop
           ? Row(
               children: [
                 _DesktopSidebar(
-                  selectedIndex: _index,
+                  selectedIndex: selectedIndex,
                   extended: width >= 1100,
-                  onDestinationSelected: (index) =>
-                      setState(() => _index = index),
+                  onDestinationSelected: (index) => context.go(_paths[index]),
                 ),
-                Expanded(child: _screens[_index]),
+                Expanded(child: _screens[selectedIndex]),
               ],
             )
-          : _screens[_index],
+          : _screens[selectedIndex],
       bottomNavigationBar: isDesktop
           ? null
           : NavigationBar(
-              selectedIndex: _index,
-              onDestinationSelected: (index) => setState(() => _index = index),
+              selectedIndex: selectedIndex,
+              onDestinationSelected: (index) => context.go(_paths[index]),
               destinations: const [
                 NavigationDestination(
                   icon: Icon(Icons.inbox_outlined),
@@ -77,7 +73,7 @@ class _HomeShellState extends ConsumerState<HomeShell> {
                 ),
               ],
             ),
-      floatingActionButton: _index == 0
+      floatingActionButton: selectedIndex == 0
           ? FloatingActionButton.large(
               onPressed: () => _openCapture(context),
               tooltip: 'Save something',
@@ -86,16 +82,16 @@ class _HomeShellState extends ConsumerState<HomeShell> {
           : null,
     );
   }
+}
 
-  bool get _isDesktopPlatform {
-    if (kIsWeb) return false;
-    return switch (defaultTargetPlatform) {
-      TargetPlatform.macOS ||
-      TargetPlatform.linux ||
-      TargetPlatform.windows => true,
-      _ => false,
-    };
-  }
+bool _isDesktopPlatform() {
+  if (kIsWeb) return false;
+  return switch (defaultTargetPlatform) {
+    TargetPlatform.macOS ||
+    TargetPlatform.linux ||
+    TargetPlatform.windows => true,
+    _ => false,
+  };
 }
 
 class _DesktopSidebar extends StatelessWidget {
