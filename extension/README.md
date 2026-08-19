@@ -4,18 +4,22 @@ Chromium Manifest V3 capture MVP for Chrome, Edge, and Brave.
 
 ## Configure
 
-Set the capture endpoint and hosted LaterBox web URL before building:
+Build against the hosted LaterBox project:
 
 ```bash
-VITE_CAPTURE_API_URL=https://YOUR_PROJECT.supabase.co/functions/v1/capture \
-VITE_LATERBOX_WEB_URL=https://app.laterbox.com \
-npm run build
+npm run build:hosted
 ```
 
-For local Supabase:
+Build against local Supabase and the local Flutter web app:
 
 ```bash
-VITE_CAPTURE_API_URL=http://127.0.0.1:54321/functions/v1/capture npm run build
+npm run build:local
+```
+
+Run the local Flutter web app on the matching fixed port:
+
+```bash
+flutter run -d chrome --web-port 8080
 ```
 
 The popup connects through the LaterBox web approval screen. The extension stores only its scoped `lb_ext_` credential in `chrome.storage.local`.
