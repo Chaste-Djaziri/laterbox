@@ -13,13 +13,16 @@
 		381FBFC5543C9D9E702A3C8C /* ShareExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 81D2063F0085FE390536FB10 /* ShareExtension.appex */; };
 		3AFD15DAA6B55DB9A490E443 /* ShareCaptureQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DA375F1BEA43B31C44401EE /* ShareCaptureQueue.swift */; };
 		3B3967161E833CAA004F5970 /* AppFrameworkInfo.plist in Resources */ = {isa = PBXBuildFile; fileRef = 3B3967151E833CAA004F5970 /* AppFrameworkInfo.plist */; };
+		4DC50F87D831B2AEB957B839 /* ShareStatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 551ABECA0339AF3E97A1FDA3 /* ShareStatusView.swift */; };
 		7187DB268F53DB878D8B00AD /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82AB8CCEE15B115AFD59E637 /* ShareViewController.swift */; };
 		74858FAF1ED2DC5600515810 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74858FAE1ED2DC5600515810 /* AppDelegate.swift */; };
 		7884E8682EC3CC0700C636F2 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7884E8672EC3CC0400C636F2 /* SceneDelegate.swift */; };
 		78A318202AECB46A00862997 /* FlutterGeneratedPluginSwiftPackage in Frameworks */ = {isa = PBXBuildFile; productRef = 78A3181F2AECB46A00862997 /* FlutterGeneratedPluginSwiftPackage */; };
+		884AB5094B056E07ED837C38 /* QueueTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F137C855C52B077CF098FFBB /* QueueTests.swift */; };
 		97C146FC1CF9000F007C117D /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FA1CF9000F007C117D /* Main.storyboard */; };
 		97C146FE1CF9000F007C117D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FD1CF9000F007C117D /* Assets.xcassets */; };
 		97C147011CF9000F007C117D /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FF1CF9000F007C117D /* LaunchScreen.storyboard */; };
+		C159669ADC3982E89F4527B8 /* ShareCaptureQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DA375F1BEA43B31C44401EE /* ShareCaptureQueue.swift */; };
 		F7167B48890ECF29FEECE598 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = FCB1B3708562319D1001CDC2 /* Foundation.framework */; };
 /* End PBXBuildFile section */
 
@@ -71,6 +74,7 @@
 		331C807B294A618700263BE5 /* RunnerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RunnerTests.swift; sourceTree = "<group>"; };
 		331C8081294A63A400263BE5 /* RunnerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RunnerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		3B3967151E833CAA004F5970 /* AppFrameworkInfo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = AppFrameworkInfo.plist; path = Flutter/AppFrameworkInfo.plist; sourceTree = "<group>"; };
+		551ABECA0339AF3E97A1FDA3 /* ShareStatusView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ShareStatusView.swift; path = ShareExtension/ShareStatusView.swift; sourceTree = "<group>"; };
 		5B1C6724B393DC5F8E64A4EF /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		74858FAD1ED2DC5600515810 /* Runner-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Runner-Bridging-Header.h"; sourceTree = "<group>"; };
 		74858FAE1ED2DC5600515810 /* AppDelegate.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
@@ -88,6 +92,7 @@
 		97C147021CF9000F007C117D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		DF0BD1CC0F5F06A5B822E62A /* ShareExtension.entitlements */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.entitlements; path = ShareExtension.entitlements; sourceTree = "<group>"; };
 		E23A7C1D0C2F0A5B91D4E6F2 /* Config.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; path = Config.xcconfig; sourceTree = "<group>"; };
+		F137C855C52B077CF098FFBB /* QueueTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = QueueTests.swift; sourceTree = "<group>"; };
 		FCB1B3708562319D1001CDC2 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
 /* End PBXFileReference section */
 
@@ -115,6 +120,7 @@
 			isa = PBXGroup;
 			children = (
 				331C807B294A618700263BE5 /* RunnerTests.swift */,
+				F137C855C52B077CF098FFBB /* QueueTests.swift */,
 			);
 			path = RunnerTests;
 			sourceTree = "<group>";
@@ -156,6 +162,7 @@
 				331C8082294A63A400263BE5 /* RunnerTests */,
 				BD91A95710DC609D69DDB4D8 /* ShareExtension */,
 				4DC07AF1333252A4D5A32D07 /* Frameworks */,
+				551ABECA0339AF3E97A1FDA3 /* ShareStatusView.swift */,
 			);
 			sourceTree = "<group>";
 		};
@@ -371,6 +378,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				331C808B294A63AB00263BE5 /* RunnerTests.swift in Sources */,
+				C159669ADC3982E89F4527B8 /* ShareCaptureQueue.swift in Sources */,
+				884AB5094B056E07ED837C38 /* QueueTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -391,6 +400,7 @@
 			files = (
 				7187DB268F53DB878D8B00AD /* ShareViewController.swift in Sources */,
 				3AFD15DAA6B55DB9A490E443 /* ShareCaptureQueue.swift in Sources */,
+				4DC50F87D831B2AEB957B839 /* ShareStatusView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
