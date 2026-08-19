@@ -6,6 +6,7 @@ import '../../../shared/models/laterbox_item.dart';
 import '../../../shared/widgets/item_actions.dart';
 import '../../../shared/widgets/item_card.dart';
 import '../../collections/presentation/collection_providers.dart';
+import '../../notes/presentation/item_note_section.dart';
 import 'detail_providers.dart';
 
 /// The permanent home for a single item: rich preview, open-original, and the
@@ -113,6 +114,9 @@ class _ItemDetailBody extends ConsumerWidget {
             ],
           ),
         ),
+        const SizedBox(height: 12),
+        const Divider(height: 32),
+        ItemNoteSection(itemId: item.id),
         const SizedBox(height: 12),
         const Divider(height: 32),
         Padding(
