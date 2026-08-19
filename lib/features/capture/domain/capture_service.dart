@@ -7,6 +7,10 @@ class CaptureService {
   final ItemRepository _repository;
 
   Future<void> save(CapturePayload payload) {
-    return _repository.save(payload.value);
+    return _repository.save(
+      payload.value,
+      id: payload.id,
+      createdAt: payload.createdAt,
+    );
   }
 }
