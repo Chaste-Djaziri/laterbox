@@ -22,6 +22,12 @@ Run the local Flutter web app on the matching fixed port:
 flutter run -d chrome --web-port 8080
 ```
 
+Serve the local capture functions in another terminal:
+
+```bash
+supabase functions serve --no-verify-jwt
+```
+
 The popup connects through the LaterBox web approval screen. The extension stores only its scoped `lb_ext_` credential in `chrome.storage.local`.
 
 ## Load locally
