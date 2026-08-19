@@ -897,6 +897,52 @@ class $ItemMetadataTable extends ItemMetadata
     type: DriftSqlType.dateTime,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _contentTypeMeta = const VerificationMeta(
+    'contentType',
+  );
+  @override
+  late final GeneratedColumn<String> contentType = GeneratedColumn<String>(
+    'content_type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('link'),
+  );
+  static const VerificationMeta _classificationSourceMeta =
+      const VerificationMeta('classificationSource');
+  @override
+  late final GeneratedColumn<String> classificationSource =
+      GeneratedColumn<String>(
+        'classification_source',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _classificationConfidenceMeta =
+      const VerificationMeta('classificationConfidence');
+  @override
+  late final GeneratedColumn<double> classificationConfidence =
+      GeneratedColumn<double>(
+        'classification_confidence',
+        aliasedName,
+        false,
+        type: DriftSqlType.double,
+        requiredDuringInsert: false,
+        defaultValue: const Constant(0),
+      );
+  static const VerificationMeta _structuredDataMeta = const VerificationMeta(
+    'structuredData',
+  );
+  @override
+  late final GeneratedColumn<String> structuredData = GeneratedColumn<String>(
+    'structured_data',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -934,6 +980,10 @@ class $ItemMetadataTable extends ItemMetadata
     lastError,
     metadataVersion,
     enrichedAt,
+    contentType,
+    classificationSource,
+    classificationConfidence,
+    structuredData,
     createdAt,
     updatedAt,
   ];
@@ -1041,6 +1091,42 @@ class $ItemMetadataTable extends ItemMetadata
         enrichedAt.isAcceptableOrUnknown(data['enriched_at']!, _enrichedAtMeta),
       );
     }
+    if (data.containsKey('content_type')) {
+      context.handle(
+        _contentTypeMeta,
+        contentType.isAcceptableOrUnknown(
+          data['content_type']!,
+          _contentTypeMeta,
+        ),
+      );
+    }
+    if (data.containsKey('classification_source')) {
+      context.handle(
+        _classificationSourceMeta,
+        classificationSource.isAcceptableOrUnknown(
+          data['classification_source']!,
+          _classificationSourceMeta,
+        ),
+      );
+    }
+    if (data.containsKey('classification_confidence')) {
+      context.handle(
+        _classificationConfidenceMeta,
+        classificationConfidence.isAcceptableOrUnknown(
+          data['classification_confidence']!,
+          _classificationConfidenceMeta,
+        ),
+      );
+    }
+    if (data.containsKey('structured_data')) {
+      context.handle(
+        _structuredDataMeta,
+        structuredData.isAcceptableOrUnknown(
+          data['structured_data']!,
+          _structuredDataMeta,
+        ),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -1118,6 +1204,22 @@ class $ItemMetadataTable extends ItemMetadata
         DriftSqlType.dateTime,
         data['${effectivePrefix}enriched_at'],
       ),
+      contentType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}content_type'],
+      )!,
+      classificationSource: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}classification_source'],
+      ),
+      classificationConfidence: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}classification_confidence'],
+      )!,
+      structuredData: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}structured_data'],
+      ),
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -1150,6 +1252,10 @@ class ItemMetadataData extends DataClass
   final String? lastError;
   final int metadataVersion;
   final DateTime? enrichedAt;
+  final String contentType;
+  final String? classificationSource;
+  final double classificationConfidence;
+  final String? structuredData;
   final DateTime createdAt;
   final DateTime updatedAt;
   const ItemMetadataData({
@@ -1166,6 +1272,10 @@ class ItemMetadataData extends DataClass
     this.lastError,
     required this.metadataVersion,
     this.enrichedAt,
+    required this.contentType,
+    this.classificationSource,
+    required this.classificationConfidence,
+    this.structuredData,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -1202,6 +1312,16 @@ class ItemMetadataData extends DataClass
     map['metadata_version'] = Variable<int>(metadataVersion);
     if (!nullToAbsent || enrichedAt != null) {
       map['enriched_at'] = Variable<DateTime>(enrichedAt);
+    }
+    map['content_type'] = Variable<String>(contentType);
+    if (!nullToAbsent || classificationSource != null) {
+      map['classification_source'] = Variable<String>(classificationSource);
+    }
+    map['classification_confidence'] = Variable<double>(
+      classificationConfidence,
+    );
+    if (!nullToAbsent || structuredData != null) {
+      map['structured_data'] = Variable<String>(structuredData);
     }
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
@@ -1241,6 +1361,14 @@ class ItemMetadataData extends DataClass
       enrichedAt: enrichedAt == null && nullToAbsent
           ? const Value.absent()
           : Value(enrichedAt),
+      contentType: Value(contentType),
+      classificationSource: classificationSource == null && nullToAbsent
+          ? const Value.absent()
+          : Value(classificationSource),
+      classificationConfidence: Value(classificationConfidence),
+      structuredData: structuredData == null && nullToAbsent
+          ? const Value.absent()
+          : Value(structuredData),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
     );
@@ -1265,6 +1393,14 @@ class ItemMetadataData extends DataClass
       lastError: serializer.fromJson<String?>(json['lastError']),
       metadataVersion: serializer.fromJson<int>(json['metadataVersion']),
       enrichedAt: serializer.fromJson<DateTime?>(json['enrichedAt']),
+      contentType: serializer.fromJson<String>(json['contentType']),
+      classificationSource: serializer.fromJson<String?>(
+        json['classificationSource'],
+      ),
+      classificationConfidence: serializer.fromJson<double>(
+        json['classificationConfidence'],
+      ),
+      structuredData: serializer.fromJson<String?>(json['structuredData']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
     );
@@ -1286,6 +1422,12 @@ class ItemMetadataData extends DataClass
       'lastError': serializer.toJson<String?>(lastError),
       'metadataVersion': serializer.toJson<int>(metadataVersion),
       'enrichedAt': serializer.toJson<DateTime?>(enrichedAt),
+      'contentType': serializer.toJson<String>(contentType),
+      'classificationSource': serializer.toJson<String?>(classificationSource),
+      'classificationConfidence': serializer.toJson<double>(
+        classificationConfidence,
+      ),
+      'structuredData': serializer.toJson<String?>(structuredData),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
     };
@@ -1305,6 +1447,10 @@ class ItemMetadataData extends DataClass
     Value<String?> lastError = const Value.absent(),
     int? metadataVersion,
     Value<DateTime?> enrichedAt = const Value.absent(),
+    String? contentType,
+    Value<String?> classificationSource = const Value.absent(),
+    double? classificationConfidence,
+    Value<String?> structuredData = const Value.absent(),
     DateTime? createdAt,
     DateTime? updatedAt,
   }) => ItemMetadataData(
@@ -1323,6 +1469,15 @@ class ItemMetadataData extends DataClass
     lastError: lastError.present ? lastError.value : this.lastError,
     metadataVersion: metadataVersion ?? this.metadataVersion,
     enrichedAt: enrichedAt.present ? enrichedAt.value : this.enrichedAt,
+    contentType: contentType ?? this.contentType,
+    classificationSource: classificationSource.present
+        ? classificationSource.value
+        : this.classificationSource,
+    classificationConfidence:
+        classificationConfidence ?? this.classificationConfidence,
+    structuredData: structuredData.present
+        ? structuredData.value
+        : this.structuredData,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
   );
@@ -1353,6 +1508,18 @@ class ItemMetadataData extends DataClass
       enrichedAt: data.enrichedAt.present
           ? data.enrichedAt.value
           : this.enrichedAt,
+      contentType: data.contentType.present
+          ? data.contentType.value
+          : this.contentType,
+      classificationSource: data.classificationSource.present
+          ? data.classificationSource.value
+          : this.classificationSource,
+      classificationConfidence: data.classificationConfidence.present
+          ? data.classificationConfidence.value
+          : this.classificationConfidence,
+      structuredData: data.structuredData.present
+          ? data.structuredData.value
+          : this.structuredData,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
     );
@@ -1374,6 +1541,10 @@ class ItemMetadataData extends DataClass
           ..write('lastError: $lastError, ')
           ..write('metadataVersion: $metadataVersion, ')
           ..write('enrichedAt: $enrichedAt, ')
+          ..write('contentType: $contentType, ')
+          ..write('classificationSource: $classificationSource, ')
+          ..write('classificationConfidence: $classificationConfidence, ')
+          ..write('structuredData: $structuredData, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
@@ -1395,6 +1566,10 @@ class ItemMetadataData extends DataClass
     lastError,
     metadataVersion,
     enrichedAt,
+    contentType,
+    classificationSource,
+    classificationConfidence,
+    structuredData,
     createdAt,
     updatedAt,
   );
@@ -1415,6 +1590,10 @@ class ItemMetadataData extends DataClass
           other.lastError == this.lastError &&
           other.metadataVersion == this.metadataVersion &&
           other.enrichedAt == this.enrichedAt &&
+          other.contentType == this.contentType &&
+          other.classificationSource == this.classificationSource &&
+          other.classificationConfidence == this.classificationConfidence &&
+          other.structuredData == this.structuredData &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt);
 }
@@ -1433,6 +1612,10 @@ class ItemMetadataCompanion extends UpdateCompanion<ItemMetadataData> {
   final Value<String?> lastError;
   final Value<int> metadataVersion;
   final Value<DateTime?> enrichedAt;
+  final Value<String> contentType;
+  final Value<String?> classificationSource;
+  final Value<double> classificationConfidence;
+  final Value<String?> structuredData;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   final Value<int> rowid;
@@ -1450,6 +1633,10 @@ class ItemMetadataCompanion extends UpdateCompanion<ItemMetadataData> {
     this.lastError = const Value.absent(),
     this.metadataVersion = const Value.absent(),
     this.enrichedAt = const Value.absent(),
+    this.contentType = const Value.absent(),
+    this.classificationSource = const Value.absent(),
+    this.classificationConfidence = const Value.absent(),
+    this.structuredData = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -1468,6 +1655,10 @@ class ItemMetadataCompanion extends UpdateCompanion<ItemMetadataData> {
     this.lastError = const Value.absent(),
     this.metadataVersion = const Value.absent(),
     this.enrichedAt = const Value.absent(),
+    this.contentType = const Value.absent(),
+    this.classificationSource = const Value.absent(),
+    this.classificationConfidence = const Value.absent(),
+    this.structuredData = const Value.absent(),
     required DateTime createdAt,
     required DateTime updatedAt,
     this.rowid = const Value.absent(),
@@ -1488,6 +1679,10 @@ class ItemMetadataCompanion extends UpdateCompanion<ItemMetadataData> {
     Expression<String>? lastError,
     Expression<int>? metadataVersion,
     Expression<DateTime>? enrichedAt,
+    Expression<String>? contentType,
+    Expression<String>? classificationSource,
+    Expression<double>? classificationConfidence,
+    Expression<String>? structuredData,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
     Expression<int>? rowid,
@@ -1506,6 +1701,12 @@ class ItemMetadataCompanion extends UpdateCompanion<ItemMetadataData> {
       if (lastError != null) 'last_error': lastError,
       if (metadataVersion != null) 'metadata_version': metadataVersion,
       if (enrichedAt != null) 'enriched_at': enrichedAt,
+      if (contentType != null) 'content_type': contentType,
+      if (classificationSource != null)
+        'classification_source': classificationSource,
+      if (classificationConfidence != null)
+        'classification_confidence': classificationConfidence,
+      if (structuredData != null) 'structured_data': structuredData,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (rowid != null) 'rowid': rowid,
@@ -1526,6 +1727,10 @@ class ItemMetadataCompanion extends UpdateCompanion<ItemMetadataData> {
     Value<String?>? lastError,
     Value<int>? metadataVersion,
     Value<DateTime?>? enrichedAt,
+    Value<String>? contentType,
+    Value<String?>? classificationSource,
+    Value<double>? classificationConfidence,
+    Value<String?>? structuredData,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
     Value<int>? rowid,
@@ -1544,6 +1749,11 @@ class ItemMetadataCompanion extends UpdateCompanion<ItemMetadataData> {
       lastError: lastError ?? this.lastError,
       metadataVersion: metadataVersion ?? this.metadataVersion,
       enrichedAt: enrichedAt ?? this.enrichedAt,
+      contentType: contentType ?? this.contentType,
+      classificationSource: classificationSource ?? this.classificationSource,
+      classificationConfidence:
+          classificationConfidence ?? this.classificationConfidence,
+      structuredData: structuredData ?? this.structuredData,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       rowid: rowid ?? this.rowid,
@@ -1592,6 +1802,22 @@ class ItemMetadataCompanion extends UpdateCompanion<ItemMetadataData> {
     if (enrichedAt.present) {
       map['enriched_at'] = Variable<DateTime>(enrichedAt.value);
     }
+    if (contentType.present) {
+      map['content_type'] = Variable<String>(contentType.value);
+    }
+    if (classificationSource.present) {
+      map['classification_source'] = Variable<String>(
+        classificationSource.value,
+      );
+    }
+    if (classificationConfidence.present) {
+      map['classification_confidence'] = Variable<double>(
+        classificationConfidence.value,
+      );
+    }
+    if (structuredData.present) {
+      map['structured_data'] = Variable<String>(structuredData.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -1620,6 +1846,10 @@ class ItemMetadataCompanion extends UpdateCompanion<ItemMetadataData> {
           ..write('lastError: $lastError, ')
           ..write('metadataVersion: $metadataVersion, ')
           ..write('enrichedAt: $enrichedAt, ')
+          ..write('contentType: $contentType, ')
+          ..write('classificationSource: $classificationSource, ')
+          ..write('classificationConfidence: $classificationConfidence, ')
+          ..write('structuredData: $structuredData, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('rowid: $rowid')
@@ -3809,6 +4039,10 @@ typedef $$ItemMetadataTableCreateCompanionBuilder =
       Value<String?> lastError,
       Value<int> metadataVersion,
       Value<DateTime?> enrichedAt,
+      Value<String> contentType,
+      Value<String?> classificationSource,
+      Value<double> classificationConfidence,
+      Value<String?> structuredData,
       required DateTime createdAt,
       required DateTime updatedAt,
       Value<int> rowid,
@@ -3828,6 +4062,10 @@ typedef $$ItemMetadataTableUpdateCompanionBuilder =
       Value<String?> lastError,
       Value<int> metadataVersion,
       Value<DateTime?> enrichedAt,
+      Value<String> contentType,
+      Value<String?> classificationSource,
+      Value<double> classificationConfidence,
+      Value<String?> structuredData,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
       Value<int> rowid,
@@ -3904,6 +4142,26 @@ class $$ItemMetadataTableFilterComposer
 
   ColumnFilters<DateTime> get enrichedAt => $composableBuilder(
     column: $table.enrichedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get contentType => $composableBuilder(
+    column: $table.contentType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get classificationSource => $composableBuilder(
+    column: $table.classificationSource,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get classificationConfidence => $composableBuilder(
+    column: $table.classificationConfidence,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get structuredData => $composableBuilder(
+    column: $table.structuredData,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3992,6 +4250,26 @@ class $$ItemMetadataTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get contentType => $composableBuilder(
+    column: $table.contentType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get classificationSource => $composableBuilder(
+    column: $table.classificationSource,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get classificationConfidence => $composableBuilder(
+    column: $table.classificationConfidence,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get structuredData => $composableBuilder(
+    column: $table.structuredData,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -4063,6 +4341,26 @@ class $$ItemMetadataTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<String> get contentType => $composableBuilder(
+    column: $table.contentType,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get classificationSource => $composableBuilder(
+    column: $table.classificationSource,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get classificationConfidence => $composableBuilder(
+    column: $table.classificationConfidence,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get structuredData => $composableBuilder(
+    column: $table.structuredData,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
 
@@ -4114,6 +4412,10 @@ class $$ItemMetadataTableTableManager
                 Value<String?> lastError = const Value.absent(),
                 Value<int> metadataVersion = const Value.absent(),
                 Value<DateTime?> enrichedAt = const Value.absent(),
+                Value<String> contentType = const Value.absent(),
+                Value<String?> classificationSource = const Value.absent(),
+                Value<double> classificationConfidence = const Value.absent(),
+                Value<String?> structuredData = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -4131,6 +4433,10 @@ class $$ItemMetadataTableTableManager
                 lastError: lastError,
                 metadataVersion: metadataVersion,
                 enrichedAt: enrichedAt,
+                contentType: contentType,
+                classificationSource: classificationSource,
+                classificationConfidence: classificationConfidence,
+                structuredData: structuredData,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 rowid: rowid,
@@ -4150,6 +4456,10 @@ class $$ItemMetadataTableTableManager
                 Value<String?> lastError = const Value.absent(),
                 Value<int> metadataVersion = const Value.absent(),
                 Value<DateTime?> enrichedAt = const Value.absent(),
+                Value<String> contentType = const Value.absent(),
+                Value<String?> classificationSource = const Value.absent(),
+                Value<double> classificationConfidence = const Value.absent(),
+                Value<String?> structuredData = const Value.absent(),
                 required DateTime createdAt,
                 required DateTime updatedAt,
                 Value<int> rowid = const Value.absent(),
@@ -4167,6 +4477,10 @@ class $$ItemMetadataTableTableManager
                 lastError: lastError,
                 metadataVersion: metadataVersion,
                 enrichedAt: enrichedAt,
+                contentType: contentType,
+                classificationSource: classificationSource,
+                classificationConfidence: classificationConfidence,
+                structuredData: structuredData,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 rowid: rowid,

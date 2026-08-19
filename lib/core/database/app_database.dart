@@ -90,6 +90,10 @@ class ItemMetadata extends Table {
   TextColumn get lastError => text().nullable()();
   IntColumn get metadataVersion => integer().withDefault(const Constant(1))();
   DateTimeColumn get enrichedAt => dateTime().nullable()();
+  TextColumn get contentType => text().withDefault(const Constant('link'))();
+  TextColumn get classificationSource => text().nullable()();
+  RealColumn get classificationConfidence => real().withDefault(const Constant(0))();
+  TextColumn get structuredData => text().nullable()();
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
 
@@ -109,7 +113,7 @@ class AppDatabase extends _$AppDatabase {
     : super(executor ?? driftDatabase(name: 'laterbox'));
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -174,6 +178,24 @@ class AppDatabase extends _$AppDatabase {
       }
       if (from < 6) {
         await migrator.createTable(itemNotes);
+      }
+      if (from < 7) {
+        final metadataColumns = await _columnNames('item_metadata');
+        if (!metadataColumns.contains('content_type')) {
+          await migrator.addColumn(itemMetadata, itemMetadata.contentType);
+        }
+        if (!metadataColumns.contains('classification_source')) {
+          await migrator.addColumn(itemMetadata, itemMetadata.classificationSource);
+        }
+        if (!metadataColumns.contains('classification_confidence')) {
+          await migrator.addColumn(
+            itemMetadata,
+            itemMetadata.classificationConfidence,
+          );
+        }
+        if (!metadataColumns.contains('structured_data')) {
+          await migrator.addColumn(itemMetadata, itemMetadata.structuredData);
+        }
       }
     },
   );
@@ -279,6 +301,39 @@ class AppDatabase extends _$AppDatabase {
     return query.watch().map(_mapJoinedRows);
   }
 
+  /// Live (content_type, count) of the current user's non-deleted items that
+  /// already carry an enriched content type, sorted by count descending.
+  Stream<List<(String, int)>> watchTypeCounts(String? userId) {
+    final String userIdColumn = userId == null
+        ? 'i.user_id IS NULL'
+        : "i.user_id = '${userId.replaceAll("'", "''")}'";
+    return customSelect(
+      'SELECT im.content_type AS type, COUNT(*) AS count '
+      'FROM item_metadata im '
+      'JOIN items i ON i.id = im.item_id '
+      'WHERE i.deleted_at IS NULL AND $userIdColumn '
+      'AND im.content_type IS NOT NULL '
+      'GROUP BY im.content_type',
+    ).watch().map(
+      (rows) => rows
+          .map((row) => (row.read<String>("type"), row.read<int>("count")))
+          .toList()
+        ..sort((a, b) => b.$2.compareTo(a.$2)),
+    );
+  }
+
+  /// Non-deleted items of a given content type, newest first. Joins metadata
+  /// so the type filter reads the enriched content_type column.
+  Stream<List<(Item, ItemMetadataData?)>> watchItemsByType(
+    String? userId,
+    String type,
+  ) {
+    final query = _itemsWithMetadataQuery(userId)
+      ..where(itemMetadata.contentType.equals(type))
+      ..orderBy([OrderingTerm.desc(items.createdAt)]);
+    return query.watch().map(_mapJoinedRows);
+  }
+
   /// A single item (with its metadata) that stays live as rows change.
   Stream<(Item, ItemMetadataData?)?> watchItemWithMetadata(String id) {
     final query = select(items).join([
@@ -301,8 +356,9 @@ class AppDatabase extends _$AppDatabase {
   /// is introduced.
   Stream<List<(Item, ItemMetadataData?, ItemNote?)>> searchItems(
     String? userId,
-    String query,
-  ) {
+    String query, {
+    String? contentType,
+  }) {
     final pattern = '%$query%';
     final match =
         items.title.like(pattern) |
@@ -313,6 +369,8 @@ class AppDatabase extends _$AppDatabase {
         itemMetadata.domain.like(pattern) |
         itemMetadata.siteName.like(pattern) |
         itemNotes.content.like(pattern);
+    final typeFilter =
+        contentType == null ? const Constant<bool>(true) : itemMetadata.contentType.equals(contentType);
     final statement = select(items).join([
       leftOuterJoin(itemMetadata, itemMetadata.itemId.equalsExp(items.id)),
       leftOuterJoin(itemNotes, itemNotes.itemId.equalsExp(items.id)),
@@ -322,6 +380,7 @@ class AppDatabase extends _$AppDatabase {
             (userId == null
                 ? items.userId.isNull()
                 : items.userId.equals(userId)) &
+            typeFilter &
             match,
       )
       ..orderBy([OrderingTerm.desc(items.createdAt)]);
