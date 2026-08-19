@@ -9,14 +9,14 @@ import 'package:laterbox/core/database/database_providers.dart';
 import 'package:laterbox/features/capture/data/android_share_receiver.dart';
 
 void main() {
-  testWidgets('saves an Android shared URL through the capture pipeline', (
+  testWidgets('saves queued Android shares through the capture pipeline', (
     tester,
   ) async {
     final database = AppDatabase(NativeDatabase.memory());
     const channel = MethodChannel(AndroidShareReceiver.channelName);
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, (call) async {
-      return 'https://example.com/article';
+      return ['https://example.com/a', 'read this later'];
     });
     addTearDown(
       () => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
@@ -32,18 +32,19 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('EXAMPLE.COM'), findsOneWidget);
-    expect(find.text('https://example.com/article'), findsOneWidget);
+    expect(find.text('https://example.com/a'), findsOneWidget);
+    expect(find.text('read this later'), findsOneWidget);
 
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(milliseconds: 1));
     await database.close();
   });
 
-  testWidgets('ignores an empty Android share', (tester) async {
+  testWidgets('ignores an empty Android share queue', (tester) async {
     final database = AppDatabase(NativeDatabase.memory());
     const channel = MethodChannel(AndroidShareReceiver.channelName);
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(channel, (call) async => null);
+        .setMockMethodCallHandler(channel, (call) async => []);
     addTearDown(
       () => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(channel, null),
