@@ -22,6 +22,10 @@ Run the local Flutter web app on the matching fixed port:
 flutter run -d chrome --web-port 8080
 ```
 
+The local extension opens `http://localhost:8080` for approval. If the old
+`127.0.0.1:8080` origin is blank, clear its site data or use the localhost
+origin consistently.
+
 Serve the local capture functions in another terminal:
 
 ```bash
