@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
+import 'core/enrichment/enrichment_providers.dart';
 import 'features/capture/domain/capture_providers.dart';
 
 class LaterBoxApp extends ConsumerStatefulWidget {
@@ -72,6 +73,7 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
 
   @override
   Widget build(BuildContext context) {
+    ref.watch(enrichmentCoordinatorProvider);
     return MaterialApp.router(
       title: 'LaterBox',
       debugShowCheckedModeBanner: false,
