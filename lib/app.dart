@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -19,7 +21,7 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _capturePendingShares();
+    _drainPendingShares();
   }
 
   @override
@@ -30,10 +32,15 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) _capturePendingShares();
+    if (state == AppLifecycleState.resumed) _drainPendingShares();
   }
 
-  Future<void> _capturePendingShares() async {
+  void _drainPendingShares() {
+    unawaited(_captureAndroidShares());
+    unawaited(_importIosShares());
+  }
+
+  Future<void> _captureAndroidShares() async {
     try {
       final pending = await ref.read(androidShareReceiverProvider)
           .consumePendingShares();
@@ -44,6 +51,22 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
       // Not running on Android; there is nothing to consume.
     } on Object catch (error, stackTrace) {
       debugPrint('Failed to capture shared item: $error\n$stackTrace');
+    }
+  }
+
+  Future<void> _importIosShares() async {
+    try {
+      final receiver = ref.read(iosShareReceiverProvider);
+      final pending = await receiver.consumePendingShares();
+      if (pending.isEmpty) return;
+      for (final payload in pending) {
+        await ref.read(captureServiceProvider).save(payload);
+      }
+      await receiver.clearPending();
+    } on MissingPluginException {
+      // Not running on iOS; there is nothing to consume.
+    } on Object catch (error, stackTrace) {
+      debugPrint('Failed to import iOS shares: $error\n$stackTrace');
     }
   }
 
