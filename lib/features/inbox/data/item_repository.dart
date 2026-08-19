@@ -44,19 +44,22 @@ class ItemRepository {
         );
   }
 
-  Future<void> save(String value) async {
+  Future<void> save(String value, {String? id, DateTime? createdAt}) async {
     final normalized = value.trim();
     if (normalized.isEmpty) {
       throw const FormatException('Paste a URL or some text to save.');
     }
 
+    final itemId = id ?? _uuid.v4();
+    if (id != null && await _local.exists(itemId)) return;
+
     final uri = Uri.tryParse(normalized);
     final isUrl = uri != null && uri.hasScheme && uri.host.isNotEmpty;
-    final now = DateTime.now();
+    final now = createdAt ?? DateTime.now();
 
     await _local.insert(
       ItemsCompanion.insert(
-        id: _uuid.v4(),
+        id: itemId,
         userId: Value(_userId),
         url: Value(isUrl ? normalized : null),
         textContent: Value(isUrl ? null : normalized),
