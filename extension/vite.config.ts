@@ -1,6 +1,9 @@
 import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { defineConfig } from "vite";
+
+const rootDir = dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
   publicDir: "public",
@@ -11,7 +14,7 @@ export default defineConfig({
         this.emitFile({
           type: "asset",
           fileName: "manifest.json",
-          source: readFileSync(resolve(__dirname, "manifest.json"), "utf8"),
+          source: readFileSync(resolve(rootDir, "manifest.json"), "utf8"),
         });
       },
     },
@@ -21,8 +24,8 @@ export default defineConfig({
     emptyOutDir: true,
     rollupOptions: {
       input: {
-        popup: resolve(__dirname, "src/popup/popup.html"),
-        background: resolve(__dirname, "src/background/service-worker.ts"),
+        popup: resolve(rootDir, "src/popup/popup.html"),
+        background: resolve(rootDir, "src/background/service-worker.ts"),
       },
       output: {
         entryFileNames: "[name].js",
