@@ -1,7 +1,10 @@
+import '../../features/collections/data/local_collection_data_source.dart';
+import '../../features/collections/data/remote_collection_data_source.dart';
 import '../../features/enrichment/data/local_metadata_data_source.dart';
 import '../../features/enrichment/data/remote_metadata_data_source.dart';
 import '../../features/inbox/data/local_item_data_source.dart';
 import '../../features/inbox/data/remote_item_data_source.dart';
+import '../database/app_database.dart';
 import 'sync_result.dart';
 
 class SyncService {
@@ -11,12 +14,16 @@ class SyncService {
     required String? Function() currentUserId,
     LocalMetadataDataSource? localMetadata,
     RemoteMetadataDataSource? remoteMetadata,
+    LocalCollectionDataSource? localCollections,
+    RemoteCollectionDataSource? remoteCollections,
   }) => SyncService._(
     local,
     remote,
     currentUserId,
     localMetadata,
     remoteMetadata,
+    localCollections,
+    remoteCollections,
   );
 
   SyncService._(
@@ -25,6 +32,8 @@ class SyncService {
     this._currentUserId,
     this._localMetadata,
     this._remoteMetadata,
+    this._localCollections,
+    this._remoteCollections,
   );
 
   final LocalItemDataSource _local;
@@ -32,7 +41,12 @@ class SyncService {
   final String? Function() _currentUserId;
   final LocalMetadataDataSource? _localMetadata;
   final RemoteMetadataDataSource? _remoteMetadata;
+  final LocalCollectionDataSource? _localCollections;
+  final RemoteCollectionDataSource? _remoteCollections;
   Future<SyncResult>? _activeSync;
+  int _pushed = 0;
+  int _pulled = 0;
+  int _failed = 0;
 
   Future<SyncResult> sync() {
     return _activeSync ??= _run().whenComplete(() => _activeSync = null);
@@ -43,15 +57,15 @@ class SyncService {
     final remote = _remote;
     if (userId == null || remote == null) return const SyncResult.skipped();
 
-    var pulled = 0;
-    var pushed = 0;
-    var failed = 0;
+    _pushed = 0;
+    _pulled = 0;
+    _failed = 0;
     final syncedAt = DateTime.now().toUtc();
 
     try {
       final remoteItems = await remote.fetchItems(userId);
       for (final item in remoteItems) {
-        if (await _local.applyRemote(item, syncedAt)) pulled++;
+        if (await _local.applyRemote(item, syncedAt)) _pulled++;
       }
     } catch (_) {
       return const SyncResult(pushed: 0, pulled: 0, failed: 1);
@@ -62,10 +76,10 @@ class SyncService {
       try {
         await remote.upsertItem(item);
         await _local.markSynced(item.id, syncedAt);
-        pushed++;
+        _pushed++;
       } catch (_) {
         await _local.markFailed(item.id);
-        failed++;
+        _failed++;
       }
     }
 
@@ -75,23 +89,90 @@ class SyncService {
       try {
         final remoteRows = await remoteMetadata.fetchMetadata(userId);
         for (final row in remoteRows) {
-          if (await localMetadata.applyRemoteMetadata(row, syncedAt)) pulled++;
+          if (await localMetadata.applyRemoteMetadata(row, syncedAt)) _pulled++;
         }
       } catch (_) {
-        failed++;
+        _failed++;
       }
 
       final pendingMetadata = await localMetadata.metadataNeedingSync(userId);
       for (final metadata in pendingMetadata) {
         try {
           await remoteMetadata.upsertMetadata(metadata);
-          pushed++;
+          _pushed++;
         } catch (_) {
-          failed++;
+          _failed++;
         }
       }
     }
 
-    return SyncResult(pushed: pushed, pulled: pulled, failed: failed);
+    await _syncCollections(userId);
+
+    return SyncResult(
+      pushed: _pushed,
+      pulled: _pulled,
+      failed: _failed,
+    );
+  }
+
+  Future<void> _syncCollections(String userId) async {
+    final local = _localCollections;
+    final remote = _remoteCollections;
+    if (local == null || remote == null) return;
+    await _syncEntity(
+      fetchRemote: () => remote.fetchCollections(userId),
+      applyRemote: (RemoteCollection row, syncedAt) =>
+          local.applyRemoteCollection(row, syncedAt),
+      needingSync: () => local.collectionsNeedingSync(userId),
+      upsert: (Collection row) => remote.upsertCollection(row),
+      markSynced: (row, syncedAt) =>
+          local.markCollectionSynced(row.id, syncedAt),
+      markFailed: (row) => local.markCollectionFailed(row.id),
+    );
+    await _syncEntity(
+      fetchRemote: () => remote.fetchCollectionItems(userId),
+      applyRemote: (RemoteCollectionItem row, syncedAt) =>
+          local.applyRemoteCollectionItem(row, syncedAt),
+      needingSync: () => local.collectionItemsNeedingSync(userId),
+      upsert: (CollectionItem row) => remote.upsertCollectionItem(row),
+      markSynced: (row, syncedAt) => local.markCollectionItemSynced(
+        row.collectionId,
+        row.itemId,
+        syncedAt,
+      ),
+      markFailed: (row) =>
+          local.markCollectionItemFailed(row.collectionId, row.itemId),
+    );
+  }
+
+  Future<void> _syncEntity<TRemote, TLocal>({
+    required Future<List<TRemote>> Function() fetchRemote,
+    required Future<bool> Function(TRemote row, DateTime syncedAt) applyRemote,
+    required Future<List<TLocal>> Function() needingSync,
+    required Future<void> Function(TLocal row) upsert,
+    required Future<void> Function(TLocal row, DateTime syncedAt) markSynced,
+    required Future<void> Function(TLocal row) markFailed,
+  }) async {
+    final syncedAt = DateTime.now().toUtc();
+    try {
+      final remoteRows = await fetchRemote();
+      for (final row in remoteRows) {
+        if (await applyRemote(row, syncedAt)) _pulled++;
+      }
+    } catch (_) {
+      _failed++;
+    }
+
+    final pending = await needingSync();
+    for (final row in pending) {
+      try {
+        await upsert(row);
+        await markSynced(row, syncedAt);
+        _pushed++;
+      } catch (_) {
+        await markFailed(row);
+        _failed++;
+      }
+    }
   }
 }
