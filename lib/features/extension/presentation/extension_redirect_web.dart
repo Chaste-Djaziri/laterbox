@@ -1,5 +1,5 @@
-import 'dart:html' as html;
+import 'package:web/web.dart' as web;
 
 void redirectTo(String url) {
-  html.window.location.assign(url);
+  web.window.location.assign(url);
 }
