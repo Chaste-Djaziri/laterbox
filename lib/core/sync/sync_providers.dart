@@ -26,10 +26,12 @@ final syncServiceProvider = Provider<SyncService>((ref) {
 final syncCoordinatorProvider = Provider<SyncCoordinator>((ref) {
   final client = ref.watch(supabaseClientProvider);
   final coordinator = SyncCoordinator(ref.watch(syncServiceProvider));
-  coordinator.start(
-    connectivityChanges: Connectivity().onConnectivityChanged,
-    authChanges: client?.auth.onAuthStateChange,
-  );
+  if (client != null) {
+    coordinator.start(
+      connectivityChanges: Connectivity().onConnectivityChanged,
+      authChanges: client.auth.onAuthStateChange,
+    );
+  }
   ref.onDispose(() => unawaited(coordinator.dispose()));
   return coordinator;
 });
