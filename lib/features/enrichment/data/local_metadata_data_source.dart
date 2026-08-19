@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 
 import '../../../core/database/app_database.dart';
+import '../domain/content_type.dart';
 import '../domain/item_metadata.dart';
 import '../domain/url_utils.dart';
 import 'remote_metadata_data_source.dart';
@@ -60,6 +61,14 @@ class LocalMetadataDataSource {
         description: Value(metadata.description),
         faviconUrl: Value(metadata.faviconUrl),
         previewImageUrl: Value(metadata.previewImageUrl),
+        contentType: Value(metadata.classification?.type.value ?? 'link'),
+        classificationSource:
+            Value(metadata.classification?.source.value),
+        classificationConfidence:
+            Value(metadata.classification?.confidence ?? 0),
+        structuredData: Value(
+          ClassificationCodec.encode(metadata.classification?.structuredData),
+        ),
         lastError: const Value(null),
         enrichedAt: Value(now),
         updatedAt: Value(now),
@@ -130,6 +139,11 @@ class LocalMetadataDataSource {
         lastError: Value(remote.lastError),
         metadataVersion: Value(remote.metadataVersion),
         enrichedAt: Value(remote.enrichedAt),
+        contentType: Value(remote.contentType ?? 'link'),
+        classificationSource: Value(remote.classificationSource),
+        classificationConfidence:
+            Value(remote.classificationConfidence ?? 0),
+        structuredData: Value(remote.structuredData),
         createdAt: local?.createdAt ?? remote.createdAt,
         updatedAt: remote.updatedAt,
       ),
