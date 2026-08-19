@@ -24,7 +24,7 @@ class LocalItemDataSource {
     return _database.watchAllItemsWithMetadata(userId);
   }
 
-  Stream<List<(Item, ItemMetadataData?)>> searchItemsWithMetadata(
+  Stream<List<(Item, ItemMetadataData?, ItemNote?)>> searchItemsWithMetadata(
     String? userId,
     String query,
   ) {
