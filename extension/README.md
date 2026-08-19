@@ -4,10 +4,12 @@ Chromium Manifest V3 capture MVP for Chrome, Edge, and Brave.
 
 ## Configure
 
-Set the capture endpoint before building:
+Set the capture endpoint and hosted LaterBox web URL before building:
 
 ```bash
-VITE_CAPTURE_API_URL=https://YOUR_PROJECT.supabase.co/functions/v1/capture npm run build
+VITE_CAPTURE_API_URL=https://YOUR_PROJECT.supabase.co/functions/v1/capture \
+VITE_LATERBOX_WEB_URL=https://app.laterbox.com \
+npm run build
 ```
 
 For local Supabase:
@@ -16,7 +18,7 @@ For local Supabase:
 VITE_CAPTURE_API_URL=http://127.0.0.1:54321/functions/v1/capture npm run build
 ```
 
-The popup currently accepts a Supabase access token for the Phase 13.0A developer flow. The token is stored in `chrome.storage.local` and is sent as a bearer token to the capture function.
+The popup connects through the LaterBox web approval screen. The extension stores only its scoped `lb_ext_` credential in `chrome.storage.local`.
 
 ## Load locally
 
