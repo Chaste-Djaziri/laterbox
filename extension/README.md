@@ -25,6 +25,7 @@ flutter run -d chrome --web-port 8080
 Serve the local capture functions in another terminal:
 
 ```bash
+supabase migration up --local
 supabase functions serve --no-verify-jwt
 ```
 
