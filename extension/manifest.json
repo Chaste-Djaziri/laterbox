@@ -13,7 +13,39 @@
   "host_permissions": [
     "https://*.supabase.co/*",
     "http://127.0.0.1:54321/*",
-    "http://localhost:54321/*"
+    "http://localhost:54321/*",
+    "https://*.instagram.com/*",
+    "https://*.threads.net/*",
+    "https://*.x.com/*",
+    "https://*.twitter.com/*",
+    "https://bsky.app/*",
+    "https://*.tiktok.com/*",
+    "https://*.youtube.com/*",
+    "https://youtu.be/*",
+    "https://*.reddit.com/*",
+    "https://*.linkedin.com/*",
+    "https://*.facebook.com/*",
+    "https://*.pinterest.com/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*.instagram.com/*",
+        "https://*.threads.net/*",
+        "https://*.x.com/*",
+        "https://*.twitter.com/*",
+        "https://bsky.app/*",
+        "https://*.tiktok.com/*",
+        "https://*.youtube.com/*",
+        "https://youtu.be/*",
+        "https://*.reddit.com/*",
+        "https://*.linkedin.com/*",
+        "https://*.facebook.com/*",
+        "https://*.pinterest.com/*"
+      ],
+      "js": ["social-save.js"],
+      "run_at": "document_idle"
+    }
   ],
   "action": {
     "default_title": "Save to LaterBox",
