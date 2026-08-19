@@ -13,6 +13,7 @@ Future<void> main() async {
       url: SupabaseConfig.url,
       publishableKey: SupabaseConfig.publishableKey,
     );
+    SupabaseConfig.markInitialized();
   }
 
   runApp(const ProviderScope(child: LaterBoxApp()));
