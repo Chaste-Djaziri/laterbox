@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "build": "vite build",
+    "build": "npm run build:local",
     "build:local": "cross-env VITE_CAPTURE_API_URL=http://127.0.0.1:54321/functions/v1/capture VITE_LATERBOX_WEB_URL=http://127.0.0.1:8080 vite build",
     "build:hosted": "cross-env VITE_CAPTURE_API_URL=https://ltjisrgldssqskcylcbj.supabase.co/functions/v1/capture VITE_LATERBOX_WEB_URL=https://app.laterbox.com vite build",
     "typecheck": "tsc --noEmit"
