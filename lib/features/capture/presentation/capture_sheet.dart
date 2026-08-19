@@ -20,7 +20,9 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _focusNode.requestFocus());
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => _focusNode.requestFocus(),
+    );
   }
 
   @override
@@ -84,10 +86,11 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet> {
                   Expanded(
                     child: Text(
                       'Save to LaterBox',
-                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: -0.5,
-                      ),
+                      style: Theme.of(context).textTheme.headlineSmall
+                          ?.copyWith(
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -0.5,
+                          ),
                     ),
                   ),
                   IconButton(
@@ -100,9 +103,8 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet> {
               const SizedBox(height: 28),
               Text(
                 'Paste anything',
-                style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
+                style: Theme.of(context).textTheme.labelLarge
+                    ?.copyWith(fontWeight: FontWeight.w700),
               ),
               const SizedBox(height: 10),
               TextField(
