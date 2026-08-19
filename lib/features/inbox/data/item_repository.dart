@@ -11,33 +11,37 @@ import 'local_item_data_source.dart';
 class ItemRepository {
   factory ItemRepository(
     LocalItemDataSource local, {
+    required String? userId,
     required Future<void> Function() onSaved,
     Uuid uuid = const Uuid(),
-  }) => ItemRepository._(local, onSaved, uuid);
+  }) => ItemRepository._(local, userId, onSaved, uuid);
 
-  ItemRepository._(this._local, this._onSaved, this._uuid);
+  ItemRepository._(this._local, this._userId, this._onSaved, this._uuid);
 
   final LocalItemDataSource _local;
+  final String? _userId;
   final Future<void> Function() _onSaved;
   final Uuid _uuid;
 
   Stream<List<LaterBoxItem>> watchInboxItems() {
-    return _local.watchInboxItems().map(
-      (rows) => rows
-          .map(
-            (row) => LaterBoxItem(
-              id: row.id,
-              url: row.url,
-              title: row.title,
-              text: row.textContent,
-              type: row.type,
-              favorite: row.favorite,
-              archived: row.archived,
-              createdAt: row.createdAt,
-            ),
-          )
-          .toList(),
-    );
+    return _local
+        .watchInboxItems(_userId)
+        .map(
+          (rows) => rows
+              .map(
+                (row) => LaterBoxItem(
+                  id: row.id,
+                  url: row.url,
+                  title: row.title,
+                  text: row.textContent,
+                  type: row.type,
+                  favorite: row.favorite,
+                  archived: row.archived,
+                  createdAt: row.createdAt,
+                ),
+              )
+              .toList(),
+        );
   }
 
   Future<void> save(String value) async {
@@ -53,6 +57,7 @@ class ItemRepository {
     await _local.insert(
       ItemsCompanion.insert(
         id: _uuid.v4(),
+        userId: Value(_userId),
         url: Value(isUrl ? normalized : null),
         textContent: Value(isUrl ? null : normalized),
         type: Value(isUrl ? 'link' : 'text'),
