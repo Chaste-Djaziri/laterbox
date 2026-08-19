@@ -126,27 +126,66 @@ class AppDatabase extends _$AppDatabase {
   Stream<List<(Item, ItemMetadataData?)>> watchInboxItemsWithMetadata(
     String? userId,
   ) {
-    final query = select(items).join([
+    final query = _itemsWithMetadataQuery(userId)
+      ..where(items.archived.equals(false))
+      ..orderBy([OrderingTerm.desc(items.createdAt)]);
+    return query.watch().map(_mapJoinedRows);
+  }
+
+  /// All non-deleted items (including archived), newest first.
+  Stream<List<(Item, ItemMetadataData?)>> watchAllItemsWithMetadata(
+    String? userId,
+  ) {
+    final query = _itemsWithMetadataQuery(userId)
+      ..orderBy([OrderingTerm.desc(items.createdAt)]);
+    return query.watch().map(_mapJoinedRows);
+  }
+
+  /// Local-only LIKE search across item text, URL and enriched metadata
+  /// (title, description, domain, site name). SQLite LIKE is case-insensitive
+  /// for ASCII, which is adequate until FTS is introduced.
+  Stream<List<(Item, ItemMetadataData?)>> searchItems(
+    String? userId,
+    String query,
+  ) {
+    final pattern = '%$query%';
+    final match =
+        items.title.like(pattern) |
+        items.url.like(pattern) |
+        items.textContent.like(pattern) |
+        itemMetadata.title.like(pattern) |
+        itemMetadata.description.like(pattern) |
+        itemMetadata.domain.like(pattern) |
+        itemMetadata.siteName.like(pattern);
+    final statement = _itemsWithMetadataQuery(userId)
+      ..where(match)
+      ..orderBy([OrderingTerm.desc(items.createdAt)]);
+    return statement.watch().map(_mapJoinedRows);
+  }
+
+  JoinedSelectStatement<HasResultSet, dynamic> _itemsWithMetadataQuery(
+    String? userId,
+  ) {
+    return select(items).join([
       leftOuterJoin(itemMetadata, itemMetadata.itemId.equalsExp(items.id)),
     ])
       ..where(
-        items.archived.equals(false) &
-            items.deletedAt.isNull() &
+        items.deletedAt.isNull() &
             (userId == null
                 ? items.userId.isNull()
                 : items.userId.equals(userId)),
-      )
-      ..orderBy([OrderingTerm.desc(items.createdAt)]);
-    return query.watch().map(
-      (rows) => rows
-          .map(
-            (row) => (
-              row.readTable(items),
-              row.readTableOrNull(itemMetadata),
-            ),
-          )
-          .toList(),
-    );
+      );
+  }
+
+  List<(Item, ItemMetadataData?)> _mapJoinedRows(List<TypedResult> rows) {
+    return rows
+        .map(
+          (row) => (
+            row.readTable(items),
+            row.readTableOrNull(itemMetadata),
+          ),
+        )
+        .toList();
   }
 
   Future<ItemMetadataData?> metadataById(String itemId) {
