@@ -15,7 +15,13 @@ final searchRepositoryProvider = Provider<SearchRepository>((ref) {
   );
 });
 
+/// Currently active content-type filter chip, if any.
+final searchContentTypeProvider = StateProvider<String?>((ref) => null);
+
 final searchResultsProvider = StreamProvider<List<SearchResult>>((ref) {
   final raw = ref.watch(searchQueryProvider);
-  return ref.watch(searchRepositoryProvider).search(SearchQuery.raw(raw));
+  final type = ref.watch(searchContentTypeProvider);
+  return ref
+      .watch(searchRepositoryProvider)
+      .search(SearchQuery.raw(raw), contentType: type);
 });
