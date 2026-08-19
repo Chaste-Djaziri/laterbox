@@ -20,6 +20,7 @@ type CaptureDependencies = {
   fetch: typeof fetch;
   supabaseUrl: string;
   anonKey: string;
+  serviceRoleKey: string;
   createId: () => string;
   now: () => Date;
 };
@@ -28,6 +29,7 @@ const defaultDependencies = (): CaptureDependencies => ({
   fetch,
   supabaseUrl: Deno.env.get("SUPABASE_URL") ?? "",
   anonKey: Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+  serviceRoleKey: Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
   createId: () => crypto.randomUUID(),
   now: () => new Date(),
 });
@@ -121,6 +123,10 @@ async function authenticate(
   token: string,
   dependencies: CaptureDependencies,
 ): Promise<string | null> {
+  if (token.startsWith("lb_ext_")) {
+    return authenticateExtension(token, dependencies);
+  }
+
   const response = await dependencies.fetch(`${dependencies.supabaseUrl}/auth/v1/user`, {
     headers: {
       apikey: dependencies.anonKey,
@@ -131,6 +137,55 @@ async function authenticate(
 
   const user = await response.json();
   return typeof user?.id === "string" ? user.id : null;
+}
+
+async function authenticateExtension(
+  token: string,
+  dependencies: CaptureDependencies,
+): Promise<string | null> {
+  if (dependencies.serviceRoleKey.length === 0) return null;
+  const tokenHash = await hash(token);
+  const now = encodeURIComponent(dependencies.now().toISOString());
+  const response = await dependencies.fetch(
+    `${dependencies.supabaseUrl}/rest/v1/extension_sessions?select=user_id&token_hash=eq.${tokenHash}&revoked_at=is.null&expires_at=gt.${now}`,
+    {
+      headers: {
+        apikey: dependencies.serviceRoleKey,
+        authorization: `Bearer ${dependencies.serviceRoleKey}`,
+      },
+    },
+  );
+  if (!response.ok) return null;
+  const rows = await response.json();
+  const userId = Array.isArray(rows) && typeof rows[0]?.user_id === "string"
+    ? rows[0].user_id
+    : null;
+  if (userId === null) return null;
+
+  await dependencies.fetch(
+    `${dependencies.supabaseUrl}/rest/v1/extension_sessions?token_hash=eq.${tokenHash}`,
+    {
+      method: "PATCH",
+      headers: {
+        apikey: dependencies.serviceRoleKey,
+        authorization: `Bearer ${dependencies.serviceRoleKey}`,
+        "content-type": "application/json",
+        prefer: "return=minimal",
+      },
+      body: JSON.stringify({ last_used_at: dependencies.now().toISOString() }),
+    },
+  );
+  return userId;
+}
+
+async function hash(value: string): Promise<string> {
+  const digest = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(value),
+  );
+  return Array.from(new Uint8Array(digest), (byte) =>
+    byte.toString(16).padStart(2, "0"),
+  ).join("");
 }
 
 function validateCaptureBody(body: CaptureBody): {
