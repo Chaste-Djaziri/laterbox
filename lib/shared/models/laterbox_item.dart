@@ -1,3 +1,4 @@
+import '../../core/database/app_database.dart';
 import '../../features/enrichment/domain/item_metadata.dart';
 
 class LaterBoxItem {
@@ -12,6 +13,23 @@ class LaterBoxItem {
     required this.createdAt,
     this.metadata,
   });
+
+  factory LaterBoxItem.fromDriftRows(
+    Item item,
+    ItemMetadataData? metadata,
+  ) {
+    return LaterBoxItem(
+      id: item.id,
+      url: item.url,
+      title: item.title,
+      text: item.textContent,
+      type: item.type,
+      favorite: item.favorite,
+      archived: item.archived,
+      createdAt: item.createdAt,
+      metadata: metadata == null ? null : EnrichedMetadata.fromDrift(metadata),
+    );
+  }
 
   final String id;
   final String? url;
