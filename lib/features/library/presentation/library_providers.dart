@@ -8,3 +8,13 @@ import '../../inbox/presentation/inbox_providers.dart';
 final allItemsProvider = StreamProvider<List<LaterBoxItem>>((ref) {
   return ref.watch(itemRepositoryProvider).watchAllItems();
 });
+
+/// Non-deleted favorites, newest first.
+final favoritesProvider = StreamProvider<List<LaterBoxItem>>((ref) {
+  return ref.watch(itemRepositoryProvider).watchFavorites();
+});
+
+/// Non-deleted archived items, newest first.
+final archivedProvider = StreamProvider<List<LaterBoxItem>>((ref) {
+  return ref.watch(itemRepositoryProvider).watchArchived();
+});
