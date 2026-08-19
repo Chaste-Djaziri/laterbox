@@ -15,4 +15,9 @@
     <style name="NormalTheme" parent="@android:style/Theme.Light.NoTitleBar">
         <item name="android:windowBackground">?android:colorBackground</item>
     </style>
+    <!-- Lightweight dialog theme for the share confirmation activity. -->
+    <style name="Theme.LaterBox.Share" parent="@android:style/Theme.Material.Light.Dialog.NoActionBar">
+        <item name="android:windowBackground">@drawable/share_card_background</item>
+        <item name="android:windowNoTitle">true</item>
+    </style>
 </resources>
