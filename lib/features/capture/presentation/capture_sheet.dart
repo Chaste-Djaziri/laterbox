@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../inbox/presentation/inbox_providers.dart';
+import '../domain/capture_payload.dart';
+import '../domain/capture_providers.dart';
 
 class CaptureSheet extends ConsumerStatefulWidget {
   const CaptureSheet({super.key});
@@ -40,7 +41,12 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet> {
     });
 
     try {
-      await ref.read(itemRepositoryProvider).save(_controller.text);
+      await ref.read(captureServiceProvider).save(
+        CapturePayload.fromValue(
+          _controller.text,
+          source: CaptureSource.manual,
+        ),
+      );
       if (mounted) Navigator.of(context).pop();
     } on FormatException catch (error) {
       setState(() => _error = error.message);
