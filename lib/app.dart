@@ -35,9 +35,11 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
 
   Future<void> _capturePendingShares() async {
     try {
-      final payload = await ref.read(androidShareReceiverProvider).consume();
-      if (payload == null) return;
-      await ref.read(captureServiceProvider).save(payload);
+      final pending = await ref.read(androidShareReceiverProvider)
+          .consumePendingShares();
+      for (final payload in pending) {
+        await ref.read(captureServiceProvider).save(payload);
+      }
     } on MissingPluginException {
       // Not running on Android; there is nothing to consume.
     } on Object catch (error, stackTrace) {
