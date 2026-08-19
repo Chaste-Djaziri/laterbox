@@ -1,3 +1,5 @@
+import '../../features/enrichment/domain/item_metadata.dart';
+
 class LaterBoxItem {
   const LaterBoxItem({
     required this.id,
@@ -8,6 +10,7 @@ class LaterBoxItem {
     this.favorite = false,
     this.archived = false,
     required this.createdAt,
+    this.metadata,
   });
 
   final String id;
@@ -18,4 +21,7 @@ class LaterBoxItem {
   final bool favorite;
   final bool archived;
   final DateTime createdAt;
+
+  /// Enrichment content (domain, title, description, favicon) once available.
+  final EnrichedMetadata? metadata;
 }
