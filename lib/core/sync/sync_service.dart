@@ -3,13 +3,13 @@ import '../../features/inbox/data/remote_item_data_source.dart';
 import 'sync_result.dart';
 
 class SyncService {
-  SyncService({
+  factory SyncService({
     required LocalItemDataSource local,
     required RemoteItemDataSource? remote,
     required String? Function() currentUserId,
-  }) : _local = local,
-       _remote = remote,
-       _currentUserId = currentUserId;
+  }) => SyncService._(local, remote, currentUserId);
+
+  SyncService._(this._local, this._remote, this._currentUserId);
 
   final LocalItemDataSource _local;
   final RemoteItemDataSource? _remote;
