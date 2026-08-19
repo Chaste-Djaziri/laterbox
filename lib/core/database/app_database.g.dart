@@ -17,6 +17,15 @@ class $ItemsTable extends Items with TableInfo<$ItemsTable, Item> {
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _userIdMeta = const VerificationMeta('userId');
+  @override
+  late final GeneratedColumn<String> userId = GeneratedColumn<String>(
+    'user_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _urlMeta = const VerificationMeta('url');
   @override
   late final GeneratedColumn<String> url = GeneratedColumn<String>(
@@ -120,9 +129,32 @@ class $ItemsTable extends Items with TableInfo<$ItemsTable, Item> {
     requiredDuringInsert: false,
     defaultValue: const Constant('pending'),
   );
+  static const VerificationMeta _lastSyncedAtMeta = const VerificationMeta(
+    'lastSyncedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> lastSyncedAt = GeneratedColumn<DateTime>(
+    'last_synced_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _deletedAtMeta = const VerificationMeta(
+    'deletedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> deletedAt = GeneratedColumn<DateTime>(
+    'deleted_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
+    userId,
     url,
     title,
     textContent,
@@ -132,6 +164,8 @@ class $ItemsTable extends Items with TableInfo<$ItemsTable, Item> {
     createdAt,
     updatedAt,
     syncStatus,
+    lastSyncedAt,
+    deletedAt,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -149,6 +183,12 @@ class $ItemsTable extends Items with TableInfo<$ItemsTable, Item> {
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
     } else if (isInserting) {
       context.missing(_idMeta);
+    }
+    if (data.containsKey('user_id')) {
+      context.handle(
+        _userIdMeta,
+        userId.isAcceptableOrUnknown(data['user_id']!, _userIdMeta),
+      );
     }
     if (data.containsKey('url')) {
       context.handle(
@@ -211,6 +251,21 @@ class $ItemsTable extends Items with TableInfo<$ItemsTable, Item> {
         syncStatus.isAcceptableOrUnknown(data['sync_status']!, _syncStatusMeta),
       );
     }
+    if (data.containsKey('last_synced_at')) {
+      context.handle(
+        _lastSyncedAtMeta,
+        lastSyncedAt.isAcceptableOrUnknown(
+          data['last_synced_at']!,
+          _lastSyncedAtMeta,
+        ),
+      );
+    }
+    if (data.containsKey('deleted_at')) {
+      context.handle(
+        _deletedAtMeta,
+        deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta),
+      );
+    }
     return context;
   }
 
@@ -224,6 +279,10 @@ class $ItemsTable extends Items with TableInfo<$ItemsTable, Item> {
         DriftSqlType.string,
         data['${effectivePrefix}id'],
       )!,
+      userId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}user_id'],
+      ),
       url: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}url'],
@@ -260,6 +319,14 @@ class $ItemsTable extends Items with TableInfo<$ItemsTable, Item> {
         DriftSqlType.string,
         data['${effectivePrefix}sync_status'],
       )!,
+      lastSyncedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}last_synced_at'],
+      ),
+      deletedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}deleted_at'],
+      ),
     );
   }
 
@@ -271,6 +338,7 @@ class $ItemsTable extends Items with TableInfo<$ItemsTable, Item> {
 
 class Item extends DataClass implements Insertable<Item> {
   final String id;
+  final String? userId;
   final String? url;
   final String? title;
   final String? textContent;
@@ -280,8 +348,11 @@ class Item extends DataClass implements Insertable<Item> {
   final DateTime createdAt;
   final DateTime updatedAt;
   final String syncStatus;
+  final DateTime? lastSyncedAt;
+  final DateTime? deletedAt;
   const Item({
     required this.id,
+    this.userId,
     this.url,
     this.title,
     this.textContent,
@@ -291,11 +362,16 @@ class Item extends DataClass implements Insertable<Item> {
     required this.createdAt,
     required this.updatedAt,
     required this.syncStatus,
+    this.lastSyncedAt,
+    this.deletedAt,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['id'] = Variable<String>(id);
+    if (!nullToAbsent || userId != null) {
+      map['user_id'] = Variable<String>(userId);
+    }
     if (!nullToAbsent || url != null) {
       map['url'] = Variable<String>(url);
     }
@@ -311,12 +387,21 @@ class Item extends DataClass implements Insertable<Item> {
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
     map['sync_status'] = Variable<String>(syncStatus);
+    if (!nullToAbsent || lastSyncedAt != null) {
+      map['last_synced_at'] = Variable<DateTime>(lastSyncedAt);
+    }
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt);
+    }
     return map;
   }
 
   ItemsCompanion toCompanion(bool nullToAbsent) {
     return ItemsCompanion(
       id: Value(id),
+      userId: userId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(userId),
       url: url == null && nullToAbsent ? const Value.absent() : Value(url),
       title: title == null && nullToAbsent
           ? const Value.absent()
@@ -330,6 +415,12 @@ class Item extends DataClass implements Insertable<Item> {
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
       syncStatus: Value(syncStatus),
+      lastSyncedAt: lastSyncedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastSyncedAt),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
     );
   }
 
@@ -340,6 +431,7 @@ class Item extends DataClass implements Insertable<Item> {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return Item(
       id: serializer.fromJson<String>(json['id']),
+      userId: serializer.fromJson<String?>(json['userId']),
       url: serializer.fromJson<String?>(json['url']),
       title: serializer.fromJson<String?>(json['title']),
       textContent: serializer.fromJson<String?>(json['textContent']),
@@ -349,6 +441,8 @@ class Item extends DataClass implements Insertable<Item> {
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       syncStatus: serializer.fromJson<String>(json['syncStatus']),
+      lastSyncedAt: serializer.fromJson<DateTime?>(json['lastSyncedAt']),
+      deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
     );
   }
   @override
@@ -356,6 +450,7 @@ class Item extends DataClass implements Insertable<Item> {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
       'id': serializer.toJson<String>(id),
+      'userId': serializer.toJson<String?>(userId),
       'url': serializer.toJson<String?>(url),
       'title': serializer.toJson<String?>(title),
       'textContent': serializer.toJson<String?>(textContent),
@@ -365,11 +460,14 @@ class Item extends DataClass implements Insertable<Item> {
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'syncStatus': serializer.toJson<String>(syncStatus),
+      'lastSyncedAt': serializer.toJson<DateTime?>(lastSyncedAt),
+      'deletedAt': serializer.toJson<DateTime?>(deletedAt),
     };
   }
 
   Item copyWith({
     String? id,
+    Value<String?> userId = const Value.absent(),
     Value<String?> url = const Value.absent(),
     Value<String?> title = const Value.absent(),
     Value<String?> textContent = const Value.absent(),
@@ -379,8 +477,11 @@ class Item extends DataClass implements Insertable<Item> {
     DateTime? createdAt,
     DateTime? updatedAt,
     String? syncStatus,
+    Value<DateTime?> lastSyncedAt = const Value.absent(),
+    Value<DateTime?> deletedAt = const Value.absent(),
   }) => Item(
     id: id ?? this.id,
+    userId: userId.present ? userId.value : this.userId,
     url: url.present ? url.value : this.url,
     title: title.present ? title.value : this.title,
     textContent: textContent.present ? textContent.value : this.textContent,
@@ -390,10 +491,13 @@ class Item extends DataClass implements Insertable<Item> {
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
     syncStatus: syncStatus ?? this.syncStatus,
+    lastSyncedAt: lastSyncedAt.present ? lastSyncedAt.value : this.lastSyncedAt,
+    deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
   );
   Item copyWithCompanion(ItemsCompanion data) {
     return Item(
       id: data.id.present ? data.id.value : this.id,
+      userId: data.userId.present ? data.userId.value : this.userId,
       url: data.url.present ? data.url.value : this.url,
       title: data.title.present ? data.title.value : this.title,
       textContent: data.textContent.present
@@ -407,6 +511,10 @@ class Item extends DataClass implements Insertable<Item> {
       syncStatus: data.syncStatus.present
           ? data.syncStatus.value
           : this.syncStatus,
+      lastSyncedAt: data.lastSyncedAt.present
+          ? data.lastSyncedAt.value
+          : this.lastSyncedAt,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
     );
   }
 
@@ -414,6 +522,7 @@ class Item extends DataClass implements Insertable<Item> {
   String toString() {
     return (StringBuffer('Item(')
           ..write('id: $id, ')
+          ..write('userId: $userId, ')
           ..write('url: $url, ')
           ..write('title: $title, ')
           ..write('textContent: $textContent, ')
@@ -422,7 +531,9 @@ class Item extends DataClass implements Insertable<Item> {
           ..write('archived: $archived, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
-          ..write('syncStatus: $syncStatus')
+          ..write('syncStatus: $syncStatus, ')
+          ..write('lastSyncedAt: $lastSyncedAt, ')
+          ..write('deletedAt: $deletedAt')
           ..write(')'))
         .toString();
   }
@@ -430,6 +541,7 @@ class Item extends DataClass implements Insertable<Item> {
   @override
   int get hashCode => Object.hash(
     id,
+    userId,
     url,
     title,
     textContent,
@@ -439,12 +551,15 @@ class Item extends DataClass implements Insertable<Item> {
     createdAt,
     updatedAt,
     syncStatus,
+    lastSyncedAt,
+    deletedAt,
   );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is Item &&
           other.id == this.id &&
+          other.userId == this.userId &&
           other.url == this.url &&
           other.title == this.title &&
           other.textContent == this.textContent &&
@@ -453,11 +568,14 @@ class Item extends DataClass implements Insertable<Item> {
           other.archived == this.archived &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
-          other.syncStatus == this.syncStatus);
+          other.syncStatus == this.syncStatus &&
+          other.lastSyncedAt == this.lastSyncedAt &&
+          other.deletedAt == this.deletedAt);
 }
 
 class ItemsCompanion extends UpdateCompanion<Item> {
   final Value<String> id;
+  final Value<String?> userId;
   final Value<String?> url;
   final Value<String?> title;
   final Value<String?> textContent;
@@ -467,9 +585,12 @@ class ItemsCompanion extends UpdateCompanion<Item> {
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   final Value<String> syncStatus;
+  final Value<DateTime?> lastSyncedAt;
+  final Value<DateTime?> deletedAt;
   final Value<int> rowid;
   const ItemsCompanion({
     this.id = const Value.absent(),
+    this.userId = const Value.absent(),
     this.url = const Value.absent(),
     this.title = const Value.absent(),
     this.textContent = const Value.absent(),
@@ -479,10 +600,13 @@ class ItemsCompanion extends UpdateCompanion<Item> {
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.syncStatus = const Value.absent(),
+    this.lastSyncedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   ItemsCompanion.insert({
     required String id,
+    this.userId = const Value.absent(),
     this.url = const Value.absent(),
     this.title = const Value.absent(),
     this.textContent = const Value.absent(),
@@ -492,12 +616,15 @@ class ItemsCompanion extends UpdateCompanion<Item> {
     required DateTime createdAt,
     required DateTime updatedAt,
     this.syncStatus = const Value.absent(),
+    this.lastSyncedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        createdAt = Value(createdAt),
        updatedAt = Value(updatedAt);
   static Insertable<Item> custom({
     Expression<String>? id,
+    Expression<String>? userId,
     Expression<String>? url,
     Expression<String>? title,
     Expression<String>? textContent,
@@ -507,10 +634,13 @@ class ItemsCompanion extends UpdateCompanion<Item> {
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
     Expression<String>? syncStatus,
+    Expression<DateTime>? lastSyncedAt,
+    Expression<DateTime>? deletedAt,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
+      if (userId != null) 'user_id': userId,
       if (url != null) 'url': url,
       if (title != null) 'title': title,
       if (textContent != null) 'text_content': textContent,
@@ -520,12 +650,15 @@ class ItemsCompanion extends UpdateCompanion<Item> {
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (syncStatus != null) 'sync_status': syncStatus,
+      if (lastSyncedAt != null) 'last_synced_at': lastSyncedAt,
+      if (deletedAt != null) 'deleted_at': deletedAt,
       if (rowid != null) 'rowid': rowid,
     });
   }
 
   ItemsCompanion copyWith({
     Value<String>? id,
+    Value<String?>? userId,
     Value<String?>? url,
     Value<String?>? title,
     Value<String?>? textContent,
@@ -535,10 +668,13 @@ class ItemsCompanion extends UpdateCompanion<Item> {
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
     Value<String>? syncStatus,
+    Value<DateTime?>? lastSyncedAt,
+    Value<DateTime?>? deletedAt,
     Value<int>? rowid,
   }) {
     return ItemsCompanion(
       id: id ?? this.id,
+      userId: userId ?? this.userId,
       url: url ?? this.url,
       title: title ?? this.title,
       textContent: textContent ?? this.textContent,
@@ -548,6 +684,8 @@ class ItemsCompanion extends UpdateCompanion<Item> {
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       syncStatus: syncStatus ?? this.syncStatus,
+      lastSyncedAt: lastSyncedAt ?? this.lastSyncedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -557,6 +695,9 @@ class ItemsCompanion extends UpdateCompanion<Item> {
     final map = <String, Expression>{};
     if (id.present) {
       map['id'] = Variable<String>(id.value);
+    }
+    if (userId.present) {
+      map['user_id'] = Variable<String>(userId.value);
     }
     if (url.present) {
       map['url'] = Variable<String>(url.value);
@@ -585,6 +726,12 @@ class ItemsCompanion extends UpdateCompanion<Item> {
     if (syncStatus.present) {
       map['sync_status'] = Variable<String>(syncStatus.value);
     }
+    if (lastSyncedAt.present) {
+      map['last_synced_at'] = Variable<DateTime>(lastSyncedAt.value);
+    }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -595,6 +742,7 @@ class ItemsCompanion extends UpdateCompanion<Item> {
   String toString() {
     return (StringBuffer('ItemsCompanion(')
           ..write('id: $id, ')
+          ..write('userId: $userId, ')
           ..write('url: $url, ')
           ..write('title: $title, ')
           ..write('textContent: $textContent, ')
@@ -604,6 +752,8 @@ class ItemsCompanion extends UpdateCompanion<Item> {
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('syncStatus: $syncStatus, ')
+          ..write('lastSyncedAt: $lastSyncedAt, ')
+          ..write('deletedAt: $deletedAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -623,6 +773,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
 
 typedef $$ItemsTableCreateCompanionBuilder = ItemsCompanion Function({
   required String id,
+  Value<String?> userId,
   Value<String?> url,
   Value<String?> title,
   Value<String?> textContent,
@@ -632,10 +783,13 @@ typedef $$ItemsTableCreateCompanionBuilder = ItemsCompanion Function({
   required DateTime createdAt,
   required DateTime updatedAt,
   Value<String> syncStatus,
+  Value<DateTime?> lastSyncedAt,
+  Value<DateTime?> deletedAt,
   Value<int> rowid,
 });
 typedef $$ItemsTableUpdateCompanionBuilder = ItemsCompanion Function({
   Value<String> id,
+  Value<String?> userId,
   Value<String?> url,
   Value<String?> title,
   Value<String?> textContent,
@@ -645,6 +799,8 @@ typedef $$ItemsTableUpdateCompanionBuilder = ItemsCompanion Function({
   Value<DateTime> createdAt,
   Value<DateTime> updatedAt,
   Value<String> syncStatus,
+  Value<DateTime?> lastSyncedAt,
+  Value<DateTime?> deletedAt,
   Value<int> rowid,
 });
 
@@ -658,6 +814,11 @@ class $$ItemsTableFilterComposer extends Composer<_$AppDatabase, $ItemsTable> {
   });
   ColumnFilters<String> get id => $composableBuilder(
     column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get userId => $composableBuilder(
+    column: $table.userId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -705,6 +866,16 @@ class $$ItemsTableFilterComposer extends Composer<_$AppDatabase, $ItemsTable> {
     column: $table.syncStatus,
     builder: (column) => ColumnFilters(column),
   );
+
+  ColumnFilters<DateTime> get lastSyncedAt => $composableBuilder(
+    column: $table.lastSyncedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnFilters(column),
+  );
 }
 
 class $$ItemsTableOrderingComposer
@@ -718,6 +889,11 @@ class $$ItemsTableOrderingComposer
   });
   ColumnOrderings<String> get id => $composableBuilder(
     column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get userId => $composableBuilder(
+    column: $table.userId,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -765,6 +941,16 @@ class $$ItemsTableOrderingComposer
     column: $table.syncStatus,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<DateTime> get lastSyncedAt => $composableBuilder(
+    column: $table.lastSyncedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$ItemsTableAnnotationComposer
@@ -778,6 +964,9 @@ class $$ItemsTableAnnotationComposer
   });
   GeneratedColumn<String> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get userId =>
+      $composableBuilder(column: $table.userId, builder: (column) => column);
 
   GeneratedColumn<String> get url =>
       $composableBuilder(column: $table.url, builder: (column) => column);
@@ -809,6 +998,14 @@ class $$ItemsTableAnnotationComposer
     column: $table.syncStatus,
     builder: (column) => column,
   );
+
+  GeneratedColumn<DateTime> get lastSyncedAt => $composableBuilder(
+    column: $table.lastSyncedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
 }
 
 class $$ItemsTableTableManager
@@ -840,6 +1037,7 @@ class $$ItemsTableTableManager
           updateCompanionCallback:
               ({
                 Value<String> id = const Value.absent(),
+                Value<String?> userId = const Value.absent(),
                 Value<String?> url = const Value.absent(),
                 Value<String?> title = const Value.absent(),
                 Value<String?> textContent = const Value.absent(),
@@ -849,9 +1047,12 @@ class $$ItemsTableTableManager
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<String> syncStatus = const Value.absent(),
+                Value<DateTime?> lastSyncedAt = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ItemsCompanion(
                 id: id,
+                userId: userId,
                 url: url,
                 title: title,
                 textContent: textContent,
@@ -861,11 +1062,14 @@ class $$ItemsTableTableManager
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 syncStatus: syncStatus,
+                lastSyncedAt: lastSyncedAt,
+                deletedAt: deletedAt,
                 rowid: rowid,
               ),
           createCompanionCallback:
               ({
                 required String id,
+                Value<String?> userId = const Value.absent(),
                 Value<String?> url = const Value.absent(),
                 Value<String?> title = const Value.absent(),
                 Value<String?> textContent = const Value.absent(),
@@ -875,9 +1079,12 @@ class $$ItemsTableTableManager
                 required DateTime createdAt,
                 required DateTime updatedAt,
                 Value<String> syncStatus = const Value.absent(),
+                Value<DateTime?> lastSyncedAt = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ItemsCompanion.insert(
                 id: id,
+                userId: userId,
                 url: url,
                 title: title,
                 textContent: textContent,
@@ -887,6 +1094,8 @@ class $$ItemsTableTableManager
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 syncStatus: syncStatus,
+                lastSyncedAt: lastSyncedAt,
+                deletedAt: deletedAt,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
