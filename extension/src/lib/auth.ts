@@ -95,6 +95,11 @@ async function postConnection(
     headers: { "content-type": "application/json" },
     body: JSON.stringify(body),
   });
+  if (response.status === 404 && endpoint.startsWith("http://127.0.0.1:")) {
+    throw new Error(
+      "Local capture functions are not running. Run supabase functions serve --no-verify-jwt.",
+    );
+  }
   if (!response.ok) throw new Error(`Connection failed with ${response.status}`);
   return await response.json() as Record<string, unknown>;
 }
