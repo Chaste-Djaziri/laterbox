@@ -58,9 +58,8 @@ class InboxScreen extends ConsumerWidget {
               const SizedBox(height: 20),
               Expanded(
                 child: items.when(
-                  loading: () => const Center(
-                    child: CircularProgressIndicator.adaptive(),
-                  ),
+                  loading: () =>
+                      const Center(child: CircularProgressIndicator.adaptive()),
                   error: (error, stackTrace) => _ErrorState(
                     onRetry: () => ref.invalidate(inboxItemsProvider),
                   ),
@@ -125,9 +124,8 @@ class _ItemCard extends StatelessWidget {
               title,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
+              style: Theme.of(context).textTheme.titleMedium
+                  ?.copyWith(fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 12),
             Text(
@@ -162,9 +160,8 @@ class _EmptyInbox extends StatelessWidget {
             const SizedBox(height: 16),
             Text(
               'Nothing saved yet',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
+              style: Theme.of(context).textTheme.titleLarge
+                  ?.copyWith(fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 8),
             Text(
