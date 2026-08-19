@@ -22,6 +22,9 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) ref.read(enrichmentCoordinatorProvider);
+    });
     _drainPendingShares();
   }
 
@@ -43,7 +46,8 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
 
   Future<void> _captureAndroidShares() async {
     try {
-      final pending = await ref.read(androidShareReceiverProvider)
+      final pending = await ref
+          .read(androidShareReceiverProvider)
           .consumePendingShares();
       for (final payload in pending) {
         await ref.read(captureServiceProvider).save(payload);
@@ -73,7 +77,6 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
 
   @override
   Widget build(BuildContext context) {
-    ref.watch(enrichmentCoordinatorProvider);
     return MaterialApp.router(
       title: 'LaterBox',
       debugShowCheckedModeBanner: false,
