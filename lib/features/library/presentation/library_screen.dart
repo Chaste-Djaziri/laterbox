@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/database/app_database.dart';
+import '../../enrichment/domain/content_type.dart';
 import '../../collections/presentation/collection_providers.dart';
 import 'library_providers.dart';
 import 'library_section_screen.dart';
@@ -68,6 +69,17 @@ class LibraryScreen extends ConsumerWidget {
                 provider: archivedProvider,
               ),
             ),
+            const SizedBox(height: 28),
+            Text(
+              'TYPES',
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 1.2,
+              ),
+            ),
+            const SizedBox(height: 12),
+            _TypesSection(),
             const SizedBox(height: 28),
             Text(
               'COLLECTIONS',
@@ -205,6 +217,113 @@ class _SectionTile extends StatelessWidget {
           ],
         ),
         onTap: onTap,
+      ),
+    );
+  }
+}
+
+/// Live list of content-type tiles (Video, Repository, etc.) with item counts.
+/// Only types that the user actually has classified items for are shown.
+class _TypesSection extends ConsumerWidget {
+  const _TypesSection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final counts = ref.watch(libraryTypeCountsProvider);
+    return counts.when(
+      loading: () => const Padding(
+        padding: EdgeInsets.symmetric(vertical: 16),
+        child: Center(child: CircularProgressIndicator.adaptive()),
+      ),
+      error: (error, stackTrace) => Padding(
+        padding: const EdgeInsets.only(top: 8),
+        child: Text('Could not load types: $error'),
+      ),
+      data: (counts) {
+        if (counts.isEmpty) {
+          return Padding(
+            padding: const EdgeInsets.only(top: 4, bottom: 4),
+            child: Text(
+              'No classified items yet.',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
+          );
+        }
+        return Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: [
+            for (final (typeString, count) in counts)
+              _TypeTile(
+                type: ContentType.fromString(typeString),
+                count: count,
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => LibrarySectionScreen(
+                      title: ContentType.fromString(typeString).label,
+                      provider: itemsByTypeProvider(typeString),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _TypeTile extends StatelessWidget {
+  const _TypeTile({
+    required this.type,
+    required this.count,
+    required this.onTap,
+  });
+
+  final ContentType type;
+  final int count;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: EdgeInsets.zero,
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: InkWell(
+        onTap: onTap,
+        child: Container(
+          width: 150,
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surfaceContainerLowest,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Theme.of(context).colorScheme.outline),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(type.icon),
+              const SizedBox(height: 8),
+              Text(
+                type.label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              Text(
+                '$count ${count == 1 ? 'item' : 'items'}',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
