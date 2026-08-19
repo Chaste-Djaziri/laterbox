@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../features/collections/data/remote_collection_data_source.dart';
 import '../../features/enrichment/data/local_metadata_data_source.dart';
 import '../../features/enrichment/data/remote_metadata_data_source.dart';
 import '../../features/inbox/data/remote_item_data_source.dart';
@@ -16,6 +17,12 @@ final remoteItemDataSourceProvider = Provider<RemoteItemDataSource?>((ref) {
   return client == null ? null : SupabaseRemoteItemDataSource(client);
 });
 
+final remoteCollectionDataSourceProvider =
+    Provider<RemoteCollectionDataSource?>((ref) {
+  final client = ref.watch(supabaseClientProvider);
+  return client == null ? null : SupabaseRemoteCollectionDataSource(client);
+});
+
 final syncServiceProvider = Provider<SyncService>((ref) {
   final client = ref.watch(supabaseClientProvider);
   return SyncService(
@@ -26,6 +33,8 @@ final syncServiceProvider = Provider<SyncService>((ref) {
     remoteMetadata: client == null
         ? null
         : SupabaseRemoteMetadataDataSource(client),
+    localCollections: ref.watch(localCollectionDataSourceProvider),
+    remoteCollections: ref.watch(remoteCollectionDataSourceProvider),
   );
 });
 
