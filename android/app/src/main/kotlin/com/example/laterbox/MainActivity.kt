@@ -1,13 +1,18 @@
 package com.example.laterbox
 
 import android.content.Intent
+import android.os.Bundle
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterActivity() {
-    private var methodChannel: MethodChannel? = null
-    private var pendingShare: String? = null
+    private val pendingShares = mutableListOf<String>()
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        enqueueShareIntent(intent)
+    }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -15,31 +20,34 @@ class MainActivity : FlutterActivity() {
             flutterEngine.dartExecutor.binaryMessenger,
             CHANNEL,
         )
-        methodChannel = channel
         channel.setMethodCallHandler { call, result ->
             when (call.method) {
-                "consumeShare" -> {
-                    result.success(pendingShare)
-                    pendingShare = null
+                "consumeShares" -> {
+                    val shares = pendingShares.toList()
+                    pendingShares.clear()
+                    result.success(shares)
                 }
                 else -> result.notImplemented()
             }
         }
-        pendingShare = extractShareText(intent)
     }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        pendingShare = extractShareText(intent)
+        enqueueShareIntent(intent)
     }
 
-    private fun extractShareText(intent: Intent?): String? {
-        if (intent == null || intent.action != Intent.ACTION_SEND) return null
-        if (intent.type?.startsWith("text/") != true) return null
-        return intent.getStringExtra(Intent.EXTRA_TEXT)
+    private fun enqueueShareIntent(intent: Intent?) {
+        if (intent?.action != Intent.ACTION_SEND) return
+        if (intent.type?.startsWith("text/") != true) return
+
+        val text = intent.getStringExtra(Intent.EXTRA_TEXT)
             ?.trim()
             ?.takeIf { it.isNotEmpty() }
+            ?: return
+
+        pendingShares.add(text)
     }
 
     companion object {
