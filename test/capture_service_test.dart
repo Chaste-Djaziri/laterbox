@@ -53,6 +53,23 @@ void main() {
     expect(note.text, 'just a note');
     expect(note.url, isNull);
   });
+
+  test('does not re-import a capture with an existing id', () async {
+    final database = AppDatabase(NativeDatabase.memory());
+    addTearDown(database.close);
+    final service = _service(database);
+    final payload = CapturePayload.fromValue(
+      'https://example.com/a',
+      id: 'ios-capture-1',
+    );
+
+    await service.save(payload);
+    await service.save(payload);
+
+    final items = await database.watchInboxItems(null).first;
+    expect(items, hasLength(1));
+    expect(items.single.id, 'ios-capture-1');
+  });
 }
 
 CaptureService _service(AppDatabase database) {
