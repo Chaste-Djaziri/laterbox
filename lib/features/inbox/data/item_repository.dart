@@ -5,7 +5,7 @@ import '../../../core/database/app_database.dart';
 import '../../../shared/models/laterbox_item.dart';
 
 class ItemRepository {
-  ItemRepository(this._database, {Uuid uuid = const Uuid()}) : _uuid = uuid;
+  ItemRepository(this._database, {this._uuid = const Uuid()});
 
   final AppDatabase _database;
   final Uuid _uuid;
