@@ -60,7 +60,7 @@ void main() {
         url: 'https://remote.example',
         type: 'link',
         favorite: false,
-        archived: false,
+        status: 'inbox',
         createdAt: old,
         updatedAt: old.add(const Duration(hours: 1)),
       ),
