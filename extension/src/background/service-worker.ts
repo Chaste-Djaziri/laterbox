@@ -60,7 +60,9 @@ async function handleContextMenu(
   }
 
   const result = await saveCapture(capture);
-  await chrome.action.setBadgeText({ text: result.status === "saved" ? "✓" : "…" });
+  await chrome.action.setBadgeText({
+    text: result.status === "saved" ? "✓" : result.status === "needsAuth" ? "!" : "…",
+  });
   await chrome.action.setBadgeBackgroundColor({
     color: result.status === "saved" ? "#171711" : "#6c6b63",
   });
