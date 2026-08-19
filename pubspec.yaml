@@ -41,6 +41,7 @@ dependencies:
   path_provider: ^2.1.6
   uuid: ^4.6.0
   timeago: ^3.7.1
+  supabase_flutter: ^2.17.2
 
 dev_dependencies:
   flutter_test:
