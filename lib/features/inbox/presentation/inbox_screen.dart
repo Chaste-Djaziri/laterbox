@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:timeago/timeago.dart' as timeago;
 
+import '../../../core/auth/auth_provider.dart';
 import '../../../shared/models/laterbox_item.dart';
 import '../../capture/presentation/capture_sheet.dart';
 import 'inbox_providers.dart';
@@ -25,6 +26,7 @@ class InboxScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final items = ref.watch(inboxItemsProvider);
+    final auth = ref.watch(authStateProvider).asData?.value;
 
     return Scaffold(
       appBar: AppBar(
@@ -33,11 +35,22 @@ class InboxScreen extends ConsumerWidget {
           style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: -0.6),
         ),
         actions: [
-          IconButton(
-            onPressed: null,
-            tooltip: 'Settings coming later',
-            icon: const Icon(Icons.tune_rounded),
-          ),
+          if (auth?.isAuthenticated ?? false)
+            IconButton(
+              onPressed: () async {
+                await ref.read(authRepositoryProvider).signOut();
+                ref.read(guestModeProvider.notifier).state = true;
+              },
+              tooltip: 'Sign out',
+              icon: const Icon(Icons.logout_rounded),
+            )
+          else
+            IconButton(
+              onPressed: () =>
+                  ref.read(guestModeProvider.notifier).state = false,
+              tooltip: 'Sign in',
+              icon: const Icon(Icons.person_outline_rounded),
+            ),
           const SizedBox(width: 8),
         ],
       ),
