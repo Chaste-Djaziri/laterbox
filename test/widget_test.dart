@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:laterbox/app.dart';
+import 'package:laterbox/core/auth/auth_provider.dart';
 import 'package:laterbox/core/database/app_database.dart';
 import 'package:laterbox/core/database/database_providers.dart';
 
@@ -60,5 +61,23 @@ void main() {
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(milliseconds: 1));
     await database.close();
+  });
+
+  testWidgets('offers authentication and guest mode', (tester) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [guestModeProvider.overrideWith((ref) => false)],
+        child: const LaterBoxApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Sign in'), findsOneWidget);
+    expect(find.text('Create account'), findsOneWidget);
+    expect(find.text('Continue without account'), findsOneWidget);
+
+    await tester.tap(find.text('Continue without account'));
+    await tester.pumpAndSettle();
+    expect(find.text('Inbox'), findsOneWidget);
   });
 }
