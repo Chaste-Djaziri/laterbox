@@ -1,5 +1,6 @@
 import '../../core/database/app_database.dart';
 import '../../features/enrichment/domain/item_metadata.dart';
+import 'item_status.dart';
 
 class LaterBoxItem {
   const LaterBoxItem({
@@ -9,7 +10,7 @@ class LaterBoxItem {
     this.text,
     this.type = 'unknown',
     this.favorite = false,
-    this.archived = false,
+    this.status = ItemStatus.inbox,
     required this.createdAt,
     this.metadata,
   });
@@ -25,7 +26,7 @@ class LaterBoxItem {
       text: item.textContent,
       type: item.type,
       favorite: item.favorite,
-      archived: item.archived,
+      status: ItemStatus.fromDatabase(item.status),
       createdAt: item.createdAt,
       metadata: metadata == null ? null : EnrichedMetadata.fromDrift(metadata),
     );
@@ -37,9 +38,12 @@ class LaterBoxItem {
   final String? text;
   final String type;
   final bool favorite;
-  final bool archived;
+  final ItemStatus status;
   final DateTime createdAt;
 
   /// Enrichment content (domain, title, description, favicon) once available.
   final EnrichedMetadata? metadata;
+
+  bool get isArchived => status == ItemStatus.archived;
+  bool get isInbox => status == ItemStatus.inbox;
 }
