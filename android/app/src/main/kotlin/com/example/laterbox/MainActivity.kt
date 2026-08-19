@@ -7,7 +7,7 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterActivity() {
-    private val pendingShares = mutableListOf<String>()
+    private val pendingShares by lazy { PendingShareQueue(applicationContext) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -23,9 +23,7 @@ class MainActivity : FlutterActivity() {
         channel.setMethodCallHandler { call, result ->
             when (call.method) {
                 "consumeShares" -> {
-                    val shares = pendingShares.toList()
-                    pendingShares.clear()
-                    result.success(shares)
+                    result.success(pendingShares.consumeAll())
                 }
                 else -> result.notImplemented()
             }
@@ -47,7 +45,7 @@ class MainActivity : FlutterActivity() {
             ?.takeIf { it.isNotEmpty() }
             ?: return
 
-        pendingShares.add(text)
+        pendingShares.enqueue(text)
     }
 
     companion object {
