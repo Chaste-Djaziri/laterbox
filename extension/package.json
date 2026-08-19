@@ -5,11 +5,14 @@
   "type": "module",
   "scripts": {
     "build": "vite build",
+    "build:local": "cross-env VITE_CAPTURE_API_URL=http://127.0.0.1:54321/functions/v1/capture VITE_LATERBOX_WEB_URL=http://127.0.0.1:8080 vite build",
+    "build:hosted": "cross-env VITE_CAPTURE_API_URL=https://ltjisrgldssqskcylcbj.supabase.co/functions/v1/capture VITE_LATERBOX_WEB_URL=https://app.laterbox.com vite build",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
     "@types/chrome": "^0.0.325",
     "@types/node": "^22.15.21",
+    "cross-env": "^7.0.3",
     "typescript": "^5.8.3",
     "vite": "^6.3.5"
   }
