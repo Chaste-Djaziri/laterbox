@@ -1,18 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:timeago/timeago.dart' as timeago;
 
+import '../../features/detail/presentation/item_detail_screen.dart';
 import '../models/laterbox_item.dart';
+import 'item_actions.dart';
 
 /// The canonical card used to render a saved item in the Inbox, Search,
 /// Library and any future list. A card shows a cover image when enrichment
-/// provided one, otherwise it stays compact.
-class ItemCard extends StatelessWidget {
+/// provided one, otherwise it stays compact. Tapping opens the item detail
+/// screen; a long press surfaces the lifecycle actions.
+class ItemCard extends ConsumerWidget {
   const ItemCard({super.key, required this.item});
 
   final LaterBoxItem item;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final uri = item.url == null ? null : Uri.tryParse(item.url!);
     final eyebrow =
         item.metadata?.domain ?? uri?.host.replaceFirst('www.', '') ?? 'Note';
@@ -24,7 +28,19 @@ class ItemCard extends StatelessWidget {
 
     return Semantics(
       label: '$eyebrow, $title, saved ${timeago.format(item.createdAt)}',
-      child: Container(
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(20),
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => ItemDetailScreen(itemId: item.id),
+              ),
+            );
+          },
+          onLongPress: () => showItemActions(context, ref, item),
+          child: Container(
         clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surfaceContainerLowest,
@@ -35,7 +51,7 @@ class ItemCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (coverUrl != null && coverUrl.isNotEmpty)
-              _CoverImage(url: coverUrl),
+              ItemCoverImage(url: coverUrl),
             Padding(
               padding: const EdgeInsets.all(18),
               child: Row(
@@ -93,32 +109,34 @@ class ItemCard extends StatelessWidget {
                       ],
                     ),
                   ),
-                ],
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
-    );
+    ),
+  );
   }
 }
 
 /// 16:9 cover shown on rich cards. Text renders immediately; the image fades
 /// in once decoded and the whole area collapses if loading fails.
-class _CoverImage extends StatefulWidget {
-  const _CoverImage({required this.url});
+class ItemCoverImage extends StatefulWidget {
+  const ItemCoverImage({super.key, required this.url});
 
   final String url;
 
   @override
-  State<_CoverImage> createState() => _CoverImageState();
+  State<ItemCoverImage> createState() => _ItemCoverImageState();
 }
 
-class _CoverImageState extends State<_CoverImage> {
+class _ItemCoverImageState extends State<ItemCoverImage> {
   bool _failed = false;
 
   @override
-  void didUpdateWidget(covariant _CoverImage oldWidget) {
+  void didUpdateWidget(covariant ItemCoverImage oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.url != widget.url) _failed = false;
   }
