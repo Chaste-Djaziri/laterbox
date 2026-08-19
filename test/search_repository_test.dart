@@ -5,6 +5,7 @@ import 'package:laterbox/core/database/app_database.dart';
 import 'package:laterbox/features/enrichment/data/local_metadata_data_source.dart';
 import 'package:laterbox/features/enrichment/domain/item_metadata.dart';
 import 'package:laterbox/features/inbox/data/local_item_data_source.dart';
+import 'package:laterbox/features/notes/data/local_item_note_data_source.dart';
 import 'package:laterbox/features/search/data/search_repository.dart';
 import 'package:laterbox/features/search/domain/search_query.dart';
 
@@ -176,5 +177,47 @@ void main() {
     final results = await repository.search(SearchQuery.raw('  ')).first;
 
     expect(results, isEmpty);
+  });
+
+  test('finds an item solely from its personal note', () async {
+    await insertItem('a', title: 'Flutter docs');
+    await enrich('a', title: 'Flutter docs');
+    await LocalItemNoteDataSource(database).save(
+      'a',
+      'user-1',
+      'Remember to check the state management chapter',
+    );
+
+    final results = await repository
+        .search(SearchQuery.raw('state management'))
+        .first;
+
+    expect(results.map((r) => r.item.id), ['a']);
+  });
+
+  test('ranks a note match above a domain match', () async {
+    await insertItem('note-hit', title: 'Some other thing');
+    await enrich(
+      'note-hit',
+      title: 'Some other thing',
+      domain: 'example.org',
+    );
+    await LocalItemNoteDataSource(database).save(
+      'note-hit',
+      'user-1',
+      'Dart pattern matching notes',
+    );
+    await insertItem('domain-hit', title: 'Some other thing');
+    await enrich(
+      'domain-hit',
+      title: 'Some other thing',
+      domain: 'dart.dev',
+    );
+
+    final results = await repository
+        .search(SearchQuery.raw('dart'))
+        .first;
+
+    expect(results.map((r) => r.item.id), ['note-hit', 'domain-hit']);
   });
 }
