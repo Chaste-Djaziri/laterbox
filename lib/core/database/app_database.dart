@@ -58,6 +58,24 @@ class CollectionItems extends Table {
   Set<Column<Object>> get primaryKey => {collectionId, itemId};
 }
 
+class ItemNotes extends Table {
+  TextColumn get itemId => text().references(
+        Items,
+        #id,
+        onDelete: KeyAction.cascade,
+      )();
+  TextColumn get userId => text().nullable()();
+  TextColumn get content => text()();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+  TextColumn get syncStatus => text().withDefault(const Constant('pending'))();
+  DateTimeColumn get lastSyncedAt => dateTime().nullable()();
+  DateTimeColumn get deletedAt => dateTime().nullable()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {itemId};
+}
+
 class ItemMetadata extends Table {
   TextColumn get itemId => text()();
   TextColumn get userId => text().nullable()();
@@ -79,13 +97,19 @@ class ItemMetadata extends Table {
   Set<Column<Object>> get primaryKey => {itemId};
 }
 
-@DriftDatabase(tables: [Items, ItemMetadata, Collections, CollectionItems])
+@DriftDatabase(tables: [
+  Items,
+  ItemMetadata,
+  Collections,
+  CollectionItems,
+  ItemNotes,
+])
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor])
     : super(executor ?? driftDatabase(name: 'laterbox'));
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -147,6 +171,9 @@ class AppDatabase extends _$AppDatabase {
           'UPDATE collection_items SET updated_at = created_at '
           'WHERE updated_at IS NULL',
         );
+      }
+      if (from < 6) {
+        await migrator.createTable(itemNotes);
       }
     },
   );
@@ -268,10 +295,11 @@ class AppDatabase extends _$AppDatabase {
               ));
   }
 
-  /// Local-only LIKE search across item text, URL and enriched metadata
-  /// (title, description, domain, site name). SQLite LIKE is case-insensitive
-  /// for ASCII, which is adequate until FTS is introduced.
-  Stream<List<(Item, ItemMetadataData?)>> searchItems(
+  /// Local-only LIKE search across item text, URL, enriched metadata
+  /// (title, description, domain, site name) and the user's personal note.
+  /// SQLite LIKE is case-insensitive for ASCII, which is adequate until FTS
+  /// is introduced.
+  Stream<List<(Item, ItemMetadataData?, ItemNote?)>> searchItems(
     String? userId,
     String query,
   ) {
@@ -283,11 +311,35 @@ class AppDatabase extends _$AppDatabase {
         itemMetadata.title.like(pattern) |
         itemMetadata.description.like(pattern) |
         itemMetadata.domain.like(pattern) |
-        itemMetadata.siteName.like(pattern);
-    final statement = _itemsWithMetadataQuery(userId)
-      ..where(match)
+        itemMetadata.siteName.like(pattern) |
+        itemNotes.content.like(pattern);
+    final statement = select(items).join([
+      leftOuterJoin(itemMetadata, itemMetadata.itemId.equalsExp(items.id)),
+      leftOuterJoin(itemNotes, itemNotes.itemId.equalsExp(items.id)),
+    ])
+      ..where(
+        items.deletedAt.isNull() &
+            (userId == null
+                ? items.userId.isNull()
+                : items.userId.equals(userId)) &
+            match,
+      )
       ..orderBy([OrderingTerm.desc(items.createdAt)]);
-    return statement.watch().map(_mapJoinedRows);
+    return statement.watch().map(_mapSearchRows);
+  }
+
+  List<(Item, ItemMetadataData?, ItemNote?)> _mapSearchRows(
+    List<TypedResult> rows,
+  ) {
+    return rows
+        .map(
+          (row) => (
+            row.readTable(items),
+            row.readTableOrNull(itemMetadata),
+            row.readTableOrNull(itemNotes),
+          ),
+        )
+        .toList();
   }
 
   JoinedSelectStatement<HasResultSet, dynamic> _itemsWithMetadataQuery(
@@ -689,5 +741,108 @@ class AppDatabase extends _$AppDatabase {
                 row.itemId.equals(itemId),
           ))
         .write(const CollectionItemsCompanion(syncStatus: Value('failed')));
+  }
+
+  /// The current user's non-deleted note for a live item, as a stream. Notes
+  /// of deleted items are hidden so a removed item never resurfaces a note.
+  Stream<ItemNote?> watchNote(String itemId, String? userId) {
+    return (select(itemNotes).join([
+      innerJoin(items, items.id.equalsExp(itemNotes.itemId)),
+    ])
+      ..where(
+        itemNotes.itemId.equals(itemId) &
+            itemNotes.deletedAt.isNull() &
+            items.deletedAt.isNull() &
+            (userId == null
+                ? itemNotes.userId.isNull()
+                : itemNotes.userId.equals(userId)),
+      ))
+        .watchSingleOrNull()
+        .map((row) => row?.readTable(itemNotes));
+  }
+
+  /// The raw note row for an item (tombstones included), used by sync.
+  Future<ItemNote?> noteById(String itemId) {
+    return (select(
+      itemNotes,
+    )..where((note) => note.itemId.equals(itemId))).getSingleOrNull();
+  }
+
+  /// Creates or restores the note for an item. A previously tombstoned note
+  /// is revived, keeping its original userId.
+  Future<void> saveNote(String itemId, String? userId, String content) async {
+    final now = DateTime.now();
+    final existing = await noteById(itemId);
+    if (existing == null) {
+      await into(itemNotes).insert(
+        ItemNotesCompanion.insert(
+          itemId: itemId,
+          userId: Value(userId),
+          content: content,
+          createdAt: now,
+          updatedAt: now,
+        ),
+      );
+    } else {
+      await (update(itemNotes)..where((note) => note.itemId.equals(itemId)))
+          .write(
+        ItemNotesCompanion(
+          userId: Value(userId),
+          content: Value(content),
+          updatedAt: Value(now),
+          deletedAt: const Value(null),
+          syncStatus: const Value('pending'),
+        ),
+      );
+    }
+  }
+
+  /// Tombstones the note so an old device can never resurrect it.
+  Future<void> deleteNote(String itemId) {
+    return (update(itemNotes)..where((note) => note.itemId.equals(itemId)))
+        .write(
+      ItemNotesCompanion(
+        deletedAt: Value(DateTime.now()),
+        updatedAt: Value(DateTime.now()),
+        syncStatus: const Value('pending'),
+      ),
+    );
+  }
+
+  /// Claims pending guest notes for the signed-in user, then returns every
+  /// note still waiting to be pushed.
+  Future<List<ItemNote>> notesNeedingSync(String userId) async {
+    await (update(itemNotes)..where(
+          (note) =>
+              note.userId.isNull() &
+              note.syncStatus.isIn(const ['pending', 'failed']),
+        ))
+        .write(ItemNotesCompanion(userId: Value(userId)));
+
+    return (select(itemNotes)..where(
+          (note) =>
+              note.userId.equals(userId) &
+              note.syncStatus.isIn(const ['pending', 'failed']),
+        ))
+        .get();
+  }
+
+  Future<void> upsertRemoteNote(ItemNotesCompanion note) {
+    return into(itemNotes).insertOnConflictUpdate(note);
+  }
+
+  Future<void> markNoteSynced(String itemId, DateTime syncedAt) {
+    return (update(itemNotes)..where((note) => note.itemId.equals(itemId)))
+        .write(
+      ItemNotesCompanion(
+        syncStatus: const Value('synced'),
+        lastSyncedAt: Value(syncedAt),
+      ),
+    );
+  }
+
+  Future<void> markNoteFailed(String itemId) {
+    return (update(itemNotes)..where((note) => note.itemId.equals(itemId)))
+        .write(const ItemNotesCompanion(syncStatus: Value('failed')));
   }
 }
