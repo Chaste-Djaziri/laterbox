@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../features/enrichment/data/local_metadata_data_source.dart';
+import '../../features/enrichment/data/remote_metadata_data_source.dart';
 import '../../features/inbox/data/remote_item_data_source.dart';
 import '../database/database_providers.dart';
 import '../supabase/supabase_provider.dart';
@@ -20,6 +22,10 @@ final syncServiceProvider = Provider<SyncService>((ref) {
     local: ref.watch(localItemDataSourceProvider),
     remote: ref.watch(remoteItemDataSourceProvider),
     currentUserId: () => client?.auth.currentUser?.id,
+    localMetadata: LocalMetadataDataSource(ref.watch(appDatabaseProvider)),
+    remoteMetadata: client == null
+        ? null
+        : SupabaseRemoteMetadataDataSource(client),
   );
 });
 
