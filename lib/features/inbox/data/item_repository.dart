@@ -1,17 +1,27 @@
+import 'dart:async';
+
 import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../core/database/app_database.dart';
+import '../../../core/sync/sync_status.dart';
 import '../../../shared/models/laterbox_item.dart';
+import 'local_item_data_source.dart';
 
 class ItemRepository {
-  ItemRepository(this._database, {this._uuid = const Uuid()});
+  ItemRepository(
+    this._local, {
+    required Future<void> Function() onSaved,
+    Uuid uuid = const Uuid(),
+  }) : _onSaved = onSaved,
+       _uuid = uuid;
 
-  final AppDatabase _database;
+  final LocalItemDataSource _local;
+  final Future<void> Function() _onSaved;
   final Uuid _uuid;
 
   Stream<List<LaterBoxItem>> watchInboxItems() {
-    return _database.watchInboxItems().map(
+    return _local.watchInboxItems().map(
       (rows) => rows
           .map(
             (row) => LaterBoxItem(
@@ -39,7 +49,7 @@ class ItemRepository {
     final isUrl = uri != null && uri.hasScheme && uri.host.isNotEmpty;
     final now = DateTime.now();
 
-    await _database.saveItem(
+    await _local.insert(
       ItemsCompanion.insert(
         id: _uuid.v4(),
         url: Value(isUrl ? normalized : null),
@@ -47,7 +57,9 @@ class ItemRepository {
         type: Value(isUrl ? 'link' : 'text'),
         createdAt: now,
         updatedAt: now,
+        syncStatus: Value(SyncStatus.pending.databaseValue),
       ),
     );
+    unawaited(_onSaved());
   }
 }
