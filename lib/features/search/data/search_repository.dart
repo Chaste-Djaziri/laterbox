@@ -25,7 +25,7 @@ class SearchRepository {
   }
 
   List<SearchResult> _rank(
-    List<(Item, ItemMetadataData?)> rows,
+    List<(Item, ItemMetadataData?, ItemNote?)> rows,
     String raw,
   ) {
     final needle = raw.trim().toLowerCase();
@@ -33,7 +33,7 @@ class SearchRepository {
         .map(
           (row) => SearchResult(
             item: LaterBoxItem.fromDriftRows(row.$1, row.$2),
-            relevance: _score(row.$1, row.$2, needle),
+            relevance: _score(row.$1, row.$2, row.$3, needle),
           ),
         )
         .toList();
@@ -46,13 +46,21 @@ class SearchRepository {
     return results;
   }
 
-  int _score(Item item, ItemMetadataData? metadata, String needle) {
+  int _score(
+    Item item,
+    ItemMetadataData? metadata,
+    ItemNote? note,
+    String needle,
+  ) {
     final title =
         (metadata?.title ?? item.title ?? item.url ?? item.textContent ?? '')
             .toLowerCase();
     if (title == needle) return 100;
     if (title.startsWith(needle)) return 80;
     if (title.contains(needle)) return 60;
+
+    final noteText = (note?.content ?? '').toLowerCase();
+    if (noteText.contains(needle)) return 65;
 
     final domain = (metadata?.domain ?? '').toLowerCase();
     final siteName = (metadata?.siteName ?? '').toLowerCase();
