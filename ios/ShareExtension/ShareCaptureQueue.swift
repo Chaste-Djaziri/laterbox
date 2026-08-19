@@ -27,11 +27,13 @@ final class ShareCaptureQueue {
         self.defaults = defaults
     }
 
-    func enqueue(_ capture: PendingShareCapture) {
+    @discardableResult
+    func enqueue(_ capture: PendingShareCapture) -> Bool {
         var captures = readAll()
         captures.append(capture)
-        guard let data = try? JSONEncoder().encode(captures) else { return }
+        guard let data = try? JSONEncoder().encode(captures) else { return false }
         defaults.set(data, forKey: key)
+        return defaults.synchronize()
     }
 
     func readAll() -> [PendingShareCapture] {
