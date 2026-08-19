@@ -6,7 +6,7 @@ import 'auth_repository.dart';
 import 'auth_state.dart';
 
 final guestModeProvider = StateProvider<bool>(
-  (ref) => !SupabaseConfig.isConfigured,
+  (ref) => !SupabaseConfig.isInitialized,
 );
 
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
