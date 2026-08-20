@@ -93,20 +93,22 @@ class _LandingHeader extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final auth = ref.watch(authStateProvider).asData?.value;
-
     final width = MediaQuery.sizeOf(context).width;
-    final isDesktopHeader = width >= 960;
+
+    final isMobile = width < 600;
+    final isDesktopHeader = width >= 860;
 
     return Container(
+      width: double.infinity,
       padding: EdgeInsets.symmetric(
-        horizontal: isDesktopHeader ? 32 : 16,
-        vertical: 16,
+        horizontal: isMobile ? 16 : 32,
+        vertical: isMobile ? 12 : 16,
       ),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surface.withOpacity(0.95),
+        color: theme.colorScheme.surface.withOpacity(0.94),
         border: Border(
           bottom: BorderSide(
-            color: theme.colorScheme.outlineVariant.withOpacity(0.4),
+            color: theme.colorScheme.outlineVariant.withOpacity(0.3),
             width: 1,
           ),
         ),
@@ -116,88 +118,117 @@ class _LandingHeader extends ConsumerWidget {
           constraints: const BoxConstraints(maxWidth: 1200),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 36,
-                    height: 36,
-                    padding: const EdgeInsets.all(2),
-                    child: Image.asset(
-                      'assets/branding/laterbox-icon.png',
-                      fit: BoxFit.contain,
-                      errorBuilder: (context, error, stackTrace) => Icon(
-                        Icons.bookmark_rounded,
-                        color: theme.colorScheme.primary,
-                        size: 24,
+              MouseRegion(
+                cursor: SystemMouseCursors.click,
+                child: GestureDetector(
+                  onTap: () => context.go('/'),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: isMobile ? 32 : 36,
+                        height: isMobile ? 32 : 36,
+                        padding: const EdgeInsets.all(2),
+                        child: Image.asset(
+                          'assets/branding/laterbox-icon.png',
+                          fit: BoxFit.contain,
+                          errorBuilder: (context, error, stackTrace) => Icon(
+                            Icons.bookmark_rounded,
+                            color: theme.colorScheme.primary,
+                            size: isMobile ? 22 : 26,
+                          ),
+                        ),
                       ),
-                    ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'LaterBox',
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: -0.6,
+                          fontSize: isMobile ? 18 : 22,
+                          color: theme.colorScheme.onSurface,
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 10),
-                  Text(
-                    'LaterBox',
-                    style: theme.textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: -0.8,
-                      fontSize: 20,
-                    ),
-                  ),
-                ],
+                ),
               ),
               if (isDesktopHeader)
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     _HeaderNavLink(label: 'Features', onTap: onFeaturesTap),
-                    const SizedBox(width: 24),
+                    const SizedBox(width: 20),
                     _HeaderNavLink(label: 'How It Works', onTap: onHowItWorksTap),
-                    const SizedBox(width: 24),
+                    const SizedBox(width: 20),
                     _HeaderNavLink(label: 'About', onTap: onAboutTap),
                   ],
                 ),
-              Flexible(
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    if (!(auth?.isAuthenticated ?? false)) ...[
-                      Flexible(
-                        child: TextButton(
-                          onPressed: () => context.go('/login'),
-                          child: Text(
-                            'Sign In',
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontWeight: FontWeight.w700,
-                              color: theme.colorScheme.primary,
-                            ),
-                          ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  if (!(auth?.isAuthenticated ?? false)) ...[
+                    TextButton(
+                      onPressed: () => context.go('/login'),
+                      style: TextButton.styleFrom(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: isMobile ? 10 : 16,
+                          vertical: isMobile ? 8 : 12,
                         ),
+                        minimumSize: const Size(0, 36),
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       ),
-                      const SizedBox(width: 8),
-                    ],
-                    Flexible(
-                      child: FilledButton.icon(
-                        onPressed: () => context.go('/inbox'),
-                        icon: const Icon(Icons.bolt_rounded, size: 18),
-                        label: Text(
-                          auth?.isAuthenticated ?? false
-                              ? 'Open Inbox'
-                              : 'Launch App',
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontWeight: FontWeight.w700),
-                        ),
-                        style: FilledButton.styleFrom(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: isDesktop ? 20 : 14,
-                            vertical: 12,
-                          ),
+                      child: Text(
+                        'Sign In',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: isMobile ? 13 : 14,
+                          color: theme.colorScheme.primary,
                         ),
                       ),
                     ),
+                    SizedBox(width: isMobile ? 6 : 10),
                   ],
-                ),
+                  FilledButton(
+                    onPressed: () => context.go('/inbox'),
+                    style: FilledButton.styleFrom(
+                      elevation: 0,
+                      backgroundColor: theme.colorScheme.primary,
+                      foregroundColor: theme.colorScheme.onPrimary,
+                      padding: EdgeInsets.symmetric(
+                        horizontal: isMobile ? 14 : 20,
+                        vertical: isMobile ? 8 : 12,
+                      ),
+                      minimumSize: Size(0, isMobile ? 36 : 42),
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(100),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.bolt_rounded,
+                          size: isMobile ? 16 : 18,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          auth?.isAuthenticated ?? false
+                              ? 'Open Inbox'
+                              : 'Launch App',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w800,
+                            fontSize: isMobile ? 13 : 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -229,13 +260,23 @@ class _HeaderNavLinkState extends State<_HeaderNavLink> {
       cursor: SystemMouseCursors.click,
       child: GestureDetector(
         onTap: widget.onTap,
-        child: Text(
-          widget.label,
-          style: theme.textTheme.bodyMedium?.copyWith(
-            fontWeight: FontWeight.w600,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
             color: _isHovered
-                ? theme.colorScheme.primary
-                : theme.colorScheme.onSurfaceVariant,
+                ? theme.colorScheme.primaryContainer.withOpacity(0.5)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Text(
+            widget.label,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              fontWeight: FontWeight.w600,
+              color: _isHovered
+                  ? theme.colorScheme.primary
+                  : theme.colorScheme.onSurfaceVariant,
+            ),
           ),
         ),
       ),
