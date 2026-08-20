@@ -71,7 +71,7 @@ class _ItemCardState extends ConsumerState<ItemCard> {
               duration: const Duration(milliseconds: 150),
               curve: Curves.easeOutCubic,
               transform: _isHovered && isDesktop
-                  ? (Matrix4.identity()..translate(0, -2, 0))
+                  ? Matrix4.translationValues(0.0, -2.0, 0.0)
                   : Matrix4.identity(),
               child: Material(
                 color: Colors.transparent,
