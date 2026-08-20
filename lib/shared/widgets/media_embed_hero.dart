@@ -17,13 +17,52 @@ class MediaEmbedHero extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (kIsWeb) {
-      return AspectRatio(
-        aspectRatio: embedInfo.aspectRatio,
-        child: buildWebEmbedIframe(embedInfo.embedUrl),
-      );
-    }
+    final theme = Theme.of(context);
+    final width = MediaQuery.sizeOf(context).width;
+    final isCompactScreen = width < 600;
 
+    // Desktop 16:9 ratio maintained on phone size with side blank spaces
+    final effectiveAspectRatio = isCompactScreen ? 16 / 9 : embedInfo.aspectRatio;
+
+    final Widget playerWidget = kIsWeb
+        ? buildWebEmbedIframe(embedInfo.embedUrl)
+        : _NativeEmbedPlayerCard(
+            embedInfo: embedInfo,
+            fallbackCoverUrl: fallbackCoverUrl,
+          );
+
+    return Container(
+      width: double.infinity,
+      color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.4),
+      alignment: Alignment.center,
+      padding: isCompactScreen
+          ? const EdgeInsets.symmetric(horizontal: 16, vertical: 8)
+          : EdgeInsets.zero,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 800),
+        child: AspectRatio(
+          aspectRatio: effectiveAspectRatio,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(isCompactScreen ? 12 : 0),
+            child: playerWidget,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _NativeEmbedPlayerCard extends StatelessWidget {
+  const _NativeEmbedPlayerCard({
+    required this.embedInfo,
+    this.fallbackCoverUrl,
+  });
+
+  final MediaEmbedInfo embedInfo;
+  final String? fallbackCoverUrl;
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
     Color getProviderColor() {
@@ -51,87 +90,84 @@ class MediaEmbedHero extends StatelessWidget {
       }
     }
 
-    return AspectRatio(
-      aspectRatio: embedInfo.aspectRatio,
-      child: Container(
-        clipBehavior: Clip.antiAlias,
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surfaceContainerHighest,
-        ),
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            if (fallbackCoverUrl != null && fallbackCoverUrl!.isNotEmpty)
-              Positioned.fill(
-                child: Image.network(
-                  fallbackCoverUrl!,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) =>
-                      const SizedBox.shrink(),
-                ),
-              ),
+    return Container(
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest,
+      ),
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          if (fallbackCoverUrl != null && fallbackCoverUrl!.isNotEmpty)
             Positioned.fill(
-              child: Container(
-                color: Colors.black.withOpacity(0.35),
+              child: Image.network(
+                fallbackCoverUrl!,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) =>
+                    const SizedBox.shrink(),
               ),
             ),
-            Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Material(
-                  color: getProviderColor(),
-                  shape: const CircleBorder(),
-                  elevation: 6,
-                  child: InkWell(
-                    customBorder: const CircleBorder(),
-                    onTap: () async {
-                      final uri = Uri.parse(embedInfo.originalUrl);
-                      if (await canLaunchUrl(uri)) {
-                        await launchUrl(uri);
-                      }
-                    },
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Icon(
-                        getProviderIcon(),
-                        size: 36,
-                        color: Colors.white,
-                      ),
+          Positioned.fill(
+            child: Container(
+              color: Colors.black.withOpacity(0.35),
+            ),
+          ),
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Material(
+                color: getProviderColor(),
+                shape: const CircleBorder(),
+                elevation: 6,
+                child: InkWell(
+                  customBorder: const CircleBorder(),
+                  onTap: () async {
+                    final uri = Uri.parse(embedInfo.originalUrl);
+                    if (await canLaunchUrl(uri)) {
+                      await launchUrl(uri);
+                    }
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Icon(
+                      getProviderIcon(),
+                      size: 36,
+                      color: Colors.white,
                     ),
                   ),
                 ),
-                const SizedBox(height: 12),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.65),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        getProviderIcon(),
-                        size: 14,
-                        color: Colors.white,
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        'Play on ${embedInfo.provider}',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.65),
+                  borderRadius: BorderRadius.circular(20),
                 ),
-              ],
-            ),
-          ],
-        ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      getProviderIcon(),
+                      size: 14,
+                      color: Colors.white,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Play on ${embedInfo.provider}',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
