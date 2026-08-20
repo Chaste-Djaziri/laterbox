@@ -83,57 +83,50 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
                   16,
                 ),
                 sliver: SliverToBoxAdapter(
-                  child: Center(
-                    child: ConstrainedBox(
-                      constraints: BoxConstraints(
-                        maxWidth: isDesktop ? 800 : double.infinity,
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Inbox',
-                                style: theme.textTheme.headlineLarge?.copyWith(
-                                  fontWeight: FontWeight.w800,
-                                  letterSpacing: -1.1,
-                                ),
-                              ),
-                              if (items.asData?.value case final list?) ...[
-                                const SizedBox(height: 4),
-                                Text(
-                                  '${list.length} ${list.length == 1 ? 'item' : 'items'} saved',
-                                  style: theme.textTheme.bodyMedium?.copyWith(
-                                    color: theme.colorScheme.onSurfaceVariant,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ],
-                            ],
+                          Text(
+                            'Inbox',
+                            style: theme.textTheme.headlineLarge?.copyWith(
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: -1.1,
+                            ),
                           ),
-                          if (isDesktop)
-                            if (auth?.isAuthenticated ?? false)
-                              TextButton.icon(
-                                onPressed: () async {
-                                  await ref.read(authRepositoryProvider).signOut();
-                                  ref.read(guestModeProvider.notifier).state = true;
-                                },
-                                icon: const Icon(Icons.logout_rounded, size: 18),
-                                label: const Text('Sign out'),
-                              )
-                            else
-                              TextButton.icon(
-                                onPressed: () => ref
-                                    .read(guestModeProvider.notifier)
-                                    .state = false,
-                                icon: const Icon(Icons.person_outline_rounded, size: 18),
-                                label: const Text('Sign in'),
+                          if (items.asData?.value case final list?) ...[
+                            const SizedBox(height: 4),
+                            Text(
+                              '${list.length} ${list.length == 1 ? 'item' : 'items'} saved',
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant,
+                                fontWeight: FontWeight.w500,
                               ),
+                            ),
+                          ],
                         ],
                       ),
-                    ),
+                      if (isDesktop)
+                        if (auth?.isAuthenticated ?? false)
+                          TextButton.icon(
+                            onPressed: () async {
+                              await ref.read(authRepositoryProvider).signOut();
+                              ref.read(guestModeProvider.notifier).state = true;
+                            },
+                            icon: const Icon(Icons.logout_rounded, size: 18),
+                            label: const Text('Sign out'),
+                          )
+                        else
+                          TextButton.icon(
+                            onPressed: () => ref
+                                .read(guestModeProvider.notifier)
+                                .state = false,
+                            icon: const Icon(Icons.person_outline_rounded, size: 18),
+                            label: const Text('Sign in'),
+                          ),
+                    ],
                   ),
                 ),
               ),
@@ -148,21 +141,41 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
                 ),
                 data: (itemList) => itemList.isEmpty
                     ? const SliverFillRemaining(child: _EmptyInbox())
-                    : SliverPadding(
-                        padding: EdgeInsets.fromLTRB(
-                          isDesktop ? 32 : 20,
-                          0,
-                          isDesktop ? 32 : 20,
-                          104,
-                        ),
-                        sliver: SliverList.separated(
-                          itemCount: itemList.length,
-                          separatorBuilder: (context, index) =>
-                              const SizedBox(height: 14),
-                          itemBuilder: (context, index) =>
-                              ItemCard(item: itemList[index]),
-                        ),
-                      ),
+                    : isDesktop
+                        ? SliverPadding(
+                            padding: const EdgeInsets.fromLTRB(
+                              32,
+                              0,
+                              32,
+                              104,
+                            ),
+                            sliver: SliverGrid(
+                              delegate: SliverChildBuilderDelegate(
+                                (context, index) => ItemCard(
+                                  item: itemList[index],
+                                  isGrid: true,
+                                ),
+                                childCount: itemList.length,
+                              ),
+                              gridDelegate:
+                                  const SliverGridDelegateWithMaxCrossAxisExtent(
+                                maxCrossAxisExtent: 320,
+                                mainAxisSpacing: 16,
+                                crossAxisSpacing: 16,
+                                childAspectRatio: 0.82,
+                              ),
+                            ),
+                          )
+                        : SliverPadding(
+                            padding: const EdgeInsets.fromLTRB(20, 0, 20, 104),
+                            sliver: SliverList.separated(
+                              itemCount: itemList.length,
+                              separatorBuilder: (context, index) =>
+                                  const SizedBox(height: 14),
+                              itemBuilder: (context, index) =>
+                                  ItemCard(item: itemList[index]),
+                            ),
+                          ),
               ),
             ],
           ),
