@@ -35,11 +35,9 @@ function scanPosts(): void {
 function addSaveControl(post: Element): void {
   if (post.querySelector(`.${BUTTON_CLASS}`)) return;
   const url = permalinkFor(post);
-  const instagramMoreButton = findInstagramMoreButton(post);
-  const instagramOverlay =
-      isInstagramMediaPost(post) && instagramMoreButton === null;
-  const actionBar = instagramMoreButton?.parentElement ??
-      (instagramOverlay ? post : findActionBar(post));
+  const instagramFrame = findInstagramMediaFrame(post);
+  const instagramOverlay = instagramFrame !== null;
+  const actionBar = instagramFrame ?? findActionBar(post);
   if (!url || !actionBar) return;
 
   const button = document.createElement("button");
@@ -67,19 +65,11 @@ function addSaveControl(post: Element): void {
       ? [
           "position: absolute",
           "top: 12px",
-          "right: 12px",
+          "right: 52px",
           "z-index: 10",
         ]
       : []),
   ].join(";");
-
-  if (
-    instagramOverlay &&
-    post instanceof HTMLElement &&
-    getComputedStyle(post).position === "static"
-  ) {
-    post.style.position = "relative";
-  }
 
   button.addEventListener("click", async (event) => {
     event.preventDefault();
@@ -103,25 +93,20 @@ function addSaveControl(post: Element): void {
     }
   });
 
-  if (instagramMoreButton instanceof HTMLElement) {
-    instagramMoreButton.insertAdjacentElement("afterend", button);
-  } else {
-    actionBar.append(button);
-  }
+  actionBar.append(button);
 }
 
-function isInstagramMediaPost(post: Element): boolean {
-  return window.location.hostname.replace(/^www\./, "") === "instagram.com" &&
-      post.querySelector("img, video") !== null;
-}
-
-function findInstagramMoreButton(post: Element): Element | null {
+function findInstagramMediaFrame(post: Element): HTMLElement | null {
   if (window.location.hostname.replace(/^www\./, "") !== "instagram.com") {
     return null;
   }
-  return post.querySelector(
-    'button[aria-label*="More"], button[aria-label*="more"], [role="button"][aria-label*="More"], [role="button"][aria-label*="more"]',
-  );
+  const media = post.querySelector("img, video");
+  const frame = media?.parentElement;
+  if (!(frame instanceof HTMLElement)) return null;
+  if (getComputedStyle(frame).position === "static") {
+    frame.style.position = "relative";
+  }
+  return frame;
 }
 
 function findActionBar(post: Element): Element | null {
