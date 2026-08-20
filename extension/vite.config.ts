@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { defineConfig } from "vite";
 
 const rootDir = dirname(fileURLToPath(import.meta.url));
+const browserTarget = process.env.BROWSER ?? "chromium";
 
 export default defineConfig({
   publicDir: "public",
@@ -14,13 +15,16 @@ export default defineConfig({
         this.emitFile({
           type: "asset",
           fileName: "manifest.json",
-          source: readFileSync(resolve(rootDir, "manifest.json"), "utf8"),
+          source: readFileSync(
+            resolve(rootDir, `manifests/${browserTarget}.json`),
+            "utf8",
+          ),
         });
       },
     },
   ],
   build: {
-    outDir: "dist",
+    outDir: `dist/${browserTarget}`,
     emptyOutDir: true,
     modulePreload: false,
     rollupOptions: {
