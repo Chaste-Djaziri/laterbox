@@ -3,15 +3,20 @@ import type { BrowserCapabilities } from "./capabilities";
 export const chromiumCapabilities: BrowserCapabilities = {
   supportsSidePanel: typeof chrome.sidePanel?.open === "function",
 
-  async openSidePanel(tabId: number): Promise<void> {
+  async openSidePanel(): Promise<void> {
+    const [tab] = await chrome.tabs.query({
+      active: true,
+      lastFocusedWindow: true,
+    });
+    if (tab?.windowId === undefined) throw new Error("No active browser window.");
+
     try {
       if (chrome.sidePanel?.setOptions && chrome.sidePanel?.open) {
         await chrome.sidePanel.setOptions({
-          tabId,
           path: "src/sidepanel/sidepanel.html",
           enabled: true,
         });
-        await chrome.sidePanel.open({ tabId });
+        await chrome.sidePanel.open({ windowId: tab.windowId });
         return;
       }
     } catch (error) {
@@ -19,7 +24,7 @@ export const chromiumCapabilities: BrowserCapabilities = {
     }
 
     await chrome.tabs.create({
-      url: `${chrome.runtime.getURL("src/sidepanel/sidepanel.html")}?tabId=${tabId}`,
+      url: chrome.runtime.getURL("src/sidepanel/sidepanel.html"),
     });
   },
 
