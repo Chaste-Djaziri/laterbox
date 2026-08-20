@@ -67,6 +67,7 @@ class LocalItemDataSource {
         url: Value(remote.url),
         title: Value(remote.title),
         textContent: Value(remote.textContent),
+        textSelector: Value(remote.textSelector),
         type: Value(remote.type),
         favorite: Value(remote.favorite),
         status: Value(remote.status),
