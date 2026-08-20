@@ -217,39 +217,66 @@ class ItemCoverImage extends StatefulWidget {
   State<ItemCoverImage> createState() => _ItemCoverImageState();
 }
 
-class _ItemCoverImageState extends State<ItemCoverImage> {
+class _ItemCoverImageState extends State<ItemCoverImage>
+    with AutomaticKeepAliveClientMixin {
   bool _failed = false;
+
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void didUpdateWidget(covariant ItemCoverImage oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.url != widget.url) _failed = false;
+    if (oldWidget.url != widget.url) {
+      setState(() => _failed = false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     if (_failed) return const SizedBox.shrink();
+
+    final theme = Theme.of(context);
+
     return AspectRatio(
       key: const Key('itemCardCover'),
       aspectRatio: 16 / 9,
-      child: ColoredBox(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+      child: Container(
+        color: theme.colorScheme.surfaceContainerHighest,
         child: Image.network(
           widget.url,
           fit: BoxFit.cover,
           gaplessPlayback: true,
           frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
             if (wasSynchronouslyLoaded) return child;
+            if (frame == null) {
+              return ColoredBox(
+                color: theme.colorScheme.surfaceContainerHighest,
+                child: Center(
+                  child: SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: theme.colorScheme.primary.withOpacity(0.4),
+                    ),
+                  ),
+                ),
+              );
+            }
             return AnimatedOpacity(
-              opacity: frame == null ? 0 : 1,
-              duration: const Duration(milliseconds: 250),
+              opacity: 1,
+              duration: const Duration(milliseconds: 200),
               curve: Curves.easeOut,
               child: child,
             );
           },
           errorBuilder: (context, error, stackTrace) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (mounted) setState(() => _failed = true);
+              if (mounted && !_failed) {
+                setState(() => _failed = true);
+              }
             });
             return const SizedBox.shrink();
           },
