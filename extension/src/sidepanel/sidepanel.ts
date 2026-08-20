@@ -20,7 +20,11 @@ const connectButton = document.querySelector<HTMLButtonElement>("#connect")!;
 const saveButton = document.querySelector<HTMLButtonElement>("#save")!;
 const disconnectButton = document.querySelector<HTMLButtonElement>("#disconnect")!;
 const openButton = document.querySelector<HTMLButtonElement>("#open-laterbox")!;
+const permissionNote = document.querySelector<HTMLElement>("#highlight-permission")!;
+const enableHighlightingButton = document.querySelector<HTMLButtonElement>("#enable-highlighting")!;
 const statusElement = document.querySelector<HTMLElement>("#status")!;
+
+const SITE_ACCESS_PATTERNS = ["http://*/*", "https://*/*"];
 
 let page: PageContext = { url: "", title: "", selection: "" };
 let activeTabId: number | undefined;
@@ -30,6 +34,7 @@ void initialize();
 async function initialize(): Promise<void> {
   await refreshActivePage();
   await updateConnectionState();
+  await refreshHighlightPermission();
 }
 
 async function refreshActivePage(): Promise<void> {
@@ -83,6 +88,31 @@ openButton.addEventListener("click", () => {
   const webUrl = import.meta.env.VITE_LATERBOX_WEB_URL ?? "";
   if (webUrl) void chrome.tabs.create({ url: `${webUrl}/inbox` });
 });
+
+enableHighlightingButton.addEventListener("click", () => void enableHighlighting());
+
+async function refreshHighlightPermission(): Promise<void> {
+  const granted = await chrome.permissions.contains({ origins: SITE_ACCESS_PATTERNS });
+  permissionNote.hidden = granted;
+}
+
+async function enableHighlighting(): Promise<void> {
+  enableHighlightingButton.disabled = true;
+  try {
+    const granted = await chrome.permissions.request({ origins: SITE_ACCESS_PATTERNS });
+    permissionNote.hidden = granted;
+    setStatus(
+      granted
+        ? "Precise highlighting enabled."
+        : "Precise highlighting stays off.",
+      granted ? "success" : "error",
+    );
+  } catch {
+    setStatus("Could not enable precise highlighting.", "error");
+  } finally {
+    enableHighlightingButton.disabled = false;
+  }
+}
 
 async function updateConnectionState(): Promise<void> {
   const connected = (await getAccessToken()).startsWith("lb_ext_") &&
