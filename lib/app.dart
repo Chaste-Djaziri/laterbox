@@ -118,7 +118,9 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
       routerConfig: ref.watch(appRouterProvider),
       scrollBehavior: const LaterBoxScrollBehavior(),
       builder: (context, child) {
-        if (quickCaptureActive) return const QuickCaptureScreen();
+        if (quickCaptureActive) {
+          return const Material(child: QuickCaptureScreen());
+        }
         return child ?? const SizedBox.shrink();
       },
     );
