@@ -43,7 +43,7 @@ function scanPosts(): void {
 function scanInstagramMedia(): void {
   for (const media of document.querySelectorAll("img, video")) {
     const bounds = media.getBoundingClientRect();
-    if (bounds.width < 220 || bounds.height < 180) continue;
+    if (bounds.width < 140 || bounds.height < 140) continue;
     if (bounds.bottom <= 0 || bounds.top >= window.innerHeight) continue;
     if (!instagramButtons.has(media)) addInstagramButton(media);
     positionInstagramButton(media);
@@ -69,23 +69,10 @@ function addInstagramButton(media: Element): void {
     "color: #171711",
     "cursor: pointer",
     "font: 700 11px/1 system-ui, sans-serif",
-    "opacity: 0",
-    "pointer-events: none",
-    "transition: opacity 120ms ease",
+    "opacity: 1",
+    "pointer-events: auto",
   ].join(";");
 
-  const show = () => {
-    button.style.opacity = "1";
-    button.style.pointerEvents = "auto";
-  };
-  const hide = () => {
-    button.style.opacity = "0";
-    button.style.pointerEvents = "none";
-  };
-  media.addEventListener("mouseenter", show);
-  media.addEventListener("mouseleave", hide);
-  button.addEventListener("mouseenter", show);
-  button.addEventListener("mouseleave", hide);
   button.addEventListener("click", async (event) => {
     event.preventDefault();
     event.stopPropagation();
