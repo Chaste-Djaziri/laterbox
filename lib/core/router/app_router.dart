@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../features/auth/presentation/auth_gate.dart';
 import '../../features/detail/presentation/item_detail_screen.dart';
 import '../../features/extension/presentation/extension_connect_screen.dart';
+import '../../features/home/presentation/home_shell.dart';
 import '../../features/inbox/presentation/inbox_screen.dart';
 import '../../features/library/presentation/library_screen.dart';
 import '../../features/search/presentation/search_screen.dart';
