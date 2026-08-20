@@ -75,12 +75,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: '/item/:id',
-            pageBuilder: (context, state) {
+            builder: (context, state) {
               final id = state.pathParameters['id'] ?? '';
-              return NoTransitionPage(
-                key: state.pageKey,
-                child: ItemDetailScreen(itemId: id),
-              );
+              return ItemDetailScreen(itemId: id);
             },
           ),
         ],
