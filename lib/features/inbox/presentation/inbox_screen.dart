@@ -74,6 +74,7 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
           thumbVisibility: isDesktop,
           child: CustomScrollView(
             controller: _scrollController,
+            cacheExtent: 800,
             slivers: [
               SliverPadding(
                 padding: EdgeInsets.fromLTRB(
