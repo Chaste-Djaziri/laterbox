@@ -142,7 +142,8 @@ class _ItemCardState extends ConsumerState<ItemCard> {
           ),
         ),
       ),
-    );
+    ),
+  );
   }
 }
 
