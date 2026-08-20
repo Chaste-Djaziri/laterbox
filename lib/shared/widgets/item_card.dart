@@ -66,11 +66,7 @@ class _ItemCardState extends ConsumerState<ItemCard> {
             maxWidth: widget.isGrid ? double.infinity : (isDesktop ? 800 : double.infinity),
           ),
           child: Semantics(
-          label: '$eyebrow, $title, saved ${timeago.format(widget.item.createdAt)}',
-          child: MouseRegion(
-            onEnter: (_) => setState(() => _isHovered = true),
-            onExit: (_) => setState(() => _isHovered = false),
-            cursor: SystemMouseCursors.click,
+            label: '$eyebrow, $title, saved ${timeago.format(widget.item.createdAt)}',
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 150),
               curve: Curves.easeOutCubic,
@@ -81,6 +77,7 @@ class _ItemCardState extends ConsumerState<ItemCard> {
                 color: Colors.transparent,
                 child: InkWell(
                   borderRadius: BorderRadius.circular(cardRadius),
+                  onHover: (hovered) => setState(() => _isHovered = hovered),
                   onTap: () => context.go('/item/${widget.item.id}'),
                   onLongPress: () => showItemActions(context, ref, widget.item),
                   child: Container(
@@ -135,7 +132,6 @@ class _ItemCardState extends ConsumerState<ItemCard> {
                         ),
                       ],
                     ),
-                  ),
                 ),
               ),
             ),
