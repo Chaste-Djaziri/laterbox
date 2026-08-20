@@ -27,7 +27,10 @@ final initialLocationProvider = Provider<String>((ref) {
 });
 
 final appRouterProvider = Provider<GoRouter>((ref) {
-  final initialLocation = ref.watch(initialLocationProvider);
+  // The router must outlive authentication state changes. Recreating it while
+  // a pointer event is in flight can dispose the active route's viewport
+  // before hit testing completes.
+  final initialLocation = ref.read(initialLocationProvider);
   final router = GoRouter(
     initialLocation: initialLocation,
     routes: [
