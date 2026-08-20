@@ -28,11 +28,12 @@ final clipboardCaptureServiceProvider =
 
 final quickCaptureControllerProvider =
     ChangeNotifierProvider<QuickCaptureController>((ref) {
-  final controller = QuickCaptureController(
+  // ChangeNotifierProvider disposes its notifier automatically; do not
+  // register an additional `ref.onDispose(controller.dispose)` here or the
+  // controller is disposed twice.
+  return QuickCaptureController(
     desktopService: ref.watch(desktopServiceProvider),
     clipboardService: ref.watch(clipboardCaptureServiceProvider),
     captureService: ref.watch(captureServiceProvider),
   );
-  ref.onDispose(controller.dispose);
-  return controller;
 });
