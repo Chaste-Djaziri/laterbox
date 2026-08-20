@@ -7,69 +7,37 @@
     "activeTab",
     "contextMenus",
     "identity",
+    "sidePanel",
     "scripting",
     "storage"
   ],
   "host_permissions": [
     "https://*.supabase.co/*",
     "http://127.0.0.1:54321/*",
-    "http://localhost:54321/*",
-    "https://instagram.com/*",
-    "https://*.instagram.com/*",
-    "https://threads.net/*",
-    "https://*.threads.net/*",
-    "https://x.com/*",
-    "https://*.x.com/*",
-    "https://twitter.com/*",
-    "https://*.twitter.com/*",
-    "https://bsky.app/*",
-    "https://tiktok.com/*",
-    "https://*.tiktok.com/*",
-    "https://youtube.com/*",
-    "https://*.youtube.com/*",
-    "https://youtu.be/*",
-    "https://reddit.com/*",
-    "https://*.reddit.com/*",
-    "https://linkedin.com/*",
-    "https://*.linkedin.com/*",
-    "https://facebook.com/*",
-    "https://*.facebook.com/*",
-    "https://pinterest.com/*",
-    "https://*.pinterest.com/*"
-  ],
-  "content_scripts": [
-    {
-      "matches": [
-        "https://instagram.com/*",
-        "https://*.instagram.com/*",
-        "https://threads.net/*",
-        "https://*.threads.net/*",
-        "https://x.com/*",
-        "https://*.x.com/*",
-        "https://twitter.com/*",
-        "https://*.twitter.com/*",
-        "https://bsky.app/*",
-        "https://tiktok.com/*",
-        "https://*.tiktok.com/*",
-        "https://youtube.com/*",
-        "https://*.youtube.com/*",
-        "https://youtu.be/*",
-        "https://reddit.com/*",
-        "https://*.reddit.com/*",
-        "https://linkedin.com/*",
-        "https://*.linkedin.com/*",
-        "https://facebook.com/*",
-        "https://*.facebook.com/*",
-        "https://pinterest.com/*",
-        "https://*.pinterest.com/*"
-      ],
-      "js": ["social-save.js"],
-      "run_at": "document_idle"
-    }
+    "http://localhost:54321/*"
   ],
   "action": {
     "default_title": "Save to LaterBox",
     "default_popup": "src/popup/popup.html"
+  },
+  "commands": {
+    "save-current-page": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+L",
+        "mac": "Command+Shift+L"
+      },
+      "description": "Save current page to LaterBox"
+    },
+    "open-sidepanel": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+O",
+        "mac": "Command+Shift+O"
+      },
+      "description": "Open LaterBox side panel"
+    }
+  },
+  "side_panel": {
+    "default_path": "src/sidepanel/sidepanel.html"
   },
   "background": {
     "service_worker": "background.js",
