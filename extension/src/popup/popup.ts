@@ -55,6 +55,7 @@ async function initialize(): Promise<void> {
     selectionElement.textContent = highlightText;
   }
   await updateConnectionState();
+  openPanelButton.hidden = !browserCapabilities.supportsSidePanel;
 }
 
 connectButton.addEventListener("click", () => {
