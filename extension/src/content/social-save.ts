@@ -70,7 +70,11 @@ function addSaveControl(post: Element): void {
       : []),
   ].join(";");
 
-  if (instagramOverlay && getComputedStyle(post).position === "static") {
+  if (
+    instagramOverlay &&
+    post instanceof HTMLElement &&
+    getComputedStyle(post).position === "static"
+  ) {
     post.style.position = "relative";
   }
 
