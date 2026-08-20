@@ -6,6 +6,7 @@ import {
 import { flushQueue, formatHighlight, saveCapture } from "../lib/capture";
 import { getPageContext, type PageContext } from "../lib/page";
 import { getConnectedUserId } from "../lib/storage";
+import { chromiumCapabilities } from "../platform/chromium";
 
 const domainElement = document.querySelector<HTMLElement>("#domain")!;
 const titleElement = document.querySelector<HTMLElement>("#title")!;
@@ -74,18 +75,7 @@ openPanelButton.addEventListener("click", () => {
 async function openSidePanel(): Promise<void> {
   if (activeTab?.id === undefined) return;
   try {
-    if (chrome.sidePanel?.setOptions && chrome.sidePanel?.open) {
-      await chrome.sidePanel.setOptions({
-        tabId: activeTab.id,
-        path: "src/sidepanel/sidepanel.html",
-        enabled: true,
-      });
-      await chrome.sidePanel.open({ tabId: activeTab.id });
-      return;
-    }
-    await chrome.tabs.create({
-      url: `${chrome.runtime.getURL("src/sidepanel/sidepanel.html")}?tabId=${activeTab.id}`,
-    });
+    await chromiumCapabilities.openSidePanel(activeTab.id);
   } catch (error) {
     setStatus(error instanceof Error ? error.message : "Could not open side panel.", "error");
   }
@@ -140,7 +130,7 @@ async function disconnect(): Promise<void> {
 
 async function saveCurrentPage(): Promise<void> {
   const url = pageContext.url;
-  if (!/^https?:\/\//i.test(url)) {
+  if (chromiumCapabilities.isRestrictedUrl(url)) {
     setStatus("This page cannot be captured.", "error");
     return;
   }
