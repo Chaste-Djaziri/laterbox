@@ -28,12 +28,11 @@ void main() {
     const channel = MethodChannel(IosShareReceiver.channelName);
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, (call) async {
-      if (call.method == 'consumeShares') {
+      if (call.method == 'consumePending') {
         return [
           {
-            'url': 'https://example.com/b',
-            'text': 'ios payload',
-            'source': 'iosShare',
+            'id': 'ios-1',
+            'value': 'https://example.com/b',
             'createdAt': '2026-08-19T07:01:00Z',
           },
         ];
