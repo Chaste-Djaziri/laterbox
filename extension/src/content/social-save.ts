@@ -65,11 +65,29 @@ function addSaveControl(post: Element): void {
       ? [
           "position: absolute",
           "top: 12px",
-          "right: 52px",
+          "right: 12px",
           "z-index: 10",
+          "opacity: 0",
+          "pointer-events: none",
+          "transition: opacity 120ms ease",
         ]
       : []),
   ].join(";");
+
+  if (instagramOverlay) {
+    button.addEventListener("mouseenter", () => {
+      button.style.opacity = "1";
+      button.style.pointerEvents = "auto";
+    });
+    actionBar.addEventListener("mouseenter", () => {
+      button.style.opacity = "1";
+      button.style.pointerEvents = "auto";
+    });
+    actionBar.addEventListener("mouseleave", () => {
+      button.style.opacity = "0";
+      button.style.pointerEvents = "none";
+    });
+  }
 
   button.addEventListener("click", async (event) => {
     event.preventDefault();
@@ -105,6 +123,9 @@ function findInstagramMediaFrame(post: Element): HTMLElement | null {
   if (!(frame instanceof HTMLElement)) return null;
   if (getComputedStyle(frame).position === "static") {
     frame.style.position = "relative";
+  }
+  if (getComputedStyle(frame).display === "inline") {
+    frame.style.display = "inline-block";
   }
   return frame;
 }
