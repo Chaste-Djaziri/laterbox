@@ -1,10 +1,12 @@
 import { flushQueue, saveCapture } from "../lib/capture";
+import { highlightTextInTab } from "../lib/highlight";
 import { getPageContext } from "../lib/page";
 import { chromiumCapabilities } from "../platform/chromium";
 
 const PAGE_MENU = "save-page";
 const LINK_MENU = "save-link";
 const SELECTION_MENU = "save-selection";
+const NAVIGATION_TIMEOUT_MS = 15_000;
 
 chrome.runtime.onInstalled.addListener(() => {
   void createContextMenus();
@@ -22,6 +24,12 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message?.type !== "save-page") return false;
   void savePageMessage(message, sender).then(sendResponse);
+  return true;
+});
+
+chrome.runtime.onMessageExternal.addListener((message, _sender, sendResponse) => {
+  if (message?.type !== "open-with-highlight") return false;
+  void handleOpenWithHighlight(message).then(sendResponse);
   return true;
 });
 
@@ -82,6 +90,87 @@ async function savePageMessage(
     title: typeof message.title === "string" ? message.title : sender.tab?.title,
     source: "browserExtension",
     createdAt: new Date().toISOString(),
+  });
+}
+
+type OpenWithHighlightMessage = {
+  type: "open-with-highlight";
+  url?: unknown;
+  fragmentUrl?: unknown;
+  selector?: unknown;
+};
+
+async function handleOpenWithHighlight(message: OpenWithHighlightMessage) {
+  const url = typeof message.url === "string" ? message.url : null;
+  if (!url || !/^https?:\/\//i.test(url)) return { status: "invalid-url" };
+  const fragmentUrl =
+    typeof message.fragmentUrl === "string" ? message.fragmentUrl : undefined;
+  const selector = parseSelector(message.selector);
+  if (!selector) return { status: "invalid-selector" };
+
+  const tab = await chrome.tabs.create({ url });
+  const tabId = tab.id;
+  if (tabId === undefined) return { status: "error" };
+
+  const loaded = await waitForTabLoad(tabId);
+  if (!loaded) {
+    await maybeNavigateToFragment(tabId, fragmentUrl);
+    return { status: "timeout" };
+  }
+
+  const highlighted = await highlightTextInTab(tabId, selector);
+  if (!highlighted) {
+    await maybeNavigateToFragment(tabId, fragmentUrl);
+    return { status: "not-found" };
+  }
+  return { status: "ok" };
+}
+
+function parseSelector(raw: unknown): {
+  exact: string;
+  prefix: string | null;
+  suffix: string | null;
+} | null {
+  if (typeof raw !== "object" || raw === null) return null;
+  const selector = raw as Record<string, unknown>;
+  const exact = typeof selector.exact === "string" ? selector.exact.trim() : "";
+  if (!exact) return null;
+  const prefix =
+    typeof selector.prefix === "string" && selector.prefix.trim()
+      ? selector.prefix.trim()
+      : null;
+  const suffix =
+    typeof selector.suffix === "string" && selector.suffix.trim()
+      ? selector.suffix.trim()
+      : null;
+  return { exact, prefix, suffix };
+}
+
+async function maybeNavigateToFragment(
+  tabId: number,
+  fragmentUrl?: string,
+): Promise<void> {
+  if (!fragmentUrl || !/^https?:\/\//i.test(fragmentUrl)) return;
+  try {
+    await chrome.tabs.update(tabId, { url: fragmentUrl });
+  } catch (error) {
+    console.warn("Could not fall back to text fragment", error);
+  }
+}
+
+function waitForTabLoad(tabId: number): Promise<boolean> {
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => {
+      chrome.tabs.onUpdated.removeListener(onUpdated);
+      resolve(false);
+    }, NAVIGATION_TIMEOUT_MS);
+    function onUpdated(id: number, changeInfo: chrome.tabs.TabChangeInfo) {
+      if (id !== tabId || changeInfo.status !== "complete") return;
+      clearTimeout(timer);
+      chrome.tabs.onUpdated.removeListener(onUpdated);
+      resolve(true);
+    }
+    chrome.tabs.onUpdated.addListener(onUpdated);
   });
 }
 
