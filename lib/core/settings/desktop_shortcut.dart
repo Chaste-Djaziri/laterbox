@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 /// The modifier keys of a desktop shortcut, kept platform-agnostic so the
@@ -14,11 +15,13 @@ class DesktopShortcut {
 
   final List<DesktopModifier> modifiers;
 
-  /// The default quick capture shortcut: `⌥ Space`.
+  /// The platform default quick capture shortcut.
   static DesktopShortcut defaultQuickCapture() {
     return DesktopShortcut(
       keyId: PhysicalKeyboardKey.space.usbHidUsage,
-      modifiers: const [DesktopModifier.alt],
+      modifiers: defaultTargetPlatform == TargetPlatform.windows
+          ? const [DesktopModifier.control, DesktopModifier.alt]
+          : const [DesktopModifier.alt],
     );
   }
 
@@ -35,6 +38,14 @@ class DesktopShortcut {
   }
 
   static String _modifierSymbol(DesktopModifier modifier) {
+    if (defaultTargetPlatform == TargetPlatform.windows) {
+      return switch (modifier) {
+        DesktopModifier.alt => 'Alt + ',
+        DesktopModifier.control => 'Ctrl + ',
+        DesktopModifier.shift => 'Shift + ',
+        DesktopModifier.meta => 'Win + ',
+      };
+    }
     switch (modifier) {
       case DesktopModifier.alt:
         return '⌥ ';
@@ -53,9 +64,9 @@ class DesktopShortcut {
   }
 
   Map<String, dynamic> toJson() => {
-        'keyId': keyId,
-        'modifiers': modifiers.map((m) => m.name).toList(),
-      };
+    'keyId': keyId,
+    'modifiers': modifiers.map((m) => m.name).toList(),
+  };
 
   factory DesktopShortcut.fromJson(Map<String, dynamic> json) {
     final keyId = json['keyId'];
