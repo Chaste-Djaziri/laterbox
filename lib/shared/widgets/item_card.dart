@@ -104,7 +104,7 @@ class _ItemCardState extends ConsumerState<ItemCard> {
                       children: [
                         if (coverUrl != null && coverUrl.isNotEmpty)
                           ItemCoverImage(url: coverUrl)
-                        else
+                        else if (widget.isGrid)
                           const AspectRatio(
                             aspectRatio: 16 / 9,
                             child: _LaterBoxLogoPlaceholder(),
@@ -423,12 +423,7 @@ class _ItemCoverImageState extends State<ItemCoverImage>
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    if (_failed) {
-      return const AspectRatio(
-        aspectRatio: 16 / 9,
-        child: _LaterBoxLogoPlaceholder(),
-      );
-    }
+    if (_failed) return const SizedBox.shrink();
 
     final theme = Theme.of(context);
 
