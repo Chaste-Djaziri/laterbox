@@ -1,5 +1,7 @@
 import type { BrowserCapabilities } from "./capabilities";
 
+const SIDE_PANEL_PATH = "src/sidepanel/sidepanel.html";
+
 export const chromiumCapabilities: BrowserCapabilities = {
   supportsSidePanel: typeof chrome.sidePanel?.open === "function",
 
@@ -10,22 +12,22 @@ export const chromiumCapabilities: BrowserCapabilities = {
     });
     if (tab?.windowId === undefined) throw new Error("No active browser window.");
 
-    try {
-      if (chrome.sidePanel?.setOptions && chrome.sidePanel?.open) {
-        await chrome.sidePanel.setOptions({
-          path: "src/sidepanel/sidepanel.html",
-          enabled: true,
-        });
-        await chrome.sidePanel.open({ windowId: tab.windowId });
-        return;
-      }
-    } catch (error) {
-      console.warn("Native side panel unavailable", error);
+    // Real Chrome and Chromium with the Side Panel API. The panel is global
+    // (window-scoped) and follows the active tab on its own. If the API exists
+    // but throws, the error propagates instead of silently opening a tab so the
+    // underlying failure is visible rather than masked.
+    if (chrome.sidePanel?.open) {
+      await chrome.sidePanel.setOptions({
+        path: SIDE_PANEL_PATH,
+        enabled: true,
+      });
+      await chrome.sidePanel.open({ windowId: tab.windowId });
+      return;
     }
 
-    await chrome.tabs.create({
-      url: chrome.runtime.getURL("src/sidepanel/sidepanel.html"),
-    });
+    // Only browsers genuinely lacking the Side Panel API (for example an
+    // unsupported Arc configuration) fall back to an extension tab.
+    await chrome.tabs.create({ url: chrome.runtime.getURL(SIDE_PANEL_PATH) });
   },
 
   isRestrictedUrl(url?: string): boolean {
