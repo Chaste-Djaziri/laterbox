@@ -1,10 +1,15 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:hotkey_manager/hotkey_manager.dart';
 
 /// System-wide quick capture hotkey: `Option/Alt + Space`.
+///
+/// A `PhysicalKeyboardKey` (rather than a logical key) keeps the hotkey
+/// stable across keyboard layouts.
 final quickCaptureHotKey = HotKey(
-  key: LogicalKeyboardKey.space,
-  modifiers: [HotKeyModifier.alt],
+  key: PhysicalKeyboardKey.space,
+  modifiers: const [HotKeyModifier.alt],
+  scope: HotKeyScope.system,
 );
 
 /// Registers the system-wide quick capture hotkey using `hotkey_manager`.
@@ -19,11 +24,20 @@ class GlobalHotkeyService {
     try {
       await hotKeyManager.register(
         quickCaptureHotKey,
-        keyDownHandler: (_) => onTriggered(),
+        keyDownHandler: (_) {
+          debugPrint('[LaterBox Desktop] ⌥Space fired');
+          onTriggered();
+        },
       );
       _registered = quickCaptureHotKey;
+      debugPrint('[LaterBox Desktop] hotkey registered: ⌥Space');
+      debugPrint(
+        '[LaterBox Desktop] registered hotkeys: '
+        '${hotKeyManager.registeredHotKeyList}',
+      );
       return true;
-    } on PlatformException {
+    } on PlatformException catch (error) {
+      debugPrint('[LaterBox Desktop] HOTKEY REGISTRATION FAILED: $error');
       _registered = null;
       return false;
     }
