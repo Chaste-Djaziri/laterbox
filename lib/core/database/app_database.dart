@@ -24,6 +24,58 @@ class Items extends Table {
   Set<Column<Object>> get primaryKey => {id};
 }
 
+@TableIndex(name: 'attachments_item_id_idx', columns: {#itemId})
+@TableIndex(name: 'attachments_user_id_idx', columns: {#userId})
+@TableIndex(name: 'attachments_sha256_idx', columns: {#sha256})
+@TableIndex(name: 'attachments_upload_status_idx', columns: {#uploadStatus})
+@TableIndex(name: 'attachments_sync_status_idx', columns: {#syncStatus})
+@TableIndex(name: 'attachments_deleted_at_idx', columns: {#deletedAt})
+class Attachments extends Table {
+  TextColumn get id => text()();
+  TextColumn get itemId => text().references(Items, #id)();
+  TextColumn get userId => text().nullable()();
+  TextColumn get originalFileName => text()();
+  TextColumn get fileExtension => text().customConstraint(
+    "NOT NULL CHECK(file_extension <> '' AND "
+    "file_extension = lower(file_extension) AND file_extension NOT LIKE '.%')",
+  )();
+  TextColumn get mimeType => text()();
+  IntColumn get byteSize => integer().customConstraint(
+    'NOT NULL CHECK(byte_size BETWEEN 1 AND 104857600)',
+  )();
+  TextColumn get sha256 => text().customConstraint(
+    "NOT NULL CHECK(length(sha256) = 64 AND "
+    "sha256 NOT GLOB '*[^0-9a-f]*')",
+  )();
+  TextColumn get localPath => text().unique()();
+  TextColumn get r2ObjectKey => text().nullable().unique()();
+  IntColumn get width => integer().nullable().customConstraint(
+    'NULL CHECK(width IS NULL OR width > 0)',
+  )();
+  IntColumn get height => integer().nullable().customConstraint(
+    'NULL CHECK(height IS NULL OR height > 0)',
+  )();
+  TextColumn get uploadStatus => text().customConstraint(
+    "NOT NULL DEFAULT 'local' CHECK(upload_status IN "
+    "('local', 'pending', 'uploading', 'uploaded', 'failed'))",
+  )();
+  IntColumn get uploadAttempts => integer().customConstraint(
+    'NOT NULL DEFAULT 0 CHECK(upload_attempts >= 0)',
+  )();
+  TextColumn get uploadLastError => text().nullable()();
+  TextColumn get syncStatus => text().customConstraint(
+    "NOT NULL DEFAULT 'pending' "
+    "CHECK(sync_status IN ('pending', 'synced', 'failed'))",
+  )();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+  DateTimeColumn get deletedAt => dateTime().nullable()();
+  DateTimeColumn get lastSyncedAt => dateTime().nullable()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
 class Collections extends Table {
   TextColumn get id => text()();
   TextColumn get userId => text().nullable()();
@@ -39,16 +91,10 @@ class Collections extends Table {
 }
 
 class CollectionItems extends Table {
-  TextColumn get collectionId => text().references(
-        Collections,
-        #id,
-        onDelete: KeyAction.cascade,
-      )();
-  TextColumn get itemId => text().references(
-        Items,
-        #id,
-        onDelete: KeyAction.cascade,
-      )();
+  TextColumn get collectionId =>
+      text().references(Collections, #id, onDelete: KeyAction.cascade)();
+  TextColumn get itemId =>
+      text().references(Items, #id, onDelete: KeyAction.cascade)();
   TextColumn get userId => text().nullable()();
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
@@ -61,11 +107,8 @@ class CollectionItems extends Table {
 }
 
 class ItemNotes extends Table {
-  TextColumn get itemId => text().references(
-        Items,
-        #id,
-        onDelete: KeyAction.cascade,
-      )();
+  TextColumn get itemId =>
+      text().references(Items, #id, onDelete: KeyAction.cascade)();
   TextColumn get userId => text().nullable()();
   TextColumn get content => text()();
   DateTimeColumn get createdAt => dateTime()();
@@ -103,7 +146,8 @@ class ItemMetadata extends Table {
   DateTimeColumn get enrichedAt => dateTime().nullable()();
   TextColumn get contentType => text().withDefault(const Constant('link'))();
   TextColumn get classificationSource => text().nullable()();
-  RealColumn get classificationConfidence => real().withDefault(const Constant(0))();
+  RealColumn get classificationConfidence =>
+      real().withDefault(const Constant(0))();
   TextColumn get structuredData => text().nullable()();
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
@@ -112,14 +156,17 @@ class ItemMetadata extends Table {
   Set<Column<Object>> get primaryKey => {itemId};
 }
 
-@DriftDatabase(tables: [
-  Items,
-  ItemMetadata,
-  Collections,
-  CollectionItems,
-  ItemNotes,
-  AppSettings,
-])
+@DriftDatabase(
+  tables: [
+    Items,
+    Attachments,
+    ItemMetadata,
+    Collections,
+    CollectionItems,
+    ItemNotes,
+    AppSettings,
+  ],
+)
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor])
     : super(
@@ -136,7 +183,7 @@ class AppDatabase extends _$AppDatabase {
       );
 
   @override
-  int get schemaVersion => 9;
+  int get schemaVersion => 10;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -157,8 +204,9 @@ class AppDatabase extends _$AppDatabase {
         await migrator.database.customStatement(
           "UPDATE items SET status = 'archived' WHERE archived = 1",
         );
-        await migrator.database
-            .customStatement('ALTER TABLE items DROP COLUMN archived');
+        await migrator.database.customStatement(
+          'ALTER TABLE items DROP COLUMN archived',
+        );
       }
       if (from < 5) {
         // Defensive: a crash or stale version stamp can leave the v5 columns
@@ -208,7 +256,10 @@ class AppDatabase extends _$AppDatabase {
           await migrator.addColumn(itemMetadata, itemMetadata.contentType);
         }
         if (!metadataColumns.contains('classification_source')) {
-          await migrator.addColumn(itemMetadata, itemMetadata.classificationSource);
+          await migrator.addColumn(
+            itemMetadata,
+            itemMetadata.classificationSource,
+          );
         }
         if (!metadataColumns.contains('classification_confidence')) {
           await migrator.addColumn(
@@ -228,6 +279,9 @@ class AppDatabase extends _$AppDatabase {
       }
       if (from < 9) {
         await migrator.createTable(appSettings);
+      }
+      if (from < 10) {
+        await migrator.createTable(attachments);
       }
     },
   );
@@ -254,12 +308,21 @@ class AppDatabase extends _$AppDatabase {
   Future<void> saveItem(ItemsCompanion item) => into(items).insert(item);
 
   Future<List<Item>> itemsNeedingSync(String userId) async {
-    await (update(items)..where(
-          (item) =>
-              item.userId.isNull() &
-              item.syncStatus.isIn(const ['pending', 'failed']),
-        ))
-        .write(ItemsCompanion(userId: Value(userId)));
+    await transaction(() async {
+      final guestItemIds =
+          await (selectOnly(items)
+                ..addColumns([items.id])
+                ..where(items.userId.isNull()))
+              .map((row) => row.read(items.id)!)
+              .get();
+      if (guestItemIds.isEmpty) return;
+      await (update(items)..where((item) => item.id.isIn(guestItemIds))).write(
+        ItemsCompanion(userId: Value(userId)),
+      );
+      await (update(attachments)
+            ..where((attachment) => attachment.itemId.isIn(guestItemIds)))
+          .write(AttachmentsCompanion(userId: Value(userId)));
+    });
 
     return (select(items)..where(
           (item) =>
@@ -347,10 +410,11 @@ class AppDatabase extends _$AppDatabase {
       'AND im.content_type IS NOT NULL '
       'GROUP BY im.content_type',
     ).watch().map(
-      (rows) => rows
-          .map((row) => (row.read<String>("type"), row.read<int>("count")))
-          .toList()
-        ..sort((a, b) => b.$2.compareTo(a.$2)),
+      (rows) =>
+          rows
+              .map((row) => (row.read<String>("type"), row.read<int>("count")))
+              .toList()
+            ..sort((a, b) => b.$2.compareTo(a.$2)),
     );
   }
 
@@ -370,16 +434,12 @@ class AppDatabase extends _$AppDatabase {
   Stream<(Item, ItemMetadataData?)?> watchItemWithMetadata(String id) {
     final query = select(items).join([
       leftOuterJoin(itemMetadata, itemMetadata.itemId.equalsExp(items.id)),
-    ])
-      ..where(items.id.equals(id));
-    return query
-        .watchSingleOrNull()
-        .map((row) => row == null
-            ? null
-            : (
-                row.readTable(items),
-                row.readTableOrNull(itemMetadata),
-              ));
+    ])..where(items.id.equals(id));
+    return query.watchSingleOrNull().map(
+      (row) => row == null
+          ? null
+          : (row.readTable(items), row.readTableOrNull(itemMetadata)),
+    );
   }
 
   /// Local-only LIKE search across item text, URL, enriched metadata
@@ -401,21 +461,26 @@ class AppDatabase extends _$AppDatabase {
         itemMetadata.domain.like(pattern) |
         itemMetadata.siteName.like(pattern) |
         itemNotes.content.like(pattern);
-    final typeFilter =
-        contentType == null ? const Constant<bool>(true) : itemMetadata.contentType.equals(contentType);
-    final statement = select(items).join([
-      leftOuterJoin(itemMetadata, itemMetadata.itemId.equalsExp(items.id)),
-      leftOuterJoin(itemNotes, itemNotes.itemId.equalsExp(items.id)),
-    ])
-      ..where(
-        items.deletedAt.isNull() &
-            (userId == null
-                ? items.userId.isNull()
-                : items.userId.equals(userId)) &
-            typeFilter &
-            match,
-      )
-      ..orderBy([OrderingTerm.desc(items.createdAt)]);
+    final typeFilter = contentType == null
+        ? const Constant<bool>(true)
+        : itemMetadata.contentType.equals(contentType);
+    final statement =
+        select(items).join([
+            leftOuterJoin(
+              itemMetadata,
+              itemMetadata.itemId.equalsExp(items.id),
+            ),
+            leftOuterJoin(itemNotes, itemNotes.itemId.equalsExp(items.id)),
+          ])
+          ..where(
+            items.deletedAt.isNull() &
+                (userId == null
+                    ? items.userId.isNull()
+                    : items.userId.equals(userId)) &
+                typeFilter &
+                match,
+          )
+          ..orderBy([OrderingTerm.desc(items.createdAt)]);
     return statement.watch().map(_mapSearchRows);
   }
 
@@ -438,23 +503,17 @@ class AppDatabase extends _$AppDatabase {
   ) {
     return select(items).join([
       leftOuterJoin(itemMetadata, itemMetadata.itemId.equalsExp(items.id)),
-    ])
-      ..where(
-        items.deletedAt.isNull() &
-            (userId == null
-                ? items.userId.isNull()
-                : items.userId.equals(userId)),
-      );
+    ])..where(
+      items.deletedAt.isNull() &
+          (userId == null
+              ? items.userId.isNull()
+              : items.userId.equals(userId)),
+    );
   }
 
   List<(Item, ItemMetadataData?)> _mapJoinedRows(List<TypedResult> rows) {
     return rows
-        .map(
-          (row) => (
-            row.readTable(items),
-            row.readTableOrNull(itemMetadata),
-          ),
-        )
+        .map((row) => (row.readTable(items), row.readTableOrNull(itemMetadata)))
         .toList();
   }
 
@@ -469,46 +528,41 @@ class AppDatabase extends _$AppDatabase {
   }
 
   Future<void> updateMetadata(String itemId, ItemMetadataCompanion metadata) {
-    return (update(itemMetadata)..where((m) => m.itemId.equals(itemId))).write(
-      metadata,
-    );
+    return (update(
+      itemMetadata,
+    )..where((m) => m.itemId.equals(itemId))).write(metadata);
   }
 
   Future<ItemMetadataData?> enrichedMetadataForUrl(String url) async {
-    final query = select(itemMetadata).join([
-      innerJoin(items, items.id.equalsExp(itemMetadata.itemId)),
-    ])
-      ..where(
-        itemMetadata.status.equals('enriched') & items.url.equals(url),
-      )
-      ..limit(1);
+    final query =
+        select(itemMetadata)
+            .join([innerJoin(items, items.id.equalsExp(itemMetadata.itemId))])
+          ..where(
+            itemMetadata.status.equals('enriched') & items.url.equals(url),
+          )
+          ..limit(1);
     final rows = await query.get();
     if (rows.isEmpty) return null;
     return rows.first.readTable(itemMetadata);
   }
 
   Future<List<(Item, ItemMetadataData?)>> itemsToEnrich(String? userId) async {
-    final query = select(items).join([
-      leftOuterJoin(itemMetadata, itemMetadata.itemId.equalsExp(items.id)),
-    ])
-      ..where(
-        items.status.isNotValue('archived') &
-            items.deletedAt.isNull() &
-            items.url.isNotNull() &
-            (userId == null
-                ? items.userId.isNull()
-                : items.userId.equals(userId)) &
-            (itemMetadata.itemId.isNull() |
-                (itemMetadata.status.isIn(const ['pending', 'failed']) &
-                    itemMetadata.attemptCount.isSmallerThanValue(4))),
-      );
+    final query =
+        select(items).join([
+          leftOuterJoin(itemMetadata, itemMetadata.itemId.equalsExp(items.id)),
+        ])..where(
+          items.status.isNotValue('archived') &
+              items.deletedAt.isNull() &
+              items.url.isNotNull() &
+              (userId == null
+                  ? items.userId.isNull()
+                  : items.userId.equals(userId)) &
+              (itemMetadata.itemId.isNull() |
+                  (itemMetadata.status.isIn(const ['pending', 'failed']) &
+                      itemMetadata.attemptCount.isSmallerThanValue(4))),
+        );
     return (await query.get())
-        .map(
-          (row) => (
-            row.readTable(items),
-            row.readTableOrNull(itemMetadata),
-          ),
-        )
+        .map((row) => (row.readTable(items), row.readTableOrNull(itemMetadata)))
         .toList();
   }
 
@@ -544,13 +598,61 @@ class AppDatabase extends _$AppDatabase {
   }
 
   Future<void> softDeleteItem(String id) {
-    return (update(items)..where((item) => item.id.equals(id))).write(
-      ItemsCompanion(
-        deletedAt: Value(DateTime.now()),
-        updatedAt: Value(DateTime.now()),
-        syncStatus: const Value('pending'),
-      ),
-    );
+    final now = DateTime.now();
+    return transaction(() async {
+      await (update(items)..where((item) => item.id.equals(id))).write(
+        ItemsCompanion(
+          deletedAt: Value(now),
+          updatedAt: Value(now),
+          syncStatus: const Value('pending'),
+        ),
+      );
+      await (update(attachments)..where(
+            (attachment) =>
+                attachment.itemId.equals(id) & attachment.deletedAt.isNull(),
+          ))
+          .write(
+            AttachmentsCompanion(
+              deletedAt: Value(now),
+              updatedAt: Value(now),
+              syncStatus: const Value('pending'),
+            ),
+          );
+    });
+  }
+
+  Future<void> saveItemWithAttachments(
+    ItemsCompanion item,
+    List<AttachmentsCompanion> attachmentRows,
+  ) {
+    return transaction(() async {
+      await into(items).insert(item);
+      await batch((batch) => batch.insertAll(attachments, attachmentRows));
+    });
+  }
+
+  Stream<List<Attachment>> watchAttachmentsForItem(
+    String itemId,
+    String? userId,
+  ) {
+    return (select(attachments)
+          ..where(
+            (attachment) =>
+                attachment.itemId.equals(itemId) &
+                attachment.deletedAt.isNull() &
+                (userId == null
+                    ? attachment.userId.isNull()
+                    : attachment.userId.equals(userId)),
+          )
+          ..orderBy([(attachment) => OrderingTerm.asc(attachment.createdAt)]))
+        .watch();
+  }
+
+  Future<Set<String>> attachmentIds() async {
+    final rows = await (selectOnly(
+      attachments,
+    )..addColumns([attachments.id])).get();
+    return rows.map((row) => row.read(attachments.id)!).toSet();
   }
 
   Future<void> createCollection(String id, String? userId, String name) {
@@ -602,38 +704,35 @@ class AppDatabase extends _$AppDatabase {
         ),
       );
     } else {
-      await (update(collectionItems)
-            ..where(
-              (row) =>
-                  row.collectionId.equals(collectionId) &
-                  row.itemId.equals(itemId),
-            ))
+      await (update(collectionItems)..where(
+            (row) =>
+                row.collectionId.equals(collectionId) &
+                row.itemId.equals(itemId),
+          ))
           .write(
-        CollectionItemsCompanion(
-          deletedAt: const Value(null),
-          updatedAt: Value(now),
-          syncStatus: const Value('pending'),
-        ),
-      );
+            CollectionItemsCompanion(
+              deletedAt: const Value(null),
+              updatedAt: Value(now),
+              syncStatus: const Value('pending'),
+            ),
+          );
     }
   }
 
   /// Removes an item from a collection by soft deleting the membership
   /// (tombstone), so a later sync can never resurrect it accidentally.
   Future<void> removeItemFromCollection(String collectionId, String itemId) {
-    return (update(collectionItems)
-          ..where(
-            (row) =>
-                row.collectionId.equals(collectionId) &
-                row.itemId.equals(itemId),
-          ))
+    return (update(collectionItems)..where(
+          (row) =>
+              row.collectionId.equals(collectionId) & row.itemId.equals(itemId),
+        ))
         .write(
-      CollectionItemsCompanion(
-        deletedAt: Value(DateTime.now()),
-        updatedAt: Value(DateTime.now()),
-        syncStatus: const Value('pending'),
-      ),
-    );
+          CollectionItemsCompanion(
+            deletedAt: Value(DateTime.now()),
+            updatedAt: Value(DateTime.now()),
+            syncStatus: const Value('pending'),
+          ),
+        );
   }
 
   Stream<List<Collection>> watchCollections(String? userId) {
@@ -653,21 +752,22 @@ class AppDatabase extends _$AppDatabase {
     String itemId,
     String? userId,
   ) {
-    final query = select(collections).join([
-      innerJoin(
-        collectionItems,
-        collectionItems.collectionId.equalsExp(collections.id),
-      ),
-    ])
-      ..where(
-        collectionItems.itemId.equals(itemId) &
-            collectionItems.deletedAt.isNull() &
-            collections.deletedAt.isNull() &
-            (userId == null
-                ? collections.userId.isNull()
-                : collections.userId.equals(userId)),
-      )
-      ..orderBy([OrderingTerm.asc(collections.createdAt)]);
+    final query =
+        select(collections).join([
+            innerJoin(
+              collectionItems,
+              collectionItems.collectionId.equalsExp(collections.id),
+            ),
+          ])
+          ..where(
+            collectionItems.itemId.equals(itemId) &
+                collectionItems.deletedAt.isNull() &
+                collections.deletedAt.isNull() &
+                (userId == null
+                    ? collections.userId.isNull()
+                    : collections.userId.equals(userId)),
+          )
+          ..orderBy([OrderingTerm.asc(collections.createdAt)]);
     return query.watch().map(
       (rows) => rows.map((row) => row.readTable(collections)).toList(),
     );
@@ -676,31 +776,28 @@ class AppDatabase extends _$AppDatabase {
   /// Non-deleted collections with the number of non-deleted items each
   /// currently contains.
   Stream<List<(Collection, int)>> watchCollectionCounts(String? userId) {
-    final count =
-        collectionItems.itemId.count(filter: collectionItems.deletedAt.isNull());
-    final query = select(collections).join([
-      leftOuterJoin(
-        collectionItems,
-        collectionItems.collectionId.equalsExp(collections.id),
-      ),
-    ])
-      ..where(
-        collections.deletedAt.isNull() &
-            (userId == null
-                ? collections.userId.isNull()
-                : collections.userId.equals(userId)),
-      )
-      ..addColumns([count])
-      ..groupBy([collections.id])
-      ..orderBy([OrderingTerm.asc(collections.createdAt)]);
+    final count = collectionItems.itemId.count(
+      filter: collectionItems.deletedAt.isNull(),
+    );
+    final query =
+        select(collections).join([
+            leftOuterJoin(
+              collectionItems,
+              collectionItems.collectionId.equalsExp(collections.id),
+            ),
+          ])
+          ..where(
+            collections.deletedAt.isNull() &
+                (userId == null
+                    ? collections.userId.isNull()
+                    : collections.userId.equals(userId)),
+          )
+          ..addColumns([count])
+          ..groupBy([collections.id])
+          ..orderBy([OrderingTerm.asc(collections.createdAt)]);
     return query.watch().map(
       (rows) => rows
-          .map(
-            (row) => (
-              row.readTable(collections),
-              row.read(count) ?? 0,
-            ),
-          )
+          .map((row) => (row.readTable(collections), row.read(count) ?? 0))
           .toList(),
     );
   }
@@ -709,22 +806,26 @@ class AppDatabase extends _$AppDatabase {
     String collectionId,
     String? userId,
   ) {
-    final query = select(items).join([
-      innerJoin(
-        collectionItems,
-        collectionItems.itemId.equalsExp(items.id),
-      ),
-      leftOuterJoin(itemMetadata, itemMetadata.itemId.equalsExp(items.id)),
-    ])
-      ..where(
-        collectionItems.collectionId.equals(collectionId) &
-            collectionItems.deletedAt.isNull() &
-            items.deletedAt.isNull() &
-            (userId == null
-                ? items.userId.isNull()
-                : items.userId.equals(userId)),
-      )
-      ..orderBy([OrderingTerm.desc(collectionItems.createdAt)]);
+    final query =
+        select(items).join([
+            innerJoin(
+              collectionItems,
+              collectionItems.itemId.equalsExp(items.id),
+            ),
+            leftOuterJoin(
+              itemMetadata,
+              itemMetadata.itemId.equalsExp(items.id),
+            ),
+          ])
+          ..where(
+            collectionItems.collectionId.equals(collectionId) &
+                collectionItems.deletedAt.isNull() &
+                items.deletedAt.isNull() &
+                (userId == null
+                    ? items.userId.isNull()
+                    : items.userId.equals(userId)),
+          )
+          ..orderBy([OrderingTerm.desc(collectionItems.createdAt)]);
     return query.watch().map(_mapJoinedRows);
   }
 
@@ -738,12 +839,11 @@ class AppDatabase extends _$AppDatabase {
     String collectionId,
     String itemId,
   ) {
-    return (select(
-      collectionItems,
-    )..where(
-        (row) =>
-            row.collectionId.equals(collectionId) & row.itemId.equals(itemId),
-      )).getSingleOrNull();
+    return (select(collectionItems)..where(
+          (row) =>
+              row.collectionId.equals(collectionId) & row.itemId.equals(itemId),
+        ))
+        .getSingleOrNull();
   }
 
   /// Claims pending guest collections for the signed-in user, then returns
@@ -810,44 +910,39 @@ class AppDatabase extends _$AppDatabase {
     String itemId,
     DateTime syncedAt,
   ) {
-    return (update(collectionItems)
-          ..where(
-            (row) =>
-                row.collectionId.equals(collectionId) &
-                row.itemId.equals(itemId),
-          ))
+    return (update(collectionItems)..where(
+          (row) =>
+              row.collectionId.equals(collectionId) & row.itemId.equals(itemId),
+        ))
         .write(
-      CollectionItemsCompanion(
-        syncStatus: const Value('synced'),
-        lastSyncedAt: Value(syncedAt),
-      ),
-    );
+          CollectionItemsCompanion(
+            syncStatus: const Value('synced'),
+            lastSyncedAt: Value(syncedAt),
+          ),
+        );
   }
 
   Future<void> markCollectionItemFailed(String collectionId, String itemId) {
-    return (update(collectionItems)
-          ..where(
-            (row) =>
-                row.collectionId.equals(collectionId) &
-                row.itemId.equals(itemId),
-          ))
+    return (update(collectionItems)..where(
+          (row) =>
+              row.collectionId.equals(collectionId) & row.itemId.equals(itemId),
+        ))
         .write(const CollectionItemsCompanion(syncStatus: Value('failed')));
   }
 
   /// The current user's non-deleted note for a live item, as a stream. Notes
   /// of deleted items are hidden so a removed item never resurfaces a note.
   Stream<ItemNote?> watchNote(String itemId, String? userId) {
-    return (select(itemNotes).join([
-      innerJoin(items, items.id.equalsExp(itemNotes.itemId)),
-    ])
-      ..where(
-        itemNotes.itemId.equals(itemId) &
-            itemNotes.deletedAt.isNull() &
-            items.deletedAt.isNull() &
-            (userId == null
-                ? itemNotes.userId.isNull()
-                : itemNotes.userId.equals(userId)),
-      ))
+    return (select(itemNotes)
+            .join([innerJoin(items, items.id.equalsExp(itemNotes.itemId))])
+          ..where(
+            itemNotes.itemId.equals(itemId) &
+                itemNotes.deletedAt.isNull() &
+                items.deletedAt.isNull() &
+                (userId == null
+                    ? itemNotes.userId.isNull()
+                    : itemNotes.userId.equals(userId)),
+          ))
         .watchSingleOrNull()
         .map((row) => row?.readTable(itemNotes));
   }
@@ -861,17 +956,18 @@ class AppDatabase extends _$AppDatabase {
 
   /// Reads a single settings value, or `null` when the key has never been set.
   Future<String?> readSetting(String key) async {
-    final row = await (select(appSettings)
-          ..where((setting) => setting.key.equals(key)))
-        .getSingleOrNull();
+    final row = await (select(
+      appSettings,
+    )..where((setting) => setting.key.equals(key))).getSingleOrNull();
     return row?.value;
   }
 
   /// Upserts a settings value; `null` removes the key.
   Future<void> writeSetting(String key, String? value) async {
     if (value == null) {
-      await (delete(appSettings)..where((setting) => setting.key.equals(key)))
-          .go();
+      await (delete(
+        appSettings,
+      )..where((setting) => setting.key.equals(key))).go();
       return;
     }
     await into(appSettings).insertOnConflictUpdate(
@@ -898,8 +994,9 @@ class AppDatabase extends _$AppDatabase {
         ),
       );
     } else {
-      await (update(itemNotes)..where((note) => note.itemId.equals(itemId)))
-          .write(
+      await (update(
+        itemNotes,
+      )..where((note) => note.itemId.equals(itemId))).write(
         ItemNotesCompanion(
           userId: Value(userId),
           content: Value(content),
@@ -913,8 +1010,9 @@ class AppDatabase extends _$AppDatabase {
 
   /// Tombstones the note so an old device can never resurrect it.
   Future<void> deleteNote(String itemId) {
-    return (update(itemNotes)..where((note) => note.itemId.equals(itemId)))
-        .write(
+    return (update(
+      itemNotes,
+    )..where((note) => note.itemId.equals(itemId))).write(
       ItemNotesCompanion(
         deletedAt: Value(DateTime.now()),
         updatedAt: Value(DateTime.now()),
@@ -946,8 +1044,9 @@ class AppDatabase extends _$AppDatabase {
   }
 
   Future<void> markNoteSynced(String itemId, DateTime syncedAt) {
-    return (update(itemNotes)..where((note) => note.itemId.equals(itemId)))
-        .write(
+    return (update(
+      itemNotes,
+    )..where((note) => note.itemId.equals(itemId))).write(
       ItemNotesCompanion(
         syncStatus: const Value('synced'),
         lastSyncedAt: Value(syncedAt),
