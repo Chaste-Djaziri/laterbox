@@ -1,6 +1,8 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../auth/auth_provider.dart';
 import '../../features/auth/presentation/auth_gate.dart';
 import '../../features/auth/presentation/auth_screen.dart';
 import '../../features/detail/presentation/item_detail_screen.dart';
@@ -12,7 +14,16 @@ import '../../features/landing/presentation/landing_screen.dart';
 import '../../features/library/presentation/library_screen.dart';
 import '../../features/search/presentation/search_screen.dart';
 
-final initialLocationProvider = Provider<String>((ref) => '/');
+final initialLocationProvider = Provider<String>((ref) {
+  if (kIsWeb) return '/';
+  final authState = ref.watch(authStateProvider).asData?.value;
+  final guestMode = ref.watch(guestModeProvider);
+
+  if (guestMode || (authState?.isAuthenticated ?? false)) {
+    return '/inbox';
+  }
+  return '/login';
+});
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   final initialLocation = ref.watch(initialLocationProvider);
