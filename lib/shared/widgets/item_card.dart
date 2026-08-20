@@ -65,7 +65,7 @@ class _ItemCardState extends ConsumerState<ItemCard> {
           constraints: BoxConstraints(
             maxWidth: widget.isGrid ? double.infinity : (isDesktop ? 800 : double.infinity),
           ),
-        child: Semantics(
+          child: Semantics(
           label: '$eyebrow, $title, saved ${timeago.format(widget.item.createdAt)}',
           child: MouseRegion(
             onEnter: (_) => setState(() => _isHovered = true),
