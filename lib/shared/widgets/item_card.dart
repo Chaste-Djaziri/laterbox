@@ -12,9 +12,14 @@ import 'item_actions.dart';
 /// provided one, otherwise it stays compact. Tapping opens the item detail
 /// screen; a long press surfaces the lifecycle actions.
 class ItemCard extends ConsumerStatefulWidget {
-  const ItemCard({super.key, required this.item});
+  const ItemCard({
+    super.key,
+    required this.item,
+    this.isGrid = false,
+  });
 
   final LaterBoxItem item;
+  final bool isGrid;
 
   @override
   ConsumerState<ItemCard> createState() => _ItemCardState();
@@ -26,7 +31,7 @@ class _ItemCardState extends ConsumerState<ItemCard> {
   @override
   Widget build(BuildContext context) {
     final isDesktop = MediaQuery.sizeOf(context).width >= 700;
-    final cardPadding = isDesktop ? 16.0 : 18.0;
+    final cardPadding = isDesktop ? (widget.isGrid ? 12.0 : 16.0) : 18.0;
     final cardRadius = isDesktop ? 16.0 : 20.0;
     final uri = widget.item.url == null ? null : Uri.tryParse(widget.item.url!);
     final eyebrow =
@@ -57,7 +62,7 @@ class _ItemCardState extends ConsumerState<ItemCard> {
       alignment: Alignment.topCenter,
       child: ConstrainedBox(
         constraints: BoxConstraints(
-          maxWidth: isDesktop ? 800 : double.infinity,
+          maxWidth: widget.isGrid ? double.infinity : (isDesktop ? 800 : double.infinity),
         ),
         child: Semantics(
           label: '$eyebrow, $title, saved ${timeago.format(widget.item.createdAt)}',
@@ -95,103 +100,38 @@ class _ItemCardState extends ConsumerState<ItemCard> {
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         if (coverUrl != null && coverUrl.isNotEmpty)
-                          ItemCoverImage(url: coverUrl),
+                          ItemCoverImage(url: coverUrl)
+                        else if (widget.isGrid)
+                          _CompactMediaHeader(
+                            eyebrow: eyebrow,
+                            faviconUrl: faviconUrl,
+                            item: widget.item,
+                          ),
                         Padding(
                           padding: EdgeInsets.all(cardPadding),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _CardGlyph(
-                                eyebrow: eyebrow,
-                                faviconUrl: faviconUrl,
-                                size: isDesktop ? 40 : 44,
-                              ),
-                              SizedBox(width: isDesktop ? 12 : 14),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        Expanded(
-                                          child: Text(
-                                            eyebrow.toUpperCase(),
-                                            style: theme.textTheme.labelSmall
-                                                ?.copyWith(
-                                              color: theme
-                                                  .colorScheme
-                                                  .onSurfaceVariant,
-                                              fontWeight: FontWeight.w800,
-                                              letterSpacing: 1.1,
-                                            ),
-                                          ),
-                                        ),
-                                        if (isDesktop && _isHovered)
-                                          IconButton(
-                                            icon: const Icon(
-                                              Icons.more_horiz_rounded,
-                                              size: 18,
-                                            ),
-                                            padding: EdgeInsets.zero,
-                                            constraints: const BoxConstraints(),
-                                            visualDensity:
-                                                VisualDensity.compact,
-                                            tooltip: 'More actions',
-                                            onPressed: () => showItemActions(
-                                              context,
-                                              ref,
-                                              widget.item,
-                                            ),
-                                          ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 6),
-                                    ItemTypeBadge(item: widget.item),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      title,
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: theme.textTheme.titleMedium
-                                          ?.copyWith(
-                                        fontWeight: FontWeight.w700,
-                                        height: 1.3,
-                                      ),
-                                    ),
-                                    if (description != null &&
-                                        description.isNotEmpty) ...[
-                                      const SizedBox(height: 6),
-                                      Text(
-                                        isCaptured
-                                            ? '“$description”'
-                                            : description,
-                                        maxLines: 2,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: theme.textTheme.bodyMedium
-                                            ?.copyWith(
-                                          color: theme
-                                              .colorScheme
-                                              .onSurfaceVariant,
-                                          height: 1.4,
-                                        ),
-                                      ),
-                                    ],
-                                    const SizedBox(height: 12),
-                                    Text(
-                                      timeago.format(widget.item.createdAt),
-                                      style: theme.textTheme.bodySmall?.copyWith(
-                                        color: theme
-                                            .colorScheme
-                                            .onSurfaceVariant,
-                                      ),
-                                    ),
-                                  ],
+                          child: widget.isGrid
+                              ? _GridCardContent(
+                                  eyebrow: eyebrow,
+                                  faviconUrl: faviconUrl,
+                                  title: title,
+                                  description: description,
+                                  isCaptured: isCaptured,
+                                  item: widget.item,
+                                  isHovered: _isHovered,
+                                )
+                              : _ListCardContent(
+                                  eyebrow: eyebrow,
+                                  faviconUrl: faviconUrl,
+                                  title: title,
+                                  description: description,
+                                  isCaptured: isCaptured,
+                                  item: widget.item,
+                                  isDesktop: isDesktop,
+                                  isHovered: _isHovered,
                                 ),
-                              ),
-                            ],
-                          ),
                         ),
                       ],
                     ),
@@ -202,6 +142,260 @@ class _ItemCardState extends ConsumerState<ItemCard> {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _CompactMediaHeader extends StatelessWidget {
+  const _CompactMediaHeader({
+    required this.eyebrow,
+    this.faviconUrl,
+    required this.item,
+  });
+
+  final String eyebrow;
+  final String? faviconUrl;
+  final LaterBoxItem item;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final classification = item.metadata?.classification;
+    final icon = classification?.type.icon ?? Icons.bookmark_outline_rounded;
+
+    return AspectRatio(
+      aspectRatio: 16 / 9,
+      child: Container(
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.5),
+        ),
+        child: Center(
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _CardGlyph(
+                eyebrow: eyebrow,
+                faviconUrl: faviconUrl,
+                size: 32,
+              ),
+              const SizedBox(width: 8),
+              Icon(
+                icon,
+                size: 20,
+                color: theme.colorScheme.onSurfaceVariant.withOpacity(0.7),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _GridCardContent extends StatelessWidget {
+  const _GridCardContent({
+    required this.eyebrow,
+    this.faviconUrl,
+    required this.title,
+    this.description,
+    required this.isCaptured,
+    required this.item,
+    required this.isHovered,
+  });
+
+  final String eyebrow;
+  final String? faviconUrl;
+  final String title;
+  final String? description;
+  final bool isCaptured;
+  final LaterBoxItem item;
+  final bool isHovered;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Row(
+          children: [
+            _CardGlyph(
+              eyebrow: eyebrow,
+              faviconUrl: faviconUrl,
+              size: 26,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                eyebrow.toUpperCase(),
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 10,
+                  letterSpacing: 0.8,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            if (isHovered)
+              Consumer(
+                builder: (context, ref, _) => IconButton(
+                  icon: const Icon(Icons.more_horiz_rounded, size: 16),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  visualDensity: VisualDensity.compact,
+                  tooltip: 'More actions',
+                  onPressed: () => showItemActions(context, ref, item),
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        ItemTypeBadge(item: item),
+        const SizedBox(height: 4),
+        Text(
+          title,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: theme.textTheme.titleSmall?.copyWith(
+            fontWeight: FontWeight.w700,
+            fontSize: 13,
+            height: 1.25,
+          ),
+        ),
+        if (description != null && description!.isNotEmpty) ...[
+          const SizedBox(height: 4),
+          Text(
+            isCaptured ? '“$description”' : description!,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+              fontSize: 12,
+            ),
+          ),
+        ],
+        const SizedBox(height: 8),
+        Text(
+          timeago.format(item.createdAt),
+          style: theme.textTheme.labelSmall?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant.withOpacity(0.8),
+            fontSize: 11,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ListCardContent extends StatelessWidget {
+  const _ListCardContent({
+    required this.eyebrow,
+    this.faviconUrl,
+    required this.title,
+    this.description,
+    required this.isCaptured,
+    required this.item,
+    required this.isDesktop,
+    required this.isHovered,
+  });
+
+  final String eyebrow;
+  final String? faviconUrl;
+  final String title;
+  final String? description;
+  final bool isCaptured;
+  final LaterBoxItem item;
+  final bool isDesktop;
+  final bool isHovered;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _CardGlyph(
+          eyebrow: eyebrow,
+          faviconUrl: faviconUrl,
+          size: isDesktop ? 40 : 44,
+        ),
+        SizedBox(width: isDesktop ? 12 : 14),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      eyebrow.toUpperCase(),
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1.1,
+                      ),
+                    ),
+                  ),
+                  if (isDesktop && isHovered)
+                    Consumer(
+                      builder: (context, ref, _) => IconButton(
+                        icon: const Icon(
+                          Icons.more_horiz_rounded,
+                          size: 18,
+                        ),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                        visualDensity: VisualDensity.compact,
+                        tooltip: 'More actions',
+                        onPressed: () => showItemActions(
+                          context,
+                          ref,
+                          item,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              ItemTypeBadge(item: item),
+              const SizedBox(height: 4),
+              Text(
+                title,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  height: 1.3,
+                ),
+              ),
+              if (description != null && description!.isNotEmpty) ...[
+                const SizedBox(height: 6),
+                Text(
+                  isCaptured ? '“$description”' : description!,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                    height: 1.4,
+                  ),
+                ),
+              ],
+              const SizedBox(height: 12),
+              Text(
+                timeago.format(item.createdAt),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
