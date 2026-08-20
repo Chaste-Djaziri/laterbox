@@ -146,6 +146,38 @@ class _ItemCardState extends ConsumerState<ItemCard> {
   }
 }
 
+class _LaterBoxLogoPlaceholder extends StatelessWidget {
+  const _LaterBoxLogoPlaceholder();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return ColoredBox(
+      color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.5),
+      child: Center(
+        child: Container(
+          width: 40,
+          height: 40,
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.primaryContainer.withOpacity(0.7),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Image.asset(
+            'assets/branding/laterbox-icon.png',
+            fit: BoxFit.contain,
+            errorBuilder: (context, error, stackTrace) => Icon(
+              Icons.bookmark_rounded,
+              color: theme.colorScheme.primary,
+              size: 22,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _CompactMediaHeader extends StatelessWidget {
   const _CompactMediaHeader({
     required this.eyebrow,
@@ -159,35 +191,9 @@ class _CompactMediaHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final classification = item.metadata?.classification;
-    final icon = classification?.type.icon ?? Icons.bookmark_outline_rounded;
-
-    return AspectRatio(
+    return const AspectRatio(
       aspectRatio: 16 / 9,
-      child: Container(
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.5),
-        ),
-        child: Center(
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _CardGlyph(
-                eyebrow: eyebrow,
-                faviconUrl: faviconUrl,
-                size: 32,
-              ),
-              const SizedBox(width: 8),
-              Icon(
-                icon,
-                size: 20,
-                color: theme.colorScheme.onSurfaceVariant.withOpacity(0.7),
-              ),
-            ],
-          ),
-        ),
-      ),
+      child: _LaterBoxLogoPlaceholder(),
     );
   }
 }
@@ -214,6 +220,10 @@ class _GridCardContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final hasDescription = description != null && description!.trim().isNotEmpty;
+    final displayDescription = hasDescription
+        ? (isCaptured ? '“$description”' : description!.trim())
+        : '';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -224,7 +234,7 @@ class _GridCardContent extends StatelessWidget {
             _CardGlyph(
               eyebrow: eyebrow,
               faviconUrl: faviconUrl,
-              size: 26,
+              size: 24,
             ),
             const SizedBox(width: 8),
             Expanded(
@@ -256,28 +266,33 @@ class _GridCardContent extends StatelessWidget {
         const SizedBox(height: 6),
         ItemTypeBadge(item: item),
         const SizedBox(height: 4),
-        Text(
-          title,
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-          style: theme.textTheme.titleSmall?.copyWith(
-            fontWeight: FontWeight.w700,
-            fontSize: 13,
-            height: 1.25,
+        SizedBox(
+          height: 36,
+          child: Text(
+            title,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w700,
+              fontSize: 13,
+              height: 1.25,
+            ),
           ),
         ),
-        if (description != null && description!.isNotEmpty) ...[
-          const SizedBox(height: 4),
-          Text(
-            isCaptured ? '“$description”' : description!,
-            maxLines: 1,
+        const SizedBox(height: 4),
+        SizedBox(
+          height: 32,
+          child: Text(
+            displayDescription,
+            maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
-              fontSize: 12,
+              fontSize: 11,
+              height: 1.3,
             ),
           ),
-        ],
+        ),
         const SizedBox(height: 8),
         Text(
           timeago.format(item.createdAt),
@@ -445,9 +460,7 @@ class _ItemCoverImageState extends State<ItemCoverImage>
           frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
             if (wasSynchronouslyLoaded) return child;
             if (frame == null) {
-              return ColoredBox(
-                color: theme.colorScheme.surfaceContainerHighest,
-              );
+              return const _LaterBoxLogoPlaceholder();
             }
             return AnimatedOpacity(
               opacity: 1,
