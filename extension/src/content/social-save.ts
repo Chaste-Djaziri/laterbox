@@ -100,6 +100,13 @@ function findActionBar(post: Element): Element | null {
       return candidate;
     }
   }
+
+  const action = post.querySelector(
+    'button, [role="button"], [aria-label*="Like"], [aria-label*="like"]',
+  );
+  if (action?.parentElement && action.parentElement !== post) {
+    return action.parentElement;
+  }
   return null;
 }
 
