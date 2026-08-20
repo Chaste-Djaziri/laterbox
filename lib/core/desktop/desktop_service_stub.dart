@@ -28,7 +28,7 @@ class DesktopService {
 
   Future<void> unregisterQuickCaptureHotkey() async {}
 
-  Future<void> showQuickCaptureWindow() async {}
+  Future<void> showQuickCapture() async {}
 
   Future<void> restoreMainWindow() async {}
 
