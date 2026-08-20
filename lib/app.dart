@@ -28,7 +28,7 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) ref.read(enrichmentCoordinatorProvider);
     });
-_drainPendingShares();
+    _drainPendingShares();
     _initDesktop();
   }
 
