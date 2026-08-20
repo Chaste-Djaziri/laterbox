@@ -78,6 +78,15 @@ class ItemNotes extends Table {
   Set<Column<Object>> get primaryKey => {itemId};
 }
 
+/// Simple key–value store for app preferences (desktop settings etc.).
+class AppSettings extends Table {
+  TextColumn get key => text()();
+  TextColumn get value => text().nullable()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {key};
+}
+
 class ItemMetadata extends Table {
   TextColumn get itemId => text()();
   TextColumn get userId => text().nullable()();
@@ -109,6 +118,7 @@ class ItemMetadata extends Table {
   Collections,
   CollectionItems,
   ItemNotes,
+  AppSettings,
 ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor])
@@ -126,7 +136,7 @@ class AppDatabase extends _$AppDatabase {
       );
 
   @override
-  int get schemaVersion => 8;
+  int get schemaVersion => 9;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -215,6 +225,9 @@ class AppDatabase extends _$AppDatabase {
         if (!itemColumns.contains('text_selector')) {
           await migrator.addColumn(items, items.textSelector);
         }
+      }
+      if (from < 9) {
+        await migrator.createTable(appSettings);
       }
     },
   );
@@ -845,6 +858,29 @@ class AppDatabase extends _$AppDatabase {
       itemNotes,
     )..where((note) => note.itemId.equals(itemId))).getSingleOrNull();
   }
+
+  /// Reads a single settings value, or `null` when the key has never been set.
+  Future<String?> readSetting(String key) async {
+    final row = await (select(appSettings)
+          ..where((setting) => setting.key.equals(key)))
+        .getSingleOrNull();
+    return row?.value;
+  }
+
+  /// Upserts a settings value; `null` removes the key.
+  Future<void> writeSetting(String key, String? value) async {
+    if (value == null) {
+      await (delete(appSettings)..where((setting) => setting.key.equals(key)))
+          .go();
+      return;
+    }
+    await into(appSettings).insertOnConflictUpdate(
+      AppSettingsCompanion.insert(key: key, value: Value(value)),
+    );
+  }
+
+  /// Live stream of every stored setting, emitted when any value changes.
+  Stream<List<AppSetting>> watchAllSettings() => select(appSettings).watch();
 
   /// Creates or restores the note for an item. A previously tombstoned note
   /// is revived, keeping its original userId.
