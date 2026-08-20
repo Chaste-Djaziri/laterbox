@@ -1,8 +1,11 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:laterbox/core/settings/desktop_shortcut.dart';
 
 void main() {
+  tearDown(() => debugDefaultTargetPlatformOverride = null);
+
   group('DesktopShortcut', () {
     test('defaults to alt + space with a stable label', () {
       final shortcut = DesktopShortcut.defaultQuickCapture();
@@ -10,6 +13,19 @@ void main() {
       expect(shortcut.keyId, PhysicalKeyboardKey.space.usbHidUsage);
       expect(shortcut.modifiers, [DesktopModifier.alt]);
       expect(shortcut.displayLabel, '⌥ Space');
+    });
+
+    test('uses a Windows safe default and native labels', () {
+      debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+
+      final shortcut = DesktopShortcut.defaultQuickCapture();
+
+      expect(shortcut.keyId, PhysicalKeyboardKey.space.usbHidUsage);
+      expect(shortcut.modifiers, [
+        DesktopModifier.control,
+        DesktopModifier.alt,
+      ]);
+      expect(shortcut.displayLabel, 'Ctrl + Alt + Space');
     });
 
     test('round-trips through JSON', () {
@@ -34,10 +50,7 @@ void main() {
         keyId: 44,
         modifiers: [DesktopModifier.shift, DesktopModifier.alt],
       );
-      const c = DesktopShortcut(
-        keyId: 44,
-        modifiers: [DesktopModifier.alt],
-      );
+      const c = DesktopShortcut(keyId: 44, modifiers: [DesktopModifier.alt]);
 
       expect(a.isSameAs(b), isTrue);
       expect(a.isSameAs(c), isFalse);
