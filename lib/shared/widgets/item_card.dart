@@ -430,7 +430,12 @@ class _ItemCoverImageState extends State<ItemCoverImage>
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    if (_failed) return const SizedBox.shrink();
+    if (_failed) {
+      return const AspectRatio(
+        aspectRatio: 16 / 9,
+        child: _LaterBoxLogoPlaceholder(),
+      );
+    }
 
     final theme = Theme.of(context);
     final currentUrl = _getEffectiveUrl();
