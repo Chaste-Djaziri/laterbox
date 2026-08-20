@@ -137,7 +137,12 @@ class AttachmentImportService {
       );
     }
 
-    await _onSaved?.call();
+    try {
+      await _onSaved?.call();
+    } catch (_) {
+      // The local transaction is already committed. Sync remains best effort
+      // and must never turn a durable local import into a visible save failure.
+    }
     return AttachmentImportResult(
       itemId: itemId,
       attachmentIds: stored.map((attachment) => attachment.id).toList(),
