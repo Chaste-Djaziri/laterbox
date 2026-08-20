@@ -1,5 +1,4 @@
 import 'package:drift/native.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -25,20 +24,22 @@ import 'package:laterbox/features/inbox/data/item_repository.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  test('openQuickCapture activates the controller then shows the window',
-      () async {
-    final database = AppDatabase(NativeDatabase.memory());
-    addTearDown(database.close);
-    final desktop = _FakeDesktopService();
-    final container = _container(desktop, database: database);
-    addTearDown(container.dispose);
+  test(
+    'openQuickCapture activates the controller then shows the window',
+    () async {
+      final database = AppDatabase(NativeDatabase.memory());
+      addTearDown(database.close);
+      final desktop = _FakeDesktopService();
+      final container = _container(desktop, database: database);
+      addTearDown(container.dispose);
 
-    await container.read(desktopActionsProvider).openQuickCapture();
+      await container.read(desktopActionsProvider).openQuickCapture();
 
-    expect(container.read(quickCaptureControllerProvider).isActive, isTrue);
-    expect(desktop.showCalls, 1);
-    expect(desktop.hideCalls, 0);
-  });
+      expect(container.read(quickCaptureControllerProvider).isActive, isTrue);
+      expect(desktop.showCalls, 1);
+      expect(desktop.hideCalls, 0);
+    },
+  );
 
   test('openLaterBox closes capture state and shows the main window', () async {
     final database = AppDatabase(NativeDatabase.memory());
@@ -58,54 +59,58 @@ void main() {
     expect(desktop.hideCalls, 0);
   });
 
-  test('openQuickCapture prefills from a text selection and records the app',
-      () async {
-    final database = AppDatabase(NativeDatabase.memory());
-    addTearDown(database.close);
-    final desktop = _FakeDesktopService();
-    final container = _container(
-      desktop,
-      database: database,
-      resolver: DesktopCaptureContextResolver(
-        selectionService: _FakeSelectionService(
-          selection: 'selected paragraph',
-          appName: 'Safari',
+  test(
+    'openQuickCapture prefills from a text selection and records the app',
+    () async {
+      final database = AppDatabase(NativeDatabase.memory());
+      addTearDown(database.close);
+      final desktop = _FakeDesktopService();
+      final container = _container(
+        desktop,
+        database: database,
+        resolver: DesktopCaptureContextResolver(
+          selectionService: _FakeSelectionService(
+            selection: 'selected paragraph',
+            appName: 'Safari',
+          ),
+          clipboardService: _FakeClipboardService('https://clipboard.example'),
         ),
-        clipboardService: _FakeClipboardService('https://clipboard.example'),
-      ),
-    );
-    addTearDown(container.dispose);
+      );
+      addTearDown(container.dispose);
 
-    await container.read(desktopActionsProvider).openQuickCapture();
+      await container.read(desktopActionsProvider).openQuickCapture();
 
-    final controller = container.read(quickCaptureControllerProvider);
-    expect(controller.isActive, isTrue);
-    expect(controller.prefillText, 'selected paragraph');
-    expect(controller.sourceApplication, 'Safari');
-  });
+      final controller = container.read(quickCaptureControllerProvider);
+      expect(controller.isActive, isTrue);
+      expect(controller.prefillText, 'selected paragraph');
+      expect(controller.sourceApplication, 'Safari');
+    },
+  );
 
-  test('openQuickCapture falls back to the clipboard URL without a selection',
-      () async {
-    final database = AppDatabase(NativeDatabase.memory());
-    addTearDown(database.close);
-    final desktop = _FakeDesktopService();
-    final container = _container(
-      desktop,
-      database: database,
-      resolver: DesktopCaptureContextResolver(
-        selectionService: const _FakeSelectionService(),
-        clipboardService: _FakeClipboardService('https://clipboard.example'),
-      ),
-    );
-    addTearDown(container.dispose);
+  test(
+    'openQuickCapture falls back to the clipboard URL without a selection',
+    () async {
+      final database = AppDatabase(NativeDatabase.memory());
+      addTearDown(database.close);
+      final desktop = _FakeDesktopService();
+      final container = _container(
+        desktop,
+        database: database,
+        resolver: DesktopCaptureContextResolver(
+          selectionService: const _FakeSelectionService(),
+          clipboardService: _FakeClipboardService('https://clipboard.example'),
+        ),
+      );
+      addTearDown(container.dispose);
 
-    await container.read(desktopActionsProvider).openQuickCapture();
+      await container.read(desktopActionsProvider).openQuickCapture();
 
-    final controller = container.read(quickCaptureControllerProvider);
-    expect(controller.isActive, isTrue);
-    expect(controller.prefillText, 'https://clipboard.example');
-    expect(controller.sourceApplication, isNull);
-  });
+      final controller = container.read(quickCaptureControllerProvider);
+      expect(controller.isActive, isTrue);
+      expect(controller.prefillText, 'https://clipboard.example');
+      expect(controller.sourceApplication, isNull);
+    },
+  );
 
   test('finishQuickCapture restores the pre-capture window', () async {
     final database = AppDatabase(NativeDatabase.memory());
@@ -132,58 +137,65 @@ void main() {
     );
   });
 
-  test('changeQuickCaptureShortcut persists a successful registration',
-      () async {
-    final database = AppDatabase(NativeDatabase.memory());
-    addTearDown(database.close);
-    final desktop = _FakeDesktopService();
-    final hotkey = _FakeHotkeyService(succeed: true);
-    final container = _container(desktop, database: database, hotkey: hotkey);
-    addTearDown(container.dispose);
+  test(
+    'changeQuickCaptureShortcut persists a successful registration',
+    () async {
+      final database = AppDatabase(NativeDatabase.memory());
+      addTearDown(database.close);
+      final desktop = _FakeDesktopService();
+      final hotkey = _FakeHotkeyService(succeed: true);
+      final container = _container(desktop, database: database, hotkey: hotkey);
+      addTearDown(container.dispose);
 
-    const replacement = DesktopShortcut(
-      keyId: 44,
-      modifiers: [DesktopModifier.control, DesktopModifier.shift],
-    );
+      const replacement = DesktopShortcut(
+        keyId: 44,
+        modifiers: [DesktopModifier.control, DesktopModifier.shift],
+      );
 
-    final ok = await container
-        .read(desktopActionsProvider)
-        .changeQuickCaptureShortcut(replacement);
+      final ok = await container
+          .read(desktopActionsProvider)
+          .changeQuickCaptureShortcut(replacement);
 
-    expect(ok, isTrue);
-    expect(hotkey.registered, isNotNull);
-    expect(hotkey.registered!.isSameAs(replacement), isTrue);
-    final persisted = await container
-        .read(desktopSettingsStoreProvider)
-        .load();
-    expect(persisted.quickCaptureShortcut.isSameAs(replacement), isTrue);
-  });
+      expect(ok, isTrue);
+      expect(hotkey.registered, isNotNull);
+      expect(hotkey.registered!.isSameAs(replacement), isTrue);
+      final persisted = await container
+          .read(desktopSettingsStoreProvider)
+          .load();
+      expect(persisted.quickCaptureShortcut.isSameAs(replacement), isTrue);
+    },
+  );
 
-  test('changeQuickCaptureShortcut keeps the old shortcut on failure', () async {
-    final database = AppDatabase(NativeDatabase.memory());
-    addTearDown(database.close);
-    final desktop = _FakeDesktopService();
-    final hotkey = _FakeHotkeyService(succeed: false);
-    final container = _container(desktop, database: database, hotkey: hotkey);
-    addTearDown(container.dispose);
+  test(
+    'changeQuickCaptureShortcut keeps the old shortcut on failure',
+    () async {
+      final database = AppDatabase(NativeDatabase.memory());
+      addTearDown(database.close);
+      final desktop = _FakeDesktopService();
+      final hotkey = _FakeHotkeyService(succeed: false);
+      final container = _container(desktop, database: database, hotkey: hotkey);
+      addTearDown(container.dispose);
 
-    const replacement = DesktopShortcut(
-      keyId: 44,
-      modifiers: [DesktopModifier.control],
-    );
+      const replacement = DesktopShortcut(
+        keyId: 44,
+        modifiers: [DesktopModifier.control],
+      );
 
-    final ok = await container
-        .read(desktopActionsProvider)
-        .changeQuickCaptureShortcut(replacement);
+      final ok = await container
+          .read(desktopActionsProvider)
+          .changeQuickCaptureShortcut(replacement);
 
-    expect(ok, isFalse);
-    expect(hotkey.registered, isNull);
-    final persisted = await container
-        .read(desktopSettingsStoreProvider)
-        .load();
-    expect(persisted.quickCaptureShortcut.keyId,
-        PhysicalKeyboardKey.space.usbHidUsage);
-  });
+      expect(ok, isFalse);
+      expect(hotkey.registered, isNull);
+      final persisted = await container
+          .read(desktopSettingsStoreProvider)
+          .load();
+      expect(
+        persisted.quickCaptureShortcut.keyId,
+        PhysicalKeyboardKey.space.usbHidUsage,
+      );
+    },
+  );
 
   test('applyStartup hides the window when launched at login', () async {
     final database = AppDatabase(NativeDatabase.memory());
@@ -226,6 +238,33 @@ void main() {
     expect(desktop.hideCalls, 0);
     expect(hotkey.registered, isNotNull);
   });
+
+  test(
+    'menu bar setting destroys and recreates the tray immediately',
+    () async {
+      final database = AppDatabase(NativeDatabase.memory());
+      addTearDown(database.close);
+      final tray = _FakeTrayService();
+      final container = _container(
+        _FakeDesktopService(),
+        database: database,
+        tray: tray,
+      );
+      addTearDown(container.dispose);
+      final actions = container.read(desktopActionsProvider);
+
+      await actions.setShowInMenuBar(false);
+      await actions.setShowInMenuBar(true);
+
+      expect(tray.destroyCalls, 1);
+      expect(tray.initCalls, 1);
+      expect(tray.updateCalls, 1);
+      final persisted = await container
+          .read(desktopSettingsStoreProvider)
+          .load();
+      expect(persisted.showInMenuBar, isTrue);
+    },
+  );
 }
 
 ProviderContainer _container(
@@ -236,24 +275,25 @@ ProviderContainer _container(
   DesktopAppLaunchService? appLaunch,
   TrayService? tray,
 }) {
-  return ProviderContainer(overrides: [
-    appDatabaseProvider.overrideWithValue(database),
-    desktopServiceProvider.overrideWithValue(desktop),
-    quickCaptureControllerProvider.overrideWith(
-      (ref) => QuickCaptureController(
-        desktopService: desktop,
-        clipboardService: const ClipboardCaptureService(),
-        captureService: _captureService(database),
+  return ProviderContainer(
+    overrides: [
+      appDatabaseProvider.overrideWithValue(database),
+      desktopServiceProvider.overrideWithValue(desktop),
+      quickCaptureControllerProvider.overrideWith(
+        (ref) => QuickCaptureController(
+          desktopService: desktop,
+          clipboardService: const ClipboardCaptureService(),
+          captureService: _captureService(database),
+        ),
       ),
-    ),
-    if (resolver != null)
-      desktopCaptureContextResolverProvider.overrideWithValue(resolver),
-    if (hotkey != null)
-      globalHotkeyServiceProvider.overrideWithValue(hotkey),
-    if (appLaunch != null)
-      desktopAppLaunchServiceProvider.overrideWithValue(appLaunch),
-    if (tray != null) trayServiceProvider.overrideWithValue(tray),
-  ]);
+      if (resolver != null)
+        desktopCaptureContextResolverProvider.overrideWithValue(resolver),
+      if (hotkey != null) globalHotkeyServiceProvider.overrideWithValue(hotkey),
+      if (appLaunch != null)
+        desktopAppLaunchServiceProvider.overrideWithValue(appLaunch),
+      if (tray != null) trayServiceProvider.overrideWithValue(tray),
+    ],
+  );
 }
 
 CaptureService _captureService(AppDatabase database) {
@@ -377,6 +417,8 @@ class _FakeAppLaunchService extends DesktopAppLaunchService {
 
 class _FakeTrayService extends TrayService {
   DesktopMenuState? lastState;
+  int initCalls = 0;
+  int destroyCalls = 0;
   int updateCalls = 0;
 
   @override
@@ -385,11 +427,18 @@ class _FakeTrayService extends TrayService {
     required Future<void> Function() onOpenLaterBox,
     required Future<void> Function() onOpenSettings,
     required Future<void> Function() onQuit,
-  }) async {}
+  }) async {
+    initCalls++;
+  }
 
   @override
   Future<void> updateMenu(DesktopMenuState state) async {
     lastState = state;
     updateCalls++;
+  }
+
+  @override
+  Future<void> destroy() async {
+    destroyCalls++;
   }
 }
