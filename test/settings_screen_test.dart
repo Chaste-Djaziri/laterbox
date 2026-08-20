@@ -17,7 +17,7 @@ void main() {
   setUpAll(() {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(
-          const MethodChannel('dev.leanfy.hotkey_manager'),
+          const MethodChannel('dev.leanflutter.plugins/hotkey_manager'),
           (methodCall) async {
             if (methodCall.method == 'register' ||
                 methodCall.method == 'unregister') {
