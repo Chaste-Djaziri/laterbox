@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../features/capture/domain/capture_providers.dart';
 import 'clipboard_capture_service.dart';
+import 'desktop_app_launch_service.dart';
 import 'desktop_capture_context_resolver.dart';
 import 'desktop_service.dart';
 import 'global_hotkey_service.dart';
@@ -38,6 +39,16 @@ final desktopCaptureContextResolverProvider =
     selectionService: ref.watch(selectionCaptureServiceProvider),
     clipboardService: ref.watch(clipboardCaptureServiceProvider),
   );
+});
+
+final desktopAppLaunchServiceProvider =
+    Provider<DesktopAppLaunchService>((ref) {
+  return const DesktopAppLaunchService();
+});
+
+/// Whether the host app holds Accessibility permission (`AXIsProcessTrusted`).
+final accessibilityTrustedProvider = FutureProvider<bool>((ref) {
+  return ref.watch(selectionCaptureServiceProvider).isAccessibilityTrusted();
 });
 
 final quickCaptureControllerProvider =
