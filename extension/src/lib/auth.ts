@@ -1,3 +1,4 @@
+import { browser } from "../platform/api";
 import {
   clearConnection,
   getAccessToken,
@@ -20,7 +21,7 @@ export async function connectLaterBox(): Promise<string> {
 
   const requestId = crypto.randomUUID().replaceAll("-", "");
   const requestSecret = createSecret();
-  const redirectUri = chrome.identity.getRedirectURL("laterbox-connected");
+  const redirectUri = browser.identity.getRedirectURL("laterbox-connected");
 
   await postConnection(connectionEndpoint, {
     action: "request",
@@ -33,7 +34,7 @@ export async function connectLaterBox(): Promise<string> {
   connectUrl.searchParams.set("request_secret", requestSecret);
   connectUrl.searchParams.set("redirect_uri", redirectUri);
 
-  const finalUrl = await chrome.identity.launchWebAuthFlow({
+  const finalUrl = await browser.identity.launchWebAuthFlow({
     url: connectUrl.toString(),
     interactive: true,
   });
