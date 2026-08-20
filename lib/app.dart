@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/desktop/desktop_actions.dart';
+import 'core/desktop/desktop_capabilities.dart';
 import 'core/desktop/desktop_providers.dart';
 import 'core/enrichment/enrichment_providers.dart';
 import 'core/router/app_router.dart';
@@ -52,6 +53,7 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
   }
 
   void _initDesktop() {
+    if (!isDesktopSupported) return;
     unawaited(_initializeDesktop());
   }
 
