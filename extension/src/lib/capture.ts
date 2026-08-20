@@ -30,7 +30,11 @@ export async function saveCapture(capture: Capture): Promise<CaptureResult> {
     return { id, status: "saved" };
   } catch (error) {
     await enqueueCapture(capture);
-    return { status: error instanceof AuthenticationError ? "needsAuth" : "queued" };
+    if (error instanceof AuthenticationError) return { status: "needsAuth" };
+    return {
+      status: "queued",
+      reason: error instanceof TypeError ? "network" : "server",
+    };
   }
 }
 
