@@ -113,6 +113,19 @@ class DesktopService {
     await windowManager.hide();
   }
 
+  /// Diagnostic: show the capture-sized window without touching any state, to
+  /// isolate whether `window_manager` itself can surface the window.
+  Future<void> debugShowWindow() async {
+    debugPrint('[LaterBox Desktop] DEBUG show window');
+    await windowManager.restore();
+    await windowManager.setSize(captureWindowSize, animate: false);
+    await windowManager.center();
+    await windowManager.setAlwaysOnTop(true);
+    await windowManager.show();
+    await windowManager.focus();
+    debugPrint('[LaterBox Desktop] DEBUG window shown');
+  }
+
   Future<void> quit() async {
     windowManager.removeListener(_listener);
     await windowManager.destroy();
