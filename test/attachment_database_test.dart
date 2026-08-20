@@ -1,7 +1,6 @@
 import 'package:drift/drift.dart' hide isNotNull;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:laterbox/core/database/app_database.dart';
-import 'package:sqlite3/sqlite3.dart' show sqlite3;
 import 'package:drift/native.dart';
 
 void main() {
