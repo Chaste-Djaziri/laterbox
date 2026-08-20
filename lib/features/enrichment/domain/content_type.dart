@@ -18,6 +18,7 @@ enum ContentType {
   event,
   book,
   music,
+  file,
   link,
   unknown;
 
@@ -33,6 +34,7 @@ enum ContentType {
       'event' => event,
       'book' => book,
       'music' => music,
+      'file' => file,
       'link' => link,
       _ => unknown,
     };
@@ -52,7 +54,7 @@ enum ContentType {
     ContentType.repository => true,
     ContentType.article => true,
     ContentType.place => true,
-    ContentType.link || ContentType.unknown => false,
+    ContentType.file || ContentType.link || ContentType.unknown => false,
   };
 
   /// A human-readable, display-ready label.
@@ -65,6 +67,7 @@ enum ContentType {
     ContentType.event => 'Event',
     ContentType.book => 'Book',
     ContentType.music => 'Music',
+    ContentType.file => 'File',
     ContentType.link => 'Link',
     ContentType.unknown => 'Unknown',
   };
@@ -80,6 +83,7 @@ enum ContentType {
     ContentType.event => Icons.event_outlined,
     ContentType.book => Icons.menu_book_outlined,
     ContentType.music => Icons.music_note_outlined,
+    ContentType.file => Icons.attach_file_rounded,
     ContentType.link => Icons.link_rounded,
     ContentType.unknown => Icons.question_mark_rounded,
   };
@@ -118,9 +122,7 @@ class ClassificationResult {
     return ClassificationResult(
       type: ContentType.fromString(json['contentType'] as String?),
       confidence: (json['confidence'] as num?)?.toDouble() ?? 0,
-      source: ClassificationSource.fromString(
-        json['source'] as String?,
-      ),
+      source: ClassificationSource.fromString(json['source'] as String?),
       structuredData: rawStructured == null
           ? null
           : Map<String, Object?>.from(rawStructured as Map),
