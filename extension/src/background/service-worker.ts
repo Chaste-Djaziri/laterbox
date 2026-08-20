@@ -31,7 +31,14 @@ chrome.commands.onCommand.addListener((command) => {
 
 async function handleCommand(command: string): Promise<void> {
   if (command === "open-sidepanel") {
-    await chrome.sidePanel.open({ windowId: chrome.windows.WINDOW_ID_CURRENT });
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (tab.id === undefined) return;
+    await chrome.sidePanel.setOptions({
+      tabId: tab.id,
+      path: "src/sidepanel/sidepanel.html",
+      enabled: true,
+    });
+    await chrome.sidePanel.open({ tabId: tab.id });
     return;
   }
   if (command !== "save-current-page") return;
