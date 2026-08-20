@@ -23,6 +23,22 @@ import 'package:laterbox/features/inbox/data/item_repository.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  const connectivityChannel = MethodChannel(
+    'dev.fluttercommunity.plus/connectivity',
+  );
+
+  setUpAll(() {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(connectivityChannel, (call) async {
+          if (call.method == 'check') return ['wifi'];
+          return null;
+        });
+  });
+
+  tearDownAll(() {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(connectivityChannel, null);
+  });
 
   test(
     'openQuickCapture activates the controller then shows the window',
