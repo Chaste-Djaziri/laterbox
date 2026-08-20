@@ -23,34 +23,57 @@ const openButton = document.querySelector<HTMLButtonElement>("#open-laterbox")!;
 const statusElement = document.querySelector<HTMLElement>("#status")!;
 
 let page: PageContext = { url: "", title: "", selection: "" };
+let activeTabId: number | undefined;
 
 void initialize();
 
 async function initialize(): Promise<void> {
-  const requestedTabId = Number(new URLSearchParams(location.search).get("tabId"));
-  const tab = Number.isInteger(requestedTabId) && requestedTabId > 0
-      ? await chrome.tabs.get(requestedTabId)
-      : (await chrome.tabs.query({ active: true, currentWindow: true }))[0];
-  if (tab.id !== undefined) {
-    try {
-      page = await getPageContext(tab.id, {
-        url: tab.url ?? "",
-        title: tab.title ?? "",
-        selection: "",
-      });
-    } catch {
-      page = { url: tab.url ?? "", title: tab.title ?? "", selection: "" };
-    }
+  await refreshActivePage();
+  await updateConnectionState();
+}
+
+async function refreshActivePage(): Promise<void> {
+  const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+  if (tab?.id === undefined) {
+    activeTabId = undefined;
+    page = { url: "", title: "", selection: "" };
+    renderPage();
+    return;
   }
+  activeTabId = tab.id;
+  page = await getPageContext(tab.id, {
+    url: tab.url ?? "",
+    title: tab.title ?? "",
+    selection: "",
+  });
+  renderPage();
+}
+
+function renderPage(): void {
   titleElement.textContent = page.title || "Current page";
   urlElement.textContent = page.url;
   domainElement.textContent = domainFor(page.url);
   if (page.selection) {
     highlightPanel.hidden = false;
     selectionElement.textContent = page.selection;
+  } else {
+    highlightPanel.hidden = true;
+    selectionElement.textContent = "";
   }
-  await updateConnectionState();
 }
+
+chrome.tabs.onActivated.addListener(() => void refreshActivePage());
+chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
+  if (tabId !== activeTabId) return;
+  if (changeInfo.url || changeInfo.title || changeInfo.status === "complete") {
+    void refreshActivePage();
+  }
+});
+chrome.windows.onFocusChanged.addListener(() => void refreshActivePage());
+window.addEventListener("focus", () => void refreshActivePage());
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden) void refreshActivePage();
+});
 
 connectButton.addEventListener("click", () => void connect());
 saveButton.addEventListener("click", () => void savePage());
