@@ -30,7 +30,8 @@ Serve the local capture functions in another terminal:
 
 ```bash
 supabase migration up --local
-supabase functions serve --no-verify-jwt
+supabase status -o env > /tmp/laterbox-supabase.env
+supabase functions serve --no-verify-jwt --env-file /tmp/laterbox-supabase.env
 ```
 
 The popup connects through the LaterBox web approval screen. The extension stores only its scoped `lb_ext_` credential in `chrome.storage.local`.
