@@ -89,3 +89,43 @@ Deno.test("capture validates source and content", async () => {
 
   assertEquals(response.status, 400);
 });
+
+Deno.test("capture inserts scoped extension sessions with service role", async () => {
+  const requests: Request[] = [];
+  const extensionToken = "lb_ext_test-token";
+  const handler = createCaptureHandler({
+    supabaseUrl: "http://127.0.0.1:54321",
+    anonKey: "anon-key",
+    serviceRoleKey: "service-role-key",
+    createId: () => "00000000-0000-4000-8000-000000000003",
+    now: () => new Date("2026-08-20T00:00:00.000Z"),
+    fetch: async (input, init) => {
+      const request = new Request(input, init);
+      requests.push(request);
+      if (request.url.includes("/extension_sessions?select=")) {
+        return Response.json([{ user_id: userId }]);
+      }
+      if (request.method === "PATCH") return new Response(null, { status: 204 });
+      return Response.json([{}], { status: 201 });
+    },
+  });
+
+  const response = await handler(
+    new Request("https://example.test/capture", {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${extensionToken}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        url: "https://example.com/post",
+        source: "browserExtension",
+      }),
+    }),
+  );
+
+  assertEquals(response.status, 201);
+  const insert = requests.find((request) => request.url.endsWith("/rest/v1/items"));
+  assert(insert !== undefined);
+  assertEquals(insert!.headers.get("authorization"), "Bearer service-role-key");
+});
