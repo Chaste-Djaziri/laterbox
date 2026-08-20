@@ -32,14 +32,12 @@ chrome.commands.onCommand.addListener((command) => {
 
 async function handleCommand(command: string): Promise<void> {
   if (command === "open-sidepanel") {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (tab.id === undefined) return;
-    await chromiumCapabilities.openSidePanel(tab.id);
+    await chromiumCapabilities.openSidePanel();
     return;
   }
   if (command !== "save-current-page") return;
 
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
   if (tab.id === undefined) return;
   let page = { url: tab.url ?? "", title: tab.title ?? "", selection: "" };
   try {
