@@ -13,7 +13,7 @@ import '../../features/search/presentation/search_screen.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   final router = GoRouter(
-    initialLocation: '/',
+    initialLocation: '/inbox',
     routes: [
       GoRoute(
         path: '/',
