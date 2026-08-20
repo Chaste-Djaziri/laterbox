@@ -9,6 +9,7 @@ Build against the hosted LaterBox project:
 ```bash
 npm run build:hosted        # Chromium
 npm run build:firefox       # Firefox
+npm run build:safari        # Safari
 ```
 
 Build against local Supabase and the local Flutter web app:
@@ -16,6 +17,7 @@ Build against local Supabase and the local Flutter web app:
 ```bash
 npm run build:local         # Chromium
 npm run build:firefox:local # Firefox
+npm run build:safari:local  # Safari
 ```
 
 Run the local Flutter web app on the matching fixed port:
@@ -54,6 +56,15 @@ The popup connects through the LaterBox web approval screen. The extension store
 2. Open `about:debugging#/runtime/this-firefox`.
 3. Choose Load Temporary Add-on.
 4. Select `extension/dist/firefox/manifest.json`.
+
+### Safari
+
+1. Run `npm run build:safari:local` (or `build:safari`).
+2. In Safari: Settings → Developer → enable "Show features for web developers" if the Developer tab is hidden.
+3. Use the temporary extension install flow and select `extension/dist/safari`.
+4. Enable the extension and grant website access under Safari Settings → Extensions.
+
+Safari has no WebExtension sidebar API, so the side panel button is hidden and capture runs through the toolbar popup, context menus, and the `Command+Shift+L` popup shortcut.
 
 The extension also adds page, link, and selection context menu actions, plus `Command+Shift+L` / `Ctrl+Shift+L` for quick capture and a side panel (Chromium side panel, Firefox sidebar). Failed captures remain in `chrome.storage.local` and retry when the service worker starts or the popup opens.
 
