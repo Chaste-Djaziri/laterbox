@@ -115,6 +115,7 @@ class _LandingHeader extends ConsumerWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
               Container(
                 width: 36,
@@ -143,6 +144,7 @@ class _LandingHeader extends ConsumerWidget {
           ),
           if (isDesktopHeader)
             Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
                 _HeaderNavLink(label: 'Features', onTap: onFeaturesTap),
                 const SizedBox(width: 24),
@@ -152,6 +154,7 @@ class _LandingHeader extends ConsumerWidget {
               ],
             ),
           Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
               if (!(auth?.isAuthenticated ?? false)) ...[
                 TextButton(
