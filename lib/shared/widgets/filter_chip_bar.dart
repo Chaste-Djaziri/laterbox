@@ -99,19 +99,16 @@ class _FilterChipTileState extends State<_FilterChipTile> {
             ? theme.colorScheme.outline
             : theme.colorScheme.outlineVariant.withOpacity(0.5));
 
-    return MouseRegion(
-      onEnter: (_) => setState(() => _isHovered = true),
-      onExit: (_) => setState(() => _isHovered = false),
-      cursor: SystemMouseCursors.click,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        curve: Curves.easeOutCubic,
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            borderRadius: BorderRadius.circular(20),
-            onTap: widget.onSelected,
-            child: Container(
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 150),
+      curve: Curves.easeOutCubic,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(20),
+          onHover: (hovered) => setState(() => _isHovered = hovered),
+          onTap: widget.onSelected,
+          child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
                 color: backgroundColor,
@@ -159,7 +156,6 @@ class _FilterChipTileState extends State<_FilterChipTile> {
                     ),
                   ],
                 ],
-              ),
             ),
           ),
         ),
