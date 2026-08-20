@@ -9,7 +9,8 @@
     "identity",
     "sidePanel",
     "scripting",
-    "storage"
+    "storage",
+    "tabs"
   ],
   "host_permissions": [
     "https://*.supabase.co/*",
