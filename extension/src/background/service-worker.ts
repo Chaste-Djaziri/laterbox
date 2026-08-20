@@ -1,7 +1,6 @@
-import { flushQueue, formatHighlight, saveCapture } from "../lib/capture";
+import { flushQueue, saveCapture } from "../lib/capture";
 import { getPageContext } from "../lib/page";
 import { chromiumCapabilities } from "../platform/chromium";
-import type { Capture } from "../types/capture";
 
 const PAGE_MENU = "save-page";
 const LINK_MENU = "save-link";
@@ -104,25 +103,31 @@ async function handleContextMenu(
   info: chrome.contextMenus.OnClickData,
   tab?: chrome.tabs.Tab,
 ): Promise<void> {
-  const pageUrl = info.pageUrl ?? tab?.url;
-  const capture: Capture = {
-    source: "browserExtension",
-    createdAt: new Date().toISOString(),
-    title: tab?.title,
-  };
+  const result =
+    info.menuItemId === LINK_MENU && info.linkUrl
+      ? await saveCapture({
+          url: info.linkUrl,
+          source: "browserExtension",
+          createdAt: new Date().toISOString(),
+        })
+      : info.menuItemId === SELECTION_MENU && info.selectionText?.trim()
+        ? await saveCapture({
+            text: info.selectionText.trim(),
+            url: info.pageUrl ?? tab?.url,
+            title: tab?.title,
+            source: "browserExtension",
+            createdAt: new Date().toISOString(),
+          })
+        : info.menuItemId === PAGE_MENU && (info.pageUrl ?? tab?.url)
+          ? await saveCapture({
+              url: info.pageUrl ?? tab?.url,
+              title: tab?.title,
+              source: "browserExtension",
+              createdAt: new Date().toISOString(),
+            })
+          : null;
+  if (!result) return;
 
-  if (info.menuItemId === LINK_MENU && info.linkUrl) {
-    capture.url = info.linkUrl;
-  } else if (info.menuItemId === SELECTION_MENU && info.selectionText && pageUrl) {
-    capture.text = formatHighlight(info.selectionText, pageUrl, tab?.title);
-    capture.url = undefined;
-  } else if (info.menuItemId === PAGE_MENU && pageUrl) {
-    capture.url = pageUrl;
-  } else {
-    return;
-  }
-
-  const result = await saveCapture(capture);
   await chrome.action.setBadgeText({
     text: result.status === "saved" ? "✓" : result.status === "needsAuth" ? "!" : "…",
   });
