@@ -13,16 +13,26 @@ class DesktopActions {
 
   final Ref ref;
 
-  /// ⌥Space / tray “Quick Capture”: enter capture mode, then show the window.
+  /// ⌥Space / tray “Quick Capture”: resolve the capture context, enter capture
+  /// mode, then show the window.
   Future<void> openQuickCapture() async {
     debugPrint('[LaterBox Desktop] openQuickCapture requested');
 
     try {
+      final context = await ref
+          .read(desktopCaptureContextResolverProvider)
+          .resolve();
+      debugPrint(
+        '[LaterBox Desktop] context: ${context.type}'
+        '${context.sourceApplication == null ? '' : ' from ${context.sourceApplication}'}'
+        ' (${context.value.length} chars)',
+      );
+
       final controller = ref.read(quickCaptureControllerProvider);
       final desktop = ref.read(desktopServiceProvider);
 
       debugPrint('[LaterBox Desktop] entering quick capture mode');
-      await controller.open();
+      await controller.open(context: context);
       debugPrint('[LaterBox Desktop] controller opened');
 
       await desktop.showQuickCapture();
@@ -47,6 +57,20 @@ class DesktopActions {
       debugPrint('[LaterBox Desktop] openLaterBox complete');
     } catch (error, stackTrace) {
       debugPrint('[LaterBox Desktop] openLaterBox FAILED: $error');
+      debugPrintStack(stackTrace: stackTrace);
+    }
+  }
+
+  /// After a save or `Esc`: restore the pre-capture window, or hide it if the
+  /// main window was hidden before quick capture.
+  Future<void> finishQuickCapture() async {
+    debugPrint('[LaterBox Desktop] finishQuickCapture requested');
+
+    try {
+      await ref.read(desktopServiceProvider).finishQuickCapture();
+      debugPrint('[LaterBox Desktop] finishQuickCapture complete');
+    } catch (error, stackTrace) {
+      debugPrint('[LaterBox Desktop] finishQuickCapture FAILED: $error');
       debugPrintStack(stackTrace: stackTrace);
     }
   }
