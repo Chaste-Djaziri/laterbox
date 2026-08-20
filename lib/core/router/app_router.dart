@@ -10,6 +10,7 @@ import '../../features/search/presentation/search_screen.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   final router = GoRouter(
+    initialLocation: '/inbox',
     routes: [
       GoRoute(
         path: '/extension/connect',
@@ -19,41 +20,41 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           redirectUri: state.uri.queryParameters['redirect_uri'] ?? '',
         ),
       ),
-      StatefulShellRoute.indexedStack(
-        builder: (context, state, navigationShell) {
-          return AuthGate(navigationShell: navigationShell);
+      ShellRoute(
+        builder: (context, state, child) {
+          final location = state.uri.path;
+          int selectedIndex = 0;
+          if (location.startsWith('/search')) {
+            selectedIndex = 1;
+          } else if (location.startsWith('/library')) {
+            selectedIndex = 2;
+          }
+          return AuthGate(
+            child: HomeShell(
+              selectedIndex: selectedIndex,
+              child: child,
+            ),
+          );
         },
-        branches: [
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
-                path: '/inbox',
-                builder: (context, state) => const InboxScreen(),
-              ),
-              GoRoute(
-                path: '/item/:id',
-                builder: (context, state) {
-                  final id = state.pathParameters['id'] ?? '';
-                  return ItemDetailScreen(itemId: id);
-                },
-              ),
-            ],
+        routes: [
+          GoRoute(
+            path: '/inbox',
+            builder: (context, state) => const InboxScreen(),
           ),
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
-                path: '/search',
-                builder: (context, state) => const SearchScreen(),
-              ),
-            ],
+          GoRoute(
+            path: '/search',
+            builder: (context, state) => const SearchScreen(),
           ),
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
-                path: '/library',
-                builder: (context, state) => const LibraryScreen(),
-              ),
-            ],
+          GoRoute(
+            path: '/library',
+            builder: (context, state) => const LibraryScreen(),
+          ),
+          GoRoute(
+            path: '/item/:id',
+            builder: (context, state) {
+              final id = state.pathParameters['id'] ?? '';
+              return ItemDetailScreen(itemId: id);
+            },
           ),
         ],
       ),
