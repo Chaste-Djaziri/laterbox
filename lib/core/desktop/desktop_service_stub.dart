@@ -13,20 +13,9 @@ class DesktopService {
 
   bool get isInitialized => _initialized;
 
-  Future<bool> initialize({
-    required void Function() onQuickCapture,
-    required void Function() onOpenLaterBox,
-  }) async {
-    return false;
-  }
+  bool get isCaptureMode => false;
 
-  Future<bool> registerQuickCaptureHotkey({
-    required void Function() onTriggered,
-  }) async {
-    return false;
-  }
-
-  Future<void> unregisterQuickCaptureHotkey() async {}
+  Future<void> initialize() async {}
 
   Future<void> showQuickCapture() async {}
 
@@ -35,6 +24,8 @@ class DesktopService {
   Future<void> showMainWindow() async {}
 
   Future<void> hideMainWindow() async {}
+
+  Future<void> debugShowWindow() async {}
 
   Future<void> quit() async {}
 
