@@ -1,12 +1,29 @@
 const BUTTON_ID = "laterbox-social-save";
 
-if (!document.getElementById(BUTTON_ID)) {
-  const button = document.createElement("button");
-  button.id = BUTTON_ID;
-  button.type = "button";
-  button.textContent = "Save to LaterBox";
-  button.setAttribute("aria-label", "Save this page to LaterBox");
-  button.style.cssText = [
+let button: HTMLButtonElement | null = null;
+
+syncButton();
+window.setInterval(syncButton, 1000);
+
+function syncButton(): void {
+  if (isSaveableContentUrl(window.location.href)) {
+    if (button === null) button = createButton();
+    return;
+  }
+  button?.remove();
+  button = null;
+}
+
+function createButton(): HTMLButtonElement {
+  const existing = document.getElementById(BUTTON_ID);
+  if (existing instanceof HTMLButtonElement) return existing;
+
+  const next = document.createElement("button");
+  next.id = BUTTON_ID;
+  next.type = "button";
+  next.textContent = "Save to LaterBox";
+  next.setAttribute("aria-label", "Save this post to LaterBox");
+  next.style.cssText = [
     "position: fixed",
     "right: 20px",
     "bottom: 20px",
@@ -21,25 +38,49 @@ if (!document.getElementById(BUTTON_ID)) {
     "font: 700 13px/1 system-ui, sans-serif",
   ].join(";");
 
-  button.addEventListener("click", async () => {
-    button.disabled = true;
-    button.textContent = "Saving...";
+  next.addEventListener("click", async () => {
+    next.disabled = true;
+    next.textContent = "Saving...";
     const result = await chrome.runtime.sendMessage({
       type: "save-page",
       url: window.location.href,
       title: document.title,
     });
     if (result?.status === "saved") {
-      button.textContent = "Saved ✓";
-      window.setTimeout(() => button.remove(), 1200);
+      next.textContent = "Saved ✓";
+      window.setTimeout(() => next.remove(), 1200);
     } else if (result?.status === "needsAuth") {
-      button.disabled = false;
-      button.textContent = "Connect in LaterBox";
+      next.disabled = false;
+      next.textContent = "Connect in LaterBox";
     } else {
-      button.disabled = false;
-      button.textContent = "Queued offline";
+      next.disabled = false;
+      next.textContent = "Queued offline";
     }
   });
 
-  document.documentElement.appendChild(button);
+  document.documentElement.appendChild(next);
+  return next;
+}
+
+function isSaveableContentUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    const host = url.hostname.replace(/^www\./, "");
+    const path = url.pathname;
+    return [
+      /^(instagram\.com)\/(p|reel|reels|tv)\//,
+      /^(threads\.net|threads\.com)\/@[^/]+\/post\//,
+      /^(x\.com|twitter\.com)\/[^/]+\/status\/\d+/,
+      /^bsky\.app\/profile\/[^/]+\/post\//,
+      /^tiktok\.com\/@[^/]+\/(video|photo)\//,
+      /^youtube\.com\/(watch|shorts|live)(\/|$)/,
+      /^youtu\.be\/[^/]+/,
+      /^reddit\.com\/r\/[^/]+\/comments\//,
+      /^(linkedin\.com)\/(posts|feed\/update)\//,
+      /^facebook\.com\/.+\/(posts|reel|videos)\//,
+      /^pinterest\.com\/pin\/\d+/,
+    ].some((pattern) => pattern.test(`${host}${path}`));
+  } catch {
+    return false;
+  }
 }
