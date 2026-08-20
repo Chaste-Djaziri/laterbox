@@ -41,4 +41,16 @@ class SelectionCaptureService {
       return null;
     }
   }
+
+  /// Whether the host app holds Accessibility permission (`AXIsProcessTrusted`).
+  Future<bool> isAccessibilityTrusted() async {
+    try {
+      return await _channel.invokeMethod<bool>('isAccessibilityTrusted') ?? false;
+    } on PlatformException catch (error) {
+      debugPrint('[LaterBox] accessibility check failed: ${error.message}');
+      return false;
+    } on MissingPluginException {
+      return false;
+    }
+  }
 }
