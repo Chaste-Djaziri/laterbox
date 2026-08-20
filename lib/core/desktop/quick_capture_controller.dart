@@ -26,10 +26,10 @@ class QuickCaptureController extends ChangeNotifier {
     required ClipboardCaptureService clipboardService,
     required CaptureService captureService,
     bool enableBlurClose = false,
-  })  : _desktopService = desktopService,
+  })  : enableBlurClose = enableBlurClose,
+        _desktopService = desktopService,
         _clipboardService = clipboardService,
-        _captureService = captureService,
-        _enableBlurClose = enableBlurClose {
+        _captureService = captureService {
     _desktopService.addWindowBlurListener(_onWindowBlur);
     _desktopService.addWindowCloseListener(close);
   }
@@ -38,9 +38,9 @@ class QuickCaptureController extends ChangeNotifier {
   final ClipboardCaptureService _clipboardService;
   final CaptureService _captureService;
 
-  /// Temporarily disabled while the window show/focus path is being verified;
-  /// re-enable once quick capture reliably opens.
-  final bool _enableBlurClose;
+  /// Whether losing focus should close quick capture. Controlled by the
+  /// Desktop Settings screen; disabled by default.
+  bool enableBlurClose = false;
 
   QuickCaptureStatus _status = QuickCaptureStatus.idle;
   String? _prefillText;
@@ -161,8 +161,8 @@ class QuickCaptureController extends ChangeNotifier {
   }
 
   void _onWindowBlur() {
-    debugPrint('[LaterBox Desktop] window blur (blur-close disabled)');
-    if (!_enableBlurClose) return;
+    debugPrint('[LaterBox Desktop] window blur (blur-close: $enableBlurClose)');
+    if (!enableBlurClose) return;
     if (_status != QuickCaptureStatus.active) return;
     _blurTimer?.cancel();
     _blurTimer = Timer(blurCloseDelay, () {
