@@ -6,7 +6,8 @@ import {
 import { flushQueue, saveCapture, saveSelectionFromTab } from "../lib/capture";
 import { getPageContext, type PageContext } from "../lib/page";
 import { getConnectedUserId } from "../lib/storage";
-import { chromiumCapabilities } from "../platform/chromium";
+import { browser } from "../platform/api";
+import { browserCapabilities } from "../platform";
 
 const domainElement = document.querySelector<HTMLElement>("#domain")!;
 const titleElement = document.querySelector<HTMLElement>("#title")!;
@@ -38,7 +39,7 @@ async function initialize(): Promise<void> {
 }
 
 async function refreshActivePage(): Promise<void> {
-  const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+  const [tab] = await browser.tabs.query({ active: true, lastFocusedWindow: true });
   if (tab?.id === undefined) {
     activeTabId = undefined;
     page = { url: "", title: "", selection: "" };
@@ -67,14 +68,14 @@ function renderPage(): void {
   }
 }
 
-chrome.tabs.onActivated.addListener(() => void refreshActivePage());
-chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
+browser.tabs.onActivated.addListener(() => void refreshActivePage());
+browser.tabs.onUpdated.addListener((tabId, changeInfo) => {
   if (tabId !== activeTabId) return;
   if (changeInfo.url || changeInfo.title || changeInfo.status === "complete") {
     void refreshActivePage();
   }
 });
-chrome.windows.onFocusChanged.addListener(() => void refreshActivePage());
+browser.windows.onFocusChanged.addListener(() => void refreshActivePage());
 window.addEventListener("focus", () => void refreshActivePage());
 document.addEventListener("visibilitychange", () => {
   if (!document.hidden) void refreshActivePage();
@@ -86,20 +87,20 @@ saveSelectionButton.addEventListener("click", () => void saveSelection());
 disconnectButton.addEventListener("click", () => void disconnect());
 openButton.addEventListener("click", () => {
   const webUrl = import.meta.env.VITE_LATERBOX_WEB_URL ?? "";
-  if (webUrl) void chrome.tabs.create({ url: `${webUrl}/inbox` });
+  if (webUrl) void browser.tabs.create({ url: `${webUrl}/inbox` });
 });
 
 enableHighlightingButton.addEventListener("click", () => void enableHighlighting());
 
 async function refreshHighlightPermission(): Promise<void> {
-  const granted = await chrome.permissions.contains({ origins: SITE_ACCESS_PATTERNS });
+  const granted = await browser.permissions.contains({ origins: SITE_ACCESS_PATTERNS });
   permissionNote.hidden = granted;
 }
 
 async function enableHighlighting(): Promise<void> {
   enableHighlightingButton.disabled = true;
   try {
-    const granted = await chrome.permissions.request({ origins: SITE_ACCESS_PATTERNS });
+    const granted = await browser.permissions.request({ origins: SITE_ACCESS_PATTERNS });
     permissionNote.hidden = granted;
     setStatus(
       granted
@@ -148,7 +149,7 @@ async function disconnect(): Promise<void> {
 }
 
 async function savePage(): Promise<void> {
-  if (chromiumCapabilities.isRestrictedUrl(page.url)) {
+  if (browserCapabilities.isRestrictedUrl(page.url)) {
     setStatus("This page cannot be captured.", "error");
     return;
   }
@@ -163,8 +164,8 @@ async function savePage(): Promise<void> {
 }
 
 async function saveSelection(): Promise<void> {
-  if (!page.selection || chromiumCapabilities.isRestrictedUrl(page.url)) return;
-  const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+  if (!page.selection || browserCapabilities.isRestrictedUrl(page.url)) return;
+  const [tab] = await browser.tabs.query({ active: true, lastFocusedWindow: true });
   if (tab?.id === undefined) return;
   saveSelectionButton.disabled = true;
   setStatus("Saving selection...");
