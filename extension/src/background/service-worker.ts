@@ -1,4 +1,5 @@
 import { flushQueue, formatHighlight, saveCapture } from "../lib/capture";
+import { getPageContext } from "../lib/page";
 import type { Capture } from "../types/capture";
 
 const PAGE_MENU = "save-page";
@@ -23,6 +24,31 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   void savePageMessage(message, sender).then(sendResponse);
   return true;
 });
+
+chrome.commands.onCommand.addListener((command) => {
+  void handleCommand(command);
+});
+
+async function handleCommand(command: string): Promise<void> {
+  if (command === "open-sidepanel") {
+    await chrome.sidePanel.open({ windowId: chrome.windows.WINDOW_ID_CURRENT });
+    return;
+  }
+  if (command !== "save-current-page") return;
+
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (tab.id === undefined) return;
+  const page = await getPageContext(tab.id);
+  const result = await saveCapture({
+    url: page.url,
+    title: page.title,
+    source: "browserExtension",
+    createdAt: new Date().toISOString(),
+  });
+  await chrome.action.setBadgeText({
+    text: result.status === "saved" ? "✓" : result.status === "needsAuth" ? "!" : "…",
+  });
+}
 
 async function savePageMessage(
   message: { url?: unknown; title?: unknown },
