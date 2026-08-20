@@ -44,3 +44,78 @@ Deno.test("approval requires the LaterBox user session", async () => {
 
   assertEquals(response.status, 401);
 });
+
+Deno.test("status reflects the connection request lifecycle", async () => {
+  let row: Record<string, unknown> = {
+    user_id: null,
+    expires_at: new Date(Date.now() + 60_000).toISOString(),
+    used_at: null,
+    secret_hash: await sha256Hex(requestSecret),
+  };
+  const handler = createConnectionHandler({
+    supabaseUrl: "https://project.supabase.co",
+    serviceRoleKey: "service-role-key",
+    fetch: async (input: string | URL | Request) => {
+      const url =
+        typeof input === "string"
+          ? input
+          : input instanceof URL
+            ? input.toString()
+            : input.url;
+      if (url.includes("/rest/v1/extension_connection_requests?select=")) {
+        return Response.json([row]);
+      }
+      return Response.json({}, { status: 500 });
+    },
+  });
+
+  const status = async (expected: string) => {
+    const response = await handler(
+      new Request("https://example.test/extension-connect", {
+        method: "POST",
+        body: JSON.stringify({
+          action: "status",
+          request_id: requestId,
+          request_secret: requestSecret,
+        }),
+      }),
+    );
+    assertEquals(response.status, 200);
+    assertEquals(await response.json(), { status: expected });
+  };
+
+  await status("pending");
+  row = { ...row, user_id: "user-1" };
+  await status("approved");
+  row = { ...row, used_at: new Date().toISOString() };
+  await status("used");
+});
+
+Deno.test("status rejects an unknown connection request", async () => {
+  const handler = createConnectionHandler({
+    supabaseUrl: "https://project.supabase.co",
+    serviceRoleKey: "service-role-key",
+    fetch: async () => Response.json([]),
+  });
+
+  const response = await handler(
+    new Request("https://example.test/extension-connect", {
+      method: "POST",
+      body: JSON.stringify({
+        action: "status",
+        request_id: requestId,
+        request_secret: requestSecret,
+      }),
+    }),
+  );
+
+  assertEquals(response.status, 404);
+});
+
+async function sha256Hex(value: string): Promise<string> {
+  const bytes = new TextEncoder().encode(value);
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  return Array.from(new Uint8Array(digest), (byte) =>
+    byte.toString(16).padStart(2, "0"),
+  ).join("");
+}
