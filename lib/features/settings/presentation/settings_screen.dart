@@ -37,14 +37,7 @@ class SettingsScreen extends ConsumerWidget {
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
         children: [
           _SectionHeader('Quick Capture'),
-          _ShortcutTile(
-            shortcut: settings.quickCaptureShortcut,
-            onChanged: (shortcut) {
-              unawaited(
-                actions.changeQuickCaptureShortcut(shortcut),
-              );
-            },
-          ),
+          _ShortcutTile(shortcut: settings.quickCaptureShortcut),
           const _SectionHeader('Capture'),
           SwitchListTile(
             title: const Text('Use selected text when available'),
@@ -113,17 +106,15 @@ class _SectionHeader extends StatelessWidget {
 }
 
 class _ShortcutTile extends StatelessWidget {
-  const _ShortcutTile({required this.shortcut, required this.onChanged});
+  const _ShortcutTile({required this.shortcut});
 
   final DesktopShortcut shortcut;
-  final ValueChanged<DesktopShortcut> onChanged;
 
   Future<void> _pick(BuildContext context) async {
-    final picked = await showDialog<DesktopShortcut>(
+    await showDialog<void>(
       context: context,
       builder: (context) => _ShortcutDialog(current: shortcut),
     );
-    if (picked != null) onChanged(picked);
   }
 
   @override
@@ -186,7 +177,7 @@ class _ShortcutDialogState extends ConsumerState<_ShortcutDialog> {
         .changeQuickCaptureShortcut(preview);
     if (!mounted) return;
     if (ok) {
-      Navigator.of(context).pop(preview);
+      Navigator.of(context).pop();
     } else {
       setState(() {
         _error =
@@ -272,9 +263,7 @@ class _ShortcutDialogState extends ConsumerState<_ShortcutDialog> {
               width: double.infinity,
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                border: Border.all(
-                  color: theme.colorScheme.outline,
-                ),
+                border: Border.all(color: theme.colorScheme.outline),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Text(
@@ -302,10 +291,7 @@ class _ShortcutDialogState extends ConsumerState<_ShortcutDialog> {
                 _handleKey(event);
                 return KeyEventResult.handled;
               },
-              child: const SizedBox(
-                height: 24,
-                width: double.infinity,
-              ),
+              child: const SizedBox(height: 24, width: double.infinity),
             ),
           ],
         ),
@@ -346,8 +332,7 @@ class _AccessibilityTile extends ConsumerWidget {
       ),
       trailing: trusted.when(
         data: (granted) => granted
-            ? Icon(Icons.check_circle_rounded,
-                color: Colors.green.shade600)
+            ? Icon(Icons.check_circle_rounded, color: Colors.green.shade600)
             : FilledButton.tonal(
                 onPressed: () =>
                     unawaited(launchUrl(Uri.parse(_accessibilitySettingsUrl))),
