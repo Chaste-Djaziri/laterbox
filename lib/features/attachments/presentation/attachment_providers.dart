@@ -3,6 +3,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../core/auth/auth_provider.dart';
+import '../../../core/database/app_database.dart';
 import '../../../core/database/database_providers.dart';
 import '../../../core/sync/sync_providers.dart';
 import '../data/attachment_file_picker.dart';
@@ -29,6 +30,13 @@ final attachmentRepositoryProvider = FutureProvider<AttachmentRepository>((
     await ref.watch(attachmentStorageProvider.future),
   );
 });
+
+final attachmentsForItemProvider =
+    StreamProvider.family<List<Attachment>, String>((ref, itemId) async* {
+      final repository = await ref.watch(attachmentRepositoryProvider.future);
+      final userId = ref.watch(activeUserIdProvider);
+      yield* repository.watchForItem(itemId, userId);
+    });
 
 final attachmentImportServiceProvider = FutureProvider<AttachmentImportService>(
   (ref) async {
