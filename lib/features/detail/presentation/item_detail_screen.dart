@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:timeago/timeago.dart' as timeago;
 
 import '../../../shared/models/laterbox_item.dart';
@@ -27,7 +28,11 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
       final wasPresent = previous?.value != null;
       final nowAbsent = next.value == null;
       if (wasPresent && nowAbsent && mounted) {
-        Navigator.of(context).pop();
+        if (context.canPop()) {
+          context.pop();
+        } else {
+          context.go('/inbox');
+        }
       }
     });
 
