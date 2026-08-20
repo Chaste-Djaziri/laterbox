@@ -3,6 +3,9 @@ import 'package:go_router/go_router.dart';
 
 import '../../features/auth/presentation/auth_gate.dart';
 import '../../features/extension/presentation/extension_connect_screen.dart';
+import '../../features/inbox/presentation/inbox_screen.dart';
+import '../../features/library/presentation/library_screen.dart';
+import '../../features/search/presentation/search_screen.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   final router = GoRouter(
@@ -15,17 +18,36 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           redirectUri: state.uri.queryParameters['redirect_uri'] ?? '',
         ),
       ),
-      GoRoute(
-        path: '/inbox',
-        builder: (context, state) => const AuthGate(initialIndex: 0),
-      ),
-      GoRoute(
-        path: '/search',
-        builder: (context, state) => const AuthGate(initialIndex: 1),
-      ),
-      GoRoute(
-        path: '/library',
-        builder: (context, state) => const AuthGate(initialIndex: 2),
+      StatefulShellRoute.indexedStack(
+        builder: (context, state, navigationShell) {
+          return AuthGate(navigationShell: navigationShell);
+        },
+        branches: [
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/inbox',
+                builder: (context, state) => const InboxScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/search',
+                builder: (context, state) => const SearchScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/library',
+                builder: (context, state) => const LibraryScreen(),
+              ),
+            ],
+          ),
+        ],
       ),
       GoRoute(path: '/', redirect: (context, state) => '/inbox'),
     ],
