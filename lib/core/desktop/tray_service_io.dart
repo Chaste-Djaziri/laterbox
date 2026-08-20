@@ -4,7 +4,6 @@ import 'dart:io' show Platform;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
-import 'package:menu_base/menu_base.dart';
 import 'package:tray_manager/tray_manager.dart';
 
 import 'tray_menu_state.dart';
