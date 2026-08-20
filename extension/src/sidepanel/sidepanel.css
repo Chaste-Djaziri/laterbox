@@ -18,23 +18,17 @@ body {
 .brand {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   margin-bottom: 24px;
-  font-size: 22px;
-  font-weight: 800;
-  letter-spacing: -0.7px;
 }
 
-.brand-mark, .status-dot {
+.brand-logo {
+  height: 34px;
+  width: auto;
+}
+
+.status-dot {
   display: inline-block;
   border-radius: 50%;
-}
-
-.brand-mark {
-  width: 12px;
-  height: 12px;
-  background: #e7ff57;
-  box-shadow: 0 0 0 5px rgba(231, 255, 87, .2);
 }
 
 .page-card, .highlight {
