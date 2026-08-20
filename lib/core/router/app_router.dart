@@ -13,6 +13,7 @@ import '../../features/inbox/presentation/inbox_screen.dart';
 import '../../features/landing/presentation/landing_screen.dart';
 import '../../features/library/presentation/library_screen.dart';
 import '../../features/search/presentation/search_screen.dart';
+import '../../features/settings/presentation/settings_screen.dart';
 
 final initialLocationProvider = Provider<String>((ref) {
   if (kIsWeb) return '/';
@@ -63,6 +64,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             status: state.uri.queryParameters['status'] ?? '',
             requestId: state.uri.queryParameters['request_id'] ?? '',
           ),
+        ),
+      ),
+      GoRoute(
+        path: '/settings',
+        pageBuilder: (context, state) => NoTransitionPage(
+          key: state.pageKey,
+          child: const SettingsScreen(),
         ),
       ),
       ShellRoute(
