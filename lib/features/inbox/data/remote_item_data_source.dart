@@ -36,6 +36,7 @@ class RemoteItem {
     this.url,
     this.title,
     this.textContent,
+    this.textSelector,
     required this.type,
     required this.favorite,
     required this.status,
@@ -51,6 +52,7 @@ class RemoteItem {
       url: json['url'] as String?,
       title: json['title'] as String?,
       textContent: json['text_content'] as String?,
+      textSelector: json['text_selector'] as String?,
       type: json['type'] as String,
       favorite: json['favorite'] as bool,
       status: json['status'] as String? ?? 'inbox',
@@ -67,6 +69,7 @@ class RemoteItem {
   final String? url;
   final String? title;
   final String? textContent;
+  final String? textSelector;
   final String type;
   final bool favorite;
   final String status;
@@ -82,6 +85,7 @@ extension on Item {
     'url': url,
     'title': title,
     'text_content': textContent,
+    'text_selector': textSelector,
     'type': type,
     'favorite': favorite,
     'status': status,
