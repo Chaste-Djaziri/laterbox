@@ -47,8 +47,8 @@ class _QuickCaptureFieldState extends State<QuickCaptureField> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final sourceLabel = widget.sourceLabel;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
@@ -57,65 +57,81 @@ class _QuickCaptureFieldState extends State<QuickCaptureField> {
             children: [
               Icon(
                 Icons.quickreply_rounded,
-                size: 20,
+                size: 18,
                 color: theme.colorScheme.primary,
               ),
               const SizedBox(width: 8),
-              Text(
-                'LaterBox Quick Capture',
-                style: theme.textTheme.labelLarge?.copyWith(
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.2,
+              Flexible(
+                child: Text(
+                  'LaterBox Quick Capture',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.2,
+                  ),
                 ),
               ),
               const Spacer(),
               Text(
-                '⌘↵ to save',
+                '⌘↵',
                 style: theme.textTheme.labelSmall?.copyWith(
                   color: theme.colorScheme.outline,
+                ),
+              ),
+              const SizedBox(width: 8),
+              FilledButton.icon(
+                onPressed: widget.onSave,
+                icon: const Icon(Icons.check_rounded, size: 14),
+                label: const Text('Save'),
+                style: FilledButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 6,
+                  ),
+                  minimumSize: const Size(0, 32),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  visualDensity: VisualDensity.compact,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(100),
+                  ),
                 ),
               ),
             ],
           ),
           if (sourceLabel != null) ...[
-            const SizedBox(height: 8),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.primary.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.touch_app_rounded,
-                      size: 14,
-                      color: theme.colorScheme.primary,
-                    ),
-                    const SizedBox(width: 6),
-                    Flexible(
-                      child: Text(
-                        'Selected from $sourceLabel',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: theme.colorScheme.primary,
-                          fontWeight: FontWeight.w700,
-                        ),
+            const SizedBox(height: 6),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.primary.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.touch_app_rounded,
+                    size: 13,
+                    color: theme.colorScheme.primary,
+                  ),
+                  const SizedBox(width: 6),
+                  Flexible(
+                    child: Text(
+                      'Selected from $sourceLabel',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: theme.colorScheme.primary,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ],
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           TextField(
             controller: widget.controller,
             focusNode: _focusNode,
@@ -127,27 +143,14 @@ class _QuickCaptureFieldState extends State<QuickCaptureField> {
             decoration: const InputDecoration(
               hintText: 'Paste a link or type anything…',
               border: OutlineInputBorder(),
+              isDense: true,
+              contentPadding: EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 8,
+              ),
             ),
             onChanged: widget.onChanged,
             onSubmitted: (_) => widget.onSave(),
-          ),
-          const SizedBox(height: 10),
-          Align(
-            alignment: Alignment.centerRight,
-            child: FilledButton.icon(
-              onPressed: widget.onSave,
-              icon: const Icon(Icons.check_rounded, size: 16),
-              label: const Text('Save'),
-              style: FilledButton.styleFrom(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 18,
-                  vertical: 10,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(100),
-                ),
-              ),
-            ),
           ),
         ],
       ),
