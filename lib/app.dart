@@ -11,7 +11,10 @@ import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/scroll_behavior.dart';
 import 'features/attachments/presentation/attachment_providers.dart';
+import 'features/attachments/domain/attachment_import_result.dart';
 import 'features/capture/domain/capture_providers.dart';
+import 'features/capture/domain/capture_payload.dart';
+import 'features/capture/domain/native_share_payload.dart';
 import 'features/quick_capture/presentation/quick_capture_screen.dart';
 
 class LaterBoxApp extends ConsumerStatefulWidget {
@@ -79,7 +82,11 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
           .read(androidShareReceiverProvider)
           .consumePendingShares();
       for (final payload in pending) {
-        await ref.read(captureServiceProvider).save(payload);
+        if (await _importNativeShare(payload, CaptureSource.androidShare)) {
+          await ref.read(androidShareReceiverProvider).acknowledge([
+            payload.id,
+          ]);
+        }
       }
     } on MissingPluginException {
       // Not running on Android; there is nothing to consume.
@@ -94,14 +101,56 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
       final pending = await receiver.consumePendingShares();
       if (pending.isEmpty) return;
       for (final payload in pending) {
-        await ref.read(captureServiceProvider).save(payload);
+        if (await _importNativeShare(payload, CaptureSource.iosShare)) {
+          await receiver.acknowledge([payload.id]);
+        }
       }
-      await receiver.clearPending();
     } on MissingPluginException {
       // Not running on iOS; there is nothing to consume.
     } on Object catch (error, stackTrace) {
       debugPrint('Failed to import iOS shares: $error\n$stackTrace');
     }
+  }
+
+  Future<bool> _importNativeShare(
+    NativeSharePayload payload,
+    CaptureSource source,
+  ) async {
+    if (!payload.hasFiles) {
+      final text = payload.text;
+      if (text == null) return true;
+      await ref
+          .read(captureServiceProvider)
+          .save(
+            CapturePayload.fromValue(
+              text,
+              id: payload.id,
+              createdAt: payload.createdAt,
+              source: source,
+            ),
+          );
+      return true;
+    }
+
+    final service = await ref.read(attachmentImportServiceProvider.future);
+    final result = await service.importFiles(
+      sourcePaths: payload.filePaths,
+      text: payload.text,
+    );
+    if (result.saved) return true;
+    return !result.failures.any(
+      (failure) => switch (failure.code) {
+        AttachmentImportFailureCode.databaseFailed ||
+        AttachmentImportFailureCode.copyFailed ||
+        AttachmentImportFailureCode.verificationFailed ||
+        AttachmentImportFailureCode.unreadable ||
+        AttachmentImportFailureCode.sourceChanged => true,
+        AttachmentImportFailureCode.unsupportedType ||
+        AttachmentImportFailureCode.tooLarge ||
+        AttachmentImportFailureCode.emptyFile ||
+        AttachmentImportFailureCode.mimeMismatch => false,
+      },
+    );
   }
 
   @override
