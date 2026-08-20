@@ -58,12 +58,13 @@ class _ItemCardState extends ConsumerState<ItemCard> {
         ? theme.colorScheme.surfaceContainerLow
         : theme.colorScheme.surfaceContainerLowest;
 
-    return Align(
-      alignment: Alignment.topCenter,
-      child: ConstrainedBox(
-        constraints: BoxConstraints(
-          maxWidth: widget.isGrid ? double.infinity : (isDesktop ? 800 : double.infinity),
-        ),
+    return RepaintBoundary(
+      child: Align(
+        alignment: Alignment.topCenter,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: widget.isGrid ? double.infinity : (isDesktop ? 800 : double.infinity),
+          ),
         child: Semantics(
           label: '$eyebrow, $title, saved ${timeago.format(widget.item.createdAt)}',
           child: MouseRegion(
