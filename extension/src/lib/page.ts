@@ -1,3 +1,5 @@
+import { browser } from "../platform/api";
+
 export type TextSelector = {
   before: string;
   after: string;
@@ -15,7 +17,7 @@ export async function getPageContext(
   fallback: PageContext = { url: "", title: "", selection: "" },
 ): Promise<PageContext> {
   try {
-    const results = await chrome.scripting.executeScript({
+    const results = await browser.scripting.executeScript({
       target: { tabId },
       func: readPageContext,
     });
