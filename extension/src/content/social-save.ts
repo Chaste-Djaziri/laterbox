@@ -30,11 +30,19 @@ function scanPosts(): void {
       addSaveControl(post);
     }
   }
+
+  if (window.location.hostname.replace(/^www\./, "") === "instagram.com") {
+    for (const media of document.querySelectorAll("main img, main video")) {
+      const bounds = media.getBoundingClientRect();
+      if (bounds.width < 180 || bounds.height < 180) continue;
+      addSaveControl(media.parentElement ?? media);
+    }
+  }
 }
 
 function addSaveControl(post: Element): void {
   if (post.querySelector(`.${BUTTON_CLASS}`)) return;
-  const url = permalinkFor(post);
+  const url = permalinkFor(post) ?? instagramPageFallback(post);
   const instagramFrame = findInstagramMediaFrame(post);
   const instagramOverlay = instagramFrame !== null;
   const actionBar = instagramFrame ?? findActionBar(post);
@@ -165,6 +173,25 @@ function permalinkFor(post: Element): string | null {
     }
   }
   return isPostUrl(new URL(window.location.href)) ? window.location.href : null;
+}
+
+function instagramPageFallback(post: Element): string | null {
+  if (window.location.hostname.replace(/^www\./, "") !== "instagram.com") {
+    return null;
+  }
+  const candidate =
+    post.getAttribute("data-permalink") ??
+    post.getAttribute("data-href") ??
+    post.querySelector("a[href]")?.getAttribute("href");
+  if (candidate) {
+    try {
+      const url = new URL(candidate, window.location.href);
+      if (isPostUrl(url)) return url.toString();
+    } catch {
+      // Fall through to the current page URL.
+    }
+  }
+  return window.location.href;
 }
 
 function isPostUrl(url: URL): boolean {
