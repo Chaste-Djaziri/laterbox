@@ -14,10 +14,12 @@ class HomeShell extends ConsumerWidget {
     super.key,
     required this.selectedIndex,
     this.navigationShell,
+    this.child,
   });
 
   final int selectedIndex;
   final StatefulNavigationShell? navigationShell;
+  final Widget? child;
 
   static const List<Widget> _screens = [
     InboxScreen(),
@@ -44,7 +46,7 @@ class HomeShell extends ConsumerWidget {
     final width = MediaQuery.sizeOf(context).width;
     final isDesktop = _isDesktopPlatform() || width >= 900;
     final effectiveIndex = navigationShell?.currentIndex ?? selectedIndex;
-    final Widget bodyContent = navigationShell ?? _screens[effectiveIndex];
+    final Widget bodyContent = child ?? navigationShell ?? _screens[effectiveIndex];
 
     void handleDestinationSelected(int index) {
       if (navigationShell != null) {
