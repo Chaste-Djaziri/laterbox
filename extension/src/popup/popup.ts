@@ -4,6 +4,7 @@ import {
   getAccessToken,
 } from "../lib/auth";
 import { flushQueue, formatHighlight, saveCapture } from "../lib/capture";
+import { getPageContext, type PageContext } from "../lib/page";
 import { getConnectedUserId } from "../lib/storage";
 
 const domainElement = document.querySelector<HTMLElement>("#domain")!;
@@ -16,21 +17,33 @@ const disconnectedPanel = document.querySelector<HTMLElement>("#disconnected")!;
 const connectedPanel = document.querySelector<HTMLElement>("#connected")!;
 const connectButton = document.querySelector<HTMLButtonElement>("#connect")!;
 const saveButton = document.querySelector<HTMLButtonElement>("#save")!;
+const openPanelButton = document.querySelector<HTMLButtonElement>("#open-panel")!;
 const disconnectButton = document.querySelector<HTMLButtonElement>("#disconnect")!;
 const statusElement = document.querySelector<HTMLElement>("#status")!;
 
 let activeTab: chrome.tabs.Tab | undefined;
+let pageContext: PageContext = { url: "", title: "", selection: "" };
 let highlightText = "";
 
 void initialize();
 
 async function initialize(): Promise<void> {
   activeTab = (await chrome.tabs.query({ active: true, currentWindow: true }))[0];
-  const url = activeTab?.url ?? "";
-  titleElement.textContent = activeTab?.title || "Current page";
-  urlElement.textContent = url;
-  domainElement.textContent = domainFor(url);
-  highlightText = await getSelection();
+  if (activeTab?.id !== undefined) {
+    try {
+      pageContext = await getPageContext(activeTab.id);
+    } catch {
+      pageContext = {
+        url: activeTab.url ?? "",
+        title: activeTab.title ?? "",
+        selection: "",
+      };
+    }
+  }
+  titleElement.textContent = pageContext.title || "Current page";
+  urlElement.textContent = pageContext.url;
+  domainElement.textContent = domainFor(pageContext.url);
+  highlightText = pageContext.selection;
   if (highlightText) {
     highlightPanel.hidden = false;
     selectionElement.textContent = highlightText;
@@ -48,6 +61,12 @@ saveButton.addEventListener("click", () => {
 
 saveHighlightButton.addEventListener("click", () => {
   void saveHighlight();
+});
+
+openPanelButton.addEventListener("click", () => {
+  if (activeTab?.windowId !== undefined) {
+    void chrome.sidePanel.open({ windowId: activeTab.windowId });
+  }
 });
 
 disconnectButton.addEventListener("click", () => {
@@ -98,7 +117,7 @@ async function disconnect(): Promise<void> {
 }
 
 async function saveCurrentPage(): Promise<void> {
-  const url = activeTab?.url ?? "";
+  const url = pageContext.url;
   if (!/^https?:\/\//i.test(url)) {
     setStatus("This page cannot be captured.", "error");
     return;
@@ -108,7 +127,7 @@ async function saveCurrentPage(): Promise<void> {
   setStatus("Saving...");
   const result = await saveCapture({
     url,
-    title: activeTab?.title,
+    title: pageContext.title,
     source: "browserExtension",
     createdAt: new Date().toISOString(),
   });
@@ -117,7 +136,7 @@ async function saveCurrentPage(): Promise<void> {
 }
 
 async function saveHighlight(): Promise<void> {
-  const url = activeTab?.url ?? "";
+  const url = pageContext.url;
   if (!highlightText || !/^https?:\/\//i.test(url)) {
     setStatus("No web highlight is available.", "error");
     return;
@@ -126,8 +145,8 @@ async function saveHighlight(): Promise<void> {
   saveHighlightButton.disabled = true;
   setStatus("Saving highlight...");
   const result = await saveCapture({
-    text: formatHighlight(highlightText, url, activeTab?.title),
-    title: activeTab?.title,
+    text: formatHighlight(highlightText, url, pageContext.title),
+    title: pageContext.title,
     source: "browserExtension",
     createdAt: new Date().toISOString(),
   });
@@ -153,20 +172,6 @@ async function showCaptureResult(
         : "Saved offline. It will sync when connected.",
     );
     button.disabled = false;
-  }
-}
-
-async function getSelection(): Promise<string> {
-  const tabId = activeTab?.id;
-  if (tabId === undefined) return "";
-  try {
-    const results = await chrome.scripting.executeScript({
-      target: { tabId },
-      func: () => window.getSelection()?.toString().trim() ?? "",
-    });
-    return results[0]?.result ?? "";
-  } catch {
-    return "";
   }
 }
 
