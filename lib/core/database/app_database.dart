@@ -10,6 +10,7 @@ class Items extends Table {
   TextColumn get url => text().nullable()();
   TextColumn get title => text().nullable()();
   TextColumn get textContent => text().nullable()();
+  TextColumn get textSelector => text().nullable()();
   TextColumn get type => text().withDefault(const Constant('unknown'))();
   BoolColumn get favorite => boolean().withDefault(const Constant(false))();
   TextColumn get status => text().withDefault(const Constant('inbox'))();
@@ -125,7 +126,7 @@ class AppDatabase extends _$AppDatabase {
       );
 
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 8;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -207,6 +208,12 @@ class AppDatabase extends _$AppDatabase {
         }
         if (!metadataColumns.contains('structured_data')) {
           await migrator.addColumn(itemMetadata, itemMetadata.structuredData);
+        }
+      }
+      if (from < 8) {
+        final itemColumns = await _columnNames('items');
+        if (!itemColumns.contains('text_selector')) {
+          await migrator.addColumn(items, items.textSelector);
         }
       }
     },

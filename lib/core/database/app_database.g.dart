@@ -55,6 +55,17 @@ class $ItemsTable extends Items with TableInfo<$ItemsTable, Item> {
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _textSelectorMeta = const VerificationMeta(
+    'textSelector',
+  );
+  @override
+  late final GeneratedColumn<String> textSelector = GeneratedColumn<String>(
+    'text_selector',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _typeMeta = const VerificationMeta('type');
   @override
   late final GeneratedColumn<String> type = GeneratedColumn<String>(
@@ -153,6 +164,7 @@ class $ItemsTable extends Items with TableInfo<$ItemsTable, Item> {
     url,
     title,
     textContent,
+    textSelector,
     type,
     favorite,
     status,
@@ -203,6 +215,15 @@ class $ItemsTable extends Items with TableInfo<$ItemsTable, Item> {
         textContent.isAcceptableOrUnknown(
           data['text_content']!,
           _textContentMeta,
+        ),
+      );
+    }
+    if (data.containsKey('text_selector')) {
+      context.handle(
+        _textSelectorMeta,
+        textSelector.isAcceptableOrUnknown(
+          data['text_selector']!,
+          _textSelectorMeta,
         ),
       );
     }
@@ -290,6 +311,10 @@ class $ItemsTable extends Items with TableInfo<$ItemsTable, Item> {
         DriftSqlType.string,
         data['${effectivePrefix}text_content'],
       ),
+      textSelector: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}text_selector'],
+      ),
       type: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}type'],
@@ -337,6 +362,7 @@ class Item extends DataClass implements Insertable<Item> {
   final String? url;
   final String? title;
   final String? textContent;
+  final String? textSelector;
   final String type;
   final bool favorite;
   final String status;
@@ -351,6 +377,7 @@ class Item extends DataClass implements Insertable<Item> {
     this.url,
     this.title,
     this.textContent,
+    this.textSelector,
     required this.type,
     required this.favorite,
     required this.status,
@@ -375,6 +402,9 @@ class Item extends DataClass implements Insertable<Item> {
     }
     if (!nullToAbsent || textContent != null) {
       map['text_content'] = Variable<String>(textContent);
+    }
+    if (!nullToAbsent || textSelector != null) {
+      map['text_selector'] = Variable<String>(textSelector);
     }
     map['type'] = Variable<String>(type);
     map['favorite'] = Variable<bool>(favorite);
@@ -404,6 +434,9 @@ class Item extends DataClass implements Insertable<Item> {
       textContent: textContent == null && nullToAbsent
           ? const Value.absent()
           : Value(textContent),
+      textSelector: textSelector == null && nullToAbsent
+          ? const Value.absent()
+          : Value(textSelector),
       type: Value(type),
       favorite: Value(favorite),
       status: Value(status),
@@ -430,6 +463,7 @@ class Item extends DataClass implements Insertable<Item> {
       url: serializer.fromJson<String?>(json['url']),
       title: serializer.fromJson<String?>(json['title']),
       textContent: serializer.fromJson<String?>(json['textContent']),
+      textSelector: serializer.fromJson<String?>(json['textSelector']),
       type: serializer.fromJson<String>(json['type']),
       favorite: serializer.fromJson<bool>(json['favorite']),
       status: serializer.fromJson<String>(json['status']),
@@ -449,6 +483,7 @@ class Item extends DataClass implements Insertable<Item> {
       'url': serializer.toJson<String?>(url),
       'title': serializer.toJson<String?>(title),
       'textContent': serializer.toJson<String?>(textContent),
+      'textSelector': serializer.toJson<String?>(textSelector),
       'type': serializer.toJson<String>(type),
       'favorite': serializer.toJson<bool>(favorite),
       'status': serializer.toJson<String>(status),
@@ -466,6 +501,7 @@ class Item extends DataClass implements Insertable<Item> {
     Value<String?> url = const Value.absent(),
     Value<String?> title = const Value.absent(),
     Value<String?> textContent = const Value.absent(),
+    Value<String?> textSelector = const Value.absent(),
     String? type,
     bool? favorite,
     String? status,
@@ -480,6 +516,7 @@ class Item extends DataClass implements Insertable<Item> {
     url: url.present ? url.value : this.url,
     title: title.present ? title.value : this.title,
     textContent: textContent.present ? textContent.value : this.textContent,
+    textSelector: textSelector.present ? textSelector.value : this.textSelector,
     type: type ?? this.type,
     favorite: favorite ?? this.favorite,
     status: status ?? this.status,
@@ -498,6 +535,9 @@ class Item extends DataClass implements Insertable<Item> {
       textContent: data.textContent.present
           ? data.textContent.value
           : this.textContent,
+      textSelector: data.textSelector.present
+          ? data.textSelector.value
+          : this.textSelector,
       type: data.type.present ? data.type.value : this.type,
       favorite: data.favorite.present ? data.favorite.value : this.favorite,
       status: data.status.present ? data.status.value : this.status,
@@ -521,6 +561,7 @@ class Item extends DataClass implements Insertable<Item> {
           ..write('url: $url, ')
           ..write('title: $title, ')
           ..write('textContent: $textContent, ')
+          ..write('textSelector: $textSelector, ')
           ..write('type: $type, ')
           ..write('favorite: $favorite, ')
           ..write('status: $status, ')
@@ -540,6 +581,7 @@ class Item extends DataClass implements Insertable<Item> {
     url,
     title,
     textContent,
+    textSelector,
     type,
     favorite,
     status,
@@ -558,6 +600,7 @@ class Item extends DataClass implements Insertable<Item> {
           other.url == this.url &&
           other.title == this.title &&
           other.textContent == this.textContent &&
+          other.textSelector == this.textSelector &&
           other.type == this.type &&
           other.favorite == this.favorite &&
           other.status == this.status &&
@@ -574,6 +617,7 @@ class ItemsCompanion extends UpdateCompanion<Item> {
   final Value<String?> url;
   final Value<String?> title;
   final Value<String?> textContent;
+  final Value<String?> textSelector;
   final Value<String> type;
   final Value<bool> favorite;
   final Value<String> status;
@@ -589,6 +633,7 @@ class ItemsCompanion extends UpdateCompanion<Item> {
     this.url = const Value.absent(),
     this.title = const Value.absent(),
     this.textContent = const Value.absent(),
+    this.textSelector = const Value.absent(),
     this.type = const Value.absent(),
     this.favorite = const Value.absent(),
     this.status = const Value.absent(),
@@ -605,6 +650,7 @@ class ItemsCompanion extends UpdateCompanion<Item> {
     this.url = const Value.absent(),
     this.title = const Value.absent(),
     this.textContent = const Value.absent(),
+    this.textSelector = const Value.absent(),
     this.type = const Value.absent(),
     this.favorite = const Value.absent(),
     this.status = const Value.absent(),
@@ -623,6 +669,7 @@ class ItemsCompanion extends UpdateCompanion<Item> {
     Expression<String>? url,
     Expression<String>? title,
     Expression<String>? textContent,
+    Expression<String>? textSelector,
     Expression<String>? type,
     Expression<bool>? favorite,
     Expression<String>? status,
@@ -639,6 +686,7 @@ class ItemsCompanion extends UpdateCompanion<Item> {
       if (url != null) 'url': url,
       if (title != null) 'title': title,
       if (textContent != null) 'text_content': textContent,
+      if (textSelector != null) 'text_selector': textSelector,
       if (type != null) 'type': type,
       if (favorite != null) 'favorite': favorite,
       if (status != null) 'status': status,
@@ -657,6 +705,7 @@ class ItemsCompanion extends UpdateCompanion<Item> {
     Value<String?>? url,
     Value<String?>? title,
     Value<String?>? textContent,
+    Value<String?>? textSelector,
     Value<String>? type,
     Value<bool>? favorite,
     Value<String>? status,
@@ -673,6 +722,7 @@ class ItemsCompanion extends UpdateCompanion<Item> {
       url: url ?? this.url,
       title: title ?? this.title,
       textContent: textContent ?? this.textContent,
+      textSelector: textSelector ?? this.textSelector,
       type: type ?? this.type,
       favorite: favorite ?? this.favorite,
       status: status ?? this.status,
@@ -702,6 +752,9 @@ class ItemsCompanion extends UpdateCompanion<Item> {
     }
     if (textContent.present) {
       map['text_content'] = Variable<String>(textContent.value);
+    }
+    if (textSelector.present) {
+      map['text_selector'] = Variable<String>(textSelector.value);
     }
     if (type.present) {
       map['type'] = Variable<String>(type.value);
@@ -741,6 +794,7 @@ class ItemsCompanion extends UpdateCompanion<Item> {
           ..write('url: $url, ')
           ..write('title: $title, ')
           ..write('textContent: $textContent, ')
+          ..write('textSelector: $textSelector, ')
           ..write('type: $type, ')
           ..write('favorite: $favorite, ')
           ..write('status: $status, ')
@@ -3483,6 +3537,7 @@ typedef $$ItemsTableCreateCompanionBuilder = ItemsCompanion Function({
   Value<String?> url,
   Value<String?> title,
   Value<String?> textContent,
+  Value<String?> textSelector,
   Value<String> type,
   Value<bool> favorite,
   Value<String> status,
@@ -3499,6 +3554,7 @@ typedef $$ItemsTableUpdateCompanionBuilder = ItemsCompanion Function({
   Value<String?> url,
   Value<String?> title,
   Value<String?> textContent,
+  Value<String?> textSelector,
   Value<String> type,
   Value<bool> favorite,
   Value<String> status,
@@ -3583,6 +3639,11 @@ class $$ItemsTableFilterComposer extends Composer<_$AppDatabase, $ItemsTable> {
 
   ColumnFilters<String> get textContent => $composableBuilder(
     column: $table.textContent,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get textSelector => $composableBuilder(
+    column: $table.textSelector,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3711,6 +3772,11 @@ class $$ItemsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get textSelector => $composableBuilder(
+    column: $table.textSelector,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get type => $composableBuilder(
     column: $table.type,
     builder: (column) => ColumnOrderings(column),
@@ -3775,6 +3841,11 @@ class $$ItemsTableAnnotationComposer
 
   GeneratedColumn<String> get textContent => $composableBuilder(
     column: $table.textContent,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get textSelector => $composableBuilder(
+    column: $table.textSelector,
     builder: (column) => column,
   );
 
@@ -3890,6 +3961,7 @@ class $$ItemsTableTableManager
                 Value<String?> url = const Value.absent(),
                 Value<String?> title = const Value.absent(),
                 Value<String?> textContent = const Value.absent(),
+                Value<String?> textSelector = const Value.absent(),
                 Value<String> type = const Value.absent(),
                 Value<bool> favorite = const Value.absent(),
                 Value<String> status = const Value.absent(),
@@ -3905,6 +3977,7 @@ class $$ItemsTableTableManager
                 url: url,
                 title: title,
                 textContent: textContent,
+                textSelector: textSelector,
                 type: type,
                 favorite: favorite,
                 status: status,
@@ -3922,6 +3995,7 @@ class $$ItemsTableTableManager
                 Value<String?> url = const Value.absent(),
                 Value<String?> title = const Value.absent(),
                 Value<String?> textContent = const Value.absent(),
+                Value<String?> textSelector = const Value.absent(),
                 Value<String> type = const Value.absent(),
                 Value<bool> favorite = const Value.absent(),
                 Value<String> status = const Value.absent(),
@@ -3937,6 +4011,7 @@ class $$ItemsTableTableManager
                 url: url,
                 title: title,
                 textContent: textContent,
+                textSelector: textSelector,
                 type: type,
                 favorite: favorite,
                 status: status,
