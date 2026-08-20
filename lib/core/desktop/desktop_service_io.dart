@@ -6,23 +6,22 @@ import 'package:hotkey_manager/hotkey_manager.dart';
 import 'package:window_manager/window_manager.dart';
 
 import 'desktop_capabilities.dart';
-import 'global_hotkey_service_io.dart';
-import 'tray_service_io.dart';
 
 const captureWindowSize = Size(620, 240);
 const captureWindowMinimumSize = Size(400, 160);
 const defaultMainWindowSize = Size(1100, 720);
 const defaultMainWindowMinimumSize = Size(480, 400);
 
-/// Native desktop integration: window control, the global quick capture
-/// hotkey and the menu-bar tray.
+/// Native desktop integration: window control only.
+///
+/// The global hotkey and the menu-bar tray are owned by their own services
+/// and call back into [DesktopActions]; this class never touches controllers
+/// or navigation state.
 ///
 /// Only compiled on platforms with `dart.library.io`.
 class DesktopService {
   static bool _initialized = false;
 
-  final GlobalHotkeyService _hotkeyService = GlobalHotkeyService();
-  final TrayService _trayService = TrayService();
   final _WindowListenerImpl _listener = _WindowListenerImpl();
 
   Size? _defaultWindowSize;
@@ -47,24 +46,14 @@ class DesktopService {
 
   bool get isCaptureMode => _inCaptureMode;
 
-  Future<bool> initialize({
-    required void Function() onQuickCapture,
-    required void Function() onOpenLaterBox,
-  }) async {
+  /// Applies the initial window setup. Registration of the hotkey and tray is
+  /// handled by [DesktopActions]' callers so this stays free of callbacks.
+  Future<void> initialize() async {
     windowManager.addListener(_listener);
 
     _defaultWindowSize = await _readDefaultWindowSize();
     await windowManager.setMinimumSize(defaultMainWindowMinimumSize);
     await windowManager.setPreventClose(true);
-
-    final hotkeyRegistered =
-        await registerQuickCaptureHotkey(onTriggered: onQuickCapture);
-    await _trayService.init(
-      onQuickCapture: onQuickCapture,
-      onOpenLaterBox: onOpenLaterBox,
-      onQuit: quit,
-    );
-    return hotkeyRegistered;
   }
 
   Future<Size?> _readDefaultWindowSize() async {
@@ -75,16 +64,6 @@ class DesktopService {
       return null;
     }
     return null;
-  }
-
-  Future<bool> registerQuickCaptureHotkey({
-    required void Function() onTriggered,
-  }) {
-    return _hotkeyService.register(onTriggered: onTriggered);
-  }
-
-  Future<void> unregisterQuickCaptureHotkey() {
-    return _hotkeyService.unregister();
   }
 
   /// Switches the window into quick capture mode and shows it on top.
@@ -135,8 +114,6 @@ class DesktopService {
   }
 
   Future<void> quit() async {
-    await _hotkeyService.unregisterAll();
-    await _trayService.destroy();
     windowManager.removeListener(_listener);
     await windowManager.destroy();
   }
@@ -151,8 +128,6 @@ class DesktopService {
 
   Future<void> dispose() async {
     windowManager.removeListener(_listener);
-    await _hotkeyService.unregisterAll();
-    await _trayService.destroy();
   }
 }
 
