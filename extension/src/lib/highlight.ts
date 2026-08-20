@@ -1,3 +1,5 @@
+import { browser } from "../platform/api";
+
 export interface TextSelector {
   exact: string;
   prefix?: string | null;
@@ -23,7 +25,7 @@ export async function highlightTextInTab(
   tabId: number,
   selector: TextSelector,
 ): Promise<boolean> {
-  const [{ result }] = await chrome.scripting.executeScript({
+  const [{ result }] = await browser.scripting.executeScript({
     target: { tabId },
     args: [selector],
     func: locateAndSelect,
