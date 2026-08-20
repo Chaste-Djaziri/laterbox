@@ -6,8 +6,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:laterbox/app.dart';
 import 'package:laterbox/core/database/app_database.dart';
 import 'package:laterbox/core/database/database_providers.dart';
-import 'package:laterbox/features/capture/data/android_share_receiver.dart';
 import 'package:laterbox/core/router/app_router.dart';
+import 'package:laterbox/features/capture/data/android_share_receiver.dart';
 
 void main() {
   testWidgets('saves queued Android shares through the capture pipeline', (
@@ -17,13 +17,8 @@ void main() {
     const channel = MethodChannel(AndroidShareReceiver.channelName);
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, (call) async {
-      if (call.method == 'getSharedItems') {
-        return [
-          {
-            'url': 'https://example.com/a',
-            'text': 'read this later',
-          },
-        ];
+      if (call.method == 'consumeShares') {
+        return ['https://example.com/a', 'read this later'];
       }
       return null;
     });

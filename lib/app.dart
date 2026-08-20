@@ -4,11 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'core/desktop/desktop_providers.dart';
 import 'core/enrichment/enrichment_providers.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/scroll_behavior.dart';
 import 'features/capture/domain/capture_providers.dart';
+import 'features/quick_capture/presentation/quick_capture_screen.dart';
 
 class LaterBoxApp extends ConsumerStatefulWidget {
   const LaterBoxApp({super.key});
@@ -26,7 +28,8 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) ref.read(enrichmentCoordinatorProvider);
     });
-    _drainPendingShares();
+_drainPendingShares();
+    _initDesktop();
   }
 
   @override
@@ -38,6 +41,15 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) _drainPendingShares();
+  }
+
+  void _initDesktop() {
+    final desktop = ref.read(desktopServiceProvider);
+    final controller = ref.read(quickCaptureControllerProvider);
+    unawaited(desktop.initialize(
+      onQuickCapture: () => controller.open(),
+      onOpenLaterBox: () => controller.openLaterBox(),
+    ));
   }
 
   void _drainPendingShares() {
@@ -78,12 +90,19 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
 
   @override
   Widget build(BuildContext context) {
+    final quickCaptureActive = ref.watch(
+      quickCaptureControllerProvider.select((controller) => controller.isActive),
+    );
     return MaterialApp.router(
       title: 'LaterBox',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
       routerConfig: ref.watch(appRouterProvider),
       scrollBehavior: const LaterBoxScrollBehavior(),
+      builder: (context, child) {
+        if (quickCaptureActive) return const QuickCaptureScreen();
+        return child ?? const SizedBox.shrink();
+      },
     );
   }
 }

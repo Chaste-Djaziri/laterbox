@@ -1,6 +1,5 @@
 import 'dart:ui';
 
-import 'package:flutter/foundation.dart';
 import 'package:window_manager/window_manager.dart';
 
 import 'desktop_capabilities.dart';
@@ -37,7 +36,7 @@ class DesktopService {
 
   bool get isCaptureMode => _inCaptureMode;
 
-  Future<void> initialize({
+  Future<bool> initialize({
     required void Function() onQuickCapture,
     required void Function() onOpenLaterBox,
   }) async {
@@ -47,12 +46,14 @@ class DesktopService {
     await windowManager.setMinimumSize(defaultMainWindowMinimumSize);
     await windowManager.setPreventClose(true);
 
-    await registerQuickCaptureHotkey(onTriggered: onQuickCapture);
+    final hotkeyRegistered =
+        await registerQuickCaptureHotkey(onTriggered: onQuickCapture);
     await _trayService.init(
       onQuickCapture: onQuickCapture,
       onOpenLaterBox: onOpenLaterBox,
       onQuit: quit,
     );
+    return hotkeyRegistered;
   }
 
   Future<Size?> _readDefaultWindowSize() async {

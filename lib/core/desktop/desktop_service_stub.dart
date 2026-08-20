@@ -13,10 +13,12 @@ class DesktopService {
 
   bool get isInitialized => _initialized;
 
-  Future<void> initialize({
+  Future<bool> initialize({
     required void Function() onQuickCapture,
     required void Function() onOpenLaterBox,
-  }) async {}
+  }) async {
+    return false;
+  }
 
   Future<bool> registerQuickCaptureHotkey({
     required void Function() onTriggered,

@@ -28,20 +28,4 @@ class ClipboardCaptureService {
     if (!RegExp(r'^[a-zA-Z][a-zA-Z0-9+.-]*$').hasMatch(scheme)) return false;
     return trimmed.length > schemeEnd + 3;
   }
-
-  /// Chooses the text to prefill the quick capture field with.
-  ///
-  /// When the user has already typed text, keep it — unless the clipboard
-  /// changed since the capture started, in which case the fresh clipboard
-  /// content wins. Returns `null` to start empty.
-  static String? chooseQuickCapturePrefill({
-    required String? clipboardText,
-    required String? clipboardTextAtCaptureStart,
-    required String? typedText,
-  }) {
-    final clipboardChanged = clipboardText != clipboardTextAtCaptureStart;
-    if (clipboardChanged && clipboardText != null) return clipboardText;
-    if (typedText != null && typedText.isNotEmpty) return typedText;
-    return clipboardTextAtCaptureStart;
-  }
 }

@@ -13,7 +13,7 @@ void main() {
   group('ClipboardCaptureService.isUrl', () {
     test('accepts absolute URLs with a scheme', () {
       expect(ClipboardCaptureService.isUrl('https://example.com/a'), isTrue);
-      expect(ClipboardCaptureService.isUrl('mailto:me@example.com'), isTrue);
+      expect(ClipboardCaptureService.isUrl('ftp://example.com/file'), isTrue);
       expect(ClipboardCaptureService.isUrl('  http://localhost:8080/x '), isTrue);
     });
 

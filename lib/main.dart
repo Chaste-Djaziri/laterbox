@@ -4,11 +4,13 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_web_plugins/url_strategy.dart';
 
 import 'app.dart';
+import 'core/desktop/desktop_service.dart';
 import 'core/supabase/supabase_config.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   usePathUrlStrategy();
+  await DesktopService.ensureInitialized();
 
   if (SupabaseConfig.isConfigured) {
     await Supabase.initialize(
