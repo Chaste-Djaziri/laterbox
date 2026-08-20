@@ -8,6 +8,8 @@ import 'package:laterbox/core/auth/auth_provider.dart';
 import 'package:laterbox/core/database/app_database.dart';
 import 'package:laterbox/core/database/database_providers.dart';
 
+import 'package:laterbox/core/router/app_router.dart';
+
 void main() {
   Future<AppDatabase> seedDatabase() async {
     final database = AppDatabase(NativeDatabase.memory());
@@ -40,6 +42,7 @@ void main() {
         overrides: [
           guestModeProvider.overrideWith((ref) => true),
           appDatabaseProvider.overrideWithValue(database),
+          initialLocationProvider.overrideWithValue('/inbox'),
         ],
         child: const LaterBoxApp(),
       ),

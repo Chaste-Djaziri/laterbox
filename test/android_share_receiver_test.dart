@@ -7,6 +7,7 @@ import 'package:laterbox/app.dart';
 import 'package:laterbox/core/database/app_database.dart';
 import 'package:laterbox/core/database/database_providers.dart';
 import 'package:laterbox/features/capture/data/android_share_receiver.dart';
+import 'package:laterbox/core/router/app_router.dart';
 
 void main() {
   testWidgets('saves queued Android shares through the capture pipeline', (
@@ -16,7 +17,15 @@ void main() {
     const channel = MethodChannel(AndroidShareReceiver.channelName);
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, (call) async {
-      return ['https://example.com/a', 'read this later'];
+      if (call.method == 'getSharedItems') {
+        return [
+          {
+            'url': 'https://example.com/a',
+            'text': 'read this later',
+          },
+        ];
+      }
+      return null;
     });
     addTearDown(
       () => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
@@ -25,7 +34,10 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [appDatabaseProvider.overrideWithValue(database)],
+        overrides: [
+          appDatabaseProvider.overrideWithValue(database),
+          initialLocationProvider.overrideWithValue('/inbox'),
+        ],
         child: const LaterBoxApp(),
       ),
     );
@@ -52,7 +64,10 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [appDatabaseProvider.overrideWithValue(database)],
+        overrides: [
+          appDatabaseProvider.overrideWithValue(database),
+          initialLocationProvider.overrideWithValue('/inbox'),
+        ],
         child: const LaterBoxApp(),
       ),
     );
