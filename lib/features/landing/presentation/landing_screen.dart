@@ -365,11 +365,11 @@ class _HeroSection extends ConsumerWidget {
           const SizedBox(height: 28),
           ConstrainedBox(
             constraints: BoxConstraints(maxWidth: isMobile ? 340 : 500),
-            child: Flex(
-              direction: isMobile ? Axis.vertical : Axis.horizontal,
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              mainAxisSize: MainAxisSize.min,
+            child: Wrap(
+              spacing: 12,
+              runSpacing: 10,
+              alignment: WrapAlignment.center,
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: [
                 FilledButton.icon(
                   onPressed: () => context.go('/inbox'),
@@ -392,10 +392,6 @@ class _HeroSection extends ConsumerWidget {
                       fontWeight: FontWeight.w800,
                     ),
                   ),
-                ),
-                SizedBox(
-                  width: isMobile ? 0 : 12,
-                  height: isMobile ? 10 : 0,
                 ),
                 OutlinedButton.icon(
                   onPressed: () {
