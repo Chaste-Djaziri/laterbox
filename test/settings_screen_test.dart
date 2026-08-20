@@ -9,6 +9,7 @@ import 'package:laterbox/core/desktop/desktop_providers.dart';
 import 'package:laterbox/core/settings/desktop_settings.dart';
 import 'package:laterbox/core/settings/desktop_shortcut.dart';
 import 'package:laterbox/core/settings/settings_providers.dart';
+import 'package:laterbox/core/theme/app_theme.dart';
 import 'package:laterbox/features/settings/presentation/settings_screen.dart';
 
 void main() {
@@ -72,7 +73,10 @@ void main() {
     await tester.pumpWidget(
       UncontrolledProviderScope(
         container: container,
-        child: const MaterialApp(home: SettingsScreen()),
+        child: MaterialApp(
+          theme: AppTheme.light,
+          home: const SettingsScreen(),
+        ),
       ),
     );
     await tester.pumpAndSettle();
