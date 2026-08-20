@@ -42,7 +42,7 @@ async function handleCommand(command: string): Promise<void> {
   if (tab.id === undefined) return;
   let page = { url: tab.url ?? "", title: tab.title ?? "", selection: "" };
   try {
-    page = await getPageContext(tab.id);
+    page = await getPageContext(tab.id, page);
   } catch (error) {
     console.warn("Could not read active page context", error);
   }
