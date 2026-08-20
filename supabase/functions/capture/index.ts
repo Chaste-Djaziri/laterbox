@@ -13,6 +13,7 @@ type CaptureBody = {
   url?: unknown;
   text?: unknown;
   title?: unknown;
+  selector?: unknown;
   source?: unknown;
 };
 
@@ -76,6 +77,9 @@ export const createCaptureHandler = (
       url: capture.url,
       title: capture.title,
       text_content: capture.text,
+      text_selector: capture.selector === null
+        ? null
+        : JSON.stringify(capture.selector),
       type: capture.text !== null ? "note" : "link",
       favorite: false,
       status: "inbox",
@@ -198,12 +202,14 @@ function validateCaptureBody(body: CaptureBody): {
   url: string | null;
   text: string | null;
   title: string | null;
+  selector: { before: string; after: string } | null;
   source: string;
 } | null {
   const url = typeof body.url === "string" ? body.url.trim() : "";
   const text = typeof body.text === "string" ? body.text.trim() : "";
   const title = typeof body.title === "string" ? body.title.trim() : "";
   const source = typeof body.source === "string" ? body.source : "api";
+  const selector = parseSelector(body.selector);
 
   if (url.length === 0 && text.length === 0) return null;
   if (url.length > 0 && !isHttpUrl(url)) return null;
@@ -214,8 +220,20 @@ function validateCaptureBody(body: CaptureBody): {
     url: url.length > 0 ? url : null,
     text: text.length > 0 ? text : null,
     title: title.length > 0 ? title : null,
+    selector,
     source,
   };
+}
+
+function parseSelector(
+  value: unknown,
+): { before: string; after: string } | null {
+  if (typeof value !== "object" || value === null) return null;
+  const raw = value as Record<string, unknown>;
+  const before = typeof raw.before === "string" ? raw.before.trim().slice(0, 300) : "";
+  const after = typeof raw.after === "string" ? raw.after.trim().slice(0, 300) : "";
+  if (!before && !after) return null;
+  return { before, after };
 }
 
 function isHttpUrl(value: string): boolean {

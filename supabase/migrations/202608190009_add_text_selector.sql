@@ -1,0 +1,1 @@
+alter table items add column text_selector text;
