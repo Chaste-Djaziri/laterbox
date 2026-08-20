@@ -139,6 +139,12 @@ button:disabled {
   opacity: 0.6;
 }
 
+.secondary-button {
+  background: #ffffff;
+  color: #171711;
+  box-shadow: inset 0 0 0 1px #e4e0d5;
+}
+
 .link-button {
   margin-top: 2px;
   padding: 4px;
