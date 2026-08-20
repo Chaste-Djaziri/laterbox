@@ -49,6 +49,7 @@ void main() {
         return ids.current;
       },
       now: () => DateTime.utc(2026, 8, 20),
+      onSaved: () async => throw StateError('offline'),
     );
 
     final result = await service.importFiles(
