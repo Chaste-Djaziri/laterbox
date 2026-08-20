@@ -44,6 +44,32 @@ final class QueueTests: XCTestCase {
         XCTAssertEqual(captures?.first?.value, "durable")
     }
 
+    func testAttachmentCaptureKeepsGroupedPaths() throws {
+        let queue = try XCTUnwrap(queue)
+        let capture = PendingShareCapture(
+            id: "files-1",
+            value: "Review tomorrow",
+            kind: "attachments",
+            source: "iosShare",
+            createdAt: "2026-08-20T10:00:00Z",
+            filePaths: ["/group/a.pdf", "/group/b.png"]
+        )
+        XCTAssertTrue(queue.enqueue(capture))
+
+        let saved = try XCTUnwrap(queue.readAll().first)
+        XCTAssertEqual(saved.filePaths, ["/group/a.pdf", "/group/b.png"])
+        XCTAssertEqual(saved.toDictionary["text"] as? String, "Review tomorrow")
+    }
+
+    func testAcknowledgeRemovesOnlyCompletedCapture() throws {
+        let queue = try XCTUnwrap(queue)
+        queue.enqueue(makeCapture(id: "1", value: "first", kind: "text"))
+        queue.enqueue(makeCapture(id: "2", value: "second", kind: "text"))
+
+        XCTAssertTrue(queue.acknowledge(ids: ["1"]))
+        XCTAssertEqual(queue.readAll().map(\.id), ["2"])
+    }
+
     private func makeCapture(id: String, value: String, kind: String) -> PendingShareCapture {
         PendingShareCapture(
             id: id,
