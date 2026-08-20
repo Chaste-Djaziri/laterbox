@@ -169,7 +169,7 @@ class _ItemDetailBody extends ConsumerWidget {
               if (item.url != null) ...[
                 const SizedBox(height: 20),
                 FilledButton.icon(
-                  onPressed: () => openOriginal(context, item.url!),
+                  onPressed: () => openOriginalForItem(context, item),
                   icon: const Icon(Icons.open_in_new_rounded, size: 18),
                   label: const Text('Open original'),
                 ),
@@ -212,7 +212,7 @@ class _ItemDetailBody extends ConsumerWidget {
                   leading: const Icon(Icons.link_rounded),
                   title: const Text('URL'),
                   subtitle: Text(item.url!, maxLines: 1),
-                  onTap: () => openOriginal(context, item.url!),
+                  onTap: () => openOriginalForItem(context, item),
                 ),
             ],
           ),
