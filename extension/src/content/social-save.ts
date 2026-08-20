@@ -1,7 +1,7 @@
 const BUTTON_CLASS = "laterbox-post-save";
+const instagramButtons = new Map<Element, HTMLButtonElement>();
 
 const POST_SELECTORS = [
-  "article",
   '[data-testid="tweet"]',
   '[data-testid="feedItem"]',
   '[data-e2e="recommend-list-item-container"]',
@@ -12,6 +12,7 @@ const POST_SELECTORS = [
   "shreddit-post",
   '[role="article"]',
   '[data-test-id="pin"]',
+  "article",
 ];
 
 scanPosts();
@@ -19,33 +20,104 @@ new MutationObserver(scanPosts).observe(document.documentElement, {
   childList: true,
   subtree: true,
 });
-window.setInterval(scanPosts, 1500);
+window.setInterval(scanPosts, 1000);
+window.addEventListener("scroll", updateInstagramButtons, { passive: true });
+window.addEventListener("resize", updateInstagramButtons);
 
 function scanPosts(): void {
+  if (isInstagram()) {
+    scanInstagramMedia();
+    return;
+  }
+
   const seen = new Set<Element>();
   for (const selector of POST_SELECTORS) {
     for (const post of document.querySelectorAll(selector)) {
       if (seen.has(post)) continue;
       seen.add(post);
-      addSaveControl(post);
-    }
-  }
-
-  if (window.location.hostname.replace(/^www\./, "") === "instagram.com") {
-    for (const media of document.querySelectorAll("main img, main video")) {
-      const bounds = media.getBoundingClientRect();
-      if (bounds.width < 180 || bounds.height < 180) continue;
-      addSaveControl(media.parentElement ?? media);
+      addPostButton(post);
     }
   }
 }
 
-function addSaveControl(post: Element): void {
+function scanInstagramMedia(): void {
+  for (const media of document.querySelectorAll("img, video")) {
+    const bounds = media.getBoundingClientRect();
+    if (bounds.width < 220 || bounds.height < 180) continue;
+    if (bounds.bottom <= 0 || bounds.top >= window.innerHeight) continue;
+    if (!instagramButtons.has(media)) addInstagramButton(media);
+    positionInstagramButton(media);
+  }
+}
+
+function addInstagramButton(media: Element): void {
+  const button = document.createElement("button");
+  button.className = BUTTON_CLASS;
+  button.type = "button";
+  button.textContent = "LaterBox";
+  button.title = "Save this Instagram post to LaterBox";
+  button.setAttribute("aria-label", "Save this Instagram post to LaterBox");
+  button.style.cssText = [
+    "position: fixed",
+    "z-index: 2147483647",
+    "display: block",
+    "padding: 6px 10px",
+    "border: 1px solid rgba(23, 23, 17, .2)",
+    "border-radius: 999px",
+    "background: #e7ff57",
+    "box-shadow: 0 4px 14px rgba(23, 23, 17, .24)",
+    "color: #171711",
+    "cursor: pointer",
+    "font: 700 11px/1 system-ui, sans-serif",
+    "opacity: 0",
+    "pointer-events: none",
+    "transition: opacity 120ms ease",
+  ].join(";");
+
+  const show = () => {
+    button.style.opacity = "1";
+    button.style.pointerEvents = "auto";
+  };
+  const hide = () => {
+    button.style.opacity = "0";
+    button.style.pointerEvents = "none";
+  };
+  media.addEventListener("mouseenter", show);
+  media.addEventListener("mouseleave", hide);
+  button.addEventListener("mouseenter", show);
+  button.addEventListener("mouseleave", hide);
+  button.addEventListener("click", async (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    button.disabled = true;
+    button.textContent = "Saving";
+    const post = media.closest("article") ?? media.parentElement ?? media;
+    const result = await sendSave(permalinkFor(post) ?? window.location.href);
+    applyResult(button, result, () => {
+      instagramButtons.delete(media);
+    });
+  });
+
+  document.documentElement.append(button);
+  instagramButtons.set(media, button);
+}
+
+function positionInstagramButton(media: Element): void {
+  const button = instagramButtons.get(media);
+  if (!button) return;
+  const bounds = media.getBoundingClientRect();
+  button.style.left = `${Math.max(8, bounds.right - button.offsetWidth - 12)}px`;
+  button.style.top = `${Math.max(8, bounds.top + 12)}px`;
+}
+
+function updateInstagramButtons(): void {
+  for (const media of instagramButtons.keys()) positionInstagramButton(media);
+}
+
+function addPostButton(post: Element): void {
   if (post.querySelector(`.${BUTTON_CLASS}`)) return;
-  const url = permalinkFor(post) ?? instagramPageFallback(post);
-  const instagramFrame = findInstagramMediaFrame(post);
-  const instagramOverlay = instagramFrame !== null;
-  const actionBar = instagramFrame ?? findActionBar(post);
+  const url = permalinkFor(post);
+  const actionBar = findActionBar(post);
   if (!url || !actionBar) return;
 
   const button = document.createElement("button");
@@ -69,129 +141,81 @@ function addSaveControl(post: Element): void {
     "cursor: pointer",
     "font: 700 11px/1 system-ui, sans-serif",
     "vertical-align: middle",
-    ...(instagramOverlay
-      ? [
-          "position: absolute",
-          "top: 12px",
-          "right: 12px",
-          "z-index: 10",
-          "opacity: 0",
-          "pointer-events: none",
-          "transition: opacity 120ms ease",
-        ]
-      : []),
   ].join(";");
-
-  if (instagramOverlay) {
-    button.addEventListener("mouseenter", () => {
-      button.style.opacity = "1";
-      button.style.pointerEvents = "auto";
-    });
-    actionBar.addEventListener("mouseenter", () => {
-      button.style.opacity = "1";
-      button.style.pointerEvents = "auto";
-    });
-    actionBar.addEventListener("mouseleave", () => {
-      button.style.opacity = "0";
-      button.style.pointerEvents = "none";
-    });
-  }
-
   button.addEventListener("click", async (event) => {
     event.preventDefault();
     event.stopPropagation();
     button.disabled = true;
     button.textContent = "Saving";
-    const result = await chrome.runtime.sendMessage({
-      type: "save-page",
-      url,
-      title: document.title,
-    });
-    if (result?.status === "saved") {
-      button.textContent = "Saved ✓";
-      window.setTimeout(() => button.remove(), 1200);
-    } else if (result?.status === "needsAuth") {
-      button.disabled = false;
-      button.textContent = "Connect";
-    } else {
-      button.disabled = false;
-      button.textContent = "Queued";
-    }
+    const result = await sendSave(url);
+    applyResult(button, result);
   });
-
   actionBar.append(button);
 }
 
-function findInstagramMediaFrame(post: Element): HTMLElement | null {
-  if (window.location.hostname.replace(/^www\./, "") !== "instagram.com") {
-    return null;
-  }
-  const media = post.querySelector("img, video");
-  const frame = media?.parentElement;
-  if (!(frame instanceof HTMLElement)) return null;
-  if (getComputedStyle(frame).position === "static") {
-    frame.style.position = "relative";
-  }
-  if (getComputedStyle(frame).display === "inline") {
-    frame.style.display = "inline-block";
-  }
-  return frame;
-}
-
 function findActionBar(post: Element): Element | null {
-  const candidates = [
+  for (const selector of [
     '[role="group"]',
     '[data-testid*="action"]',
     '[data-e2e*="action"]',
     '[id="menu"]',
     "footer",
-  ];
-  for (const selector of candidates) {
+  ]) {
     const candidate = post.querySelector(selector);
     if (candidate && candidate.querySelector("button, [role=button]")) {
       return candidate;
     }
   }
-
   const action = post.querySelector(
     'button, [role="button"], [aria-label*="Like"], [aria-label*="like"]',
   );
-  if (action?.parentElement && action.parentElement !== post) {
-    return action.parentElement;
+  return action?.parentElement && action.parentElement !== post
+      ? action.parentElement
+      : null;
+}
+
+async function sendSave(url: string) {
+  return chrome.runtime.sendMessage({
+    type: "save-page",
+    url,
+    title: document.title,
+  });
+}
+
+function applyResult(
+  button: HTMLButtonElement,
+  result: { status?: string },
+  onSaved?: () => void,
+): void {
+  if (result?.status === "saved") {
+    button.textContent = "Saved ✓";
+    window.setTimeout(() => {
+      onSaved?.();
+      button.remove();
+    }, 1200);
+  } else if (result?.status === "needsAuth") {
+    button.disabled = false;
+    button.textContent = "Connect";
+  } else {
+    button.disabled = false;
+    button.textContent = "Queued";
   }
-  return null;
 }
 
 function permalinkFor(post: Element): string | null {
-  const links = Array.from(post.querySelectorAll<HTMLAnchorElement>("a[href]"));
-  for (const link of links) {
+  for (const link of post.querySelectorAll<HTMLAnchorElement>("a[href]")) {
     try {
       const url = new URL(link.href);
       if (isPostUrl(url)) return url.toString();
     } catch {
-      // Ignore malformed or placeholder links.
+      // Ignore malformed links.
     }
   }
   return isPostUrl(new URL(window.location.href)) ? window.location.href : null;
 }
 
-function instagramPageFallback(post: Element): string | null {
-  if (window.location.hostname.replace(/^www\./, "") !== "instagram.com") {
-    return null;
-  }
-  const candidate =
-    post.getAttribute("data-permalink") ??
-    post.getAttribute("data-href") ??
-    post.querySelector("a[href]")?.getAttribute("href");
-  if (candidate) {
-    try {
-      const url = new URL(candidate, window.location.href);
-      if (isPostUrl(url)) return url.toString();
-    } catch {
-      // Fall through to the current page URL.
-    }
-  }
-  return window.location.href;
+function isInstagram(): boolean {
+  return window.location.hostname.replace(/^www\./, "") === "instagram.com";
 }
 
 function isPostUrl(url: URL): boolean {
