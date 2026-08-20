@@ -31,7 +31,7 @@ class _ExtensionConnectScreenState
   bool get _validRequest =>
       widget.requestId.isNotEmpty &&
       widget.requestSecret.length >= 32 &&
-      _isChromeRedirect(widget.redirectUri);
+      _isValidRedirectUri(widget.redirectUri);
 
   @override
   Widget build(BuildContext context) {
@@ -156,9 +156,20 @@ class _ExtensionConnectScreenState
   }
 }
 
-bool _isChromeRedirect(String value) {
+bool _isValidRedirectUri(String value) {
   final uri = Uri.tryParse(value);
-  return uri != null &&
-      uri.scheme == 'https' &&
-      uri.host.endsWith('.chromiumapp.org');
+  if (uri == null) return false;
+  if (uri.scheme == 'moz-extension' || uri.scheme == 'safari-web-extension') {
+    return true;
+  }
+  if (uri.scheme == 'https') {
+    final host = uri.host.toLowerCase();
+    return host.endsWith('.chromiumapp.org') ||
+        host.endsWith('.extensions.allizom.org') ||
+        host == 'app.laterbox.com';
+  }
+  if (uri.scheme == 'http' && uri.host == 'localhost') {
+    return true;
+  }
+  return false;
 }
