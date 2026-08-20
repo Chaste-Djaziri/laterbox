@@ -1,3 +1,4 @@
+import { connectLaterBoxViaTab } from "../lib/auth";
 import { flushQueue, saveCapture } from "../lib/capture";
 import { highlightTextInTab } from "../lib/highlight";
 import { getPageContext } from "../lib/page";
@@ -23,6 +24,16 @@ browser.contextMenus.onClicked.addListener((info, tab) => {
 });
 
 browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message?.type === "connect-laterbox") {
+    connectLaterBoxViaTab()
+      .then((userId) => sendResponse({ userId }))
+      .catch((error: unknown) =>
+        sendResponse({
+          error: error instanceof Error ? error.message : "Connection cancelled.",
+        }),
+      );
+    return true;
+  }
   if (message?.type === "save-page") {
     void savePageMessage(message, sender).then(sendResponse);
     return true;
