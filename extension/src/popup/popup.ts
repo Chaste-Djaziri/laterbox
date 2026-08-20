@@ -73,9 +73,8 @@ openPanelButton.addEventListener("click", () => {
 });
 
 async function openSidePanel(): Promise<void> {
-  if (activeTab?.id === undefined) return;
   try {
-    await chromiumCapabilities.openSidePanel(activeTab.id);
+    await chromiumCapabilities.openSidePanel();
   } catch (error) {
     setStatus(error instanceof Error ? error.message : "Could not open side panel.", "error");
   }
