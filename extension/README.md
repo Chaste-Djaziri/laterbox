@@ -1,19 +1,21 @@
 # LaterBox browser extension
 
-Chromium Manifest V3 capture MVP for Chrome, Edge, and Brave.
+Manifest V3 capture MVP for Chromium (Chrome, Edge, Brave) and Firefox.
 
 ## Configure
 
 Build against the hosted LaterBox project:
 
 ```bash
-npm run build:hosted
+npm run build:hosted        # Chromium
+npm run build:firefox       # Firefox
 ```
 
 Build against local Supabase and the local Flutter web app:
 
 ```bash
-npm run build:local
+npm run build:local         # Chromium
+npm run build:firefox:local # Firefox
 ```
 
 Run the local Flutter web app on the matching fixed port:
@@ -38,14 +40,23 @@ The popup connects through the LaterBox web approval screen. The extension store
 
 ## Load locally
 
-1. Run `npm run build`.
+### Chromium
+
+1. Run `npm run build:local` (or `build:hosted`).
 2. Open `chrome://extensions`.
 3. Enable Developer mode.
 4. Choose Load unpacked.
-5. Select `extension/dist`.
+5. Select `extension/dist/chromium`.
 
-The extension also adds page, link, and selection context menu actions, plus `Command+Shift+L` / `Ctrl+Shift+L` for quick capture and a persistent side panel. Failed captures remain in `chrome.storage.local` and retry when the service worker starts or the popup opens.
+### Firefox
 
-If Chrome does not assign the suggested shortcuts, configure them at `chrome://extensions/shortcuts`.
+1. Run `npm run build:firefox:local` (or `build:firefox`).
+2. Open `about:debugging#/runtime/this-firefox`.
+3. Choose Load Temporary Add-on.
+4. Select `extension/dist/firefox/manifest.json`.
+
+The extension also adds page, link, and selection context menu actions, plus `Command+Shift+L` / `Ctrl+Shift+L` for quick capture and a side panel (Chromium side panel, Firefox sidebar). Failed captures remain in `chrome.storage.local` and retry when the service worker starts or the popup opens.
+
+If the browser does not assign the suggested shortcuts, configure them at `chrome://extensions/shortcuts` (Chromium) or `about:addons` → gear icon → Manage Extension Shortcuts (Firefox).
 
 The generic page context reader uses a canonical URL when the page provides one. Opening the popup or side panel while text is selected shows a highlight card that saves the exact selection as a quoted note with its source title and URL. Social links are captured through the same toolbar and context menu actions without relying on social site markup.
