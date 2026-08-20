@@ -16,17 +16,23 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     routes: [
       GoRoute(
         path: '/extension/connect',
-        builder: (context, state) => ExtensionConnectScreen(
-          requestId: state.uri.queryParameters['request_id'] ?? '',
-          requestSecret: state.uri.queryParameters['request_secret'] ?? '',
-          redirectUri: state.uri.queryParameters['redirect_uri'] ?? '',
+        pageBuilder: (context, state) => NoTransitionPage(
+          key: state.pageKey,
+          child: ExtensionConnectScreen(
+            requestId: state.uri.queryParameters['request_id'] ?? '',
+            requestSecret: state.uri.queryParameters['request_secret'] ?? '',
+            redirectUri: state.uri.queryParameters['redirect_uri'] ?? '',
+          ),
         ),
       ),
       GoRoute(
         path: '/extension/connected',
-        builder: (context, state) => ExtensionConnectedScreen(
-          status: state.uri.queryParameters['status'] ?? '',
-          requestId: state.uri.queryParameters['request_id'] ?? '',
+        pageBuilder: (context, state) => NoTransitionPage(
+          key: state.pageKey,
+          child: ExtensionConnectedScreen(
+            status: state.uri.queryParameters['status'] ?? '',
+            requestId: state.uri.queryParameters['request_id'] ?? '',
+          ),
         ),
       ),
       ShellRoute(
@@ -48,21 +54,33 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         routes: [
           GoRoute(
             path: '/inbox',
-            builder: (context, state) => const InboxScreen(),
+            pageBuilder: (context, state) => NoTransitionPage(
+              key: state.pageKey,
+              child: const InboxScreen(),
+            ),
           ),
           GoRoute(
             path: '/search',
-            builder: (context, state) => const SearchScreen(),
+            pageBuilder: (context, state) => NoTransitionPage(
+              key: state.pageKey,
+              child: const SearchScreen(),
+            ),
           ),
           GoRoute(
             path: '/library',
-            builder: (context, state) => const LibraryScreen(),
+            pageBuilder: (context, state) => NoTransitionPage(
+              key: state.pageKey,
+              child: const LibraryScreen(),
+            ),
           ),
           GoRoute(
             path: '/item/:id',
-            builder: (context, state) {
+            pageBuilder: (context, state) {
               final id = state.pathParameters['id'] ?? '';
-              return ItemDetailScreen(itemId: id);
+              return NoTransitionPage(
+                key: state.pageKey,
+                child: ItemDetailScreen(itemId: id),
+              );
             },
           ),
         ],
