@@ -32,7 +32,11 @@ async function initialize(): Promise<void> {
       : (await chrome.tabs.query({ active: true, currentWindow: true }))[0];
   if (tab.id !== undefined) {
     try {
-      page = await getPageContext(tab.id);
+      page = await getPageContext(tab.id, {
+        url: tab.url ?? "",
+        title: tab.title ?? "",
+        selection: "",
+      });
     } catch {
       page = { url: tab.url ?? "", title: tab.title ?? "", selection: "" };
     }
