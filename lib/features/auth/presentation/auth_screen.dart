@@ -73,15 +73,12 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Text(
-                      'LaterBox',
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: -1.2,
-                      ),
+                    Image.asset(
+                      'assets/branding/laterbox-logo.png',
+                      height: 72,
+                      fit: BoxFit.contain,
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 16),
                     Text(
                       'Put it here. Find it later.',
                       textAlign: TextAlign.center,
