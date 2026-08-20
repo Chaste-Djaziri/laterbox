@@ -26,7 +26,10 @@ let page: PageContext = { url: "", title: "", selection: "" };
 void initialize();
 
 async function initialize(): Promise<void> {
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  const requestedTabId = Number(new URLSearchParams(location.search).get("tabId"));
+  const tab = Number.isInteger(requestedTabId) && requestedTabId > 0
+      ? await chrome.tabs.get(requestedTabId)
+      : (await chrome.tabs.query({ active: true, currentWindow: true }))[0];
   if (tab.id !== undefined) {
     try {
       page = await getPageContext(tab.id);
