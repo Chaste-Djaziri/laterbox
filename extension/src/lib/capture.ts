@@ -1,4 +1,5 @@
 import { getAccessToken } from "./auth";
+import { getPageContext } from "./page";
 import {
   enqueueCapture,
   getPendingCaptures,
@@ -8,14 +9,27 @@ import type { Capture, CaptureResult } from "../types/capture";
 
 const captureEndpoint = import.meta.env.VITE_CAPTURE_API_URL ?? "";
 
-export function formatHighlight(selection: string, url: string, title?: string): string {
-  const quote = selection
-    .trim()
-    .split("\n")
-    .map((line) => `> ${line.trim()}`)
-    .join("\n");
-  const source = title?.trim() ? `${title.trim()}\n${url}` : url;
-  return `${quote}\n\nSource: ${source}`;
+export async function saveSelectionFromTab(
+  tab: chrome.tabs.Tab,
+): Promise<CaptureResult> {
+  if (tab.id === undefined) throw new Error("Missing active tab.");
+
+  const page = await getPageContext(tab.id, {
+    url: tab.url ?? "",
+    title: tab.title ?? "",
+    selection: "",
+  });
+
+  const selectedText = page.selection.trim();
+  if (!selectedText) throw new Error("No text selected.");
+
+  return saveCapture({
+    text: selectedText,
+    url: page.url || tab.url || undefined,
+    title: page.title || tab.title || undefined,
+    source: "browserExtension",
+    createdAt: new Date().toISOString(),
+  });
 }
 
 export async function saveCapture(capture: Capture): Promise<CaptureResult> {
