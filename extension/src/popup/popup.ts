@@ -145,7 +145,11 @@ async function showCaptureResult(
     setStatus("Saved on this browser. Connect LaterBox to sync.");
     button.disabled = false;
   } else {
-    setStatus("Saved offline. It will sync when connected.");
+    setStatus(
+      result.reason === "server"
+        ? "Capture service unavailable. Saved on this browser."
+        : "Saved offline. It will sync when connected.",
+    );
     button.disabled = false;
   }
 }
