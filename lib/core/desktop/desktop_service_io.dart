@@ -12,6 +12,20 @@ const captureWindowMinimumSize = Size(400, 160);
 const defaultMainWindowSize = Size(1100, 720);
 const defaultMainWindowMinimumSize = Size(480, 400);
 
+/// The normal window state captured right before quick capture shrinks the
+/// window, so it can be restored exactly afterwards.
+class DesktopWindowSnapshot {
+  const DesktopWindowSnapshot({
+    required this.bounds,
+    required this.wasMaximized,
+    required this.wasVisible,
+  });
+
+  final Rect bounds;
+  final bool wasMaximized;
+  final bool wasVisible;
+}
+
 /// Native desktop integration: window control only.
 ///
 /// The global hotkey and the menu-bar tray are owned by their own services
@@ -26,6 +40,7 @@ class DesktopService {
 
   Size? _defaultWindowSize;
   bool _inCaptureMode = false;
+  DesktopWindowSnapshot? _captureSnapshot;
 
   /// Must be called once before `runApp` on desktop platforms.
   ///
@@ -68,10 +83,13 @@ class DesktopService {
 
   /// Switches the window into quick capture mode and shows it on top.
   ///
-  /// The controller must enter capture mode *before* this is called so the
-  /// first visible frame is already the quick capture UI.
+  /// Remembers the normal window (bounds, maximized, visible) so it can be
+  /// restored by [finishQuickCapture]. The controller must enter capture mode
+  /// *before* this is called so the first visible frame is already the quick
+  /// capture UI.
   Future<void> showQuickCapture() async {
     debugPrint('[LaterBox Desktop] showing quick capture');
+    _captureSnapshot = await _snapshotWindow();
     _inCaptureMode = true;
 
     if (await windowManager.isMinimized()) {
@@ -88,9 +106,46 @@ class DesktopService {
     debugPrint('[LaterBox Desktop] quick capture window shown');
   }
 
+  Future<DesktopWindowSnapshot> _snapshotWindow() async {
+    final bounds = await windowManager.getBounds();
+    final wasMaximized = await windowManager.isMaximized();
+    final wasVisible = await windowManager.isVisible();
+    return DesktopWindowSnapshot(
+      bounds: bounds,
+      wasMaximized: wasMaximized,
+      wasVisible: wasVisible,
+    );
+  }
+
+  /// Restores the pre-capture window, or hides it if LaterBox was hidden
+  /// before quick capture (so focus returns to the previous app).
+  Future<void> finishQuickCapture() async {
+    debugPrint('[LaterBox Desktop] finishing quick capture');
+    final snapshot = _captureSnapshot;
+    _captureSnapshot = null;
+    _inCaptureMode = false;
+    await windowManager.setAlwaysOnTop(false);
+
+    if (snapshot == null || !snapshot.wasVisible) {
+      await windowManager.hide();
+      debugPrint('[LaterBox Desktop] quick capture hidden');
+      return;
+    }
+
+    await windowManager.setMinimumSize(defaultMainWindowMinimumSize);
+    await windowManager.setBounds(snapshot.bounds, animate: false);
+    if (snapshot.wasMaximized && await windowManager.isMaximizable()) {
+      await windowManager.maximize();
+    }
+    await windowManager.show();
+    await windowManager.focus();
+    debugPrint('[LaterBox Desktop] main window restored');
+  }
+
   /// Restores the regular app window and shows it.
   Future<void> restoreMainWindow() async {
     _inCaptureMode = false;
+    _captureSnapshot = null;
     await windowManager.setAlwaysOnTop(false);
     await windowManager.setMinimumSize(defaultMainWindowMinimumSize);
     final size = _defaultWindowSize ?? defaultMainWindowSize;
