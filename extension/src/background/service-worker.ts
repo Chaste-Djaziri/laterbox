@@ -1,27 +1,28 @@
 import { flushQueue, saveCapture } from "../lib/capture";
 import { highlightTextInTab } from "../lib/highlight";
 import { getPageContext } from "../lib/page";
-import { chromiumCapabilities } from "../platform/chromium";
+import { browser } from "../platform/api";
+import { browserCapabilities } from "../platform";
 
 const PAGE_MENU = "save-page";
 const LINK_MENU = "save-link";
 const SELECTION_MENU = "save-selection";
 const NAVIGATION_TIMEOUT_MS = 15_000;
 
-chrome.runtime.onInstalled.addListener(() => {
+browser.runtime.onInstalled.addListener(() => {
   void createContextMenus();
   void flushQueue();
 });
 
-chrome.runtime.onStartup.addListener(() => {
+browser.runtime.onStartup.addListener(() => {
   void flushQueue();
 });
 
-chrome.contextMenus.onClicked.addListener((info, tab) => {
+browser.contextMenus.onClicked.addListener((info, tab) => {
   void handleContextMenu(info, tab);
 });
 
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message?.type === "save-page") {
     void savePageMessage(message, sender).then(sendResponse);
     return true;
@@ -33,14 +34,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   return false;
 });
 
-chrome.runtime.onMessageExternal.addListener((message, sender, sendResponse) => {
+browser.runtime.onMessageExternal.addListener((message, sender, sendResponse) => {
   if (!isTrustedSender(sender)) return false;
   if (message?.type !== "open-with-highlight") return false;
   void handleOpenWithHighlight(message).then(sendResponse);
   return true;
 });
 
-chrome.commands.onCommand.addListener((command) => {
+browser.commands.onCommand.addListener((command) => {
   console.log("[LaterBox command]", command);
   void handleCommand(command);
 });
@@ -48,12 +49,12 @@ chrome.commands.onCommand.addListener((command) => {
 async function handleCommand(command: string): Promise<void> {
   try {
     if (command === "open-sidepanel") {
-      await chromiumCapabilities.openSidePanel();
+      await browserCapabilities.openSidePanel();
       return;
     }
     if (command !== "save-current-page") return;
 
-    const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+    const [tab] = await browser.tabs.query({ active: true, lastFocusedWindow: true });
     if (tab.id === undefined) return;
     let page = { url: tab.url ?? "", title: tab.title ?? "", selection: "" };
     try {
@@ -61,7 +62,7 @@ async function handleCommand(command: string): Promise<void> {
     } catch (error) {
       console.warn("Could not read active page context", error);
     }
-    if (chromiumCapabilities.isRestrictedUrl(page.url)) {
+    if (browserCapabilities.isRestrictedUrl(page.url)) {
       await setCommandBadge("!");
       return;
     }
@@ -80,8 +81,8 @@ async function handleCommand(command: string): Promise<void> {
 }
 
 async function setCommandBadge(text: string): Promise<void> {
-  await chrome.action.setBadgeText({ text });
-  await chrome.action.setBadgeBackgroundColor({
+  await browser.action.setBadgeText({ text });
+  await browser.action.setBadgeBackgroundColor({
     color: text === "✓" ? "#26734d" : text === "!" ? "#a33a32" : "#6c6b63",
   });
 }
@@ -192,7 +193,7 @@ async function handleOpenWithHighlight(raw: unknown): Promise<{ status: string }
 
   let tab;
   try {
-    tab = await chrome.tabs.create({ url: message.url });
+    tab = await browser.tabs.create({ url: message.url });
   } catch (error) {
     console.warn("Could not open tab", error);
     return { status: "error" };
@@ -221,9 +222,9 @@ async function handleOpenWithHighlight(raw: unknown): Promise<{ status: string }
 
 async function hasHostAccess(url: string): Promise<boolean> {
   const pattern = `${new URL(url).origin}/*`;
-  if (await chrome.permissions.contains({ origins: [pattern] })) return true;
+  if (await browser.permissions.contains({ origins: [pattern] })) return true;
   try {
-    return await chrome.permissions.request({ origins: [pattern] });
+    return await browser.permissions.request({ origins: [pattern] });
   } catch (error) {
     console.warn("Could not request host access for highlighting", error);
     return false;
@@ -236,7 +237,7 @@ async function maybeNavigateToFragment(
 ): Promise<void> {
   if (!fragmentUrl) return;
   try {
-    await chrome.tabs.update(tabId, { url: fragmentUrl });
+    await browser.tabs.update(tabId, { url: fragmentUrl });
   } catch (error) {
     console.warn("Could not fall back to text fragment", error);
   }
@@ -245,32 +246,32 @@ async function maybeNavigateToFragment(
 function waitForTabLoad(tabId: number): Promise<boolean> {
   return new Promise((resolve) => {
     const timer = setTimeout(() => {
-      chrome.tabs.onUpdated.removeListener(onUpdated);
+      browser.tabs.onUpdated.removeListener(onUpdated);
       resolve(false);
     }, NAVIGATION_TIMEOUT_MS);
     function onUpdated(id: number, changeInfo: chrome.tabs.TabChangeInfo) {
       if (id !== tabId || changeInfo.status !== "complete") return;
       clearTimeout(timer);
-      chrome.tabs.onUpdated.removeListener(onUpdated);
+      browser.tabs.onUpdated.removeListener(onUpdated);
       resolve(true);
     }
-    chrome.tabs.onUpdated.addListener(onUpdated);
+    browser.tabs.onUpdated.addListener(onUpdated);
   });
 }
 
 async function createContextMenus(): Promise<void> {
-  await chrome.contextMenus.removeAll();
-  chrome.contextMenus.create({
+  await browser.contextMenus.removeAll();
+  browser.contextMenus.create({
     id: PAGE_MENU,
     title: "Save page to LaterBox",
     contexts: ["page"],
   });
-  chrome.contextMenus.create({
+  browser.contextMenus.create({
     id: LINK_MENU,
     title: "Save link to LaterBox",
     contexts: ["link"],
   });
-  chrome.contextMenus.create({
+  browser.contextMenus.create({
     id: SELECTION_MENU,
     title: "Save selection to LaterBox",
     contexts: ["selection"],
@@ -306,10 +307,10 @@ async function handleContextMenu(
           : null;
   if (!result) return;
 
-  await chrome.action.setBadgeText({
+  await browser.action.setBadgeText({
     text: result.status === "saved" ? "✓" : result.status === "needsAuth" ? "!" : "…",
   });
-  await chrome.action.setBadgeBackgroundColor({
+  await browser.action.setBadgeBackgroundColor({
     color: result.status === "saved" ? "#171711" : "#6c6b63",
   });
 }
