@@ -59,10 +59,11 @@ class QuickCaptureController extends ChangeNotifier {
     _draft = null;
   }
 
-  /// Opens the quick capture window. Called from the global hotkey or tray.
+  /// Opens the quick capture flow. Called from [DesktopActions].
   ///
-  /// Enters capture mode first (so the first visible frame is already the
-  /// quick capture UI), then drives the native window into place.
+  /// Only manages capture state; the native window is shown afterwards by
+  /// [DesktopActions.openQuickCapture] so the first visible frame is already
+  /// the quick capture UI.
   Future<void> open() async {
     if (_disposed || isActive) return;
     _successTimer?.cancel();
@@ -80,7 +81,6 @@ class QuickCaptureController extends ChangeNotifier {
     _prefillText = prefill;
     _status = QuickCaptureStatus.active;
     notifyListeners();
-    await _desktopService.showQuickCapture();
   }
 
   /// Saves the current draft via the shared capture pipeline, then disappears.
@@ -127,12 +127,6 @@ class QuickCaptureController extends ChangeNotifier {
     _prefillText = null;
     notifyListeners();
     await _desktopService.hideMainWindow();
-  }
-
-  /// Restores the full app window (tray “Open LaterBox” / dock click).
-  Future<void> openLaterBox() async {
-    await close();
-    await _desktopService.restoreMainWindow();
   }
 
   void _onWindowBlur() {
