@@ -64,10 +64,22 @@ saveHighlightButton.addEventListener("click", () => {
 });
 
 openPanelButton.addEventListener("click", () => {
-  if (activeTab?.windowId !== undefined) {
-    void chrome.sidePanel.open({ windowId: activeTab.windowId });
-  }
+  void openSidePanel();
 });
+
+async function openSidePanel(): Promise<void> {
+  if (activeTab?.id === undefined) return;
+  try {
+    await chrome.sidePanel.setOptions({
+      tabId: activeTab.id,
+      path: "src/sidepanel/sidepanel.html",
+      enabled: true,
+    });
+    await chrome.sidePanel.open({ tabId: activeTab.id });
+  } catch (error) {
+    setStatus(error instanceof Error ? error.message : "Could not open side panel.", "error");
+  }
+}
 
 disconnectButton.addEventListener("click", () => {
   void disconnect();
