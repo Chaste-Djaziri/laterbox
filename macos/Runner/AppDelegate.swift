@@ -1,6 +1,7 @@
 import Cocoa
 import FlutterMacOS
 import ApplicationServices
+import ServiceManagement
 
 @main
 class AppDelegate: FlutterAppDelegate {
@@ -27,6 +28,7 @@ class AppDelegate: FlutterAppDelegate {
   override func applicationDidFinishLaunching(_ notification: Notification) {
     super.applicationDidFinishLaunching(notification)
     registerSelectionCaptureChannel()
+    registerAppLaunchChannel()
   }
 
   private func registerSelectionCaptureChannel() {
@@ -45,10 +47,78 @@ class AppDelegate: FlutterAppDelegate {
         result(Self.readSelectedText())
       case "readFrontmostApplication":
         result(Self.readFrontmostApplication())
+      case "isAccessibilityTrusted":
+        result(AXIsProcessTrusted())
       default:
         result(FlutterMethodNotImplemented)
       }
     }
+  }
+
+  private func registerAppLaunchChannel() {
+    guard
+      let controller = mainFlutterWindow?.contentViewController as? FlutterViewController
+    else {
+      return
+    }
+    let channel = FlutterMethodChannel(
+      name: "laterbox/app_launch",
+      binaryMessenger: controller.engine.binaryMessenger
+    )
+    channel.setMethodCallHandler { call, result in
+      switch call.method {
+      case "wasLaunchedAtLogin":
+        result(Self.wasLaunchedAtLogin())
+      case "isLoginItemEnabled":
+        result(Self.isLoginItemEnabled())
+      case "setLoginItemEnabled":
+        let enabled = (call.arguments as? [String: Any])?["enabled"] as? Bool ?? false
+        result(Self.setLoginItemEnabled(enabled))
+      default:
+        result(FlutterMethodNotImplemented)
+      }
+    }
+  }
+
+  /// Whether the app was started by its login item. Login items are launched
+  /// by launchd, which sets XPC_SERVICE_NAME; manual launches do not.
+  private static func wasLaunchedAtLogin() -> Bool {
+    if let serviceName = ProcessInfo.processInfo.environment["XPC_SERVICE_NAME"],
+       !serviceName.isEmpty {
+      return true
+    }
+    return false
+  }
+
+  /// Whether the app is registered as a login item (SMAppService, macOS 13+).
+  private static func isLoginItemEnabled() -> Bool {
+    if #available(macOS 13.0, *) {
+      return SMAppService.mainApp.status == .enabled
+    }
+    return false
+  }
+
+  @discardableResult
+  private static func setLoginItemEnabled(_ enabled: Bool) -> Bool {
+    if #available(macOS 13.0, *) {
+      let service = SMAppService.mainApp
+      do {
+        if enabled {
+          if service.status != .enabled {
+            try service.register()
+          }
+        } else {
+          if service.status == .enabled {
+            try service.unregister()
+          }
+        }
+        return true
+      } catch {
+        NSLog("LaterBox login item update failed: \(error.localizedDescription)")
+        return false
+      }
+    }
+    return false
   }
 
   /// Selected text of the focused UI element, if Accessibility permission is
