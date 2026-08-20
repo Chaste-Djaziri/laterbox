@@ -862,9 +862,11 @@ class _LandingFooter extends StatelessWidget {
 
     return Container(
       padding: EdgeInsets.all(isDesktop ? 32 : 20),
-      border: Border(
-        top: BorderSide(
-          color: theme.colorScheme.outlineVariant.withOpacity(0.4),
+      decoration: BoxDecoration(
+        border: Border(
+          top: BorderSide(
+            color: theme.colorScheme.outlineVariant.withOpacity(0.4),
+          ),
         ),
       ),
       child: Center(
