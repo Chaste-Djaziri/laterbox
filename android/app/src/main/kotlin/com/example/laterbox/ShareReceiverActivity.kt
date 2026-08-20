@@ -6,6 +6,7 @@ import android.graphics.Color
 import android.graphics.Typeface
 import android.net.Uri
 import android.os.Bundle
+import android.provider.OpenableColumns
 import android.util.TypedValue
 import android.view.Gravity
 import android.view.View
@@ -14,6 +15,9 @@ import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.TextView
+import java.io.File
+import java.time.Instant
+import java.util.UUID
 
 class ShareReceiverActivity : Activity() {
 
@@ -93,25 +97,122 @@ class ShareReceiverActivity : Activity() {
     }
 
     private fun handleShare(intent: Intent?) {
-        if (intent?.action != Intent.ACTION_SEND || intent.type != "text/plain") {
-            showFailure("No text content shared")
+        if (intent == null || (intent.action != Intent.ACTION_SEND && intent.action != Intent.ACTION_SEND_MULTIPLE)) {
+            showFailure("No shareable content found")
             return
         }
 
         val text = intent.getStringExtra(Intent.EXTRA_TEXT)
             ?.trim()
             ?.takeIf { it.isNotEmpty() }
+            ?: intent.getStringExtra(Intent.EXTRA_SUBJECT)
+                ?.trim()
+                ?.takeIf { it.isNotEmpty() }
+        val uris = sharedUris(intent)
 
-        if (text == null) {
-            showFailure("No text content shared")
+        if (text == null && uris.isEmpty()) {
+            showFailure("No shareable content found")
             return
         }
 
-        if (pendingShares.enqueue(text)) {
-            showSuccess(subtitle = displaySubtitle(text))
-        } else {
-            showFailure("Couldn't write to LaterBox storage")
+        val captureId = UUID.randomUUID().toString()
+        Thread {
+            val result = runCatching { stageSharedFiles(captureId, uris) }
+            runOnUiThread {
+                result.fold(
+                    onSuccess = { paths ->
+                        val capture = PendingShareCapture(
+                            id = captureId,
+                            text = text,
+                            filePaths = paths,
+                            createdAt = Instant.now().toString(),
+                        )
+                        if (pendingShares.enqueue(capture)) {
+                            val subtitle = when {
+                                paths.size > 1 -> "${paths.size} files"
+                                paths.size == 1 -> File(paths.first()).name
+                                text != null -> displaySubtitle(text)
+                                else -> null
+                            }
+                            showSuccess(subtitle)
+                        } else {
+                            deleteStagedCapture(captureId)
+                            showFailure("Couldn't write to LaterBox storage")
+                        }
+                    },
+                    onFailure = { error ->
+                        deleteStagedCapture(captureId)
+                        showFailure(error.message ?: "Couldn't read the shared files")
+                    },
+                )
+            }
         }
+    }
+
+    @Suppress("DEPRECATION")
+    private fun sharedUris(intent: Intent): List<Uri> = when (intent.action) {
+        Intent.ACTION_SEND -> listOfNotNull(intent.getParcelableExtra(Intent.EXTRA_STREAM) as? Uri)
+        Intent.ACTION_SEND_MULTIPLE ->
+            intent.getParcelableArrayListExtra<Uri>(Intent.EXTRA_STREAM)?.toList().orEmpty()
+        else -> emptyList()
+    }.distinct()
+
+    private fun stageSharedFiles(captureId: String, uris: List<Uri>): List<String> {
+        if (uris.isEmpty()) return emptyList()
+        val directory = File(filesDir, "${PendingShareQueue.STAGING_DIRECTORY}/$captureId")
+        check(directory.mkdirs() || directory.isDirectory) {
+            "Couldn't create LaterBox staging storage"
+        }
+        val usedNames = mutableSetOf<String>()
+        return uris.mapIndexed { index, uri ->
+            val displayName = queryDisplayName(uri)
+                ?: fallbackFileName(uri, contentResolver.getType(uri) ?: intent?.type, index)
+            val safeName = uniqueSafeName(displayName, usedNames)
+            val destination = File(directory, safeName)
+            contentResolver.openInputStream(uri)?.use { input ->
+                destination.outputStream().use { output -> input.copyTo(output) }
+            } ?: error("Couldn't read ${displayName.take(80)}")
+            destination.absolutePath
+        }
+    }
+
+    private fun queryDisplayName(uri: Uri): String? = runCatching {
+        contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
+            if (!cursor.moveToFirst()) return@use null
+            cursor.getString(cursor.getColumnIndexOrThrow(OpenableColumns.DISPLAY_NAME))
+        }
+    }.getOrNull()
+
+    private fun fallbackFileName(uri: Uri, mimeType: String?, index: Int): String {
+        val candidate = uri.lastPathSegment?.substringAfterLast('/')?.takeIf { it.contains('.') }
+        if (candidate != null) return candidate
+        val extension = android.webkit.MimeTypeMap.getSingleton()
+            .getExtensionFromMimeType(mimeType)
+            ?.takeIf { it.isNotBlank() }
+            ?: "bin"
+        return "shared-${index + 1}.$extension"
+    }
+
+    private fun uniqueSafeName(original: String, used: MutableSet<String>): String {
+        val sanitized = original
+            .replace(Regex("[\\/\\u0000-\\u001f]"), "_")
+            .trim()
+            .take(180)
+            .ifEmpty { "shared-file" }
+        val dot = sanitized.lastIndexOf('.')
+        val stem = if (dot > 0) sanitized.substring(0, dot) else sanitized
+        val extension = if (dot > 0) sanitized.substring(dot) else ""
+        var candidate = sanitized
+        var suffix = 2
+        while (!used.add(candidate.lowercase())) {
+            candidate = "$stem-$suffix$extension"
+            suffix += 1
+        }
+        return candidate
+    }
+
+    private fun deleteStagedCapture(captureId: String) {
+        File(filesDir, "${PendingShareQueue.STAGING_DIRECTORY}/$captureId").deleteRecursively()
     }
 
     private fun showSaving() {
