@@ -5,6 +5,8 @@ import ServiceManagement
 
 @main
 class AppDelegate: FlutterAppDelegate {
+  private var launchedAtLogin = false
+
   override func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
     return false
   }
@@ -26,6 +28,7 @@ class AppDelegate: FlutterAppDelegate {
   }
 
   override func applicationDidFinishLaunching(_ notification: Notification) {
+    launchedAtLogin = Self.detectLoginItemLaunch()
     super.applicationDidFinishLaunching(notification)
     registerSelectionCaptureChannel()
     registerAppLaunchChannel()
@@ -68,7 +71,7 @@ class AppDelegate: FlutterAppDelegate {
     channel.setMethodCallHandler { call, result in
       switch call.method {
       case "wasLaunchedAtLogin":
-        result(Self.wasLaunchedAtLogin())
+        result(self.launchedAtLogin)
       case "isLoginItemEnabled":
         result(Self.isLoginItemEnabled())
       case "setLoginItemEnabled":
@@ -80,14 +83,16 @@ class AppDelegate: FlutterAppDelegate {
     }
   }
 
-  /// Whether the app was started by its login item. Login items are launched
-  /// by launchd, which sets XPC_SERVICE_NAME; manual launches do not.
-  private static func wasLaunchedAtLogin() -> Bool {
-    if let serviceName = ProcessInfo.processInfo.environment["XPC_SERVICE_NAME"],
-       !serviceName.isEmpty {
-      return true
+  /// Whether macOS marked the open-application event as a login-item launch.
+  private static func detectLoginItemLaunch() -> Bool {
+    guard
+      let event = NSAppleEventManager.shared().currentAppleEvent,
+      event.eventClass == kCoreEventClass,
+      event.eventID == kAEOpenApplication
+    else {
+      return false
     }
-    return false
+    return event.paramDescriptor(forKeyword: keyAELaunchedAsLogInItem) != nil
   }
 
   /// Whether the app is registered as a login item (SMAppService, macOS 13+).
