@@ -72,6 +72,9 @@ export const createConnectionHandler = (
       if (action === "exchange") {
         return await exchangeRequest(requestId, requestSecret, dependencies);
       }
+      if (action === "status") {
+        return await statusRequest(requestId, requestSecret, dependencies);
+      }
       if (action === "revoke") {
         return await revokeSession(request, dependencies);
       }
@@ -219,6 +222,24 @@ async function revokeSession(
   return json({ status: "revoked" }, 200);
 }
 
+async function statusRequest(
+  requestId: string,
+  requestSecret: string,
+  dependencies: Dependencies,
+): Promise<Response> {
+  if (!validRequestValues(requestId, requestSecret)) {
+    return json({ error: "Invalid connection request" }, 400);
+  }
+
+  const connection = await findRequest(requestId, requestSecret, dependencies);
+  if (connection === null) {
+    return json({ error: "Connection request not found" }, 404);
+  }
+  if (connection.used_at !== null) return json({ status: "used" }, 200);
+  if (connection.user_id !== null) return json({ status: "approved" }, 200);
+  return json({ status: "pending" }, 200);
+}
+
 async function findRequest(
   requestId: string,
   requestSecret: string,
@@ -235,7 +256,7 @@ async function findRequest(
   if (!response.ok) return null;
   const rows = await response.json();
   const row = Array.isArray(rows) ? rows[0] : null;
-  if (row === null || row.secret_hash !== await hash(requestSecret)) return null;
+  if (row == null || row.secret_hash !== await hash(requestSecret)) return null;
   return row;
 }
 
