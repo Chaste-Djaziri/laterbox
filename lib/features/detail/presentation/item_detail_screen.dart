@@ -97,12 +97,12 @@ class _ItemDetailBody extends ConsumerWidget {
     final description = item.metadata?.description;
     final collections = ref.watch(collectionsForItemProvider(item.id)).value;
     final embedInfo = MediaEmbedHelper.parse(item.url);
-    final attachments = isFile
-        ? ref.watch(attachmentsForItemProvider(item.id)).value
+    final attachmentsState = isFile
+        ? ref.watch(attachmentsForItemProvider(item.id))
         : null;
-    final attachmentStorage = isFile
-        ? ref.watch(attachmentStorageProvider).value
-        : null;
+    final storageState = isFile ? ref.watch(attachmentStorageProvider) : null;
+    final attachments = attachmentsState?.value;
+    final attachmentStorage = storageState?.value;
     final hasAttachmentPreview =
         attachments != null &&
         attachments.isNotEmpty &&
@@ -228,9 +228,18 @@ class _ItemDetailBody extends ConsumerWidget {
             showGallery: false,
           )
         else if (isFile)
-          const Padding(
-            padding: EdgeInsets.all(24),
-            child: Center(child: CircularProgressIndicator.adaptive()),
+          Padding(
+            padding: const EdgeInsets.all(24),
+            child: Center(
+              child:
+                  attachmentsState?.hasError == true ||
+                      storageState?.hasError == true
+                  ? const Text('Attachment previews could not be loaded.')
+                  : attachmentsState?.isLoading == true ||
+                        storageState?.isLoading == true
+                  ? const CircularProgressIndicator.adaptive()
+                  : const Text('No attachments are available for this item.'),
+            ),
           ),
         const SizedBox(height: 12),
         const Divider(height: 32),
