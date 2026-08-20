@@ -592,7 +592,7 @@ class _FeaturesSection extends StatelessWidget {
                 crossAxisCount: isDesktop ? 3 : 1,
                 mainAxisSpacing: 20,
                 crossAxisSpacing: 20,
-                childAspectRatio: isDesktop ? 1.3 : 2.2,
+                childAspectRatio: isDesktop ? 1.05 : 1.8,
               ),
               itemBuilder: (context, index) {
                 final item = features[index];
