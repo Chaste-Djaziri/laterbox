@@ -4,8 +4,10 @@ import 'package:go_router/go_router.dart';
 import 'package:timeago/timeago.dart' as timeago;
 
 import '../../../shared/models/laterbox_item.dart';
+import '../../../shared/utils/media_embed_helper.dart';
 import '../../../shared/widgets/item_actions.dart';
 import '../../../shared/widgets/item_card.dart';
+import '../../../shared/widgets/media_embed_hero.dart';
 import '../../collections/presentation/collection_providers.dart';
 import '../../notes/presentation/item_note_section.dart';
 import 'detail_providers.dart';
@@ -89,11 +91,17 @@ class _ItemDetailBody extends ConsumerWidget {
         'Untitled';
     final description = item.metadata?.description;
     final collections = ref.watch(collectionsForItemProvider(item.id)).value;
+    final embedInfo = MediaEmbedHelper.parse(item.url);
 
     return ListView(
       padding: const EdgeInsets.only(bottom: 40),
       children: [
-        if (item.metadata?.previewImageUrl case final cover?)
+        if (embedInfo != null)
+          MediaEmbedHero(
+            embedInfo: embedInfo,
+            fallbackCoverUrl: item.metadata?.previewImageUrl,
+          )
+        else if (item.metadata?.previewImageUrl case final cover?)
           ItemCoverImage(url: cover),
         Padding(
           padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
