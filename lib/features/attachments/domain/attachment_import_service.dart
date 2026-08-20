@@ -37,7 +37,18 @@ class AttachmentImportService {
   Future<AttachmentImportResult> importFiles({
     required List<String> sourcePaths,
     String? text,
+    String? itemId,
   }) async {
+    if (itemId != null) {
+      final existingIds = await _repository.existingAttachmentIds(itemId);
+      if (existingIds != null) {
+        return AttachmentImportResult(
+          itemId: itemId,
+          attachmentIds: existingIds,
+          failures: const [],
+        );
+      }
+    }
     final attemptId = _newId();
     final stored = <StoredAttachment>[];
     final failures = <AttachmentImportFailure>[];
@@ -100,12 +111,12 @@ class AttachmentImportService {
       );
     }
 
-    final itemId = _newId();
+    final resolvedItemId = itemId ?? _newId();
     final createdAt = _now();
     final normalizedText = text?.trim();
     try {
       await _repository.saveItemWithAttachments(
-        itemId: itemId,
+        itemId: resolvedItemId,
         userId: _currentUserId(),
         title: path.basenameWithoutExtension(
           stored.first.validation.originalFileName,
@@ -144,7 +155,7 @@ class AttachmentImportService {
       // and must never turn a durable local import into a visible save failure.
     }
     return AttachmentImportResult(
-      itemId: itemId,
+      itemId: resolvedItemId,
       attachmentIds: stored.map((attachment) => attachment.id).toList(),
       failures: failures,
     );
