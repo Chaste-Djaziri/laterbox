@@ -655,6 +655,12 @@ class AppDatabase extends _$AppDatabase {
     return rows.map((row) => row.read(attachments.id)!).toSet();
   }
 
+  Future<List<Attachment>> attachmentsForItem(String itemId) {
+    return (select(
+      attachments,
+    )..where((attachment) => attachment.itemId.equals(itemId))).get();
+  }
+
   Future<void> createCollection(String id, String? userId, String name) {
     final now = DateTime.now();
     return into(collections).insert(
