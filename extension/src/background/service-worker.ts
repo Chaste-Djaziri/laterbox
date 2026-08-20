@@ -1,5 +1,6 @@
 import { flushQueue, formatHighlight, saveCapture } from "../lib/capture";
 import { getPageContext } from "../lib/page";
+import { chromiumCapabilities } from "../platform/chromium";
 import type { Capture } from "../types/capture";
 
 const PAGE_MENU = "save-page";
@@ -33,7 +34,7 @@ async function handleCommand(command: string): Promise<void> {
   if (command === "open-sidepanel") {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     if (tab.id === undefined) return;
-    await openSidePanel(tab.id);
+    await chromiumCapabilities.openSidePanel(tab.id);
     return;
   }
   if (command !== "save-current-page") return;
@@ -46,7 +47,7 @@ async function handleCommand(command: string): Promise<void> {
   } catch (error) {
     console.warn("Could not read active page context", error);
   }
-  if (!/^https?:\/\//i.test(page.url)) {
+  if (chromiumCapabilities.isRestrictedUrl(page.url)) {
     await setCommandBadge("!");
     return;
   }
@@ -59,25 +60,6 @@ async function handleCommand(command: string): Promise<void> {
   await setCommandBadge(
     result.status === "saved" ? "✓" : result.status === "needsAuth" ? "!" : "…",
   );
-}
-
-async function openSidePanel(tabId: number): Promise<void> {
-  try {
-    if (chrome.sidePanel?.setOptions && chrome.sidePanel?.open) {
-      await chrome.sidePanel.setOptions({
-        tabId,
-        path: "src/sidepanel/sidepanel.html",
-        enabled: true,
-      });
-      await chrome.sidePanel.open({ tabId });
-      return;
-    }
-  } catch (error) {
-    console.warn("Side panel API unavailable", error);
-  }
-  await chrome.tabs.create({
-    url: `${chrome.runtime.getURL("src/sidepanel/sidepanel.html")}?tabId=${tabId}`,
-  });
 }
 
 async function setCommandBadge(text: string): Promise<void> {
