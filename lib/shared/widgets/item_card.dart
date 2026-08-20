@@ -30,7 +30,10 @@ class ItemCard extends ConsumerWidget {
         item.url ??
         item.text ??
         'Untitled';
-    final description = item.metadata?.description;
+    final capturedText = item.text?.trim();
+    final isCaptured = capturedText != null && capturedText.isNotEmpty;
+    final description =
+        isCaptured ? capturedText : item.metadata?.description?.trim();
     final faviconUrl = item.metadata?.faviconUrl;
     final coverUrl = item.metadata?.previewImageUrl;
 
@@ -108,7 +111,7 @@ class ItemCard extends ConsumerWidget {
                                     description.isNotEmpty) ...[
                                   const SizedBox(height: 6),
                                   Text(
-                                    description,
+                                    isCaptured ? '“$description”' : description,
                                     maxLines: 2,
                                     overflow: TextOverflow.ellipsis,
                                     style: Theme.of(context)
