@@ -162,7 +162,7 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
                                 maxCrossAxisExtent: 320,
                                 mainAxisSpacing: 16,
                                 crossAxisSpacing: 16,
-                                childAspectRatio: 0.82,
+                                childAspectRatio: 0.72,
                               ),
                             ),
                           )
