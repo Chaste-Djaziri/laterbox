@@ -1033,7 +1033,6 @@ class _AboutSection extends StatelessWidget {
     ];
 
     return Container(
-      key: key,
       padding: EdgeInsets.symmetric(
         horizontal: isMobile ? 20 : (isDesktop ? 64 : 32),
         vertical: isMobile ? 48 : 72,
