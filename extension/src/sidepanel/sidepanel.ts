@@ -3,7 +3,7 @@ import {
   disconnectLaterBox,
   getAccessToken,
 } from "../lib/auth";
-import { flushQueue, formatHighlight, saveCapture } from "../lib/capture";
+import { flushQueue, saveCapture, saveSelectionFromTab } from "../lib/capture";
 import { getPageContext, type PageContext } from "../lib/page";
 import { getConnectedUserId } from "../lib/storage";
 import { chromiumCapabilities } from "../platform/chromium";
@@ -134,14 +134,16 @@ async function savePage(): Promise<void> {
 
 async function saveSelection(): Promise<void> {
   if (!page.selection || chromiumCapabilities.isRestrictedUrl(page.url)) return;
+  const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+  if (tab?.id === undefined) return;
   saveSelectionButton.disabled = true;
   setStatus("Saving selection...");
-  await showResult(await saveCapture({
-    text: formatHighlight(page.selection, page.url, page.title),
-    title: page.title,
-    source: "browserExtension",
-    createdAt: new Date().toISOString(),
-  }), saveSelectionButton);
+  try {
+    await showResult(await saveSelectionFromTab(tab), saveSelectionButton);
+  } catch {
+    saveSelectionButton.disabled = false;
+    setStatus("No text is selected.", "error");
+  }
 }
 
 async function showResult(
