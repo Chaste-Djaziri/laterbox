@@ -17,10 +17,10 @@ import '../../features/settings/presentation/settings_screen.dart';
 
 final initialLocationProvider = Provider<String>((ref) {
   if (kIsWeb) return '/';
-  final authState = ref.watch(authStateProvider).asData?.value;
+  final authState = ref.watch(restoredAuthStateProvider);
   final guestMode = ref.watch(guestModeProvider);
 
-  if (guestMode || (authState?.isAuthenticated ?? false)) {
+  if (guestMode || authState.isAuthenticated) {
     return '/inbox';
   }
   return '/login';
@@ -36,17 +36,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     routes: [
       GoRoute(
         path: '/',
-        pageBuilder: (context, state) => NoTransitionPage(
-          key: state.pageKey,
-          child: const LandingScreen(),
-        ),
+        pageBuilder: (context, state) =>
+            NoTransitionPage(key: state.pageKey, child: const LandingScreen()),
       ),
       GoRoute(
         path: '/login',
-        pageBuilder: (context, state) => NoTransitionPage(
-          key: state.pageKey,
-          child: const AuthScreen(),
-        ),
+        pageBuilder: (context, state) =>
+            NoTransitionPage(key: state.pageKey, child: const AuthScreen()),
       ),
       GoRoute(
         path: '/extension/connect',
@@ -71,10 +67,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/settings',
-        pageBuilder: (context, state) => NoTransitionPage(
-          key: state.pageKey,
-          child: const SettingsScreen(),
-        ),
+        pageBuilder: (context, state) =>
+            NoTransitionPage(key: state.pageKey, child: const SettingsScreen()),
       ),
       ShellRoute(
         builder: (context, state, child) {
@@ -86,10 +80,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             selectedIndex = 2;
           }
           return AuthGate(
-            child: HomeShell(
-              selectedIndex: selectedIndex,
-              child: child,
-            ),
+            child: HomeShell(selectedIndex: selectedIndex, child: child),
           );
         },
         routes: [
