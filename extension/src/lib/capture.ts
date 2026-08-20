@@ -27,6 +27,7 @@ export async function saveSelectionFromTab(
     text: selectedText,
     url: page.url || tab.url || undefined,
     title: page.title || tab.title || undefined,
+    selector: page.selector ?? undefined,
     source: "browserExtension",
     createdAt: new Date().toISOString(),
   });
