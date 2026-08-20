@@ -12,8 +12,7 @@ enum InboxFilterType {
   all('All', Icons.all_inbox_rounded),
   articles('Articles', Icons.article_rounded),
   videos('Videos', Icons.play_circle_rounded),
-  audio('Audio', Icons.headphones_rounded),
-  images('Images', Icons.image_rounded),
+  music('Music', Icons.music_note_rounded),
   notes('Notes', Icons.note_alt_rounded),
   starred('Starred', Icons.star_rounded);
 
@@ -49,19 +48,16 @@ final filteredInboxItemsProvider =
     return items.where((item) {
       switch (filter) {
         case InboxFilterType.starred:
-          return item.isFavorite;
+          return item.favorite;
         case InboxFilterType.notes:
           return item.url == null ||
-              (item.text != null && item.text!.isNotEmpty) ||
-              item.metadata?.classification?.type == ContentType.note;
+              (item.text != null && item.text!.isNotEmpty);
         case InboxFilterType.articles:
           return item.metadata?.classification?.type == ContentType.article;
         case InboxFilterType.videos:
           return item.metadata?.classification?.type == ContentType.video;
-        case InboxFilterType.audio:
-          return item.metadata?.classification?.type == ContentType.audio;
-        case InboxFilterType.images:
-          return item.metadata?.classification?.type == ContentType.image;
+        case InboxFilterType.music:
+          return item.metadata?.classification?.type == ContentType.music;
         case InboxFilterType.all:
           return true;
       }
