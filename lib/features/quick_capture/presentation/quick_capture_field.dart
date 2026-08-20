@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 /// The quick capture input. Keyboard shortcuts (`⌘↵` / `Esc`) are handled by
@@ -74,7 +75,9 @@ class _QuickCaptureFieldState extends State<QuickCaptureField> {
               ),
               const Spacer(),
               Text(
-                '⌘↵',
+                defaultTargetPlatform == TargetPlatform.windows
+                    ? 'Ctrl+Enter'
+                    : '⌘↵',
                 style: theme.textTheme.labelSmall?.copyWith(
                   color: theme.colorScheme.outline,
                 ),
@@ -144,10 +147,7 @@ class _QuickCaptureFieldState extends State<QuickCaptureField> {
               hintText: 'Paste a link or type anything…',
               border: OutlineInputBorder(),
               isDense: true,
-              contentPadding: EdgeInsets.symmetric(
-                horizontal: 12,
-                vertical: 8,
-              ),
+              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             ),
             onChanged: widget.onChanged,
             onSubmitted: (_) => widget.onSave(),
