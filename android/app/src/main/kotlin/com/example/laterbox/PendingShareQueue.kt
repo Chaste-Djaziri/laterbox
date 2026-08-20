@@ -44,7 +44,11 @@ class PendingShareQueue(private val context: Context) {
     )
 
     @Synchronized
-    fun readPending(): List<PendingShareCapture> = readAll()
+    fun readPending(): List<PendingShareCapture> {
+        val items = readAll()
+        write(items)
+        return items
+    }
 
     @Synchronized
     fun acknowledge(ids: Set<String>): Boolean {
