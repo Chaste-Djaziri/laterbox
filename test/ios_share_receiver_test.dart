@@ -7,6 +7,7 @@ import 'package:laterbox/app.dart';
 import 'package:laterbox/core/database/app_database.dart';
 import 'package:laterbox/core/database/database_providers.dart';
 import 'package:laterbox/core/router/app_router.dart';
+import 'package:laterbox/features/capture/data/android_share_receiver.dart';
 import 'package:laterbox/features/capture/data/ios_share_receiver.dart';
 
 Future<void> _pumpUntilFound(
@@ -26,22 +27,27 @@ void main() {
   ) async {
     final database = AppDatabase(NativeDatabase.memory());
     const channel = MethodChannel(IosShareReceiver.channelName);
+    const androidChannel = MethodChannel(AndroidShareReceiver.channelName);
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(androidChannel, (call) async => []);
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, (call) async {
-      if (call.method == 'consumePending') {
-        return [
-          {
-            'id': 'ios-1',
-            'value': 'https://example.com/b',
-            'createdAt': '2026-08-19T07:01:00Z',
-          },
-        ];
-      }
-      return null;
-    });
+          if (call.method == 'consumePending') {
+            return [
+              {
+                'id': '3f257aa0-147d-4d95-99e8-e311380c886f',
+                'value': 'https://example.com/b',
+                'createdAt': '2026-08-19T07:01:00Z',
+              },
+            ];
+          }
+          if (call.method == 'acknowledgePending') return true;
+          return null;
+        });
     addTearDown(
       () => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-          .setMockMethodCallHandler(channel, null),
+        ..setMockMethodCallHandler(channel, null)
+        ..setMockMethodCallHandler(androidChannel, null),
     );
 
     await tester.pumpWidget(
@@ -66,11 +72,15 @@ void main() {
   testWidgets('does not import an empty iOS share queue', (tester) async {
     final database = AppDatabase(NativeDatabase.memory());
     const channel = MethodChannel(IosShareReceiver.channelName);
+    const androidChannel = MethodChannel(AndroidShareReceiver.channelName);
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(androidChannel, (call) async => []);
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, (call) async => []);
     addTearDown(
       () => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-          .setMockMethodCallHandler(channel, null),
+        ..setMockMethodCallHandler(channel, null)
+        ..setMockMethodCallHandler(androidChannel, null),
     );
 
     await tester.pumpWidget(
