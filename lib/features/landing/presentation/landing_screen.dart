@@ -103,9 +103,12 @@ class _LandingHeader extends ConsumerWidget {
     final theme = Theme.of(context);
     final auth = ref.watch(authStateProvider).asData?.value;
 
+    final width = MediaQuery.sizeOf(context).width;
+    final isDesktopHeader = width >= 960;
+
     return Container(
       padding: EdgeInsets.symmetric(
-        horizontal: isDesktop ? 32 : 16,
+        horizontal: isDesktopHeader ? 32 : 16,
         vertical: 16,
       ),
       decoration: BoxDecoration(
@@ -142,7 +145,7 @@ class _LandingHeader extends ConsumerWidget {
               ),
             ],
           ),
-          if (isDesktop)
+          if (isDesktopHeader)
             Row(
               children: [
                 _HeaderNavLink(label: 'Features', onTap: onFeaturesTap),
