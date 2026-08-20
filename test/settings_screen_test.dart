@@ -6,7 +6,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:laterbox/core/database/app_database.dart';
 import 'package:laterbox/core/database/database_providers.dart';
 import 'package:laterbox/core/desktop/desktop_providers.dart';
-import 'package:laterbox/core/settings/desktop_settings.dart';
 import 'package:laterbox/core/settings/desktop_shortcut.dart';
 import 'package:laterbox/core/settings/settings_providers.dart';
 import 'package:laterbox/features/settings/presentation/settings_screen.dart';
