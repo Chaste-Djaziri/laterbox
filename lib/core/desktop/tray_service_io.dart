@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'dart:io' show Platform;
+import 'dart:io' show File, Platform;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -17,7 +17,9 @@ class TrayService {
   bool _initialized = false;
   DesktopMenuState _menuState = DesktopMenuState(
     accountStatus: DesktopMenuAccountStatus.guest,
-    quickCaptureShortcutLabel: '⌥ Space',
+    quickCaptureShortcutLabel: Platform.isWindows
+        ? 'Ctrl + Alt + Space'
+        : '⌥ Space',
   );
   final _listener = _TrayListener();
 
@@ -37,8 +39,12 @@ class TrayService {
     trayManager.addListener(_listener);
 
     try {
+      final iconPath = Platform.isWindows
+          ? '${File(Platform.resolvedExecutable).parent.path}'
+                '/laterbox-tray-icon.ico'
+          : 'assets/branding/laterbox-menu-icon.png';
       await trayManager.setIcon(
-        'assets/branding/laterbox-menu-icon.png',
+        iconPath,
         isTemplate: Platform.isMacOS,
         iconSize: 16,
       );
@@ -74,7 +80,10 @@ class TrayService {
       MenuItem.separator(),
       MenuItem(key: 'settings', label: 'Settings…'),
       MenuItem.separator(),
-      MenuItem(key: 'quit', label: 'Quit LaterBox   ⌘Q'),
+      MenuItem(
+        key: 'quit',
+        label: Platform.isMacOS ? 'Quit LaterBox   ⌘Q' : 'Quit LaterBox',
+      ),
     ];
     await trayManager.setContextMenu(Menu(items: items));
   }
@@ -103,12 +112,10 @@ class _TrayListener extends TrayListener {
   void onTrayMenuItemClick(MenuItem item) {
     debugPrint('[LaterBox Desktop] tray menu: ${item.key}');
     void run(Future<void> Function()? callback) {
-      callback?.call().catchError(
-            (Object error, StackTrace stackTrace) {
-              debugPrint('[LaterBox Desktop] tray action FAILED: $error');
-              debugPrintStack(stackTrace: stackTrace);
-            },
-          );
+      callback?.call().catchError((Object error, StackTrace stackTrace) {
+        debugPrint('[LaterBox Desktop] tray action FAILED: $error');
+        debugPrintStack(stackTrace: stackTrace);
+      });
     }
 
     switch (item.key) {
