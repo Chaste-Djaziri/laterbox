@@ -1,9 +1,15 @@
+import 'dart:async';
+import 'dart:io' show Platform;
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:menu_base/menu_base.dart';
 import 'package:tray_manager/tray_manager.dart';
 
 /// Menu-bar (macOS) / system tray (Windows/Linux) integration.
+///
+/// Owns a [TrayListener] for the entire app lifetime so clicks and menu items
+/// keep working after the window is hidden.
 class TrayService {
   bool _initialized = false;
   final _listener = _TrayListener();
@@ -24,30 +30,19 @@ class TrayService {
     try {
       await trayManager.setIcon(
         'assets/branding/laterbox-menu-icon.png',
-        isTemplate: true,
+        isTemplate: Platform.isMacOS,
         iconSize: 16,
       );
       await trayManager.setToolTip('LaterBox');
       await trayManager.setContextMenu(
         Menu(items: [
-          MenuItem(
-            key: 'quick-capture',
-            label: 'Quick Capture',
-            onClick: (_) => onQuickCapture(),
-          ),
-          MenuItem(
-            key: 'open-laterbox',
-            label: 'Open LaterBox',
-            onClick: (_) => onOpenLaterBox(),
-          ),
+          MenuItem(key: 'quick_capture', label: 'Quick Capture'),
+          MenuItem(key: 'open_laterbox', label: 'Open LaterBox'),
           MenuItem.separator(),
-          MenuItem(
-            key: 'quit',
-            label: 'Quit LaterBox',
-            onClick: (_) => onQuit(),
-          ),
+          MenuItem(key: 'quit', label: 'Quit LaterBox'),
         ]),
       );
+      debugPrint('[LaterBox Desktop] tray initialized');
     } on PlatformException catch (error) {
       debugPrint('LaterBox tray could not be created: ${error.message}');
     }
@@ -67,5 +62,24 @@ class _TrayListener extends TrayListener {
   void Function()? onQuit;
 
   @override
-  void onTrayIconMouseDown() => onQuickCapture?.call();
+  void onTrayIconMouseDown() {
+    debugPrint('[LaterBox Desktop] tray clicked');
+    unawaited(trayManager.popUpContextMenu());
+  }
+
+  @override
+  void onTrayMenuItemClick(MenuItem item) {
+    debugPrint('[LaterBox Desktop] tray menu: ${item.key}');
+    switch (item.key) {
+      case 'quick_capture':
+        onQuickCapture?.call();
+        break;
+      case 'open_laterbox':
+        onOpenLaterBox?.call();
+        break;
+      case 'quit':
+        onQuit?.call();
+        break;
+    }
+  }
 }
