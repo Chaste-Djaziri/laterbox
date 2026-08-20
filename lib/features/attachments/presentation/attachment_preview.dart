@@ -70,10 +70,14 @@ class AttachmentDetailPreview extends StatelessWidget {
     super.key,
     required this.attachments,
     required this.storage,
+    this.showGallery = true,
+    this.showList = true,
   });
 
   final List<Attachment> attachments;
   final AttachmentStorage storage;
+  final bool showGallery;
+  final bool showList;
 
   @override
   Widget build(BuildContext context) {
@@ -88,22 +92,25 @@ class AttachmentDetailPreview extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (images.isNotEmpty) _ImageGallery(images: images, storage: storage),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
-          child: Text(
-            attachments.length == 1
-                ? 'Attachment'
-                : '${attachments.length} attachments',
-            style: Theme.of(context).textTheme.titleMedium
-                ?.copyWith(fontWeight: FontWeight.w800),
+        if (showGallery && images.isNotEmpty)
+          _ImageGallery(images: images, storage: storage),
+        if (showList) ...[
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
+            child: Text(
+              attachments.length == 1
+                  ? 'Attachment'
+                  : '${attachments.length} attachments',
+              style: Theme.of(context).textTheme.titleMedium
+                  ?.copyWith(fontWeight: FontWeight.w800),
+            ),
           ),
-        ),
-        for (final attachment in [...images, ...files])
-          _AttachmentRow(
-            attachment: attachment,
-            path: storage.resolveLocalPath(attachment.localPath),
-          ),
+          for (final attachment in [...images, ...files])
+            _AttachmentRow(
+              attachment: attachment,
+              path: storage.resolveLocalPath(attachment.localPath),
+            ),
+        ],
       ],
     );
   }
