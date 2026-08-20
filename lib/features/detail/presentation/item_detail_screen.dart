@@ -8,6 +8,8 @@ import '../../../shared/utils/media_embed_helper.dart';
 import '../../../shared/widgets/item_actions.dart';
 import '../../../shared/widgets/item_card.dart';
 import '../../../shared/widgets/media_embed_hero.dart';
+import '../../attachments/presentation/attachment_preview.dart';
+import '../../attachments/presentation/attachment_providers.dart';
 import '../../collections/presentation/collection_providers.dart';
 import '../../notes/presentation/item_note_section.dart';
 import 'detail_providers.dart';
@@ -78,8 +80,11 @@ class _ItemDetailBody extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final uri = item.url == null ? null : Uri.tryParse(item.url!);
+    final isFile = item.type == 'file';
     final eyebrow =
-        item.metadata?.domain ?? uri?.host.replaceFirst('www.', '') ?? 'Note';
+        item.metadata?.domain ??
+        uri?.host.replaceFirst('www.', '') ??
+        (isFile ? 'File' : 'Note');
     final capturedText = item.text?.trim();
     final isCaptured = capturedText != null && capturedText.isNotEmpty;
     final sourceTitle = item.metadata?.title ?? item.title;
@@ -92,11 +97,27 @@ class _ItemDetailBody extends ConsumerWidget {
     final description = item.metadata?.description;
     final collections = ref.watch(collectionsForItemProvider(item.id)).value;
     final embedInfo = MediaEmbedHelper.parse(item.url);
+    final attachments = isFile
+        ? ref.watch(attachmentsForItemProvider(item.id)).value
+        : null;
+    final attachmentStorage = isFile
+        ? ref.watch(attachmentStorageProvider).value
+        : null;
+    final hasAttachmentPreview =
+        attachments != null &&
+        attachments.isNotEmpty &&
+        attachmentStorage != null;
 
     return ListView(
       padding: const EdgeInsets.only(bottom: 40),
       children: [
-        if (embedInfo != null)
+        if (hasAttachmentPreview)
+          AttachmentDetailPreview(
+            attachments: attachments,
+            storage: attachmentStorage,
+            showList: false,
+          )
+        else if (embedInfo != null)
           MediaEmbedHero(
             embedInfo: embedInfo,
             fallbackCoverUrl: item.metadata?.previewImageUrl,
@@ -148,9 +169,8 @@ class _ItemDetailBody extends ConsumerWidget {
                   const SizedBox(height: 6),
                   Text(
                     sourceTitle,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
+                    style: Theme.of(context).textTheme.titleMedium
+                        ?.copyWith(fontWeight: FontWeight.w700),
                   ),
                 ],
                 if (item.url != null) ...[
@@ -201,6 +221,17 @@ class _ItemDetailBody extends ConsumerWidget {
             ],
           ),
         ),
+        if (hasAttachmentPreview)
+          AttachmentDetailPreview(
+            attachments: attachments,
+            storage: attachmentStorage,
+            showGallery: false,
+          )
+        else if (isFile)
+          const Padding(
+            padding: EdgeInsets.all(24),
+            child: Center(child: CircularProgressIndicator.adaptive()),
+          ),
         const SizedBox(height: 12),
         const Divider(height: 32),
         ItemNoteSection(itemId: item.id),
@@ -217,8 +248,8 @@ class _ItemDetailBody extends ConsumerWidget {
                   (collections?.isEmpty ?? true)
                       ? 'Not in a collection'
                       : collections!
-                          .map((collection) => collection.name)
-                          .join(', '),
+                            .map((collection) => collection.name)
+                            .join(', '),
                 ),
                 trailing: const Icon(Icons.chevron_right_rounded),
                 onTap: () => showCollectionPicker(context, ref, item.id),
