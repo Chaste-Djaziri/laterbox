@@ -32,7 +32,7 @@ class _DesktopSidebarState extends ConsumerState<DesktopSidebar> {
     final authState = ref.watch(authStateProvider);
     final isGuest = ref.watch(guestModeProvider);
 
-    final String userEmail = authState.asData?.value.user?.email ??
+    final String userEmail = authState.asData?.value.email ??
         (isGuest ? 'Guest Mode' : 'Account');
 
     return AnimatedContainer(
@@ -242,7 +242,7 @@ class _DesktopSidebarState extends ConsumerState<DesktopSidebar> {
                         const SizedBox(width: 10),
                         Expanded(
                           child: Column(
-                            crossAxisAlignment: CrossAlignment.start,
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Text(
