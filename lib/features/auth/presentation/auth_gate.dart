@@ -11,10 +11,12 @@ class AuthGate extends ConsumerWidget {
     super.key,
     this.initialIndex = 0,
     this.navigationShell,
+    this.child,
   });
 
   final int initialIndex;
   final StatefulNavigationShell? navigationShell;
+  final Widget? child;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -26,16 +28,18 @@ class AuthGate extends ConsumerWidget {
         body: Center(child: CircularProgressIndicator.adaptive()),
       ),
       error: (error, stackTrace) => guestMode
-          ? HomeShell(
-              selectedIndex: navigationShell?.currentIndex ?? initialIndex,
-              navigationShell: navigationShell,
-            )
+          ? (child ??
+              HomeShell(
+                selectedIndex: navigationShell?.currentIndex ?? initialIndex,
+                navigationShell: navigationShell,
+              ))
           : const AuthScreen(),
       data: (state) => state.isAuthenticated || guestMode
-          ? HomeShell(
-              selectedIndex: navigationShell?.currentIndex ?? initialIndex,
-              navigationShell: navigationShell,
-            )
+          ? (child ??
+              HomeShell(
+                selectedIndex: navigationShell?.currentIndex ?? initialIndex,
+                navigationShell: navigationShell,
+              ))
           : const AuthScreen(),
     );
   }
