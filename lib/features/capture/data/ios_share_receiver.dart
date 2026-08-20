@@ -1,6 +1,6 @@
 import 'package:flutter/services.dart';
 
-import '../domain/capture_payload.dart';
+import '../domain/native_share_payload.dart';
 
 class IosShareReceiver {
   const IosShareReceiver();
@@ -8,32 +8,29 @@ class IosShareReceiver {
   static const channelName = 'laterbox/ios_share';
   static const MethodChannel _channel = MethodChannel(channelName);
 
-  Future<List<CapturePayload>> consumePendingShares() async {
+  Future<List<NativeSharePayload>> consumePendingShares() async {
     final raw = await _channel.invokeMethod<List<dynamic>>('consumePending');
     if (raw == null || raw.isEmpty) return const [];
 
-    final payloads = <CapturePayload>[];
+    final payloads = <NativeSharePayload>[];
     for (final entry in raw.whereType<Map<dynamic, dynamic>>()) {
-      final id = entry['id'] as String?;
-      final value = (entry['value'] as String?)?.trim();
-      if (value == null || value.isEmpty) continue;
-      final createdAtText = entry['createdAt'] as String?;
-      final createdAt = createdAtText == null
-          ? null
-          : DateTime.tryParse(createdAtText);
-      payloads.add(
-        CapturePayload.fromValue(
-          value,
-          id: id,
-          createdAt: createdAt,
-          source: CaptureSource.iosShare,
-        ),
-      );
+      final normalized = Map<dynamic, dynamic>.from(entry);
+      if (normalized['text'] == null && normalized['value'] != null) {
+        normalized['text'] = normalized['value'];
+      }
+      final payload = NativeSharePayload.fromMap(normalized);
+      if (payload != null) payloads.add(payload);
     }
     return payloads;
   }
 
   Future<void> clearPending() async {
     await _channel.invokeMethod<void>('clearPending');
+  }
+
+  Future<void> acknowledge(Iterable<String> ids) async {
+    await _channel.invokeMethod<bool>('acknowledgePending', {
+      'ids': ids.toList(),
+    });
   }
 }
