@@ -3,7 +3,7 @@ import {
   disconnectLaterBox,
   getAccessToken,
 } from "../lib/auth";
-import { flushQueue, formatHighlight, saveCapture } from "../lib/capture";
+import { flushQueue, saveCapture, saveSelectionFromTab } from "../lib/capture";
 import { getPageContext, type PageContext } from "../lib/page";
 import { getConnectedUserId } from "../lib/storage";
 import { chromiumCapabilities } from "../platform/chromium";
@@ -147,21 +147,24 @@ async function saveCurrentPage(): Promise<void> {
 }
 
 async function saveHighlight(): Promise<void> {
-  const url = pageContext.url;
-  if (!highlightText || !/^https?:\/\//i.test(url)) {
+  if (!highlightText || chromiumCapabilities.isRestrictedUrl(pageContext.url)) {
     setStatus("No web highlight is available.", "error");
+    return;
+  }
+  if (activeTab === undefined) {
+    setStatus("No active tab is available.", "error");
     return;
   }
 
   saveHighlightButton.disabled = true;
   setStatus("Saving highlight...");
-  const result = await saveCapture({
-    text: formatHighlight(highlightText, url, pageContext.title),
-    title: pageContext.title,
-    source: "browserExtension",
-    createdAt: new Date().toISOString(),
-  });
-  await showCaptureResult(result, saveHighlightButton);
+  try {
+    const result = await saveSelectionFromTab(activeTab);
+    await showCaptureResult(result, saveHighlightButton);
+  } catch {
+    saveHighlightButton.disabled = false;
+    setStatus("No text is selected.", "error");
+  }
 }
 
 async function showCaptureResult(
