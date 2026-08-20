@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../features/enrichment/domain/content_type.dart';
 import '../../features/inbox/presentation/inbox_providers.dart';
-import '../models/laterbox_item.dart';
 
 class FilterChipBar extends ConsumerWidget {
   const FilterChipBar({super.key});
@@ -12,26 +11,22 @@ class FilterChipBar extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final activeFilter = ref.watch(inboxFilterProvider);
     final allItems = ref.watch(inboxItemsProvider).asData?.value ?? [];
-    final theme = Theme.of(context);
 
     int getCount(InboxFilterType filter) {
       if (filter == InboxFilterType.all) return allItems.length;
       return allItems.where((item) {
         switch (filter) {
           case InboxFilterType.starred:
-            return item.isFavorite;
+            return item.favorite;
           case InboxFilterType.notes:
             return item.url == null ||
-                (item.text != null && item.text!.isNotEmpty) ||
-                item.metadata?.classification?.type == ContentType.note;
+                (item.text != null && item.text!.isNotEmpty);
           case InboxFilterType.articles:
             return item.metadata?.classification?.type == ContentType.article;
           case InboxFilterType.videos:
             return item.metadata?.classification?.type == ContentType.video;
-          case InboxFilterType.audio:
-            return item.metadata?.classification?.type == ContentType.audio;
-          case InboxFilterType.images:
-            return item.metadata?.classification?.type == ContentType.image;
+          case InboxFilterType.music:
+            return item.metadata?.classification?.type == ContentType.music;
           case InboxFilterType.all:
             return true;
         }
@@ -39,7 +34,7 @@ class FilterChipBar extends ConsumerWidget {
     }
 
     return SizedBox(
-      height: 40,
+      height: 38,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 4),
