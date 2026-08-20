@@ -8,4 +8,6 @@ class SelectionCaptureService {
   Future<String?> readSelectedText() async => null;
 
   Future<String?> readFrontmostApplication() async => null;
+
+  Future<bool> isAccessibilityTrusted() async => false;
 }
