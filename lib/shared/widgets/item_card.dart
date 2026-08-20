@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import 'package:timeago/timeago.dart' as timeago;
 
 import '../../features/enrichment/domain/content_type.dart';
-import '../../features/detail/presentation/item_detail_screen.dart';
 import '../models/laterbox_item.dart';
 import 'item_actions.dart';
 
@@ -12,130 +11,191 @@ import 'item_actions.dart';
 /// Library and any future list. A card shows a cover image when enrichment
 /// provided one, otherwise it stays compact. Tapping opens the item detail
 /// screen; a long press surfaces the lifecycle actions.
-class ItemCard extends ConsumerWidget {
+class ItemCard extends ConsumerStatefulWidget {
   const ItemCard({super.key, required this.item});
 
   final LaterBoxItem item;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ItemCard> createState() => _ItemCardState();
+}
+
+class _ItemCardState extends ConsumerState<ItemCard> {
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
     final isDesktop = MediaQuery.sizeOf(context).width >= 700;
-    final cardPadding = isDesktop ? 14.0 : 18.0;
+    final cardPadding = isDesktop ? 16.0 : 18.0;
     final cardRadius = isDesktop ? 16.0 : 20.0;
-    final uri = item.url == null ? null : Uri.tryParse(item.url!);
+    final uri = widget.item.url == null ? null : Uri.tryParse(widget.item.url!);
     final eyebrow =
-        item.metadata?.domain ?? uri?.host.replaceFirst('www.', '') ?? 'Note';
+        widget.item.metadata?.domain ?? uri?.host.replaceFirst('www.', '') ?? 'Note';
     final title =
-        item.metadata?.title ??
-        item.title ??
-        item.url ??
-        item.text ??
+        widget.item.metadata?.title ??
+        widget.item.title ??
+        widget.item.url ??
+        widget.item.text ??
         'Untitled';
-    final capturedText = item.text?.trim();
+    final capturedText = widget.item.text?.trim();
     final isCaptured = capturedText != null && capturedText.isNotEmpty;
     final description =
-        isCaptured ? capturedText : item.metadata?.description?.trim();
-    final faviconUrl = item.metadata?.faviconUrl;
-    final coverUrl = item.metadata?.previewImageUrl;
+        isCaptured ? capturedText : widget.item.metadata?.description?.trim();
+    final faviconUrl = widget.item.metadata?.faviconUrl;
+    final coverUrl = widget.item.metadata?.previewImageUrl;
+    final theme = Theme.of(context);
+
+    final borderColor = _isHovered
+        ? theme.colorScheme.primary.withOpacity(0.6)
+        : theme.colorScheme.outline;
+
+    final backgroundColor = _isHovered
+        ? theme.colorScheme.surfaceContainerLow
+        : theme.colorScheme.surfaceContainerLowest;
 
     return Align(
       alignment: Alignment.topCenter,
       child: ConstrainedBox(
         constraints: BoxConstraints(
-          maxWidth: isDesktop ? 720 : double.infinity,
+          maxWidth: isDesktop ? 800 : double.infinity,
         ),
         child: Semantics(
-          label: '$eyebrow, $title, saved ${timeago.format(item.createdAt)}',
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
-              borderRadius: BorderRadius.circular(cardRadius),
-              onTap: () => context.go('/item/${item.id}'),
-              onLongPress: () => showItemActions(context, ref, item),
-              child: Container(
-                clipBehavior: Clip.antiAlias,
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surfaceContainerLowest,
+          label: '$eyebrow, $title, saved ${timeago.format(widget.item.createdAt)}',
+          child: MouseRegion(
+            onEnter: (_) => setState(() => _isHovered = true),
+            onExit: (_) => setState(() => _isHovered = false),
+            cursor: SystemMouseCursors.click,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 150),
+              curve: Curves.easeOutCubic,
+              transform: _isHovered && isDesktop
+                  ? (Matrix4.identity()..translate(0, -2, 0))
+                  : Matrix4.identity(),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
                   borderRadius: BorderRadius.circular(cardRadius),
-                  border: Border.all(
-                    color: Theme.of(context).colorScheme.outline,
-                  ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (coverUrl != null && coverUrl.isNotEmpty)
-                      ItemCoverImage(url: coverUrl),
-                    Padding(
-                      padding: EdgeInsets.all(cardPadding),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _CardGlyph(
-                            eyebrow: eyebrow,
-                            faviconUrl: faviconUrl,
-                            size: isDesktop ? 36 : 44,
-                          ),
-                          SizedBox(width: isDesktop ? 10 : 14),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  eyebrow.toUpperCase(),
-                                  style: Theme.of(context).textTheme.labelSmall
-                                      ?.copyWith(
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .onSurfaceVariant,
-                                        fontWeight: FontWeight.w800,
-                                        letterSpacing: 1.1,
+                  onTap: () => context.go('/item/${widget.item.id}'),
+                  onLongPress: () => showItemActions(context, ref, widget.item),
+                  child: Container(
+                    clipBehavior: Clip.antiAlias,
+                    decoration: BoxDecoration(
+                      color: backgroundColor,
+                      borderRadius: BorderRadius.circular(cardRadius),
+                      border: Border.all(color: borderColor, width: 1),
+                      boxShadow: _isHovered && isDesktop
+                          ? [
+                              BoxShadow(
+                                color: theme.colorScheme.shadow.withOpacity(0.08),
+                                blurRadius: 12,
+                                offset: const Offset(0, 4),
+                              ),
+                            ]
+                          : null,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (coverUrl != null && coverUrl.isNotEmpty)
+                          ItemCoverImage(url: coverUrl),
+                        Padding(
+                          padding: EdgeInsets.all(cardPadding),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _CardGlyph(
+                                eyebrow: eyebrow,
+                                faviconUrl: faviconUrl,
+                                size: isDesktop ? 40 : 44,
+                              ),
+                              SizedBox(width: isDesktop ? 12 : 14),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            eyebrow.toUpperCase(),
+                                            style: theme.textTheme.labelSmall
+                                                ?.copyWith(
+                                              color: theme
+                                                  .colorScheme
+                                                  .onSurfaceVariant,
+                                              fontWeight: FontWeight.w800,
+                                              letterSpacing: 1.1,
+                                            ),
+                                          ),
+                                        ),
+                                        if (isDesktop && _isHovered)
+                                          IconButton(
+                                            icon: const Icon(
+                                              Icons.more_horiz_rounded,
+                                              size: 18,
+                                            ),
+                                            padding: EdgeInsets.zero,
+                                            constraints: const BoxConstraints(),
+                                            visualDensity:
+                                                VisualDensity.compact,
+                                            tooltip: 'More actions',
+                                            onPressed: () => showItemActions(
+                                              context,
+                                              ref,
+                                              widget.item,
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 6),
+                                    ItemTypeBadge(item: widget.item),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      title,
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: theme.textTheme.titleMedium
+                                          ?.copyWith(
+                                        fontWeight: FontWeight.w700,
+                                        height: 1.3,
                                       ),
-                                ),
-                                const SizedBox(height: 6),
-                                ItemTypeBadge(item: item),
-                                const SizedBox(height: 4),
-                                Text(
-                                  title,
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: Theme.of(context).textTheme.titleMedium
-                                      ?.copyWith(fontWeight: FontWeight.w700),
-                                ),
-                                if (description != null &&
-                                    description.isNotEmpty) ...[
-                                  const SizedBox(height: 6),
-                                  Text(
-                                    isCaptured ? '“$description”' : description,
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .bodyMedium
-                                        ?.copyWith(
-                                          color: Theme.of(context)
+                                    ),
+                                    if (description != null &&
+                                        description.isNotEmpty) ...[
+                                      const SizedBox(height: 6),
+                                      Text(
+                                        isCaptured
+                                            ? '“$description”'
+                                            : description,
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: theme.textTheme.bodyMedium
+                                            ?.copyWith(
+                                          color: theme
                                               .colorScheme
                                               .onSurfaceVariant,
+                                          height: 1.4,
                                         ),
-                                  ),
-                                ],
-                                const SizedBox(height: 12),
-                                Text(
-                                  timeago.format(item.createdAt),
-                                  style: Theme.of(context).textTheme.bodySmall
-                                      ?.copyWith(
-                                        color: Theme.of(context)
+                                      ),
+                                    ],
+                                    const SizedBox(height: 12),
+                                    Text(
+                                      timeago.format(widget.item.createdAt),
+                                      style: theme.textTheme.bodySmall?.copyWith(
+                                        color: theme
                                             .colorScheme
                                             .onSurfaceVariant,
                                       ),
+                                    ),
+                                  ],
                                 ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               ),
             ),
