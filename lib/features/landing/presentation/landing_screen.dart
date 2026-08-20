@@ -1062,12 +1062,21 @@ class _AboutSection extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               Text(
-                'Built for Focus. Designed for Privacy.',
+                'About LaterBox',
                 textAlign: TextAlign.center,
                 style: theme.textTheme.headlineLarge?.copyWith(
                   fontWeight: FontWeight.w900,
                   letterSpacing: isMobile ? -0.5 : -1,
                   fontSize: isMobile ? 26 : (isDesktop ? 38 : 30),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Built for Focus. Designed for Privacy.',
+                textAlign: TextAlign.center,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  color: theme.colorScheme.primary,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
               const SizedBox(height: 16),
@@ -1326,7 +1335,7 @@ class _LandingFooter extends StatelessWidget {
                       links: [
                         ('Features', onFeaturesTap),
                         ('How It Works', onHowItWorksTap),
-                        ('About LaterBox', onAboutTap),
+                        ('About', onAboutTap),
                       ],
                     ),
                   ],
@@ -1358,7 +1367,7 @@ class _LandingFooter extends StatelessWidget {
                         links: [
                           ('Features', onFeaturesTap),
                           ('How It Works', onHowItWorksTap),
-                          ('About LaterBox', onAboutTap),
+                          ('About', onAboutTap),
                         ],
                       ),
                     ),
