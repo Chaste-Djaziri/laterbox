@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:laterbox/core/database/app_database.dart';
 import 'package:laterbox/core/database/database_providers.dart';
 import 'package:laterbox/core/desktop/desktop_providers.dart';
+import 'package:laterbox/core/settings/desktop_settings.dart';
 import 'package:laterbox/core/settings/desktop_shortcut.dart';
 import 'package:laterbox/core/settings/settings_providers.dart';
 import 'package:laterbox/features/settings/presentation/settings_screen.dart';
@@ -16,31 +17,32 @@ void main() {
   setUpAll(() {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(
-      const MethodChannel('dev.leanfy.hotkey_manager'),
-      (methodCall) async {
-        if (methodCall.method == 'register' || methodCall.method == 'unregister') {
-          return true;
-        }
-        return null;
-      },
-    );
+          const MethodChannel('dev.leanfy.hotkey_manager'),
+          (methodCall) async {
+            if (methodCall.method == 'register' ||
+                methodCall.method == 'unregister') {
+              return true;
+            }
+            return null;
+          },
+        );
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(
-      const MethodChannel('dev.fluttercommunity.plus/connectivity'),
-      (methodCall) async {
-        if (methodCall.method == 'check') {
-          return ['wifi'];
-        }
-        return null;
-      },
-    );
+          const MethodChannel('dev.fluttercommunity.plus/connectivity'),
+          (methodCall) async {
+            if (methodCall.method == 'check') {
+              return ['wifi'];
+            }
+            return null;
+          },
+        );
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(
-      const MethodChannel('com.alexmercerind/tray_manager'),
-      (methodCall) async {
-        return null;
-      },
-    );
+          const MethodChannel('com.alexmercerind/tray_manager'),
+          (methodCall) async {
+            return null;
+          },
+        );
   });
 
   Future<AppDatabase> pumpScreen(
@@ -56,13 +58,15 @@ void main() {
     addTearDown(database.close);
     final store = DesktopSettingsStore(database);
 
-    final container = ProviderContainer(overrides: [
-      appDatabaseProvider.overrideWithValue(database),
-      desktopSettingsStoreProvider.overrideWithValue(store),
-      accessibilityTrustedProvider.overrideWith(
-        (ref) async => accessibilityGranted,
-      ),
-    ]);
+    final container = ProviderContainer(
+      overrides: [
+        appDatabaseProvider.overrideWithValue(database),
+        desktopSettingsStoreProvider.overrideWithValue(store),
+        accessibilityTrustedProvider.overrideWith(
+          (ref) async => accessibilityGranted,
+        ),
+      ],
+    );
     addTearDown(container.dispose);
 
     await tester.pumpWidget(
@@ -83,7 +87,10 @@ void main() {
     expect(find.text('⌥ Space'), findsOneWidget);
     expect(find.text('Use selected text when available'), findsOneWidget);
     expect(find.text('Close Quick Capture when focus is lost'), findsOneWidget);
-    expect(find.text('Keep LaterBox running when window closes'), findsOneWidget);
+    expect(
+      find.text('Keep LaterBox running when window closes'),
+      findsOneWidget,
+    );
     expect(find.text('Launch LaterBox at login'), findsOneWidget);
     expect(find.text('Show LaterBox in menu bar'), findsOneWidget);
 
@@ -133,10 +140,16 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 200));
 
-    final store = DesktopSettingsStore(database);
-    final settings = await store.load();
-    expect(settings.quickCaptureShortcut.keyId,
-        PhysicalKeyboardKey.keyT.usbHidUsage);
+    final persisted = await database.readSetting(
+      DesktopSettingsKeys.quickCaptureShortcut,
+    );
+    final settings = DesktopSettings.fromKeyValues({
+      DesktopSettingsKeys.quickCaptureShortcut: persisted,
+    });
+    expect(
+      settings.quickCaptureShortcut.keyId,
+      PhysicalKeyboardKey.keyT.usbHidUsage,
+    );
     expect(settings.quickCaptureShortcut.modifiers, [DesktopModifier.meta]);
   });
 
