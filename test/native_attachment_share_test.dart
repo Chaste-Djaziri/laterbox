@@ -89,10 +89,18 @@ void main() {
       final result = await service.importFiles(
         sourcePaths: payload.filePaths,
         text: payload.text,
+        itemId: payload.id,
+      );
+      final retry = await service.importFiles(
+        sourcePaths: payload.filePaths,
+        text: payload.text,
+        itemId: payload.id,
       );
       await receiver.acknowledge([payload.id]);
 
       expect(result.saved, isTrue);
+      expect(retry.itemId, payload.id);
+      expect(retry.attachmentIds, result.attachmentIds);
       expect(result.attachmentIds, hasLength(2));
       expect(await database.watchInboxItems(null).first, hasLength(1));
       expect(acknowledged, [payload.id]);
