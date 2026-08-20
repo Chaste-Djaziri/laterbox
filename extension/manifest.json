@@ -21,7 +21,9 @@
   "host_permissions": [
     "https://*.supabase.co/*",
     "http://127.0.0.1:54321/*",
-    "http://localhost:54321/*",
+    "http://localhost:54321/*"
+  ],
+  "optional_host_permissions": [
     "http://*/*",
     "https://*/*"
   ],
