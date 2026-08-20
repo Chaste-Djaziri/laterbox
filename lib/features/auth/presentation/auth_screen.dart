@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/auth/auth_provider.dart';
@@ -49,6 +50,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
           email: _emailController.text,
           password: _passwordController.text,
         );
+        if (mounted) context.go('/inbox');
       }
     } on AuthException catch (error) {
       setState(() => _message = error.message);
@@ -136,8 +138,10 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                     TextButton(
                       onPressed: _busy
                           ? null
-                          : () => ref.read(guestModeProvider.notifier).state =
-                                true,
+                          : () {
+                              ref.read(guestModeProvider.notifier).state = true;
+                              context.go('/inbox');
+                            },
                       child: const Text('Continue without account'),
                     ),
                   ],
