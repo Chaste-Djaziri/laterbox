@@ -70,12 +70,18 @@ openPanelButton.addEventListener("click", () => {
 async function openSidePanel(): Promise<void> {
   if (activeTab?.id === undefined) return;
   try {
-    await chrome.sidePanel.setOptions({
-      tabId: activeTab.id,
-      path: "src/sidepanel/sidepanel.html",
-      enabled: true,
+    if (chrome.sidePanel?.setOptions && chrome.sidePanel?.open) {
+      await chrome.sidePanel.setOptions({
+        tabId: activeTab.id,
+        path: "src/sidepanel/sidepanel.html",
+        enabled: true,
+      });
+      await chrome.sidePanel.open({ tabId: activeTab.id });
+      return;
+    }
+    await chrome.tabs.create({
+      url: `${chrome.runtime.getURL("src/sidepanel/sidepanel.html")}?tabId=${activeTab.id}`,
     });
-    await chrome.sidePanel.open({ tabId: activeTab.id });
   } catch (error) {
     setStatus(error instanceof Error ? error.message : "Could not open side panel.", "error");
   }
