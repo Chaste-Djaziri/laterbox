@@ -9,8 +9,12 @@ class DesktopCaptureContextResolver {
   DesktopCaptureContextResolver({
     required SelectionCaptureService selectionService,
     required ClipboardCaptureService clipboardService,
-  })  : _selectionService = selectionService,
-        _clipboardService = clipboardService;
+  }) : this._(selectionService, clipboardService);
+
+  DesktopCaptureContextResolver._(
+    this._selectionService,
+    this._clipboardService,
+  );
 
   final SelectionCaptureService _selectionService;
   final ClipboardCaptureService _clipboardService;
