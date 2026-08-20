@@ -62,10 +62,10 @@ class _ExtensionConnectScreenState
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Text(
-                        'LaterBox',
-                        style: Theme.of(context).textTheme.headlineMedium
-                            ?.copyWith(fontWeight: FontWeight.w800),
+                      Image.asset(
+                        'assets/branding/laterbox-logo.png',
+                        height: 40,
+                        fit: BoxFit.contain,
                       ),
                       const SizedBox(height: 20),
                       Text(
