@@ -513,18 +513,39 @@ class _CardGlyph extends StatelessWidget {
 
     if (faviconUrl == null || faviconUrl!.isEmpty) return fallback;
 
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(size * 0.27),
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(size * 0.27),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.outlineVariant.withOpacity(0.5),
+          width: 0.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 2,
+            offset: const Offset(0, 1),
+          ),
+        ],
+      ),
+      clipBehavior: Clip.antiAlias,
       child: Stack(
         alignment: Alignment.center,
         children: [
           fallback,
           Positioned.fill(
-            child: Image.network(
-              faviconUrl!,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) =>
-                  const SizedBox.shrink(),
+            child: Container(
+              color: Colors.white,
+              padding: EdgeInsets.all(size * 0.12),
+              child: Image.network(
+                faviconUrl!,
+                fit: BoxFit.contain,
+                errorBuilder: (context, error, stackTrace) =>
+                    const SizedBox.shrink(),
+              ),
             ),
           ),
         ],
