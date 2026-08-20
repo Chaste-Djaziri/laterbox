@@ -6,6 +6,7 @@ import {
 import { flushQueue, formatHighlight, saveCapture } from "../lib/capture";
 import { getPageContext, type PageContext } from "../lib/page";
 import { getConnectedUserId } from "../lib/storage";
+import { chromiumCapabilities } from "../platform/chromium";
 
 const domainElement = document.querySelector<HTMLElement>("#domain")!;
 const titleElement = document.querySelector<HTMLElement>("#title")!;
@@ -94,7 +95,7 @@ async function disconnect(): Promise<void> {
 }
 
 async function savePage(): Promise<void> {
-  if (!/^https?:\/\//i.test(page.url)) {
+  if (chromiumCapabilities.isRestrictedUrl(page.url)) {
     setStatus("This page cannot be captured.", "error");
     return;
   }
@@ -109,7 +110,7 @@ async function savePage(): Promise<void> {
 }
 
 async function saveSelection(): Promise<void> {
-  if (!page.selection || !/^https?:\/\//i.test(page.url)) return;
+  if (!page.selection || chromiumCapabilities.isRestrictedUrl(page.url)) return;
   saveSelectionButton.disabled = true;
   setStatus("Saving selection...");
   await showResult(await saveCapture({
