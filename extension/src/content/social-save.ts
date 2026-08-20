@@ -35,7 +35,8 @@ function scanPosts(): void {
 function addSaveControl(post: Element): void {
   if (post.querySelector(`.${BUTTON_CLASS}`)) return;
   const url = permalinkFor(post);
-  const actionBar = findActionBar(post);
+  const instagramOverlay = isInstagramMediaPost(post);
+  const actionBar = instagramOverlay ? post : findActionBar(post);
   if (!url || !actionBar) return;
 
   const button = document.createElement("button");
@@ -59,7 +60,19 @@ function addSaveControl(post: Element): void {
     "cursor: pointer",
     "font: 700 11px/1 system-ui, sans-serif",
     "vertical-align: middle",
+    ...(instagramOverlay
+      ? [
+          "position: absolute",
+          "top: 12px",
+          "right: 12px",
+          "z-index: 10",
+        ]
+      : []),
   ].join(";");
+
+  if (instagramOverlay && getComputedStyle(post).position === "static") {
+    post.style.position = "relative";
+  }
 
   button.addEventListener("click", async (event) => {
     event.preventDefault();
@@ -84,6 +97,11 @@ function addSaveControl(post: Element): void {
   });
 
   actionBar.append(button);
+}
+
+function isInstagramMediaPost(post: Element): boolean {
+  return window.location.hostname.replace(/^www\./, "") === "instagram.com" &&
+      post.querySelector("img, video") !== null;
 }
 
 function findActionBar(post: Element): Element | null {
