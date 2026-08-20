@@ -584,7 +584,7 @@ packages:
     source: hosted
     version: "0.13.0"
   menu_base:
-    dependency: "direct main"
+    dependency: transitive
     description:
       name: menu_base
       sha256: "820368014a171bd1241030278e6c2617354f492f5c703d7b7d4570a6b8b84405"
