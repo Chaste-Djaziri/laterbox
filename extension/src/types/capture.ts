@@ -10,6 +10,7 @@ export type Capture = {
   url?: string;
   text?: string;
   title?: string;
+  selector?: { before?: string; after?: string };
   source: CaptureSource;
   createdAt: string;
 };
