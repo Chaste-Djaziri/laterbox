@@ -26,10 +26,19 @@ class QuickCaptureController extends ChangeNotifier {
     required ClipboardCaptureService clipboardService,
     required CaptureService captureService,
     bool enableBlurClose = false,
-  })  : enableBlurClose = enableBlurClose,
-        _desktopService = desktopService,
-        _clipboardService = clipboardService,
-        _captureService = captureService {
+  }) : this._(
+         desktopService,
+         clipboardService,
+         captureService,
+         enableBlurClose,
+       );
+
+  QuickCaptureController._(
+    this._desktopService,
+    this._clipboardService,
+    this._captureService,
+    this.enableBlurClose,
+  ) {
     _desktopService.addWindowBlurListener(_onWindowBlur);
     _desktopService.addWindowCloseListener(close);
   }
