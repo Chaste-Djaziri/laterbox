@@ -114,7 +114,7 @@ Future<void> showItemActions(
                 title: const Text('Open original'),
                 onTap: () {
                   Navigator.of(sheetContext).pop();
-                  openOriginal(context, item.url!);
+                  openOriginalForItem(context, item);
                 },
               ),
             ListTile(
@@ -169,6 +169,35 @@ Future<void> openOriginal(BuildContext context, String url) async {
       context,
     ).showSnackBar(const SnackBar(content: Text('Could not open link.')));
   }
+}
+
+/// Opens the original page at the saved quote using the browser-native text
+/// fragment feature (`#:~:text=...`). Chromium browsers scroll to and highlight
+/// the matching text; other browsers ignore the fragment and open the page
+/// normally.
+String? buildTextFragmentUrl(LaterBoxItem item) {
+  final url = item.url;
+  final text = item.text?.trim();
+  if (url == null || text == null || text.isEmpty) return null;
+
+  final directive = <String>[
+    if (item.selector.before case final before? when before.isNotEmpty)
+      '${Uri.encodeComponent(before)}-',
+    Uri.encodeComponent(text),
+    if (item.selector.after case final after? when after.isNotEmpty)
+      '-${Uri.encodeComponent(after)}',
+  ].join(',');
+
+  if (directive.length > 2000) return null;
+
+  final base = url.split('#').first;
+  return '$base#~:text=$directive';
+}
+
+Future<void> openOriginalForItem(BuildContext context, LaterBoxItem item) {
+  final url = buildTextFragmentUrl(item) ?? item.url;
+  if (url == null) return Future.value();
+  return openOriginal(context, url);
 }
 
 /// Bottom sheet listing every collection with a checkbox reflecting whether
