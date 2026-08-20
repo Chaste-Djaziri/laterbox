@@ -78,7 +78,7 @@ class _ItemCardState extends ConsumerState<ItemCard> {
                 child: InkWell(
                   borderRadius: BorderRadius.circular(cardRadius),
                   onHover: (hovered) => setState(() => _isHovered = hovered),
-                  onTap: () => context.go('/item/${widget.item.id}'),
+                  onTap: () => context.push('/item/${widget.item.id}'),
                   onLongPress: () => showItemActions(context, ref, widget.item),
                   child: Container(
                     clipBehavior: Clip.antiAlias,
