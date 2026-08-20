@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/database/app_database.dart';
@@ -227,9 +228,10 @@ class _AttachmentRow extends StatelessWidget {
         trailing: IconButton(
           tooltip: 'Open ${attachment.originalFileName}',
           icon: const Icon(Icons.open_in_new_rounded),
-          onPressed: () => openLocalAttachment(context, path),
+          onPressed: () =>
+              openLocalAttachment(context, path, attachment.mimeType),
         ),
-        onTap: () => openLocalAttachment(context, path),
+        onTap: () => openLocalAttachment(context, path, attachment.mimeType),
       ),
     );
   }
@@ -306,7 +308,11 @@ class _FilePreviewSurface extends StatelessWidget {
   }
 }
 
-Future<void> openLocalAttachment(BuildContext context, String path) async {
+Future<void> openLocalAttachment(
+  BuildContext context,
+  String path,
+  String mimeType,
+) async {
   final file = File(path);
   if (!await file.exists()) {
     if (context.mounted) {
@@ -316,15 +322,33 @@ Future<void> openLocalAttachment(BuildContext context, String path) async {
     }
     return;
   }
-  final opened = await launchUrl(
-    Uri.file(path),
-    mode: LaunchMode.externalApplication,
-  );
+  var opened = false;
+  try {
+    opened = await openAttachmentPath(path, mimeType);
+  } on PlatformException {
+    opened = false;
+  }
   if (!opened && context.mounted) {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Could not open this attachment.')),
     );
   }
+}
+
+@visibleForTesting
+Future<bool> openAttachmentPath(
+  String path,
+  String mimeType, {
+  bool? useAndroidChannel,
+}) async {
+  if (useAndroidChannel ?? Platform.isAndroid) {
+    return await const MethodChannel('laterbox/file_open').invokeMethod<bool>(
+          'openFile',
+          {'path': path, 'mimeType': mimeType},
+        ) ??
+        false;
+  }
+  return launchUrl(Uri.file(path), mode: LaunchMode.externalApplication);
 }
 
 String formatAttachmentBytes(int bytes) {
