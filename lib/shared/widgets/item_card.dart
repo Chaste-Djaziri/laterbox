@@ -253,16 +253,6 @@ class _ItemCoverImageState extends State<ItemCoverImage>
             if (frame == null) {
               return ColoredBox(
                 color: theme.colorScheme.surfaceContainerHighest,
-                child: Center(
-                  child: SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: theme.colorScheme.primary.withOpacity(0.4),
-                    ),
-                  ),
-                ),
               );
             }
             return AnimatedOpacity(
