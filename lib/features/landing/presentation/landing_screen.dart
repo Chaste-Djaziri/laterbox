@@ -37,7 +37,6 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final width = MediaQuery.sizeOf(context).width;
     final isDesktop = width >= 800;
 
@@ -45,38 +44,30 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
       body: SafeArea(
         child: Scrollbar(
           controller: _scrollController,
-          child: CustomScrollView(
+          child: ListView(
             controller: _scrollController,
-            slivers: [
-              SliverToBoxAdapter(
-                child: _LandingHeader(
-                  isDesktop: isDesktop,
-                  onFeaturesTap: () => _scrollToSection(_featuresKey),
-                  onHowItWorksTap: () => _scrollToSection(_howItWorksKey),
-                  onAboutTap: () => _scrollToSection(_aboutKey),
-                ),
+            children: [
+              _LandingHeader(
+                isDesktop: isDesktop,
+                onFeaturesTap: () => _scrollToSection(_featuresKey),
+                onHowItWorksTap: () => _scrollToSection(_howItWorksKey),
+                onAboutTap: () => _scrollToSection(_aboutKey),
               ),
-              SliverToBoxAdapter(
-                child: _HeroSection(isDesktop: isDesktop),
-              ),
-              SliverToBoxAdapter(
+              _HeroSection(isDesktop: isDesktop),
+              _FeaturesSection(
                 key: _featuresKey,
-                child: _FeaturesSection(isDesktop: isDesktop),
+                isDesktop: isDesktop,
               ),
-              SliverToBoxAdapter(
+              _HowItWorksSection(
                 key: _howItWorksKey,
-                child: _HowItWorksSection(isDesktop: isDesktop),
+                isDesktop: isDesktop,
               ),
-              SliverToBoxAdapter(
+              _AboutSection(
                 key: _aboutKey,
-                child: _AboutSection(isDesktop: isDesktop),
+                isDesktop: isDesktop,
               ),
-              SliverToBoxAdapter(
-                child: _CtaBannerSection(isDesktop: isDesktop),
-              ),
-              SliverToBoxAdapter(
-                child: _LandingFooter(isDesktop: isDesktop),
-              ),
+              _CtaBannerSection(isDesktop: isDesktop),
+              _LandingFooter(isDesktop: isDesktop),
             ],
           ),
         ),
@@ -112,7 +103,7 @@ class _LandingHeader extends ConsumerWidget {
         vertical: 16,
       ),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surface.withOpacity(0.9),
+        color: theme.colorScheme.surface.withOpacity(0.95),
         border: Border(
           bottom: BorderSide(
             color: theme.colorScheme.outlineVariant.withOpacity(0.4),
@@ -132,6 +123,11 @@ class _LandingHeader extends ConsumerWidget {
                 child: Image.asset(
                   'assets/branding/laterbox-icon.png',
                   fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) => Icon(
+                    Icons.bookmark_rounded,
+                    color: theme.colorScheme.primary,
+                    size: 24,
+                  ),
                 ),
               ),
               const SizedBox(width: 10),
@@ -522,7 +518,7 @@ class _DemoCardMockup extends StatelessWidget {
 }
 
 class _FeaturesSection extends StatelessWidget {
-  const _FeaturesSection({required this.isDesktop});
+  const _FeaturesSection({super.key, required this.isDesktop});
 
   final bool isDesktop;
 
@@ -569,6 +565,8 @@ class _FeaturesSection extends StatelessWidget {
       ),
     ];
 
+    final cardWidth = isDesktop ? 320.0 : double.infinity;
+
     return Container(
       padding: EdgeInsets.symmetric(
         horizontal: isDesktop ? 64 : 24,
@@ -597,61 +595,59 @@ class _FeaturesSection extends StatelessWidget {
           const SizedBox(height: 48),
           ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 1080),
-            child: GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: features.length,
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: isDesktop ? 3 : 1,
-                mainAxisSpacing: 20,
-                crossAxisSpacing: 20,
-                childAspectRatio: isDesktop ? 1.05 : 1.8,
-              ),
-              itemBuilder: (context, index) {
-                final item = features[index];
-                return Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.surface,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: theme.colorScheme.outlineVariant.withOpacity(0.5),
+            child: Wrap(
+              spacing: 20,
+              runSpacing: 20,
+              alignment: WrapAlignment.center,
+              children: features.map((item) {
+                return SizedBox(
+                  width: cardWidth,
+                  child: Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.surface,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color:
+                            theme.colorScheme.outlineVariant.withOpacity(0.5),
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.primaryContainer,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Icon(
+                            item.icon,
+                            color: theme.colorScheme.primary,
+                            size: 24,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          item.title,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          item.description,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                            height: 1.4,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.primaryContainer,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Icon(
-                          item.icon,
-                          color: theme.colorScheme.primary,
-                          size: 24,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        item.title,
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        item.description,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                          height: 1.4,
-                        ),
-                      ),
-                    ],
-                  ),
                 );
-              },
+              }).toList(),
             ),
           ),
         ],
@@ -661,7 +657,7 @@ class _FeaturesSection extends StatelessWidget {
 }
 
 class _HowItWorksSection extends StatelessWidget {
-  const _HowItWorksSection({required this.isDesktop});
+  const _HowItWorksSection({super.key, required this.isDesktop});
 
   final bool isDesktop;
 
@@ -761,7 +757,7 @@ class _HowItWorksSection extends StatelessWidget {
 }
 
 class _AboutSection extends StatelessWidget {
-  const _AboutSection({required this.isDesktop});
+  const _AboutSection({super.key, required this.isDesktop});
 
   final bool isDesktop;
 
