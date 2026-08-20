@@ -19,14 +19,19 @@ class GlobalHotkeyService {
   /// Registers [quickCaptureHotKey]. Returns `true` when the hotkey was
   /// successfully registered, `false` when it could not be taken (for example
   /// because another application already uses it).
-  Future<bool> register({required void Function() onTriggered}) async {
+  Future<bool> register({required Future<void> Function() onTriggered}) async {
     await unregister();
     try {
       await hotKeyManager.register(
         quickCaptureHotKey,
         keyDownHandler: (_) {
           debugPrint('[LaterBox Desktop] ⌥Space fired');
-          onTriggered();
+          onTriggered().catchError(
+            (Object error, StackTrace stackTrace) {
+              debugPrint('[LaterBox Desktop] hotkey callback FAILED: $error');
+              debugPrintStack(stackTrace: stackTrace);
+            },
+          );
         },
       );
       _registered = quickCaptureHotKey;
