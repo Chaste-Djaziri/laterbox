@@ -1,12 +1,43 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:laterbox/core/database/app_database.dart';
 import 'package:laterbox/features/attachments/data/attachment_storage.dart';
 import 'package:laterbox/features/attachments/presentation/attachment_preview.dart';
 
 void main() {
+  test(
+    'Android opens attachments through the native content URI channel',
+    () async {
+      const channel = MethodChannel('laterbox/file_open');
+      MethodCall? received;
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (call) async {
+            received = call;
+            return true;
+          });
+      addTearDown(
+        () => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+            .setMockMethodCallHandler(channel, null),
+      );
+
+      final opened = await openAttachmentPath(
+        '/private/attachments/original.pdf',
+        'application/pdf',
+        useAndroidChannel: true,
+      );
+
+      expect(opened, isTrue);
+      expect(received?.method, 'openFile');
+      expect(received?.arguments, {
+        'path': '/private/attachments/original.pdf',
+        'mimeType': 'application/pdf',
+      });
+    },
+  );
+
   testWidgets('shows a type specific card and the remaining file count', (
     tester,
   ) async {
