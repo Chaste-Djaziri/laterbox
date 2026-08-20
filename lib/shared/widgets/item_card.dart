@@ -403,6 +403,7 @@ class ItemCoverImage extends StatefulWidget {
 class _ItemCoverImageState extends State<ItemCoverImage>
     with AutomaticKeepAliveClientMixin {
   bool _failed = false;
+  bool _usingProxy = false;
 
   @override
   bool get wantKeepAlive => true;
@@ -411,8 +412,19 @@ class _ItemCoverImageState extends State<ItemCoverImage>
   void didUpdateWidget(covariant ItemCoverImage oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.url != widget.url) {
-      setState(() => _failed = false);
+      setState(() {
+        _failed = false;
+        _usingProxy = false;
+      });
     }
+  }
+
+  String _getEffectiveUrl() {
+    if (_usingProxy) {
+      final clean = widget.url.replaceFirst(RegExp(r'^https?://'), '');
+      return 'https://images.weserv.nl/?url=${Uri.encodeComponent(clean)}';
+    }
+    return widget.url;
   }
 
   @override
@@ -421,6 +433,7 @@ class _ItemCoverImageState extends State<ItemCoverImage>
     if (_failed) return const SizedBox.shrink();
 
     final theme = Theme.of(context);
+    final currentUrl = _getEffectiveUrl();
 
     return AspectRatio(
       key: const Key('itemCardCover'),
@@ -428,7 +441,7 @@ class _ItemCoverImageState extends State<ItemCoverImage>
       child: Container(
         color: theme.colorScheme.surfaceContainerHighest,
         child: Image.network(
-          widget.url,
+          currentUrl,
           fit: BoxFit.cover,
           gaplessPlayback: true,
           frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
@@ -445,7 +458,10 @@ class _ItemCoverImageState extends State<ItemCoverImage>
           },
           errorBuilder: (context, error, stackTrace) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (mounted && !_failed) {
+              if (!mounted) return;
+              if (!_usingProxy) {
+                setState(() => _usingProxy = true);
+              } else if (!_failed) {
                 setState(() => _failed = true);
               }
             });
