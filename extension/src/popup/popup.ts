@@ -31,7 +31,11 @@ async function initialize(): Promise<void> {
   activeTab = (await chrome.tabs.query({ active: true, currentWindow: true }))[0];
   if (activeTab?.id !== undefined) {
     try {
-      pageContext = await getPageContext(activeTab.id);
+      pageContext = await getPageContext(activeTab.id, {
+        url: activeTab.url ?? "",
+        title: activeTab.title ?? "",
+        selection: "",
+      });
     } catch {
       pageContext = {
         url: activeTab.url ?? "",
