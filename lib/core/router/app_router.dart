@@ -7,13 +7,21 @@ import '../../features/extension/presentation/extension_connect_screen.dart';
 import '../../features/extension/presentation/extension_connected_screen.dart';
 import '../../features/home/presentation/home_shell.dart';
 import '../../features/inbox/presentation/inbox_screen.dart';
+import '../../features/landing/presentation/landing_screen.dart';
 import '../../features/library/presentation/library_screen.dart';
 import '../../features/search/presentation/search_screen.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   final router = GoRouter(
-    initialLocation: '/inbox',
+    initialLocation: '/',
     routes: [
+      GoRoute(
+        path: '/',
+        pageBuilder: (context, state) => NoTransitionPage(
+          key: state.pageKey,
+          child: const LandingScreen(),
+        ),
+      ),
       GoRoute(
         path: '/extension/connect',
         pageBuilder: (context, state) => NoTransitionPage(
@@ -82,7 +90,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
         ],
       ),
-      GoRoute(path: '/', redirect: (context, state) => '/inbox'),
     ],
   );
   ref.onDispose(router.dispose);
