@@ -4,9 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'core/enrichment/enrichment_providers.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
-import 'core/enrichment/enrichment_providers.dart';
+import 'core/theme/scroll_behavior.dart';
 import 'features/capture/domain/capture_providers.dart';
 
 class LaterBoxApp extends ConsumerStatefulWidget {
@@ -82,6 +83,7 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
       routerConfig: ref.watch(appRouterProvider),
+      scrollBehavior: const LaterBoxScrollBehavior(),
     );
   }
 }
