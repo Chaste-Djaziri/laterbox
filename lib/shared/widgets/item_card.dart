@@ -50,7 +50,7 @@ class ItemCard extends ConsumerWidget {
             color: Colors.transparent,
             child: InkWell(
               borderRadius: BorderRadius.circular(cardRadius),
-              onTap: () => context.push('/item/${item.id}'),
+              onTap: () => context.go('/item/${item.id}'),
               onLongPress: () => showItemActions(context, ref, item),
               child: Container(
                 clipBehavior: Clip.antiAlias,
