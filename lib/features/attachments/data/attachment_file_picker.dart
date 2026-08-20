@@ -11,7 +11,7 @@ class NativeAttachmentFilePicker implements AttachmentFilePicker {
 
   @override
   Future<List<String>> pickFiles() async {
-    final result = await FilePicker.pickFiles(
+    final result = await FilePicker.platform.pickFiles(
       allowMultiple: true,
       type: FileType.custom,
       allowedExtensions: attachmentMimeTypes.keys.toSet().toList(),
