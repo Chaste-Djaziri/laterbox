@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'core/desktop/desktop_actions.dart';
 import 'core/desktop/desktop_providers.dart';
 import 'core/enrichment/enrichment_providers.dart';
 import 'core/router/app_router.dart';
@@ -44,12 +45,29 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
   }
 
   void _initDesktop() {
-    final desktop = ref.read(desktopServiceProvider);
-    final controller = ref.read(quickCaptureControllerProvider);
-    unawaited(desktop.initialize(
-      onQuickCapture: () => controller.open(),
-      onOpenLaterBox: () => controller.openLaterBox(),
-    ));
+    unawaited(_initializeDesktop());
+  }
+
+  Future<void> _initializeDesktop() async {
+    try {
+      final actions = ref.read(desktopActionsProvider);
+      final desktop = ref.read(desktopServiceProvider);
+
+      await desktop.initialize();
+      await ref
+          .read(globalHotkeyServiceProvider)
+          .register(onTriggered: actions.openQuickCapture);
+      await ref
+          .read(trayServiceProvider)
+          .init(
+            onQuickCapture: actions.openQuickCapture,
+            onOpenLaterBox: actions.openLaterBox,
+            onQuit: desktop.quit,
+          );
+    } on Object catch (error, stackTrace) {
+      debugPrint('[LaterBox Desktop] desktop initialization FAILED: $error');
+      debugPrintStack(stackTrace: stackTrace);
+    }
   }
 
   void _drainPendingShares() {
