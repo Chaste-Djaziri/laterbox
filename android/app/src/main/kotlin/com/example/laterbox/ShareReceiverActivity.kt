@@ -21,6 +21,8 @@ import java.util.UUID
 
 class ShareReceiverActivity : Activity() {
 
+    private data class StagedShare(val paths: List<String>, val failureCount: Int)
+
     private lateinit var pendingShares: PendingShareQueue
     private lateinit var spinner: ProgressBar
     private lateinit var icon: TextView
@@ -120,17 +122,24 @@ class ShareReceiverActivity : Activity() {
             val result = runCatching { stageSharedFiles(captureId, uris) }
             runOnUiThread {
                 result.fold(
-                    onSuccess = { paths ->
+                    onSuccess = { staged ->
+                        if (staged.paths.isEmpty() && text == null) {
+                            deleteStagedCapture(captureId)
+                            showFailure("Couldn't read the shared files")
+                            return@fold
+                        }
                         val capture = PendingShareCapture(
                             id = captureId,
                             text = text,
-                            filePaths = paths,
+                            filePaths = staged.paths,
                             createdAt = Instant.now().toString(),
                         )
                         if (pendingShares.enqueue(capture)) {
                             val subtitle = when {
-                                paths.size > 1 -> "${paths.size} files"
-                                paths.size == 1 -> File(paths.first()).name
+                                staged.failureCount > 0 ->
+                                    "${staged.paths.size} saved, ${staged.failureCount} couldn't be read"
+                                staged.paths.size > 1 -> "${staged.paths.size} files"
+                                staged.paths.size == 1 -> File(staged.paths.first()).name
                                 text != null -> displaySubtitle(text)
                                 else -> null
                             }
@@ -157,23 +166,30 @@ class ShareReceiverActivity : Activity() {
         else -> emptyList()
     }.distinct()
 
-    private fun stageSharedFiles(captureId: String, uris: List<Uri>): List<String> {
-        if (uris.isEmpty()) return emptyList()
+    private fun stageSharedFiles(captureId: String, uris: List<Uri>): StagedShare {
+        if (uris.isEmpty()) return StagedShare(emptyList(), 0)
         val directory = File(filesDir, "${PendingShareQueue.STAGING_DIRECTORY}/$captureId")
         check(directory.mkdirs() || directory.isDirectory) {
             "Couldn't create LaterBox staging storage"
         }
         val usedNames = mutableSetOf<String>()
-        return uris.mapIndexed { index, uri ->
-            val displayName = queryDisplayName(uri)
-                ?: fallbackFileName(uri, contentResolver.getType(uri) ?: intent?.type, index)
-            val safeName = uniqueSafeName(displayName, usedNames)
-            val destination = File(directory, safeName)
-            contentResolver.openInputStream(uri)?.use { input ->
-                destination.outputStream().use { output -> input.copyTo(output) }
-            } ?: error("Couldn't read ${displayName.take(80)}")
-            destination.absolutePath
+        var failureCount = 0
+        val paths = uris.mapIndexedNotNull { index, uri ->
+            runCatching {
+                val displayName = queryDisplayName(uri)
+                    ?: fallbackFileName(uri, contentResolver.getType(uri) ?: intent?.type, index)
+                val safeName = uniqueSafeName(displayName, usedNames)
+                val destination = File(directory, safeName)
+                contentResolver.openInputStream(uri)?.use { input ->
+                    destination.outputStream().use { output -> input.copyTo(output) }
+                } ?: error("Couldn't read ${displayName.take(80)}")
+                destination.absolutePath
+            }.getOrElse {
+                failureCount += 1
+                null
+            }
         }
+        return StagedShare(paths, failureCount)
     }
 
     private fun queryDisplayName(uri: Uri): String? = runCatching {
