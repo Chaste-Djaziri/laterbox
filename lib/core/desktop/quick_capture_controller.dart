@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import '../../features/capture/domain/capture_payload.dart';
 import '../../features/capture/domain/capture_service.dart';
 import 'clipboard_capture_service.dart';
+import 'desktop_capture_context.dart';
 import 'desktop_service.dart';
 
 /// Blur→close delay, short enough to feel responsive but long enough to
@@ -14,8 +15,11 @@ const successVisibleDuration = Duration(milliseconds: 450);
 
 enum QuickCaptureStatus { idle, active, saving, success }
 
-/// Drives the desktop quick capture flow:
-/// hotkey/tray → small focused window → save → disappear.
+/// Drives the desktop quick capture state machine.
+///
+/// Owns no window logic: [DesktopActions] decides how the window is shown and
+/// restored/hidden. This class only tracks capture state and persists values
+/// through the shared capture pipeline.
 class QuickCaptureController extends ChangeNotifier {
   QuickCaptureController({
     required DesktopService desktopService,
@@ -40,6 +44,7 @@ class QuickCaptureController extends ChangeNotifier {
 
   QuickCaptureStatus _status = QuickCaptureStatus.idle;
   String? _prefillText;
+  String? _sourceApplication;
   String? _draft;
   String? _clipboardTextAtCaptureStart;
   Timer? _blurTimer;
@@ -50,6 +55,7 @@ class QuickCaptureController extends ChangeNotifier {
   bool get isActive => _status != QuickCaptureStatus.idle;
   bool get isSaving => _status == QuickCaptureStatus.saving;
   String? get prefillText => _prefillText;
+  String? get sourceApplication => _sourceApplication;
 
   void updateDraft(String value) {
     _draft = value;
@@ -59,47 +65,68 @@ class QuickCaptureController extends ChangeNotifier {
     _draft = null;
   }
 
-  /// Opens the quick capture flow. Called from [DesktopActions].
+  /// Opens the quick capture flow. Called from [DesktopActions] with a
+  /// resolved capture context (selection → clipboard URL → clipboard text).
   ///
-  /// Only manages capture state; the native window is shown afterwards by
-  /// [DesktopActions.openQuickCapture] so the first visible frame is already
-  /// the quick capture UI.
-  Future<void> open() async {
+  /// When [context] is omitted, falls back to clipboard resolution so unit
+  /// tests and older call sites keep working.
+  Future<void> open({DesktopCaptureContext? context}) async {
     if (_disposed || isActive) return;
     _successTimer?.cancel();
 
-    final clipboard = await _clipboardService.readText();
-    final hasDraft = _draft != null && _draft!.trim().isNotEmpty;
-    String? prefill;
-    if (hasDraft && clipboard == _clipboardTextAtCaptureStart) {
-      prefill = _draft;
-    } else if (clipboard != null && ClipboardCaptureService.isUrl(clipboard)) {
-      prefill = clipboard;
-    }
-
-    _clipboardTextAtCaptureStart = clipboard;
-    _prefillText = prefill;
+    final resolved = context ?? await _resolveContext();
+    _prefillText = resolved.type == DesktopCaptureContextType.empty
+        ? null
+        : resolved.value;
+    _sourceApplication = resolved.sourceApplication;
     _status = QuickCaptureStatus.active;
     notifyListeners();
   }
 
-  /// Saves the current draft via the shared capture pipeline, then disappears.
-  Future<void> save() async {
-    if (_disposed || _status == QuickCaptureStatus.idle) return;
-    if (_status == QuickCaptureStatus.saving) return;
-    final value = (_draft ?? '').trim();
-    if (value.isEmpty) {
+  Future<DesktopCaptureContext> _resolveContext() async {
+    final clipboard = await _clipboardService.readText();
+    _clipboardTextAtCaptureStart = clipboard;
+    final hasDraft = _draft != null && _draft!.trim().isNotEmpty;
+    if (hasDraft && clipboard == _clipboardTextAtCaptureStart) {
+      return DesktopCaptureContext(
+        type: DesktopCaptureContextType.clipboardText,
+        value: _draft!,
+      );
+    }
+    final value = clipboard?.trim();
+    if (value == null || value.isEmpty) {
+      return const DesktopCaptureContext(
+        type: DesktopCaptureContextType.empty,
+        value: '',
+      );
+    }
+    return DesktopCaptureContext(
+      type: ClipboardCaptureService.isUrl(value)
+          ? DesktopCaptureContextType.clipboardUrl
+          : DesktopCaptureContextType.clipboardText,
+      value: value,
+    );
+  }
+
+  /// Saves an explicit value through the shared capture pipeline, then shows a
+  /// brief success state before returning to idle.
+  Future<void> saveValue(String value) async {
+    if (_disposed) return;
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) {
       await close();
       return;
     }
+    if (_status == QuickCaptureStatus.saving) return;
 
+    _draft = value;
     _status = QuickCaptureStatus.saving;
     notifyListeners();
 
     try {
       await _captureService.save(
         CapturePayload.fromValue(
-          value,
+          trimmed,
           source: CaptureSource.desktopQuickCapture,
         ),
       );
@@ -118,15 +145,19 @@ class QuickCaptureController extends ChangeNotifier {
     }
   }
 
-  /// Hides the capture window and resets state.
+  /// Saves the current draft. Convenience for tests and legacy call sites.
+  Future<void> save() => saveValue(_draft ?? '');
+
+  /// Resets capture state. Does not touch the window; [DesktopActions] decides
+  /// whether to restore or hide it.
   Future<void> close() async {
     _blurTimer?.cancel();
     _successTimer?.cancel();
     if (_disposed) return;
     _status = QuickCaptureStatus.idle;
     _prefillText = null;
+    _sourceApplication = null;
     notifyListeners();
-    await _desktopService.hideMainWindow();
   }
 
   void _onWindowBlur() {
