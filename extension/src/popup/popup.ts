@@ -60,6 +60,8 @@ async function updateConnectionState(): Promise<boolean> {
   const connected = token.startsWith("lb_ext_") && userId.length > 0;
   disconnectedPanel.hidden = connected;
   connectedPanel.hidden = !connected;
+  connectButton.hidden = connected;
+  disconnectButton.hidden = !connected;
 
   if (connected) {
     const flushed = await flushQueue();
