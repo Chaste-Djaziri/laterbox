@@ -44,6 +44,6 @@ The popup connects through the LaterBox web approval screen. The extension store
 4. Choose Load unpacked.
 5. Select `extension/dist`.
 
-The extension also adds page, link, and selection context menu actions. Failed captures remain in `chrome.storage.local` and retry when the service worker starts or the popup opens.
+The extension also adds page, link, and selection context menu actions, plus `Command+Shift+L` / `Ctrl+Shift+L` for quick capture and a persistent side panel. Failed captures remain in `chrome.storage.local` and retry when the service worker starts or the popup opens.
 
-Supported social and media feeds receive a small LaterBox action beside individual post, reel, video, and pin action bars. Opening the popup while text is selected shows a highlight card that saves the exact selection as a quoted note with its source title and URL.
+The generic page context reader uses a canonical URL when the page provides one. Opening the popup or side panel while text is selected shows a highlight card that saves the exact selection as a quoted note with its source title and URL. Social links are captured through the same toolbar and context menu actions without relying on social site markup.
