@@ -12,9 +12,12 @@ import '../../features/landing/presentation/landing_screen.dart';
 import '../../features/library/presentation/library_screen.dart';
 import '../../features/search/presentation/search_screen.dart';
 
+final initialLocationProvider = Provider<String>((ref) => '/');
+
 final appRouterProvider = Provider<GoRouter>((ref) {
+  final initialLocation = ref.watch(initialLocationProvider);
   final router = GoRouter(
-    initialLocation: '/',
+    initialLocation: initialLocation,
     routes: [
       GoRoute(
         path: '/',
