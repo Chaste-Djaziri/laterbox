@@ -50,20 +50,7 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
 
   Future<void> _initializeDesktop() async {
     try {
-      final actions = ref.read(desktopActionsProvider);
-      final desktop = ref.read(desktopServiceProvider);
-
-      await desktop.initialize();
-      await ref
-          .read(globalHotkeyServiceProvider)
-          .register(onTriggered: actions.openQuickCapture);
-      await ref
-          .read(trayServiceProvider)
-          .init(
-            onQuickCapture: actions.openQuickCapture,
-            onOpenLaterBox: actions.openLaterBox,
-            onQuit: desktop.quit,
-          );
+      await ref.read(desktopActionsProvider).applyStartup();
     } on Object catch (error, stackTrace) {
       debugPrint('[LaterBox Desktop] desktop initialization FAILED: $error');
       debugPrintStack(stackTrace: stackTrace);
