@@ -499,35 +499,50 @@ class _HeroSection extends ConsumerWidget {
                     ],
                   ),
                   const SizedBox(height: 16),
-                  Flex(
-                    direction: isMobile ? Axis.vertical : Axis.horizontal,
-                    children: [
-                      const Expanded(
-                        flex: 1,
-                        child: _DemoCardMockup(
+                  if (isMobile)
+                    const Column(
+                      children: [
+                        _DemoCardMockup(
                           icon: Icons.play_circle_fill_rounded,
                           iconColor: Colors.red,
                           domain: 'youtube.com',
                           title: 'Flutter Desktop 3.29 Complete Guide',
                           tag: 'Video',
                         ),
-                      ),
-                      SizedBox(
-                        width: isMobile ? 0 : 12,
-                        height: isMobile ? 10 : 0,
-                      ),
-                      const Expanded(
-                        flex: 1,
-                        child: _DemoCardMockup(
+                        SizedBox(height: 10),
+                        _DemoCardMockup(
                           icon: Icons.article_rounded,
                           iconColor: Colors.blue,
                           domain: 'github.com',
                           title: 'Building Universal Extensions with MV3',
                           tag: 'Article',
                         ),
-                      ),
-                    ],
-                  ),
+                      ],
+                    )
+                  else
+                    const Row(
+                      children: [
+                        Expanded(
+                          child: _DemoCardMockup(
+                            icon: Icons.play_circle_fill_rounded,
+                            iconColor: Colors.red,
+                            domain: 'youtube.com',
+                            title: 'Flutter Desktop 3.29 Complete Guide',
+                            tag: 'Video',
+                          ),
+                        ),
+                        SizedBox(width: 12),
+                        Expanded(
+                          child: _DemoCardMockup(
+                            icon: Icons.article_rounded,
+                            iconColor: Colors.blue,
+                            domain: 'github.com',
+                            title: 'Building Universal Extensions with MV3',
+                            tag: 'Article',
+                          ),
+                        ),
+                      ],
+                    ),
                 ],
               ),
             ),
