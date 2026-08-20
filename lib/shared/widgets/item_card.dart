@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:timeago/timeago.dart' as timeago;
 
+import '../../features/attachments/presentation/attachment_preview.dart';
+import '../../features/attachments/presentation/attachment_providers.dart';
 import '../../features/enrichment/domain/content_type.dart';
 import '../models/laterbox_item.dart';
 import 'item_actions.dart';
@@ -12,11 +14,7 @@ import 'item_actions.dart';
 /// provided one, otherwise it stays compact. Tapping opens the item detail
 /// screen; a long press surfaces the lifecycle actions.
 class ItemCard extends ConsumerStatefulWidget {
-  const ItemCard({
-    super.key,
-    required this.item,
-    this.isGrid = false,
-  });
+  const ItemCard({super.key, required this.item, this.isGrid = false});
 
   final LaterBoxItem item;
   final bool isGrid;
@@ -34,8 +32,11 @@ class _ItemCardState extends ConsumerState<ItemCard> {
     final cardPadding = isDesktop ? (widget.isGrid ? 10.0 : 16.0) : 18.0;
     final cardRadius = isDesktop ? 16.0 : 20.0;
     final uri = widget.item.url == null ? null : Uri.tryParse(widget.item.url!);
+    final isFile = widget.item.type == 'file';
     final eyebrow =
-        widget.item.metadata?.domain ?? uri?.host.replaceFirst('www.', '') ?? 'Note';
+        widget.item.metadata?.domain ??
+        uri?.host.replaceFirst('www.', '') ??
+        (isFile ? 'File' : 'Note');
     final title =
         widget.item.metadata?.title ??
         widget.item.title ??
@@ -44,10 +45,17 @@ class _ItemCardState extends ConsumerState<ItemCard> {
         'Untitled';
     final capturedText = widget.item.text?.trim();
     final isCaptured = capturedText != null && capturedText.isNotEmpty;
-    final description =
-        isCaptured ? capturedText : widget.item.metadata?.description?.trim();
+    final description = isCaptured
+        ? capturedText
+        : widget.item.metadata?.description?.trim();
     final faviconUrl = widget.item.metadata?.faviconUrl;
     final coverUrl = widget.item.metadata?.previewImageUrl;
+    final attachments = isFile
+        ? ref.watch(attachmentsForItemProvider(widget.item.id)).value
+        : null;
+    final attachmentStorage = isFile
+        ? ref.watch(attachmentStorageProvider).value
+        : null;
     final theme = Theme.of(context);
 
     final borderColor = _isHovered
@@ -63,10 +71,13 @@ class _ItemCardState extends ConsumerState<ItemCard> {
         alignment: Alignment.topCenter,
         child: ConstrainedBox(
           constraints: BoxConstraints(
-            maxWidth: widget.isGrid ? double.infinity : (isDesktop ? 800 : double.infinity),
+            maxWidth: widget.isGrid
+                ? double.infinity
+                : (isDesktop ? 800 : double.infinity),
           ),
           child: Semantics(
-            label: '$eyebrow, $title, saved ${timeago.format(widget.item.createdAt)}',
+            label:
+                '$eyebrow, $title, saved ${timeago.format(widget.item.createdAt)}',
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 150),
               curve: Curves.easeOutCubic,
@@ -89,7 +100,9 @@ class _ItemCardState extends ConsumerState<ItemCard> {
                       boxShadow: _isHovered && isDesktop
                           ? [
                               BoxShadow(
-                                color: theme.colorScheme.shadow.withOpacity(0.08),
+                                color: theme.colorScheme.shadow.withOpacity(
+                                  0.08,
+                                ),
                                 blurRadius: 12,
                                 offset: const Offset(0, 4),
                               ),
@@ -100,7 +113,14 @@ class _ItemCardState extends ConsumerState<ItemCard> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        if (coverUrl != null && coverUrl.isNotEmpty)
+                        if (attachments != null &&
+                            attachments.isNotEmpty &&
+                            attachmentStorage != null)
+                          AttachmentCardPreview(
+                            attachments: attachments,
+                            storage: attachmentStorage,
+                          )
+                        else if (coverUrl != null && coverUrl.isNotEmpty)
                           ItemCoverImage(url: coverUrl)
                         else if (widget.isGrid)
                           const AspectRatio(
@@ -132,14 +152,14 @@ class _ItemCardState extends ConsumerState<ItemCard> {
                         ),
                       ],
                     ),
+                  ),
                 ),
               ),
             ),
           ),
         ),
       ),
-    ),
-  );
+    );
   }
 }
 
@@ -197,7 +217,8 @@ class _GridCardContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final hasDescription = description != null && description!.trim().isNotEmpty;
+    final hasDescription =
+        description != null && description!.trim().isNotEmpty;
     final displayDescription = hasDescription
         ? (isCaptured ? '“$description”' : description!.trim())
         : null;
@@ -208,11 +229,7 @@ class _GridCardContent extends StatelessWidget {
       children: [
         Row(
           children: [
-            _CardGlyph(
-              eyebrow: eyebrow,
-              faviconUrl: faviconUrl,
-              size: 22,
-            ),
+            _CardGlyph(eyebrow: eyebrow, faviconUrl: faviconUrl, size: 22),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
@@ -331,19 +348,12 @@ class _ListCardContent extends StatelessWidget {
                   if (isDesktop && isHovered)
                     Consumer(
                       builder: (context, ref, _) => IconButton(
-                        icon: const Icon(
-                          Icons.more_horiz_rounded,
-                          size: 18,
-                        ),
+                        icon: const Icon(Icons.more_horiz_rounded, size: 18),
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(),
                         visualDensity: VisualDensity.compact,
                         tooltip: 'More actions',
-                        onPressed: () => showItemActions(
-                          context,
-                          ref,
-                          item,
-                        ),
+                        onPressed: () => showItemActions(context, ref, item),
                       ),
                     ),
                 ],
