@@ -35,8 +35,11 @@ function scanPosts(): void {
 function addSaveControl(post: Element): void {
   if (post.querySelector(`.${BUTTON_CLASS}`)) return;
   const url = permalinkFor(post);
-  const instagramOverlay = isInstagramMediaPost(post);
-  const actionBar = instagramOverlay ? post : findActionBar(post);
+  const instagramMoreButton = findInstagramMoreButton(post);
+  const instagramOverlay =
+      isInstagramMediaPost(post) && instagramMoreButton === null;
+  const actionBar = instagramMoreButton?.parentElement ??
+      (instagramOverlay ? post : findActionBar(post));
   if (!url || !actionBar) return;
 
   const button = document.createElement("button");
@@ -100,12 +103,25 @@ function addSaveControl(post: Element): void {
     }
   });
 
-  actionBar.append(button);
+  if (instagramMoreButton instanceof HTMLElement) {
+    instagramMoreButton.insertAdjacentElement("afterend", button);
+  } else {
+    actionBar.append(button);
+  }
 }
 
 function isInstagramMediaPost(post: Element): boolean {
   return window.location.hostname.replace(/^www\./, "") === "instagram.com" &&
       post.querySelector("img, video") !== null;
+}
+
+function findInstagramMoreButton(post: Element): Element | null {
+  if (window.location.hostname.replace(/^www\./, "") !== "instagram.com") {
+    return null;
+  }
+  return post.querySelector(
+    'button[aria-label*="More"], button[aria-label*="more"], [role="button"][aria-label*="More"], [role="button"][aria-label*="more"]',
+  );
 }
 
 function findActionBar(post: Element): Element | null {
