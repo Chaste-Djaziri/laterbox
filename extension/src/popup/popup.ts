@@ -6,7 +6,8 @@ import {
 import { flushQueue, saveCapture, saveSelectionFromTab } from "../lib/capture";
 import { getPageContext, type PageContext } from "../lib/page";
 import { getConnectedUserId } from "../lib/storage";
-import { chromiumCapabilities } from "../platform/chromium";
+import { browser } from "../platform/api";
+import { browserCapabilities } from "../platform";
 
 const domainElement = document.querySelector<HTMLElement>("#domain")!;
 const titleElement = document.querySelector<HTMLElement>("#title")!;
@@ -29,7 +30,7 @@ let highlightText = "";
 void initialize();
 
 async function initialize(): Promise<void> {
-  activeTab = (await chrome.tabs.query({ active: true, currentWindow: true }))[0];
+  activeTab = (await browser.tabs.query({ active: true, currentWindow: true }))[0];
   if (activeTab?.id !== undefined) {
     try {
       pageContext = await getPageContext(activeTab.id, {
@@ -74,7 +75,7 @@ openPanelButton.addEventListener("click", () => {
 
 async function openSidePanel(): Promise<void> {
   try {
-    await chromiumCapabilities.openSidePanel();
+    await browserCapabilities.openSidePanel();
   } catch (error) {
     setStatus(error instanceof Error ? error.message : "Could not open side panel.", "error");
   }
@@ -129,7 +130,7 @@ async function disconnect(): Promise<void> {
 
 async function saveCurrentPage(): Promise<void> {
   const url = pageContext.url;
-  if (chromiumCapabilities.isRestrictedUrl(url)) {
+  if (browserCapabilities.isRestrictedUrl(url)) {
     setStatus("This page cannot be captured.", "error");
     return;
   }
@@ -147,7 +148,7 @@ async function saveCurrentPage(): Promise<void> {
 }
 
 async function saveHighlight(): Promise<void> {
-  if (!highlightText || chromiumCapabilities.isRestrictedUrl(pageContext.url)) {
+  if (!highlightText || browserCapabilities.isRestrictedUrl(pageContext.url)) {
     setStatus("No web highlight is available.", "error");
     return;
   }
