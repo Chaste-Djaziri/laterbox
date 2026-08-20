@@ -104,11 +104,10 @@ class _ItemCardState extends ConsumerState<ItemCard> {
                       children: [
                         if (coverUrl != null && coverUrl.isNotEmpty)
                           ItemCoverImage(url: coverUrl)
-                        else if (widget.isGrid)
-                          _CompactMediaHeader(
-                            eyebrow: eyebrow,
-                            faviconUrl: faviconUrl,
-                            item: widget.item,
+                        else
+                          const AspectRatio(
+                            aspectRatio: 16 / 9,
+                            child: _LaterBoxLogoPlaceholder(),
                           ),
                         Padding(
                           padding: EdgeInsets.all(cardPadding),
@@ -156,12 +155,12 @@ class _LaterBoxLogoPlaceholder extends StatelessWidget {
       color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.5),
       child: Center(
         child: Container(
-          width: 40,
-          height: 40,
+          width: 44,
+          height: 44,
           padding: const EdgeInsets.all(6),
           decoration: BoxDecoration(
             color: theme.colorScheme.primaryContainer.withOpacity(0.7),
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(12),
           ),
           child: Image.asset(
             'assets/branding/laterbox-icon.png',
@@ -169,31 +168,11 @@ class _LaterBoxLogoPlaceholder extends StatelessWidget {
             errorBuilder: (context, error, stackTrace) => Icon(
               Icons.bookmark_rounded,
               color: theme.colorScheme.primary,
-              size: 22,
+              size: 24,
             ),
           ),
         ),
       ),
-    );
-  }
-}
-
-class _CompactMediaHeader extends StatelessWidget {
-  const _CompactMediaHeader({
-    required this.eyebrow,
-    this.faviconUrl,
-    required this.item,
-  });
-
-  final String eyebrow;
-  final String? faviconUrl;
-  final LaterBoxItem item;
-
-  @override
-  Widget build(BuildContext context) {
-    return const AspectRatio(
-      aspectRatio: 16 / 9,
-      child: _LaterBoxLogoPlaceholder(),
     );
   }
 }
@@ -444,7 +423,12 @@ class _ItemCoverImageState extends State<ItemCoverImage>
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    if (_failed) return const SizedBox.shrink();
+    if (_failed) {
+      return const AspectRatio(
+        aspectRatio: 16 / 9,
+        child: _LaterBoxLogoPlaceholder(),
+      );
+    }
 
     final theme = Theme.of(context);
 
@@ -475,7 +459,7 @@ class _ItemCoverImageState extends State<ItemCoverImage>
                 setState(() => _failed = true);
               }
             });
-            return const SizedBox.shrink();
+            return const _LaterBoxLogoPlaceholder();
           },
         ),
       ),
