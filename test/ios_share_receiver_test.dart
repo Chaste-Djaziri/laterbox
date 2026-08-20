@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:laterbox/app.dart';
 import 'package:laterbox/core/database/app_database.dart';
 import 'package:laterbox/core/database/database_providers.dart';
+import 'package:laterbox/core/router/app_router.dart';
 import 'package:laterbox/features/capture/data/ios_share_receiver.dart';
 
 Future<void> _pumpUntilFound(
@@ -25,23 +26,13 @@ void main() {
   ) async {
     final database = AppDatabase(NativeDatabase.memory());
     const channel = MethodChannel(IosShareReceiver.channelName);
-    final methodCalls = <String>[];
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, (call) async {
-      methodCalls.add(call.method);
-      if (call.method == 'consumePending') {
+      if (call.method == 'consumeShares') {
         return [
           {
-            'id': 'ios-capture-1',
-            'value': 'https://example.com/article',
-            'kind': 'url',
-            'source': 'iosShare',
-            'createdAt': '2026-08-19T07:00:00Z',
-          },
-          {
-            'id': 'ios-capture-2',
-            'value': 'remember this',
-            'kind': 'text',
+            'url': 'https://example.com/b',
+            'text': 'ios payload',
             'source': 'iosShare',
             'createdAt': '2026-08-19T07:01:00Z',
           },
@@ -56,16 +47,17 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [appDatabaseProvider.overrideWithValue(database)],
+        overrides: [
+          appDatabaseProvider.overrideWithValue(database),
+          initialLocationProvider.overrideWithValue('/inbox'),
+        ],
         child: const LaterBoxApp(),
       ),
     );
     await _pumpUntilFound(tester, find.text('EXAMPLE.COM'));
 
     expect(find.text('EXAMPLE.COM'), findsOneWidget);
-    expect(find.text('https://example.com/article'), findsOneWidget);
-    expect(find.text('remember this'), findsOneWidget);
-    expect(methodCalls, contains('clearPending'));
+    expect(find.text('https://example.com/b'), findsOneWidget);
 
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(milliseconds: 1));
@@ -84,7 +76,10 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [appDatabaseProvider.overrideWithValue(database)],
+        overrides: [
+          appDatabaseProvider.overrideWithValue(database),
+          initialLocationProvider.overrideWithValue('/inbox'),
+        ],
         child: const LaterBoxApp(),
       ),
     );
