@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:laterbox/app.dart';
 import 'package:laterbox/core/auth/auth_provider.dart';
 import 'package:laterbox/core/database/app_database.dart';
+import 'package:laterbox/core/database/database_providers.dart';
 import 'package:laterbox/core/router/app_router.dart';
 
 void main() {
