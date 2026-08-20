@@ -42,15 +42,17 @@ function scanPosts(): void {
 
 function scanInstagramMedia(): void {
   for (const media of document.querySelectorAll("img, video")) {
+    const post = media.closest("article");
+    if (!post) continue;
     const bounds = media.getBoundingClientRect();
-    if (bounds.width < 140 || bounds.height < 140) continue;
+    if (bounds.width < 240 || bounds.height < 180) continue;
     if (bounds.bottom <= 0 || bounds.top >= window.innerHeight) continue;
-    if (!instagramButtons.has(media)) addInstagramButton(media);
-    positionInstagramButton(media);
+    if (!instagramButtons.has(post)) addInstagramButton(post, media);
+    positionInstagramButton(post, media);
   }
 }
 
-function addInstagramButton(media: Element): void {
+function addInstagramButton(post: Element, media: Element): void {
   const button = document.createElement("button");
   button.className = BUTTON_CLASS;
   button.type = "button";
@@ -78,19 +80,18 @@ function addInstagramButton(media: Element): void {
     event.stopPropagation();
     button.disabled = true;
     button.textContent = "Saving";
-    const post = media.closest("article") ?? media.parentElement ?? media;
     const result = await sendSave(permalinkFor(post) ?? window.location.href);
     applyResult(button, result, () => {
-      instagramButtons.delete(media);
+      instagramButtons.delete(post);
     });
   });
 
   document.documentElement.append(button);
-  instagramButtons.set(media, button);
+  instagramButtons.set(post, button);
 }
 
-function positionInstagramButton(media: Element): void {
-  const button = instagramButtons.get(media);
+function positionInstagramButton(post: Element, media: Element): void {
+  const button = instagramButtons.get(post);
   if (!button) return;
   const bounds = media.getBoundingClientRect();
   button.style.left = `${Math.max(8, bounds.right - button.offsetWidth - 12)}px`;
@@ -98,7 +99,10 @@ function positionInstagramButton(media: Element): void {
 }
 
 function updateInstagramButtons(): void {
-  for (const media of instagramButtons.keys()) positionInstagramButton(media);
+  for (const post of instagramButtons.keys()) {
+    const media = post.querySelector("img, video");
+    if (media) positionInstagramButton(post, media);
+  }
 }
 
 function addPostButton(post: Element): void {
