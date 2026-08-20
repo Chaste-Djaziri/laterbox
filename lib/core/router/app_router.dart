@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../features/auth/presentation/auth_gate.dart';
+import '../../features/auth/presentation/auth_screen.dart';
 import '../../features/detail/presentation/item_detail_screen.dart';
 import '../../features/extension/presentation/extension_connect_screen.dart';
 import '../../features/extension/presentation/extension_connected_screen.dart';
@@ -13,13 +14,20 @@ import '../../features/search/presentation/search_screen.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   final router = GoRouter(
-    initialLocation: '/inbox',
+    initialLocation: '/',
     routes: [
       GoRoute(
         path: '/',
         pageBuilder: (context, state) => NoTransitionPage(
           key: state.pageKey,
           child: const LandingScreen(),
+        ),
+      ),
+      GoRoute(
+        path: '/login',
+        pageBuilder: (context, state) => NoTransitionPage(
+          key: state.pageKey,
+          child: const AuthScreen(),
         ),
       ),
       GoRoute(
