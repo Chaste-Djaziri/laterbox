@@ -317,13 +317,12 @@ class _SidebarTabItemState extends State<_SidebarTabItem> {
         ? colorScheme.primary
         : colorScheme.onSurfaceVariant;
 
-    final content = MouseRegion(
-      onEnter: (_) => setState(() => _isHovered = true),
-      onExit: (_) => setState(() => _isHovered = false),
-      cursor: SystemMouseCursors.click,
-      child: GestureDetector(
+    final content = Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(10),
+        onHover: (hovered) => setState(() => _isHovered = hovered),
         onTap: widget.onTap,
-        behavior: HitTestBehavior.opaque,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 150),
           height: 44,
