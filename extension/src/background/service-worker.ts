@@ -33,27 +33,57 @@ async function handleCommand(command: string): Promise<void> {
   if (command === "open-sidepanel") {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     if (tab.id === undefined) return;
-    await chrome.sidePanel.setOptions({
-      tabId: tab.id,
-      path: "src/sidepanel/sidepanel.html",
-      enabled: true,
-    });
-    await chrome.sidePanel.open({ tabId: tab.id });
+    await openSidePanel(tab.id);
     return;
   }
   if (command !== "save-current-page") return;
 
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (tab.id === undefined) return;
-  const page = await getPageContext(tab.id);
+  let page = { url: tab.url ?? "", title: tab.title ?? "", selection: "" };
+  try {
+    page = await getPageContext(tab.id);
+  } catch (error) {
+    console.warn("Could not read active page context", error);
+  }
+  if (!/^https?:\/\//i.test(page.url)) {
+    await setCommandBadge("!");
+    return;
+  }
   const result = await saveCapture({
     url: page.url,
     title: page.title,
     source: "browserExtension",
     createdAt: new Date().toISOString(),
   });
-  await chrome.action.setBadgeText({
-    text: result.status === "saved" ? "✓" : result.status === "needsAuth" ? "!" : "…",
+  await setCommandBadge(
+    result.status === "saved" ? "✓" : result.status === "needsAuth" ? "!" : "…",
+  );
+}
+
+async function openSidePanel(tabId: number): Promise<void> {
+  try {
+    if (chrome.sidePanel?.setOptions && chrome.sidePanel?.open) {
+      await chrome.sidePanel.setOptions({
+        tabId,
+        path: "src/sidepanel/sidepanel.html",
+        enabled: true,
+      });
+      await chrome.sidePanel.open({ tabId });
+      return;
+    }
+  } catch (error) {
+    console.warn("Side panel API unavailable", error);
+  }
+  await chrome.tabs.create({
+    url: `${chrome.runtime.getURL("src/sidepanel/sidepanel.html")}?tabId=${tabId}`,
+  });
+}
+
+async function setCommandBadge(text: string): Promise<void> {
+  await chrome.action.setBadgeText({ text });
+  await chrome.action.setBadgeBackgroundColor({
+    color: text === "✓" ? "#26734d" : text === "!" ? "#a33a32" : "#6c6b63",
   });
 }
 
