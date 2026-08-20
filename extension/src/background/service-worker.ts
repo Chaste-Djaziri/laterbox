@@ -26,37 +26,42 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 });
 
 chrome.commands.onCommand.addListener((command) => {
+  console.log("[LaterBox command]", command);
   void handleCommand(command);
 });
 
 async function handleCommand(command: string): Promise<void> {
-  if (command === "open-sidepanel") {
-    await chromiumCapabilities.openSidePanel();
-    return;
-  }
-  if (command !== "save-current-page") return;
-
-  const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
-  if (tab.id === undefined) return;
-  let page = { url: tab.url ?? "", title: tab.title ?? "", selection: "" };
   try {
-    page = await getPageContext(tab.id, page);
+    if (command === "open-sidepanel") {
+      await chromiumCapabilities.openSidePanel();
+      return;
+    }
+    if (command !== "save-current-page") return;
+
+    const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+    if (tab.id === undefined) return;
+    let page = { url: tab.url ?? "", title: tab.title ?? "", selection: "" };
+    try {
+      page = await getPageContext(tab.id, page);
+    } catch (error) {
+      console.warn("Could not read active page context", error);
+    }
+    if (chromiumCapabilities.isRestrictedUrl(page.url)) {
+      await setCommandBadge("!");
+      return;
+    }
+    const result = await saveCapture({
+      url: page.url,
+      title: page.title,
+      source: "browserExtension",
+      createdAt: new Date().toISOString(),
+    });
+    await setCommandBadge(
+      result.status === "saved" ? "✓" : result.status === "needsAuth" ? "!" : "…",
+    );
   } catch (error) {
-    console.warn("Could not read active page context", error);
+    console.error("[LaterBox command] failed", command, error);
   }
-  if (chromiumCapabilities.isRestrictedUrl(page.url)) {
-    await setCommandBadge("!");
-    return;
-  }
-  const result = await saveCapture({
-    url: page.url,
-    title: page.title,
-    source: "browserExtension",
-    createdAt: new Date().toISOString(),
-  });
-  await setCommandBadge(
-    result.status === "saved" ? "✓" : result.status === "needsAuth" ? "!" : "…",
-  );
 }
 
 async function setCommandBadge(text: string): Promise<void> {
