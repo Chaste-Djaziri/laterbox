@@ -68,7 +68,7 @@ final quickCaptureControllerProvider =
 
   // Sync blurClose setting from DesktopSettings
   final settings = ref.watch(desktopSettingsProvider).valueOrNull ?? DesktopSettings.defaults();
-  controller.setBlurCloseEnabled(settings.closeOnFocusLoss);
+  controller.enableBlurClose = settings.closeOnFocusLoss;
 
   return controller;
 });
