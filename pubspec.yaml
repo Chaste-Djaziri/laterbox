@@ -50,6 +50,7 @@ dependencies:
   hotkey_manager: ^0.2.3
   window_manager: ^0.5.2
   tray_manager: ^0.5.3
+  menu_base: ^0.1.1
 
 dev_dependencies:
   flutter_test:
