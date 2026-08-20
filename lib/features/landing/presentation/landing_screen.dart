@@ -111,81 +111,97 @@ class _LandingHeader extends ConsumerWidget {
           ),
         ),
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            mainAxisSize: MainAxisSize.min,
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1200),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Container(
-                width: 36,
-                height: 36,
-                padding: const EdgeInsets.all(2),
-                child: Image.asset(
-                  'assets/branding/laterbox-icon.png',
-                  fit: BoxFit.contain,
-                  errorBuilder: (context, error, stackTrace) => Icon(
-                    Icons.bookmark_rounded,
-                    color: theme.colorScheme.primary,
-                    size: 24,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Text(
-                'LaterBox',
-                style: theme.textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: -0.8,
-                  fontSize: 20,
-                ),
-              ),
-            ],
-          ),
-          if (isDesktopHeader)
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _HeaderNavLink(label: 'Features', onTap: onFeaturesTap),
-                const SizedBox(width: 24),
-                _HeaderNavLink(label: 'How It Works', onTap: onHowItWorksTap),
-                const SizedBox(width: 24),
-                _HeaderNavLink(label: 'About', onTap: onAboutTap),
-              ],
-            ),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (!(auth?.isAuthenticated ?? false)) ...[
-                TextButton(
-                  onPressed: () => context.go('/login'),
-                  child: Text(
-                    'Sign In',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w700,
-                      color: theme.colorScheme.primary,
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    padding: const EdgeInsets.all(2),
+                    child: Image.asset(
+                      'assets/branding/laterbox-icon.png',
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) => Icon(
+                        Icons.bookmark_rounded,
+                        color: theme.colorScheme.primary,
+                        size: 24,
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 8),
-              ],
-              FilledButton.icon(
-                onPressed: () => context.go('/inbox'),
-                icon: const Icon(Icons.bolt_rounded, size: 18),
-                label: Text(
-                  auth?.isAuthenticated ?? false ? 'Open Inbox' : 'Launch App',
-                  style: const TextStyle(fontWeight: FontWeight.w700),
-                ),
-                style: FilledButton.styleFrom(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: isDesktop ? 20 : 14,
-                    vertical: 12,
+                  const SizedBox(width: 10),
+                  Text(
+                    'LaterBox',
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -0.8,
+                      fontSize: 20,
+                    ),
                   ),
+                ],
+              ),
+              if (isDesktopHeader)
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _HeaderNavLink(label: 'Features', onTap: onFeaturesTap),
+                    const SizedBox(width: 24),
+                    _HeaderNavLink(label: 'How It Works', onTap: onHowItWorksTap),
+                    const SizedBox(width: 24),
+                    _HeaderNavLink(label: 'About', onTap: onAboutTap),
+                  ],
+                ),
+              Flexible(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    if (!(auth?.isAuthenticated ?? false)) ...[
+                      Flexible(
+                        child: TextButton(
+                          onPressed: () => context.go('/login'),
+                          child: Text(
+                            'Sign In',
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontWeight: FontWeight.w700,
+                              color: theme.colorScheme.primary,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                    ],
+                    Flexible(
+                      child: FilledButton.icon(
+                        onPressed: () => context.go('/inbox'),
+                        icon: const Icon(Icons.bolt_rounded, size: 18),
+                        label: Text(
+                          auth?.isAuthenticated ?? false
+                              ? 'Open Inbox'
+                              : 'Launch App',
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontWeight: FontWeight.w700),
+                        ),
+                        style: FilledButton.styleFrom(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: isDesktop ? 20 : 14,
+                            vertical: 12,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
-        ],
+        ),
       ),
     );
   }
