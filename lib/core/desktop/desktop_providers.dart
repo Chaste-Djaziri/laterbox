@@ -2,11 +2,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../features/capture/domain/capture_providers.dart';
 import '../auth/auth_provider.dart';
+import '../settings/desktop_settings.dart';
+import '../settings/settings_providers.dart';
 import 'clipboard_capture_service.dart';
 import 'desktop_app_launch_service.dart';
 import 'desktop_capture_context_resolver.dart';
 import 'desktop_service.dart';
-import 'desktop_settings.dart';
 import 'global_hotkey_service.dart';
 import 'quick_capture_controller.dart';
 import 'selection_capture_service.dart';
@@ -66,14 +67,14 @@ final quickCaptureControllerProvider =
   );
 
   // Sync blurClose setting from DesktopSettings
-  final settings = ref.watch(desktopSettingsProvider);
-  controller.setBlurCloseEnabled(settings.blurCloseOnFocusLost);
+  final settings = ref.watch(desktopSettingsProvider).valueOrNull ?? DesktopSettings.defaults();
+  controller.setBlurCloseEnabled(settings.closeOnFocusLoss);
 
   return controller;
 });
 
 final desktopMenuStateProvider = Provider<DesktopMenuState>((ref) {
-  final settings = ref.watch(desktopSettingsProvider);
+  final settings = ref.watch(desktopSettingsProvider).valueOrNull ?? DesktopSettings.defaults();
   final authAsync = ref.watch(authStateProvider);
   final isGuest = ref.watch(guestModeProvider);
 
@@ -91,7 +92,7 @@ final desktopMenuStateProvider = Provider<DesktopMenuState>((ref) {
 
   return DesktopMenuState(
     accountStatus: status,
-    quickCaptureShortcutLabel: settings.shortcut.label,
+    quickCaptureShortcutLabel: settings.quickCaptureShortcut.displayLabel,
     email: email,
   );
 });
