@@ -51,6 +51,12 @@ class AttachmentRepository {
     return _database.watchAttachmentsForItem(itemId, userId);
   }
 
+  Future<List<String>?> existingAttachmentIds(String itemId) async {
+    if (await _database.itemById(itemId) == null) return null;
+    final rows = await _database.attachmentsForItem(itemId);
+    return rows.map((attachment) => attachment.id).toList();
+  }
+
   Future<void> removeOrphans() async {
     await _storage.removeOrphans(await _database.attachmentIds());
   }
