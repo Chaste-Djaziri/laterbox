@@ -6,6 +6,7 @@ import '../../features/collections/presentation/collection_providers.dart';
 import '../../features/inbox/presentation/inbox_providers.dart';
 import '../models/item_status.dart';
 import '../models/laterbox_item.dart';
+import 'laterbox_extension.dart';
 
 /// Opens the modal action sheet for an item. Used by the item card (long
 /// press) and the item detail screen. Every action writes to Drift first and
@@ -191,13 +192,27 @@ String? buildTextFragmentUrl(LaterBoxItem item) {
   if (directive.length > 2000) return null;
 
   final base = url.split('#').first;
-  return '$base#~:text=$directive';
+  return '$base#:~:text=$directive';
 }
 
-Future<void> openOriginalForItem(BuildContext context, LaterBoxItem item) {
-  final url = buildTextFragmentUrl(item) ?? item.url;
-  if (url == null) return Future.value();
-  return openOriginal(context, url);
+Future<void> openOriginalForItem(BuildContext context, LaterBoxItem item) async {
+  final url = item.url;
+  if (url == null) return;
+  final fragmentUrl = buildTextFragmentUrl(item);
+
+  final text = item.text?.trim();
+  if (text != null && text.isNotEmpty && fragmentUrl != null) {
+    final handled = await openWithLaterBoxExtension(
+      url,
+      fragmentUrl: fragmentUrl,
+      exact: text,
+      prefix: item.selector.before,
+      suffix: item.selector.after,
+    );
+    if (handled) return;
+  }
+  if (!context.mounted) return;
+  await openOriginal(context, fragmentUrl ?? url);
 }
 
 /// Bottom sheet listing every collection with a checkbox reflecting whether
