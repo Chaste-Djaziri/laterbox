@@ -5,6 +5,8 @@
 class DesktopAppLaunchService {
   const DesktopAppLaunchService();
 
+  static void configure(List<String> arguments) {}
+
   Future<bool> wasLaunchedAtLogin() async => false;
 
   Future<bool> isLoginItemEnabled() async => false;
