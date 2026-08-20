@@ -34,8 +34,8 @@ void main() {
     return database;
   }
 
-  Future<void> pumpApp(WidgetTester tester, AppDatabase database) async {
-    await tester.pumpWidget(
+  Future<void> pumpApp(WidgetTester tester, AppDatabase database) {
+    return tester.pumpWidget(
       ProviderScope(
         overrides: [
           guestModeProvider.overrideWith((ref) => true),
@@ -44,14 +44,6 @@ void main() {
         child: const LaterBoxApp(),
       ),
     );
-    await tester.pumpAndSettle();
-    if (find.text('Launch App').evaluate().isNotEmpty) {
-      await tester.tap(find.text('Launch App'));
-      await tester.pumpAndSettle();
-    } else if (find.text('Open Inbox').evaluate().isNotEmpty) {
-      await tester.tap(find.text('Open Inbox'));
-      await tester.pumpAndSettle();
-    }
   }
 
   Finder navigationDestination(String label) {
