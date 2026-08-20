@@ -38,9 +38,21 @@ void main() {
       controller.dispose();
     });
 
-    test('starts empty when the clipboard is not a URL', () async {
+    test('prefills plain clipboard text', () async {
       final controller = _controller(
         clipboardService: _FakeClipboardService('some random text'),
+      );
+
+      await controller.open();
+
+      expect(controller.status, QuickCaptureStatus.active);
+      expect(controller.prefillText, 'some random text');
+      controller.dispose();
+    });
+
+    test('starts empty when the clipboard is empty', () async {
+      final controller = _controller(
+        clipboardService: _FakeClipboardService(null),
       );
 
       await controller.open();
@@ -82,10 +94,30 @@ void main() {
       expect(controller.status, QuickCaptureStatus.success);
       await Future<void>.delayed(const Duration(milliseconds: 600));
       expect(controller.status, QuickCaptureStatus.idle);
-      expect(desktop.hideCalls, 1);
+      expect(desktop.hideCalls, 0);
 
       final items = await database.watchInboxItems(null).first;
       expect(items.single.url, 'https://example.com/saved');
+      expect(items.single.syncStatus, 'pending');
+      controller.dispose();
+    });
+
+    test('saveValue persists an explicit value via the capture pipeline', () async {
+      final database = AppDatabase(NativeDatabase.memory());
+      addTearDown(database.close);
+      final desktop = _FakeDesktopService();
+      final controller = QuickCaptureController(
+        desktopService: desktop,
+        clipboardService: const ClipboardCaptureService(),
+        captureService: _captureService(database),
+      );
+
+      await controller.open();
+      await controller.saveValue('https://example.com/explicit');
+
+      expect(controller.status, QuickCaptureStatus.success);
+      final items = await database.watchInboxItems(null).first;
+      expect(items.single.url, 'https://example.com/explicit');
       expect(items.single.syncStatus, 'pending');
       controller.dispose();
     });
@@ -122,7 +154,7 @@ void main() {
       expect(controller.status, QuickCaptureStatus.active);
       await Future<void>.delayed(const Duration(milliseconds: 400));
       expect(controller.status, QuickCaptureStatus.idle);
-      expect(desktop.hideCalls, 1);
+      expect(desktop.hideCalls, 0);
       controller.dispose();
     });
 
