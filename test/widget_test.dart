@@ -15,11 +15,21 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [appDatabaseProvider.overrideWithValue(database)],
+        overrides: [
+          guestModeProvider.overrideWith((ref) => true),
+          appDatabaseProvider.overrideWithValue(database),
+        ],
         child: const LaterBoxApp(),
       ),
     );
     await tester.pumpAndSettle();
+    if (find.text('Launch App').evaluate().isNotEmpty) {
+      await tester.tap(find.text('Launch App'));
+      await tester.pumpAndSettle();
+    } else if (find.text('Open Inbox').evaluate().isNotEmpty) {
+      await tester.tap(find.text('Open Inbox'));
+      await tester.pumpAndSettle();
+    }
 
     expect(find.text('Nothing saved yet'), findsOneWidget);
 
