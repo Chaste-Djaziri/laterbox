@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../features/auth/presentation/auth_gate.dart';
+import '../../features/detail/presentation/item_detail_screen.dart';
 import '../../features/extension/presentation/extension_connect_screen.dart';
 import '../../features/inbox/presentation/inbox_screen.dart';
 import '../../features/library/presentation/library_screen.dart';
@@ -17,6 +18,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           requestSecret: state.uri.queryParameters['request_secret'] ?? '',
           redirectUri: state.uri.queryParameters['redirect_uri'] ?? '',
         ),
+      ),
+      GoRoute(
+        path: '/item/:id',
+        builder: (context, state) {
+          final id = state.pathParameters['id'] ?? '';
+          return AuthGate(child: ItemDetailScreen(itemId: id));
+        },
       ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) {
