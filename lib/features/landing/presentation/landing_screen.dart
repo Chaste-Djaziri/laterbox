@@ -633,6 +633,10 @@ class _FeaturesSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final width = MediaQuery.sizeOf(context).width;
+
+    final isTablet = width >= 600 && width < 960;
+    final isDesktopGrid = width >= 960;
 
     final features = [
       (
@@ -673,11 +677,191 @@ class _FeaturesSection extends StatelessWidget {
       ),
     ];
 
-    final cardWidth = isDesktop ? 320.0 : double.infinity;
+    Widget buildCard(
+      BuildContext context, {
+      required IconData icon,
+      required String title,
+      required String description,
+    }) {
+      return Container(
+        padding: const EdgeInsets.all(24),
+        constraints: const BoxConstraints(minHeight: 190),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surface,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: theme.colorScheme.outlineVariant.withOpacity(0.5),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: theme.colorScheme.shadow.withOpacity(0.02),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.primaryContainer,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                icon,
+                color: theme.colorScheme.primary,
+                size: 24,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              title,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Expanded(
+              child: Text(
+                description,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                  height: 1.45,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    Widget content;
+    if (isDesktopGrid) {
+      content = Column(
+        children: [
+          IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  child: buildCard(
+                    context,
+                    icon: features[0].icon,
+                    title: features[0].title,
+                    description: features[0].description,
+                  ),
+                ),
+                const SizedBox(width: 20),
+                Expanded(
+                  child: buildCard(
+                    context,
+                    icon: features[1].icon,
+                    title: features[1].title,
+                    description: features[1].description,
+                  ),
+                ),
+                const SizedBox(width: 20),
+                Expanded(
+                  child: buildCard(
+                    context,
+                    icon: features[2].icon,
+                    title: features[2].title,
+                    description: features[2].description,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+          IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  child: buildCard(
+                    context,
+                    icon: features[3].icon,
+                    title: features[3].title,
+                    description: features[3].description,
+                  ),
+                ),
+                const SizedBox(width: 20),
+                Expanded(
+                  child: buildCard(
+                    context,
+                    icon: features[4].icon,
+                    title: features[4].title,
+                    description: features[4].description,
+                  ),
+                ),
+                const SizedBox(width: 20),
+                Expanded(
+                  child: buildCard(
+                    context,
+                    icon: features[5].icon,
+                    title: features[5].title,
+                    description: features[5].description,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
+    } else if (isTablet) {
+      content = Column(
+        children: [
+          for (var i = 0; i < features.length; i += 2) ...[
+            if (i > 0) const SizedBox(height: 20),
+            IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(
+                    child: buildCard(
+                      context,
+                      icon: features[i].icon,
+                      title: features[i].title,
+                      description: features[i].description,
+                    ),
+                  ),
+                  const SizedBox(width: 20),
+                  Expanded(
+                    child: buildCard(
+                      context,
+                      icon: features[i + 1].icon,
+                      title: features[i + 1].title,
+                      description: features[i + 1].description,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      );
+    } else {
+      content = Column(
+        children: [
+          for (var i = 0; i < features.length; i++) ...[
+            if (i > 0) const SizedBox(height: 16),
+            buildCard(
+              context,
+              icon: features[i].icon,
+              title: features[i].title,
+              description: features[i].description,
+            ),
+          ],
+        ],
+      );
+    }
 
     return Container(
       padding: EdgeInsets.symmetric(
-        horizontal: isDesktop ? 64 : 24,
+        horizontal: isDesktopGrid ? 64 : 24,
         vertical: 60,
       ),
       color: theme.colorScheme.surfaceContainerLowest,
@@ -689,7 +873,7 @@ class _FeaturesSection extends StatelessWidget {
             style: theme.textTheme.headlineLarge?.copyWith(
               fontWeight: FontWeight.w900,
               letterSpacing: -1,
-              fontSize: isDesktop ? 36 : 26,
+              fontSize: isDesktopGrid ? 36 : 26,
             ),
           ),
           const SizedBox(height: 12),
@@ -703,60 +887,7 @@ class _FeaturesSection extends StatelessWidget {
           const SizedBox(height: 48),
           ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 1080),
-            child: Wrap(
-              spacing: 20,
-              runSpacing: 20,
-              alignment: WrapAlignment.center,
-              children: features.map((item) {
-                return SizedBox(
-                  width: cardWidth,
-                  child: Container(
-                    padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.surface,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color:
-                            theme.colorScheme.outlineVariant.withOpacity(0.5),
-                      ),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.primaryContainer,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Icon(
-                            item.icon,
-                            color: theme.colorScheme.primary,
-                            size: 24,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          item.title,
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          item.description,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
-                            height: 1.4,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              }).toList(),
-            ),
+            child: content,
           ),
         ],
       ),
