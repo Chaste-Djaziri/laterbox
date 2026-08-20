@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/auth/auth_provider.dart';
+import '../../../shared/widgets/filter_chip_bar.dart';
 import '../../../shared/widgets/item_card.dart';
 import 'inbox_providers.dart';
 
@@ -31,7 +32,8 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
             defaultTargetPlatform == TargetPlatform.windows)
         : width >= 900;
 
-    final items = ref.watch(inboxItemsProvider);
+    final rawItems = ref.watch(inboxItemsProvider);
+    final filteredItems = ref.watch(filteredInboxItemsProvider);
     final auth = ref.watch(authStateProvider).asData?.value;
     final theme = Theme.of(context);
     final isMac = !kIsWeb && defaultTargetPlatform == TargetPlatform.macOS;
@@ -84,54 +86,61 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
                   16,
                 ),
                 sliver: SliverToBoxAdapter(
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text(
-                            'Inbox',
-                            style: theme.textTheme.headlineLarge?.copyWith(
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: -1.1,
-                            ),
-                          ),
-                          if (items.asData?.value case final list?) ...[
-                            const SizedBox(height: 4),
-                            Text(
-                              '${list.length} ${list.length == 1 ? 'item' : 'items'} saved',
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                color: theme.colorScheme.onSurfaceVariant,
-                                fontWeight: FontWeight.w500,
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Inbox',
+                                style: theme.textTheme.headlineLarge?.copyWith(
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: -1.1,
+                                ),
                               ),
-                            ),
-                          ],
+                              if (rawItems.asData?.value case final list?) ...[
+                                const SizedBox(height: 4),
+                                Text(
+                                  '${list.length} ${list.length == 1 ? 'item' : 'items'} saved',
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    color: theme.colorScheme.onSurfaceVariant,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                          if (isDesktop)
+                            if (auth?.isAuthenticated ?? false)
+                              TextButton.icon(
+                                onPressed: () async {
+                                  await ref.read(authRepositoryProvider).signOut();
+                                  ref.read(guestModeProvider.notifier).state = true;
+                                },
+                                icon: const Icon(Icons.logout_rounded, size: 18),
+                                label: const Text('Sign out'),
+                              )
+                            else
+                              TextButton.icon(
+                                onPressed: () => ref
+                                    .read(guestModeProvider.notifier)
+                                    .state = false,
+                                icon: const Icon(Icons.person_outline_rounded, size: 18),
+                                label: const Text('Sign in'),
+                              ),
                         ],
                       ),
-                      if (isDesktop)
-                        if (auth?.isAuthenticated ?? false)
-                          TextButton.icon(
-                            onPressed: () async {
-                              await ref.read(authRepositoryProvider).signOut();
-                              ref.read(guestModeProvider.notifier).state = true;
-                            },
-                            icon: const Icon(Icons.logout_rounded, size: 18),
-                            label: const Text('Sign out'),
-                          )
-                        else
-                          TextButton.icon(
-                            onPressed: () => ref
-                                .read(guestModeProvider.notifier)
-                                .state = false,
-                            icon: const Icon(Icons.person_outline_rounded, size: 18),
-                            label: const Text('Sign in'),
-                          ),
+                      const SizedBox(height: 16),
+                      const FilterChipBar(),
                     ],
                   ),
                 ),
               ),
-              items.when(
+              filteredItems.when(
                 loading: () => const SliverFillRemaining(
                   child: Center(child: CircularProgressIndicator.adaptive()),
                 ),
