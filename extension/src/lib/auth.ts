@@ -19,15 +19,32 @@ export async function connectLaterBox(): Promise<string> {
     throw new Error("LaterBox connection is not configured");
   }
 
-  const requestId = crypto.randomUUID().replaceAll("-", "");
-  const requestSecret = createSecret();
-  const redirectUri = browser.identity.getRedirectURL("laterbox-connected");
+  if (typeof browser.identity?.launchWebAuthFlow === "function") {
+    return await connectViaIdentityFlow(webUrl, connectionEndpoint);
+  }
 
+  // Safari has no `identity` API: run the tab-and-poll flow in the background
+  // so it survives the popup closing when the user focuses the approval tab.
+  const response = await browser.runtime.sendMessage({ type: "connect-laterbox" });
+  if (typeof response?.error === "string") throw new Error(response.error);
+  if (typeof response?.userId !== "string") {
+    throw new Error("LaterBox connection was cancelled");
+  }
+  return response.userId;
+}
+
+async function connectViaIdentityFlow(
+  webUrl: string,
+  connectionEndpoint: string,
+): Promise<string> {
+  const { requestId, requestSecret } = createConnectCredentials();
   await postConnection(connectionEndpoint, {
     action: "request",
     request_id: requestId,
     request_secret: requestSecret,
   });
+
+  const redirectUri = browser.identity.getRedirectURL("laterbox-connected");
 
   const connectUrl = new URL("/extension/connect", webUrl);
   connectUrl.searchParams.set("request_id", requestId);
@@ -47,6 +64,67 @@ export async function connectLaterBox(): Promise<string> {
     throw new Error("LaterBox connection was cancelled");
   }
 
+  return await exchangeConnection(connectionEndpoint, requestId, requestSecret);
+}
+
+const POLL_INTERVAL_MS = 1_000;
+const CONNECT_TIMEOUT_MS = 5 * 60 * 1_000;
+
+/** Tab-based connect for browsers without `identity` (Safari). Runs in the background. */
+export async function connectLaterBoxViaTab(): Promise<string> {
+  const connectionEndpoint = getConnectionEndpoint();
+  const webUrl = import.meta.env.VITE_LATERBOX_WEB_URL ?? "";
+  if (!connectionEndpoint || !webUrl) {
+    throw new Error("LaterBox connection is not configured");
+  }
+
+  const { requestId, requestSecret } = createConnectCredentials();
+  await postConnection(connectionEndpoint, {
+    action: "request",
+    request_id: requestId,
+    request_secret: requestSecret,
+  });
+
+  const connectUrl = new URL("/extension/connect", webUrl);
+  connectUrl.searchParams.set("request_id", requestId);
+  connectUrl.searchParams.set("request_secret", requestSecret);
+  connectUrl.searchParams.set(
+    "redirect_uri",
+    new URL("/extension/connected", webUrl).toString(),
+  );
+
+  const tab = await browser.tabs.create({ url: connectUrl.toString() });
+
+  const deadline = Date.now() + CONNECT_TIMEOUT_MS;
+  let status = "pending";
+  while (Date.now() < deadline) {
+    await sleep(POLL_INTERVAL_MS);
+    try {
+      const response = await postConnection(connectionEndpoint, {
+        action: "status",
+        request_id: requestId,
+        request_secret: requestSecret,
+      });
+      status = typeof response.status === "string" ? response.status : "pending";
+    } catch {
+      // Transient failures should not end the connection attempt.
+    }
+    if (status !== "pending") break;
+  }
+
+  if (status !== "approved") {
+    await closeTab(tab.id);
+    throw new Error("LaterBox connection was cancelled");
+  }
+
+  return await exchangeConnection(connectionEndpoint, requestId, requestSecret);
+}
+
+async function exchangeConnection(
+  connectionEndpoint: string,
+  requestId: string,
+  requestSecret: string,
+): Promise<string> {
   const response = await postConnection(connectionEndpoint, {
     action: "exchange",
     request_id: requestId,
@@ -60,6 +138,26 @@ export async function connectLaterBox(): Promise<string> {
   const userId = typeof response.userId === "string" ? response.userId : "";
   await setConnectedUserId(userId);
   return userId;
+}
+
+function createConnectCredentials(): { requestId: string; requestSecret: string } {
+  return {
+    requestId: crypto.randomUUID().replaceAll("-", ""),
+    requestSecret: createSecret(),
+  };
+}
+
+async function closeTab(tabId: number | undefined): Promise<void> {
+  if (tabId === undefined) return;
+  try {
+    await browser.tabs.remove(tabId);
+  } catch {
+    // The tab may already be closed by the user.
+  }
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 export async function disconnectLaterBox(): Promise<void> {
