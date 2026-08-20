@@ -49,14 +49,24 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [appDatabaseProvider.overrideWithValue(database)],
+        overrides: [
+          guestModeProvider.overrideWith((ref) => true),
+          appDatabaseProvider.overrideWithValue(database),
+          initialLocationProvider.overrideWithValue('/inbox'),
+        ],
         child: const LaterBoxApp(),
       ),
     );
     await tester.pumpAndSettle();
 
+    expect(find.text('Nothing saved yet'), findsOneWidget);
+
     await tester.tap(find.byTooltip('Save something'));
     await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byType(TextField),
+      '   ',
+    );
     await tester.tap(find.text('Save'));
     await tester.pump();
 
@@ -74,6 +84,7 @@ void main() {
         overrides: [
           guestModeProvider.overrideWith((ref) => false),
           appDatabaseProvider.overrideWithValue(database),
+          initialLocationProvider.overrideWithValue('/inbox'),
         ],
         child: const LaterBoxApp(),
       ),
