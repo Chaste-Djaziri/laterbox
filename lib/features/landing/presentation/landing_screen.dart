@@ -67,7 +67,12 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
                 isDesktop: isDesktop,
               ),
               _CtaBannerSection(isDesktop: isDesktop),
-              _LandingFooter(isDesktop: isDesktop),
+              _LandingFooter(
+                isDesktop: isDesktop,
+                onFeaturesTap: () => _scrollToSection(_featuresKey),
+                onHowItWorksTap: () => _scrollToSection(_howItWorksKey),
+                onAboutTap: () => _scrollToSection(_aboutKey),
+              ),
             ],
           ),
         ),
@@ -1003,36 +1008,193 @@ class _AboutSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final width = MediaQuery.sizeOf(context).width;
+    final isMobile = width < 600;
+
+    final highlights = [
+      (
+        icon: Icons.shield_outlined,
+        title: '100% Offline-First Privacy',
+        desc:
+            'Your saved articles, links, and personal notes are stored locally on your device in SQLite. No tracking or mandatory cloud dependence.'
+      ),
+      (
+        icon: Icons.devices_rounded,
+        title: 'Universal Cross-Platform',
+        desc:
+            'Works seamlessly across Web, macOS, iOS, Android, Linux, and Windows with background Supabase cloud synchronization.'
+      ),
+      (
+        icon: Icons.bolt_rounded,
+        title: 'Instant Performance',
+        desc:
+            'Zero latency search, instant page loads, and native inline media players for YouTube, Vimeo, and Spotify.'
+      ),
+    ];
 
     return Container(
+      key: key,
       padding: EdgeInsets.symmetric(
-        horizontal: isDesktop ? 64 : 24,
-        vertical: 60,
+        horizontal: isMobile ? 20 : (isDesktop ? 64 : 32),
+        vertical: isMobile ? 48 : 72,
       ),
       color: theme.colorScheme.surfaceContainerLowest,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 800),
-        child: Column(
-          children: [
-            Text(
-              'About LaterBox',
-              textAlign: TextAlign.center,
-              style: theme.textTheme.headlineLarge?.copyWith(
-                fontWeight: FontWeight.w900,
-                letterSpacing: -1,
-                fontSize: isDesktop ? 36 : 26,
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1080),
+          child: Column(
+            children: [
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primaryContainer.withOpacity(0.5),
+                  borderRadius: BorderRadius.circular(100),
+                ),
+                child: Text(
+                  'WHY LATERBOX',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: theme.colorScheme.primary,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1.2,
+                  ),
+                ),
               ),
-            ),
-            const SizedBox(height: 20),
-            Text(
-              'LaterBox is built for readers, researchers, and creators who save valuable information online but get overwhelmed by chaotic browser tabs and lost bookmarks.\n\nBuilt with Flutter & Supabase, LaterBox provides an offline-first experience that keeps your saved content private, instantly accessible, and beautiful on every platform.',
-              textAlign: TextAlign.center,
-              style: theme.textTheme.bodyLarge?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-                height: 1.6,
+              const SizedBox(height: 16),
+              Text(
+                'Built for Focus. Designed for Privacy.',
+                textAlign: TextAlign.center,
+                style: theme.textTheme.headlineLarge?.copyWith(
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: isMobile ? -0.5 : -1,
+                  fontSize: isMobile ? 26 : (isDesktop ? 38 : 30),
+                ),
               ),
-            ),
-          ],
+              const SizedBox(height: 16),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 720),
+                child: Text(
+                  'LaterBox was created for readers, researchers, and creators who save valuable information online but get overwhelmed by chaotic browser tabs and lost bookmarks.',
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                    height: 1.55,
+                    fontSize: isMobile ? 15 : 17,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 48),
+              if (isMobile)
+                Column(
+                  children: highlights
+                      .map(
+                        (h) => Container(
+                          margin: const EdgeInsets.only(bottom: 16),
+                          padding: const EdgeInsets.all(22),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.surface,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: theme.colorScheme.outlineVariant
+                                  .withOpacity(0.5),
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: theme.colorScheme.primaryContainer,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Icon(
+                                  h.icon,
+                                  color: theme.colorScheme.primary,
+                                  size: 22,
+                                ),
+                              ),
+                              const SizedBox(height: 14),
+                              Text(
+                                h.title,
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                h.desc,
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                  height: 1.45,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      )
+                      .toList(),
+                )
+              else
+                IntrinsicHeight(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: highlights.map((h) {
+                      return Expanded(
+                        child: Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 8),
+                          padding: const EdgeInsets.all(24),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.surface,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: theme.colorScheme.outlineVariant
+                                  .withOpacity(0.5),
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: theme.colorScheme.primaryContainer,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Icon(
+                                  h.icon,
+                                  color: theme.colorScheme.primary,
+                                  size: 24,
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                h.title,
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Expanded(
+                                child: Text(
+                                  h.desc,
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    color: theme.colorScheme.onSurfaceVariant,
+                                    height: 1.45,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );
@@ -1106,17 +1268,33 @@ class _CtaBannerSection extends StatelessWidget {
 }
 
 class _LandingFooter extends StatelessWidget {
-  const _LandingFooter({required this.isDesktop});
+  const _LandingFooter({
+    required this.isDesktop,
+    required this.onFeaturesTap,
+    required this.onHowItWorksTap,
+    required this.onAboutTap,
+  });
 
   final bool isDesktop;
+  final VoidCallback onFeaturesTap;
+  final VoidCallback onHowItWorksTap;
+  final VoidCallback onAboutTap;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final width = MediaQuery.sizeOf(context).width;
+    final isMobile = width < 600;
 
     return Container(
-      padding: EdgeInsets.all(isDesktop ? 32 : 20),
+      padding: EdgeInsets.fromLTRB(
+        isMobile ? 20 : 48,
+        isMobile ? 40 : 64,
+        isMobile ? 20 : 48,
+        24,
+      ),
       decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
         border: Border(
           top: BorderSide(
             color: theme.colorScheme.outlineVariant.withOpacity(0.4),
@@ -1124,12 +1302,264 @@ class _LandingFooter extends StatelessWidget {
         ),
       ),
       child: Center(
-        child: Text(
-          '© ${DateTime.now().year} LaterBox. All rights reserved.',
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1100),
+          child: Column(
+            children: [
+              if (isMobile)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _FooterBrandColumn(theme: theme),
+                    const SizedBox(height: 32),
+                    _FooterLinksColumn(
+                      title: 'Product',
+                      links: [
+                        ('Open App', () => context.go('/inbox')),
+                        ('Sign In', () => context.go('/login')),
+                        ('Chrome Extension', () => context.go('/extension/connect')),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                    _FooterLinksColumn(
+                      title: 'Explore',
+                      links: [
+                        ('Features', onFeaturesTap),
+                        ('How It Works', onHowItWorksTap),
+                        ('About LaterBox', onAboutTap),
+                      ],
+                    ),
+                  ],
+                )
+              else
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      flex: 4,
+                      child: _FooterBrandColumn(theme: theme),
+                    ),
+                    const Spacer(),
+                    Expanded(
+                      flex: 2,
+                      child: _FooterLinksColumn(
+                        title: 'Product',
+                        links: [
+                          ('Open App', () => context.go('/inbox')),
+                          ('Sign In', () => context.go('/login')),
+                          ('Chrome Extension', () => context.go('/extension/connect')),
+                        ],
+                      ),
+                    ),
+                    Expanded(
+                      flex: 2,
+                      child: _FooterLinksColumn(
+                        title: 'Explore',
+                        links: [
+                          ('Features', onFeaturesTap),
+                          ('How It Works', onHowItWorksTap),
+                          ('About LaterBox', onAboutTap),
+                        ],
+                      ),
+                    ),
+                    Expanded(
+                      flex: 3,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Supported Platforms',
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: const [
+                              _PlatformChip(label: 'Web', icon: Icons.web_rounded),
+                              _PlatformChip(label: 'macOS', icon: Icons.desktop_mac_rounded),
+                              _PlatformChip(label: 'iOS', icon: Icons.phone_iphone_rounded),
+                              _PlatformChip(label: 'Android', icon: Icons.android_rounded),
+                              _PlatformChip(label: 'Linux', icon: Icons.terminal_rounded),
+                              _PlatformChip(label: 'Windows', icon: Icons.desktop_windows_rounded),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              const SizedBox(height: 48),
+              Divider(
+                color: theme.colorScheme.outlineVariant.withOpacity(0.4),
+              ),
+              const SizedBox(height: 20),
+              Flex(
+                direction: isMobile ? Axis.vertical : Axis.horizontal,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    '© ${DateTime.now().year} LaterBox. All rights reserved.',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  SizedBox(height: isMobile ? 12 : 0),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 8,
+                        height: 8,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFF27C93F),
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Offline Storage Active',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _FooterBrandColumn extends StatelessWidget {
+  const _FooterBrandColumn({required this.theme});
+
+  final ThemeData theme;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 32,
+              height: 32,
+              padding: const EdgeInsets.all(2),
+              child: Image.asset(
+                'assets/branding/laterbox-icon.png',
+                fit: BoxFit.contain,
+                errorBuilder: (context, error, stackTrace) => Icon(
+                  Icons.bookmark_rounded,
+                  color: theme.colorScheme.primary,
+                  size: 24,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              'LaterBox',
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w900,
+                letterSpacing: -0.6,
+                fontSize: 20,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Text(
+          'Your universal save-for-later memory.\nArticles, videos, links, and personal notes.',
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+            height: 1.45,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _FooterLinksColumn extends StatelessWidget {
+  const _FooterLinksColumn({required this.title, required this.links});
+
+  final String title;
+  final List<(String, VoidCallback)> links;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: theme.textTheme.titleSmall?.copyWith(
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const SizedBox(height: 12),
+        ...links.map(
+          (item) => Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: InkWell(
+              onTap: item.$2,
+              borderRadius: BorderRadius.circular(4),
+              child: Text(
+                item.$1,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _PlatformChip extends StatelessWidget {
+  const _PlatformChip({required this.label, required this.icon});
+
+  final String label;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.5),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: theme.colorScheme.outlineVariant.withOpacity(0.4),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: theme.colorScheme.onSurfaceVariant),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
       ),
     );
   }
