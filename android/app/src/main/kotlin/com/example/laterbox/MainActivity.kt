@@ -23,7 +23,11 @@ class MainActivity : FlutterActivity() {
         channel.setMethodCallHandler { call, result ->
             when (call.method) {
                 "consumeShares" -> {
-                    result.success(pendingShares.consumeAll())
+                    result.success(pendingShares.readPending().map(PendingShareCapture::toMap))
+                }
+                "acknowledgeShares" -> {
+                    val ids = call.argument<List<String>>("ids")?.toSet().orEmpty()
+                    result.success(pendingShares.acknowledge(ids))
                 }
                 else -> result.notImplemented()
             }
