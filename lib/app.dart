@@ -10,6 +10,7 @@ import 'core/enrichment/enrichment_providers.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/scroll_behavior.dart';
+import 'features/attachments/presentation/attachment_providers.dart';
 import 'features/capture/domain/capture_providers.dart';
 import 'features/quick_capture/presentation/quick_capture_screen.dart';
 
@@ -29,6 +30,7 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) ref.read(enrichmentCoordinatorProvider);
     });
+    unawaited(_cleanAttachmentOrphans());
     _drainPendingShares();
     _initDesktop();
   }
@@ -46,6 +48,15 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
 
   void _initDesktop() {
     unawaited(_initializeDesktop());
+  }
+
+  Future<void> _cleanAttachmentOrphans() async {
+    try {
+      await ref.read(attachmentStartupProvider.future);
+    } on Object catch (error, stackTrace) {
+      debugPrint('[LaterBox Attachments] orphan cleanup failed: $error');
+      debugPrintStack(stackTrace: stackTrace);
+    }
   }
 
   Future<void> _initializeDesktop() async {
@@ -96,7 +107,9 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
   @override
   Widget build(BuildContext context) {
     final quickCaptureActive = ref.watch(
-      quickCaptureControllerProvider.select((controller) => controller.isActive),
+      quickCaptureControllerProvider.select(
+        (controller) => controller.isActive,
+      ),
     );
     return MaterialApp.router(
       title: 'LaterBox',
