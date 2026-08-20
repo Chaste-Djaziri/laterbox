@@ -36,8 +36,6 @@ void main() {
     return database;
   }
 
-import 'package:laterbox/core/router/app_router.dart';
-
   Future<void> pumpApp(WidgetTester tester, AppDatabase database) async {
     await tester.pumpWidget(
       ProviderScope(
