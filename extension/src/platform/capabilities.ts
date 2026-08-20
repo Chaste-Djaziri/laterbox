@@ -1,5 +1,5 @@
 export interface BrowserCapabilities {
   supportsSidePanel: boolean;
-  openSidePanel(tabId: number): Promise<void>;
+  openSidePanel(): Promise<void>;
   isRestrictedUrl(url?: string): boolean;
 }
