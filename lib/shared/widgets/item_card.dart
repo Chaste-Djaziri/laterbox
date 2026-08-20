@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:timeago/timeago.dart' as timeago;
 
 import '../../features/enrichment/domain/content_type.dart';
@@ -49,13 +50,7 @@ class ItemCard extends ConsumerWidget {
             color: Colors.transparent,
             child: InkWell(
               borderRadius: BorderRadius.circular(cardRadius),
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) => ItemDetailScreen(itemId: item.id),
-                  ),
-                );
-              },
+              onTap: () => context.push('/item/${item.id}'),
               onLongPress: () => showItemActions(context, ref, item),
               child: Container(
                 clipBehavior: Clip.antiAlias,
