@@ -19,6 +19,8 @@ class DesktopService {
 
   Future<void> showQuickCapture() async {}
 
+  Future<void> finishQuickCapture() async {}
+
   Future<void> restoreMainWindow() async {}
 
   Future<void> showMainWindow() async {}
