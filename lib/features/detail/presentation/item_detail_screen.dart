@@ -40,6 +40,17 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded),
+          tooltip: 'Back',
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/inbox');
+            }
+          },
+        ),
         actions: [
           if (item != null)
             IconButton(
