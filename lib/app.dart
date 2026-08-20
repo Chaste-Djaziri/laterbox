@@ -26,6 +26,8 @@ class LaterBoxApp extends ConsumerStatefulWidget {
 
 class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
     with WidgetsBindingObserver {
+  bool _drainingShares = false;
+
   @override
   void initState() {
     super.initState();
@@ -72,8 +74,18 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
   }
 
   void _drainPendingShares() {
-    unawaited(_captureAndroidShares());
-    unawaited(_importIosShares());
+    if (_drainingShares) return;
+    _drainingShares = true;
+    unawaited(_drainNativeShares());
+  }
+
+  Future<void> _drainNativeShares() async {
+    try {
+      await _captureAndroidShares();
+      await _importIosShares();
+    } finally {
+      _drainingShares = false;
+    }
   }
 
   Future<void> _captureAndroidShares() async {
@@ -136,6 +148,7 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
     final result = await service.importFiles(
       sourcePaths: payload.filePaths,
       text: payload.text,
+      itemId: payload.id,
     );
     if (result.saved) return true;
     return !result.failures.any(
