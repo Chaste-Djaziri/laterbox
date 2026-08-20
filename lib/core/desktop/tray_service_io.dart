@@ -15,9 +15,9 @@ class TrayService {
   final _listener = _TrayListener();
 
   Future<void> init({
-    required void Function() onQuickCapture,
-    required void Function() onOpenLaterBox,
-    required void Function() onQuit,
+    required Future<void> Function() onQuickCapture,
+    required Future<void> Function() onOpenLaterBox,
+    required Future<void> Function() onQuit,
   }) async {
     if (_initialized) return;
     _initialized = true;
@@ -57,9 +57,9 @@ class TrayService {
 }
 
 class _TrayListener extends TrayListener {
-  void Function()? onQuickCapture;
-  void Function()? onOpenLaterBox;
-  void Function()? onQuit;
+  Future<void> Function()? onQuickCapture;
+  Future<void> Function()? onOpenLaterBox;
+  Future<void> Function()? onQuit;
 
   @override
   void onTrayIconMouseDown() {
@@ -72,13 +72,34 @@ class _TrayListener extends TrayListener {
     debugPrint('[LaterBox Desktop] tray menu: ${item.key}');
     switch (item.key) {
       case 'quick_capture':
-        onQuickCapture?.call();
+        debugPrint('[LaterBox Desktop] invoking quick capture callback');
+        onQuickCapture?.call().catchError(
+              (Object error, StackTrace stackTrace) {
+                debugPrint(
+                  '[LaterBox Desktop] tray quick capture FAILED: $error',
+                );
+                debugPrintStack(stackTrace: stackTrace);
+              },
+            );
         break;
       case 'open_laterbox':
-        onOpenLaterBox?.call();
+        debugPrint('[LaterBox Desktop] invoking open laterbox callback');
+        onOpenLaterBox?.call().catchError(
+              (Object error, StackTrace stackTrace) {
+                debugPrint(
+                  '[LaterBox Desktop] tray open laterbox FAILED: $error',
+                );
+                debugPrintStack(stackTrace: stackTrace);
+              },
+            );
         break;
       case 'quit':
-        onQuit?.call();
+        onQuit?.call().catchError(
+              (Object error, StackTrace stackTrace) {
+                debugPrint('[LaterBox Desktop] tray quit FAILED: $error');
+                debugPrintStack(stackTrace: stackTrace);
+              },
+            );
         break;
     }
   }
