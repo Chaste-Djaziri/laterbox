@@ -7,11 +7,17 @@ import '../../capture/presentation/capture_sheet.dart';
 import '../../inbox/presentation/inbox_screen.dart';
 import '../../library/presentation/library_screen.dart';
 import '../../search/presentation/search_screen.dart';
+import 'desktop_sidebar.dart';
 
 class HomeShell extends ConsumerWidget {
-  const HomeShell({super.key, required this.selectedIndex});
+  const HomeShell({
+    super.key,
+    required this.selectedIndex,
+    this.navigationShell,
+  });
 
   final int selectedIndex;
+  final StatefulNavigationShell? navigationShell;
 
   static const List<Widget> _screens = [
     InboxScreen(),
@@ -37,25 +43,38 @@ class HomeShell extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final width = MediaQuery.sizeOf(context).width;
     final isDesktop = _isDesktopPlatform() || width >= 900;
+    final effectiveIndex = navigationShell?.currentIndex ?? selectedIndex;
+    final Widget bodyContent = navigationShell ?? _screens[effectiveIndex];
+
+    void handleDestinationSelected(int index) {
+      if (navigationShell != null) {
+        navigationShell!.goBranch(
+          index,
+          initialLocation: index == navigationShell!.currentIndex,
+        );
+      } else {
+        context.go(_paths[index]);
+      }
+    }
 
     return Scaffold(
       body: isDesktop
           ? Row(
               children: [
-                _DesktopSidebar(
-                  selectedIndex: selectedIndex,
-                  extended: width >= 1100,
-                  onDestinationSelected: (index) => context.go(_paths[index]),
+                DesktopSidebar(
+                  selectedIndex: effectiveIndex,
+                  onDestinationSelected: handleDestinationSelected,
+                  onOpenCapture: () => _openCapture(context),
                 ),
-                Expanded(child: _screens[selectedIndex]),
+                Expanded(child: bodyContent),
               ],
             )
-          : _screens[selectedIndex],
+          : bodyContent,
       bottomNavigationBar: isDesktop
           ? null
           : NavigationBar(
-              selectedIndex: selectedIndex,
-              onDestinationSelected: (index) => context.go(_paths[index]),
+              selectedIndex: effectiveIndex,
+              onDestinationSelected: handleDestinationSelected,
               destinations: const [
                 NavigationDestination(
                   icon: Icon(Icons.inbox_outlined),
@@ -73,7 +92,7 @@ class HomeShell extends ConsumerWidget {
                 ),
               ],
             ),
-      floatingActionButton: selectedIndex == 0
+      floatingActionButton: (!isDesktop && effectiveIndex == 0)
           ? FloatingActionButton.large(
               onPressed: () => _openCapture(context),
               tooltip: 'Save something',
@@ -92,60 +111,4 @@ bool _isDesktopPlatform() {
     TargetPlatform.windows => true,
     _ => false,
   };
-}
-
-class _DesktopSidebar extends StatelessWidget {
-  const _DesktopSidebar({
-    required this.selectedIndex,
-    required this.extended,
-    required this.onDestinationSelected,
-  });
-
-  final int selectedIndex;
-  final bool extended;
-  final ValueChanged<int> onDestinationSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        border: Border(
-          right: BorderSide(color: Theme.of(context).colorScheme.outline),
-        ),
-      ),
-      child: NavigationRail(
-        selectedIndex: selectedIndex,
-        onDestinationSelected: onDestinationSelected,
-        extended: extended,
-        minWidth: 76,
-        minExtendedWidth: 220,
-        groupAlignment: -0.7,
-        leading: Padding(
-          padding: const EdgeInsets.fromLTRB(12, 20, 12, 36),
-          child: Text(
-            'LaterBox',
-            style: Theme.of(context).textTheme.titleLarge
-                ?.copyWith(fontWeight: FontWeight.w800, letterSpacing: -0.6),
-          ),
-        ),
-        destinations: const [
-          NavigationRailDestination(
-            icon: Icon(Icons.inbox_outlined),
-            selectedIcon: Icon(Icons.inbox_rounded),
-            label: Text('Inbox'),
-          ),
-          NavigationRailDestination(
-            icon: Icon(Icons.search_rounded),
-            label: Text('Search'),
-          ),
-          NavigationRailDestination(
-            icon: Icon(Icons.auto_stories_outlined),
-            selectedIcon: Icon(Icons.auto_stories_rounded),
-            label: Text('Library'),
-          ),
-        ],
-      ),
-    );
-  }
 }
