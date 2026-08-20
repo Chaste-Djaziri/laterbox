@@ -26,6 +26,10 @@ import UIKit
       case "clearPending":
         self.queue?.clear()
         result(nil)
+      case "acknowledgePending":
+        let arguments = call.arguments as? [String: Any]
+        let ids = Set(arguments?["ids"] as? [String] ?? [])
+        result(self.queue?.acknowledge(ids: ids) ?? false)
       default:
         result(FlutterMethodNotImplemented)
       }
