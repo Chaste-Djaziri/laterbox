@@ -31,7 +31,7 @@ class _ItemCardState extends ConsumerState<ItemCard> {
   @override
   Widget build(BuildContext context) {
     final isDesktop = MediaQuery.sizeOf(context).width >= 700;
-    final cardPadding = isDesktop ? (widget.isGrid ? 12.0 : 16.0) : 18.0;
+    final cardPadding = isDesktop ? (widget.isGrid ? 10.0 : 16.0) : 18.0;
     final cardRadius = isDesktop ? 16.0 : 20.0;
     final uri = widget.item.url == null ? null : Uri.tryParse(widget.item.url!);
     final eyebrow =
@@ -202,7 +202,7 @@ class _GridCardContent extends StatelessWidget {
     final hasDescription = description != null && description!.trim().isNotEmpty;
     final displayDescription = hasDescription
         ? (isCaptured ? '“$description”' : description!.trim())
-        : '';
+        : null;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -213,7 +213,7 @@ class _GridCardContent extends StatelessWidget {
             _CardGlyph(
               eyebrow: eyebrow,
               faviconUrl: faviconUrl,
-              size: 24,
+              size: 22,
             ),
             const SizedBox(width: 8),
             Expanded(
@@ -242,42 +242,37 @@ class _GridCardContent extends StatelessWidget {
               ),
           ],
         ),
-        const SizedBox(height: 6),
         ItemTypeBadge(item: item),
         const SizedBox(height: 4),
-        SizedBox(
-          height: 36,
-          child: Text(
-            title,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.w700,
-              fontSize: 13,
-              height: 1.25,
-            ),
+        Text(
+          title,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: theme.textTheme.titleSmall?.copyWith(
+            fontWeight: FontWeight.w700,
+            fontSize: 13,
+            height: 1.2,
           ),
         ),
-        const SizedBox(height: 4),
-        SizedBox(
-          height: 32,
-          child: Text(
+        if (displayDescription != null) ...[
+          const SizedBox(height: 3),
+          Text(
             displayDescription,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
               fontSize: 11,
-              height: 1.3,
+              height: 1.25,
             ),
           ),
-        ),
-        const SizedBox(height: 8),
+        ],
+        const SizedBox(height: 6),
         Text(
           timeago.format(item.createdAt),
           style: theme.textTheme.labelSmall?.copyWith(
             color: theme.colorScheme.onSurfaceVariant.withOpacity(0.8),
-            fontSize: 11,
+            fontSize: 10,
           ),
         ),
       ],
@@ -531,25 +526,28 @@ class ItemTypeBadge extends StatelessWidget {
       return const SizedBox.shrink();
     }
     if (classification.confidence < 0.5) return const SizedBox.shrink();
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.secondaryContainer
-            .withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(type.icon, size: 14),
-          const SizedBox(width: 4),
-          Text(
-            type.label,
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: Theme.of(context).colorScheme.onSecondaryContainer,
+    return Padding(
+      padding: const EdgeInsets.only(top: 4, bottom: 2),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.secondaryContainer
+              .withValues(alpha: 0.5),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(type.icon, size: 14),
+            const SizedBox(width: 4),
+            Text(
+              type.label,
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                color: Theme.of(context).colorScheme.onSecondaryContainer,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
