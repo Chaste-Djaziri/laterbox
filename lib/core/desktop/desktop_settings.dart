@@ -15,7 +15,7 @@ class DesktopShortcut {
 
   HotKey toHotKey() {
     return HotKey(
-      key,
+      key: key,
       modifiers: modifiers,
       scope: HotKeyScope.system,
     );
@@ -36,6 +36,8 @@ class DesktopShortcut {
           break;
         case HotKeyModifier.shift:
           buffer.write('⇧ ');
+          break;
+        default:
           break;
       }
     }
