@@ -41,7 +41,10 @@ class DesktopActions {
 
     await ref
         .read(globalHotkeyServiceProvider)
-        .register(_settings.quickCaptureShortcut, onTriggered: openQuickCapture);
+        .register(
+          _settings.quickCaptureShortcut,
+          onTriggered: openQuickCapture,
+        );
 
     if (_settings.showInMenuBar) {
       await ref
@@ -54,7 +57,7 @@ class DesktopActions {
           );
     }
 
-    ref.listen(authStateProvider, (_, __) {
+    ref.listen(authStateProvider, (_, _) {
       unawaited(refreshTrayMenu());
     });
     unawaited(_watchConnectivity());
@@ -216,9 +219,14 @@ class DesktopActions {
       return true;
     }
 
-    final registered = await hotkey.register(shortcut, onTriggered: openQuickCapture);
+    final registered = await hotkey.register(
+      shortcut,
+      onTriggered: openQuickCapture,
+    );
     if (!registered) {
-      debugPrint('[LaterBox Desktop] shortcut change rejected: ${shortcut.displayLabel}');
+      debugPrint(
+        '[LaterBox Desktop] shortcut change rejected: ${shortcut.displayLabel}',
+      );
       return false;
     }
 
@@ -227,14 +235,18 @@ class DesktopActions {
         .read(desktopSettingsStoreProvider)
         .setQuickCaptureShortcut(shortcut);
     await refreshTrayMenu();
-    debugPrint('[LaterBox Desktop] shortcut changed to: ${shortcut.displayLabel}');
+    debugPrint(
+      '[LaterBox Desktop] shortcut changed to: ${shortcut.displayLabel}',
+    );
     return true;
   }
 
   Future<void> setLaunchAtLogin(bool enabled) async {
     _settings = _settings.copyWith(launchAtLogin: enabled);
     await ref.read(desktopSettingsStoreProvider).setLaunchAtLogin(enabled);
-    await ref.read(desktopAppLaunchServiceProvider).setLoginItemEnabled(enabled);
+    await ref
+        .read(desktopAppLaunchServiceProvider)
+        .setLoginItemEnabled(enabled);
   }
 
   Future<void> setKeepRunningOnWindowClose(bool enabled) async {
@@ -247,8 +259,17 @@ class DesktopActions {
   Future<void> setShowInMenuBar(bool enabled) async {
     _settings = _settings.copyWith(showInMenuBar: enabled);
     await ref.read(desktopSettingsStoreProvider).setShowInMenuBar(enabled);
-    if (!enabled) {
-      await ref.read(trayServiceProvider).destroy();
+    final tray = ref.read(trayServiceProvider);
+    if (enabled) {
+      await tray.init(
+        onQuickCapture: openQuickCapture,
+        onOpenLaterBox: openLaterBox,
+        onOpenSettings: openSettings,
+        onQuit: ref.read(desktopServiceProvider).quit,
+      );
+      await refreshTrayMenu();
+    } else {
+      await tray.destroy();
     }
   }
 
