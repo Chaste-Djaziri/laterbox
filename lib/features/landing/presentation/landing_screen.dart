@@ -157,6 +157,19 @@ class _LandingHeader extends ConsumerWidget {
             ),
           Row(
             children: [
+              if (!(auth?.isAuthenticated ?? false)) ...[
+                TextButton(
+                  onPressed: () => context.go('/login'),
+                  child: Text(
+                    'Sign In',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      color: theme.colorScheme.primary,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+              ],
               FilledButton.icon(
                 onPressed: () => context.go('/inbox'),
                 icon: const Icon(Icons.bolt_rounded, size: 18),
