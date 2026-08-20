@@ -2,7 +2,7 @@ import 'package:flutter/services.dart';
 import 'package:hotkey_manager/hotkey_manager.dart';
 
 /// System-wide quick capture hotkey: `Option/Alt + Space`.
-const quickCaptureHotKey = HotKey(
+final quickCaptureHotKey = HotKey(
   key: LogicalKeyboardKey.space,
   modifiers: [HotKeyModifier.alt],
 );
