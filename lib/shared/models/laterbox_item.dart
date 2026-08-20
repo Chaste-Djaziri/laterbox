@@ -1,6 +1,35 @@
+import 'dart:convert';
+
 import '../../core/database/app_database.dart';
 import '../../features/enrichment/domain/item_metadata.dart';
 import 'item_status.dart';
+
+/// Context around a saved selection (text immediately before and after it),
+/// used to build a browser text fragment so the quote can be scrolled to and
+/// highlighted when the original source is reopened.
+class TextSelector {
+  const TextSelector({this.before, this.after});
+
+  factory TextSelector.fromJson(String? raw) {
+    if (raw == null || raw.isEmpty) return const TextSelector();
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is! Map<String, dynamic>) return const TextSelector();
+      return TextSelector(
+        before: decoded['before'] is String ? decoded['before'] as String : null,
+        after: decoded['after'] is String ? decoded['after'] as String : null,
+      );
+    } on FormatException {
+      return const TextSelector();
+    }
+  }
+
+  final String? before;
+  final String? after;
+
+  bool get isEmpty => (before == null || before!.isEmpty) &&
+      (after == null || after!.isEmpty);
+}
 
 class LaterBoxItem {
   const LaterBoxItem({
@@ -8,6 +37,7 @@ class LaterBoxItem {
     this.url,
     this.title,
     this.text,
+    this.selector = const TextSelector(),
     this.type = 'unknown',
     this.favorite = false,
     this.status = ItemStatus.inbox,
@@ -24,6 +54,7 @@ class LaterBoxItem {
       url: item.url,
       title: item.title,
       text: item.textContent,
+      selector: TextSelector.fromJson(item.textSelector),
       type: item.type,
       favorite: item.favorite,
       status: ItemStatus.fromDatabase(item.status),
@@ -36,6 +67,7 @@ class LaterBoxItem {
   final String? url;
   final String? title;
   final String? text;
+  final TextSelector selector;
   final String type;
   final bool favorite;
   final ItemStatus status;
