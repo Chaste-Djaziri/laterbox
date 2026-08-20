@@ -10,8 +10,8 @@ import 'quick_capture_success.dart';
 
 /// Full-window widget shown while quick capture is active.
 ///
-/// Owns the text controller so both the Save button and `⌘↵` call exactly one
-/// submit path that reads the actual current field value.
+/// Owns the text controller so the Save button and platform submit shortcuts
+/// call exactly one path that reads the actual current field value.
 class QuickCaptureScreen extends ConsumerStatefulWidget {
   const QuickCaptureScreen({super.key});
 
@@ -83,6 +83,7 @@ class _QuickCaptureScreenState extends ConsumerState<QuickCaptureScreen> {
     return CallbackShortcuts(
       bindings: {
         const SingleActivator(LogicalKeyboardKey.enter, meta: true): _submit,
+        const SingleActivator(LogicalKeyboardKey.enter, control: true): _submit,
         const SingleActivator(LogicalKeyboardKey.escape): _close,
       },
       child: Focus(
@@ -90,14 +91,13 @@ class _QuickCaptureScreenState extends ConsumerState<QuickCaptureScreen> {
         child: switch (controller.status) {
           QuickCaptureStatus.success => const QuickCaptureSuccess(),
           QuickCaptureStatus.active ||
-          QuickCaptureStatus.saving =>
-            QuickCaptureField(
-              key: ValueKey(controller.prefillText),
-              controller: _textController,
-              sourceLabel: sourceApplication,
-              onChanged: controller.updateDraft,
-              onSave: _submit,
-            ),
+          QuickCaptureStatus.saving => QuickCaptureField(
+            key: ValueKey(controller.prefillText),
+            controller: _textController,
+            sourceLabel: sourceApplication,
+            onChanged: controller.updateDraft,
+            onSave: _submit,
+          ),
           QuickCaptureStatus.idle => const SizedBox.shrink(),
         },
       ),
