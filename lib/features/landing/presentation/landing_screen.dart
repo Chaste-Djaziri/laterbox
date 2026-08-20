@@ -292,24 +292,29 @@ class _HeroSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final width = MediaQuery.sizeOf(context).width;
+    final isMobile = width < 600;
 
     return Container(
       width: double.infinity,
       padding: EdgeInsets.fromLTRB(
-        isDesktop ? 64 : 24,
-        isDesktop ? 72 : 40,
-        isDesktop ? 64 : 24,
-        isDesktop ? 64 : 32,
+        isMobile ? 16 : (isDesktop ? 64 : 32),
+        isMobile ? 28 : (isDesktop ? 64 : 40),
+        isMobile ? 16 : (isDesktop ? 64 : 32),
+        isMobile ? 36 : 48,
       ),
       child: Column(
         children: [
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+            padding: EdgeInsets.symmetric(
+              horizontal: isMobile ? 12 : 16,
+              vertical: isMobile ? 6 : 8,
+            ),
             decoration: BoxDecoration(
-              color: theme.colorScheme.primaryContainer.withOpacity(0.6),
-              borderRadius: BorderRadius.circular(20),
+              color: theme.colorScheme.primaryContainer.withOpacity(0.5),
+              borderRadius: BorderRadius.circular(100),
               border: Border.all(
-                color: theme.colorScheme.primary.withOpacity(0.3),
+                color: theme.colorScheme.primary.withOpacity(0.25),
               ),
             ),
             child: Row(
@@ -317,7 +322,7 @@ class _HeroSection extends ConsumerWidget {
               children: [
                 Icon(
                   Icons.auto_awesome_rounded,
-                  size: 16,
+                  size: isMobile ? 14 : 16,
                   color: theme.colorScheme.primary,
                 ),
                 const SizedBox(width: 8),
@@ -326,23 +331,25 @@ class _HeroSection extends ConsumerWidget {
                   style: theme.textTheme.labelMedium?.copyWith(
                     color: theme.colorScheme.primary,
                     fontWeight: FontWeight.w700,
+                    fontSize: isMobile ? 11 : 13,
+                    letterSpacing: 0.2,
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 20),
           Text(
             'Save anything now.\nRead, watch & organize later.',
             textAlign: TextAlign.center,
             style: theme.textTheme.displayMedium?.copyWith(
               fontWeight: FontWeight.w900,
-              letterSpacing: -1.5,
-              height: 1.1,
-              fontSize: isDesktop ? 52 : 34,
+              letterSpacing: isMobile ? -0.5 : -1.5,
+              height: 1.12,
+              fontSize: isMobile ? 28 : (isDesktop ? 52 : 38),
             ),
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 16),
           ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 640),
             child: Text(
@@ -351,67 +358,89 @@ class _HeroSection extends ConsumerWidget {
               style: theme.textTheme.bodyLarge?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
                 height: 1.5,
-                fontSize: isDesktop ? 18 : 15,
+                fontSize: isMobile ? 14 : (isDesktop ? 18 : 16),
               ),
             ),
           ),
-          const SizedBox(height: 32),
-          Wrap(
-            spacing: 16,
-            runSpacing: 12,
-            alignment: WrapAlignment.center,
-            children: [
-              FilledButton.icon(
-                onPressed: () => context.go('/inbox'),
-                icon: const Icon(Icons.arrow_forward_rounded, size: 20),
-                label: const Text('Get Started Free'),
-                style: FilledButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 28,
-                    vertical: 16,
-                  ),
-                  textStyle: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-              OutlinedButton.icon(
-                onPressed: () {
-                  ref.read(guestModeProvider.notifier).state = true;
-                  context.go('/inbox');
-                },
-                icon: const Icon(Icons.explore_rounded, size: 20),
-                label: const Text('Try Guest Mode'),
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 16,
-                  ),
-                  textStyle: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 48),
+          const SizedBox(height: 28),
           ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 840),
+            constraints: BoxConstraints(maxWidth: isMobile ? 340 : 500),
+            child: Flex(
+              direction: isMobile ? Axis.vertical : Axis.horizontal,
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                FilledButton.icon(
+                  onPressed: () => context.go('/inbox'),
+                  icon: const Icon(Icons.arrow_forward_rounded, size: 18),
+                  label: const Text('Get Started Free'),
+                  style: FilledButton.styleFrom(
+                    elevation: 0,
+                    backgroundColor: theme.colorScheme.primary,
+                    foregroundColor: theme.colorScheme.onPrimary,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 26,
+                      vertical: 14,
+                    ),
+                    minimumSize: Size(isMobile ? double.infinity : 0, 46),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(100),
+                    ),
+                    textStyle: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                SizedBox(
+                  width: isMobile ? 0 : 12,
+                  height: isMobile ? 10 : 0,
+                ),
+                OutlinedButton.icon(
+                  onPressed: () {
+                    ref.read(guestModeProvider.notifier).state = true;
+                    context.go('/inbox');
+                  },
+                  icon: const Icon(Icons.explore_rounded, size: 18),
+                  label: const Text('Try Guest Mode'),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 22,
+                      vertical: 14,
+                    ),
+                    minimumSize: Size(isMobile ? double.infinity : 0, 46),
+                    side: BorderSide(
+                      color: theme.colorScheme.outlineVariant,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(100),
+                    ),
+                    textStyle: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 40),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 860),
             child: Container(
-              padding: const EdgeInsets.all(20),
+              padding: EdgeInsets.all(isMobile ? 14 : 20),
               decoration: BoxDecoration(
                 color: theme.colorScheme.surfaceContainerLowest,
-                borderRadius: BorderRadius.circular(24),
+                borderRadius: BorderRadius.circular(isMobile ? 18 : 24),
                 border: Border.all(
                   color: theme.colorScheme.outlineVariant.withOpacity(0.6),
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: theme.colorScheme.shadow.withOpacity(0.08),
-                    blurRadius: 24,
-                    offset: const Offset(0, 12),
+                    color: theme.colorScheme.shadow.withOpacity(0.06),
+                    blurRadius: 28,
+                    offset: const Offset(0, 14),
                   ),
                 ],
               ),
@@ -420,47 +449,49 @@ class _HeroSection extends ConsumerWidget {
                   Row(
                     children: [
                       Container(
-                        width: 12,
-                        height: 12,
+                        width: 10,
+                        height: 10,
                         decoration: const BoxDecoration(
                           color: Color(0xFFFF5F56),
                           shape: BoxShape.circle,
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 6),
                       Container(
-                        width: 12,
-                        height: 12,
+                        width: 10,
+                        height: 10,
                         decoration: const BoxDecoration(
                           color: Color(0xFFFFBD2E),
                           shape: BoxShape.circle,
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 6),
                       Container(
-                        width: 12,
-                        height: 12,
+                        width: 10,
+                        height: 10,
                         decoration: const BoxDecoration(
                           color: Color(0xFF27C93F),
                           shape: BoxShape.circle,
                         ),
                       ),
-                      const SizedBox(width: 16),
+                      const SizedBox(width: 14),
                       Expanded(
                         child: Container(
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
+                            horizontal: 10,
                             vertical: 4,
                           ),
                           decoration: BoxDecoration(
                             color: theme.colorScheme.surfaceContainerHighest
-                                .withOpacity(0.5),
-                            borderRadius: BorderRadius.circular(8),
+                                .withOpacity(0.4),
+                            borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
                             'https://laterbox.app/inbox',
+                            overflow: TextOverflow.ellipsis,
                             style: theme.textTheme.labelSmall?.copyWith(
                               color: theme.colorScheme.onSurfaceVariant,
+                              fontSize: 11,
                             ),
                           ),
                         ),
@@ -468,9 +499,11 @@ class _HeroSection extends ConsumerWidget {
                     ],
                   ),
                   const SizedBox(height: 16),
-                  Row(
+                  Flex(
+                    direction: isMobile ? Axis.vertical : Axis.horizontal,
                     children: [
-                      Expanded(
+                      const Expanded(
+                        flex: 1,
                         child: _DemoCardMockup(
                           icon: Icons.play_circle_fill_rounded,
                           iconColor: Colors.red,
@@ -479,18 +512,20 @@ class _HeroSection extends ConsumerWidget {
                           tag: 'Video',
                         ),
                       ),
-                      if (isDesktop) ...[
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: _DemoCardMockup(
-                            icon: Icons.article_rounded,
-                            iconColor: Colors.blue,
-                            domain: 'github.com',
-                            title: 'Building Universal Extensions with MV3',
-                            tag: 'Article',
-                          ),
+                      SizedBox(
+                        width: isMobile ? 0 : 12,
+                        height: isMobile ? 10 : 0,
+                      ),
+                      const Expanded(
+                        flex: 1,
+                        child: _DemoCardMockup(
+                          icon: Icons.article_rounded,
+                          iconColor: Colors.blue,
+                          domain: 'github.com',
+                          title: 'Building Universal Extensions with MV3',
+                          tag: 'Article',
                         ),
-                      ],
+                      ),
                     ],
                   ),
                 ],
@@ -525,17 +560,18 @@ class _DemoCardMockup extends StatelessWidget {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: theme.colorScheme.outline.withOpacity(0.3),
+          color: theme.colorScheme.outlineVariant.withOpacity(0.4),
         ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
           Row(
             children: [
-              Icon(icon, size: 18, color: iconColor),
+              Icon(icon, size: 16, color: iconColor),
               const SizedBox(width: 6),
               Text(
                 domain,
@@ -569,6 +605,7 @@ class _DemoCardMockup extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             style: theme.textTheme.titleSmall?.copyWith(
               fontWeight: FontWeight.w700,
+              fontSize: 13,
             ),
           ),
         ],
