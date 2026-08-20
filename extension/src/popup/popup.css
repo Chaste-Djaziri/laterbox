@@ -26,19 +26,12 @@ body {
 .brand {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   margin-bottom: 24px;
-  font-size: 21px;
-  font-weight: 800;
-  letter-spacing: -0.6px;
 }
 
-.brand-mark {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: #e7ff57;
-  box-shadow: 0 0 0 5px rgba(231, 255, 87, 0.2);
+.brand-logo {
+  height: 30px;
+  width: auto;
 }
 
 .capture-preview {
