@@ -21,9 +21,11 @@ class QuickCaptureController extends ChangeNotifier {
     required DesktopService desktopService,
     required ClipboardCaptureService clipboardService,
     required CaptureService captureService,
+    bool enableBlurClose = false,
   })  : _desktopService = desktopService,
         _clipboardService = clipboardService,
-        _captureService = captureService {
+        _captureService = captureService,
+        _enableBlurClose = enableBlurClose {
     _desktopService.addWindowBlurListener(_onWindowBlur);
     _desktopService.addWindowCloseListener(close);
   }
@@ -31,6 +33,10 @@ class QuickCaptureController extends ChangeNotifier {
   final DesktopService _desktopService;
   final ClipboardCaptureService _clipboardService;
   final CaptureService _captureService;
+
+  /// Temporarily disabled while the window show/focus path is being verified;
+  /// re-enable once quick capture reliably opens.
+  final bool _enableBlurClose;
 
   QuickCaptureStatus _status = QuickCaptureStatus.idle;
   String? _prefillText;
@@ -54,6 +60,9 @@ class QuickCaptureController extends ChangeNotifier {
   }
 
   /// Opens the quick capture window. Called from the global hotkey or tray.
+  ///
+  /// Enters capture mode first (so the first visible frame is already the
+  /// quick capture UI), then drives the native window into place.
   Future<void> open() async {
     if (_disposed || isActive) return;
     _successTimer?.cancel();
@@ -71,7 +80,7 @@ class QuickCaptureController extends ChangeNotifier {
     _prefillText = prefill;
     _status = QuickCaptureStatus.active;
     notifyListeners();
-    await _desktopService.showQuickCaptureWindow();
+    await _desktopService.showQuickCapture();
   }
 
   /// Saves the current draft via the shared capture pipeline, then disappears.
@@ -127,6 +136,8 @@ class QuickCaptureController extends ChangeNotifier {
   }
 
   void _onWindowBlur() {
+    debugPrint('[LaterBox Desktop] window blur (blur-close disabled)');
+    if (!_enableBlurClose) return;
     if (_status != QuickCaptureStatus.active) return;
     _blurTimer?.cancel();
     _blurTimer = Timer(blurCloseDelay, () {
@@ -138,7 +149,6 @@ class QuickCaptureController extends ChangeNotifier {
 
   @override
   void dispose() {
-    if (_disposed) return;
     _disposed = true;
     _blurTimer?.cancel();
     _successTimer?.cancel();
