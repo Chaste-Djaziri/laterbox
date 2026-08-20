@@ -13,6 +13,11 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
   return AuthRepository(ref.watch(supabaseClientProvider));
 });
 
+final restoredAuthStateProvider = Provider<LaterBoxAuthState>((ref) {
+  final user = ref.watch(supabaseClientProvider)?.auth.currentUser;
+  return LaterBoxAuthState(userId: user?.id, email: user?.email);
+});
+
 final authStateProvider = StreamProvider<LaterBoxAuthState>((ref) async* {
   final client = ref.watch(supabaseClientProvider);
   if (client == null) {
@@ -20,8 +25,7 @@ final authStateProvider = StreamProvider<LaterBoxAuthState>((ref) async* {
     return;
   }
 
-  final initialUser = client.auth.currentUser;
-  yield LaterBoxAuthState(userId: initialUser?.id, email: initialUser?.email);
+  yield ref.watch(restoredAuthStateProvider);
 
   await for (final event in client.auth.onAuthStateChange) {
     final user = event.session?.user;
