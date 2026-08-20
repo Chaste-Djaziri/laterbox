@@ -21,8 +21,16 @@
   "host_permissions": [
     "https://*.supabase.co/*",
     "http://127.0.0.1:54321/*",
-    "http://localhost:54321/*"
+    "http://localhost:54321/*",
+    "http://*/*",
+    "https://*/*"
   ],
+  "externally_connectable": {
+    "matches": [
+      "https://app.laterbox.com/*",
+      "http://localhost/*"
+    ]
+  },
   "action": {
     "default_title": "Save to LaterBox",
     "default_popup": "src/popup/popup.html",
