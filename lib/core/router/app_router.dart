@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../features/auth/presentation/auth_gate.dart';
 import '../../features/detail/presentation/item_detail_screen.dart';
 import '../../features/extension/presentation/extension_connect_screen.dart';
+import '../../features/extension/presentation/extension_connected_screen.dart';
 import '../../features/home/presentation/home_shell.dart';
 import '../../features/inbox/presentation/inbox_screen.dart';
 import '../../features/library/presentation/library_screen.dart';
@@ -19,6 +20,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           requestId: state.uri.queryParameters['request_id'] ?? '',
           requestSecret: state.uri.queryParameters['request_secret'] ?? '',
           redirectUri: state.uri.queryParameters['redirect_uri'] ?? '',
+        ),
+      ),
+      GoRoute(
+        path: '/extension/connected',
+        builder: (context, state) => ExtensionConnectedScreen(
+          status: state.uri.queryParameters['status'] ?? '',
+          requestId: state.uri.queryParameters['request_id'] ?? '',
         ),
       ),
       ShellRoute(
