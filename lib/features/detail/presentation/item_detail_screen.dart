@@ -62,8 +62,15 @@ class _ItemDetailBody extends ConsumerWidget {
     final uri = item.url == null ? null : Uri.tryParse(item.url!);
     final eyebrow =
         item.metadata?.domain ?? uri?.host.replaceFirst('www.', '') ?? 'Note';
+    final capturedText = item.text?.trim();
+    final isCaptured = capturedText != null && capturedText.isNotEmpty;
+    final sourceTitle = item.metadata?.title ?? item.title;
     final title =
-        item.metadata?.title ?? item.title ?? item.url ?? item.text ?? 'Untitled';
+        item.metadata?.title ??
+        item.title ??
+        item.url ??
+        item.text ??
+        'Untitled';
     final description = item.metadata?.description;
     final collections = ref.watch(collectionsForItemProvider(item.id)).value;
 
@@ -86,22 +93,78 @@ class _ItemDetailBody extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: 10),
-              Text(
-                title,
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.6,
-                ),
-              ),
-              if (description != null && description.isNotEmpty) ...[
-                const SizedBox(height: 10),
+              if (isCaptured) ...[
                 Text(
-                  description,
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  'Selected text',
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    height: 1.4,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1.2,
                   ),
                 ),
+                const SizedBox(height: 6),
+                Text(
+                  '“$capturedText”',
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -0.4,
+                    height: 1.35,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  'Source',
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1.2,
+                  ),
+                ),
+                if (sourceTitle != null) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    sourceTitle,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+                if (item.url != null) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    item.url!,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+                if (sourceTitle == null && item.url == null) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    'LaterBox note',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ] else ...[
+                Text(
+                  title,
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.6,
+                  ),
+                ),
+                if (description != null && description.isNotEmpty) ...[
+                  const SizedBox(height: 10),
+                  Text(
+                    description,
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      height: 1.4,
+                    ),
+                  ),
+                ],
               ],
               if (item.url != null) ...[
                 const SizedBox(height: 20),
