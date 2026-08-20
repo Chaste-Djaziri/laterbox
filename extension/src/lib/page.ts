@@ -4,12 +4,19 @@ export type PageContext = {
   selection: string;
 };
 
-export async function getPageContext(tabId: number): Promise<PageContext> {
-  const results = await chrome.scripting.executeScript({
-    target: { tabId },
-    func: readPageContext,
-  });
-  return results[0]?.result ?? { url: "", title: "", selection: "" };
+export async function getPageContext(
+  tabId: number,
+  fallback: PageContext = { url: "", title: "", selection: "" },
+): Promise<PageContext> {
+  try {
+    const results = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: readPageContext,
+    });
+    return results[0]?.result ?? fallback;
+  } catch {
+    return fallback;
+  }
 }
 
 function readPageContext(): PageContext {
