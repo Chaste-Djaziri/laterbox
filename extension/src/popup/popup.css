@@ -8,6 +8,10 @@
   box-sizing: border-box;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 body {
   width: 360px;
   min-height: 300px;
