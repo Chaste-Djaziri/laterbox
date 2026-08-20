@@ -68,77 +68,231 @@ final class ShareViewController: UIViewController {
             return
         }
 
-        if let provider = providers.first(
-            where: { $0.hasItemConformingToTypeIdentifier(UTType.url.identifier) }
-        ) {
-            loadUrl(provider)
-            return
+        let captureId = UUID().uuidString
+        let fileProviders = providers.compactMap { provider -> (NSItemProvider, String)? in
+            guard let identifier = supportedFileIdentifier(for: provider) else { return nil }
+            return (provider, identifier)
         }
-
-        if let provider = providers.first(
-            where: { $0.hasItemConformingToTypeIdentifier(UTType.plainText.identifier) }
-        ) {
-            loadText(provider)
-            return
-        }
-
-        showFailure("No shareable content found")
-    }
-
-    private func loadUrl(_ provider: NSItemProvider) {
-        provider.loadItem(
-            forTypeIdentifier: UTType.url.identifier,
-            options: nil
-        ) { [weak self] item, _ in
-            DispatchQueue.main.async {
-                guard let self else { return }
-                guard let url = item as? URL else {
-                    self.showFailure("Couldn't read the shared link")
-                    return
+        let initialText = extensionItem.attributedContentText?.string
+        loadFilesSequentially(
+            fileProviders,
+            captureId: captureId,
+            index: 0,
+            paths: [],
+            failureCount: 0
+        ) { [weak self] paths, failureCount in
+            guard let self else { return }
+            self.loadOptionalText(from: providers, fallback: initialText) { text in
+                DispatchQueue.main.async {
+                    self.save(
+                        captureId: captureId,
+                        text: text,
+                        filePaths: paths,
+                        failureCount: failureCount
+                    )
                 }
-                self.save(value: url.absoluteString, kind: "url")
             }
         }
     }
 
-    private func loadText(_ provider: NSItemProvider) {
-        provider.loadItem(
+    private func supportedFileIdentifier(for provider: NSItemProvider) -> String? {
+        provider.registeredTypeIdentifiers.first { identifier in
+            guard let type = UTType(identifier) else { return false }
+            if type.conforms(to: .image) || type.conforms(to: .pdf) { return true }
+            let supportedExtensions = ["txt", "md", "doc", "docx"]
+            guard
+                let fileExtension = type.preferredFilenameExtension?.lowercased(),
+                supportedExtensions.contains(fileExtension)
+            else { return false }
+            if type.conforms(to: .plainText) {
+                return provider.suggestedName != nil
+            }
+            return true
+        }
+    }
+
+    private func loadFilesSequentially(
+        _ providers: [(NSItemProvider, String)],
+        captureId: String,
+        index: Int,
+        paths: [String],
+        failureCount: Int,
+        completion: @escaping ([String], Int) -> Void
+    ) {
+        guard index < providers.count else {
+            completion(paths, failureCount)
+            return
+        }
+        let (provider, identifier) = providers[index]
+        provider.loadFileRepresentation(forTypeIdentifier: identifier) { [weak self] url, _ in
+            guard let self else { return }
+            var nextPaths = paths
+            var nextFailureCount = failureCount
+            if let url, let staged = self.stageFile(
+                source: url,
+                provider: provider,
+                identifier: identifier,
+                captureId: captureId,
+                existingPaths: paths
+            ) {
+                nextPaths.append(staged.path)
+            } else {
+                nextFailureCount += 1
+            }
+            self.loadFilesSequentially(
+                providers,
+                captureId: captureId,
+                index: index + 1,
+                paths: nextPaths,
+                failureCount: nextFailureCount,
+                completion: completion
+            )
+        }
+    }
+
+    private func stageFile(
+        source: URL,
+        provider: NSItemProvider,
+        identifier: String,
+        captureId: String,
+        existingPaths: [String]
+    ) -> URL? {
+        guard
+            let container = FileManager.default.containerURL(
+                forSecurityApplicationGroupIdentifier: AppGroup.identifier
+            )
+        else { return nil }
+        let directory = container
+            .appendingPathComponent("PendingAttachments", isDirectory: true)
+            .appendingPathComponent(captureId, isDirectory: true)
+        do {
+            try FileManager.default.createDirectory(
+                at: directory,
+                withIntermediateDirectories: true
+            )
+            let type = UTType(identifier)
+            var fileName = provider.suggestedName ?? source.lastPathComponent
+            if URL(fileURLWithPath: fileName).pathExtension.isEmpty,
+               let suffix = type?.preferredFilenameExtension {
+                fileName += ".\(suffix)"
+            }
+            fileName = safeFileName(fileName)
+            let usedNames = Set(existingPaths.map { URL(fileURLWithPath: $0).lastPathComponent.lowercased() })
+            fileName = uniqueFileName(fileName, excluding: usedNames)
+            let destination = directory.appendingPathComponent(fileName)
+            try FileManager.default.copyItem(at: source, to: destination)
+            return destination
+        } catch {
+            return nil
+        }
+    }
+
+    private func loadOptionalText(
+        from providers: [NSItemProvider],
+        fallback: String?,
+        completion: @escaping (String?) -> Void
+    ) {
+        if let fallback = normalizedText(fallback) {
+            completion(fallback)
+            return
+        }
+        if let urlProvider = providers.first(where: {
+            $0.hasItemConformingToTypeIdentifier(UTType.url.identifier)
+        }) {
+            urlProvider.loadItem(forTypeIdentifier: UTType.url.identifier, options: nil) { item, _ in
+                completion((item as? URL)?.absoluteString)
+            }
+            return
+        }
+        guard let textProvider = providers.first(where: {
+            $0.suggestedName == nil &&
+                $0.hasItemConformingToTypeIdentifier(UTType.plainText.identifier)
+        }) else {
+            completion(nil)
+            return
+        }
+        textProvider.loadItem(
             forTypeIdentifier: UTType.plainText.identifier,
             options: nil
-        ) { [weak self] item, _ in
-            DispatchQueue.main.async {
-                guard let self else { return }
-                guard let text = item as? String else {
-                    self.showFailure("Couldn't read the shared text")
-                    return
-                }
-                self.save(value: text, kind: "text")
-            }
+        ) { item, _ in
+            completion(item as? String)
         }
     }
 
-    private func save(value: String, kind: String) {
-        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else {
+    private func save(
+        captureId: String,
+        text: String?,
+        filePaths: [String],
+        failureCount: Int
+    ) {
+        let trimmed = normalizedText(text)
+        guard trimmed != nil || !filePaths.isEmpty else {
+            deleteStagingDirectory(captureId: captureId)
             showFailure("Couldn't read the shared content")
             return
         }
         guard let queue else {
+            deleteStagingDirectory(captureId: captureId)
             showFailure("LaterBox storage is unavailable")
             return
         }
         let capture = PendingShareCapture(
-            id: UUID().uuidString,
+            id: captureId,
             value: trimmed,
-            kind: kind,
+            kind: filePaths.isEmpty ? "text" : "attachments",
             source: "iosShare",
-            createdAt: ISO8601DateFormatter().string(from: Date())
+            createdAt: ISO8601DateFormatter().string(from: Date()),
+            filePaths: filePaths
         )
         if queue.enqueue(capture) {
-            showSuccess(subtitle: displaySubtitle(for: trimmed, kind: kind))
+            let subtitle: String?
+            if filePaths.isEmpty, let trimmed {
+                subtitle = displaySubtitle(for: trimmed, kind: "text")
+            } else if failureCount > 0 {
+                subtitle = "\(filePaths.count) saved, \(failureCount) couldn't be read"
+            } else {
+                subtitle = filePaths.count == 1
+                    ? URL(fileURLWithPath: filePaths[0]).lastPathComponent
+                    : "\(filePaths.count) files"
+            }
+            showSuccess(subtitle: subtitle)
         } else {
+            deleteStagingDirectory(captureId: captureId)
             showFailure("Couldn't write to LaterBox storage")
         }
+    }
+
+    private func normalizedText(_ value: String?) -> String? {
+        let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed?.isEmpty == false ? trimmed : nil
+    }
+
+    private func safeFileName(_ value: String) -> String {
+        let invalid = CharacterSet(charactersIn: "/\\").union(.controlCharacters)
+        return value.components(separatedBy: invalid).joined(separator: "_").prefix(180).description
+    }
+
+    private func uniqueFileName(_ value: String, excluding usedNames: Set<String>) -> String {
+        guard usedNames.contains(value.lowercased()) else { return value }
+        let url = URL(fileURLWithPath: value)
+        let suffix = url.pathExtension
+        let stem = url.deletingPathExtension().lastPathComponent
+        var index = 2
+        while true {
+            let candidate = suffix.isEmpty ? "\(stem)-\(index)" : "\(stem)-\(index).\(suffix)"
+            if !usedNames.contains(candidate.lowercased()) { return candidate }
+            index += 1
+        }
+    }
+
+    private func deleteStagingDirectory(captureId: String) {
+        guard let container = FileManager.default.containerURL(
+            forSecurityApplicationGroupIdentifier: AppGroup.identifier
+        ) else { return }
+        let directory = container
+            .appendingPathComponent("PendingAttachments", isDirectory: true)
+            .appendingPathComponent(captureId, isDirectory: true)
+        try? FileManager.default.removeItem(at: directory)
     }
 
     // MARK: States
