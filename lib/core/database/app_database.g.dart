@@ -809,6 +809,1137 @@ class ItemsCompanion extends UpdateCompanion<Item> {
   }
 }
 
+class $AttachmentsTable extends Attachments
+    with TableInfo<$AttachmentsTable, Attachment> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $AttachmentsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _itemIdMeta = const VerificationMeta('itemId');
+  @override
+  late final GeneratedColumn<String> itemId = GeneratedColumn<String>(
+    'item_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES items (id)',
+    ),
+  );
+  static const VerificationMeta _userIdMeta = const VerificationMeta('userId');
+  @override
+  late final GeneratedColumn<String> userId = GeneratedColumn<String>(
+    'user_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _originalFileNameMeta = const VerificationMeta(
+    'originalFileName',
+  );
+  @override
+  late final GeneratedColumn<String> originalFileName = GeneratedColumn<String>(
+    'original_file_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _fileExtensionMeta = const VerificationMeta(
+    'fileExtension',
+  );
+  @override
+  late final GeneratedColumn<String> fileExtension = GeneratedColumn<String>(
+    'file_extension',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL CHECK(file_extension <> \'\' AND file_extension = lower(file_extension) AND file_extension NOT LIKE \'.%\')',
+  );
+  static const VerificationMeta _mimeTypeMeta = const VerificationMeta(
+    'mimeType',
+  );
+  @override
+  late final GeneratedColumn<String> mimeType = GeneratedColumn<String>(
+    'mime_type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _byteSizeMeta = const VerificationMeta(
+    'byteSize',
+  );
+  @override
+  late final GeneratedColumn<int> byteSize = GeneratedColumn<int>(
+    'byte_size',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL CHECK(byte_size BETWEEN 1 AND 104857600)',
+  );
+  static const VerificationMeta _sha256Meta = const VerificationMeta('sha256');
+  @override
+  late final GeneratedColumn<String> sha256 = GeneratedColumn<String>(
+    'sha256',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL CHECK(length(sha256) = 64 AND sha256 NOT GLOB \'*[^0-9a-f]*\')',
+  );
+  static const VerificationMeta _localPathMeta = const VerificationMeta(
+    'localPath',
+  );
+  @override
+  late final GeneratedColumn<String> localPath = GeneratedColumn<String>(
+    'local_path',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'),
+  );
+  static const VerificationMeta _r2ObjectKeyMeta = const VerificationMeta(
+    'r2ObjectKey',
+  );
+  @override
+  late final GeneratedColumn<String> r2ObjectKey = GeneratedColumn<String>(
+    'r2_object_key',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'),
+  );
+  static const VerificationMeta _widthMeta = const VerificationMeta('width');
+  @override
+  late final GeneratedColumn<int> width = GeneratedColumn<int>(
+    'width',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    $customConstraints: 'NULL CHECK(width IS NULL OR width > 0)',
+  );
+  static const VerificationMeta _heightMeta = const VerificationMeta('height');
+  @override
+  late final GeneratedColumn<int> height = GeneratedColumn<int>(
+    'height',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    $customConstraints: 'NULL CHECK(height IS NULL OR height > 0)',
+  );
+  static const VerificationMeta _uploadStatusMeta = const VerificationMeta(
+    'uploadStatus',
+  );
+  @override
+  late final GeneratedColumn<String> uploadStatus = GeneratedColumn<String>(
+    'upload_status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    $customConstraints: 'NOT NULL DEFAULT \'local\' CHECK(upload_status IN (\'local\', \'pending\', \'uploading\', \'uploaded\', \'failed\'))',
+    defaultValue: const CustomExpression('\'local\''),
+  );
+  static const VerificationMeta _uploadAttemptsMeta = const VerificationMeta(
+    'uploadAttempts',
+  );
+  @override
+  late final GeneratedColumn<int> uploadAttempts = GeneratedColumn<int>(
+    'upload_attempts',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    $customConstraints: 'NOT NULL DEFAULT 0 CHECK(upload_attempts >= 0)',
+    defaultValue: const CustomExpression('0'),
+  );
+  static const VerificationMeta _uploadLastErrorMeta = const VerificationMeta(
+    'uploadLastError',
+  );
+  @override
+  late final GeneratedColumn<String> uploadLastError = GeneratedColumn<String>(
+    'upload_last_error',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _syncStatusMeta = const VerificationMeta(
+    'syncStatus',
+  );
+  @override
+  late final GeneratedColumn<String> syncStatus = GeneratedColumn<String>(
+    'sync_status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    $customConstraints: 'NOT NULL DEFAULT \'pending\' CHECK(sync_status IN (\'pending\', \'synced\', \'failed\'))',
+    defaultValue: const CustomExpression('\'pending\''),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _deletedAtMeta = const VerificationMeta(
+    'deletedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> deletedAt = GeneratedColumn<DateTime>(
+    'deleted_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _lastSyncedAtMeta = const VerificationMeta(
+    'lastSyncedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> lastSyncedAt = GeneratedColumn<DateTime>(
+    'last_synced_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    itemId,
+    userId,
+    originalFileName,
+    fileExtension,
+    mimeType,
+    byteSize,
+    sha256,
+    localPath,
+    r2ObjectKey,
+    width,
+    height,
+    uploadStatus,
+    uploadAttempts,
+    uploadLastError,
+    syncStatus,
+    createdAt,
+    updatedAt,
+    deletedAt,
+    lastSyncedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'attachments';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<Attachment> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('item_id')) {
+      context.handle(
+        _itemIdMeta,
+        itemId.isAcceptableOrUnknown(data['item_id']!, _itemIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_itemIdMeta);
+    }
+    if (data.containsKey('user_id')) {
+      context.handle(
+        _userIdMeta,
+        userId.isAcceptableOrUnknown(data['user_id']!, _userIdMeta),
+      );
+    }
+    if (data.containsKey('original_file_name')) {
+      context.handle(
+        _originalFileNameMeta,
+        originalFileName.isAcceptableOrUnknown(
+          data['original_file_name']!,
+          _originalFileNameMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_originalFileNameMeta);
+    }
+    if (data.containsKey('file_extension')) {
+      context.handle(
+        _fileExtensionMeta,
+        fileExtension.isAcceptableOrUnknown(
+          data['file_extension']!,
+          _fileExtensionMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_fileExtensionMeta);
+    }
+    if (data.containsKey('mime_type')) {
+      context.handle(
+        _mimeTypeMeta,
+        mimeType.isAcceptableOrUnknown(data['mime_type']!, _mimeTypeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_mimeTypeMeta);
+    }
+    if (data.containsKey('byte_size')) {
+      context.handle(
+        _byteSizeMeta,
+        byteSize.isAcceptableOrUnknown(data['byte_size']!, _byteSizeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_byteSizeMeta);
+    }
+    if (data.containsKey('sha256')) {
+      context.handle(
+        _sha256Meta,
+        sha256.isAcceptableOrUnknown(data['sha256']!, _sha256Meta),
+      );
+    } else if (isInserting) {
+      context.missing(_sha256Meta);
+    }
+    if (data.containsKey('local_path')) {
+      context.handle(
+        _localPathMeta,
+        localPath.isAcceptableOrUnknown(data['local_path']!, _localPathMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_localPathMeta);
+    }
+    if (data.containsKey('r2_object_key')) {
+      context.handle(
+        _r2ObjectKeyMeta,
+        r2ObjectKey.isAcceptableOrUnknown(
+          data['r2_object_key']!,
+          _r2ObjectKeyMeta,
+        ),
+      );
+    }
+    if (data.containsKey('width')) {
+      context.handle(
+        _widthMeta,
+        width.isAcceptableOrUnknown(data['width']!, _widthMeta),
+      );
+    }
+    if (data.containsKey('height')) {
+      context.handle(
+        _heightMeta,
+        height.isAcceptableOrUnknown(data['height']!, _heightMeta),
+      );
+    }
+    if (data.containsKey('upload_status')) {
+      context.handle(
+        _uploadStatusMeta,
+        uploadStatus.isAcceptableOrUnknown(
+          data['upload_status']!,
+          _uploadStatusMeta,
+        ),
+      );
+    }
+    if (data.containsKey('upload_attempts')) {
+      context.handle(
+        _uploadAttemptsMeta,
+        uploadAttempts.isAcceptableOrUnknown(
+          data['upload_attempts']!,
+          _uploadAttemptsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('upload_last_error')) {
+      context.handle(
+        _uploadLastErrorMeta,
+        uploadLastError.isAcceptableOrUnknown(
+          data['upload_last_error']!,
+          _uploadLastErrorMeta,
+        ),
+      );
+    }
+    if (data.containsKey('sync_status')) {
+      context.handle(
+        _syncStatusMeta,
+        syncStatus.isAcceptableOrUnknown(data['sync_status']!, _syncStatusMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    if (data.containsKey('deleted_at')) {
+      context.handle(
+        _deletedAtMeta,
+        deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta),
+      );
+    }
+    if (data.containsKey('last_synced_at')) {
+      context.handle(
+        _lastSyncedAtMeta,
+        lastSyncedAt.isAcceptableOrUnknown(
+          data['last_synced_at']!,
+          _lastSyncedAtMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  Attachment map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return Attachment(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      itemId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}item_id'],
+      )!,
+      userId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}user_id'],
+      ),
+      originalFileName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}original_file_name'],
+      )!,
+      fileExtension: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}file_extension'],
+      )!,
+      mimeType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}mime_type'],
+      )!,
+      byteSize: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}byte_size'],
+      )!,
+      sha256: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sha256'],
+      )!,
+      localPath: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}local_path'],
+      )!,
+      r2ObjectKey: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}r2_object_key'],
+      ),
+      width: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}width'],
+      ),
+      height: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}height'],
+      ),
+      uploadStatus: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}upload_status'],
+      )!,
+      uploadAttempts: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}upload_attempts'],
+      )!,
+      uploadLastError: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}upload_last_error'],
+      ),
+      syncStatus: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sync_status'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+      deletedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}deleted_at'],
+      ),
+      lastSyncedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}last_synced_at'],
+      ),
+    );
+  }
+
+  @override
+  $AttachmentsTable createAlias(String alias) {
+    return $AttachmentsTable(attachedDatabase, alias);
+  }
+}
+
+class Attachment extends DataClass implements Insertable<Attachment> {
+  final String id;
+  final String itemId;
+  final String? userId;
+  final String originalFileName;
+  final String fileExtension;
+  final String mimeType;
+  final int byteSize;
+  final String sha256;
+  final String localPath;
+  final String? r2ObjectKey;
+  final int? width;
+  final int? height;
+  final String uploadStatus;
+  final int uploadAttempts;
+  final String? uploadLastError;
+  final String syncStatus;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final DateTime? deletedAt;
+  final DateTime? lastSyncedAt;
+  const Attachment({
+    required this.id,
+    required this.itemId,
+    this.userId,
+    required this.originalFileName,
+    required this.fileExtension,
+    required this.mimeType,
+    required this.byteSize,
+    required this.sha256,
+    required this.localPath,
+    this.r2ObjectKey,
+    this.width,
+    this.height,
+    required this.uploadStatus,
+    required this.uploadAttempts,
+    this.uploadLastError,
+    required this.syncStatus,
+    required this.createdAt,
+    required this.updatedAt,
+    this.deletedAt,
+    this.lastSyncedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['item_id'] = Variable<String>(itemId);
+    if (!nullToAbsent || userId != null) {
+      map['user_id'] = Variable<String>(userId);
+    }
+    map['original_file_name'] = Variable<String>(originalFileName);
+    map['file_extension'] = Variable<String>(fileExtension);
+    map['mime_type'] = Variable<String>(mimeType);
+    map['byte_size'] = Variable<int>(byteSize);
+    map['sha256'] = Variable<String>(sha256);
+    map['local_path'] = Variable<String>(localPath);
+    if (!nullToAbsent || r2ObjectKey != null) {
+      map['r2_object_key'] = Variable<String>(r2ObjectKey);
+    }
+    if (!nullToAbsent || width != null) {
+      map['width'] = Variable<int>(width);
+    }
+    if (!nullToAbsent || height != null) {
+      map['height'] = Variable<int>(height);
+    }
+    map['upload_status'] = Variable<String>(uploadStatus);
+    map['upload_attempts'] = Variable<int>(uploadAttempts);
+    if (!nullToAbsent || uploadLastError != null) {
+      map['upload_last_error'] = Variable<String>(uploadLastError);
+    }
+    map['sync_status'] = Variable<String>(syncStatus);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt);
+    }
+    if (!nullToAbsent || lastSyncedAt != null) {
+      map['last_synced_at'] = Variable<DateTime>(lastSyncedAt);
+    }
+    return map;
+  }
+
+  AttachmentsCompanion toCompanion(bool nullToAbsent) {
+    return AttachmentsCompanion(
+      id: Value(id),
+      itemId: Value(itemId),
+      userId: userId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(userId),
+      originalFileName: Value(originalFileName),
+      fileExtension: Value(fileExtension),
+      mimeType: Value(mimeType),
+      byteSize: Value(byteSize),
+      sha256: Value(sha256),
+      localPath: Value(localPath),
+      r2ObjectKey: r2ObjectKey == null && nullToAbsent
+          ? const Value.absent()
+          : Value(r2ObjectKey),
+      width: width == null && nullToAbsent
+          ? const Value.absent()
+          : Value(width),
+      height: height == null && nullToAbsent
+          ? const Value.absent()
+          : Value(height),
+      uploadStatus: Value(uploadStatus),
+      uploadAttempts: Value(uploadAttempts),
+      uploadLastError: uploadLastError == null && nullToAbsent
+          ? const Value.absent()
+          : Value(uploadLastError),
+      syncStatus: Value(syncStatus),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
+      lastSyncedAt: lastSyncedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastSyncedAt),
+    );
+  }
+
+  factory Attachment.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return Attachment(
+      id: serializer.fromJson<String>(json['id']),
+      itemId: serializer.fromJson<String>(json['itemId']),
+      userId: serializer.fromJson<String?>(json['userId']),
+      originalFileName: serializer.fromJson<String>(json['originalFileName']),
+      fileExtension: serializer.fromJson<String>(json['fileExtension']),
+      mimeType: serializer.fromJson<String>(json['mimeType']),
+      byteSize: serializer.fromJson<int>(json['byteSize']),
+      sha256: serializer.fromJson<String>(json['sha256']),
+      localPath: serializer.fromJson<String>(json['localPath']),
+      r2ObjectKey: serializer.fromJson<String?>(json['r2ObjectKey']),
+      width: serializer.fromJson<int?>(json['width']),
+      height: serializer.fromJson<int?>(json['height']),
+      uploadStatus: serializer.fromJson<String>(json['uploadStatus']),
+      uploadAttempts: serializer.fromJson<int>(json['uploadAttempts']),
+      uploadLastError: serializer.fromJson<String?>(json['uploadLastError']),
+      syncStatus: serializer.fromJson<String>(json['syncStatus']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
+      lastSyncedAt: serializer.fromJson<DateTime?>(json['lastSyncedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'itemId': serializer.toJson<String>(itemId),
+      'userId': serializer.toJson<String?>(userId),
+      'originalFileName': serializer.toJson<String>(originalFileName),
+      'fileExtension': serializer.toJson<String>(fileExtension),
+      'mimeType': serializer.toJson<String>(mimeType),
+      'byteSize': serializer.toJson<int>(byteSize),
+      'sha256': serializer.toJson<String>(sha256),
+      'localPath': serializer.toJson<String>(localPath),
+      'r2ObjectKey': serializer.toJson<String?>(r2ObjectKey),
+      'width': serializer.toJson<int?>(width),
+      'height': serializer.toJson<int?>(height),
+      'uploadStatus': serializer.toJson<String>(uploadStatus),
+      'uploadAttempts': serializer.toJson<int>(uploadAttempts),
+      'uploadLastError': serializer.toJson<String?>(uploadLastError),
+      'syncStatus': serializer.toJson<String>(syncStatus),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'deletedAt': serializer.toJson<DateTime?>(deletedAt),
+      'lastSyncedAt': serializer.toJson<DateTime?>(lastSyncedAt),
+    };
+  }
+
+  Attachment copyWith({
+    String? id,
+    String? itemId,
+    Value<String?> userId = const Value.absent(),
+    String? originalFileName,
+    String? fileExtension,
+    String? mimeType,
+    int? byteSize,
+    String? sha256,
+    String? localPath,
+    Value<String?> r2ObjectKey = const Value.absent(),
+    Value<int?> width = const Value.absent(),
+    Value<int?> height = const Value.absent(),
+    String? uploadStatus,
+    int? uploadAttempts,
+    Value<String?> uploadLastError = const Value.absent(),
+    String? syncStatus,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    Value<DateTime?> deletedAt = const Value.absent(),
+    Value<DateTime?> lastSyncedAt = const Value.absent(),
+  }) => Attachment(
+    id: id ?? this.id,
+    itemId: itemId ?? this.itemId,
+    userId: userId.present ? userId.value : this.userId,
+    originalFileName: originalFileName ?? this.originalFileName,
+    fileExtension: fileExtension ?? this.fileExtension,
+    mimeType: mimeType ?? this.mimeType,
+    byteSize: byteSize ?? this.byteSize,
+    sha256: sha256 ?? this.sha256,
+    localPath: localPath ?? this.localPath,
+    r2ObjectKey: r2ObjectKey.present ? r2ObjectKey.value : this.r2ObjectKey,
+    width: width.present ? width.value : this.width,
+    height: height.present ? height.value : this.height,
+    uploadStatus: uploadStatus ?? this.uploadStatus,
+    uploadAttempts: uploadAttempts ?? this.uploadAttempts,
+    uploadLastError: uploadLastError.present
+        ? uploadLastError.value
+        : this.uploadLastError,
+    syncStatus: syncStatus ?? this.syncStatus,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+    deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
+    lastSyncedAt: lastSyncedAt.present ? lastSyncedAt.value : this.lastSyncedAt,
+  );
+  Attachment copyWithCompanion(AttachmentsCompanion data) {
+    return Attachment(
+      id: data.id.present ? data.id.value : this.id,
+      itemId: data.itemId.present ? data.itemId.value : this.itemId,
+      userId: data.userId.present ? data.userId.value : this.userId,
+      originalFileName: data.originalFileName.present
+          ? data.originalFileName.value
+          : this.originalFileName,
+      fileExtension: data.fileExtension.present
+          ? data.fileExtension.value
+          : this.fileExtension,
+      mimeType: data.mimeType.present ? data.mimeType.value : this.mimeType,
+      byteSize: data.byteSize.present ? data.byteSize.value : this.byteSize,
+      sha256: data.sha256.present ? data.sha256.value : this.sha256,
+      localPath: data.localPath.present ? data.localPath.value : this.localPath,
+      r2ObjectKey: data.r2ObjectKey.present
+          ? data.r2ObjectKey.value
+          : this.r2ObjectKey,
+      width: data.width.present ? data.width.value : this.width,
+      height: data.height.present ? data.height.value : this.height,
+      uploadStatus: data.uploadStatus.present
+          ? data.uploadStatus.value
+          : this.uploadStatus,
+      uploadAttempts: data.uploadAttempts.present
+          ? data.uploadAttempts.value
+          : this.uploadAttempts,
+      uploadLastError: data.uploadLastError.present
+          ? data.uploadLastError.value
+          : this.uploadLastError,
+      syncStatus: data.syncStatus.present
+          ? data.syncStatus.value
+          : this.syncStatus,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+      lastSyncedAt: data.lastSyncedAt.present
+          ? data.lastSyncedAt.value
+          : this.lastSyncedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('Attachment(')
+          ..write('id: $id, ')
+          ..write('itemId: $itemId, ')
+          ..write('userId: $userId, ')
+          ..write('originalFileName: $originalFileName, ')
+          ..write('fileExtension: $fileExtension, ')
+          ..write('mimeType: $mimeType, ')
+          ..write('byteSize: $byteSize, ')
+          ..write('sha256: $sha256, ')
+          ..write('localPath: $localPath, ')
+          ..write('r2ObjectKey: $r2ObjectKey, ')
+          ..write('width: $width, ')
+          ..write('height: $height, ')
+          ..write('uploadStatus: $uploadStatus, ')
+          ..write('uploadAttempts: $uploadAttempts, ')
+          ..write('uploadLastError: $uploadLastError, ')
+          ..write('syncStatus: $syncStatus, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('lastSyncedAt: $lastSyncedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    itemId,
+    userId,
+    originalFileName,
+    fileExtension,
+    mimeType,
+    byteSize,
+    sha256,
+    localPath,
+    r2ObjectKey,
+    width,
+    height,
+    uploadStatus,
+    uploadAttempts,
+    uploadLastError,
+    syncStatus,
+    createdAt,
+    updatedAt,
+    deletedAt,
+    lastSyncedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is Attachment &&
+          other.id == this.id &&
+          other.itemId == this.itemId &&
+          other.userId == this.userId &&
+          other.originalFileName == this.originalFileName &&
+          other.fileExtension == this.fileExtension &&
+          other.mimeType == this.mimeType &&
+          other.byteSize == this.byteSize &&
+          other.sha256 == this.sha256 &&
+          other.localPath == this.localPath &&
+          other.r2ObjectKey == this.r2ObjectKey &&
+          other.width == this.width &&
+          other.height == this.height &&
+          other.uploadStatus == this.uploadStatus &&
+          other.uploadAttempts == this.uploadAttempts &&
+          other.uploadLastError == this.uploadLastError &&
+          other.syncStatus == this.syncStatus &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.deletedAt == this.deletedAt &&
+          other.lastSyncedAt == this.lastSyncedAt);
+}
+
+class AttachmentsCompanion extends UpdateCompanion<Attachment> {
+  final Value<String> id;
+  final Value<String> itemId;
+  final Value<String?> userId;
+  final Value<String> originalFileName;
+  final Value<String> fileExtension;
+  final Value<String> mimeType;
+  final Value<int> byteSize;
+  final Value<String> sha256;
+  final Value<String> localPath;
+  final Value<String?> r2ObjectKey;
+  final Value<int?> width;
+  final Value<int?> height;
+  final Value<String> uploadStatus;
+  final Value<int> uploadAttempts;
+  final Value<String?> uploadLastError;
+  final Value<String> syncStatus;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<DateTime?> deletedAt;
+  final Value<DateTime?> lastSyncedAt;
+  final Value<int> rowid;
+  const AttachmentsCompanion({
+    this.id = const Value.absent(),
+    this.itemId = const Value.absent(),
+    this.userId = const Value.absent(),
+    this.originalFileName = const Value.absent(),
+    this.fileExtension = const Value.absent(),
+    this.mimeType = const Value.absent(),
+    this.byteSize = const Value.absent(),
+    this.sha256 = const Value.absent(),
+    this.localPath = const Value.absent(),
+    this.r2ObjectKey = const Value.absent(),
+    this.width = const Value.absent(),
+    this.height = const Value.absent(),
+    this.uploadStatus = const Value.absent(),
+    this.uploadAttempts = const Value.absent(),
+    this.uploadLastError = const Value.absent(),
+    this.syncStatus = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.lastSyncedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  AttachmentsCompanion.insert({
+    required String id,
+    required String itemId,
+    this.userId = const Value.absent(),
+    required String originalFileName,
+    required String fileExtension,
+    required String mimeType,
+    required int byteSize,
+    required String sha256,
+    required String localPath,
+    this.r2ObjectKey = const Value.absent(),
+    this.width = const Value.absent(),
+    this.height = const Value.absent(),
+    this.uploadStatus = const Value.absent(),
+    this.uploadAttempts = const Value.absent(),
+    this.uploadLastError = const Value.absent(),
+    this.syncStatus = const Value.absent(),
+    required DateTime createdAt,
+    required DateTime updatedAt,
+    this.deletedAt = const Value.absent(),
+    this.lastSyncedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       itemId = Value(itemId),
+       originalFileName = Value(originalFileName),
+       fileExtension = Value(fileExtension),
+       mimeType = Value(mimeType),
+       byteSize = Value(byteSize),
+       sha256 = Value(sha256),
+       localPath = Value(localPath),
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt);
+  static Insertable<Attachment> custom({
+    Expression<String>? id,
+    Expression<String>? itemId,
+    Expression<String>? userId,
+    Expression<String>? originalFileName,
+    Expression<String>? fileExtension,
+    Expression<String>? mimeType,
+    Expression<int>? byteSize,
+    Expression<String>? sha256,
+    Expression<String>? localPath,
+    Expression<String>? r2ObjectKey,
+    Expression<int>? width,
+    Expression<int>? height,
+    Expression<String>? uploadStatus,
+    Expression<int>? uploadAttempts,
+    Expression<String>? uploadLastError,
+    Expression<String>? syncStatus,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<DateTime>? deletedAt,
+    Expression<DateTime>? lastSyncedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (itemId != null) 'item_id': itemId,
+      if (userId != null) 'user_id': userId,
+      if (originalFileName != null) 'original_file_name': originalFileName,
+      if (fileExtension != null) 'file_extension': fileExtension,
+      if (mimeType != null) 'mime_type': mimeType,
+      if (byteSize != null) 'byte_size': byteSize,
+      if (sha256 != null) 'sha256': sha256,
+      if (localPath != null) 'local_path': localPath,
+      if (r2ObjectKey != null) 'r2_object_key': r2ObjectKey,
+      if (width != null) 'width': width,
+      if (height != null) 'height': height,
+      if (uploadStatus != null) 'upload_status': uploadStatus,
+      if (uploadAttempts != null) 'upload_attempts': uploadAttempts,
+      if (uploadLastError != null) 'upload_last_error': uploadLastError,
+      if (syncStatus != null) 'sync_status': syncStatus,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (deletedAt != null) 'deleted_at': deletedAt,
+      if (lastSyncedAt != null) 'last_synced_at': lastSyncedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  AttachmentsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? itemId,
+    Value<String?>? userId,
+    Value<String>? originalFileName,
+    Value<String>? fileExtension,
+    Value<String>? mimeType,
+    Value<int>? byteSize,
+    Value<String>? sha256,
+    Value<String>? localPath,
+    Value<String?>? r2ObjectKey,
+    Value<int?>? width,
+    Value<int?>? height,
+    Value<String>? uploadStatus,
+    Value<int>? uploadAttempts,
+    Value<String?>? uploadLastError,
+    Value<String>? syncStatus,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<DateTime?>? deletedAt,
+    Value<DateTime?>? lastSyncedAt,
+    Value<int>? rowid,
+  }) {
+    return AttachmentsCompanion(
+      id: id ?? this.id,
+      itemId: itemId ?? this.itemId,
+      userId: userId ?? this.userId,
+      originalFileName: originalFileName ?? this.originalFileName,
+      fileExtension: fileExtension ?? this.fileExtension,
+      mimeType: mimeType ?? this.mimeType,
+      byteSize: byteSize ?? this.byteSize,
+      sha256: sha256 ?? this.sha256,
+      localPath: localPath ?? this.localPath,
+      r2ObjectKey: r2ObjectKey ?? this.r2ObjectKey,
+      width: width ?? this.width,
+      height: height ?? this.height,
+      uploadStatus: uploadStatus ?? this.uploadStatus,
+      uploadAttempts: uploadAttempts ?? this.uploadAttempts,
+      uploadLastError: uploadLastError ?? this.uploadLastError,
+      syncStatus: syncStatus ?? this.syncStatus,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
+      lastSyncedAt: lastSyncedAt ?? this.lastSyncedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (itemId.present) {
+      map['item_id'] = Variable<String>(itemId.value);
+    }
+    if (userId.present) {
+      map['user_id'] = Variable<String>(userId.value);
+    }
+    if (originalFileName.present) {
+      map['original_file_name'] = Variable<String>(originalFileName.value);
+    }
+    if (fileExtension.present) {
+      map['file_extension'] = Variable<String>(fileExtension.value);
+    }
+    if (mimeType.present) {
+      map['mime_type'] = Variable<String>(mimeType.value);
+    }
+    if (byteSize.present) {
+      map['byte_size'] = Variable<int>(byteSize.value);
+    }
+    if (sha256.present) {
+      map['sha256'] = Variable<String>(sha256.value);
+    }
+    if (localPath.present) {
+      map['local_path'] = Variable<String>(localPath.value);
+    }
+    if (r2ObjectKey.present) {
+      map['r2_object_key'] = Variable<String>(r2ObjectKey.value);
+    }
+    if (width.present) {
+      map['width'] = Variable<int>(width.value);
+    }
+    if (height.present) {
+      map['height'] = Variable<int>(height.value);
+    }
+    if (uploadStatus.present) {
+      map['upload_status'] = Variable<String>(uploadStatus.value);
+    }
+    if (uploadAttempts.present) {
+      map['upload_attempts'] = Variable<int>(uploadAttempts.value);
+    }
+    if (uploadLastError.present) {
+      map['upload_last_error'] = Variable<String>(uploadLastError.value);
+    }
+    if (syncStatus.present) {
+      map['sync_status'] = Variable<String>(syncStatus.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt.value);
+    }
+    if (lastSyncedAt.present) {
+      map['last_synced_at'] = Variable<DateTime>(lastSyncedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AttachmentsCompanion(')
+          ..write('id: $id, ')
+          ..write('itemId: $itemId, ')
+          ..write('userId: $userId, ')
+          ..write('originalFileName: $originalFileName, ')
+          ..write('fileExtension: $fileExtension, ')
+          ..write('mimeType: $mimeType, ')
+          ..write('byteSize: $byteSize, ')
+          ..write('sha256: $sha256, ')
+          ..write('localPath: $localPath, ')
+          ..write('r2ObjectKey: $r2ObjectKey, ')
+          ..write('width: $width, ')
+          ..write('height: $height, ')
+          ..write('uploadStatus: $uploadStatus, ')
+          ..write('uploadAttempts: $uploadAttempts, ')
+          ..write('uploadLastError: $uploadLastError, ')
+          ..write('syncStatus: $syncStatus, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('lastSyncedAt: $lastSyncedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $ItemMetadataTable extends ItemMetadata
     with TableInfo<$ItemMetadataTable, ItemMetadataData> {
   @override
@@ -3705,6 +4836,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
   late final $ItemsTable items = $ItemsTable(this);
+  late final $AttachmentsTable attachments = $AttachmentsTable(this);
   late final $ItemMetadataTable itemMetadata = $ItemMetadataTable(this);
   late final $CollectionsTable collections = $CollectionsTable(this);
   late final $CollectionItemsTable collectionItems = $CollectionItemsTable(
@@ -3712,17 +4844,48 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   );
   late final $ItemNotesTable itemNotes = $ItemNotesTable(this);
   late final $AppSettingsTable appSettings = $AppSettingsTable(this);
+  late final Index attachmentsItemIdIdx = Index(
+    'attachments_item_id_idx',
+    'CREATE INDEX attachments_item_id_idx ON attachments (item_id)',
+  );
+  late final Index attachmentsUserIdIdx = Index(
+    'attachments_user_id_idx',
+    'CREATE INDEX attachments_user_id_idx ON attachments (user_id)',
+  );
+  late final Index attachmentsSha256Idx = Index(
+    'attachments_sha256_idx',
+    'CREATE INDEX attachments_sha256_idx ON attachments (sha256)',
+  );
+  late final Index attachmentsUploadStatusIdx = Index(
+    'attachments_upload_status_idx',
+    'CREATE INDEX attachments_upload_status_idx ON attachments (upload_status)',
+  );
+  late final Index attachmentsSyncStatusIdx = Index(
+    'attachments_sync_status_idx',
+    'CREATE INDEX attachments_sync_status_idx ON attachments (sync_status)',
+  );
+  late final Index attachmentsDeletedAtIdx = Index(
+    'attachments_deleted_at_idx',
+    'CREATE INDEX attachments_deleted_at_idx ON attachments (deleted_at)',
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
   @override
   List<DatabaseSchemaEntity> get allSchemaEntities => [
     items,
+    attachments,
     itemMetadata,
     collections,
     collectionItems,
     itemNotes,
     appSettings,
+    attachmentsItemIdIdx,
+    attachmentsUserIdIdx,
+    attachmentsSha256Idx,
+    attachmentsUploadStatusIdx,
+    attachmentsSyncStatusIdx,
+    attachmentsDeletedAtIdx,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -3788,6 +4951,24 @@ typedef $$ItemsTableUpdateCompanionBuilder = ItemsCompanion Function({
 final class $$ItemsTableReferences
     extends BaseReferences<_$AppDatabase, $ItemsTable, Item> {
   $$ItemsTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static MultiTypedResultKey<$AttachmentsTable, List<Attachment>>
+  _attachmentsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.attachments,
+    aliasName: 'items__id__attachments__item_id',
+  );
+
+  $$AttachmentsTableProcessedTableManager get attachmentsRefs {
+    final manager = $$AttachmentsTableTableManager(
+      $_db,
+      $_db.attachments,
+    ).filter((f) => f.itemId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_attachmentsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
 
   static MultiTypedResultKey<$CollectionItemsTable, List<CollectionItem>>
   _collectionItemsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
@@ -3905,6 +5086,31 @@ class $$ItemsTableFilterComposer extends Composer<_$AppDatabase, $ItemsTable> {
     column: $table.deletedAt,
     builder: (column) => ColumnFilters(column),
   );
+
+  Expression<bool> attachmentsRefs(
+    Expression<bool> Function($$AttachmentsTableFilterComposer f) f,
+  ) {
+    final $$AttachmentsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.attachments,
+      getReferencedColumn: (t) => t.itemId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AttachmentsTableFilterComposer(
+            $db: $db,
+            $table: $db.attachments,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 
   Expression<bool> collectionItemsRefs(
     Expression<bool> Function($$CollectionItemsTableFilterComposer f) f,
@@ -4096,6 +5302,31 @@ class $$ItemsTableAnnotationComposer
   GeneratedColumn<DateTime> get deletedAt =>
       $composableBuilder(column: $table.deletedAt, builder: (column) => column);
 
+  Expression<T> attachmentsRefs<T extends Object>(
+    Expression<T> Function($$AttachmentsTableAnnotationComposer a) f,
+  ) {
+    final $$AttachmentsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.attachments,
+      getReferencedColumn: (t) => t.itemId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AttachmentsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.attachments,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
   Expression<T> collectionItemsRefs<T extends Object>(
     Expression<T> Function($$CollectionItemsTableAnnotationComposer a) f,
   ) {
@@ -4160,7 +5391,11 @@ class $$ItemsTableTableManager
           $$ItemsTableUpdateCompanionBuilder,
           (Item, $$ItemsTableReferences),
           Item,
-          PrefetchHooks Function({bool collectionItemsRefs, bool itemNotesRefs})
+          PrefetchHooks Function({
+            bool attachmentsRefs,
+            bool collectionItemsRefs,
+            bool itemNotesRefs,
+          })
         > {
   $$ItemsTableTableManager(_$AppDatabase db, $ItemsTable table)
     : super(
@@ -4248,16 +5483,42 @@ class $$ItemsTableTableManager
               )
               .toList(),
           prefetchHooksCallback:
-              ({collectionItemsRefs = false, itemNotesRefs = false}) {
+              ({
+                attachmentsRefs = false,
+                collectionItemsRefs = false,
+                itemNotesRefs = false,
+              }) {
                 return PrefetchHooks(
                   db: db,
                   explicitlyWatchedTables: [
+                    if (attachmentsRefs) db.attachments,
                     if (collectionItemsRefs) db.collectionItems,
                     if (itemNotesRefs) db.itemNotes,
                   ],
                   addJoins: null,
                   getPrefetchedDataCallback: (items) async {
                     return [
+                      if (attachmentsRefs)
+                        await $_getPrefetchedData<
+                          Item,
+                          $ItemsTable,
+                          Attachment
+                        >(
+                          currentTable: table,
+                          referencedTable: $$ItemsTableReferences
+                              ._attachmentsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$ItemsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).attachmentsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.itemId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
                       if (collectionItemsRefs)
                         await $_getPrefetchedData<
                           Item,
@@ -4316,7 +5577,627 @@ typedef $$ItemsTableProcessedTableManager =
       $$ItemsTableUpdateCompanionBuilder,
       (Item, $$ItemsTableReferences),
       Item,
-      PrefetchHooks Function({bool collectionItemsRefs, bool itemNotesRefs})
+      PrefetchHooks Function({
+        bool attachmentsRefs,
+        bool collectionItemsRefs,
+        bool itemNotesRefs,
+      })
+    >;
+typedef $$AttachmentsTableCreateCompanionBuilder =
+    AttachmentsCompanion Function({
+      required String id,
+      required String itemId,
+      Value<String?> userId,
+      required String originalFileName,
+      required String fileExtension,
+      required String mimeType,
+      required int byteSize,
+      required String sha256,
+      required String localPath,
+      Value<String?> r2ObjectKey,
+      Value<int?> width,
+      Value<int?> height,
+      Value<String> uploadStatus,
+      Value<int> uploadAttempts,
+      Value<String?> uploadLastError,
+      Value<String> syncStatus,
+      required DateTime createdAt,
+      required DateTime updatedAt,
+      Value<DateTime?> deletedAt,
+      Value<DateTime?> lastSyncedAt,
+      Value<int> rowid,
+    });
+typedef $$AttachmentsTableUpdateCompanionBuilder =
+    AttachmentsCompanion Function({
+      Value<String> id,
+      Value<String> itemId,
+      Value<String?> userId,
+      Value<String> originalFileName,
+      Value<String> fileExtension,
+      Value<String> mimeType,
+      Value<int> byteSize,
+      Value<String> sha256,
+      Value<String> localPath,
+      Value<String?> r2ObjectKey,
+      Value<int?> width,
+      Value<int?> height,
+      Value<String> uploadStatus,
+      Value<int> uploadAttempts,
+      Value<String?> uploadLastError,
+      Value<String> syncStatus,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<DateTime?> deletedAt,
+      Value<DateTime?> lastSyncedAt,
+      Value<int> rowid,
+    });
+
+final class $$AttachmentsTableReferences
+    extends BaseReferences<_$AppDatabase, $AttachmentsTable, Attachment> {
+  $$AttachmentsTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $ItemsTable _itemIdTable(_$AppDatabase db) =>
+      db.items.createAlias('attachments__item_id__items__id');
+
+  $$ItemsTableProcessedTableManager get itemId {
+    final $_column = $_itemColumn<String>('item_id')!;
+
+    final manager = $$ItemsTableTableManager(
+      $_db,
+      $_db.items,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_itemIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$AttachmentsTableFilterComposer
+    extends Composer<_$AppDatabase, $AttachmentsTable> {
+  $$AttachmentsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get originalFileName => $composableBuilder(
+    column: $table.originalFileName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get fileExtension => $composableBuilder(
+    column: $table.fileExtension,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get mimeType => $composableBuilder(
+    column: $table.mimeType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get byteSize => $composableBuilder(
+    column: $table.byteSize,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get sha256 => $composableBuilder(
+    column: $table.sha256,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get localPath => $composableBuilder(
+    column: $table.localPath,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get r2ObjectKey => $composableBuilder(
+    column: $table.r2ObjectKey,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get width => $composableBuilder(
+    column: $table.width,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get height => $composableBuilder(
+    column: $table.height,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get uploadStatus => $composableBuilder(
+    column: $table.uploadStatus,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get uploadAttempts => $composableBuilder(
+    column: $table.uploadAttempts,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get uploadLastError => $composableBuilder(
+    column: $table.uploadLastError,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get syncStatus => $composableBuilder(
+    column: $table.syncStatus,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get lastSyncedAt => $composableBuilder(
+    column: $table.lastSyncedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$ItemsTableFilterComposer get itemId {
+    final $$ItemsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.itemId,
+      referencedTable: $db.items,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ItemsTableFilterComposer(
+            $db: $db,
+            $table: $db.items,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$AttachmentsTableOrderingComposer
+    extends Composer<_$AppDatabase, $AttachmentsTable> {
+  $$AttachmentsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get originalFileName => $composableBuilder(
+    column: $table.originalFileName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get fileExtension => $composableBuilder(
+    column: $table.fileExtension,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get mimeType => $composableBuilder(
+    column: $table.mimeType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get byteSize => $composableBuilder(
+    column: $table.byteSize,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get sha256 => $composableBuilder(
+    column: $table.sha256,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get localPath => $composableBuilder(
+    column: $table.localPath,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get r2ObjectKey => $composableBuilder(
+    column: $table.r2ObjectKey,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get width => $composableBuilder(
+    column: $table.width,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get height => $composableBuilder(
+    column: $table.height,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get uploadStatus => $composableBuilder(
+    column: $table.uploadStatus,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get uploadAttempts => $composableBuilder(
+    column: $table.uploadAttempts,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get uploadLastError => $composableBuilder(
+    column: $table.uploadLastError,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get syncStatus => $composableBuilder(
+    column: $table.syncStatus,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get lastSyncedAt => $composableBuilder(
+    column: $table.lastSyncedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$ItemsTableOrderingComposer get itemId {
+    final $$ItemsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.itemId,
+      referencedTable: $db.items,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ItemsTableOrderingComposer(
+            $db: $db,
+            $table: $db.items,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$AttachmentsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $AttachmentsTable> {
+  $$AttachmentsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get userId =>
+      $composableBuilder(column: $table.userId, builder: (column) => column);
+
+  GeneratedColumn<String> get originalFileName => $composableBuilder(
+    column: $table.originalFileName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get fileExtension => $composableBuilder(
+    column: $table.fileExtension,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get mimeType =>
+      $composableBuilder(column: $table.mimeType, builder: (column) => column);
+
+  GeneratedColumn<int> get byteSize =>
+      $composableBuilder(column: $table.byteSize, builder: (column) => column);
+
+  GeneratedColumn<String> get sha256 =>
+      $composableBuilder(column: $table.sha256, builder: (column) => column);
+
+  GeneratedColumn<String> get localPath =>
+      $composableBuilder(column: $table.localPath, builder: (column) => column);
+
+  GeneratedColumn<String> get r2ObjectKey => $composableBuilder(
+    column: $table.r2ObjectKey,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get width =>
+      $composableBuilder(column: $table.width, builder: (column) => column);
+
+  GeneratedColumn<int> get height =>
+      $composableBuilder(column: $table.height, builder: (column) => column);
+
+  GeneratedColumn<String> get uploadStatus => $composableBuilder(
+    column: $table.uploadStatus,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get uploadAttempts => $composableBuilder(
+    column: $table.uploadAttempts,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get uploadLastError => $composableBuilder(
+    column: $table.uploadLastError,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get syncStatus => $composableBuilder(
+    column: $table.syncStatus,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get lastSyncedAt => $composableBuilder(
+    column: $table.lastSyncedAt,
+    builder: (column) => column,
+  );
+
+  $$ItemsTableAnnotationComposer get itemId {
+    final $$ItemsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.itemId,
+      referencedTable: $db.items,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ItemsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.items,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$AttachmentsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $AttachmentsTable,
+          Attachment,
+          $$AttachmentsTableFilterComposer,
+          $$AttachmentsTableOrderingComposer,
+          $$AttachmentsTableAnnotationComposer,
+          $$AttachmentsTableCreateCompanionBuilder,
+          $$AttachmentsTableUpdateCompanionBuilder,
+          (Attachment, $$AttachmentsTableReferences),
+          Attachment,
+          PrefetchHooks Function({bool itemId})
+        > {
+  $$AttachmentsTableTableManager(_$AppDatabase db, $AttachmentsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$AttachmentsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$AttachmentsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$AttachmentsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> itemId = const Value.absent(),
+                Value<String?> userId = const Value.absent(),
+                Value<String> originalFileName = const Value.absent(),
+                Value<String> fileExtension = const Value.absent(),
+                Value<String> mimeType = const Value.absent(),
+                Value<int> byteSize = const Value.absent(),
+                Value<String> sha256 = const Value.absent(),
+                Value<String> localPath = const Value.absent(),
+                Value<String?> r2ObjectKey = const Value.absent(),
+                Value<int?> width = const Value.absent(),
+                Value<int?> height = const Value.absent(),
+                Value<String> uploadStatus = const Value.absent(),
+                Value<int> uploadAttempts = const Value.absent(),
+                Value<String?> uploadLastError = const Value.absent(),
+                Value<String> syncStatus = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
+                Value<DateTime?> lastSyncedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => AttachmentsCompanion(
+                id: id,
+                itemId: itemId,
+                userId: userId,
+                originalFileName: originalFileName,
+                fileExtension: fileExtension,
+                mimeType: mimeType,
+                byteSize: byteSize,
+                sha256: sha256,
+                localPath: localPath,
+                r2ObjectKey: r2ObjectKey,
+                width: width,
+                height: height,
+                uploadStatus: uploadStatus,
+                uploadAttempts: uploadAttempts,
+                uploadLastError: uploadLastError,
+                syncStatus: syncStatus,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                deletedAt: deletedAt,
+                lastSyncedAt: lastSyncedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String itemId,
+                Value<String?> userId = const Value.absent(),
+                required String originalFileName,
+                required String fileExtension,
+                required String mimeType,
+                required int byteSize,
+                required String sha256,
+                required String localPath,
+                Value<String?> r2ObjectKey = const Value.absent(),
+                Value<int?> width = const Value.absent(),
+                Value<int?> height = const Value.absent(),
+                Value<String> uploadStatus = const Value.absent(),
+                Value<int> uploadAttempts = const Value.absent(),
+                Value<String?> uploadLastError = const Value.absent(),
+                Value<String> syncStatus = const Value.absent(),
+                required DateTime createdAt,
+                required DateTime updatedAt,
+                Value<DateTime?> deletedAt = const Value.absent(),
+                Value<DateTime?> lastSyncedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => AttachmentsCompanion.insert(
+                id: id,
+                itemId: itemId,
+                userId: userId,
+                originalFileName: originalFileName,
+                fileExtension: fileExtension,
+                mimeType: mimeType,
+                byteSize: byteSize,
+                sha256: sha256,
+                localPath: localPath,
+                r2ObjectKey: r2ObjectKey,
+                width: width,
+                height: height,
+                uploadStatus: uploadStatus,
+                uploadAttempts: uploadAttempts,
+                uploadLastError: uploadLastError,
+                syncStatus: syncStatus,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                deletedAt: deletedAt,
+                lastSyncedAt: lastSyncedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$AttachmentsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({itemId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (itemId) {
+                      state = state.withJoin(
+                        currentTable: table,
+                        currentColumn: table.itemId,
+                        referencedTable: $$AttachmentsTableReferences
+                            ._itemIdTable(db),
+                        referencedColumn: $$AttachmentsTableReferences
+                            ._itemIdTable(db)
+                            .id,
+                      ) as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$AttachmentsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $AttachmentsTable,
+      Attachment,
+      $$AttachmentsTableFilterComposer,
+      $$AttachmentsTableOrderingComposer,
+      $$AttachmentsTableAnnotationComposer,
+      $$AttachmentsTableCreateCompanionBuilder,
+      $$AttachmentsTableUpdateCompanionBuilder,
+      (Attachment, $$AttachmentsTableReferences),
+      Attachment,
+      PrefetchHooks Function({bool itemId})
     >;
 typedef $$ItemMetadataTableCreateCompanionBuilder =
     ItemMetadataCompanion Function({
@@ -6158,6 +8039,8 @@ class $AppDatabaseManager {
   $AppDatabaseManager(this._db);
   $$ItemsTableTableManager get items =>
       $$ItemsTableTableManager(_db, _db.items);
+  $$AttachmentsTableTableManager get attachments =>
+      $$AttachmentsTableTableManager(_db, _db.attachments);
   $$ItemMetadataTableTableManager get itemMetadata =>
       $$ItemMetadataTableTableManager(_db, _db.itemMetadata);
   $$CollectionsTableTableManager get collections =>
