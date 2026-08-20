@@ -19,13 +19,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           redirectUri: state.uri.queryParameters['redirect_uri'] ?? '',
         ),
       ),
-      GoRoute(
-        path: '/item/:id',
-        builder: (context, state) {
-          final id = state.pathParameters['id'] ?? '';
-          return AuthGate(child: ItemDetailScreen(itemId: id));
-        },
-      ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) {
           return AuthGate(navigationShell: navigationShell);
@@ -36,6 +29,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: '/inbox',
                 builder: (context, state) => const InboxScreen(),
+              ),
+              GoRoute(
+                path: '/item/:id',
+                builder: (context, state) {
+                  final id = state.pathParameters['id'] ?? '';
+                  return ItemDetailScreen(itemId: id);
+                },
               ),
             ],
           ),
