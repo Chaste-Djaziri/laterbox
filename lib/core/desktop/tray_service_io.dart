@@ -23,8 +23,8 @@ class TrayService {
 
     try {
       await trayManager.setIcon(
-        'assets/branding/laterbox-icon.png',
-        isTemplate: false,
+        'assets/branding/laterbox-menu-icon.png',
+        isTemplate: true,
         iconSize: 16,
       );
       await trayManager.setToolTip('LaterBox');
