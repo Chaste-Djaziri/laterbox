@@ -90,9 +90,31 @@ void main() {
       controller.dispose();
     });
 
-    test('blur closes the capture window after the guard delay', () async {
+    test('blur is ignored while blur-close is disabled (debugging default)',
+        () async {
       final desktop = _FakeDesktopService();
       final controller = _controller(desktopService: desktop);
+
+      await controller.open();
+      desktop.blurListeners.first.call();
+
+      expect(controller.status, QuickCaptureStatus.active);
+      await Future<void>.delayed(const Duration(milliseconds: 400));
+      expect(controller.status, QuickCaptureStatus.active);
+      expect(desktop.hideCalls, 0);
+      controller.dispose();
+    });
+
+    test('blur closes the capture window when blur-close is enabled', () async {
+      final database = AppDatabase(NativeDatabase.memory());
+      addTearDown(database.close);
+      final desktop = _FakeDesktopService();
+      final controller = QuickCaptureController(
+        desktopService: desktop,
+        clipboardService: const ClipboardCaptureService(),
+        captureService: _captureService(database),
+        enableBlurClose: true,
+      );
 
       await controller.open();
       desktop.blurListeners.first.call();
@@ -112,6 +134,7 @@ void main() {
         desktopService: desktop,
         clipboardService: const ClipboardCaptureService(),
         captureService: _captureService(database),
+        enableBlurClose: true,
       );
 
       controller.updateDraft('https://example.com/x');
@@ -152,7 +175,7 @@ class _FakeDesktopService extends DesktopService {
   final List<void Function()> closeListeners = [];
 
   @override
-  Future<void> showQuickCaptureWindow() async {
+  Future<void> showQuickCapture() async {
     showCalls++;
   }
 
