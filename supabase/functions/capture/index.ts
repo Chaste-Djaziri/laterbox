@@ -82,14 +82,20 @@ export const createCaptureHandler = (
       created_at: timestamp,
       updated_at: timestamp,
     };
+    const databaseToken = token.startsWith("lb_ext_")
+      ? dependencies.serviceRoleKey
+      : token;
+    const databaseKey = token.startsWith("lb_ext_")
+      ? dependencies.serviceRoleKey
+      : dependencies.anonKey;
 
     const insertResponse = await dependencies.fetch(
       `${dependencies.supabaseUrl}/rest/v1/items`,
       {
         method: "POST",
         headers: {
-          apikey: dependencies.anonKey,
-          authorization: `Bearer ${token}`,
+          apikey: databaseKey,
+          authorization: `Bearer ${databaseToken}`,
           "content-type": "application/json",
           prefer: "return=representation",
         },
