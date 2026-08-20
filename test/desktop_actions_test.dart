@@ -1,14 +1,23 @@
 import 'package:drift/native.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:laterbox/core/desktop/clipboard_capture_service.dart';
 import 'package:laterbox/core/desktop/desktop_actions.dart';
+import 'package:laterbox/core/database/database_providers.dart';
+import 'package:laterbox/core/desktop/desktop_app_launch_service.dart';
 import 'package:laterbox/core/desktop/desktop_capture_context_resolver.dart';
 import 'package:laterbox/core/desktop/desktop_providers.dart';
 import 'package:laterbox/core/desktop/desktop_service.dart';
+import 'package:laterbox/core/desktop/global_hotkey_service.dart';
 import 'package:laterbox/core/desktop/quick_capture_controller.dart';
 import 'package:laterbox/core/desktop/selection_capture_service.dart';
+import 'package:laterbox/core/desktop/tray_menu_state.dart';
+import 'package:laterbox/core/desktop/tray_service.dart';
 import 'package:laterbox/core/database/app_database.dart';
+import 'package:laterbox/core/settings/desktop_shortcut.dart';
+import 'package:laterbox/core/settings/settings_providers.dart';
 import 'package:laterbox/features/capture/domain/capture_service.dart';
 import 'package:laterbox/features/inbox/data/local_item_data_source.dart';
 import 'package:laterbox/features/inbox/data/item_repository.dart';
@@ -122,14 +131,113 @@ void main() {
       throwsException,
     );
   });
+
+  test('changeQuickCaptureShortcut persists a successful registration',
+      () async {
+    final database = AppDatabase(NativeDatabase.memory());
+    addTearDown(database.close);
+    final desktop = _FakeDesktopService();
+    final hotkey = _FakeHotkeyService(succeed: true);
+    final container = _container(desktop, database: database, hotkey: hotkey);
+    addTearDown(container.dispose);
+
+    const replacement = DesktopShortcut(
+      keyId: 44,
+      modifiers: [DesktopModifier.control, DesktopModifier.shift],
+    );
+
+    final ok = await container
+        .read(desktopActionsProvider)
+        .changeQuickCaptureShortcut(replacement);
+
+    expect(ok, isTrue);
+    expect(hotkey.registered, isNotNull);
+    expect(hotkey.registered!.isSameAs(replacement), isTrue);
+    final persisted = await container
+        .read(desktopSettingsStoreProvider)
+        .load();
+    expect(persisted.quickCaptureShortcut.isSameAs(replacement), isTrue);
+  });
+
+  test('changeQuickCaptureShortcut keeps the old shortcut on failure', () async {
+    final database = AppDatabase(NativeDatabase.memory());
+    addTearDown(database.close);
+    final desktop = _FakeDesktopService();
+    final hotkey = _FakeHotkeyService(succeed: false);
+    final container = _container(desktop, database: database, hotkey: hotkey);
+    addTearDown(container.dispose);
+
+    const replacement = DesktopShortcut(
+      keyId: 44,
+      modifiers: [DesktopModifier.control],
+    );
+
+    final ok = await container
+        .read(desktopActionsProvider)
+        .changeQuickCaptureShortcut(replacement);
+
+    expect(ok, isFalse);
+    expect(hotkey.registered, isNull);
+    final persisted = await container
+        .read(desktopSettingsStoreProvider)
+        .load();
+    expect(persisted.quickCaptureShortcut.keyId,
+        PhysicalKeyboardKey.space.usbHidUsage);
+  });
+
+  test('applyStartup hides the window when launched at login', () async {
+    final database = AppDatabase(NativeDatabase.memory());
+    addTearDown(database.close);
+    final desktop = _FakeDesktopService();
+    final appLaunch = _FakeAppLaunchService(launchedAtLogin: true);
+    final hotkey = _FakeHotkeyService(succeed: true);
+    final container = _container(
+      desktop,
+      database: database,
+      hotkey: hotkey,
+      appLaunch: appLaunch,
+      tray: _FakeTrayService(),
+    );
+    addTearDown(container.dispose);
+
+    await container.read(desktopActionsProvider).applyStartup();
+
+    expect(desktop.hideCalls, 1);
+    expect(hotkey.registered, isNotNull);
+  });
+
+  test('applyStartup keeps the window visible on a manual launch', () async {
+    final database = AppDatabase(NativeDatabase.memory());
+    addTearDown(database.close);
+    final desktop = _FakeDesktopService();
+    final appLaunch = _FakeAppLaunchService(launchedAtLogin: false);
+    final hotkey = _FakeHotkeyService(succeed: true);
+    final container = _container(
+      desktop,
+      database: database,
+      hotkey: hotkey,
+      appLaunch: appLaunch,
+      tray: _FakeTrayService(),
+    );
+    addTearDown(container.dispose);
+
+    await container.read(desktopActionsProvider).applyStartup();
+
+    expect(desktop.hideCalls, 0);
+    expect(hotkey.registered, isNotNull);
+  });
 }
 
 ProviderContainer _container(
   DesktopService desktop, {
   required AppDatabase database,
   DesktopCaptureContextResolver? resolver,
+  GlobalHotkeyService? hotkey,
+  DesktopAppLaunchService? appLaunch,
+  TrayService? tray,
 }) {
   return ProviderContainer(overrides: [
+    appDatabaseProvider.overrideWithValue(database),
     desktopServiceProvider.overrideWithValue(desktop),
     quickCaptureControllerProvider.overrideWith(
       (ref) => QuickCaptureController(
@@ -140,6 +248,11 @@ ProviderContainer _container(
     ),
     if (resolver != null)
       desktopCaptureContextResolverProvider.overrideWithValue(resolver),
+    if (hotkey != null)
+      globalHotkeyServiceProvider.overrideWithValue(hotkey),
+    if (appLaunch != null)
+      desktopAppLaunchServiceProvider.overrideWithValue(appLaunch),
+    if (tray != null) trayServiceProvider.overrideWithValue(tray),
   ]);
 }
 
@@ -156,6 +269,9 @@ class _FakeDesktopService extends DesktopService {
   int finishCalls = 0;
   final List<void Function()> blurListeners = [];
   final List<void Function()> closeListeners = [];
+
+  @override
+  Future<void> initialize() async {}
 
   @override
   Future<void> showQuickCapture() async {
@@ -218,4 +334,62 @@ class _FakeClipboardService extends ClipboardCaptureService {
 
   @override
   Future<String?> readText() async => text;
+}
+
+class _FakeHotkeyService extends GlobalHotkeyService {
+  _FakeHotkeyService({required this.succeed});
+
+  final bool succeed;
+  DesktopShortcut? registered;
+
+  @override
+  Future<bool> register(
+    DesktopShortcut shortcut, {
+    required Future<void> Function() onTriggered,
+  }) async {
+    if (succeed) {
+      registered = shortcut;
+      return true;
+    }
+    return false;
+  }
+
+  @override
+  Future<void> unregister() async {
+    registered = null;
+  }
+}
+
+class _FakeAppLaunchService extends DesktopAppLaunchService {
+  _FakeAppLaunchService({required this.launchedAtLogin});
+
+  final bool launchedAtLogin;
+
+  @override
+  Future<bool> wasLaunchedAtLogin() async => launchedAtLogin;
+
+  @override
+  Future<bool> isLoginItemEnabled() async => false;
+
+  @override
+  Future<bool> setLoginItemEnabled(bool enabled) async => true;
+}
+
+class _FakeTrayService extends TrayService {
+  DesktopMenuState? lastState;
+  int updateCalls = 0;
+
+  @override
+  Future<void> init({
+    required Future<void> Function() onQuickCapture,
+    required Future<void> Function() onOpenLaterBox,
+    required Future<void> Function() onOpenSettings,
+    required Future<void> Function() onQuit,
+  }) async {}
+
+  @override
+  Future<void> updateMenu(DesktopMenuState state) async {
+    lastState = state;
+    updateCalls++;
+  }
 }

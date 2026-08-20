@@ -82,13 +82,18 @@ class DesktopActions {
   }
 
   Future<void> _watchConnectivity() async {
-    final results = await Connectivity().checkConnectivity();
-    if (results.contains(ConnectivityResult.none)) {
-      await refreshTrayMenu();
+    try {
+      final results = await Connectivity().checkConnectivity();
+      if (results.contains(ConnectivityResult.none)) {
+        await refreshTrayMenu();
+      }
+      Connectivity().onConnectivityChanged.listen((_) async {
+        await refreshTrayMenu();
+      });
+    } on Object catch (error, stackTrace) {
+      debugPrint('[LaterBox Desktop] connectivity watch failed: $error');
+      debugPrintStack(stackTrace: stackTrace);
     }
-    Connectivity().onConnectivityChanged.listen((_) async {
-      await refreshTrayMenu();
-    });
   }
 
   /// Rebuilds the account/sync section of the menu-bar menu.

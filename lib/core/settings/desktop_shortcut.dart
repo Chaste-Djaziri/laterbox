@@ -59,13 +59,15 @@ class DesktopShortcut {
 
   factory DesktopShortcut.fromJson(Map<String, dynamic> json) {
     final keyId = json['keyId'];
-    final modifiers = (json['modifiers'] as List? ?? const [])
-        .map((m) => DesktopModifier.values.asNameMap()[m]!)
+    final rawModifiers = json['modifiers'];
+    if (keyId is! int || rawModifiers is! List) {
+      return DesktopShortcut.defaultQuickCapture();
+    }
+    final modifiers = rawModifiers
+        .map((m) => DesktopModifier.values.asNameMap()[m])
+        .whereType<DesktopModifier>()
         .toList();
-    return DesktopShortcut(
-      keyId: keyId is int ? keyId : PhysicalKeyboardKey.space.usbHidUsage,
-      modifiers: modifiers,
-    );
+    return DesktopShortcut(keyId: keyId, modifiers: modifiers);
   }
 
   /// Whether [other] presses the same physical key with the same modifiers.
