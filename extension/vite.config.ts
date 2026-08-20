@@ -27,7 +27,7 @@ export default defineConfig({
       input: {
         popup: resolve(rootDir, "src/popup/popup.html"),
         background: resolve(rootDir, "src/background/service-worker.ts"),
-        "social-save": resolve(rootDir, "src/content/social-save.ts"),
+        sidepanel: resolve(rootDir, "src/sidepanel/sidepanel.html"),
       },
       output: {
         entryFileNames: "[name].js",
