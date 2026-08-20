@@ -22,12 +22,19 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
 });
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message?.type !== "save-page") return false;
-  void savePageMessage(message, sender).then(sendResponse);
-  return true;
+  if (message?.type === "save-page") {
+    void savePageMessage(message, sender).then(sendResponse);
+    return true;
+  }
+  if (message?.type === "open-with-highlight") {
+    void handleOpenWithHighlight(message).then(sendResponse);
+    return true;
+  }
+  return false;
 });
 
-chrome.runtime.onMessageExternal.addListener((message, _sender, sendResponse) => {
+chrome.runtime.onMessageExternal.addListener((message, sender, sendResponse) => {
+  if (!isTrustedSender(sender)) return false;
   if (message?.type !== "open-with-highlight") return false;
   void handleOpenWithHighlight(message).then(sendResponse);
   return true;
@@ -100,57 +107,134 @@ type OpenWithHighlightMessage = {
   selector?: unknown;
 };
 
-async function handleOpenWithHighlight(message: OpenWithHighlightMessage) {
-  const url = typeof message.url === "string" ? message.url : null;
-  if (!url || !/^https?:\/\//i.test(url)) return { status: "invalid-url" };
-  const fragmentUrl =
-    typeof message.fragmentUrl === "string" ? message.fragmentUrl : undefined;
-  const selector = parseSelector(message.selector);
-  if (!selector) return { status: "invalid-selector" };
+type ParsedHighlightRequest = {
+  url: string;
+  fragmentUrl?: string;
+  exact: string;
+  prefix: string | null;
+  suffix: string | null;
+};
 
-  const tab = await chrome.tabs.create({ url });
+const MAX_URL_LENGTH = 2000;
+const MAX_SELECTOR_EXACT = 5000;
+const MAX_SELECTOR_CONTEXT = 2000;
+
+const ALLOWED_EXTERNAL_HOSTS = new Set(["app.laterbox.com", "localhost"]);
+
+function isTrustedSender(sender: chrome.runtime.MessageSender): boolean {
+  const origin = sender.origin;
+  if (!origin) return false;
+  try {
+    const url = new URL(origin);
+    if (url.hostname === "app.laterbox.com") return url.protocol === "https:";
+    if (url.hostname === "localhost") {
+      return url.protocol === "http:" || url.protocol === "https:";
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+function parseSafeWebUrl(value: unknown): string | null {
+  if (typeof value !== "string" || value.length === 0 || value.length > MAX_URL_LENGTH) {
+    return null;
+  }
+  try {
+    const url = new URL(value);
+    if (url.protocol !== "http:" && url.protocol !== "https:") return null;
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
+
+function parseHighlightRequest(raw: unknown): ParsedHighlightRequest | null {
+  if (typeof raw !== "object" || raw === null) return null;
+  const message = raw as Record<string, unknown>;
+  if (message.type !== "open-with-highlight") return null;
+
+  const url = parseSafeWebUrl(message.url);
+  if (!url) return null;
+
+  let fragmentUrl: string | undefined;
+  if (message.fragmentUrl !== undefined) {
+    const parsed = parseSafeWebUrl(message.fragmentUrl);
+    if (parsed === null) return null;
+    fragmentUrl = parsed;
+  }
+
+  const selector = message.selector;
+  if (typeof selector !== "object" || selector === null) return null;
+  const parts = selector as Record<string, unknown>;
+
+  const exact = typeof parts.exact === "string" ? parts.exact.trim() : "";
+  if (!exact || exact.length > MAX_SELECTOR_EXACT) return null;
+
+  const prefix = typeof parts.prefix === "string" ? parts.prefix.trim() : "";
+  const suffix = typeof parts.suffix === "string" ? parts.suffix.trim() : "";
+  if (prefix.length > MAX_SELECTOR_CONTEXT || suffix.length > MAX_SELECTOR_CONTEXT) {
+    return null;
+  }
+
+  return {
+    url,
+    fragmentUrl,
+    exact,
+    prefix: prefix || null,
+    suffix: suffix || null,
+  };
+}
+
+async function handleOpenWithHighlight(raw: unknown): Promise<{ status: string }> {
+  const message = parseHighlightRequest(raw);
+  if (!message) return { status: "invalid" };
+
+  let tab;
+  try {
+    tab = await chrome.tabs.create({ url: message.url });
+  } catch (error) {
+    console.warn("Could not open tab", error);
+    return { status: "error" };
+  }
   const tabId = tab.id;
   if (tabId === undefined) return { status: "error" };
 
   const loaded = await waitForTabLoad(tabId);
   if (!loaded) {
-    await maybeNavigateToFragment(tabId, fragmentUrl);
+    await maybeNavigateToFragment(tabId, message.fragmentUrl);
     return { status: "timeout" };
   }
 
-  const highlighted = await highlightTextInTab(tabId, selector);
-  if (!highlighted) {
-    await maybeNavigateToFragment(tabId, fragmentUrl);
-    return { status: "not-found" };
+  if (await hasHostAccess(message.url)) {
+    const highlighted = await highlightTextInTab(tabId, {
+      exact: message.exact,
+      prefix: message.prefix,
+      suffix: message.suffix,
+    });
+    if (highlighted) return { status: "ok" };
   }
-  return { status: "ok" };
+
+  await maybeNavigateToFragment(tabId, message.fragmentUrl);
+  return { status: "not-found" };
 }
 
-function parseSelector(raw: unknown): {
-  exact: string;
-  prefix: string | null;
-  suffix: string | null;
-} | null {
-  if (typeof raw !== "object" || raw === null) return null;
-  const selector = raw as Record<string, unknown>;
-  const exact = typeof selector.exact === "string" ? selector.exact.trim() : "";
-  if (!exact) return null;
-  const prefix =
-    typeof selector.prefix === "string" && selector.prefix.trim()
-      ? selector.prefix.trim()
-      : null;
-  const suffix =
-    typeof selector.suffix === "string" && selector.suffix.trim()
-      ? selector.suffix.trim()
-      : null;
-  return { exact, prefix, suffix };
+async function hasHostAccess(url: string): Promise<boolean> {
+  const pattern = `${new URL(url).origin}/*`;
+  if (await chrome.permissions.contains({ origins: [pattern] })) return true;
+  try {
+    return await chrome.permissions.request({ origins: [pattern] });
+  } catch (error) {
+    console.warn("Could not request host access for highlighting", error);
+    return false;
+  }
 }
 
 async function maybeNavigateToFragment(
   tabId: number,
   fragmentUrl?: string,
 ): Promise<void> {
-  if (!fragmentUrl || !/^https?:\/\//i.test(fragmentUrl)) return;
+  if (!fragmentUrl) return;
   try {
     await chrome.tabs.update(tabId, { url: fragmentUrl });
   } catch (error) {
