@@ -1,3 +1,5 @@
+import 'dart:io' show Platform;
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:launch_at_startup/launch_at_startup.dart';
@@ -11,10 +13,24 @@ import 'package:launch_at_startup/launch_at_startup.dart';
 ///   preference.
 class DesktopAppLaunchService {
   static const MethodChannel _channel = MethodChannel('laterbox/app_launch');
+  static bool _launchedAtLogin = false;
 
   const DesktopAppLaunchService();
 
+  static void configure(List<String> arguments) {
+    if (!Platform.isWindows && !Platform.isLinux && !Platform.isMacOS) return;
+    _launchedAtLogin = arguments.contains('--launch-at-login');
+    LaunchAtStartup.instance.setup(
+      appName: 'LaterBox',
+      appPath: Platform.resolvedExecutable,
+      args: const ['--launch-at-login'],
+    );
+  }
+
   Future<bool> wasLaunchedAtLogin() async {
+    if (Platform.isWindows || Platform.isLinux) {
+      return _launchedAtLogin;
+    }
     try {
       return await _channel.invokeMethod<bool>('wasLaunchedAtLogin') ?? false;
     } on PlatformException catch (error) {
@@ -44,8 +60,9 @@ class DesktopAppLaunchService {
 
   Future<bool> setLoginItemEnabled(bool enabled) async {
     try {
-      final result = await _channel
-          .invokeMethod<bool>('setLoginItemEnabled', {'enabled': enabled});
+      final result = await _channel.invokeMethod<bool>('setLoginItemEnabled', {
+        'enabled': enabled,
+      });
       if (result != null) return result;
     } on PlatformException catch (error) {
       debugPrint('[LaterBox] login item update failed: ${error.message}');
