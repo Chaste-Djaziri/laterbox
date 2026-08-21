@@ -69,6 +69,7 @@ class DesktopService {
     _defaultWindowSize = await _readDefaultWindowSize();
     await windowManager.setMinimumSize(defaultMainWindowMinimumSize);
     await windowManager.setPreventClose(true);
+    await windowManager.maximize();
   }
 
   Future<Size?> _readDefaultWindowSize() async {
@@ -148,9 +149,7 @@ class DesktopService {
     _captureSnapshot = null;
     await windowManager.setAlwaysOnTop(false);
     await windowManager.setMinimumSize(defaultMainWindowMinimumSize);
-    final size = _defaultWindowSize ?? defaultMainWindowSize;
-    await windowManager.setSize(size);
-    await windowManager.center();
+    await windowManager.maximize();
     await windowManager.show();
     await windowManager.focus();
   }
