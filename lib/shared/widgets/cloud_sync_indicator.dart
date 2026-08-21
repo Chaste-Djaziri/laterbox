@@ -32,7 +32,6 @@ class CloudSyncIndicator extends ConsumerWidget {
     final colors = theme.colorScheme;
 
     final isSyncing = stats.pendingCount > 0;
-    final isSynced = isAuthenticated && !isSyncing;
 
     final IconData icon;
     final Color backgroundColor;
