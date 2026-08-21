@@ -6,7 +6,7 @@ import ServiceManagement
 @main
 class AppDelegate: FlutterAppDelegate {
   private var launchedAtLogin = false
-  private let shareQueue = ShareCaptureQueue(appGroupId: "group.com.example.laterbox")
+  private let shareQueue = ShareCaptureQueue(appGroupId: "group.pro.micorp.laterbox")
 
   override func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
     return false
