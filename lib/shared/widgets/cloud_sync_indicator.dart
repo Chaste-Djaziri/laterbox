@@ -333,12 +333,17 @@ class _StatRow extends StatelessWidget {
             fontWeight: FontWeight.w500,
           ),
         ),
-        const Spacer(),
-        Text(
-          value,
-          style: theme.textTheme.bodyMedium?.copyWith(
-            fontWeight: FontWeight.w700,
-            color: valueColor ?? theme.colorScheme.onSurface,
+        const SizedBox(width: 8),
+        Flexible(
+          child: Text(
+            value,
+            textAlign: TextAlign.end,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              fontWeight: FontWeight.w700,
+              color: valueColor ?? theme.colorScheme.onSurface,
+            ),
           ),
         ),
       ],
