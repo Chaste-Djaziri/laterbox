@@ -51,6 +51,54 @@ class AttachmentValidationException implements Exception {
 class AttachmentFilePolicy {
   const AttachmentFilePolicy();
 
+  Future<AttachmentFileValidation> validateBytes(
+    String name,
+    Uint8List bytes,
+  ) async {
+    if (bytes.isEmpty) {
+      throw const AttachmentValidationException(
+        AttachmentImportFailureCode.emptyFile,
+      );
+    }
+    if (bytes.length > attachmentMaxBytes) {
+      throw const AttachmentValidationException(
+        AttachmentImportFailureCode.tooLarge,
+      );
+    }
+
+    final safeName = path.basename(name);
+    final extension = path
+        .extension(safeName)
+        .replaceFirst('.', '')
+        .toLowerCase();
+    final expectedMime = attachmentMimeTypes[extension];
+    if (expectedMime == null) {
+      throw const AttachmentValidationException(
+        AttachmentImportFailureCode.unsupportedType,
+      );
+    }
+    final header = Uint8List.sublistView(bytes, 0, bytes.length.clamp(0, 8192));
+    final detectedMime = lookupMimeType(safeName, headerBytes: header);
+    if (!_headerMatches(extension, header) ||
+        _contradictsExpected(extension, detectedMime)) {
+      throw AttachmentValidationException(
+        AttachmentImportFailureCode.mimeMismatch,
+        detectedMime == null ? null : 'Detected $detectedMime for .$extension.',
+      );
+    }
+    if (extension == 'docx') {
+      _validateDocxArchive(ZipDecoder().decodeBytes(bytes));
+    }
+    return AttachmentFileValidation(
+      sourcePath: safeName,
+      originalFileName: safeName,
+      fileExtension: extension,
+      mimeType: expectedMime,
+      byteSize: bytes.length,
+      modifiedAt: DateTime.now(),
+    );
+  }
+
   Future<AttachmentFileValidation> validate(String selectedPath) async {
     String resolvedPath;
     try {
@@ -195,37 +243,7 @@ class AttachmentFilePolicy {
     InputFileStream? input;
     try {
       input = InputFileStream(filePath);
-      final archive = ZipDecoder().decodeStream(input);
-      if (archive.length > 10000) {
-        throw const FormatException('Too many DOCX entries.');
-      }
-      var totalDeclaredBytes = 0;
-      var hasContentTypes = false;
-      var hasDocument = false;
-      for (final entry in archive) {
-        final normalized = path.posix.normalize(
-          entry.name.replaceAll('\\', '/'),
-        );
-        if (normalized.startsWith('../') || path.posix.isAbsolute(normalized)) {
-          throw const FormatException('Unsafe DOCX entry path.');
-        }
-        totalDeclaredBytes += entry.size;
-        if (totalDeclaredBytes > attachmentMaxBytes * 4) {
-          throw const FormatException('DOCX expands beyond the safe limit.');
-        }
-        if (normalized == '[Content_Types].xml' ||
-            normalized == 'word/document.xml') {
-          final content = entry.readBytes();
-          if (content == null) {
-            throw const FormatException('Unreadable DOCX entry.');
-          }
-          hasContentTypes |= normalized == '[Content_Types].xml';
-          hasDocument |= normalized == 'word/document.xml';
-        }
-      }
-      if (!hasContentTypes || !hasDocument) {
-        throw const FormatException('Required Word entries are missing.');
-      }
+      _validateDocxArchive(ZipDecoder().decodeStream(input));
     } catch (error) {
       throw AttachmentValidationException(
         AttachmentImportFailureCode.mimeMismatch,
@@ -233,6 +251,37 @@ class AttachmentFilePolicy {
       );
     } finally {
       input?.closeSync();
+    }
+  }
+
+  void _validateDocxArchive(Archive archive) {
+    if (archive.length > 10000) {
+      throw const FormatException('Too many DOCX entries.');
+    }
+    var totalDeclaredBytes = 0;
+    var hasContentTypes = false;
+    var hasDocument = false;
+    for (final entry in archive) {
+      final normalized = path.posix.normalize(entry.name.replaceAll('\\', '/'));
+      if (normalized.startsWith('../') || path.posix.isAbsolute(normalized)) {
+        throw const FormatException('Unsafe DOCX entry path.');
+      }
+      totalDeclaredBytes += entry.size;
+      if (totalDeclaredBytes > attachmentMaxBytes * 4) {
+        throw const FormatException('DOCX expands beyond the safe limit.');
+      }
+      if (normalized == '[Content_Types].xml' ||
+          normalized == 'word/document.xml') {
+        final content = entry.readBytes();
+        if (content == null) {
+          throw const FormatException('Unreadable DOCX entry.');
+        }
+        hasContentTypes |= normalized == '[Content_Types].xml';
+        hasDocument |= normalized == 'word/document.xml';
+      }
+    }
+    if (!hasContentTypes || !hasDocument) {
+      throw const FormatException('Required Word entries are missing.');
     }
   }
 }
