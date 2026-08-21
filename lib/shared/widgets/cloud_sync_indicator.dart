@@ -107,6 +107,7 @@ class CloudSyncIndicator extends ConsumerWidget {
 Future<void> showCloudSyncDetailSheet(BuildContext context, WidgetRef ref) {
   return showModalBottomSheet<void>(
     context: context,
+    isScrollControlled: true,
     backgroundColor: Theme.of(context).colorScheme.surface,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
@@ -137,7 +138,7 @@ class _CloudSyncDetailSheet extends ConsumerWidget {
     final isSyncing = stats.pendingCount > 0;
 
     return SafeArea(
-      child: Padding(
+      child: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(24, 16, 24, 28),
         child: Column(
           mainAxisSize: MainAxisSize.min,
