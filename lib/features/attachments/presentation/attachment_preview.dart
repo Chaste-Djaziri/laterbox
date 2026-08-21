@@ -437,7 +437,9 @@ String formatAttachmentBytes(int bytes) {
   final kilobytes = bytes / 1024;
   if (kilobytes < 1024) return '${kilobytes.toStringAsFixed(1)} KB';
   final megabytes = kilobytes / 1024;
-  return '${megabytes.toStringAsFixed(1)} MB';
+  if (megabytes < 1024) return '${megabytes.toStringAsFixed(1)} MB';
+  final gigabytes = megabytes / 1024;
+  return '${gigabytes.toStringAsFixed(2)} GB';
 }
 
 String _semanticLabel(Attachment attachment, int count) {
@@ -445,33 +447,62 @@ String _semanticLabel(Attachment attachment, int count) {
   return '${attachment.originalFileName}, ${_typeLabel(attachment)}$suffix';
 }
 
-String _typeLabel(Attachment attachment) => switch (attachment.fileExtension) {
-  'jpg' || 'jpeg' => 'JPEG image',
-  'png' => 'PNG image',
-  'webp' => 'WebP image',
-  'heic' => 'HEIC image',
-  'pdf' => 'PDF document',
-  'txt' => 'Text document',
-  'md' => 'Markdown document',
-  'doc' => 'Word document',
-  'docx' => 'Word document',
+String _typeLabel(Attachment attachment) => switch (attachment.fileExtension.toLowerCase()) {
+  'jpg' || 'jpeg' => 'JPEG Image',
+  'png' => 'PNG Image',
+  'webp' => 'WebP Image',
+  'heic' || 'heif' => 'HEIC Image',
+  'gif' => 'GIF Image',
+  'svg' => 'SVG Vector',
+  'pdf' => 'PDF Document',
+  'txt' => 'Text Document',
+  'md' || 'markdown' => 'Markdown Document',
+  'log' => 'Log File',
+  'doc' || 'docx' => 'Word Document',
+  'odt' || 'rtf' => 'Rich Text Document',
+  'xls' || 'xlsx' || 'ods' => 'Spreadsheet',
+  'csv' => 'CSV Data',
+  'ppt' || 'pptx' || 'odp' => 'Presentation',
+  'mp3' || 'm4a' || 'aac' || 'wav' || 'flac' || 'ogg' => 'Audio File',
+  'mp4' || 'mov' || 'm4v' || 'webm' || 'mkv' || 'avi' => 'Video File',
+  'zip' || 'rar' || '7z' || 'tar' || 'gz' => 'Archive',
+  'epub' => 'Ebook',
+  'dart' || 'js' || 'ts' || 'py' || 'json' || 'xml' || 'yaml' => 'Code / Data',
+  'exe' || 'dmg' || 'pkg' || 'apk' => 'Executable / Installer',
   _ => attachment.fileExtension.toUpperCase(),
 };
 
-IconData _fileIcon(Attachment attachment) => switch (attachment.fileExtension) {
+IconData _fileIcon(Attachment attachment) => switch (attachment.fileExtension.toLowerCase()) {
   'pdf' => Icons.picture_as_pdf_rounded,
-  'txt' || 'md' => Icons.notes_rounded,
-  'doc' || 'docx' => Icons.description_rounded,
-  'jpg' || 'jpeg' || 'png' || 'webp' || 'heic' => Icons.image_rounded,
+  'txt' || 'md' || 'markdown' || 'log' => Icons.notes_rounded,
+  'doc' || 'docx' || 'odt' || 'rtf' => Icons.description_rounded,
+  'xls' || 'xlsx' || 'ods' || 'csv' => Icons.table_chart_rounded,
+  'ppt' || 'pptx' || 'odp' => Icons.slideshow_rounded,
+  'jpg' || 'jpeg' || 'png' || 'webp' || 'heic' || 'gif' || 'svg' =>
+    Icons.image_rounded,
+  'mp3' || 'm4a' || 'aac' || 'wav' || 'flac' || 'ogg' => Icons.audio_file_rounded,
+  'mp4' || 'mov' || 'm4v' || 'webm' || 'mkv' || 'avi' => Icons.video_file_rounded,
+  'zip' || 'rar' || '7z' || 'tar' || 'gz' => Icons.folder_zip_rounded,
+  'epub' => Icons.menu_book_rounded,
+  'ttf' || 'otf' || 'woff' || 'woff2' => Icons.font_download_rounded,
+  'dart' || 'js' || 'ts' || 'py' || 'json' || 'xml' || 'yaml' || 'html' =>
+    Icons.code_rounded,
+  'exe' || 'dmg' || 'pkg' || 'apk' || 'sh' => Icons.terminal_rounded,
   _ => Icons.insert_drive_file_rounded,
 };
 
 Color _fileColor(BuildContext context, Attachment attachment) {
   final colors = Theme.of(context).colorScheme;
-  return switch (attachment.fileExtension) {
+  return switch (attachment.fileExtension.toLowerCase()) {
     'pdf' => colors.errorContainer,
-    'doc' || 'docx' => colors.primaryContainer,
-    'txt' || 'md' => colors.tertiaryContainer,
+    'doc' || 'docx' || 'odt' || 'rtf' => colors.primaryContainer,
+    'xls' || 'xlsx' || 'ods' || 'csv' => colors.secondaryContainer,
+    'ppt' || 'pptx' => colors.tertiaryContainer,
+    'txt' || 'md' || 'markdown' || 'log' => colors.surfaceContainerHighest,
+    'mp3' || 'm4a' || 'wav' || 'flac' => colors.primaryContainer.withValues(alpha: 0.7),
+    'mp4' || 'mov' || 'webm' => colors.secondaryContainer.withValues(alpha: 0.7),
+    'zip' || 'rar' || '7z' => colors.tertiaryContainer.withValues(alpha: 0.7),
+    'exe' || 'dmg' || 'apk' => colors.errorContainer.withValues(alpha: 0.5),
     _ => colors.surfaceContainerHighest,
   };
 }
