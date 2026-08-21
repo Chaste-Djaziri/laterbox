@@ -30,7 +30,12 @@ class AttachmentStorageApi {
     final objectKey = _requiredString(prepared, 'objectKey');
     final request = http.StreamedRequest('PUT', uploadUrl)
       ..contentLength = attachment.byteSize
-      ..headers.addAll({'content-type': attachment.mimeType});
+      ..headers.addAll({
+        'content-type': attachment.mimeType,
+        'x-amz-meta-sha256': attachment.sha256,
+        'x-amz-meta-attachment-id': attachment.id,
+        'x-amz-meta-user-id': attachment.userId!,
+      });
     await request.sink.addStream(bytes);
     await request.sink.close();
     final response = await _http.send(request);
