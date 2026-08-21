@@ -70,7 +70,7 @@ void main() {
     final attachment = await database.attachments.select().getSingle();
     expect(attachment.sha256, hasLength(64));
     expect(
-      File(storage.resolveLocalPath(attachment.localPath)).existsSync(),
+      File(storage.resolveLocalPath(attachment.localPath!)).existsSync(),
       isTrue,
     );
   });
