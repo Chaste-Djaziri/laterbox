@@ -32,13 +32,11 @@ class DesktopWindowSnapshot {
 /// and call back into [DesktopActions]; this class never touches controllers
 /// or navigation state.
 ///
-/// Only compiled on platforms with `dart.library.io`.
 class DesktopService {
   static bool _initialized = false;
 
   final _WindowListenerImpl _listener = _WindowListenerImpl();
 
-  Size? _defaultWindowSize;
   bool _inCaptureMode = false;
   DesktopWindowSnapshot? _captureSnapshot;
 
@@ -66,20 +64,9 @@ class DesktopService {
   Future<void> initialize() async {
     windowManager.addListener(_listener);
 
-    _defaultWindowSize = await _readDefaultWindowSize();
     await windowManager.setMinimumSize(defaultMainWindowMinimumSize);
     await windowManager.setPreventClose(true);
     await windowManager.maximize();
-  }
-
-  Future<Size?> _readDefaultWindowSize() async {
-    try {
-      final size = await windowManager.getSize();
-      if (size.width > 0 && size.height > 0) return size;
-    } on Exception {
-      return null;
-    }
-    return null;
   }
 
   /// Switches the window into quick capture mode and shows it on top.
