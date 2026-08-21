@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
@@ -76,6 +77,7 @@ final webAttachmentImportServiceProvider = Provider<WebAttachmentImportService>(
 );
 
 final attachmentStartupProvider = FutureProvider<void>((ref) async {
+  if (kIsWeb) return;
   final repository = await ref.watch(attachmentRepositoryProvider.future);
   await repository.removeOrphans();
 });
