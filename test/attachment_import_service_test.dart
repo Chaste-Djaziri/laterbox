@@ -34,19 +34,13 @@ void main() {
     final database = AppDatabase(NativeDatabase.memory());
     addTearDown(database.close);
     final storage = AttachmentStorage(temporaryDirectory);
-    final ids = [
-      '20000000-0000-4000-8000-000000000001',
-      '20000000-0000-4000-8000-000000000002',
-    ].iterator;
+    var counter = 1;
     final service = AttachmentImportService(
       policy: const AttachmentFilePolicy(),
       storage: storage,
       repository: AttachmentRepository(database, storage),
       currentUserId: () => null,
-      newId: () {
-        ids.moveNext();
-        return ids.current;
-      },
+      newId: () => '20000000-0000-4000-8000-00000000000${counter++}',
       now: () => DateTime.utc(2026, 8, 20),
       onSaved: () async => throw StateError('offline'),
     );
@@ -137,7 +131,7 @@ void main() {
     await database.into(database.items).insert(
           ItemsCompanion.insert(
             id: '10000000-0000-4000-8000-000000000001',
-            type: 'file',
+            type: const Value('file'),
             createdAt: DateTime.now(),
             updatedAt: DateTime.now(),
           ),
@@ -151,15 +145,16 @@ void main() {
             mimeType: 'application/pdf',
             byteSize: 10,
             sha256: 'a' * 64,
-            localPath:
-                'attachments/20000000-0000-4000-8000-000000000002/file.pdf',
+            localPath: const Value(
+              'attachments/20000000-0000-4000-8000-000000000002/file.pdf',
+            ),
             createdAt: DateTime.now(),
             updatedAt: DateTime.now(),
           ),
         );
 
     final repository = AttachmentRepository(database, storage);
-    await repository.cleanOrphans();
+    await repository.removeOrphans();
 
     expect(await orphan.exists(), isFalse);
     expect(await referenced.exists(), isTrue);
