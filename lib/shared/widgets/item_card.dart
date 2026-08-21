@@ -54,7 +54,7 @@ class _ItemCardState extends ConsumerState<ItemCard> {
     final attachments = isFile
         ? ref.watch(attachmentsForItemProvider(widget.item.id)).value
         : null;
-    final attachmentStorage = isFile
+    final attachmentStorage = isFile && !kIsWeb
         ? ref.watch(attachmentStorageProvider).value
         : null;
     final previewAttachment = attachments?.firstOrNull;
