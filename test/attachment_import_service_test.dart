@@ -26,18 +26,17 @@ void main() {
     }
   });
 
-  test('imports valid files once and reports invalid peers', () async {
+  test('imports valid files once and classifies universal attachments', () async {
     final source = File('${temporaryDirectory.path}/Project Proposal.pdf');
     await source.writeAsBytes('%PDF-1.4\nLaterBox'.codeUnits);
-    final unsupported = File('${temporaryDirectory.path}/archive.zip');
-    await unsupported.writeAsBytes([0x50, 0x4b, 0x03, 0x04]);
+    final zipFile = File('${temporaryDirectory.path}/archive.zip');
+    await zipFile.writeAsBytes([0x50, 0x4b, 0x03, 0x04]);
     final database = AppDatabase(NativeDatabase.memory());
     addTearDown(database.close);
     final storage = AttachmentStorage(temporaryDirectory);
     final ids = [
       '20000000-0000-4000-8000-000000000001',
       '20000000-0000-4000-8000-000000000002',
-      '20000000-0000-4000-8000-000000000003',
     ].iterator;
     final service = AttachmentImportService(
       policy: const AttachmentFilePolicy(),
@@ -53,31 +52,25 @@ void main() {
     );
 
     final result = await service.importFiles(
-      sourcePaths: [source.path, source.path, unsupported.path],
+      sourcePaths: [source.path, source.path, zipFile.path],
       text: 'Review with Alex',
     );
 
     expect(result.saved, isTrue);
-    expect(result.attachmentIds, hasLength(1));
-    expect(
-      result.failures.single.code,
-      AttachmentImportFailureCode.unsupportedType,
-    );
+    expect(result.attachmentIds, hasLength(2));
     final item = await database.itemById(result.itemId!);
     expect(item?.title, 'Project Proposal');
     expect(item?.textContent, 'Review with Alex');
     expect(item?.type, 'file');
-    final attachment = await database.attachments.select().getSingle();
-    expect(attachment.sha256, hasLength(64));
+    final dbAttachments = await database.attachments.select().get();
+    expect(dbAttachments, hasLength(2));
     expect(
-      File(storage.resolveLocalPath(attachment.localPath!)).existsSync(),
+      File(storage.resolveLocalPath(dbAttachments.first.localPath!)).existsSync(),
       isTrue,
     );
   });
 
-  test('creates no item when all selected files fail', () async {
-    final source = File('${temporaryDirectory.path}/archive.zip');
-    await source.writeAsBytes([0x50, 0x4b, 0x03, 0x04]);
+  test('creates no item when all selected files fail to resolve', () async {
     final database = AppDatabase(NativeDatabase.memory());
     addTearDown(database.close);
     final storage = AttachmentStorage(temporaryDirectory);
@@ -91,7 +84,7 @@ void main() {
     );
 
     final result = await service.importFiles(
-      sourcePaths: [source.path],
+      sourcePaths: ['${temporaryDirectory.path}/nonexistent_file.unknown'],
       text: 'Keep this text in the sheet',
     );
 
@@ -99,7 +92,7 @@ void main() {
     expect(await database.items.select().get(), isEmpty);
   });
 
-  test('accepts a real DOCX structure and rejects a renamed ZIP', () async {
+  test('accepts a real DOCX structure and rejects a corrupted DOCX container', () async {
     final policy = const AttachmentFilePolicy();
     final valid = File('${temporaryDirectory.path}/valid.docx');
     final validArchive = Archive()
@@ -139,10 +132,37 @@ void main() {
     await referenced.create(recursive: true);
     await unknown.create(recursive: true);
 
-    await storage.removeOrphans({'20000000-0000-4000-8000-000000000002'});
+    final database = AppDatabase(NativeDatabase.memory());
+    addTearDown(database.close);
+    await database.into(database.items).insert(
+          ItemsCompanion.insert(
+            id: '10000000-0000-4000-8000-000000000001',
+            type: 'file',
+            createdAt: DateTime.now(),
+            updatedAt: DateTime.now(),
+          ),
+        );
+    await database.into(database.attachments).insert(
+          AttachmentsCompanion.insert(
+            id: '20000000-0000-4000-8000-000000000002',
+            itemId: '10000000-0000-4000-8000-000000000001',
+            originalFileName: 'file.pdf',
+            fileExtension: 'pdf',
+            mimeType: 'application/pdf',
+            byteSize: 10,
+            sha256: 'a' * 64,
+            localPath:
+                'attachments/20000000-0000-4000-8000-000000000002/file.pdf',
+            createdAt: DateTime.now(),
+            updatedAt: DateTime.now(),
+          ),
+        );
 
-    expect(orphan.existsSync(), isFalse);
-    expect(referenced.existsSync(), isTrue);
-    expect(unknown.existsSync(), isTrue);
+    final repository = AttachmentRepository(database, storage);
+    await repository.cleanOrphans();
+
+    expect(await orphan.exists(), isFalse);
+    expect(await referenced.exists(), isTrue);
+    expect(await unknown.exists(), isTrue);
   });
 }
