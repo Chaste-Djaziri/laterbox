@@ -342,5 +342,5 @@ final class ShareViewController: UIViewController {
 }
 
 enum AppGroup {
-    static let identifier = "group.com.example.laterbox"
+    static let identifier = "group.pro.micorp.laterbox"
 }
