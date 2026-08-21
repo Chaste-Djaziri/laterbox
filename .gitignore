@@ -50,3 +50,6 @@ app.*.map.json
 # Browser extension dependencies
 extension/node_modules/
 extension/dist/
+
+# Wrangler local state
+.wrangler/
