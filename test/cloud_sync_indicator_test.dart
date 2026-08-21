@@ -51,5 +51,6 @@ void main() {
     expect(find.text('Cloud Sync & Backup'), findsOneWidget);
     expect(find.text('Sync Progress'), findsOneWidget);
     expect(find.text('Sync Now'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox.shrink());
   });
 }
