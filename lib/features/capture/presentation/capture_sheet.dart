@@ -25,9 +25,9 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet> {
   bool _saving = false;
 
   Future<void> _chooseFiles() async {
+    final platform = Theme.of(context).platform;
     final isMobile = !kIsWeb &&
-        (defaultTargetPlatform == TargetPlatform.iOS ||
-            defaultTargetPlatform == TargetPlatform.android);
+        (platform == TargetPlatform.iOS || platform == TargetPlatform.android);
 
     final AttachmentPickerSource? source;
     if (isMobile) {
