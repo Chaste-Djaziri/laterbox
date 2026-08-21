@@ -47,7 +47,7 @@ class Attachments extends Table {
     "NOT NULL CHECK(length(sha256) = 64 AND "
     "sha256 NOT GLOB '*[^0-9a-f]*')",
   )();
-  TextColumn get localPath => text().unique()();
+  TextColumn get localPath => text().nullable().unique()();
   TextColumn get r2ObjectKey => text().nullable().unique()();
   IntColumn get width => integer().nullable().customConstraint(
     'NULL CHECK(width IS NULL OR width > 0)',
@@ -63,6 +63,10 @@ class Attachments extends Table {
     'NOT NULL DEFAULT 0 CHECK(upload_attempts >= 0)',
   )();
   TextColumn get uploadLastError => text().nullable()();
+  TextColumn get downloadStatus => text().customConstraint(
+    "NOT NULL DEFAULT 'downloaded' CHECK(download_status IN "
+    "('remote', 'downloading', 'downloaded', 'failed'))",
+  )();
   TextColumn get syncStatus => text().customConstraint(
     "NOT NULL DEFAULT 'pending' "
     "CHECK(sync_status IN ('pending', 'synced', 'failed'))",
@@ -183,7 +187,7 @@ class AppDatabase extends _$AppDatabase {
       );
 
   @override
-  int get schemaVersion => 10;
+  int get schemaVersion => 11;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -282,6 +286,9 @@ class AppDatabase extends _$AppDatabase {
       }
       if (from < 10) {
         await migrator.createTable(attachments);
+      }
+      if (from < 11) {
+        await migrator.alterTable(TableMigration(attachments));
       }
     },
   );
@@ -659,6 +666,118 @@ class AppDatabase extends _$AppDatabase {
     return (select(
       attachments,
     )..where((attachment) => attachment.itemId.equals(itemId))).get();
+  }
+
+  Future<List<Attachment>> attachmentsNeedingUpload(String userId) {
+    return (select(attachments)..where(
+          (attachment) =>
+              attachment.userId.equals(userId) &
+              attachment.deletedAt.isNull() &
+              attachment.localPath.isNotNull() &
+              attachment.r2ObjectKey.isNull() &
+              attachment.uploadStatus.isIn(const [
+                'local',
+                'pending',
+                'failed',
+              ]),
+        ))
+        .get();
+  }
+
+  Future<List<Attachment>> attachmentsNeedingSync(String userId) {
+    return (select(attachments)..where(
+          (attachment) =>
+              attachment.userId.equals(userId) &
+              attachment.syncStatus.isIn(const ['pending', 'failed']) &
+              (attachment.deletedAt.isNotNull() |
+                  attachment.r2ObjectKey.isNotNull()),
+        ))
+        .get();
+  }
+
+  Future<void> markAttachmentUploading(String id) {
+    return (update(attachments)..where((row) => row.id.equals(id))).write(
+      const AttachmentsCompanion(uploadStatus: Value('uploading')),
+    );
+  }
+
+  Future<void> markAttachmentUploaded(String id, String objectKey) {
+    return (update(attachments)..where((row) => row.id.equals(id))).write(
+      AttachmentsCompanion(
+        r2ObjectKey: Value(objectKey),
+        uploadStatus: const Value('uploaded'),
+        uploadAttempts: const Value(0),
+        uploadLastError: const Value(null),
+        syncStatus: const Value('pending'),
+        updatedAt: Value(DateTime.now()),
+      ),
+    );
+  }
+
+  Future<void> markAttachmentUploadFailed(String id, String error) async {
+    final row = await (select(
+      attachments,
+    )..where((attachment) => attachment.id.equals(id))).getSingle();
+    await (update(
+      attachments,
+    )..where((attachment) => attachment.id.equals(id))).write(
+      AttachmentsCompanion(
+        uploadStatus: const Value('failed'),
+        uploadAttempts: Value(row.uploadAttempts + 1),
+        uploadLastError: Value(error),
+      ),
+    );
+  }
+
+  Future<void> markAttachmentSynced(String id, DateTime syncedAt) {
+    return (update(attachments)..where((row) => row.id.equals(id))).write(
+      AttachmentsCompanion(
+        syncStatus: const Value('synced'),
+        lastSyncedAt: Value(syncedAt),
+      ),
+    );
+  }
+
+  Future<void> markAttachmentSyncFailed(String id) {
+    return (update(attachments)..where((row) => row.id.equals(id))).write(
+      const AttachmentsCompanion(syncStatus: Value('failed')),
+    );
+  }
+
+  Future<void> upsertRemoteAttachment(AttachmentsCompanion remote) async {
+    final id = remote.id.value;
+    final existing = await (select(
+      attachments,
+    )..where((row) => row.id.equals(id))).getSingleOrNull();
+    await into(attachments).insertOnConflictUpdate(
+      remote.copyWith(
+        localPath: Value(existing?.localPath),
+        downloadStatus: Value(
+          existing?.localPath == null ? 'remote' : 'downloaded',
+        ),
+      ),
+    );
+  }
+
+  Future<void> markAttachmentDownloading(String id) {
+    return (update(attachments)..where((row) => row.id.equals(id))).write(
+      const AttachmentsCompanion(downloadStatus: Value('downloading')),
+    );
+  }
+
+  Future<void> markAttachmentDownloaded(String id, String localPath) {
+    return (update(attachments)..where((row) => row.id.equals(id))).write(
+      AttachmentsCompanion(
+        localPath: Value(localPath),
+        downloadStatus: const Value('downloaded'),
+      ),
+    );
+  }
+
+  Future<void> markAttachmentDownloadFailed(String id) {
+    return (update(attachments)..where((row) => row.id.equals(id))).write(
+      const AttachmentsCompanion(downloadStatus: Value('failed')),
+    );
   }
 
   Future<void> createCollection(String id, String? userId, String name) {
