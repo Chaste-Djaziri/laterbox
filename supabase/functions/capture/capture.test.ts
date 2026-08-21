@@ -66,6 +66,7 @@ Deno.test("capture inserts an authenticated browser item", async () => {
     url: "https://github.com/flutter/flutter",
     title: "Flutter",
     text_content: null,
+    text_selector: null,
     type: "link",
     favorite: false,
     status: "inbox",
