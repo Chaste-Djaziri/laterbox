@@ -105,10 +105,18 @@ class _ItemDetailBody extends ConsumerWidget {
     final storageState = isFile ? ref.watch(attachmentStorageProvider) : null;
     final attachments = attachmentsState?.value;
     final attachmentStorage = storageState?.value;
-    final hasAttachmentPreview =
-        attachments != null &&
-        attachments.isNotEmpty &&
-        attachmentStorage != null;
+    final remoteImageUrls = <String, String>{};
+    for (final attachment in attachments ?? const <Attachment>[]) {
+      if (attachment.mimeType.startsWith('image/') &&
+          attachment.r2ObjectKey != null &&
+          (attachmentStorage == null || attachment.localPath == null)) {
+        final url = ref
+            .watch(attachmentPreviewUrlProvider(attachment.id))
+            .value;
+        if (url != null) remoteImageUrls[attachment.id] = url;
+      }
+    }
+    final hasAttachmentPreview = attachments != null && attachments.isNotEmpty;
     Future<String> resolveRemotePath(Attachment attachment) async {
       final service = await ref.read(attachmentSyncServiceProvider.future);
       if (service == null) {
@@ -126,6 +134,7 @@ class _ItemDetailBody extends ConsumerWidget {
             storage: attachmentStorage,
             showList: false,
             resolveRemotePath: resolveRemotePath,
+            remoteImageUrls: remoteImageUrls,
           )
         else if (embedInfo != null)
           MediaEmbedHero(
@@ -237,6 +246,7 @@ class _ItemDetailBody extends ConsumerWidget {
             storage: attachmentStorage,
             showGallery: false,
             resolveRemotePath: resolveRemotePath,
+            remoteImageUrls: remoteImageUrls,
           )
         else if (isFile)
           Padding(
