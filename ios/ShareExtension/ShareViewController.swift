@@ -98,16 +98,9 @@ final class ShareViewController: UIViewController {
     private func supportedFileIdentifier(for provider: NSItemProvider) -> String? {
         provider.registeredTypeIdentifiers.first { identifier in
             guard let type = UTType(identifier) else { return false }
-            if type.conforms(to: .image) || type.conforms(to: .pdf) { return true }
-            let supportedExtensions = ["txt", "md", "doc", "docx"]
-            guard
-                let fileExtension = type.preferredFilenameExtension?.lowercased(),
-                supportedExtensions.contains(fileExtension)
-            else { return false }
-            if type.conforms(to: .plainText) {
-                return provider.suggestedName != nil
-            }
-            return true
+            if type.conforms(to: .url) && !type.conforms(to: .fileURL) { return false }
+            if type.conforms(to: .plainText) && provider.suggestedName == nil { return false }
+            return type.conforms(to: .item) || type.conforms(to: .content) || type.conforms(to: .data) || type.conforms(to: .fileURL)
         }
     }
 
@@ -200,7 +193,13 @@ final class ShareViewController: UIViewController {
             $0.hasItemConformingToTypeIdentifier(UTType.url.identifier)
         }) {
             urlProvider.loadItem(forTypeIdentifier: UTType.url.identifier, options: nil) { item, _ in
-                completion((item as? URL)?.absoluteString)
+                if let url = item as? URL {
+                    if !url.isFileURL {
+                        completion(url.absoluteString)
+                        return
+                    }
+                }
+                completion(nil)
             }
             return
         }
