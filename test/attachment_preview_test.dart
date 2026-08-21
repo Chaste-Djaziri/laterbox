@@ -118,6 +118,32 @@ void main() {
     expect(find.text('Markdown document · 1.0 KB'), findsOneWidget);
     await tester.pumpWidget(const SizedBox.shrink());
   });
+
+  testWidgets('renders a signed remote image when no local copy exists', (
+    tester,
+  ) async {
+    final attachment = _attachment(
+      id: 'remote-image',
+      name: 'photo.jpg',
+      extension: 'jpg',
+      mimeType: 'image/jpeg',
+      localPath: null,
+      r2ObjectKey: 'users/user/attachments/remote-image/original.jpg',
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: AttachmentCardPreview(
+          attachments: [attachment],
+          remoteImageUrl: 'https://r2.example.test/signed-photo.jpg',
+        ),
+      ),
+    );
+
+    final image = tester.widget<Image>(find.byType(Image));
+    expect(image.image, isA<NetworkImage>());
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
 }
 
 Attachment _attachment({
@@ -125,7 +151,8 @@ Attachment _attachment({
   required String name,
   required String extension,
   required String mimeType,
-  required String localPath,
+  required String? localPath,
+  String? r2ObjectKey,
   int byteSize = 1024,
 }) {
   final now = DateTime.utc(2026, 8, 20);
@@ -138,6 +165,7 @@ Attachment _attachment({
     byteSize: byteSize,
     sha256: 'a' * 64,
     localPath: localPath,
+    r2ObjectKey: r2ObjectKey,
     downloadStatus: 'downloaded',
     uploadStatus: 'local',
     uploadAttempts: 0,
