@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -144,6 +145,27 @@ void main() {
     expect(image.image, isA<NetworkImage>());
     await tester.pumpWidget(const SizedBox.shrink());
   });
+
+  testWidgets('renders browser attachment bytes before cloud upload', (
+    tester,
+  ) async {
+    final attachment = _attachment(
+      id: 'browser-image',
+      name: 'capture.png',
+      extension: 'png',
+      mimeType: 'image/png',
+      localPath: null,
+      localBytes: Uint8List.fromList(const [0x89, 0x50, 0x4e, 0x47]),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(home: AttachmentCardPreview(attachments: [attachment])),
+    );
+
+    final image = tester.widget<Image>(find.byType(Image));
+    expect(image.image, isA<MemoryImage>());
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
 }
 
 Attachment _attachment({
@@ -152,6 +174,7 @@ Attachment _attachment({
   required String extension,
   required String mimeType,
   required String? localPath,
+  Uint8List? localBytes,
   String? r2ObjectKey,
   int byteSize = 1024,
 }) {
@@ -165,6 +188,7 @@ Attachment _attachment({
     byteSize: byteSize,
     sha256: 'a' * 64,
     localPath: localPath,
+    localBytes: localBytes,
     r2ObjectKey: r2ObjectKey,
     downloadStatus: 'downloaded',
     uploadStatus: 'local',
