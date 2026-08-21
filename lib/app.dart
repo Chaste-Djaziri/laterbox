@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -84,7 +85,7 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
   Future<void> _drainNativeShares() async {
     try {
       await _captureAndroidShares();
-      await _importIosShares();
+      await _importAppleShares();
     } finally {
       _drainingShares = false;
     }
@@ -109,20 +110,23 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
     }
   }
 
-  Future<void> _importIosShares() async {
+  Future<void> _importAppleShares() async {
     try {
       final receiver = ref.read(iosShareReceiverProvider);
       final pending = await receiver.consumePendingShares();
       if (pending.isEmpty) return;
       for (final payload in pending) {
-        if (await _importNativeShare(payload, CaptureSource.iosShare)) {
+        final source = Platform.isMacOS
+            ? CaptureSource.macosShare
+            : CaptureSource.iosShare;
+        if (await _importNativeShare(payload, source)) {
           await receiver.acknowledge([payload.id]);
         }
       }
     } on MissingPluginException {
       // Not running on iOS; there is nothing to consume.
     } on Object catch (error, stackTrace) {
-      debugPrint('Failed to import iOS shares: $error\n$stackTrace');
+      debugPrint('Failed to import Apple shares: $error\n$stackTrace');
     }
   }
 
