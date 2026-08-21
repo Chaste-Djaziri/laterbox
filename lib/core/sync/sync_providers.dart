@@ -37,6 +37,20 @@ final remoteItemNoteDataSourceProvider = Provider<RemoteItemNoteDataSource?>((
   return client == null ? null : SupabaseRemoteItemNoteDataSource(client);
 });
 
+final attachmentSyncServiceProvider = FutureProvider<AttachmentSyncService?>((
+  ref,
+) async {
+  final client = ref.watch(supabaseClientProvider);
+  if (client == null) return null;
+  final storage = AttachmentStorage(await getApplicationSupportDirectory());
+  return AttachmentSyncService(
+    ref.watch(appDatabaseProvider),
+    SupabaseRemoteAttachmentDataSource(client),
+    AttachmentStorageApi(client),
+    storage,
+  );
+});
+
 final syncServiceProvider = Provider<SyncService>((ref) {
   final client = ref.watch(supabaseClientProvider);
   return SyncService(
@@ -51,17 +65,7 @@ final syncServiceProvider = Provider<SyncService>((ref) {
     remoteCollections: ref.watch(remoteCollectionDataSourceProvider),
     localNotes: LocalItemNoteDataSource(ref.watch(appDatabaseProvider)),
     remoteNotes: ref.watch(remoteItemNoteDataSourceProvider),
-    attachmentSync: () async {
-      if (client == null) return null;
-      final database = ref.read(appDatabaseProvider);
-      final storage = AttachmentStorage(await getApplicationSupportDirectory());
-      return AttachmentSyncService(
-        database,
-        SupabaseRemoteAttachmentDataSource(client),
-        AttachmentStorageApi(client),
-        storage,
-      );
-    },
+    attachmentSync: () => ref.read(attachmentSyncServiceProvider.future),
   );
 });
 
