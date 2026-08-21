@@ -39,7 +39,9 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet> {
         _fileFailures = const [];
         _error = null;
       });
-    } catch (_) {
+    } catch (error, stackTrace) {
+      debugPrint('[LaterBox Attachments] file picker failed: $error');
+      debugPrintStack(stackTrace: stackTrace);
       if (mounted) setState(() => _error = 'Could not open the file picker.');
     }
   }
