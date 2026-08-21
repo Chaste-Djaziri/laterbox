@@ -7,20 +7,92 @@ import 'package:path/path.dart' as path;
 
 import 'attachment_import_result.dart';
 
-const int attachmentMaxBytes = 100 * 1024 * 1024;
+/// Maximum attachment size per file: 5 GiB.
+const int attachmentMaxBytes = 5 * 1024 * 1024 * 1024;
 
-const Map<String, String> attachmentMimeTypes = {
+/// Categorized Preview Classification for UI rendering and backend derivative jobs.
+enum PreviewKind {
+  image,
+  pdf,
+  text,
+  code,
+  spreadsheet,
+  document,
+  presentation,
+  audio,
+  video,
+  archive,
+  ebook,
+  model3d,
+  font,
+  generic,
+}
+
+const Map<String, String> _wellKnownMimeTypes = {
   'jpg': 'image/jpeg',
   'jpeg': 'image/jpeg',
   'png': 'image/png',
   'webp': 'image/webp',
   'heic': 'image/heic',
+  'heif': 'image/heif',
+  'gif': 'image/gif',
+  'avif': 'image/avif',
+  'bmp': 'image/bmp',
+  'svg': 'image/svg+xml',
   'pdf': 'application/pdf',
   'txt': 'text/plain',
   'md': 'text/markdown',
+  'markdown': 'text/markdown',
+  'log': 'text/plain',
+  'rtf': 'application/rtf',
   'doc': 'application/msword',
   'docx':
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'odt': 'application/vnd.oasis.opendocument.text',
+  'xls': 'application/vnd.ms-excel',
+  'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'ods': 'application/vnd.oasis.opendocument.spreadsheet',
+  'csv': 'text/csv',
+  'ppt': 'application/vnd.ms-powerpoint',
+  'pptx':
+      'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  'odp': 'application/vnd.oasis.opendocument.presentation',
+  'epub': 'application/epub+zip',
+  'mp3': 'audio/mpeg',
+  'm4a': 'audio/mp4',
+  'aac': 'audio/aac',
+  'wav': 'audio/wav',
+  'flac': 'audio/flac',
+  'ogg': 'audio/ogg',
+  'opus': 'audio/opus',
+  'wma': 'audio/x-ms-wma',
+  'mp4': 'video/mp4',
+  'mov': 'video/quicktime',
+  'm4v': 'video/x-m4v',
+  'webm': 'video/webm',
+  'mkv': 'video/x-matroska',
+  'avi': 'video/x-msvideo',
+  'zip': 'application/zip',
+  'rar': 'application/vnd.rar',
+  '7z': 'application/x-7z-compressed',
+  'tar': 'application/x-tar',
+  'gz': 'application/gzip',
+  'json': 'application/json',
+  'xml': 'application/xml',
+  'yaml': 'text/yaml',
+  'yml': 'text/yaml',
+  'toml': 'application/toml',
+  'html': 'text/html',
+  'htm': 'text/html',
+  'css': 'text/css',
+  'js': 'text/javascript',
+  'ts': 'text/typescript',
+  'dart': 'text/x-dart',
+  'py': 'text/x-python',
+  'sh': 'application/x-sh',
+  'exe': 'application/x-msdownload',
+  'dmg': 'application/x-apple-diskimage',
+  'apk': 'application/vnd.android.package-archive',
 };
 
 class AttachmentFileValidation {
@@ -31,6 +103,7 @@ class AttachmentFileValidation {
     required this.mimeType,
     required this.byteSize,
     required this.modifiedAt,
+    required this.previewKind,
   });
 
   final String sourcePath;
@@ -39,6 +112,7 @@ class AttachmentFileValidation {
   final String mimeType;
   final int byteSize;
   final DateTime modifiedAt;
+  final PreviewKind previewKind;
 }
 
 class AttachmentValidationException implements Exception {
@@ -51,15 +125,104 @@ class AttachmentValidationException implements Exception {
 class AttachmentFilePolicy {
   const AttachmentFilePolicy();
 
+  /// Resolves the canonical PreviewKind for an extension and MIME type.
+  static PreviewKind classifyPreviewKind(String extension, String mimeType) {
+    final ext = extension.toLowerCase();
+    final mime = mimeType.toLowerCase();
+
+    if (mime.startsWith('image/') ||
+        const {
+          'jpg',
+          'jpeg',
+          'png',
+          'webp',
+          'heic',
+          'heif',
+          'gif',
+          'avif',
+          'bmp',
+          'tif',
+          'tiff',
+          'svg',
+        }.contains(ext)) {
+      return PreviewKind.image;
+    }
+    if (ext == 'pdf' || mime == 'application/pdf') {
+      return PreviewKind.pdf;
+    }
+    if (const {'txt', 'md', 'markdown', 'log'}.contains(ext)) {
+      return PreviewKind.text;
+    }
+    if (const {
+      'json',
+      'xml',
+      'yaml',
+      'yml',
+      'toml',
+      'html',
+      'htm',
+      'css',
+      'js',
+      'jsx',
+      'ts',
+      'tsx',
+      'dart',
+      'py',
+      'rb',
+      'php',
+      'java',
+      'kt',
+      'kts',
+      'swift',
+      'c',
+      'h',
+      'cpp',
+      'hpp',
+      'rs',
+      'go',
+      'sql',
+    }.contains(ext)) {
+      return PreviewKind.code;
+    }
+    if (const {'csv', 'xls', 'xlsx', 'ods'}.contains(ext)) {
+      return PreviewKind.spreadsheet;
+    }
+    if (const {'rtf', 'doc', 'docx', 'odt'}.contains(ext)) {
+      return PreviewKind.document;
+    }
+    if (const {'ppt', 'pptx', 'odp'}.contains(ext)) {
+      return PreviewKind.presentation;
+    }
+    if (mime.startsWith('audio/') ||
+        const {'mp3', 'm4a', 'aac', 'wav', 'flac', 'ogg', 'opus', 'wma'}
+            .contains(ext)) {
+      return PreviewKind.audio;
+    }
+    if (mime.startsWith('video/') ||
+        const {'mp4', 'mov', 'm4v', 'webm', 'mkv', 'avi', 'mpg', 'mpeg'}
+            .contains(ext)) {
+      return PreviewKind.video;
+    }
+    if (const {'zip', 'rar', '7z', 'tar', 'gz', 'tgz', 'bz2', 'xz'}
+        .contains(ext)) {
+      return PreviewKind.archive;
+    }
+    if (ext == 'epub') {
+      return PreviewKind.ebook;
+    }
+    if (const {'glb', 'gltf'}.contains(ext)) {
+      return PreviewKind.model3d;
+    }
+    if (const {'ttf', 'otf', 'woff', 'woff2'}.contains(ext)) {
+      return PreviewKind.font;
+    }
+    return PreviewKind.generic;
+  }
+
   Future<AttachmentFileValidation> validateBytes(
     String name,
     Uint8List bytes,
   ) async {
-    if (bytes.isEmpty) {
-      throw const AttachmentValidationException(
-        AttachmentImportFailureCode.emptyFile,
-      );
-    }
     if (bytes.length > attachmentMaxBytes) {
       throw const AttachmentValidationException(
         AttachmentImportFailureCode.tooLarge,
@@ -67,35 +230,35 @@ class AttachmentFilePolicy {
     }
 
     final safeName = path.basename(name);
-    final extension = path
-        .extension(safeName)
-        .replaceFirst('.', '')
-        .toLowerCase();
-    final expectedMime = attachmentMimeTypes[extension];
-    if (expectedMime == null) {
-      throw const AttachmentValidationException(
-        AttachmentImportFailureCode.unsupportedType,
-      );
+    final extension =
+        path.extension(safeName).replaceFirst('.', '').toLowerCase();
+    final header =
+        Uint8List.sublistView(bytes, 0, bytes.length.clamp(0, 8192));
+    final mime = _wellKnownMimeTypes[extension] ??
+        lookupMimeType(safeName, headerBytes: header) ??
+        'application/octet-stream';
+
+    if (extension == 'docx' && bytes.isNotEmpty) {
+      try {
+        _validateDocxArchive(ZipDecoder().decodeBytes(bytes));
+      } catch (error) {
+        throw AttachmentValidationException(
+          AttachmentImportFailureCode.mimeMismatch,
+          'Invalid DOCX container: $error',
+        );
+      }
     }
-    final header = Uint8List.sublistView(bytes, 0, bytes.length.clamp(0, 8192));
-    final detectedMime = lookupMimeType(safeName, headerBytes: header);
-    if (!_headerMatches(extension, header) ||
-        _contradictsExpected(extension, detectedMime)) {
-      throw AttachmentValidationException(
-        AttachmentImportFailureCode.mimeMismatch,
-        detectedMime == null ? null : 'Detected $detectedMime for .$extension.',
-      );
-    }
-    if (extension == 'docx') {
-      _validateDocxArchive(ZipDecoder().decodeBytes(bytes));
-    }
+
+    final previewKind = classifyPreviewKind(extension, mime);
+
     return AttachmentFileValidation(
       sourcePath: safeName,
       originalFileName: safeName,
       fileExtension: extension,
-      mimeType: expectedMime,
+      mimeType: mime,
       byteSize: bytes.length,
       modifiedAt: DateTime.now(),
+      previewKind: previewKind,
     );
   }
 
@@ -129,11 +292,6 @@ class AttachmentFilePolicy {
       );
     }
 
-    if (stat.size == 0) {
-      throw const AttachmentValidationException(
-        AttachmentImportFailureCode.emptyFile,
-      );
-    }
     if (stat.size > attachmentMaxBytes) {
       throw const AttachmentValidationException(
         AttachmentImportFailureCode.tooLarge,
@@ -141,38 +299,27 @@ class AttachmentFilePolicy {
     }
 
     final name = path.basename(resolvedPath);
-    final extension = path.extension(name).replaceFirst('.', '').toLowerCase();
-    final expectedMime = attachmentMimeTypes[extension];
-    if (expectedMime == null) {
-      throw const AttachmentValidationException(
-        AttachmentImportFailureCode.unsupportedType,
-      );
-    }
-
+    final extension =
+        path.extension(name).replaceFirst('.', '').toLowerCase();
     final header = await _readHeader(file);
-    final detectedMime = lookupMimeType(name, headerBytes: header);
-    if (!_headerMatches(extension, header)) {
-      throw const AttachmentValidationException(
-        AttachmentImportFailureCode.mimeMismatch,
-      );
-    }
-    if (_contradictsExpected(extension, detectedMime)) {
-      throw AttachmentValidationException(
-        AttachmentImportFailureCode.mimeMismatch,
-        'Detected $detectedMime for .$extension.',
-      );
-    }
-    if (extension == 'docx') {
+    final mime = _wellKnownMimeTypes[extension] ??
+        lookupMimeType(name, headerBytes: header) ??
+        'application/octet-stream';
+
+    if (extension == 'docx' && stat.size > 0) {
       await _validateDocx(resolvedPath);
     }
+
+    final previewKind = classifyPreviewKind(extension, mime);
 
     return AttachmentFileValidation(
       sourcePath: resolvedPath,
       originalFileName: name,
       fileExtension: extension,
-      mimeType: expectedMime,
+      mimeType: mime,
       byteSize: stat.size,
       modifiedAt: stat.modified,
+      previewKind: previewKind,
     );
   }
 
@@ -189,54 +336,6 @@ class AttachmentFilePolicy {
         error.message,
       );
     }
-  }
-
-  bool _contradictsExpected(String extension, String? detectedMime) {
-    if (detectedMime == null || detectedMime == 'application/octet-stream') {
-      return false;
-    }
-    if (extension == 'txt' || extension == 'md') {
-      return !detectedMime.startsWith('text/');
-    }
-    if (extension == 'doc' || extension == 'docx') {
-      return !detectedMime.startsWith('application/');
-    }
-    return detectedMime != attachmentMimeTypes[extension];
-  }
-
-  bool _headerMatches(String extension, Uint8List bytes) {
-    bool starts(List<int> signature) {
-      if (bytes.length < signature.length) return false;
-      for (var index = 0; index < signature.length; index++) {
-        if (bytes[index] != signature[index]) return false;
-      }
-      return true;
-    }
-
-    return switch (extension) {
-      'jpg' || 'jpeg' => starts(const [0xff, 0xd8, 0xff]),
-      'png' => starts(const [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
-      'webp' =>
-        bytes.length >= 12 &&
-            String.fromCharCodes(bytes.sublist(0, 4)) == 'RIFF' &&
-            String.fromCharCodes(bytes.sublist(8, 12)) == 'WEBP',
-      'heic' =>
-        bytes.length >= 12 &&
-            String.fromCharCodes(bytes.sublist(4, 8)) == 'ftyp' &&
-            const {
-              'heic',
-              'heix',
-              'hevc',
-              'hevx',
-              'mif1',
-              'msf1',
-            }.contains(String.fromCharCodes(bytes.sublist(8, 12))),
-      'pdf' => starts(const [0x25, 0x50, 0x44, 0x46, 0x2d]),
-      'doc' => starts(const [0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1]),
-      'docx' => starts(const [0x50, 0x4b]),
-      'txt' || 'md' => !bytes.contains(0),
-      _ => false,
-    };
   }
 
   Future<void> _validateDocx(String filePath) async {
@@ -262,13 +361,14 @@ class AttachmentFilePolicy {
     var hasContentTypes = false;
     var hasDocument = false;
     for (final entry in archive) {
-      final normalized = path.posix.normalize(entry.name.replaceAll('\\', '/'));
+      final normalized =
+          path.posix.normalize(entry.name.replaceAll('\\', '/'));
       if (normalized.startsWith('../') || path.posix.isAbsolute(normalized)) {
         throw const FormatException('Unsafe DOCX entry path.');
       }
       totalDeclaredBytes += entry.size;
-      if (totalDeclaredBytes > attachmentMaxBytes * 4) {
-        throw const FormatException('DOCX expands beyond the safe limit.');
+      if (totalDeclaredBytes > 500 * 1024 * 1024) {
+        throw const FormatException('DOCX expands beyond safe limit.');
       }
       if (normalized == '[Content_Types].xml' ||
           normalized == 'word/document.xml') {
