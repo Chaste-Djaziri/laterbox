@@ -6,7 +6,6 @@ import '../database/database_providers.dart';
 
 final syncStatsProvider = StreamProvider<SyncStatsData>((ref) {
   final db = ref.watch(appDatabaseProvider);
-  final authState = ref.watch(authStateProvider).asData?.value;
-  final userId = authState?.user?.id;
+  final userId = ref.watch(activeUserIdProvider);
   return db.watchSyncStats(userId);
 });
