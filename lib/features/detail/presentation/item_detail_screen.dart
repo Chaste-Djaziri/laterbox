@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:timeago/timeago.dart' as timeago;
 
+import '../../../core/database/app_database.dart';
+import '../../../core/sync/sync_providers.dart';
 import '../../../shared/models/laterbox_item.dart';
 import '../../../shared/utils/media_embed_helper.dart';
 import '../../../shared/widgets/item_actions.dart';
@@ -107,6 +109,13 @@ class _ItemDetailBody extends ConsumerWidget {
         attachments != null &&
         attachments.isNotEmpty &&
         attachmentStorage != null;
+    Future<String> resolveRemotePath(Attachment attachment) async {
+      final service = await ref.read(attachmentSyncServiceProvider.future);
+      if (service == null) {
+        throw StateError('Attachment sync is unavailable.');
+      }
+      return service.download(attachment);
+    }
 
     return ListView(
       padding: const EdgeInsets.only(bottom: 40),
@@ -116,6 +125,7 @@ class _ItemDetailBody extends ConsumerWidget {
             attachments: attachments,
             storage: attachmentStorage,
             showList: false,
+            resolveRemotePath: resolveRemotePath,
           )
         else if (embedInfo != null)
           MediaEmbedHero(
@@ -226,6 +236,7 @@ class _ItemDetailBody extends ConsumerWidget {
             attachments: attachments,
             storage: attachmentStorage,
             showGallery: false,
+            resolveRemotePath: resolveRemotePath,
           )
         else if (isFile)
           Padding(
