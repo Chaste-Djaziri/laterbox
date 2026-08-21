@@ -247,27 +247,43 @@ class _CloudSyncDetailSheet extends ConsumerWidget {
                   const Divider(),
                   const SizedBox(height: 12),
                   _StatRow(
-                    label: 'Items Synced',
-                    value:
-                        '${stats.totalItems - stats.pendingItems} of ${stats.totalItems}',
-                    icon: Icons.article_outlined,
+                    label: 'Items Pending Sync',
+                    value: stats.pendingItems == 0
+                        ? '0 items'
+                        : '${stats.pendingItems} items pending',
+                    icon: Icons.pending_actions_rounded,
+                    valueColor: stats.pendingItems > 0 ? colors.tertiary : null,
                   ),
                   const SizedBox(height: 12),
                   _StatRow(
-                    label: 'Attachments Synced',
-                    value:
-                        '${stats.totalAttachments - stats.pendingAttachments} of ${stats.totalAttachments}',
-                    icon: Icons.attach_file_rounded,
+                    label: 'Attached Files Sync',
+                    value: stats.totalAttachments == 0
+                        ? '0 files'
+                        : '${stats.totalAttachments - stats.pendingAttachments} of ${stats.totalAttachments} synced to R2',
+                    icon: Icons.cloud_upload_outlined,
+                    valueColor: stats.pendingAttachments > 0
+                        ? colors.primary
+                        : null,
                   ),
-                  if (stats.pendingCount > 0) ...[
-                    const SizedBox(height: 12),
-                    _StatRow(
-                      label: 'Pending Sync',
-                      value: '${stats.pendingCount} items/files',
-                      icon: Icons.pending_actions_rounded,
-                      valueColor: colors.tertiary,
-                    ),
-                  ],
+                  const SizedBox(height: 12),
+                  _StatRow(
+                    label: 'Cloud Status',
+                    value: !isAuthenticated
+                        ? 'Local Mode'
+                        : (stats.pendingCount == 0
+                            ? 'Synced (100%)'
+                            : 'Syncing (${stats.percentage}%)'),
+                    icon: !isAuthenticated
+                        ? Icons.cloud_off_rounded
+                        : (stats.pendingCount == 0
+                            ? Icons.cloud_done_rounded
+                            : Icons.cloud_sync_rounded),
+                    valueColor: !isAuthenticated
+                        ? colors.onSurfaceVariant
+                        : (stats.pendingCount == 0
+                            ? colors.primary
+                            : colors.secondary),
+                  ),
                 ],
               ),
             ),
