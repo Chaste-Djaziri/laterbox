@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/auth/auth_provider.dart';
+import '../../../core/sync/sync_providers.dart';
 import '../../../shared/widgets/filter_chip_bar.dart';
 import '../../../shared/widgets/item_card.dart';
 import 'inbox_providers.dart';
@@ -21,6 +22,11 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
   void dispose() {
     _scrollController.dispose();
     super.dispose();
+  }
+
+  Future<void> _handleRefresh() async {
+    await ref.read(syncCoordinatorProvider).syncNow();
+    ref.invalidate(inboxItemsProvider);
   }
 
   @override
@@ -74,9 +80,12 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
         child: Scrollbar(
           controller: _scrollController,
           thumbVisibility: isDesktop,
-          child: CustomScrollView(
-            controller: _scrollController,
-            cacheExtent: 800,
+          child: RefreshIndicator.adaptive(
+            onRefresh: _handleRefresh,
+            child: CustomScrollView(
+              controller: _scrollController,
+              physics: const AlwaysScrollableScrollPhysics(),
+              cacheExtent: 800,
             slivers: [
               SliverPadding(
                 padding: EdgeInsets.fromLTRB(
@@ -191,8 +200,9 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }
 
 class _EmptyInbox extends StatelessWidget {
