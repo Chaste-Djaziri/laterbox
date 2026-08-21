@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -10,9 +9,6 @@ void main() {
   testWidgets('picks files directly on desktop without showing source modal', (
     tester,
   ) async {
-    debugDefaultTargetPlatformOverride = TargetPlatform.macOS;
-    addTearDown(() => debugDefaultTargetPlatformOverride = null);
-
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
@@ -26,7 +22,10 @@ void main() {
             ]),
           ),
         ],
-        child: const MaterialApp(home: Scaffold(body: CaptureSheet())),
+        child: MaterialApp(
+          theme: ThemeData(platform: TargetPlatform.macOS),
+          home: const Scaffold(body: CaptureSheet()),
+        ),
       ),
     );
 
@@ -40,9 +39,6 @@ void main() {
   testWidgets('shows source picker modal on mobile platform', (
     tester,
   ) async {
-    debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
-    addTearDown(() => debugDefaultTargetPlatformOverride = null);
-
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
@@ -56,7 +52,10 @@ void main() {
             ]),
           ),
         ],
-        child: const MaterialApp(home: Scaffold(body: CaptureSheet())),
+        child: MaterialApp(
+          theme: ThemeData(platform: TargetPlatform.iOS),
+          home: const Scaffold(body: CaptureSheet()),
+        ),
       ),
     );
 
