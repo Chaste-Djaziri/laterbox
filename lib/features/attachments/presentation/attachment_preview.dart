@@ -22,7 +22,7 @@ class AttachmentCardPreview extends StatelessWidget {
     if (attachments.isEmpty) return const SizedBox.shrink();
     final attachment = attachments.first;
     final additionalCount = attachments.length - 1;
-    final path = storage.resolveLocalPath(attachment.localPath);
+    final path = _resolvedPath(storage, attachment);
 
     return Semantics(
       image: attachment.mimeType.startsWith('image/'),
@@ -109,7 +109,7 @@ class AttachmentDetailPreview extends StatelessWidget {
           for (final attachment in [...images, ...files])
             _AttachmentRow(
               attachment: attachment,
-              path: storage.resolveLocalPath(attachment.localPath),
+              path: _resolvedPath(storage, attachment),
             ),
         ],
       ],
@@ -133,7 +133,7 @@ class _ImageGalleryState extends State<_ImageGallery> {
   @override
   Widget build(BuildContext context) {
     final selected = widget.images[_selectedIndex];
-    final selectedPath = widget.storage.resolveLocalPath(selected.localPath);
+    final selectedPath = _resolvedPath(widget.storage, selected);
 
     return Column(
       children: [
@@ -181,9 +181,7 @@ class _ImageGalleryState extends State<_ImageGallery> {
                         ),
                       ),
                       child: _LocalImage(
-                        path: widget.storage.resolveLocalPath(
-                          attachment.localPath,
-                        ),
+                        path: _resolvedPath(widget.storage, attachment),
                         attachment: attachment,
                       ),
                     ),
@@ -201,7 +199,7 @@ class _AttachmentRow extends StatelessWidget {
   const _AttachmentRow({required this.attachment, required this.path});
 
   final Attachment attachment;
-  final String path;
+  final String? path;
 
   @override
   Widget build(BuildContext context) {
@@ -228,10 +226,13 @@ class _AttachmentRow extends StatelessWidget {
         trailing: IconButton(
           tooltip: 'Open ${attachment.originalFileName}',
           icon: const Icon(Icons.open_in_new_rounded),
-          onPressed: () =>
-              openLocalAttachment(context, path, attachment.mimeType),
+          onPressed: path == null
+              ? null
+              : () => openLocalAttachment(context, path!, attachment.mimeType),
         ),
-        onTap: () => openLocalAttachment(context, path, attachment.mimeType),
+        onTap: path == null
+            ? null
+            : () => openLocalAttachment(context, path!, attachment.mimeType),
       ),
     );
   }
@@ -244,12 +245,16 @@ class _LocalImage extends StatelessWidget {
     this.fit = BoxFit.cover,
   });
 
-  final String path;
+  final String? path;
   final Attachment attachment;
   final BoxFit fit;
 
   @override
   Widget build(BuildContext context) {
+    final path = this.path;
+    if (path == null) {
+      return _FilePreviewSurface(attachment: attachment, unavailable: true);
+    }
     return Image.file(
       File(path),
       key: ValueKey('attachmentImage:${attachment.id}'),
@@ -260,6 +265,11 @@ class _LocalImage extends StatelessWidget {
           _FilePreviewSurface(attachment: attachment, unavailable: true),
     );
   }
+}
+
+String? _resolvedPath(AttachmentStorage storage, Attachment attachment) {
+  final localPath = attachment.localPath;
+  return localPath == null ? null : storage.resolveLocalPath(localPath);
 }
 
 class _FilePreviewSurface extends StatelessWidget {
