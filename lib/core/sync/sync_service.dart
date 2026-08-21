@@ -1,5 +1,6 @@
 import '../../features/collections/data/local_collection_data_source.dart';
 import '../../features/collections/data/remote_collection_data_source.dart';
+import '../../features/attachments/domain/attachment_sync_service.dart';
 import '../../features/enrichment/data/local_metadata_data_source.dart';
 import '../../features/enrichment/data/remote_metadata_data_source.dart';
 import '../../features/inbox/data/local_item_data_source.dart';
@@ -20,6 +21,7 @@ class SyncService {
     RemoteCollectionDataSource? remoteCollections,
     LocalItemNoteDataSource? localNotes,
     RemoteItemNoteDataSource? remoteNotes,
+    AttachmentSyncService? attachmentSync,
   }) => SyncService._(
     local,
     remote,
@@ -30,6 +32,7 @@ class SyncService {
     remoteCollections,
     localNotes,
     remoteNotes,
+    attachmentSync,
   );
 
   SyncService._(
@@ -42,6 +45,7 @@ class SyncService {
     this._remoteCollections,
     this._localNotes,
     this._remoteNotes,
+    this._attachmentSync,
   );
 
   final LocalItemDataSource _local;
@@ -53,6 +57,7 @@ class SyncService {
   final RemoteCollectionDataSource? _remoteCollections;
   final LocalItemNoteDataSource? _localNotes;
   final RemoteItemNoteDataSource? _remoteNotes;
+  final AttachmentSyncService? _attachmentSync;
   Future<SyncResult>? _activeSync;
   int _pushed = 0;
   int _pulled = 0;
@@ -118,12 +123,15 @@ class SyncService {
 
     await _syncCollections(userId);
     await _syncNotes(userId);
+    final attachmentSync = _attachmentSync;
+    if (attachmentSync != null) {
+      final result = await attachmentSync.sync(userId);
+      _pushed += result.pushed;
+      _pulled += result.pulled;
+      _failed += result.failed;
+    }
 
-    return SyncResult(
-      pushed: _pushed,
-      pulled: _pulled,
-      failed: _failed,
-    );
+    return SyncResult(pushed: _pushed, pulled: _pulled, failed: _failed);
   }
 
   Future<void> _syncNotes(String userId) async {
