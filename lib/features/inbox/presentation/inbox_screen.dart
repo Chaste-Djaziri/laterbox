@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/auth/auth_provider.dart';
 import '../../../core/sync/sync_providers.dart';
@@ -56,6 +57,11 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
                 ),
               ),
               actions: [
+                IconButton(
+                  onPressed: () => context.push('/tutorial'),
+                  tooltip: 'App Tutorial & Guide',
+                  icon: const Icon(Icons.help_outline_rounded),
+                ),
                 if (auth?.isAuthenticated ?? false)
                   IconButton(
                     onPressed: () async {
@@ -123,23 +129,33 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
                             ],
                           ),
                           if (isDesktop)
-                            if (auth?.isAuthenticated ?? false)
-                              TextButton.icon(
-                                onPressed: () async {
-                                  await ref.read(authRepositoryProvider).signOut();
-                                  ref.read(guestModeProvider.notifier).state = true;
-                                },
-                                icon: const Icon(Icons.logout_rounded, size: 18),
-                                label: const Text('Sign out'),
-                              )
-                            else
-                              TextButton.icon(
-                                onPressed: () => ref
-                                    .read(guestModeProvider.notifier)
-                                    .state = false,
-                                icon: const Icon(Icons.person_outline_rounded, size: 18),
-                                label: const Text('Sign in'),
-                              ),
+                            Row(
+                              children: [
+                                TextButton.icon(
+                                  onPressed: () => context.push('/tutorial'),
+                                  icon: const Icon(Icons.help_outline_rounded, size: 18),
+                                  label: const Text('Tutorial'),
+                                ),
+                                const SizedBox(width: 8),
+                                if (auth?.isAuthenticated ?? false)
+                                  TextButton.icon(
+                                    onPressed: () async {
+                                      await ref.read(authRepositoryProvider).signOut();
+                                      ref.read(guestModeProvider.notifier).state = true;
+                                    },
+                                    icon: const Icon(Icons.logout_rounded, size: 18),
+                                    label: const Text('Sign out'),
+                                  )
+                                else
+                                  TextButton.icon(
+                                    onPressed: () => ref
+                                        .read(guestModeProvider.notifier)
+                                        .state = false,
+                                    icon: const Icon(Icons.person_outline_rounded, size: 18),
+                                    label: const Text('Sign in'),
+                                  ),
+                              ],
+                            ),
                         ],
                       ),
                       const SizedBox(height: 16),
