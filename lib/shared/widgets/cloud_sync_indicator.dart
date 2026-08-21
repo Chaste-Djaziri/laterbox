@@ -82,6 +82,8 @@ class CloudSyncIndicator extends ConsumerWidget {
                   width: 14,
                   height: 14,
                   child: CircularProgressIndicator(
+                    value:
+                        stats.totalCount > 0 ? stats.progressFraction : null,
                     strokeWidth: 2,
                     color: foregroundColor,
                   ),
