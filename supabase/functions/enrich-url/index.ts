@@ -30,9 +30,9 @@ const json = (data: unknown, status: number) =>
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 
-const handler = async (req: Request): Promise<Response> => {
+export const handler = async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
-    return new Response("ok", { status: 204, headers: corsHeaders });
+    return new Response(null, { status: 204, headers: corsHeaders });
   }
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
 
