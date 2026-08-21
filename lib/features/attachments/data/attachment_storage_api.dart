@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -14,6 +16,14 @@ class AttachmentStorageApi {
   final http.Client _http;
 
   Future<String> upload(Attachment attachment, String absolutePath) async {
+    return _upload(attachment, File(absolutePath).openRead());
+  }
+
+  Future<String> uploadBytes(Attachment attachment, Uint8List bytes) async {
+    return _upload(attachment, Stream.value(bytes));
+  }
+
+  Future<String> _upload(Attachment attachment, Stream<List<int>> bytes) async {
     final body = _attachmentBody(attachment);
     final prepared = await _invoke({...body, 'action': 'prepare-upload'});
     final uploadUrl = Uri.parse(_requiredString(prepared, 'uploadUrl'));
@@ -26,7 +36,7 @@ class AttachmentStorageApi {
         'x-amz-meta-attachment-id': attachment.id,
         'x-amz-meta-user-id': attachment.userId!,
       });
-    await request.sink.addStream(File(absolutePath).openRead());
+    await request.sink.addStream(bytes);
     await request.sink.close();
     final response = await _http.send(request);
     if (response.statusCode < 200 || response.statusCode >= 300) {
