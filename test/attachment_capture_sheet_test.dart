@@ -32,7 +32,11 @@ void main() {
     );
 
     await tester.tap(find.text('Choose files'));
-    await tester.pump();
+    await tester.pumpAndSettle();
+
+    expect(find.text('Choose attachment source'), findsOneWidget);
+    await tester.tap(find.text('Files'));
+    await tester.pumpAndSettle();
 
     expect(find.text('proposal.pdf'), findsOneWidget);
     expect(find.text('screenshot.png'), findsOneWidget);
@@ -51,5 +55,7 @@ class _FakePicker implements AttachmentFilePicker {
   final List<PickedAttachmentFile> files;
 
   @override
-  Future<List<PickedAttachmentFile>> pickFiles() async => files;
+  Future<List<PickedAttachmentFile>> pickFiles({
+    AttachmentPickerSource source = AttachmentPickerSource.files,
+  }) async => files;
 }
