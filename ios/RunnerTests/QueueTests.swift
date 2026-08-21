@@ -5,7 +5,7 @@ final class QueueTests: XCTestCase {
 
     override func setUp() {
         super.setUp()
-        queue = ShareCaptureQueue(appGroupId: "group.com.example.laterbox")
+        queue = ShareCaptureQueue(appGroupId: "group.pro.micorp.laterbox")
         queue?.clear()
     }
 
@@ -38,7 +38,7 @@ final class QueueTests: XCTestCase {
     func testCaptureSurvivesNewQueueInstance() throws {
         let first = try XCTUnwrap(queue)
         first.enqueue(makeCapture(id: "7", value: "durable", kind: "text"))
-        let second = ShareCaptureQueue(appGroupId: "group.com.example.laterbox")
+        let second = ShareCaptureQueue(appGroupId: "group.pro.micorp.laterbox")
         let captures = second?.readAll()
         XCTAssertEqual(captures?.first?.id, "7")
         XCTAssertEqual(captures?.first?.value, "durable")
