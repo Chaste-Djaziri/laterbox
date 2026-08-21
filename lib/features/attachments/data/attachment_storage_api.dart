@@ -162,10 +162,14 @@ class AttachmentStorageApi {
   }
 
   Future<Map<String, dynamic>> _invoke(Map<String, Object?> body) async {
-    final response = await _supabase.functions.invoke(
-      'attachment-storage',
-      body: body,
-    );
+    final response = await _supabase.functions
+        .invoke('attachment-storage', body: body)
+        .timeout(
+          const Duration(seconds: 15),
+          onTimeout: () => throw TimeoutException(
+            'Edge function attachment-storage timed out after 15s',
+          ),
+        );
     if (response.status < 200 || response.status >= 300) {
       final errorMsg = response.data is Map &&
               (response.data as Map).containsKey('error')
