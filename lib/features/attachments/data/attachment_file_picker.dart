@@ -1,8 +1,15 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 
+enum AttachmentPickerSource {
+  files,
+  gallery,
+}
+
 abstract interface class AttachmentFilePicker {
-  Future<List<PickedAttachmentFile>> pickFiles();
+  Future<List<PickedAttachmentFile>> pickFiles({
+    AttachmentPickerSource source = AttachmentPickerSource.files,
+  });
 }
 
 class PickedAttachmentFile {
@@ -23,10 +30,16 @@ class NativeAttachmentFilePicker implements AttachmentFilePicker {
   const NativeAttachmentFilePicker();
 
   @override
-  Future<List<PickedAttachmentFile>> pickFiles() async {
+  Future<List<PickedAttachmentFile>> pickFiles({
+    AttachmentPickerSource source = AttachmentPickerSource.files,
+  }) async {
+    final fileType = switch (source) {
+      AttachmentPickerSource.files => FileType.any,
+      AttachmentPickerSource.gallery => FileType.media,
+    };
     final result = await FilePicker.platform.pickFiles(
       allowMultiple: true,
-      type: FileType.any,
+      type: fileType,
       withData: kIsWeb,
       withReadStream: false,
     );
