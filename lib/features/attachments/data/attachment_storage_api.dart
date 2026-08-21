@@ -45,11 +45,7 @@ class AttachmentStorageApi {
     Attachment attachment,
     AttachmentStorage storage,
   ) async {
-    final prepared = await _invoke({
-      'action': 'prepare-download',
-      'attachmentId': attachment.id,
-    });
-    final downloadUrl = Uri.parse(_requiredString(prepared, 'downloadUrl'));
+    final downloadUrl = Uri.parse(await prepareDownloadUrl(attachment.id));
     final response = await _http.send(http.Request('GET', downloadUrl));
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw HttpException('R2 download failed with ${response.statusCode}');
@@ -61,6 +57,14 @@ class AttachmentStorageApi {
       expectedSha256: attachment.sha256,
       bytes: response.stream,
     );
+  }
+
+  Future<String> prepareDownloadUrl(String attachmentId) async {
+    final prepared = await _invoke({
+      'action': 'prepare-download',
+      'attachmentId': attachmentId,
+    });
+    return _requiredString(prepared, 'downloadUrl');
   }
 
   Future<void> delete(String attachmentId) async {
