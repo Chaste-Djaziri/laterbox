@@ -13,6 +13,7 @@ import '../data/attachment_storage.dart';
 import '../data/attachment_storage_api.dart';
 import '../domain/attachment_file_policy.dart';
 import '../domain/attachment_import_service.dart';
+import '../domain/web_attachment_import_service.dart';
 
 final attachmentFilePickerProvider = Provider<AttachmentFilePicker>((ref) {
   return const NativeAttachmentFilePicker();
@@ -61,6 +62,17 @@ final attachmentImportServiceProvider = FutureProvider<AttachmentImportService>(
       onSaved: () async => ref.watch(syncCoordinatorProvider).requestSync(),
     );
   },
+);
+
+final webAttachmentImportServiceProvider = Provider<WebAttachmentImportService>(
+  (ref) => WebAttachmentImportService(
+    database: ref.watch(appDatabaseProvider),
+    policy: const AttachmentFilePolicy(),
+    currentUserId: () => ref.read(activeUserIdProvider),
+    newId: const Uuid().v4,
+    now: DateTime.now,
+    onSaved: () async => ref.watch(syncCoordinatorProvider).requestSync(),
+  ),
 );
 
 final attachmentStartupProvider = FutureProvider<void>((ref) async {
