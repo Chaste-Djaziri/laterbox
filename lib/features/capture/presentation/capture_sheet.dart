@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:path/path.dart' as path;
 
+import '../../attachments/data/attachment_file_picker.dart';
 import '../../attachments/domain/attachment_import_result.dart';
 import '../../attachments/presentation/attachment_providers.dart';
 import '../domain/capture_payload.dart';
@@ -19,17 +20,21 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet> {
   final _controller = TextEditingController();
   final _focusNode = FocusNode();
   String? _error;
-  final List<String> _selectedFiles = [];
+  final List<PickedAttachmentFile> _selectedFiles = [];
   List<AttachmentImportFailure> _fileFailures = const [];
   bool _saving = false;
 
   Future<void> _chooseFiles() async {
     try {
-      final paths = await ref.read(attachmentFilePickerProvider).pickFiles();
-      if (!mounted || paths.isEmpty) return;
+      final files = await ref.read(attachmentFilePickerProvider).pickFiles();
+      if (!mounted || files.isEmpty) return;
       setState(() {
-        for (final filePath in paths) {
-          if (!_selectedFiles.contains(filePath)) _selectedFiles.add(filePath);
+        for (final file in files) {
+          final duplicate = _selectedFiles.any(
+            (selected) =>
+                selected.name == file.name && selected.size == file.size,
+          );
+          if (!duplicate) _selectedFiles.add(file);
         }
         _fileFailures = const [];
         _error = null;
@@ -63,11 +68,18 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet> {
 
     try {
       if (_selectedFiles.isNotEmpty) {
-        final service = await ref.read(attachmentImportServiceProvider.future);
-        final result = await service.importFiles(
-          sourcePaths: _selectedFiles,
-          text: _controller.text,
-        );
+        final result = kIsWeb
+            ? await ref
+                  .read(webAttachmentImportServiceProvider)
+                  .importFiles(files: _selectedFiles, text: _controller.text)
+            : await (await ref.read(attachmentImportServiceProvider.future))
+                  .importFiles(
+                    sourcePaths: _selectedFiles
+                        .map((file) => file.path)
+                        .whereType<String>()
+                        .toList(),
+                    text: _controller.text,
+                  );
         if (!mounted) return;
         if (!result.saved) {
           setState(() => _fileFailures = result.failures);
@@ -196,12 +208,12 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet> {
               if (_selectedFiles.isNotEmpty) ...[
                 const SizedBox(height: 12),
                 ..._selectedFiles.map(
-                  (filePath) => ListTile(
+                  (file) => ListTile(
                     dense: true,
                     contentPadding: EdgeInsets.zero,
                     leading: const Icon(Icons.insert_drive_file_outlined),
                     title: Text(
-                      path.basename(filePath),
+                      file.name,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -209,10 +221,10 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet> {
                       onPressed: _saving
                           ? null
                           : () => setState(() {
-                              _selectedFiles.remove(filePath);
+                              _selectedFiles.remove(file);
                               _fileFailures = const [];
                             }),
-                      tooltip: 'Remove ${path.basename(filePath)}',
+                      tooltip: 'Remove ${file.name}',
                       icon: const Icon(Icons.close_rounded),
                     ),
                   ),
