@@ -12,9 +12,9 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          syncStatsProvider.overrideWithValue(
-            const AsyncData(
-              SyncStatsData(
+          syncStatsProvider.overrideWith(
+            (ref) => Stream.value(
+              const SyncStatsData(
                 totalItems: 5,
                 pendingItems: 1,
                 totalAttachments: 2,
@@ -34,11 +34,13 @@ void main() {
     );
 
     await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
 
     expect(find.byType(CloudSyncIndicator), findsOneWidget);
 
     await tester.tap(find.byType(CloudSyncIndicator));
     await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
 
     expect(find.text('Cloud Sync & Backup'), findsOneWidget);
     expect(find.text('Sync Progress'), findsOneWidget);
