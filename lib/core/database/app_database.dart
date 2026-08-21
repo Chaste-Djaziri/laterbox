@@ -1250,4 +1250,52 @@ class AppDatabase extends _$AppDatabase {
     return (update(itemNotes)..where((note) => note.itemId.equals(itemId)))
         .write(const ItemNotesCompanion(syncStatus: Value('failed')));
   }
+
+  Stream<SyncStatsData> watchSyncStats(String? userId) {
+    return customSelect(
+      '''
+      SELECT 
+        (SELECT COUNT(*) FROM items WHERE (:userId IS NULL OR user_id = :userId OR user_id IS NULL)) as total_items,
+        (SELECT COUNT(*) FROM items WHERE (:userId IS NULL OR user_id = :userId OR user_id IS NULL) AND sync_status IN ('pending', 'failed')) as pending_items,
+        (SELECT COUNT(*) FROM attachments WHERE (:userId IS NULL OR user_id = :userId OR user_id IS NULL)) as total_attachments,
+        (SELECT COUNT(*) FROM attachments WHERE (:userId IS NULL OR user_id = :userId OR user_id IS NULL) AND sync_status IN ('pending', 'failed')) as pending_attachments
+      ''',
+      variables: [Variable.withString(userId ?? '')],
+      readsFrom: {items, attachments},
+    ).watchSingle().map((row) {
+      final totalItems = row.read<int>('total_items');
+      final pendingItems = row.read<int>('pending_items');
+      final totalAttachments = row.read<int>('total_attachments');
+      final pendingAttachments = row.read<int>('pending_attachments');
+      return SyncStatsData(
+        totalItems: totalItems,
+        pendingItems: pendingItems,
+        totalAttachments: totalAttachments,
+        pendingAttachments: pendingAttachments,
+      );
+    });
+  }
+}
+
+class SyncStatsData {
+  const SyncStatsData({
+    required this.totalItems,
+    required this.pendingItems,
+    required this.totalAttachments,
+    required this.pendingAttachments,
+  });
+
+  final int totalItems;
+  final int pendingItems;
+  final int totalAttachments;
+  final int pendingAttachments;
+
+  int get totalCount => totalItems + totalAttachments;
+  int get pendingCount => pendingItems + pendingAttachments;
+  int get syncedCount => (totalCount - pendingCount).clamp(0, totalCount);
+
+  double get progressFraction =>
+      totalCount == 0 ? 1.0 : (syncedCount / totalCount).clamp(0.0, 1.0);
+
+  int get percentage => (progressFraction * 100).round();
 }
