@@ -734,7 +734,7 @@ class AppDatabase extends _$AppDatabase {
   Future<List<Attachment>> attachmentsNeedingUpload(String userId) {
     return (select(attachments)..where(
           (attachment) =>
-              attachment.userId.equals(userId) &
+              (attachment.userId.equals(userId) | attachment.userId.isNull()) &
               attachment.deletedAt.isNull() &
               (attachment.localPath.isNotNull() |
                   attachment.localBytes.isNotNull()) &
@@ -751,7 +751,7 @@ class AppDatabase extends _$AppDatabase {
   Future<List<Attachment>> attachmentsNeedingSync(String userId) {
     return (select(attachments)..where(
           (attachment) =>
-              attachment.userId.equals(userId) &
+              (attachment.userId.equals(userId) | attachment.userId.isNull()) &
               attachment.syncStatus.isIn(const ['pending', 'failed']) &
               (attachment.deletedAt.isNotNull() |
                   attachment.r2ObjectKey.isNotNull()),
@@ -765,9 +765,10 @@ class AppDatabase extends _$AppDatabase {
     );
   }
 
-  Future<void> markAttachmentUploaded(String id, String objectKey) {
+  Future<void> markAttachmentUploaded(String id, String objectKey, String userId) {
     return (update(attachments)..where((row) => row.id.equals(id))).write(
       AttachmentsCompanion(
+        userId: Value(userId),
         r2ObjectKey: Value(objectKey),
         uploadStatus: const Value('uploaded'),
         uploadAttempts: const Value(0),
