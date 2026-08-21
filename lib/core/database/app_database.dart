@@ -48,6 +48,7 @@ class Attachments extends Table {
     "sha256 NOT GLOB '*[^0-9a-f]*')",
   )();
   TextColumn get localPath => text().nullable().unique()();
+  BlobColumn get localBytes => blob().nullable()();
   TextColumn get r2ObjectKey => text().nullable().unique()();
   IntColumn get width => integer().nullable().customConstraint(
     'NULL CHECK(width IS NULL OR width > 0)',
@@ -187,7 +188,7 @@ class AppDatabase extends _$AppDatabase {
       );
 
   @override
-  int get schemaVersion => 11;
+  int get schemaVersion => 12;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -289,6 +290,12 @@ class AppDatabase extends _$AppDatabase {
       }
       if (from < 11) {
         await migrator.alterTable(TableMigration(attachments));
+      }
+      if (from < 12) {
+        final attachmentColumns = await _columnNames('attachments');
+        if (!attachmentColumns.contains('local_bytes')) {
+          await migrator.addColumn(attachments, attachments.localBytes);
+        }
       }
     },
   );
@@ -673,7 +680,8 @@ class AppDatabase extends _$AppDatabase {
           (attachment) =>
               attachment.userId.equals(userId) &
               attachment.deletedAt.isNull() &
-              attachment.localPath.isNotNull() &
+              (attachment.localPath.isNotNull() |
+                  attachment.localBytes.isNotNull()) &
               attachment.r2ObjectKey.isNull() &
               attachment.uploadStatus.isIn(const [
                 'local',
@@ -752,8 +760,11 @@ class AppDatabase extends _$AppDatabase {
     await into(attachments).insertOnConflictUpdate(
       remote.copyWith(
         localPath: Value(existing?.localPath),
+        localBytes: Value(existing?.localBytes),
         downloadStatus: Value(
-          existing?.localPath == null ? 'remote' : 'downloaded',
+          existing?.localPath == null && existing?.localBytes == null
+              ? 'remote'
+              : 'downloaded',
         ),
       ),
     );
