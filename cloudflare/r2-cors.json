@@ -1,22 +1,27 @@
-[
-  {
-    "AllowedOrigins": [
-      "https://app.laterbox.com",
-      "http://localhost:8080"
-    ],
-    "AllowedMethods": [
-      "GET",
-      "HEAD",
-      "PUT"
-    ],
-    "AllowedHeaders": [
-      "Content-Type",
-      "Content-Length",
-      "x-amz-*"
-    ],
-    "ExposeHeaders": [
-      "ETag"
-    ],
-    "MaxAgeSeconds": 3600
-  }
-]
+{
+  "rules": [
+    {
+      "id": "laterbox-app-uploads",
+      "allowed": {
+        "origins": [
+          "https://app.laterbox.com",
+          "http://localhost:8080"
+        ],
+        "methods": [
+          "GET",
+          "HEAD",
+          "PUT"
+        ],
+        "headers": [
+          "Content-Type",
+          "Content-Length",
+          "x-amz-*"
+        ]
+      },
+      "exposeHeaders": [
+        "ETag"
+      ],
+      "maxAgeSeconds": 3600
+    }
+  ]
+}
