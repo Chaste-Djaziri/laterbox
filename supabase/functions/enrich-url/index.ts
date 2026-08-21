@@ -16,7 +16,11 @@ const USER_AGENT =
   "Mozilla/5.0 (compatible; LaterBox/1.0; metadata-enricher)";
 
 class UnsupportedError extends Error {}
-class FetchError extends Error {}
+class FetchError extends Error {
+  constructor(message: string, readonly status = 502) {
+    super(message);
+  }
+}
 class TimeoutError extends Error {}
 
 const corsHeaders = {
@@ -58,7 +62,7 @@ export const handler = async (req: Request): Promise<Response> => {
       return json({ error: "Timed out fetching URL" }, 504);
     }
     if (error instanceof FetchError) {
-      return json({ error: error.message }, 502);
+      return json({ error: error.message }, error.status);
     }
     console.error("enrich-url internal error", error);
     return json({ error: "Internal error" }, 500);
@@ -531,7 +535,7 @@ async function fetchHtml(url: URL): Promise<{ html: string; finalUrl: string }> 
       current = new URL(location, current);
       continue;
     }
-    if (response.status === 429) throw new FetchError("Rate limited");
+    if (response.status === 429) throw new FetchError("Rate limited", 429);
     if (response.status >= 400) throw new FetchError(`HTTP ${response.status}`);
 
     const contentType = response.headers.get("content-type") ?? "";
