@@ -104,7 +104,7 @@ AttachmentsCompanion _attachment(String id, DateTime now, {int byteSize = 42}) {
     mimeType: 'application/pdf',
     byteSize: byteSize,
     sha256: 'a' * 64,
-    localPath: 'attachments/$id/original.pdf',
+    localPath: Value('attachments/$id/original.pdf'),
     createdAt: now,
     updatedAt: now,
   );
