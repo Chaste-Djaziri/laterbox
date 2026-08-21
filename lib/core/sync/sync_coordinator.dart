@@ -34,6 +34,11 @@ class SyncCoordinator {
     unawaited(_attemptSync());
   }
 
+  Future<void> syncNow() async {
+    if (_disposed) return;
+    await _attemptSync();
+  }
+
   Future<void> _attemptSync() async {
     final result = await _service.sync();
     if (_disposed || result.skipped) return;
