@@ -2,9 +2,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:laterbox/core/supabase/supabase_config.dart';
 
 void main() {
-  test('debug builds default to the local Supabase stack', () {
+  test('builds default to the hosted Supabase project', () {
     expect(SupabaseConfig.isConfigured, isTrue);
-    expect(SupabaseConfig.url, 'http://127.0.0.1:54321');
+    expect(SupabaseConfig.url, 'https://ltjisrgldssqskcylcbj.supabase.co');
+    expect(SupabaseConfig.usesLocalBackend, isFalse);
     expect(SupabaseConfig.publishableKey, isNotEmpty);
     expect(SupabaseConfig.isInitialized, isFalse);
   });
