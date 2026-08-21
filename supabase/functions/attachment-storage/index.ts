@@ -124,7 +124,6 @@ async function prepareUpload(
     new PutObjectCommand({
       Bucket: requiredEnv("R2_BUCKET"),
       Key: objectKey,
-      ContentLength: attachment.byteSize,
       ContentType: attachment.mimeType,
       Metadata: {
         sha256: attachment.sha256,
@@ -308,6 +307,7 @@ function r2Client(): S3Client {
   return new S3Client({
     region: Deno.env.get("R2_REGION") ?? "auto",
     endpoint: requiredEnv("R2_ENDPOINT"),
+    requestChecksumCalculation: "WHEN_REQUIRED",
     credentials: {
       accessKeyId: requiredEnv("R2_ACCESS_KEY_ID"),
       secretAccessKey: requiredEnv("R2_SECRET_ACCESS_KEY"),
