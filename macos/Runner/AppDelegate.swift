@@ -6,6 +6,7 @@ import ServiceManagement
 @main
 class AppDelegate: FlutterAppDelegate {
   private var launchedAtLogin = false
+  private let shareQueue = ShareCaptureQueue(appGroupId: "group.com.example.laterbox")
 
   override func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
     return false
@@ -32,6 +33,34 @@ class AppDelegate: FlutterAppDelegate {
     super.applicationDidFinishLaunching(notification)
     registerSelectionCaptureChannel()
     registerAppLaunchChannel()
+    registerShareCaptureChannel()
+  }
+
+  private func registerShareCaptureChannel() {
+    guard
+      let controller = mainFlutterWindow?.contentViewController as? FlutterViewController
+    else {
+      return
+    }
+    let channel = FlutterMethodChannel(
+      name: "laterbox/apple_share",
+      binaryMessenger: controller.engine.binaryMessenger
+    )
+    channel.setMethodCallHandler { call, result in
+      switch call.method {
+      case "consumePending":
+        result(self.shareQueue?.readAll().map(\.toDictionary) ?? [])
+      case "clearPending":
+        self.shareQueue?.clear()
+        result(nil)
+      case "acknowledgePending":
+        let arguments = call.arguments as? [String: Any]
+        let ids = Set(arguments?["ids"] as? [String] ?? [])
+        result(self.shareQueue?.acknowledge(ids: ids) ?? false)
+      default:
+        result(FlutterMethodNotImplemented)
+      }
+    }
   }
 
   private func registerSelectionCaptureChannel() {
