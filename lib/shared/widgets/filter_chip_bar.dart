@@ -94,10 +94,10 @@ class _FilterChipTileState extends State<_FilterChipTile> {
         : theme.colorScheme.onSurfaceVariant;
 
     final borderColor = widget.isSelected
-        ? theme.colorScheme.primary.withOpacity(0.5)
+        ? theme.colorScheme.primary.withValues(alpha: 0.5)
         : (_isHovered
             ? theme.colorScheme.outline
-            : theme.colorScheme.outlineVariant.withOpacity(0.5));
+            : theme.colorScheme.outlineVariant.withValues(alpha: 0.5));
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 150),
@@ -141,7 +141,7 @@ class _FilterChipTileState extends State<_FilterChipTile> {
                       ),
                       decoration: BoxDecoration(
                         color: widget.isSelected
-                            ? theme.colorScheme.primary.withOpacity(0.2)
+                            ? theme.colorScheme.primary.withValues(alpha: 0.2)
                             : theme.colorScheme.surfaceContainerHighest,
                         borderRadius: BorderRadius.circular(10),
                       ),
