@@ -2,6 +2,7 @@ enum CaptureSource {
   manual,
   androidShare,
   iosShare,
+  macosShare,
   browserExtension,
   desktopQuickCapture,
   api,
