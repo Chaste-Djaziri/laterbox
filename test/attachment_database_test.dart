@@ -88,7 +88,7 @@ void main() {
 
     expect(
       () => database.attachments.insertOne(
-        _attachment('10000000-0000-4000-8000-000000000001', now, byteSize: 0),
+        _attachment('10000000-0000-4000-8000-000000000001', now, byteSize: -1),
       ),
       throwsA(isA<SqliteException>()),
     );
