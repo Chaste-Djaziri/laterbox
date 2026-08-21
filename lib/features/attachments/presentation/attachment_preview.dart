@@ -296,6 +296,18 @@ class _LocalImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final localBytes = attachment.localBytes;
+    if (localBytes != null) {
+      return Image.memory(
+        localBytes,
+        key: ValueKey('attachmentImage:${attachment.id}:memory'),
+        fit: fit,
+        gaplessPlayback: true,
+        semanticLabel: attachment.originalFileName,
+        errorBuilder: (context, error, stackTrace) =>
+            _FilePreviewSurface(attachment: attachment, unavailable: true),
+      );
+    }
     final path = this.path;
     if (!kIsWeb && path != null) {
       return Image.file(
