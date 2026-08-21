@@ -134,8 +134,16 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
     NativeSharePayload payload,
     CaptureSource source,
   ) async {
-    if (!payload.hasFiles) {
-      final text = payload.text;
+    final filePaths = List<String>.from(payload.filePaths);
+    final text = payload.text;
+    if (text != null && text.isNotEmpty && filePaths.isEmpty) {
+      final extracted = NativeSharePayload.extractFilePathFromUri(text);
+      if (extracted != null && File(extracted).existsSync()) {
+        filePaths.add(extracted);
+      }
+    }
+
+    if (filePaths.isEmpty) {
       if (text == null) return true;
       await ref
           .read(captureServiceProvider)
@@ -152,8 +160,8 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
 
     final service = await ref.read(attachmentImportServiceProvider.future);
     final result = await service.importFiles(
-      sourcePaths: payload.filePaths,
-      text: payload.text,
+      sourcePaths: filePaths,
+      text: filePaths.length == payload.filePaths.length ? text : null,
       itemId: payload.id,
     );
     if (result.saved) return true;
