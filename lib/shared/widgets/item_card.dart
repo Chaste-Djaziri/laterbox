@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -56,6 +57,15 @@ class _ItemCardState extends ConsumerState<ItemCard> {
     final attachmentStorage = isFile
         ? ref.watch(attachmentStorageProvider).value
         : null;
+    final previewAttachment = attachments?.firstOrNull;
+    final needsRemotePreview =
+        previewAttachment != null &&
+        previewAttachment.mimeType.startsWith('image/') &&
+        previewAttachment.r2ObjectKey != null &&
+        (kIsWeb || previewAttachment.localPath == null);
+    final remoteImageUrl = needsRemotePreview
+        ? ref.watch(attachmentPreviewUrlProvider(previewAttachment.id)).value
+        : null;
     final theme = Theme.of(context);
 
     final borderColor = _isHovered
@@ -113,12 +123,11 @@ class _ItemCardState extends ConsumerState<ItemCard> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        if (attachments != null &&
-                            attachments.isNotEmpty &&
-                            attachmentStorage != null)
+                        if (attachments != null && attachments.isNotEmpty)
                           AttachmentCardPreview(
                             attachments: attachments,
                             storage: attachmentStorage,
+                            remoteImageUrl: remoteImageUrl,
                           )
                         else if (coverUrl != null && coverUrl.isNotEmpty)
                           ItemCoverImage(url: coverUrl)
