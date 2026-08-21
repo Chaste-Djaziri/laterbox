@@ -527,6 +527,9 @@ class _CardGlyph extends StatelessWidget {
     );
 
     if (faviconUrl == null || faviconUrl!.isEmpty) return fallback;
+    final effectiveFaviconUrl = kIsWeb
+        ? 'https://images.weserv.nl/?url=${Uri.encodeComponent(faviconUrl!.replaceFirst(RegExp(r'^https?://'), ''))}'
+        : faviconUrl!;
 
     return Container(
       width: size,
@@ -556,7 +559,7 @@ class _CardGlyph extends StatelessWidget {
               color: Colors.white,
               padding: EdgeInsets.all(size * 0.12),
               child: Image.network(
-                faviconUrl!,
+                effectiveFaviconUrl,
                 fit: BoxFit.contain,
                 errorBuilder: (context, error, stackTrace) =>
                     const SizedBox.shrink(),
