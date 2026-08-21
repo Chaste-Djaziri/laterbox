@@ -41,7 +41,7 @@ class Attachments extends Table {
   )();
   TextColumn get mimeType => text()();
   IntColumn get byteSize => integer().customConstraint(
-    'NOT NULL CHECK(byte_size BETWEEN 1 AND 104857600)',
+    'NOT NULL CHECK(byte_size BETWEEN 0 AND 5368709120)',
   )();
   TextColumn get sha256 => text().customConstraint(
     "NOT NULL CHECK(length(sha256) = 64 AND "
@@ -68,6 +68,21 @@ class Attachments extends Table {
     "NOT NULL DEFAULT 'downloaded' CHECK(download_status IN "
     "('remote', 'downloading', 'downloaded', 'failed'))",
   )();
+  TextColumn get previewStatus => text().customConstraint(
+    "NOT NULL DEFAULT 'none' CHECK(preview_status IN "
+    "('none', 'pending', 'processing', 'ready', 'failed'))",
+  )();
+  TextColumn get previewKind => text().customConstraint(
+    "NOT NULL DEFAULT 'generic' CHECK(preview_kind IN "
+    "('image', 'pdf', 'text', 'code', 'spreadsheet', 'document', 'presentation', 'audio', 'video', 'archive', 'ebook', 'model3d', 'font', 'generic'))",
+  )();
+  TextColumn get previewObjectKey => text().nullable()();
+  TextColumn get thumbnailObjectKey => text().nullable()();
+  TextColumn get extractedTextObjectKey => text().nullable()();
+  TextColumn get previewError => text().nullable()();
+  IntColumn get previewVersion => integer().customConstraint(
+    'NOT NULL DEFAULT 0 CHECK(preview_version >= 0)',
+  )();
   TextColumn get syncStatus => text().customConstraint(
     "NOT NULL DEFAULT 'pending' "
     "CHECK(sync_status IN ('pending', 'synced', 'failed'))",
@@ -79,6 +94,18 @@ class Attachments extends Table {
 
   @override
   Set<Column<Object>> get primaryKey => {id};
+}
+
+class AttachmentUploadParts extends Table {
+  TextColumn get attachmentId => text().references(Attachments, #id)();
+  IntColumn get partNumber => integer()();
+  TextColumn get etag => text()();
+  IntColumn get byteStart => integer()();
+  IntColumn get byteEnd => integer()();
+  DateTimeColumn get uploadedAt => dateTime()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {attachmentId, partNumber};
 }
 
 class Collections extends Table {
@@ -165,6 +192,7 @@ class ItemMetadata extends Table {
   tables: [
     Items,
     Attachments,
+    AttachmentUploadParts,
     ItemMetadata,
     Collections,
     CollectionItems,
@@ -188,7 +216,7 @@ class AppDatabase extends _$AppDatabase {
       );
 
   @override
-  int get schemaVersion => 12;
+  int get schemaVersion => 13;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -296,6 +324,34 @@ class AppDatabase extends _$AppDatabase {
         if (!attachmentColumns.contains('local_bytes')) {
           await migrator.addColumn(attachments, attachments.localBytes);
         }
+      }
+      if (from < 13) {
+        final attachmentColumns = await _columnNames('attachments');
+        if (!attachmentColumns.contains('preview_status')) {
+          await migrator.addColumn(attachments, attachments.previewStatus);
+        }
+        if (!attachmentColumns.contains('preview_kind')) {
+          await migrator.addColumn(attachments, attachments.previewKind);
+        }
+        if (!attachmentColumns.contains('preview_object_key')) {
+          await migrator.addColumn(attachments, attachments.previewObjectKey);
+        }
+        if (!attachmentColumns.contains('thumbnail_object_key')) {
+          await migrator.addColumn(attachments, attachments.thumbnailObjectKey);
+        }
+        if (!attachmentColumns.contains('extracted_text_object_key')) {
+          await migrator.addColumn(
+            attachments,
+            attachments.extractedTextObjectKey,
+          );
+        }
+        if (!attachmentColumns.contains('preview_error')) {
+          await migrator.addColumn(attachments, attachments.previewError);
+        }
+        if (!attachmentColumns.contains('preview_version')) {
+          await migrator.addColumn(attachments, attachments.previewVersion);
+        }
+        await migrator.createTable(attachmentUploadParts);
       }
     },
   );
