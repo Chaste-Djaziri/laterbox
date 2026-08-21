@@ -10,6 +10,7 @@ import 'package:laterbox/features/attachments/domain/attachment_file_policy.dart
 import 'package:laterbox/features/attachments/domain/attachment_import_service.dart';
 import 'package:laterbox/features/capture/data/android_share_receiver.dart';
 import 'package:laterbox/features/capture/data/ios_share_receiver.dart';
+import 'package:laterbox/features/capture/domain/native_share_payload.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
