@@ -25,8 +25,95 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet> {
   bool _saving = false;
 
   Future<void> _chooseFiles() async {
+    final source = await showModalBottomSheet<AttachmentPickerSource>(
+      context: context,
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 36,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.outlineVariant,
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  'Choose attachment source',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                ),
+                const SizedBox(height: 16),
+                ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.primaryContainer,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      Icons.folder_open_rounded,
+                      color: Theme.of(context).colorScheme.onPrimaryContainer,
+                    ),
+                  ),
+                  title: const Text(
+                    'Files',
+                    style: TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                  subtitle:
+                      const Text('Browse PDFs, documents, archives & files'),
+                  onTap: () =>
+                      Navigator.of(context).pop(AttachmentPickerSource.files),
+                ),
+                const SizedBox(height: 8),
+                ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.secondaryContainer,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      Icons.photo_library_rounded,
+                      color:
+                          Theme.of(context).colorScheme.onSecondaryContainer,
+                    ),
+                  ),
+                  title: const Text(
+                    'Photo & Video Gallery',
+                    style: TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                  subtitle:
+                      const Text('Pick photos and videos from your gallery'),
+                  onTap: () => Navigator.of(context)
+                      .pop(AttachmentPickerSource.gallery),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    if (source == null || !mounted) return;
+
     try {
-      final files = await ref.read(attachmentFilePickerProvider).pickFiles();
+      final files = await ref
+          .read(attachmentFilePickerProvider)
+          .pickFiles(source: source);
       if (!mounted || files.isEmpty) return;
       setState(() {
         for (final file in files) {
