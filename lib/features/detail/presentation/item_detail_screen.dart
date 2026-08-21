@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -102,7 +103,9 @@ class _ItemDetailBody extends ConsumerWidget {
     final attachmentsState = isFile
         ? ref.watch(attachmentsForItemProvider(item.id))
         : null;
-    final storageState = isFile ? ref.watch(attachmentStorageProvider) : null;
+    final storageState = isFile && !kIsWeb
+        ? ref.watch(attachmentStorageProvider)
+        : null;
     final attachments = attachmentsState?.value;
     final attachmentStorage = storageState?.value;
     final remoteImageUrls = <String, String>{};
