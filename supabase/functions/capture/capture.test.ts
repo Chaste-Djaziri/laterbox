@@ -4,6 +4,15 @@ import { createCaptureHandler } from "./index.ts";
 const token = "test-access-token";
 const userId = "00000000-0000-4000-8000-000000000001";
 
+Deno.test("capture OPTIONS returns an empty successful preflight", async () => {
+  const response = await createCaptureHandler()(
+    new Request("https://example.test/capture", { method: "OPTIONS" }),
+  );
+
+  assertEquals(response.status, 204);
+  assertEquals(await response.text(), "");
+});
+
 Deno.test("capture requires an authenticated user", async () => {
   const handler = createCaptureHandler({
     fetch: () => Promise.reject(new Error("fetch should not be called")),
