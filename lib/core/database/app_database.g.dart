@@ -908,9 +908,9 @@ class $AttachmentsTable extends Attachments
   late final GeneratedColumn<String> localPath = GeneratedColumn<String>(
     'local_path',
     aliasedName,
-    false,
+    true,
     type: DriftSqlType.string,
-    requiredDuringInsert: true,
+    requiredDuringInsert: false,
     defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'),
   );
   static const VerificationMeta _r2ObjectKeyMeta = const VerificationMeta(
@@ -981,6 +981,19 @@ class $AttachmentsTable extends Attachments
     true,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
+  );
+  static const VerificationMeta _downloadStatusMeta = const VerificationMeta(
+    'downloadStatus',
+  );
+  @override
+  late final GeneratedColumn<String> downloadStatus = GeneratedColumn<String>(
+    'download_status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    $customConstraints: 'NOT NULL DEFAULT \'downloaded\' CHECK(download_status IN (\'remote\', \'downloading\', \'downloaded\', \'failed\'))',
+    defaultValue: const CustomExpression('\'downloaded\''),
   );
   static const VerificationMeta _syncStatusMeta = const VerificationMeta(
     'syncStatus',
@@ -1056,6 +1069,7 @@ class $AttachmentsTable extends Attachments
     uploadStatus,
     uploadAttempts,
     uploadLastError,
+    downloadStatus,
     syncStatus,
     createdAt,
     updatedAt,
@@ -1144,8 +1158,6 @@ class $AttachmentsTable extends Attachments
         _localPathMeta,
         localPath.isAcceptableOrUnknown(data['local_path']!, _localPathMeta),
       );
-    } else if (isInserting) {
-      context.missing(_localPathMeta);
     }
     if (data.containsKey('r2_object_key')) {
       context.handle(
@@ -1192,6 +1204,15 @@ class $AttachmentsTable extends Attachments
         uploadLastError.isAcceptableOrUnknown(
           data['upload_last_error']!,
           _uploadLastErrorMeta,
+        ),
+      );
+    }
+    if (data.containsKey('download_status')) {
+      context.handle(
+        _downloadStatusMeta,
+        downloadStatus.isAcceptableOrUnknown(
+          data['download_status']!,
+          _downloadStatusMeta,
         ),
       );
     }
@@ -1276,7 +1297,7 @@ class $AttachmentsTable extends Attachments
       localPath: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}local_path'],
-      )!,
+      ),
       r2ObjectKey: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}r2_object_key'],
@@ -1301,6 +1322,10 @@ class $AttachmentsTable extends Attachments
         DriftSqlType.string,
         data['${effectivePrefix}upload_last_error'],
       ),
+      downloadStatus: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}download_status'],
+      )!,
       syncStatus: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}sync_status'],
@@ -1339,13 +1364,14 @@ class Attachment extends DataClass implements Insertable<Attachment> {
   final String mimeType;
   final int byteSize;
   final String sha256;
-  final String localPath;
+  final String? localPath;
   final String? r2ObjectKey;
   final int? width;
   final int? height;
   final String uploadStatus;
   final int uploadAttempts;
   final String? uploadLastError;
+  final String downloadStatus;
   final String syncStatus;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -1360,13 +1386,14 @@ class Attachment extends DataClass implements Insertable<Attachment> {
     required this.mimeType,
     required this.byteSize,
     required this.sha256,
-    required this.localPath,
+    this.localPath,
     this.r2ObjectKey,
     this.width,
     this.height,
     required this.uploadStatus,
     required this.uploadAttempts,
     this.uploadLastError,
+    required this.downloadStatus,
     required this.syncStatus,
     required this.createdAt,
     required this.updatedAt,
@@ -1386,7 +1413,9 @@ class Attachment extends DataClass implements Insertable<Attachment> {
     map['mime_type'] = Variable<String>(mimeType);
     map['byte_size'] = Variable<int>(byteSize);
     map['sha256'] = Variable<String>(sha256);
-    map['local_path'] = Variable<String>(localPath);
+    if (!nullToAbsent || localPath != null) {
+      map['local_path'] = Variable<String>(localPath);
+    }
     if (!nullToAbsent || r2ObjectKey != null) {
       map['r2_object_key'] = Variable<String>(r2ObjectKey);
     }
@@ -1401,6 +1430,7 @@ class Attachment extends DataClass implements Insertable<Attachment> {
     if (!nullToAbsent || uploadLastError != null) {
       map['upload_last_error'] = Variable<String>(uploadLastError);
     }
+    map['download_status'] = Variable<String>(downloadStatus);
     map['sync_status'] = Variable<String>(syncStatus);
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
@@ -1425,7 +1455,9 @@ class Attachment extends DataClass implements Insertable<Attachment> {
       mimeType: Value(mimeType),
       byteSize: Value(byteSize),
       sha256: Value(sha256),
-      localPath: Value(localPath),
+      localPath: localPath == null && nullToAbsent
+          ? const Value.absent()
+          : Value(localPath),
       r2ObjectKey: r2ObjectKey == null && nullToAbsent
           ? const Value.absent()
           : Value(r2ObjectKey),
@@ -1440,6 +1472,7 @@ class Attachment extends DataClass implements Insertable<Attachment> {
       uploadLastError: uploadLastError == null && nullToAbsent
           ? const Value.absent()
           : Value(uploadLastError),
+      downloadStatus: Value(downloadStatus),
       syncStatus: Value(syncStatus),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
@@ -1466,13 +1499,14 @@ class Attachment extends DataClass implements Insertable<Attachment> {
       mimeType: serializer.fromJson<String>(json['mimeType']),
       byteSize: serializer.fromJson<int>(json['byteSize']),
       sha256: serializer.fromJson<String>(json['sha256']),
-      localPath: serializer.fromJson<String>(json['localPath']),
+      localPath: serializer.fromJson<String?>(json['localPath']),
       r2ObjectKey: serializer.fromJson<String?>(json['r2ObjectKey']),
       width: serializer.fromJson<int?>(json['width']),
       height: serializer.fromJson<int?>(json['height']),
       uploadStatus: serializer.fromJson<String>(json['uploadStatus']),
       uploadAttempts: serializer.fromJson<int>(json['uploadAttempts']),
       uploadLastError: serializer.fromJson<String?>(json['uploadLastError']),
+      downloadStatus: serializer.fromJson<String>(json['downloadStatus']),
       syncStatus: serializer.fromJson<String>(json['syncStatus']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
@@ -1492,13 +1526,14 @@ class Attachment extends DataClass implements Insertable<Attachment> {
       'mimeType': serializer.toJson<String>(mimeType),
       'byteSize': serializer.toJson<int>(byteSize),
       'sha256': serializer.toJson<String>(sha256),
-      'localPath': serializer.toJson<String>(localPath),
+      'localPath': serializer.toJson<String?>(localPath),
       'r2ObjectKey': serializer.toJson<String?>(r2ObjectKey),
       'width': serializer.toJson<int?>(width),
       'height': serializer.toJson<int?>(height),
       'uploadStatus': serializer.toJson<String>(uploadStatus),
       'uploadAttempts': serializer.toJson<int>(uploadAttempts),
       'uploadLastError': serializer.toJson<String?>(uploadLastError),
+      'downloadStatus': serializer.toJson<String>(downloadStatus),
       'syncStatus': serializer.toJson<String>(syncStatus),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
@@ -1516,13 +1551,14 @@ class Attachment extends DataClass implements Insertable<Attachment> {
     String? mimeType,
     int? byteSize,
     String? sha256,
-    String? localPath,
+    Value<String?> localPath = const Value.absent(),
     Value<String?> r2ObjectKey = const Value.absent(),
     Value<int?> width = const Value.absent(),
     Value<int?> height = const Value.absent(),
     String? uploadStatus,
     int? uploadAttempts,
     Value<String?> uploadLastError = const Value.absent(),
+    String? downloadStatus,
     String? syncStatus,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -1537,7 +1573,7 @@ class Attachment extends DataClass implements Insertable<Attachment> {
     mimeType: mimeType ?? this.mimeType,
     byteSize: byteSize ?? this.byteSize,
     sha256: sha256 ?? this.sha256,
-    localPath: localPath ?? this.localPath,
+    localPath: localPath.present ? localPath.value : this.localPath,
     r2ObjectKey: r2ObjectKey.present ? r2ObjectKey.value : this.r2ObjectKey,
     width: width.present ? width.value : this.width,
     height: height.present ? height.value : this.height,
@@ -1546,6 +1582,7 @@ class Attachment extends DataClass implements Insertable<Attachment> {
     uploadLastError: uploadLastError.present
         ? uploadLastError.value
         : this.uploadLastError,
+    downloadStatus: downloadStatus ?? this.downloadStatus,
     syncStatus: syncStatus ?? this.syncStatus,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
@@ -1581,6 +1618,9 @@ class Attachment extends DataClass implements Insertable<Attachment> {
       uploadLastError: data.uploadLastError.present
           ? data.uploadLastError.value
           : this.uploadLastError,
+      downloadStatus: data.downloadStatus.present
+          ? data.downloadStatus.value
+          : this.downloadStatus,
       syncStatus: data.syncStatus.present
           ? data.syncStatus.value
           : this.syncStatus,
@@ -1611,6 +1651,7 @@ class Attachment extends DataClass implements Insertable<Attachment> {
           ..write('uploadStatus: $uploadStatus, ')
           ..write('uploadAttempts: $uploadAttempts, ')
           ..write('uploadLastError: $uploadLastError, ')
+          ..write('downloadStatus: $downloadStatus, ')
           ..write('syncStatus: $syncStatus, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
@@ -1621,7 +1662,7 @@ class Attachment extends DataClass implements Insertable<Attachment> {
   }
 
   @override
-  int get hashCode => Object.hash(
+  int get hashCode => Object.hashAll([
     id,
     itemId,
     userId,
@@ -1637,12 +1678,13 @@ class Attachment extends DataClass implements Insertable<Attachment> {
     uploadStatus,
     uploadAttempts,
     uploadLastError,
+    downloadStatus,
     syncStatus,
     createdAt,
     updatedAt,
     deletedAt,
     lastSyncedAt,
-  );
+  ]);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -1662,6 +1704,7 @@ class Attachment extends DataClass implements Insertable<Attachment> {
           other.uploadStatus == this.uploadStatus &&
           other.uploadAttempts == this.uploadAttempts &&
           other.uploadLastError == this.uploadLastError &&
+          other.downloadStatus == this.downloadStatus &&
           other.syncStatus == this.syncStatus &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
@@ -1678,13 +1721,14 @@ class AttachmentsCompanion extends UpdateCompanion<Attachment> {
   final Value<String> mimeType;
   final Value<int> byteSize;
   final Value<String> sha256;
-  final Value<String> localPath;
+  final Value<String?> localPath;
   final Value<String?> r2ObjectKey;
   final Value<int?> width;
   final Value<int?> height;
   final Value<String> uploadStatus;
   final Value<int> uploadAttempts;
   final Value<String?> uploadLastError;
+  final Value<String> downloadStatus;
   final Value<String> syncStatus;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
@@ -1707,6 +1751,7 @@ class AttachmentsCompanion extends UpdateCompanion<Attachment> {
     this.uploadStatus = const Value.absent(),
     this.uploadAttempts = const Value.absent(),
     this.uploadLastError = const Value.absent(),
+    this.downloadStatus = const Value.absent(),
     this.syncStatus = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
@@ -1723,13 +1768,14 @@ class AttachmentsCompanion extends UpdateCompanion<Attachment> {
     required String mimeType,
     required int byteSize,
     required String sha256,
-    required String localPath,
+    this.localPath = const Value.absent(),
     this.r2ObjectKey = const Value.absent(),
     this.width = const Value.absent(),
     this.height = const Value.absent(),
     this.uploadStatus = const Value.absent(),
     this.uploadAttempts = const Value.absent(),
     this.uploadLastError = const Value.absent(),
+    this.downloadStatus = const Value.absent(),
     this.syncStatus = const Value.absent(),
     required DateTime createdAt,
     required DateTime updatedAt,
@@ -1743,7 +1789,6 @@ class AttachmentsCompanion extends UpdateCompanion<Attachment> {
        mimeType = Value(mimeType),
        byteSize = Value(byteSize),
        sha256 = Value(sha256),
-       localPath = Value(localPath),
        createdAt = Value(createdAt),
        updatedAt = Value(updatedAt);
   static Insertable<Attachment> custom({
@@ -1762,6 +1807,7 @@ class AttachmentsCompanion extends UpdateCompanion<Attachment> {
     Expression<String>? uploadStatus,
     Expression<int>? uploadAttempts,
     Expression<String>? uploadLastError,
+    Expression<String>? downloadStatus,
     Expression<String>? syncStatus,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
@@ -1785,6 +1831,7 @@ class AttachmentsCompanion extends UpdateCompanion<Attachment> {
       if (uploadStatus != null) 'upload_status': uploadStatus,
       if (uploadAttempts != null) 'upload_attempts': uploadAttempts,
       if (uploadLastError != null) 'upload_last_error': uploadLastError,
+      if (downloadStatus != null) 'download_status': downloadStatus,
       if (syncStatus != null) 'sync_status': syncStatus,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
@@ -1803,13 +1850,14 @@ class AttachmentsCompanion extends UpdateCompanion<Attachment> {
     Value<String>? mimeType,
     Value<int>? byteSize,
     Value<String>? sha256,
-    Value<String>? localPath,
+    Value<String?>? localPath,
     Value<String?>? r2ObjectKey,
     Value<int?>? width,
     Value<int?>? height,
     Value<String>? uploadStatus,
     Value<int>? uploadAttempts,
     Value<String?>? uploadLastError,
+    Value<String>? downloadStatus,
     Value<String>? syncStatus,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
@@ -1833,6 +1881,7 @@ class AttachmentsCompanion extends UpdateCompanion<Attachment> {
       uploadStatus: uploadStatus ?? this.uploadStatus,
       uploadAttempts: uploadAttempts ?? this.uploadAttempts,
       uploadLastError: uploadLastError ?? this.uploadLastError,
+      downloadStatus: downloadStatus ?? this.downloadStatus,
       syncStatus: syncStatus ?? this.syncStatus,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -1890,6 +1939,9 @@ class AttachmentsCompanion extends UpdateCompanion<Attachment> {
     if (uploadLastError.present) {
       map['upload_last_error'] = Variable<String>(uploadLastError.value);
     }
+    if (downloadStatus.present) {
+      map['download_status'] = Variable<String>(downloadStatus.value);
+    }
     if (syncStatus.present) {
       map['sync_status'] = Variable<String>(syncStatus.value);
     }
@@ -1929,6 +1981,7 @@ class AttachmentsCompanion extends UpdateCompanion<Attachment> {
           ..write('uploadStatus: $uploadStatus, ')
           ..write('uploadAttempts: $uploadAttempts, ')
           ..write('uploadLastError: $uploadLastError, ')
+          ..write('downloadStatus: $downloadStatus, ')
           ..write('syncStatus: $syncStatus, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
@@ -5593,13 +5646,14 @@ typedef $$AttachmentsTableCreateCompanionBuilder =
       required String mimeType,
       required int byteSize,
       required String sha256,
-      required String localPath,
+      Value<String?> localPath,
       Value<String?> r2ObjectKey,
       Value<int?> width,
       Value<int?> height,
       Value<String> uploadStatus,
       Value<int> uploadAttempts,
       Value<String?> uploadLastError,
+      Value<String> downloadStatus,
       Value<String> syncStatus,
       required DateTime createdAt,
       required DateTime updatedAt,
@@ -5617,13 +5671,14 @@ typedef $$AttachmentsTableUpdateCompanionBuilder =
       Value<String> mimeType,
       Value<int> byteSize,
       Value<String> sha256,
-      Value<String> localPath,
+      Value<String?> localPath,
       Value<String?> r2ObjectKey,
       Value<int?> width,
       Value<int?> height,
       Value<String> uploadStatus,
       Value<int> uploadAttempts,
       Value<String?> uploadLastError,
+      Value<String> downloadStatus,
       Value<String> syncStatus,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
@@ -5730,6 +5785,11 @@ class $$AttachmentsTableFilterComposer
 
   ColumnFilters<String> get uploadLastError => $composableBuilder(
     column: $table.uploadLastError,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get downloadStatus => $composableBuilder(
+    column: $table.downloadStatus,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -5861,6 +5921,11 @@ class $$AttachmentsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get downloadStatus => $composableBuilder(
+    column: $table.downloadStatus,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get syncStatus => $composableBuilder(
     column: $table.syncStatus,
     builder: (column) => ColumnOrderings(column),
@@ -5973,6 +6038,11 @@ class $$AttachmentsTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<String> get downloadStatus => $composableBuilder(
+    column: $table.downloadStatus,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<String> get syncStatus => $composableBuilder(
     column: $table.syncStatus,
     builder: (column) => column,
@@ -6052,13 +6122,14 @@ class $$AttachmentsTableTableManager
                 Value<String> mimeType = const Value.absent(),
                 Value<int> byteSize = const Value.absent(),
                 Value<String> sha256 = const Value.absent(),
-                Value<String> localPath = const Value.absent(),
+                Value<String?> localPath = const Value.absent(),
                 Value<String?> r2ObjectKey = const Value.absent(),
                 Value<int?> width = const Value.absent(),
                 Value<int?> height = const Value.absent(),
                 Value<String> uploadStatus = const Value.absent(),
                 Value<int> uploadAttempts = const Value.absent(),
                 Value<String?> uploadLastError = const Value.absent(),
+                Value<String> downloadStatus = const Value.absent(),
                 Value<String> syncStatus = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
@@ -6081,6 +6152,7 @@ class $$AttachmentsTableTableManager
                 uploadStatus: uploadStatus,
                 uploadAttempts: uploadAttempts,
                 uploadLastError: uploadLastError,
+                downloadStatus: downloadStatus,
                 syncStatus: syncStatus,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
@@ -6098,13 +6170,14 @@ class $$AttachmentsTableTableManager
                 required String mimeType,
                 required int byteSize,
                 required String sha256,
-                required String localPath,
+                Value<String?> localPath = const Value.absent(),
                 Value<String?> r2ObjectKey = const Value.absent(),
                 Value<int?> width = const Value.absent(),
                 Value<int?> height = const Value.absent(),
                 Value<String> uploadStatus = const Value.absent(),
                 Value<int> uploadAttempts = const Value.absent(),
                 Value<String?> uploadLastError = const Value.absent(),
+                Value<String> downloadStatus = const Value.absent(),
                 Value<String> syncStatus = const Value.absent(),
                 required DateTime createdAt,
                 required DateTime updatedAt,
@@ -6127,6 +6200,7 @@ class $$AttachmentsTableTableManager
                 uploadStatus: uploadStatus,
                 uploadAttempts: uploadAttempts,
                 uploadLastError: uploadLastError,
+                downloadStatus: downloadStatus,
                 syncStatus: syncStatus,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
