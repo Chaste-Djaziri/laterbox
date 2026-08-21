@@ -231,6 +231,49 @@ class _AttachmentRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isUploading = attachment.uploadStatus == 'uploading';
+    final isFailed = attachment.uploadStatus == 'failed';
+    final isRemoteOnly = path == null && resolveRemotePath != null;
+
+    final String subtitleText;
+    if (isUploading) {
+      subtitleText = 'Uploading to cloud...';
+    } else if (isFailed) {
+      subtitleText = 'Upload failed · Tap to retry';
+    } else if (isRemoteOnly) {
+      subtitleText = 'Cloud file · Tap to download';
+    } else {
+      subtitleText =
+          '${_typeLabel(attachment)} · ${formatAttachmentBytes(attachment.byteSize)}';
+    }
+
+    Widget trailingWidget;
+    if (isUploading) {
+      trailingWidget = const Padding(
+        padding: EdgeInsets.all(12),
+        child: SizedBox(
+          width: 20,
+          height: 20,
+          child: CircularProgressIndicator(strokeWidth: 2),
+        ),
+      );
+    } else if (isRemoteOnly) {
+      trailingWidget = IconButton(
+        tooltip: 'Download ${attachment.originalFileName}',
+        icon: const Icon(Icons.cloud_download_rounded),
+        onPressed: () => _open(context),
+      );
+    } else {
+      trailingWidget = IconButton(
+        tooltip: 'Open ${attachment.originalFileName}',
+        icon: const Icon(Icons.open_in_new_rounded),
+        onPressed: path == null && resolveRemotePath == null
+            ? null
+            : () => _open(context),
+      );
+    }
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12),
       child: ListTile(
@@ -249,15 +292,14 @@ class _AttachmentRow extends StatelessWidget {
           overflow: TextOverflow.ellipsis,
         ),
         subtitle: Text(
-          '${_typeLabel(attachment)} · ${formatAttachmentBytes(attachment.byteSize)}',
+          subtitleText,
+          style: isFailed
+              ? TextStyle(color: theme.colorScheme.error)
+              : isUploading
+                  ? TextStyle(color: theme.colorScheme.primary)
+                  : null,
         ),
-        trailing: IconButton(
-          tooltip: 'Open ${attachment.originalFileName}',
-          icon: const Icon(Icons.open_in_new_rounded),
-          onPressed: path == null && resolveRemotePath == null
-              ? null
-              : () => _open(context),
-        ),
+        trailing: trailingWidget,
         onTap: path == null && resolveRemotePath == null
             ? null
             : () => _open(context),
