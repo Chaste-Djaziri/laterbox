@@ -38,7 +38,7 @@ class AttachmentRepository {
               mimeType: attachment.validation.mimeType,
               byteSize: attachment.validation.byteSize,
               sha256: attachment.sha256,
-              localPath: attachment.localPath,
+              localPath: Value(attachment.localPath),
               createdAt: createdAt,
               updatedAt: createdAt,
             ),
