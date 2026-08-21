@@ -138,6 +138,7 @@ Attachment _attachment({
     byteSize: byteSize,
     sha256: 'a' * 64,
     localPath: localPath,
+    downloadStatus: 'downloaded',
     uploadStatus: 'local',
     uploadAttempts: 0,
     syncStatus: 'pending',
