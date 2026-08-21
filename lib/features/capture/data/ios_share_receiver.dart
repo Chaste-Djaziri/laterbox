@@ -5,7 +5,7 @@ import '../domain/native_share_payload.dart';
 class IosShareReceiver {
   const IosShareReceiver();
 
-  static const channelName = 'laterbox/ios_share';
+  static const channelName = 'laterbox/apple_share';
   static const MethodChannel _channel = MethodChannel(channelName);
 
   Future<List<NativeSharePayload>> consumePendingShares() async {
