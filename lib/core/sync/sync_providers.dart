@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 
@@ -42,7 +43,9 @@ final attachmentSyncServiceProvider = FutureProvider<AttachmentSyncService?>((
 ) async {
   final client = ref.watch(supabaseClientProvider);
   if (client == null) return null;
-  final storage = AttachmentStorage(await getApplicationSupportDirectory());
+  final storage = kIsWeb
+      ? null
+      : AttachmentStorage(await getApplicationSupportDirectory());
   return AttachmentSyncService(
     ref.watch(appDatabaseProvider),
     SupabaseRemoteAttachmentDataSource(client),
