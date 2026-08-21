@@ -15,6 +15,8 @@ import '../../features/library/presentation/library_screen.dart';
 import '../../features/search/presentation/search_screen.dart';
 import '../../features/settings/presentation/settings_screen.dart';
 
+import '../../features/splash/presentation/splash_screen.dart';
+
 final initialLocationProvider = Provider<String>((ref) {
   if (kIsWeb) return '/';
   final authState = ref.watch(restoredAuthStateProvider);
@@ -30,10 +32,19 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   // The router must outlive authentication state changes. Recreating it while
   // a pointer event is in flight can dispose the active route's viewport
   // before hit testing completes.
-  final initialLocation = ref.read(initialLocationProvider);
+  final isMobile = !kIsWeb &&
+      (defaultTargetPlatform == TargetPlatform.iOS ||
+          defaultTargetPlatform == TargetPlatform.android);
+  final initialLocation =
+      isMobile ? '/splash' : ref.read(initialLocationProvider);
   final router = GoRouter(
     initialLocation: initialLocation,
     routes: [
+      GoRoute(
+        path: '/splash',
+        pageBuilder: (context, state) =>
+            NoTransitionPage(key: state.pageKey, child: const SplashScreen()),
+      ),
       GoRoute(
         path: '/',
         pageBuilder: (context, state) =>
