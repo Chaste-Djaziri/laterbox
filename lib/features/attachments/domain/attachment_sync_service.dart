@@ -61,7 +61,7 @@ class AttachmentSyncService {
                 attachment,
                 storage!.resolveLocalPath(localPath!),
               );
-        await _database.markAttachmentUploaded(attachment.id, objectKey);
+        await _database.markAttachmentUploaded(attachment.id, objectKey, userId);
         uploaded++;
       } catch (error) {
         await _database.markAttachmentUploadFailed(
