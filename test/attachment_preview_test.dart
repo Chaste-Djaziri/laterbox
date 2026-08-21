@@ -73,7 +73,7 @@ void main() {
 
     expect(find.byKey(const Key('attachmentCardPreview')), findsOneWidget);
     expect(find.text('proposal.pdf'), findsOneWidget);
-    expect(find.text('PDF document · 1.0 KB'), findsOneWidget);
+    expect(find.text('PDF Document · 1.0 KB'), findsOneWidget);
     expect(find.text('+1'), findsOneWidget);
     await tester.pumpWidget(const SizedBox.shrink());
   });
@@ -113,9 +113,9 @@ void main() {
 
     expect(find.text('2 attachments'), findsOneWidget);
     expect(find.text('proposal.pdf'), findsWidgets);
-    expect(find.text('PDF document · 2.0 KB'), findsOneWidget);
+    expect(find.text('PDF Document · 2.0 KB'), findsOneWidget);
     expect(find.text('notes.md'), findsWidgets);
-    expect(find.text('Markdown document · 1.0 KB'), findsOneWidget);
+    expect(find.text('Markdown Document · 1.0 KB'), findsOneWidget);
     await tester.pumpWidget(const SizedBox.shrink());
   });
 
@@ -176,6 +176,9 @@ Attachment _attachment({
   Uint8List? localBytes,
   String? r2ObjectKey,
   int byteSize = 1024,
+  String previewStatus = 'none',
+  String previewKind = 'generic',
+  int previewVersion = 0,
 }) {
   final now = DateTime.utc(2026, 8, 20);
   return Attachment(
@@ -192,6 +195,9 @@ Attachment _attachment({
     downloadStatus: 'downloaded',
     uploadStatus: 'local',
     uploadAttempts: 0,
+    previewStatus: previewStatus,
+    previewKind: previewKind,
+    previewVersion: previewVersion,
     syncStatus: 'pending',
     createdAt: now,
     updatedAt: now,
