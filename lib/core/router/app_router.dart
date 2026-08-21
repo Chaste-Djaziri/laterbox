@@ -16,6 +16,7 @@ import '../../features/search/presentation/search_screen.dart';
 import '../../features/settings/presentation/settings_screen.dart';
 
 import '../../features/splash/presentation/splash_screen.dart';
+import '../../features/tutorial/presentation/tutorial_screen.dart';
 
 final initialLocationProvider = Provider<String>((ref) {
   if (kIsWeb) return '/';
@@ -75,6 +76,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             requestId: state.uri.queryParameters['request_id'] ?? '',
           ),
         ),
+      ),
+      GoRoute(
+        path: '/tutorial',
+        pageBuilder: (context, state) =>
+            NoTransitionPage(key: state.pageKey, child: const TutorialScreen()),
       ),
       GoRoute(
         path: '/settings',
