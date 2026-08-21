@@ -28,7 +28,7 @@ class AttachmentSyncService {
   final AppDatabase _database;
   final RemoteAttachmentDataSource _remote;
   final AttachmentStorageApi _storageApi;
-  final AttachmentStorage _storage;
+  final AttachmentStorage? _storage;
 
   Future<AttachmentSyncResult> sync(String userId) async {
     var uploaded = 0;
@@ -49,13 +49,14 @@ class AttachmentSyncService {
 
     final uploads = await _database.attachmentsNeedingUpload(userId);
     for (final attachment in uploads) {
+      final storage = _storage;
       final localPath = attachment.localPath;
-      if (localPath == null) continue;
+      if (localPath == null || storage == null) continue;
       try {
         await _database.markAttachmentUploading(attachment.id);
         final objectKey = await _storageApi.upload(
           attachment,
-          _storage.resolveLocalPath(localPath),
+          storage.resolveLocalPath(localPath),
         );
         await _database.markAttachmentUploaded(attachment.id, objectKey);
         uploaded++;
@@ -92,13 +93,17 @@ class AttachmentSyncService {
   }
 
   Future<String> download(Attachment attachment) async {
+    final storage = _storage;
+    if (storage == null) {
+      throw UnsupportedError('Local attachment downloads are unavailable.');
+    }
     final localPath = attachment.localPath;
-    if (localPath != null) return _storage.resolveLocalPath(localPath);
+    if (localPath != null) return storage.resolveLocalPath(localPath);
     try {
       await _database.markAttachmentDownloading(attachment.id);
-      final downloadedPath = await _storageApi.download(attachment, _storage);
+      final downloadedPath = await _storageApi.download(attachment, storage);
       await _database.markAttachmentDownloaded(attachment.id, downloadedPath);
-      return _storage.resolveLocalPath(downloadedPath);
+      return storage.resolveLocalPath(downloadedPath);
     } catch (_) {
       await _database.markAttachmentDownloadFailed(attachment.id);
       rethrow;
