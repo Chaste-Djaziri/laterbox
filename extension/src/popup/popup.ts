@@ -94,6 +94,7 @@ async function updateConnectionState(): Promise<boolean> {
   connectedPanel.hidden = !connected;
   connectButton.hidden = connected;
   disconnectButton.hidden = !connected;
+  openPanelButton.hidden = !browserCapabilities.supportsSidePanel;
 
   if (connected) {
     const flushed = await flushQueue();
