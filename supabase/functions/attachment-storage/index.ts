@@ -131,7 +131,14 @@ async function prepareUpload(
         "user-id": userId,
       },
     }),
-    { expiresIn: signedUrlTtl() },
+    {
+      expiresIn: signedUrlTtl(),
+      unhoistableHeaders: new Set([
+        "x-amz-meta-sha256",
+        "x-amz-meta-attachment-id",
+        "x-amz-meta-user-id",
+      ]),
+    },
   );
   return json(
     request,
