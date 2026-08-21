@@ -38,5 +38,11 @@ end
 post_install do |installer|
   installer.pods_project.targets.each do |target|
     flutter_additional_macos_build_settings(target)
+
+    next unless target.name == 'HotKey'
+
+    target.build_configurations.each do |configuration|
+      configuration.build_settings['SWIFT_SUPPRESS_WARNINGS'] = 'YES'
+    end
   end
 end
