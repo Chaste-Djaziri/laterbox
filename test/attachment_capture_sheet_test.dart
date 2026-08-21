@@ -13,7 +13,18 @@ void main() {
       ProviderScope(
         overrides: [
           attachmentFilePickerProvider.overrideWithValue(
-            const _FakePicker(['/tmp/proposal.pdf', '/tmp/screenshot.png']),
+            const _FakePicker([
+              PickedAttachmentFile(
+                name: 'proposal.pdf',
+                size: 12,
+                path: '/tmp/proposal.pdf',
+              ),
+              PickedAttachmentFile(
+                name: 'screenshot.png',
+                size: 24,
+                path: '/tmp/screenshot.png',
+              ),
+            ]),
           ),
         ],
         child: const MaterialApp(home: Scaffold(body: CaptureSheet())),
@@ -35,10 +46,10 @@ void main() {
 }
 
 class _FakePicker implements AttachmentFilePicker {
-  const _FakePicker(this.paths);
+  const _FakePicker(this.files);
 
-  final List<String> paths;
+  final List<PickedAttachmentFile> files;
 
   @override
-  Future<List<String>> pickFiles() async => paths;
+  Future<List<PickedAttachmentFile>> pickFiles() async => files;
 }
