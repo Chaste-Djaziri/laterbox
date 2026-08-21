@@ -33,7 +33,7 @@ class MediaEmbedHero extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.4),
+      color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
       alignment: Alignment.center,
       padding: isCompactScreen
           ? const EdgeInsets.symmetric(horizontal: 16, vertical: 8)
@@ -109,7 +109,7 @@ class _NativeEmbedPlayerCard extends StatelessWidget {
             ),
           Positioned.fill(
             child: Container(
-              color: Colors.black.withOpacity(0.35),
+              color: Colors.black.withValues(alpha: 0.35),
             ),
           ),
           Column(
@@ -142,7 +142,7 @@ class _NativeEmbedPlayerCard extends StatelessWidget {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.65),
+                  color: Colors.black.withValues(alpha: 0.65),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Row(
