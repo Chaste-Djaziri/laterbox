@@ -8,6 +8,7 @@ import {
 import { getSignedUrl } from "npm:@aws-sdk/s3-request-presigner@3.888.0";
 
 const allowedOrigins = new Set([
+  "https://laterbox.micorp.pro",
   "https://app.laterbox.com",
   "http://localhost:8080",
 ]);
