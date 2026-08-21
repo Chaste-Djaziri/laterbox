@@ -28,8 +28,13 @@
 		33CC10F32044A3C60003C045 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 33CC10F22044A3C60003C045 /* Assets.xcassets */; };
 		33CC10F62044A3C60003C045 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = 33CC10F42044A3C60003C045 /* MainMenu.xib */; };
 		33CC11132044BFA00003C045 /* MainFlutterWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33CC11122044BFA00003C045 /* MainFlutterWindow.swift */; };
+		4AEFF9DDF080E38A2E37AE39 /* ShareCaptureQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 932D3A0962EC18C1E58D9CA9 /* ShareCaptureQueue.swift */; };
+		582535D40F7BE9F7E94A2EE2 /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAE39CE67CE61928B4D131C6 /* ShareViewController.swift */; };
 		78A318202AECB46A00862997 /* FlutterGeneratedPluginSwiftPackage in Frameworks */ = {isa = PBXBuildFile; productRef = 78A3181F2AECB46A00862997 /* FlutterGeneratedPluginSwiftPackage */; };
+		7F182251451F9662D59BED39 /* ShareExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = A9D10490D4E14F3FFF082297 /* ShareExtension.appex */; };
 		A12388068005227E95E3FBB2 /* Pods_Runner.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2E1201AB7E1486AA8DC2350F /* Pods_Runner.framework */; };
+		A78630B959C1B5ADFAEF9968 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3F52D5775386A6F35F52E03B /* Cocoa.framework */; };
+		E5D5A6F056C71A09E7DC3F7D /* ShareCaptureQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 932D3A0962EC18C1E58D9CA9 /* ShareCaptureQueue.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -47,6 +52,13 @@
 			remoteGlobalIDString = 33CC111A2044C6BA0003C045;
 			remoteInfo = FLX;
 		};
+		99B258A68FB8329915AB17E0 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 33CC10E52044A3C60003C045 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 2D74665FC195CA481EFF77BD;
+			remoteInfo = ShareExtension;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -60,6 +72,17 @@
 			name = "Bundle Framework";
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		99A2F92ECB4E0A0BB06DDF79 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				7F182251451F9662D59BED39 /* ShareExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
@@ -68,6 +91,7 @@
 		331C80D5294CF71000263BE5 /* RunnerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RunnerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		331C80D7294CF71000263BE5 /* RunnerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RunnerTests.swift; sourceTree = "<group>"; };
 		333000ED22D3DE5D00554162 /* Warnings.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Warnings.xcconfig; sourceTree = "<group>"; };
+		3355849C7CA99E9312BA7040 /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		335BBD1A22A9A15E00E9071D /* GeneratedPluginRegistrant.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = GeneratedPluginRegistrant.swift; sourceTree = "<group>"; };
 		33CC10ED2044A3C60003C045 /* laterbox.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = laterbox.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		33CC10F02044A3C60003C045 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
@@ -81,15 +105,20 @@
 		33E51913231747F40026EE4D /* DebugProfile.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = DebugProfile.entitlements; sourceTree = "<group>"; };
 		33E51914231749380026EE4D /* Release.entitlements */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.entitlements; path = Release.entitlements; sourceTree = "<group>"; };
 		33E5194F232828860026EE4D /* AppInfo.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = AppInfo.xcconfig; sourceTree = "<group>"; };
+		3F52D5775386A6F35F52E03B /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = System/Library/Frameworks/Cocoa.framework; sourceTree = SDKROOT; };
 		57432899DDB8099C651D2B36 /* Pods-Runner.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.release.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.release.xcconfig"; sourceTree = "<group>"; };
 		5B52B86D42AD303970C590BE /* Pods-RunnerTests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RunnerTests.debug.xcconfig"; path = "Target Support Files/Pods-RunnerTests/Pods-RunnerTests.debug.xcconfig"; sourceTree = "<group>"; };
 		78E0A7A72DC9AD7400C4905E /* FlutterGeneratedPluginSwiftPackage */ = {isa = PBXFileReference; lastKnownFileType = wrapper; name = FlutterGeneratedPluginSwiftPackage; path = ephemeral/Packages/FlutterGeneratedPluginSwiftPackage; sourceTree = "<group>"; };
 		7AFA3C8E1D35360C0083082E /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Release.xcconfig; sourceTree = "<group>"; };
+		932D3A0962EC18C1E58D9CA9 /* ShareCaptureQueue.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ShareCaptureQueue.swift; sourceTree = "<group>"; };
 		9740EEB21CF90195004384FC /* Debug.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; path = Debug.xcconfig; sourceTree = "<group>"; };
 		9FD70497A4B5122D033C9F9E /* Pods-Runner.profile.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.profile.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.profile.xcconfig"; sourceTree = "<group>"; };
 		A43E8BE43EC4166BBC1F14AC /* Pods_RunnerTests.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_RunnerTests.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		A9D10490D4E14F3FFF082297 /* ShareExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = ShareExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		AAFED009901CAEED238BE682 /* Pods-RunnerTests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RunnerTests.release.xcconfig"; path = "Target Support Files/Pods-RunnerTests/Pods-RunnerTests.release.xcconfig"; sourceTree = "<group>"; };
+		BAE39CE67CE61928B4D131C6 /* ShareViewController.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
 		BC14496AEE964D9EEA68AB6C /* Pods-Runner.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.debug.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.debug.xcconfig"; sourceTree = "<group>"; };
+		E56B8153EAB87AA5D4BE9EF2 /* ShareExtension.entitlements */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.entitlements; path = ShareExtension.entitlements; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -107,6 +136,14 @@
 			files = (
 				78A318202AECB46A00862997 /* FlutterGeneratedPluginSwiftPackage in Frameworks */,
 				A12388068005227E95E3FBB2 /* Pods_Runner.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		64498900DC368C44D45A6B1A /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A78630B959C1B5ADFAEF9968 /* Cocoa.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -155,6 +192,7 @@
 				33CC10EE2044A3C60003C045 /* Products */,
 				D73912EC22F37F3D000D13A0 /* Frameworks */,
 				2E0FCFDC08F7E90BC5EDBF33 /* Pods */,
+				A2DD3A13C1033065CBCFC558 /* ShareExtension */,
 			);
 			sourceTree = "<group>";
 		};
@@ -163,6 +201,7 @@
 			children = (
 				33CC10ED2044A3C60003C045 /* laterbox.app */,
 				331C80D5294CF71000263BE5 /* RunnerTests.xctest */,
+				A9D10490D4E14F3FFF082297 /* ShareExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -203,11 +242,24 @@
 			path = Runner;
 			sourceTree = "<group>";
 		};
+		A2DD3A13C1033065CBCFC558 /* ShareExtension */ = {
+			isa = PBXGroup;
+			children = (
+				932D3A0962EC18C1E58D9CA9 /* ShareCaptureQueue.swift */,
+				BAE39CE67CE61928B4D131C6 /* ShareViewController.swift */,
+				3355849C7CA99E9312BA7040 /* Info.plist */,
+				E56B8153EAB87AA5D4BE9EF2 /* ShareExtension.entitlements */,
+			);
+			name = ShareExtension;
+			path = ShareExtension;
+			sourceTree = "<group>";
+		};
 		D73912EC22F37F3D000D13A0 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
 				2E1201AB7E1486AA8DC2350F /* Pods_Runner.framework */,
 				A43E8BE43EC4166BBC1F14AC /* Pods_RunnerTests.framework */,
+				3F52D5775386A6F35F52E03B /* Cocoa.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -215,6 +267,23 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		2D74665FC195CA481EFF77BD /* ShareExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = E40C2F54BF992DFB682E6049 /* Build configuration list for PBXNativeTarget "ShareExtension" */;
+			buildPhases = (
+				B36452EACEAD63CF20F1F62B /* Sources */,
+				64498900DC368C44D45A6B1A /* Frameworks */,
+				ABC52FD9B8AF9454CBABEEFA /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = ShareExtension;
+			productName = ShareExtension;
+			productReference = A9D10490D4E14F3FFF082297 /* ShareExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 		331C80D4294CF70F00263BE5 /* RunnerTests */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 331C80DE294CF71000263BE5 /* Build configuration list for PBXNativeTarget "RunnerTests" */;
@@ -245,11 +314,13 @@
 				33CC110E2044A8840003C045 /* Bundle Framework */,
 				3399D490228B24CF009A79C7 /* ShellScript */,
 				7829A724794D1660B37D7876 /* [CP] Embed Pods Frameworks */,
+				99A2F92ECB4E0A0BB06DDF79 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 				33CC11202044C79F0003C045 /* PBXTargetDependency */,
+				34A59A5457B7E9D298DB1846 /* PBXTargetDependency */,
 			);
 			name = Runner;
 			packageProductDependencies = (
@@ -309,6 +380,7 @@
 				33CC10EC2044A3C60003C045 /* Runner */,
 				331C80D4294CF70F00263BE5 /* RunnerTests */,
 				33CC111A2044C6BA0003C045 /* Flutter Assemble */,
+				2D74665FC195CA481EFF77BD /* ShareExtension */,
 			);
 		};
 /* End PBXProject section */
@@ -327,6 +399,13 @@
 			files = (
 				33CC10F32044A3C60003C045 /* Assets.xcassets in Resources */,
 				33CC10F62044A3C60003C045 /* MainMenu.xib in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		ABC52FD9B8AF9454CBABEEFA /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -450,6 +529,16 @@
 				33CC11132044BFA00003C045 /* MainFlutterWindow.swift in Sources */,
 				33CC10F12044A3C60003C045 /* AppDelegate.swift in Sources */,
 				335BBD1B22A9A15E00E9071D /* GeneratedPluginRegistrant.swift in Sources */,
+				4AEFF9DDF080E38A2E37AE39 /* ShareCaptureQueue.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B36452EACEAD63CF20F1F62B /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E5D5A6F056C71A09E7DC3F7D /* ShareCaptureQueue.swift in Sources */,
+				582535D40F7BE9F7E94A2EE2 /* ShareViewController.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -466,6 +555,12 @@
 			target = 33CC111A2044C6BA0003C045 /* Flutter Assemble */;
 			targetProxy = 33CC111F2044C79F0003C045 /* PBXContainerItemProxy */;
 		};
+		34A59A5457B7E9D298DB1846 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = ShareExtension;
+			target = 2D74665FC195CA481EFF77BD /* ShareExtension */;
+			targetProxy = 99B258A68FB8329915AB17E0 /* PBXContainerItemProxy */;
+		};
 /* End PBXTargetDependency section */
 
 /* Begin PBXVariantGroup section */
@@ -481,6 +576,54 @@
 /* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
+		58174A53B96E71DB691A9D58 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = ShareExtension/ShareExtension.entitlements;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = ShareExtension/Info.plist;
+				MACOSX_DEPLOYMENT_TARGET = 10.15;
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.laterbox.ShareExtension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		81B06FEA61EB6D7297631785 /* Profile */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = ShareExtension/ShareExtension.entitlements;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = ShareExtension/Info.plist;
+				MACOSX_DEPLOYMENT_TARGET = 10.15;
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.laterbox.ShareExtension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Profile;
+		};
+		AEA9B927F637FCB9B216DB90 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = ShareExtension/ShareExtension.entitlements;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = ShareExtension/Info.plist;
+				MACOSX_DEPLOYMENT_TARGET = 10.15;
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.laterbox.ShareExtension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
 		331C80DB294CF71000263BE5 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 5B52B86D42AD303970C590BE /* Pods-RunnerTests.debug.xcconfig */;
@@ -765,6 +908,16 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		E40C2F54BF992DFB682E6049 /* Build configuration list for PBXNativeTarget "ShareExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AEA9B927F637FCB9B216DB90 /* Release */,
+				58174A53B96E71DB691A9D58 /* Debug */,
+				81B06FEA61EB6D7297631785 /* Profile */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		331C80DE294CF71000263BE5 /* Build configuration list for PBXNativeTarget "RunnerTests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
