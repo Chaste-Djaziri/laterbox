@@ -69,7 +69,7 @@ class _ItemCardState extends ConsumerState<ItemCard> {
     final theme = Theme.of(context);
 
     final borderColor = _isHovered
-        ? theme.colorScheme.primary.withOpacity(0.6)
+        ? theme.colorScheme.primary.withValues(alpha: 0.6)
         : theme.colorScheme.outline;
 
     final backgroundColor = _isHovered
@@ -110,8 +110,8 @@ class _ItemCardState extends ConsumerState<ItemCard> {
                       boxShadow: _isHovered && isDesktop
                           ? [
                               BoxShadow(
-                                color: theme.colorScheme.shadow.withOpacity(
-                                  0.08,
+                                color: theme.colorScheme.shadow.withValues(
+                                  alpha: 0.08,
                                 ),
                                 blurRadius: 12,
                                 offset: const Offset(0, 4),
@@ -179,14 +179,14 @@ class _LaterBoxLogoPlaceholder extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return ColoredBox(
-      color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.5),
+      color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
       child: Center(
         child: Container(
           width: 44,
           height: 44,
           padding: const EdgeInsets.all(6),
           decoration: BoxDecoration(
-            color: theme.colorScheme.primaryContainer.withOpacity(0.7),
+            color: theme.colorScheme.primaryContainer.withValues(alpha: 0.7),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Image.asset(
@@ -295,7 +295,7 @@ class _GridCardContent extends StatelessWidget {
         Text(
           timeago.format(item.createdAt),
           style: theme.textTheme.labelSmall?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant.withOpacity(0.8),
+            color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
             fontSize: 10,
           ),
         ),
@@ -538,12 +538,12 @@ class _CardGlyph extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(size * 0.27),
         border: Border.all(
-          color: Theme.of(context).colorScheme.outlineVariant.withOpacity(0.5),
+          color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5),
           width: 0.5,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 2,
             offset: const Offset(0, 1),
           ),
