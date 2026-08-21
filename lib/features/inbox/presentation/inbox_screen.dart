@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/auth/auth_provider.dart';
 import '../../../core/sync/sync_providers.dart';
+import '../../../shared/widgets/cloud_sync_indicator.dart';
 import '../../../shared/widgets/filter_chip_bar.dart';
 import '../../../shared/widgets/item_card.dart';
 import 'inbox_providers.dart';
@@ -69,6 +70,7 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
                 ],
               ),
               actions: [
+                const CloudSyncIndicator(compact: true),
                 IconButton(
                   onPressed: () => context.push('/tutorial'),
                   tooltip: 'App Tutorial & Guide',
@@ -143,6 +145,8 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
                           if (isDesktop)
                             Row(
                               children: [
+                                const CloudSyncIndicator(),
+                                const SizedBox(width: 12),
                                 TextButton.icon(
                                   onPressed: () => context.push('/tutorial'),
                                   icon: const Icon(Icons.help_outline_rounded, size: 18),
