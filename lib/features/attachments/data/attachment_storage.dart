@@ -107,6 +107,45 @@ class AttachmentStorage {
     }
   }
 
+  Future<String> storeDownloaded({
+    required String attachmentId,
+    required String fileExtension,
+    required int expectedByteSize,
+    required String expectedSha256,
+    required Stream<List<int>> bytes,
+  }) async {
+    if (!_isUuid(attachmentId)) {
+      throw ArgumentError.value(attachmentId, 'attachmentId');
+    }
+    final finalDirectory = Directory(
+      path.join(_attachmentsRoot.path, attachmentId),
+    );
+    final fileName = 'original.$fileExtension';
+    final temporaryFile = File(path.join(finalDirectory.path, '$fileName.tmp'));
+    final finalFile = File(path.join(finalDirectory.path, fileName));
+    try {
+      await finalDirectory.create(recursive: true);
+      final output = temporaryFile.openWrite(mode: FileMode.writeOnly);
+      await output.addStream(bytes);
+      await output.flush();
+      await output.close();
+      final stat = await temporaryFile.stat();
+      final digest = await _hash(temporaryFile);
+      if (stat.size != expectedByteSize || digest != expectedSha256) {
+        throw const AttachmentStorageException(
+          AttachmentImportFailureCode.verificationFailed,
+          'The downloaded attachment failed its integrity check.',
+        );
+      }
+      if (await finalFile.exists()) await finalFile.delete();
+      await temporaryFile.rename(finalFile.path);
+      return path.posix.join('attachments', attachmentId, fileName);
+    } catch (_) {
+      if (await temporaryFile.exists()) await temporaryFile.delete();
+      rethrow;
+    }
+  }
+
   Future<void> removeOrphans(Set<String> attachmentIds) async {
     final staging = Directory(path.join(_attachmentsRoot.path, '.staging'));
     await _deleteDirectory(staging);
