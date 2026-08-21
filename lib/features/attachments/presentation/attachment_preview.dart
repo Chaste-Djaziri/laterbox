@@ -3,9 +3,12 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/database/app_database.dart';
+import '../../../core/database/database_providers.dart';
+import '../../../core/sync/sync_providers.dart';
 import '../data/attachment_storage.dart';
 
 class AttachmentCardPreview extends StatelessWidget {
@@ -218,7 +221,7 @@ class _ImageGalleryState extends State<_ImageGallery> {
   }
 }
 
-class _AttachmentRow extends StatelessWidget {
+class _AttachmentRow extends ConsumerWidget {
   const _AttachmentRow({
     required this.attachment,
     required this.path,
@@ -230,7 +233,7 @@ class _AttachmentRow extends StatelessWidget {
   final Future<String> Function(Attachment attachment)? resolveRemotePath;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final isUploading = attachment.uploadStatus == 'uploading';
     final isFailed = attachment.uploadStatus == 'failed';
@@ -257,6 +260,12 @@ class _AttachmentRow extends StatelessWidget {
           height: 20,
           child: CircularProgressIndicator(strokeWidth: 2),
         ),
+      );
+    } else if (isFailed) {
+      trailingWidget = IconButton(
+        tooltip: 'Retry upload for ${attachment.originalFileName}',
+        icon: Icon(Icons.refresh_rounded, color: theme.colorScheme.error),
+        onPressed: () => _retryUpload(context, ref),
       );
     } else if (isRemoteOnly) {
       trailingWidget = IconButton(
@@ -300,11 +309,27 @@ class _AttachmentRow extends StatelessWidget {
                   : null,
         ),
         trailing: trailingWidget,
-        onTap: path == null && resolveRemotePath == null
-            ? null
-            : () => _open(context),
+        onTap: isFailed
+            ? () => _retryUpload(context, ref)
+            : path == null && resolveRemotePath == null
+                ? null
+                : () => _open(context),
       ),
     );
+  }
+
+  Future<void> _retryUpload(BuildContext context, WidgetRef ref) async {
+    final db = ref.read(appDatabaseProvider);
+    await db.retryAttachmentUpload(attachment.id);
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content:
+              Text('Retrying upload for ${attachment.originalFileName}...'),
+        ),
+      );
+    }
+    await ref.read(syncCoordinatorProvider).syncNow();
   }
 
   Future<void> _open(BuildContext context) async {
