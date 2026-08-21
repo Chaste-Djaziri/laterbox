@@ -3,7 +3,7 @@ import UIKit
 
 @main
 @objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate {
-  private let queue = ShareCaptureQueue(appGroupId: "group.com.example.laterbox")
+  private let queue = ShareCaptureQueue(appGroupId: "group.pro.micorp.laterbox")
 
   override func application(
     _ application: UIApplication,
