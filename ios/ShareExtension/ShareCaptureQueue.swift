@@ -51,15 +51,20 @@ struct PendingShareCapture: Codable {
 
 final class ShareCaptureQueue {
     private let defaults: UserDefaults
-    private let containerURL: URL?
+    private let containerURL: URL
+    private let queueURL: URL
     private let key = "laterbox.pendingShareCaptures"
 
     init?(appGroupId: String) {
-        guard let defaults = UserDefaults(suiteName: appGroupId) else { return nil }
+        guard
+            let defaults = UserDefaults(suiteName: appGroupId),
+            let containerURL = FileManager.default.containerURL(
+                forSecurityApplicationGroupIdentifier: appGroupId
+            )
+        else { return nil }
         self.defaults = defaults
-        containerURL = FileManager.default.containerURL(
-            forSecurityApplicationGroupIdentifier: appGroupId
-        )
+        self.containerURL = containerURL
+        queueURL = containerURL.appendingPathComponent("pending-share-captures.json")
     }
 
     @discardableResult
@@ -67,13 +72,19 @@ final class ShareCaptureQueue {
         var captures = readAll()
         captures.append(capture)
         guard let data = try? JSONEncoder().encode(captures) else { return false }
-        defaults.set(data, forKey: key)
-        return defaults.synchronize()
+        do {
+            try data.write(to: queueURL, options: .atomic)
+            defaults.removeObject(forKey: key)
+            return true
+        } catch {
+            return false
+        }
     }
 
     func readAll() -> [PendingShareCapture] {
+        let storedData = (try? Data(contentsOf: queueURL)) ?? defaults.data(forKey: key)
         guard
-            let data = defaults.data(forKey: key),
+            let data = storedData,
             let captures = try? JSONDecoder().decode(
                 [PendingShareCapture].self,
                 from: data
@@ -86,6 +97,7 @@ final class ShareCaptureQueue {
 
     func clear() {
         readAll().forEach { deleteStagingDirectory(id: $0.id) }
+        try? FileManager.default.removeItem(at: queueURL)
         defaults.removeObject(forKey: key)
     }
 
@@ -94,20 +106,18 @@ final class ShareCaptureQueue {
         guard !ids.isEmpty else { return true }
         let remaining = readAll().filter { !ids.contains($0.id) }
         guard let data = try? JSONEncoder().encode(remaining) else { return false }
-        defaults.set(data, forKey: key)
-        let saved = defaults.synchronize()
-        if saved {
+        do {
+            try data.write(to: queueURL, options: .atomic)
+            defaults.removeObject(forKey: key)
             ids.forEach { deleteStagingDirectory(id: $0) }
+            return true
+        } catch {
+            return false
         }
-        return saved
     }
 
     private func deleteStagingDirectory(id: String) {
-        guard
-            !id.contains("/"),
-            !id.contains(".."),
-            let containerURL
-        else { return }
+        guard !id.contains("/"), !id.contains("..") else { return }
         let directory = containerURL
             .appendingPathComponent("PendingAttachments", isDirectory: true)
             .appendingPathComponent(id, isDirectory: true)
