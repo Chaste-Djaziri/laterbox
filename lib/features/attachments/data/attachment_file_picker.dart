@@ -28,8 +28,13 @@ class NativeAttachmentFilePicker implements AttachmentFilePicker {
   Future<List<PickedAttachmentFile>> pickFiles() async {
     final result = await FilePicker.platform.pickFiles(
       allowMultiple: true,
-      type: FileType.custom,
-      allowedExtensions: attachmentMimeTypes.keys.toSet().toList(),
+      // Browser implementations can reject a custom accept list before they
+      // open the native picker. The import policy still validates every file
+      // after selection, so using `any` on web does not widen what we accept.
+      type: kIsWeb ? FileType.any : FileType.custom,
+      allowedExtensions: kIsWeb
+          ? null
+          : attachmentMimeTypes.keys.toSet().toList(),
       withData: kIsWeb,
       withReadStream: false,
     );
