@@ -4,6 +4,15 @@ import { createConnectionHandler } from "./index.ts";
 const requestId = "test-connection-request-0001";
 const requestSecret = "0123456789abcdef0123456789abcdef";
 
+Deno.test("connection OPTIONS returns an empty successful preflight", async () => {
+  const response = await createConnectionHandler()(
+    new Request("https://example.test/extension-connect", { method: "OPTIONS" }),
+  );
+
+  assertEquals(response.status, 204);
+  assertEquals(await response.text(), "");
+});
+
 Deno.test("connection request can start without a user token", async () => {
   const handler = createConnectionHandler({
     fetch: async () => Response.json({}, { status: 201 }),
