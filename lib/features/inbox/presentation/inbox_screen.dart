@@ -49,12 +49,24 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
       appBar: isDesktop
           ? null
           : AppBar(
-              title: const Text(
-                'LaterBox',
-                style: TextStyle(
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.6,
-                ),
+              title: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Image.asset(
+                    'assets/branding/laterbox-icon.png',
+                    width: 26,
+                    height: 26,
+                    fit: BoxFit.contain,
+                  ),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'LaterBox',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.6,
+                    ),
+                  ),
+                ],
               ),
               actions: [
                 IconButton(
