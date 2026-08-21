@@ -21,7 +21,7 @@ class SyncService {
     RemoteCollectionDataSource? remoteCollections,
     LocalItemNoteDataSource? localNotes,
     RemoteItemNoteDataSource? remoteNotes,
-    AttachmentSyncService? attachmentSync,
+    Future<AttachmentSyncService?> Function()? attachmentSync,
   }) => SyncService._(
     local,
     remote,
@@ -57,7 +57,7 @@ class SyncService {
   final RemoteCollectionDataSource? _remoteCollections;
   final LocalItemNoteDataSource? _localNotes;
   final RemoteItemNoteDataSource? _remoteNotes;
-  final AttachmentSyncService? _attachmentSync;
+  final Future<AttachmentSyncService?> Function()? _attachmentSync;
   Future<SyncResult>? _activeSync;
   int _pushed = 0;
   int _pulled = 0;
@@ -123,7 +123,7 @@ class SyncService {
 
     await _syncCollections(userId);
     await _syncNotes(userId);
-    final attachmentSync = _attachmentSync;
+    final attachmentSync = await _attachmentSync?.call();
     if (attachmentSync != null) {
       final result = await attachmentSync.sync(userId);
       _pushed += result.pushed;
