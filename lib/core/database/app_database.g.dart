@@ -889,7 +889,7 @@ class $AttachmentsTable extends Attachments
     false,
     type: DriftSqlType.int,
     requiredDuringInsert: true,
-    $customConstraints: 'NOT NULL CHECK(byte_size BETWEEN 1 AND 104857600)',
+    $customConstraints: 'NOT NULL CHECK(byte_size BETWEEN 0 AND 5368709120)',
   );
   static const VerificationMeta _sha256Meta = const VerificationMeta('sha256');
   @override
@@ -1006,6 +1006,89 @@ class $AttachmentsTable extends Attachments
     $customConstraints: 'NOT NULL DEFAULT \'downloaded\' CHECK(download_status IN (\'remote\', \'downloading\', \'downloaded\', \'failed\'))',
     defaultValue: const CustomExpression('\'downloaded\''),
   );
+  static const VerificationMeta _previewStatusMeta = const VerificationMeta(
+    'previewStatus',
+  );
+  @override
+  late final GeneratedColumn<String> previewStatus = GeneratedColumn<String>(
+    'preview_status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    $customConstraints: 'NOT NULL DEFAULT \'none\' CHECK(preview_status IN (\'none\', \'pending\', \'processing\', \'ready\', \'failed\'))',
+    defaultValue: const CustomExpression('\'none\''),
+  );
+  static const VerificationMeta _previewKindMeta = const VerificationMeta(
+    'previewKind',
+  );
+  @override
+  late final GeneratedColumn<String> previewKind = GeneratedColumn<String>(
+    'preview_kind',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    $customConstraints: 'NOT NULL DEFAULT \'generic\' CHECK(preview_kind IN (\'image\', \'pdf\', \'text\', \'code\', \'spreadsheet\', \'document\', \'presentation\', \'audio\', \'video\', \'archive\', \'ebook\', \'model3d\', \'font\', \'generic\'))',
+    defaultValue: const CustomExpression('\'generic\''),
+  );
+  static const VerificationMeta _previewObjectKeyMeta = const VerificationMeta(
+    'previewObjectKey',
+  );
+  @override
+  late final GeneratedColumn<String> previewObjectKey = GeneratedColumn<String>(
+    'preview_object_key',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _thumbnailObjectKeyMeta =
+      const VerificationMeta('thumbnailObjectKey');
+  @override
+  late final GeneratedColumn<String> thumbnailObjectKey =
+      GeneratedColumn<String>(
+        'thumbnail_object_key',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _extractedTextObjectKeyMeta =
+      const VerificationMeta('extractedTextObjectKey');
+  @override
+  late final GeneratedColumn<String> extractedTextObjectKey =
+      GeneratedColumn<String>(
+        'extracted_text_object_key',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _previewErrorMeta = const VerificationMeta(
+    'previewError',
+  );
+  @override
+  late final GeneratedColumn<String> previewError = GeneratedColumn<String>(
+    'preview_error',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _previewVersionMeta = const VerificationMeta(
+    'previewVersion',
+  );
+  @override
+  late final GeneratedColumn<int> previewVersion = GeneratedColumn<int>(
+    'preview_version',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    $customConstraints: 'NOT NULL DEFAULT 0 CHECK(preview_version >= 0)',
+    defaultValue: const CustomExpression('0'),
+  );
   static const VerificationMeta _syncStatusMeta = const VerificationMeta(
     'syncStatus',
   );
@@ -1082,6 +1165,13 @@ class $AttachmentsTable extends Attachments
     uploadAttempts,
     uploadLastError,
     downloadStatus,
+    previewStatus,
+    previewKind,
+    previewObjectKey,
+    thumbnailObjectKey,
+    extractedTextObjectKey,
+    previewError,
+    previewVersion,
     syncStatus,
     createdAt,
     updatedAt,
@@ -1234,6 +1324,69 @@ class $AttachmentsTable extends Attachments
         ),
       );
     }
+    if (data.containsKey('preview_status')) {
+      context.handle(
+        _previewStatusMeta,
+        previewStatus.isAcceptableOrUnknown(
+          data['preview_status']!,
+          _previewStatusMeta,
+        ),
+      );
+    }
+    if (data.containsKey('preview_kind')) {
+      context.handle(
+        _previewKindMeta,
+        previewKind.isAcceptableOrUnknown(
+          data['preview_kind']!,
+          _previewKindMeta,
+        ),
+      );
+    }
+    if (data.containsKey('preview_object_key')) {
+      context.handle(
+        _previewObjectKeyMeta,
+        previewObjectKey.isAcceptableOrUnknown(
+          data['preview_object_key']!,
+          _previewObjectKeyMeta,
+        ),
+      );
+    }
+    if (data.containsKey('thumbnail_object_key')) {
+      context.handle(
+        _thumbnailObjectKeyMeta,
+        thumbnailObjectKey.isAcceptableOrUnknown(
+          data['thumbnail_object_key']!,
+          _thumbnailObjectKeyMeta,
+        ),
+      );
+    }
+    if (data.containsKey('extracted_text_object_key')) {
+      context.handle(
+        _extractedTextObjectKeyMeta,
+        extractedTextObjectKey.isAcceptableOrUnknown(
+          data['extracted_text_object_key']!,
+          _extractedTextObjectKeyMeta,
+        ),
+      );
+    }
+    if (data.containsKey('preview_error')) {
+      context.handle(
+        _previewErrorMeta,
+        previewError.isAcceptableOrUnknown(
+          data['preview_error']!,
+          _previewErrorMeta,
+        ),
+      );
+    }
+    if (data.containsKey('preview_version')) {
+      context.handle(
+        _previewVersionMeta,
+        previewVersion.isAcceptableOrUnknown(
+          data['preview_version']!,
+          _previewVersionMeta,
+        ),
+      );
+    }
     if (data.containsKey('sync_status')) {
       context.handle(
         _syncStatusMeta,
@@ -1348,6 +1501,34 @@ class $AttachmentsTable extends Attachments
         DriftSqlType.string,
         data['${effectivePrefix}download_status'],
       )!,
+      previewStatus: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}preview_status'],
+      )!,
+      previewKind: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}preview_kind'],
+      )!,
+      previewObjectKey: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}preview_object_key'],
+      ),
+      thumbnailObjectKey: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}thumbnail_object_key'],
+      ),
+      extractedTextObjectKey: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}extracted_text_object_key'],
+      ),
+      previewError: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}preview_error'],
+      ),
+      previewVersion: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}preview_version'],
+      )!,
       syncStatus: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}sync_status'],
@@ -1395,6 +1576,13 @@ class Attachment extends DataClass implements Insertable<Attachment> {
   final int uploadAttempts;
   final String? uploadLastError;
   final String downloadStatus;
+  final String previewStatus;
+  final String previewKind;
+  final String? previewObjectKey;
+  final String? thumbnailObjectKey;
+  final String? extractedTextObjectKey;
+  final String? previewError;
+  final int previewVersion;
   final String syncStatus;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -1418,6 +1606,13 @@ class Attachment extends DataClass implements Insertable<Attachment> {
     required this.uploadAttempts,
     this.uploadLastError,
     required this.downloadStatus,
+    required this.previewStatus,
+    required this.previewKind,
+    this.previewObjectKey,
+    this.thumbnailObjectKey,
+    this.extractedTextObjectKey,
+    this.previewError,
+    required this.previewVersion,
     required this.syncStatus,
     required this.createdAt,
     required this.updatedAt,
@@ -1458,6 +1653,23 @@ class Attachment extends DataClass implements Insertable<Attachment> {
       map['upload_last_error'] = Variable<String>(uploadLastError);
     }
     map['download_status'] = Variable<String>(downloadStatus);
+    map['preview_status'] = Variable<String>(previewStatus);
+    map['preview_kind'] = Variable<String>(previewKind);
+    if (!nullToAbsent || previewObjectKey != null) {
+      map['preview_object_key'] = Variable<String>(previewObjectKey);
+    }
+    if (!nullToAbsent || thumbnailObjectKey != null) {
+      map['thumbnail_object_key'] = Variable<String>(thumbnailObjectKey);
+    }
+    if (!nullToAbsent || extractedTextObjectKey != null) {
+      map['extracted_text_object_key'] = Variable<String>(
+        extractedTextObjectKey,
+      );
+    }
+    if (!nullToAbsent || previewError != null) {
+      map['preview_error'] = Variable<String>(previewError);
+    }
+    map['preview_version'] = Variable<int>(previewVersion);
     map['sync_status'] = Variable<String>(syncStatus);
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
@@ -1503,6 +1715,21 @@ class Attachment extends DataClass implements Insertable<Attachment> {
           ? const Value.absent()
           : Value(uploadLastError),
       downloadStatus: Value(downloadStatus),
+      previewStatus: Value(previewStatus),
+      previewKind: Value(previewKind),
+      previewObjectKey: previewObjectKey == null && nullToAbsent
+          ? const Value.absent()
+          : Value(previewObjectKey),
+      thumbnailObjectKey: thumbnailObjectKey == null && nullToAbsent
+          ? const Value.absent()
+          : Value(thumbnailObjectKey),
+      extractedTextObjectKey: extractedTextObjectKey == null && nullToAbsent
+          ? const Value.absent()
+          : Value(extractedTextObjectKey),
+      previewError: previewError == null && nullToAbsent
+          ? const Value.absent()
+          : Value(previewError),
+      previewVersion: Value(previewVersion),
       syncStatus: Value(syncStatus),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
@@ -1538,6 +1765,17 @@ class Attachment extends DataClass implements Insertable<Attachment> {
       uploadAttempts: serializer.fromJson<int>(json['uploadAttempts']),
       uploadLastError: serializer.fromJson<String?>(json['uploadLastError']),
       downloadStatus: serializer.fromJson<String>(json['downloadStatus']),
+      previewStatus: serializer.fromJson<String>(json['previewStatus']),
+      previewKind: serializer.fromJson<String>(json['previewKind']),
+      previewObjectKey: serializer.fromJson<String?>(json['previewObjectKey']),
+      thumbnailObjectKey: serializer.fromJson<String?>(
+        json['thumbnailObjectKey'],
+      ),
+      extractedTextObjectKey: serializer.fromJson<String?>(
+        json['extractedTextObjectKey'],
+      ),
+      previewError: serializer.fromJson<String?>(json['previewError']),
+      previewVersion: serializer.fromJson<int>(json['previewVersion']),
       syncStatus: serializer.fromJson<String>(json['syncStatus']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
@@ -1566,6 +1804,15 @@ class Attachment extends DataClass implements Insertable<Attachment> {
       'uploadAttempts': serializer.toJson<int>(uploadAttempts),
       'uploadLastError': serializer.toJson<String?>(uploadLastError),
       'downloadStatus': serializer.toJson<String>(downloadStatus),
+      'previewStatus': serializer.toJson<String>(previewStatus),
+      'previewKind': serializer.toJson<String>(previewKind),
+      'previewObjectKey': serializer.toJson<String?>(previewObjectKey),
+      'thumbnailObjectKey': serializer.toJson<String?>(thumbnailObjectKey),
+      'extractedTextObjectKey': serializer.toJson<String?>(
+        extractedTextObjectKey,
+      ),
+      'previewError': serializer.toJson<String?>(previewError),
+      'previewVersion': serializer.toJson<int>(previewVersion),
       'syncStatus': serializer.toJson<String>(syncStatus),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
@@ -1592,6 +1839,13 @@ class Attachment extends DataClass implements Insertable<Attachment> {
     int? uploadAttempts,
     Value<String?> uploadLastError = const Value.absent(),
     String? downloadStatus,
+    String? previewStatus,
+    String? previewKind,
+    Value<String?> previewObjectKey = const Value.absent(),
+    Value<String?> thumbnailObjectKey = const Value.absent(),
+    Value<String?> extractedTextObjectKey = const Value.absent(),
+    Value<String?> previewError = const Value.absent(),
+    int? previewVersion,
     String? syncStatus,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -1617,6 +1871,19 @@ class Attachment extends DataClass implements Insertable<Attachment> {
         ? uploadLastError.value
         : this.uploadLastError,
     downloadStatus: downloadStatus ?? this.downloadStatus,
+    previewStatus: previewStatus ?? this.previewStatus,
+    previewKind: previewKind ?? this.previewKind,
+    previewObjectKey: previewObjectKey.present
+        ? previewObjectKey.value
+        : this.previewObjectKey,
+    thumbnailObjectKey: thumbnailObjectKey.present
+        ? thumbnailObjectKey.value
+        : this.thumbnailObjectKey,
+    extractedTextObjectKey: extractedTextObjectKey.present
+        ? extractedTextObjectKey.value
+        : this.extractedTextObjectKey,
+    previewError: previewError.present ? previewError.value : this.previewError,
+    previewVersion: previewVersion ?? this.previewVersion,
     syncStatus: syncStatus ?? this.syncStatus,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
@@ -1658,6 +1925,27 @@ class Attachment extends DataClass implements Insertable<Attachment> {
       downloadStatus: data.downloadStatus.present
           ? data.downloadStatus.value
           : this.downloadStatus,
+      previewStatus: data.previewStatus.present
+          ? data.previewStatus.value
+          : this.previewStatus,
+      previewKind: data.previewKind.present
+          ? data.previewKind.value
+          : this.previewKind,
+      previewObjectKey: data.previewObjectKey.present
+          ? data.previewObjectKey.value
+          : this.previewObjectKey,
+      thumbnailObjectKey: data.thumbnailObjectKey.present
+          ? data.thumbnailObjectKey.value
+          : this.thumbnailObjectKey,
+      extractedTextObjectKey: data.extractedTextObjectKey.present
+          ? data.extractedTextObjectKey.value
+          : this.extractedTextObjectKey,
+      previewError: data.previewError.present
+          ? data.previewError.value
+          : this.previewError,
+      previewVersion: data.previewVersion.present
+          ? data.previewVersion.value
+          : this.previewVersion,
       syncStatus: data.syncStatus.present
           ? data.syncStatus.value
           : this.syncStatus,
@@ -1690,6 +1978,13 @@ class Attachment extends DataClass implements Insertable<Attachment> {
           ..write('uploadAttempts: $uploadAttempts, ')
           ..write('uploadLastError: $uploadLastError, ')
           ..write('downloadStatus: $downloadStatus, ')
+          ..write('previewStatus: $previewStatus, ')
+          ..write('previewKind: $previewKind, ')
+          ..write('previewObjectKey: $previewObjectKey, ')
+          ..write('thumbnailObjectKey: $thumbnailObjectKey, ')
+          ..write('extractedTextObjectKey: $extractedTextObjectKey, ')
+          ..write('previewError: $previewError, ')
+          ..write('previewVersion: $previewVersion, ')
           ..write('syncStatus: $syncStatus, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
@@ -1718,6 +2013,13 @@ class Attachment extends DataClass implements Insertable<Attachment> {
     uploadAttempts,
     uploadLastError,
     downloadStatus,
+    previewStatus,
+    previewKind,
+    previewObjectKey,
+    thumbnailObjectKey,
+    extractedTextObjectKey,
+    previewError,
+    previewVersion,
     syncStatus,
     createdAt,
     updatedAt,
@@ -1745,6 +2047,13 @@ class Attachment extends DataClass implements Insertable<Attachment> {
           other.uploadAttempts == this.uploadAttempts &&
           other.uploadLastError == this.uploadLastError &&
           other.downloadStatus == this.downloadStatus &&
+          other.previewStatus == this.previewStatus &&
+          other.previewKind == this.previewKind &&
+          other.previewObjectKey == this.previewObjectKey &&
+          other.thumbnailObjectKey == this.thumbnailObjectKey &&
+          other.extractedTextObjectKey == this.extractedTextObjectKey &&
+          other.previewError == this.previewError &&
+          other.previewVersion == this.previewVersion &&
           other.syncStatus == this.syncStatus &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
@@ -1770,6 +2079,13 @@ class AttachmentsCompanion extends UpdateCompanion<Attachment> {
   final Value<int> uploadAttempts;
   final Value<String?> uploadLastError;
   final Value<String> downloadStatus;
+  final Value<String> previewStatus;
+  final Value<String> previewKind;
+  final Value<String?> previewObjectKey;
+  final Value<String?> thumbnailObjectKey;
+  final Value<String?> extractedTextObjectKey;
+  final Value<String?> previewError;
+  final Value<int> previewVersion;
   final Value<String> syncStatus;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
@@ -1794,6 +2110,13 @@ class AttachmentsCompanion extends UpdateCompanion<Attachment> {
     this.uploadAttempts = const Value.absent(),
     this.uploadLastError = const Value.absent(),
     this.downloadStatus = const Value.absent(),
+    this.previewStatus = const Value.absent(),
+    this.previewKind = const Value.absent(),
+    this.previewObjectKey = const Value.absent(),
+    this.thumbnailObjectKey = const Value.absent(),
+    this.extractedTextObjectKey = const Value.absent(),
+    this.previewError = const Value.absent(),
+    this.previewVersion = const Value.absent(),
     this.syncStatus = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
@@ -1819,6 +2142,13 @@ class AttachmentsCompanion extends UpdateCompanion<Attachment> {
     this.uploadAttempts = const Value.absent(),
     this.uploadLastError = const Value.absent(),
     this.downloadStatus = const Value.absent(),
+    this.previewStatus = const Value.absent(),
+    this.previewKind = const Value.absent(),
+    this.previewObjectKey = const Value.absent(),
+    this.thumbnailObjectKey = const Value.absent(),
+    this.extractedTextObjectKey = const Value.absent(),
+    this.previewError = const Value.absent(),
+    this.previewVersion = const Value.absent(),
     this.syncStatus = const Value.absent(),
     required DateTime createdAt,
     required DateTime updatedAt,
@@ -1852,6 +2182,13 @@ class AttachmentsCompanion extends UpdateCompanion<Attachment> {
     Expression<int>? uploadAttempts,
     Expression<String>? uploadLastError,
     Expression<String>? downloadStatus,
+    Expression<String>? previewStatus,
+    Expression<String>? previewKind,
+    Expression<String>? previewObjectKey,
+    Expression<String>? thumbnailObjectKey,
+    Expression<String>? extractedTextObjectKey,
+    Expression<String>? previewError,
+    Expression<int>? previewVersion,
     Expression<String>? syncStatus,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
@@ -1877,6 +2214,15 @@ class AttachmentsCompanion extends UpdateCompanion<Attachment> {
       if (uploadAttempts != null) 'upload_attempts': uploadAttempts,
       if (uploadLastError != null) 'upload_last_error': uploadLastError,
       if (downloadStatus != null) 'download_status': downloadStatus,
+      if (previewStatus != null) 'preview_status': previewStatus,
+      if (previewKind != null) 'preview_kind': previewKind,
+      if (previewObjectKey != null) 'preview_object_key': previewObjectKey,
+      if (thumbnailObjectKey != null)
+        'thumbnail_object_key': thumbnailObjectKey,
+      if (extractedTextObjectKey != null)
+        'extracted_text_object_key': extractedTextObjectKey,
+      if (previewError != null) 'preview_error': previewError,
+      if (previewVersion != null) 'preview_version': previewVersion,
       if (syncStatus != null) 'sync_status': syncStatus,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
@@ -1904,6 +2250,13 @@ class AttachmentsCompanion extends UpdateCompanion<Attachment> {
     Value<int>? uploadAttempts,
     Value<String?>? uploadLastError,
     Value<String>? downloadStatus,
+    Value<String>? previewStatus,
+    Value<String>? previewKind,
+    Value<String?>? previewObjectKey,
+    Value<String?>? thumbnailObjectKey,
+    Value<String?>? extractedTextObjectKey,
+    Value<String?>? previewError,
+    Value<int>? previewVersion,
     Value<String>? syncStatus,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
@@ -1929,6 +2282,14 @@ class AttachmentsCompanion extends UpdateCompanion<Attachment> {
       uploadAttempts: uploadAttempts ?? this.uploadAttempts,
       uploadLastError: uploadLastError ?? this.uploadLastError,
       downloadStatus: downloadStatus ?? this.downloadStatus,
+      previewStatus: previewStatus ?? this.previewStatus,
+      previewKind: previewKind ?? this.previewKind,
+      previewObjectKey: previewObjectKey ?? this.previewObjectKey,
+      thumbnailObjectKey: thumbnailObjectKey ?? this.thumbnailObjectKey,
+      extractedTextObjectKey:
+          extractedTextObjectKey ?? this.extractedTextObjectKey,
+      previewError: previewError ?? this.previewError,
+      previewVersion: previewVersion ?? this.previewVersion,
       syncStatus: syncStatus ?? this.syncStatus,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -1992,6 +2353,29 @@ class AttachmentsCompanion extends UpdateCompanion<Attachment> {
     if (downloadStatus.present) {
       map['download_status'] = Variable<String>(downloadStatus.value);
     }
+    if (previewStatus.present) {
+      map['preview_status'] = Variable<String>(previewStatus.value);
+    }
+    if (previewKind.present) {
+      map['preview_kind'] = Variable<String>(previewKind.value);
+    }
+    if (previewObjectKey.present) {
+      map['preview_object_key'] = Variable<String>(previewObjectKey.value);
+    }
+    if (thumbnailObjectKey.present) {
+      map['thumbnail_object_key'] = Variable<String>(thumbnailObjectKey.value);
+    }
+    if (extractedTextObjectKey.present) {
+      map['extracted_text_object_key'] = Variable<String>(
+        extractedTextObjectKey.value,
+      );
+    }
+    if (previewError.present) {
+      map['preview_error'] = Variable<String>(previewError.value);
+    }
+    if (previewVersion.present) {
+      map['preview_version'] = Variable<int>(previewVersion.value);
+    }
     if (syncStatus.present) {
       map['sync_status'] = Variable<String>(syncStatus.value);
     }
@@ -2033,11 +2417,451 @@ class AttachmentsCompanion extends UpdateCompanion<Attachment> {
           ..write('uploadAttempts: $uploadAttempts, ')
           ..write('uploadLastError: $uploadLastError, ')
           ..write('downloadStatus: $downloadStatus, ')
+          ..write('previewStatus: $previewStatus, ')
+          ..write('previewKind: $previewKind, ')
+          ..write('previewObjectKey: $previewObjectKey, ')
+          ..write('thumbnailObjectKey: $thumbnailObjectKey, ')
+          ..write('extractedTextObjectKey: $extractedTextObjectKey, ')
+          ..write('previewError: $previewError, ')
+          ..write('previewVersion: $previewVersion, ')
           ..write('syncStatus: $syncStatus, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('deletedAt: $deletedAt, ')
           ..write('lastSyncedAt: $lastSyncedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $AttachmentUploadPartsTable extends AttachmentUploadParts
+    with TableInfo<$AttachmentUploadPartsTable, AttachmentUploadPart> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $AttachmentUploadPartsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _attachmentIdMeta = const VerificationMeta(
+    'attachmentId',
+  );
+  @override
+  late final GeneratedColumn<String> attachmentId = GeneratedColumn<String>(
+    'attachment_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES attachments (id)',
+    ),
+  );
+  static const VerificationMeta _partNumberMeta = const VerificationMeta(
+    'partNumber',
+  );
+  @override
+  late final GeneratedColumn<int> partNumber = GeneratedColumn<int>(
+    'part_number',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _etagMeta = const VerificationMeta('etag');
+  @override
+  late final GeneratedColumn<String> etag = GeneratedColumn<String>(
+    'etag',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _byteStartMeta = const VerificationMeta(
+    'byteStart',
+  );
+  @override
+  late final GeneratedColumn<int> byteStart = GeneratedColumn<int>(
+    'byte_start',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _byteEndMeta = const VerificationMeta(
+    'byteEnd',
+  );
+  @override
+  late final GeneratedColumn<int> byteEnd = GeneratedColumn<int>(
+    'byte_end',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _uploadedAtMeta = const VerificationMeta(
+    'uploadedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> uploadedAt = GeneratedColumn<DateTime>(
+    'uploaded_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    attachmentId,
+    partNumber,
+    etag,
+    byteStart,
+    byteEnd,
+    uploadedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'attachment_upload_parts';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<AttachmentUploadPart> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('attachment_id')) {
+      context.handle(
+        _attachmentIdMeta,
+        attachmentId.isAcceptableOrUnknown(
+          data['attachment_id']!,
+          _attachmentIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_attachmentIdMeta);
+    }
+    if (data.containsKey('part_number')) {
+      context.handle(
+        _partNumberMeta,
+        partNumber.isAcceptableOrUnknown(data['part_number']!, _partNumberMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_partNumberMeta);
+    }
+    if (data.containsKey('etag')) {
+      context.handle(
+        _etagMeta,
+        etag.isAcceptableOrUnknown(data['etag']!, _etagMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_etagMeta);
+    }
+    if (data.containsKey('byte_start')) {
+      context.handle(
+        _byteStartMeta,
+        byteStart.isAcceptableOrUnknown(data['byte_start']!, _byteStartMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_byteStartMeta);
+    }
+    if (data.containsKey('byte_end')) {
+      context.handle(
+        _byteEndMeta,
+        byteEnd.isAcceptableOrUnknown(data['byte_end']!, _byteEndMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_byteEndMeta);
+    }
+    if (data.containsKey('uploaded_at')) {
+      context.handle(
+        _uploadedAtMeta,
+        uploadedAt.isAcceptableOrUnknown(data['uploaded_at']!, _uploadedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_uploadedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {attachmentId, partNumber};
+  @override
+  AttachmentUploadPart map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return AttachmentUploadPart(
+      attachmentId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}attachment_id'],
+      )!,
+      partNumber: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}part_number'],
+      )!,
+      etag: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}etag'],
+      )!,
+      byteStart: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}byte_start'],
+      )!,
+      byteEnd: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}byte_end'],
+      )!,
+      uploadedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}uploaded_at'],
+      )!,
+    );
+  }
+
+  @override
+  $AttachmentUploadPartsTable createAlias(String alias) {
+    return $AttachmentUploadPartsTable(attachedDatabase, alias);
+  }
+}
+
+class AttachmentUploadPart extends DataClass
+    implements Insertable<AttachmentUploadPart> {
+  final String attachmentId;
+  final int partNumber;
+  final String etag;
+  final int byteStart;
+  final int byteEnd;
+  final DateTime uploadedAt;
+  const AttachmentUploadPart({
+    required this.attachmentId,
+    required this.partNumber,
+    required this.etag,
+    required this.byteStart,
+    required this.byteEnd,
+    required this.uploadedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['attachment_id'] = Variable<String>(attachmentId);
+    map['part_number'] = Variable<int>(partNumber);
+    map['etag'] = Variable<String>(etag);
+    map['byte_start'] = Variable<int>(byteStart);
+    map['byte_end'] = Variable<int>(byteEnd);
+    map['uploaded_at'] = Variable<DateTime>(uploadedAt);
+    return map;
+  }
+
+  AttachmentUploadPartsCompanion toCompanion(bool nullToAbsent) {
+    return AttachmentUploadPartsCompanion(
+      attachmentId: Value(attachmentId),
+      partNumber: Value(partNumber),
+      etag: Value(etag),
+      byteStart: Value(byteStart),
+      byteEnd: Value(byteEnd),
+      uploadedAt: Value(uploadedAt),
+    );
+  }
+
+  factory AttachmentUploadPart.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return AttachmentUploadPart(
+      attachmentId: serializer.fromJson<String>(json['attachmentId']),
+      partNumber: serializer.fromJson<int>(json['partNumber']),
+      etag: serializer.fromJson<String>(json['etag']),
+      byteStart: serializer.fromJson<int>(json['byteStart']),
+      byteEnd: serializer.fromJson<int>(json['byteEnd']),
+      uploadedAt: serializer.fromJson<DateTime>(json['uploadedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'attachmentId': serializer.toJson<String>(attachmentId),
+      'partNumber': serializer.toJson<int>(partNumber),
+      'etag': serializer.toJson<String>(etag),
+      'byteStart': serializer.toJson<int>(byteStart),
+      'byteEnd': serializer.toJson<int>(byteEnd),
+      'uploadedAt': serializer.toJson<DateTime>(uploadedAt),
+    };
+  }
+
+  AttachmentUploadPart copyWith({
+    String? attachmentId,
+    int? partNumber,
+    String? etag,
+    int? byteStart,
+    int? byteEnd,
+    DateTime? uploadedAt,
+  }) => AttachmentUploadPart(
+    attachmentId: attachmentId ?? this.attachmentId,
+    partNumber: partNumber ?? this.partNumber,
+    etag: etag ?? this.etag,
+    byteStart: byteStart ?? this.byteStart,
+    byteEnd: byteEnd ?? this.byteEnd,
+    uploadedAt: uploadedAt ?? this.uploadedAt,
+  );
+  AttachmentUploadPart copyWithCompanion(AttachmentUploadPartsCompanion data) {
+    return AttachmentUploadPart(
+      attachmentId: data.attachmentId.present
+          ? data.attachmentId.value
+          : this.attachmentId,
+      partNumber: data.partNumber.present
+          ? data.partNumber.value
+          : this.partNumber,
+      etag: data.etag.present ? data.etag.value : this.etag,
+      byteStart: data.byteStart.present ? data.byteStart.value : this.byteStart,
+      byteEnd: data.byteEnd.present ? data.byteEnd.value : this.byteEnd,
+      uploadedAt: data.uploadedAt.present
+          ? data.uploadedAt.value
+          : this.uploadedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AttachmentUploadPart(')
+          ..write('attachmentId: $attachmentId, ')
+          ..write('partNumber: $partNumber, ')
+          ..write('etag: $etag, ')
+          ..write('byteStart: $byteStart, ')
+          ..write('byteEnd: $byteEnd, ')
+          ..write('uploadedAt: $uploadedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    attachmentId,
+    partNumber,
+    etag,
+    byteStart,
+    byteEnd,
+    uploadedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is AttachmentUploadPart &&
+          other.attachmentId == this.attachmentId &&
+          other.partNumber == this.partNumber &&
+          other.etag == this.etag &&
+          other.byteStart == this.byteStart &&
+          other.byteEnd == this.byteEnd &&
+          other.uploadedAt == this.uploadedAt);
+}
+
+class AttachmentUploadPartsCompanion
+    extends UpdateCompanion<AttachmentUploadPart> {
+  final Value<String> attachmentId;
+  final Value<int> partNumber;
+  final Value<String> etag;
+  final Value<int> byteStart;
+  final Value<int> byteEnd;
+  final Value<DateTime> uploadedAt;
+  final Value<int> rowid;
+  const AttachmentUploadPartsCompanion({
+    this.attachmentId = const Value.absent(),
+    this.partNumber = const Value.absent(),
+    this.etag = const Value.absent(),
+    this.byteStart = const Value.absent(),
+    this.byteEnd = const Value.absent(),
+    this.uploadedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  AttachmentUploadPartsCompanion.insert({
+    required String attachmentId,
+    required int partNumber,
+    required String etag,
+    required int byteStart,
+    required int byteEnd,
+    required DateTime uploadedAt,
+    this.rowid = const Value.absent(),
+  }) : attachmentId = Value(attachmentId),
+       partNumber = Value(partNumber),
+       etag = Value(etag),
+       byteStart = Value(byteStart),
+       byteEnd = Value(byteEnd),
+       uploadedAt = Value(uploadedAt);
+  static Insertable<AttachmentUploadPart> custom({
+    Expression<String>? attachmentId,
+    Expression<int>? partNumber,
+    Expression<String>? etag,
+    Expression<int>? byteStart,
+    Expression<int>? byteEnd,
+    Expression<DateTime>? uploadedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (attachmentId != null) 'attachment_id': attachmentId,
+      if (partNumber != null) 'part_number': partNumber,
+      if (etag != null) 'etag': etag,
+      if (byteStart != null) 'byte_start': byteStart,
+      if (byteEnd != null) 'byte_end': byteEnd,
+      if (uploadedAt != null) 'uploaded_at': uploadedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  AttachmentUploadPartsCompanion copyWith({
+    Value<String>? attachmentId,
+    Value<int>? partNumber,
+    Value<String>? etag,
+    Value<int>? byteStart,
+    Value<int>? byteEnd,
+    Value<DateTime>? uploadedAt,
+    Value<int>? rowid,
+  }) {
+    return AttachmentUploadPartsCompanion(
+      attachmentId: attachmentId ?? this.attachmentId,
+      partNumber: partNumber ?? this.partNumber,
+      etag: etag ?? this.etag,
+      byteStart: byteStart ?? this.byteStart,
+      byteEnd: byteEnd ?? this.byteEnd,
+      uploadedAt: uploadedAt ?? this.uploadedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (attachmentId.present) {
+      map['attachment_id'] = Variable<String>(attachmentId.value);
+    }
+    if (partNumber.present) {
+      map['part_number'] = Variable<int>(partNumber.value);
+    }
+    if (etag.present) {
+      map['etag'] = Variable<String>(etag.value);
+    }
+    if (byteStart.present) {
+      map['byte_start'] = Variable<int>(byteStart.value);
+    }
+    if (byteEnd.present) {
+      map['byte_end'] = Variable<int>(byteEnd.value);
+    }
+    if (uploadedAt.present) {
+      map['uploaded_at'] = Variable<DateTime>(uploadedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AttachmentUploadPartsCompanion(')
+          ..write('attachmentId: $attachmentId, ')
+          ..write('partNumber: $partNumber, ')
+          ..write('etag: $etag, ')
+          ..write('byteStart: $byteStart, ')
+          ..write('byteEnd: $byteEnd, ')
+          ..write('uploadedAt: $uploadedAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -4941,6 +5765,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
   late final $ItemsTable items = $ItemsTable(this);
   late final $AttachmentsTable attachments = $AttachmentsTable(this);
+  late final $AttachmentUploadPartsTable attachmentUploadParts =
+      $AttachmentUploadPartsTable(this);
   late final $ItemMetadataTable itemMetadata = $ItemMetadataTable(this);
   late final $CollectionsTable collections = $CollectionsTable(this);
   late final $CollectionItemsTable collectionItems = $CollectionItemsTable(
@@ -4979,6 +5805,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   List<DatabaseSchemaEntity> get allSchemaEntities => [
     items,
     attachments,
+    attachmentUploadParts,
     itemMetadata,
     collections,
     collectionItems,
@@ -5706,6 +6533,13 @@ typedef $$AttachmentsTableCreateCompanionBuilder =
       Value<int> uploadAttempts,
       Value<String?> uploadLastError,
       Value<String> downloadStatus,
+      Value<String> previewStatus,
+      Value<String> previewKind,
+      Value<String?> previewObjectKey,
+      Value<String?> thumbnailObjectKey,
+      Value<String?> extractedTextObjectKey,
+      Value<String?> previewError,
+      Value<int> previewVersion,
       Value<String> syncStatus,
       required DateTime createdAt,
       required DateTime updatedAt,
@@ -5732,6 +6566,13 @@ typedef $$AttachmentsTableUpdateCompanionBuilder =
       Value<int> uploadAttempts,
       Value<String?> uploadLastError,
       Value<String> downloadStatus,
+      Value<String> previewStatus,
+      Value<String> previewKind,
+      Value<String?> previewObjectKey,
+      Value<String?> thumbnailObjectKey,
+      Value<String?> extractedTextObjectKey,
+      Value<String?> previewError,
+      Value<int> previewVersion,
       Value<String> syncStatus,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
@@ -5758,6 +6599,31 @@ final class $$AttachmentsTableReferences
     if (item == null) return manager;
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static MultiTypedResultKey<
+    $AttachmentUploadPartsTable,
+    List<AttachmentUploadPart>
+  >
+  _attachmentUploadPartsRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.attachmentUploadParts,
+        aliasName: 'attachments__id__attachment_upload_parts__attachment_id',
+      );
+
+  $$AttachmentUploadPartsTableProcessedTableManager
+  get attachmentUploadPartsRefs {
+    final manager = $$AttachmentUploadPartsTableTableManager(
+      $_db,
+      $_db.attachmentUploadParts,
+    ).filter((f) => f.attachmentId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _attachmentUploadPartsRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
     );
   }
 }
@@ -5851,6 +6717,41 @@ class $$AttachmentsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<String> get previewStatus => $composableBuilder(
+    column: $table.previewStatus,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get previewKind => $composableBuilder(
+    column: $table.previewKind,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get previewObjectKey => $composableBuilder(
+    column: $table.previewObjectKey,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get thumbnailObjectKey => $composableBuilder(
+    column: $table.thumbnailObjectKey,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get extractedTextObjectKey => $composableBuilder(
+    column: $table.extractedTextObjectKey,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get previewError => $composableBuilder(
+    column: $table.previewError,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get previewVersion => $composableBuilder(
+    column: $table.previewVersion,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnFilters<String> get syncStatus => $composableBuilder(
     column: $table.syncStatus,
     builder: (column) => ColumnFilters(column),
@@ -5897,6 +6798,32 @@ class $$AttachmentsTableFilterComposer
           ),
     );
     return composer;
+  }
+
+  Expression<bool> attachmentUploadPartsRefs(
+    Expression<bool> Function($$AttachmentUploadPartsTableFilterComposer f) f,
+  ) {
+    final $$AttachmentUploadPartsTableFilterComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.attachmentUploadParts,
+          getReferencedColumn: (t) => t.attachmentId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$AttachmentUploadPartsTableFilterComposer(
+                $db: $db,
+                $table: $db.attachmentUploadParts,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
   }
 }
 
@@ -5986,6 +6913,41 @@ class $$AttachmentsTableOrderingComposer
 
   ColumnOrderings<String> get downloadStatus => $composableBuilder(
     column: $table.downloadStatus,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get previewStatus => $composableBuilder(
+    column: $table.previewStatus,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get previewKind => $composableBuilder(
+    column: $table.previewKind,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get previewObjectKey => $composableBuilder(
+    column: $table.previewObjectKey,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get thumbnailObjectKey => $composableBuilder(
+    column: $table.thumbnailObjectKey,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get extractedTextObjectKey => $composableBuilder(
+    column: $table.extractedTextObjectKey,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get previewError => $composableBuilder(
+    column: $table.previewError,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get previewVersion => $composableBuilder(
+    column: $table.previewVersion,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -6111,6 +7073,41 @@ class $$AttachmentsTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<String> get previewStatus => $composableBuilder(
+    column: $table.previewStatus,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get previewKind => $composableBuilder(
+    column: $table.previewKind,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get previewObjectKey => $composableBuilder(
+    column: $table.previewObjectKey,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get thumbnailObjectKey => $composableBuilder(
+    column: $table.thumbnailObjectKey,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get extractedTextObjectKey => $composableBuilder(
+    column: $table.extractedTextObjectKey,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get previewError => $composableBuilder(
+    column: $table.previewError,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get previewVersion => $composableBuilder(
+    column: $table.previewVersion,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<String> get syncStatus => $composableBuilder(
     column: $table.syncStatus,
     builder: (column) => column,
@@ -6152,6 +7149,32 @@ class $$AttachmentsTableAnnotationComposer
     );
     return composer;
   }
+
+  Expression<T> attachmentUploadPartsRefs<T extends Object>(
+    Expression<T> Function($$AttachmentUploadPartsTableAnnotationComposer a) f,
+  ) {
+    final $$AttachmentUploadPartsTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.attachmentUploadParts,
+          getReferencedColumn: (t) => t.attachmentId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$AttachmentUploadPartsTableAnnotationComposer(
+                $db: $db,
+                $table: $db.attachmentUploadParts,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
 }
 
 class $$AttachmentsTableTableManager
@@ -6167,7 +7190,7 @@ class $$AttachmentsTableTableManager
           $$AttachmentsTableUpdateCompanionBuilder,
           (Attachment, $$AttachmentsTableReferences),
           Attachment,
-          PrefetchHooks Function({bool itemId})
+          PrefetchHooks Function({bool itemId, bool attachmentUploadPartsRefs})
         > {
   $$AttachmentsTableTableManager(_$AppDatabase db, $AttachmentsTable table)
     : super(
@@ -6199,6 +7222,13 @@ class $$AttachmentsTableTableManager
                 Value<int> uploadAttempts = const Value.absent(),
                 Value<String?> uploadLastError = const Value.absent(),
                 Value<String> downloadStatus = const Value.absent(),
+                Value<String> previewStatus = const Value.absent(),
+                Value<String> previewKind = const Value.absent(),
+                Value<String?> previewObjectKey = const Value.absent(),
+                Value<String?> thumbnailObjectKey = const Value.absent(),
+                Value<String?> extractedTextObjectKey = const Value.absent(),
+                Value<String?> previewError = const Value.absent(),
+                Value<int> previewVersion = const Value.absent(),
                 Value<String> syncStatus = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
@@ -6223,6 +7253,13 @@ class $$AttachmentsTableTableManager
                 uploadAttempts: uploadAttempts,
                 uploadLastError: uploadLastError,
                 downloadStatus: downloadStatus,
+                previewStatus: previewStatus,
+                previewKind: previewKind,
+                previewObjectKey: previewObjectKey,
+                thumbnailObjectKey: thumbnailObjectKey,
+                extractedTextObjectKey: extractedTextObjectKey,
+                previewError: previewError,
+                previewVersion: previewVersion,
                 syncStatus: syncStatus,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
@@ -6249,6 +7286,13 @@ class $$AttachmentsTableTableManager
                 Value<int> uploadAttempts = const Value.absent(),
                 Value<String?> uploadLastError = const Value.absent(),
                 Value<String> downloadStatus = const Value.absent(),
+                Value<String> previewStatus = const Value.absent(),
+                Value<String> previewKind = const Value.absent(),
+                Value<String?> previewObjectKey = const Value.absent(),
+                Value<String?> thumbnailObjectKey = const Value.absent(),
+                Value<String?> extractedTextObjectKey = const Value.absent(),
+                Value<String?> previewError = const Value.absent(),
+                Value<int> previewVersion = const Value.absent(),
                 Value<String> syncStatus = const Value.absent(),
                 required DateTime createdAt,
                 required DateTime updatedAt,
@@ -6273,6 +7317,13 @@ class $$AttachmentsTableTableManager
                 uploadAttempts: uploadAttempts,
                 uploadLastError: uploadLastError,
                 downloadStatus: downloadStatus,
+                previewStatus: previewStatus,
+                previewKind: previewKind,
+                previewObjectKey: previewObjectKey,
+                thumbnailObjectKey: thumbnailObjectKey,
+                extractedTextObjectKey: extractedTextObjectKey,
+                previewError: previewError,
+                previewVersion: previewVersion,
                 syncStatus: syncStatus,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
@@ -6288,7 +7339,391 @@ class $$AttachmentsTableTableManager
                 ),
               )
               .toList(),
-          prefetchHooksCallback: ({itemId = false}) {
+          prefetchHooksCallback:
+              ({itemId = false, attachmentUploadPartsRefs = false}) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [
+                    if (attachmentUploadPartsRefs) db.attachmentUploadParts,
+                  ],
+                  addJoins:
+                      <
+                        T extends TableManagerState<
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic
+                        >
+                      >(state) {
+                        if (itemId) {
+                          state = state.withJoin(
+                            currentTable: table,
+                            currentColumn: table.itemId,
+                            referencedTable: $$AttachmentsTableReferences
+                                ._itemIdTable(db),
+                            referencedColumn: $$AttachmentsTableReferences
+                                ._itemIdTable(db)
+                                .id,
+                          ) as T;
+                        }
+
+                        return state;
+                      },
+                  getPrefetchedDataCallback: (items) async {
+                    return [
+                      if (attachmentUploadPartsRefs)
+                        await $_getPrefetchedData<
+                          Attachment,
+                          $AttachmentsTable,
+                          AttachmentUploadPart
+                        >(
+                          currentTable: table,
+                          referencedTable: $$AttachmentsTableReferences
+                              ._attachmentUploadPartsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$AttachmentsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).attachmentUploadPartsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.attachmentId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                    ];
+                  },
+                );
+              },
+        ),
+      );
+}
+
+typedef $$AttachmentsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $AttachmentsTable,
+      Attachment,
+      $$AttachmentsTableFilterComposer,
+      $$AttachmentsTableOrderingComposer,
+      $$AttachmentsTableAnnotationComposer,
+      $$AttachmentsTableCreateCompanionBuilder,
+      $$AttachmentsTableUpdateCompanionBuilder,
+      (Attachment, $$AttachmentsTableReferences),
+      Attachment,
+      PrefetchHooks Function({bool itemId, bool attachmentUploadPartsRefs})
+    >;
+typedef $$AttachmentUploadPartsTableCreateCompanionBuilder =
+    AttachmentUploadPartsCompanion Function({
+      required String attachmentId,
+      required int partNumber,
+      required String etag,
+      required int byteStart,
+      required int byteEnd,
+      required DateTime uploadedAt,
+      Value<int> rowid,
+    });
+typedef $$AttachmentUploadPartsTableUpdateCompanionBuilder =
+    AttachmentUploadPartsCompanion Function({
+      Value<String> attachmentId,
+      Value<int> partNumber,
+      Value<String> etag,
+      Value<int> byteStart,
+      Value<int> byteEnd,
+      Value<DateTime> uploadedAt,
+      Value<int> rowid,
+    });
+
+final class $$AttachmentUploadPartsTableReferences
+    extends
+        BaseReferences<
+          _$AppDatabase,
+          $AttachmentUploadPartsTable,
+          AttachmentUploadPart
+        > {
+  $$AttachmentUploadPartsTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $AttachmentsTable _attachmentIdTable(_$AppDatabase db) => db
+      .attachments
+      .createAlias('attachment_upload_parts__attachment_id__attachments__id');
+
+  $$AttachmentsTableProcessedTableManager get attachmentId {
+    final $_column = $_itemColumn<String>('attachment_id')!;
+
+    final manager = $$AttachmentsTableTableManager(
+      $_db,
+      $_db.attachments,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_attachmentIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$AttachmentUploadPartsTableFilterComposer
+    extends Composer<_$AppDatabase, $AttachmentUploadPartsTable> {
+  $$AttachmentUploadPartsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get partNumber => $composableBuilder(
+    column: $table.partNumber,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get etag => $composableBuilder(
+    column: $table.etag,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get byteStart => $composableBuilder(
+    column: $table.byteStart,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get byteEnd => $composableBuilder(
+    column: $table.byteEnd,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get uploadedAt => $composableBuilder(
+    column: $table.uploadedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$AttachmentsTableFilterComposer get attachmentId {
+    final $$AttachmentsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.attachmentId,
+      referencedTable: $db.attachments,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AttachmentsTableFilterComposer(
+            $db: $db,
+            $table: $db.attachments,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$AttachmentUploadPartsTableOrderingComposer
+    extends Composer<_$AppDatabase, $AttachmentUploadPartsTable> {
+  $$AttachmentUploadPartsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get partNumber => $composableBuilder(
+    column: $table.partNumber,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get etag => $composableBuilder(
+    column: $table.etag,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get byteStart => $composableBuilder(
+    column: $table.byteStart,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get byteEnd => $composableBuilder(
+    column: $table.byteEnd,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get uploadedAt => $composableBuilder(
+    column: $table.uploadedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$AttachmentsTableOrderingComposer get attachmentId {
+    final $$AttachmentsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.attachmentId,
+      referencedTable: $db.attachments,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AttachmentsTableOrderingComposer(
+            $db: $db,
+            $table: $db.attachments,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$AttachmentUploadPartsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $AttachmentUploadPartsTable> {
+  $$AttachmentUploadPartsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get partNumber => $composableBuilder(
+    column: $table.partNumber,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get etag =>
+      $composableBuilder(column: $table.etag, builder: (column) => column);
+
+  GeneratedColumn<int> get byteStart =>
+      $composableBuilder(column: $table.byteStart, builder: (column) => column);
+
+  GeneratedColumn<int> get byteEnd =>
+      $composableBuilder(column: $table.byteEnd, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get uploadedAt => $composableBuilder(
+    column: $table.uploadedAt,
+    builder: (column) => column,
+  );
+
+  $$AttachmentsTableAnnotationComposer get attachmentId {
+    final $$AttachmentsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.attachmentId,
+      referencedTable: $db.attachments,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AttachmentsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.attachments,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$AttachmentUploadPartsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $AttachmentUploadPartsTable,
+          AttachmentUploadPart,
+          $$AttachmentUploadPartsTableFilterComposer,
+          $$AttachmentUploadPartsTableOrderingComposer,
+          $$AttachmentUploadPartsTableAnnotationComposer,
+          $$AttachmentUploadPartsTableCreateCompanionBuilder,
+          $$AttachmentUploadPartsTableUpdateCompanionBuilder,
+          (AttachmentUploadPart, $$AttachmentUploadPartsTableReferences),
+          AttachmentUploadPart,
+          PrefetchHooks Function({bool attachmentId})
+        > {
+  $$AttachmentUploadPartsTableTableManager(
+    _$AppDatabase db,
+    $AttachmentUploadPartsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$AttachmentUploadPartsTableFilterComposer(
+                $db: db,
+                $table: table,
+              ),
+          createOrderingComposer: () =>
+              $$AttachmentUploadPartsTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$AttachmentUploadPartsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> attachmentId = const Value.absent(),
+                Value<int> partNumber = const Value.absent(),
+                Value<String> etag = const Value.absent(),
+                Value<int> byteStart = const Value.absent(),
+                Value<int> byteEnd = const Value.absent(),
+                Value<DateTime> uploadedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => AttachmentUploadPartsCompanion(
+                attachmentId: attachmentId,
+                partNumber: partNumber,
+                etag: etag,
+                byteStart: byteStart,
+                byteEnd: byteEnd,
+                uploadedAt: uploadedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String attachmentId,
+                required int partNumber,
+                required String etag,
+                required int byteStart,
+                required int byteEnd,
+                required DateTime uploadedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => AttachmentUploadPartsCompanion.insert(
+                attachmentId: attachmentId,
+                partNumber: partNumber,
+                etag: etag,
+                byteStart: byteStart,
+                byteEnd: byteEnd,
+                uploadedAt: uploadedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$AttachmentUploadPartsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({attachmentId = false}) {
             return PrefetchHooks(
               db: db,
               explicitlyWatchedTables: [],
@@ -6308,14 +7743,14 @@ class $$AttachmentsTableTableManager
                       dynamic
                     >
                   >(state) {
-                    if (itemId) {
+                    if (attachmentId) {
                       state = state.withJoin(
                         currentTable: table,
-                        currentColumn: table.itemId,
-                        referencedTable: $$AttachmentsTableReferences
-                            ._itemIdTable(db),
-                        referencedColumn: $$AttachmentsTableReferences
-                            ._itemIdTable(db)
+                        currentColumn: table.attachmentId,
+                        referencedTable: $$AttachmentUploadPartsTableReferences
+                            ._attachmentIdTable(db),
+                        referencedColumn: $$AttachmentUploadPartsTableReferences
+                            ._attachmentIdTable(db)
                             .id,
                       ) as T;
                     }
@@ -6331,19 +7766,19 @@ class $$AttachmentsTableTableManager
       );
 }
 
-typedef $$AttachmentsTableProcessedTableManager =
+typedef $$AttachmentUploadPartsTableProcessedTableManager =
     ProcessedTableManager<
       _$AppDatabase,
-      $AttachmentsTable,
-      Attachment,
-      $$AttachmentsTableFilterComposer,
-      $$AttachmentsTableOrderingComposer,
-      $$AttachmentsTableAnnotationComposer,
-      $$AttachmentsTableCreateCompanionBuilder,
-      $$AttachmentsTableUpdateCompanionBuilder,
-      (Attachment, $$AttachmentsTableReferences),
-      Attachment,
-      PrefetchHooks Function({bool itemId})
+      $AttachmentUploadPartsTable,
+      AttachmentUploadPart,
+      $$AttachmentUploadPartsTableFilterComposer,
+      $$AttachmentUploadPartsTableOrderingComposer,
+      $$AttachmentUploadPartsTableAnnotationComposer,
+      $$AttachmentUploadPartsTableCreateCompanionBuilder,
+      $$AttachmentUploadPartsTableUpdateCompanionBuilder,
+      (AttachmentUploadPart, $$AttachmentUploadPartsTableReferences),
+      AttachmentUploadPart,
+      PrefetchHooks Function({bool attachmentId})
     >;
 typedef $$ItemMetadataTableCreateCompanionBuilder =
     ItemMetadataCompanion Function({
@@ -8187,6 +9622,8 @@ class $AppDatabaseManager {
       $$ItemsTableTableManager(_db, _db.items);
   $$AttachmentsTableTableManager get attachments =>
       $$AttachmentsTableTableManager(_db, _db.attachments);
+  $$AttachmentUploadPartsTableTableManager get attachmentUploadParts =>
+      $$AttachmentUploadPartsTableTableManager(_db, _db.attachmentUploadParts);
   $$ItemMetadataTableTableManager get itemMetadata =>
       $$ItemMetadataTableTableManager(_db, _db.itemMetadata);
   $$CollectionsTableTableManager get collections =>
