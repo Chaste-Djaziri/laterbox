@@ -794,6 +794,16 @@ class AppDatabase extends _$AppDatabase {
     );
   }
 
+  Future<void> retryAttachmentUpload(String id) {
+    return (update(attachments)..where((row) => row.id.equals(id))).write(
+      const AttachmentsCompanion(
+        uploadStatus: Value('pending'),
+        uploadLastError: Value(null),
+        syncStatus: Value('pending'),
+      ),
+    );
+  }
+
   Future<void> markAttachmentSynced(String id, DateTime syncedAt) {
     return (update(attachments)..where((row) => row.id.equals(id))).write(
       AttachmentsCompanion(
