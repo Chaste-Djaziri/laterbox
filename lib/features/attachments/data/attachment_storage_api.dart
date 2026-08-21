@@ -73,7 +73,6 @@ class AttachmentStorageApi {
         'action': 'create-multipart-upload',
       });
       final uploadId = _requiredString(init, 'uploadId');
-      final objectKey = _requiredString(init, 'objectKey');
       final parts = <Map<String, dynamic>>[];
 
       final fileSize = await file.length();
@@ -118,7 +117,7 @@ class AttachmentStorageApi {
       });
 
       return _requiredString(completed, 'objectKey');
-    } on Object catch (error) {
+    } on Object {
       // Fallback to single-part stream upload if server unsupported
       return _uploadSinglePart(attachment, file.openRead());
     }
