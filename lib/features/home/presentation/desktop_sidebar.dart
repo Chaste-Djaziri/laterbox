@@ -43,7 +43,7 @@ class _DesktopSidebarState extends ConsumerState<DesktopSidebar> {
         color: theme.colorScheme.surface,
         border: Border(
           right: BorderSide(
-            color: theme.colorScheme.outlineVariant.withOpacity(0.5),
+            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
             width: 1,
           ),
         ),
@@ -68,7 +68,7 @@ class _DesktopSidebarState extends ConsumerState<DesktopSidebar> {
                       height: 34,
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(10),
-                        color: theme.colorScheme.primaryContainer.withOpacity(0.6),
+                        color: theme.colorScheme.primaryContainer.withValues(alpha: 0.6),
                       ),
                       padding: const EdgeInsets.all(4),
                       child: ClipRRect(
@@ -222,7 +222,7 @@ class _DesktopSidebarState extends ConsumerState<DesktopSidebar> {
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
                       color: theme.colorScheme.surfaceContainerHighest
-                          .withOpacity(0.4),
+                          .withValues(alpha: 0.4),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Row(
@@ -308,9 +308,9 @@ class _SidebarTabItemState extends State<_SidebarTabItem> {
 
     final colorScheme = theme.colorScheme;
     final backgroundColor = isSelected
-        ? colorScheme.primaryContainer.withOpacity(0.7)
+        ? colorScheme.primaryContainer.withValues(alpha: 0.7)
         : (_isHovered
-            ? colorScheme.surfaceContainerHighest.withOpacity(0.6)
+            ? colorScheme.surfaceContainerHighest.withValues(alpha: 0.6)
             : Colors.transparent);
 
     final foregroundColor = isSelected
