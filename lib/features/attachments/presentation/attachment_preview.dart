@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -11,11 +12,13 @@ class AttachmentCardPreview extends StatelessWidget {
   const AttachmentCardPreview({
     super.key,
     required this.attachments,
-    required this.storage,
+    this.storage,
+    this.remoteImageUrl,
   });
 
   final List<Attachment> attachments;
-  final AttachmentStorage storage;
+  final AttachmentStorage? storage;
+  final String? remoteImageUrl;
 
   @override
   Widget build(BuildContext context) {
@@ -34,7 +37,11 @@ class AttachmentCardPreview extends StatelessWidget {
           fit: StackFit.expand,
           children: [
             if (attachment.mimeType.startsWith('image/'))
-              _LocalImage(path: path, attachment: attachment)
+              _LocalImage(
+                path: path,
+                remoteUrl: remoteImageUrl,
+                attachment: attachment,
+              )
             else
               _FilePreviewSurface(attachment: attachment),
             if (additionalCount > 0)
@@ -74,13 +81,15 @@ class AttachmentDetailPreview extends StatelessWidget {
     this.showGallery = true,
     this.showList = true,
     this.resolveRemotePath,
+    this.remoteImageUrls = const {},
   });
 
   final List<Attachment> attachments;
-  final AttachmentStorage storage;
+  final AttachmentStorage? storage;
   final bool showGallery;
   final bool showList;
   final Future<String> Function(Attachment attachment)? resolveRemotePath;
+  final Map<String, String> remoteImageUrls;
 
   @override
   Widget build(BuildContext context) {
@@ -96,7 +105,11 @@ class AttachmentDetailPreview extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (showGallery && images.isNotEmpty)
-          _ImageGallery(images: images, storage: storage),
+          _ImageGallery(
+            images: images,
+            storage: storage,
+            remoteImageUrls: remoteImageUrls,
+          ),
         if (showList) ...[
           Padding(
             padding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
@@ -121,10 +134,15 @@ class AttachmentDetailPreview extends StatelessWidget {
 }
 
 class _ImageGallery extends StatefulWidget {
-  const _ImageGallery({required this.images, required this.storage});
+  const _ImageGallery({
+    required this.images,
+    required this.storage,
+    required this.remoteImageUrls,
+  });
 
   final List<Attachment> images;
-  final AttachmentStorage storage;
+  final AttachmentStorage? storage;
+  final Map<String, String> remoteImageUrls;
 
   @override
   State<_ImageGallery> createState() => _ImageGalleryState();
@@ -147,6 +165,7 @@ class _ImageGalleryState extends State<_ImageGallery> {
             color: Theme.of(context).colorScheme.surfaceContainerHighest,
             child: _LocalImage(
               path: selectedPath,
+              remoteUrl: widget.remoteImageUrls[selected.id],
               attachment: selected,
               fit: BoxFit.contain,
             ),
@@ -185,6 +204,7 @@ class _ImageGalleryState extends State<_ImageGallery> {
                       ),
                       child: _LocalImage(
                         path: _resolvedPath(widget.storage, attachment),
+                        remoteUrl: widget.remoteImageUrls[attachment.id],
                         attachment: attachment,
                       ),
                     ),
@@ -264,23 +284,37 @@ class _AttachmentRow extends StatelessWidget {
 class _LocalImage extends StatelessWidget {
   const _LocalImage({
     required this.path,
+    this.remoteUrl,
     required this.attachment,
     this.fit = BoxFit.cover,
   });
 
   final String? path;
+  final String? remoteUrl;
   final Attachment attachment;
   final BoxFit fit;
 
   @override
   Widget build(BuildContext context) {
     final path = this.path;
-    if (path == null) {
+    if (!kIsWeb && path != null) {
+      return Image.file(
+        File(path),
+        key: ValueKey('attachmentImage:${attachment.id}:$path'),
+        fit: fit,
+        gaplessPlayback: true,
+        semanticLabel: attachment.originalFileName,
+        errorBuilder: (context, error, stackTrace) =>
+            _FilePreviewSurface(attachment: attachment, unavailable: true),
+      );
+    }
+    final remoteUrl = this.remoteUrl;
+    if (remoteUrl == null) {
       return _FilePreviewSurface(attachment: attachment, unavailable: true);
     }
-    return Image.file(
-      File(path),
-      key: ValueKey('attachmentImage:${attachment.id}'),
+    return Image.network(
+      remoteUrl,
+      key: ValueKey('attachmentImage:${attachment.id}:remote'),
       fit: fit,
       gaplessPlayback: true,
       semanticLabel: attachment.originalFileName,
@@ -290,9 +324,11 @@ class _LocalImage extends StatelessWidget {
   }
 }
 
-String? _resolvedPath(AttachmentStorage storage, Attachment attachment) {
+String? _resolvedPath(AttachmentStorage? storage, Attachment attachment) {
   final localPath = attachment.localPath;
-  return localPath == null ? null : storage.resolveLocalPath(localPath);
+  return localPath == null || storage == null
+      ? null
+      : storage.resolveLocalPath(localPath);
 }
 
 class _FilePreviewSurface extends StatelessWidget {
