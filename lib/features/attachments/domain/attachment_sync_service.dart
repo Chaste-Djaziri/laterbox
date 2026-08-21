@@ -51,13 +51,16 @@ class AttachmentSyncService {
     for (final attachment in uploads) {
       final storage = _storage;
       final localPath = attachment.localPath;
-      if (localPath == null || storage == null) continue;
+      final localBytes = attachment.localBytes;
+      if (localPath == null && localBytes == null) continue;
       try {
         await _database.markAttachmentUploading(attachment.id);
-        final objectKey = await _storageApi.upload(
-          attachment,
-          storage.resolveLocalPath(localPath),
-        );
+        final objectKey = localBytes != null
+            ? await _storageApi.uploadBytes(attachment, localBytes)
+            : await _storageApi.upload(
+                attachment,
+                storage!.resolveLocalPath(localPath!),
+              );
         await _database.markAttachmentUploaded(attachment.id, objectKey);
         uploaded++;
       } catch (error) {
