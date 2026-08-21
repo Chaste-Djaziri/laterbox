@@ -6,9 +6,11 @@ import '../../../core/auth/auth_provider.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/database/database_providers.dart';
 import '../../../core/sync/sync_providers.dart';
+import '../../../core/supabase/supabase_provider.dart';
 import '../data/attachment_file_picker.dart';
 import '../data/attachment_repository.dart';
 import '../data/attachment_storage.dart';
+import '../data/attachment_storage_api.dart';
 import '../domain/attachment_file_policy.dart';
 import '../domain/attachment_import_service.dart';
 
@@ -33,9 +35,17 @@ final attachmentRepositoryProvider = FutureProvider<AttachmentRepository>((
 
 final attachmentsForItemProvider =
     StreamProvider.family<List<Attachment>, String>((ref, itemId) async* {
-      final repository = await ref.watch(attachmentRepositoryProvider.future);
       final userId = ref.watch(activeUserIdProvider);
-      yield* repository.watchForItem(itemId, userId);
+      yield* ref
+          .watch(appDatabaseProvider)
+          .watchAttachmentsForItem(itemId, userId);
+    });
+
+final attachmentPreviewUrlProvider = FutureProvider.autoDispose
+    .family<String?, String>((ref, attachmentId) async {
+      final client = ref.watch(supabaseClientProvider);
+      if (client == null) return null;
+      return AttachmentStorageApi(client).prepareDownloadUrl(attachmentId);
     });
 
 final attachmentImportServiceProvider = FutureProvider<AttachmentImportService>(
