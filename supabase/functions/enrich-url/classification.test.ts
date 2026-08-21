@@ -6,8 +6,18 @@ import {
   classifyByOgType,
   extractJsonLd,
   extractOgType,
+  handler,
   typeByJsonLdType,
 } from "./index.ts";
+
+Deno.test("OPTIONS returns an empty successful preflight", async () => {
+  const response = await handler(
+    new Request("https://example.test/enrich-url", { method: "OPTIONS" }),
+  );
+
+  assertEquals(response.status, 204);
+  assertEquals(await response.text(), "");
+});
 
 Deno.test("extractJsonLd parses a single object", () => {
   const html = `<script type="application/ld+json">
