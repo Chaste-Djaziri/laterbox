@@ -44,7 +44,7 @@ class AttachmentStorageApi {
         'content-type': attachment.mimeType,
         'x-amz-meta-sha256': attachment.sha256,
         'x-amz-meta-attachment-id': attachment.id,
-        'x-amz-meta-user-id': attachment.userId!,
+        'x-amz-meta-user-id': attachment.userId ?? '',
       });
     await request.sink.addStream(bytes);
     await request.sink.close();
@@ -166,11 +166,25 @@ class AttachmentStorageApi {
       'attachment-storage',
       body: body,
     );
+    if (response.status < 200 || response.status >= 300) {
+      final errorMsg = response.data is Map &&
+              (response.data as Map).containsKey('error')
+          ? (response.data as Map)['error']
+          : response.data?.toString() ??
+              'Function returned HTTP ${response.status}';
+      throw HttpException('Storage function error: $errorMsg');
+    }
     final data = response.data;
     if (data is! Map) {
-      throw const FormatException('Invalid attachment storage response.');
+      throw FormatException(
+        'Invalid attachment storage response (${response.status}): $data',
+      );
     }
-    return Map<String, dynamic>.from(data);
+    final map = Map<String, dynamic>.from(data);
+    if (map.containsKey('error') && map['error'] != null) {
+      throw HttpException('Storage error: ${map['error']}');
+    }
+    return map;
   }
 
   Map<String, Object?> _attachmentBody(Attachment attachment) => {
