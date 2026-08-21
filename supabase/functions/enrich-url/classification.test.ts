@@ -19,6 +19,25 @@ Deno.test("OPTIONS returns an empty successful preflight", async () => {
   assertEquals(await response.text(), "");
 });
 
+Deno.test("upstream rate limits remain HTTP 429", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = () => Promise.resolve(new Response(null, { status: 429 }));
+  try {
+    const response = await handler(
+      new Request("https://example.test/enrich-url", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ url: "https://93.184.216.34" }),
+      }),
+    );
+
+    assertEquals(response.status, 429);
+    assertEquals(await response.json(), { error: "Rate limited" });
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 Deno.test("extractJsonLd parses a single object", () => {
   const html = `<script type="application/ld+json">
     { "@type": "Article", "headline": "Hello" }
