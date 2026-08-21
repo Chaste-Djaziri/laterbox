@@ -183,7 +183,7 @@ final class ShareViewController: NSViewController {
 
     private func finishWithFailure(_ message: String) {
         statusLabel.stringValue = message
-        let error = NSError(domain: "com.example.laterbox.ShareExtension", code: 1,
+        let error = NSError(domain: "pro.micorp.laterbox.ShareExtension", code: 1,
                             userInfo: [NSLocalizedDescriptionKey: message])
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { [weak self] in
             self?.extensionContext?.cancelRequest(withError: error)
@@ -225,5 +225,5 @@ final class ShareViewController: NSViewController {
 }
 
 enum AppGroup {
-    static let identifier = "group.com.example.laterbox"
+    static let identifier = "group.pro.micorp.laterbox"
 }
