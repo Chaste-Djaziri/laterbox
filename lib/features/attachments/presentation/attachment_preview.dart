@@ -73,12 +73,14 @@ class AttachmentDetailPreview extends StatelessWidget {
     required this.storage,
     this.showGallery = true,
     this.showList = true,
+    this.resolveRemotePath,
   });
 
   final List<Attachment> attachments;
   final AttachmentStorage storage;
   final bool showGallery;
   final bool showList;
+  final Future<String> Function(Attachment attachment)? resolveRemotePath;
 
   @override
   Widget build(BuildContext context) {
@@ -110,6 +112,7 @@ class AttachmentDetailPreview extends StatelessWidget {
             _AttachmentRow(
               attachment: attachment,
               path: _resolvedPath(storage, attachment),
+              resolveRemotePath: resolveRemotePath,
             ),
         ],
       ],
@@ -196,10 +199,15 @@ class _ImageGalleryState extends State<_ImageGallery> {
 }
 
 class _AttachmentRow extends StatelessWidget {
-  const _AttachmentRow({required this.attachment, required this.path});
+  const _AttachmentRow({
+    required this.attachment,
+    required this.path,
+    required this.resolveRemotePath,
+  });
 
   final Attachment attachment;
   final String? path;
+  final Future<String> Function(Attachment attachment)? resolveRemotePath;
 
   @override
   Widget build(BuildContext context) {
@@ -226,15 +234,30 @@ class _AttachmentRow extends StatelessWidget {
         trailing: IconButton(
           tooltip: 'Open ${attachment.originalFileName}',
           icon: const Icon(Icons.open_in_new_rounded),
-          onPressed: path == null
+          onPressed: path == null && resolveRemotePath == null
               ? null
-              : () => openLocalAttachment(context, path!, attachment.mimeType),
+              : () => _open(context),
         ),
-        onTap: path == null
+        onTap: path == null && resolveRemotePath == null
             ? null
-            : () => openLocalAttachment(context, path!, attachment.mimeType),
+            : () => _open(context),
       ),
     );
+  }
+
+  Future<void> _open(BuildContext context) async {
+    try {
+      final resolved = path ?? await resolveRemotePath!(attachment);
+      if (context.mounted) {
+        await openLocalAttachment(context, resolved, attachment.mimeType);
+      }
+    } on Object {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not download this attachment.')),
+        );
+      }
+    }
   }
 }
 
