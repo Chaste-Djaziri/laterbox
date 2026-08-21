@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -110,10 +109,10 @@ class _LandingHeader extends ConsumerWidget {
         vertical: isMobile ? 12 : 16,
       ),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surface.withOpacity(0.94),
+        color: theme.colorScheme.surface.withValues(alpha: 0.94),
         border: Border(
           bottom: BorderSide(
-            color: theme.colorScheme.outlineVariant.withOpacity(0.3),
+            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
             width: 1,
           ),
         ),
@@ -270,7 +269,7 @@ class _HeaderNavLinkState extends State<_HeaderNavLink> {
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
             color: _isHovered
-                ? theme.colorScheme.primaryContainer.withOpacity(0.5)
+                ? theme.colorScheme.primaryContainer.withValues(alpha: 0.5)
                 : Colors.transparent,
             borderRadius: BorderRadius.circular(8),
           ),
@@ -316,10 +315,10 @@ class _HeroSection extends ConsumerWidget {
               vertical: isMobile ? 6 : 8,
             ),
             decoration: BoxDecoration(
-              color: theme.colorScheme.primaryContainer.withOpacity(0.5),
+              color: theme.colorScheme.primaryContainer.withValues(alpha: 0.5),
               borderRadius: BorderRadius.circular(100),
               border: Border.all(
-                color: theme.colorScheme.primary.withOpacity(0.25),
+                color: theme.colorScheme.primary.withValues(alpha: 0.25),
               ),
             ),
             child: Row(
@@ -435,11 +434,12 @@ class _HeroSection extends ConsumerWidget {
                 color: theme.colorScheme.surfaceContainerLowest,
                 borderRadius: BorderRadius.circular(isMobile ? 18 : 24),
                 border: Border.all(
-                  color: theme.colorScheme.outlineVariant.withOpacity(0.6),
+                  color: theme.colorScheme.outlineVariant.withValues(alpha: 0.6),
+                  width: 1,
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: theme.colorScheme.shadow.withOpacity(0.06),
+                    color: theme.colorScheme.shadow.withValues(alpha: 0.06),
                     blurRadius: 28,
                     offset: const Offset(0, 14),
                   ),
@@ -484,7 +484,7 @@ class _HeroSection extends ConsumerWidget {
                           ),
                           decoration: BoxDecoration(
                             color: theme.colorScheme.surfaceContainerHighest
-                                .withOpacity(0.4),
+                                .withValues(alpha: 0.4),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
@@ -578,7 +578,7 @@ class _DemoCardMockup extends StatelessWidget {
         color: theme.colorScheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: theme.colorScheme.outlineVariant.withOpacity(0.4),
+          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
         ),
       ),
       child: Column(
@@ -695,11 +695,12 @@ class _FeaturesSection extends StatelessWidget {
           color: theme.colorScheme.surface,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: theme.colorScheme.outlineVariant.withOpacity(0.5),
+            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
+            width: 1,
           ),
           boxShadow: [
             BoxShadow(
-              color: theme.colorScheme.shadow.withOpacity(0.02),
+              color: theme.colorScheme.shadow.withValues(alpha: 0.02),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -960,7 +961,7 @@ class _HowItWorksSection extends StatelessWidget {
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
                       color:
-                          theme.colorScheme.outlineVariant.withOpacity(0.5),
+                          theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
                     ),
                   ),
                   child: Column(
@@ -1047,7 +1048,7 @@ class _AboutSection extends StatelessWidget {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.primaryContainer.withOpacity(0.5),
+                  color: theme.colorScheme.primaryContainer.withValues(alpha: 0.5),
                   borderRadius: BorderRadius.circular(100),
                 ),
                 child: Text(
@@ -1104,7 +1105,7 @@ class _AboutSection extends StatelessWidget {
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
                               color: theme.colorScheme.outlineVariant
-                                  .withOpacity(0.5),
+                                  .withValues(alpha: 0.5),
                             ),
                           ),
                           child: Column(
@@ -1158,7 +1159,7 @@ class _AboutSection extends StatelessWidget {
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
                               color: theme.colorScheme.outlineVariant
-                                  .withOpacity(0.5),
+                                  .withValues(alpha: 0.5),
                             ),
                           ),
                           child: Column(
@@ -1251,7 +1252,7 @@ class _CtaBannerSection extends StatelessWidget {
             'Start saving your favorite links, articles, and notes today.',
             textAlign: TextAlign.center,
             style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onPrimary.withOpacity(0.9),
+              color: theme.colorScheme.onPrimary.withValues(alpha: 0.9),
             ),
           ),
           const SizedBox(height: 28),
@@ -1305,7 +1306,7 @@ class _LandingFooter extends StatelessWidget {
         color: theme.colorScheme.surface,
         border: Border(
           top: BorderSide(
-            color: theme.colorScheme.outlineVariant.withOpacity(0.4),
+            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
           ),
         ),
       ),
@@ -1401,7 +1402,7 @@ class _LandingFooter extends StatelessWidget {
                 ),
               const SizedBox(height: 48),
               Divider(
-                color: theme.colorScheme.outlineVariant.withOpacity(0.4),
+                color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
               ),
               const SizedBox(height: 20),
               Flex(
@@ -1549,10 +1550,10 @@ class _PlatformChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.5),
+        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: theme.colorScheme.outlineVariant.withOpacity(0.4),
+          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
         ),
       ),
       child: Row(
