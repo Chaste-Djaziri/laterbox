@@ -1,5 +1,3 @@
-import 'dart:io';
-
 class NativeSharePayload {
   const NativeSharePayload({
     required this.id,
