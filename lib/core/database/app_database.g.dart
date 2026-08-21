@@ -913,6 +913,17 @@ class $AttachmentsTable extends Attachments
     requiredDuringInsert: false,
     defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'),
   );
+  static const VerificationMeta _localBytesMeta = const VerificationMeta(
+    'localBytes',
+  );
+  @override
+  late final GeneratedColumn<Uint8List> localBytes = GeneratedColumn<Uint8List>(
+    'local_bytes',
+    aliasedName,
+    true,
+    type: DriftSqlType.blob,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _r2ObjectKeyMeta = const VerificationMeta(
     'r2ObjectKey',
   );
@@ -1063,6 +1074,7 @@ class $AttachmentsTable extends Attachments
     byteSize,
     sha256,
     localPath,
+    localBytes,
     r2ObjectKey,
     width,
     height,
@@ -1157,6 +1169,12 @@ class $AttachmentsTable extends Attachments
       context.handle(
         _localPathMeta,
         localPath.isAcceptableOrUnknown(data['local_path']!, _localPathMeta),
+      );
+    }
+    if (data.containsKey('local_bytes')) {
+      context.handle(
+        _localBytesMeta,
+        localBytes.isAcceptableOrUnknown(data['local_bytes']!, _localBytesMeta),
       );
     }
     if (data.containsKey('r2_object_key')) {
@@ -1298,6 +1316,10 @@ class $AttachmentsTable extends Attachments
         DriftSqlType.string,
         data['${effectivePrefix}local_path'],
       ),
+      localBytes: attachedDatabase.typeMapping.read(
+        DriftSqlType.blob,
+        data['${effectivePrefix}local_bytes'],
+      ),
       r2ObjectKey: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}r2_object_key'],
@@ -1365,6 +1387,7 @@ class Attachment extends DataClass implements Insertable<Attachment> {
   final int byteSize;
   final String sha256;
   final String? localPath;
+  final Uint8List? localBytes;
   final String? r2ObjectKey;
   final int? width;
   final int? height;
@@ -1387,6 +1410,7 @@ class Attachment extends DataClass implements Insertable<Attachment> {
     required this.byteSize,
     required this.sha256,
     this.localPath,
+    this.localBytes,
     this.r2ObjectKey,
     this.width,
     this.height,
@@ -1415,6 +1439,9 @@ class Attachment extends DataClass implements Insertable<Attachment> {
     map['sha256'] = Variable<String>(sha256);
     if (!nullToAbsent || localPath != null) {
       map['local_path'] = Variable<String>(localPath);
+    }
+    if (!nullToAbsent || localBytes != null) {
+      map['local_bytes'] = Variable<Uint8List>(localBytes);
     }
     if (!nullToAbsent || r2ObjectKey != null) {
       map['r2_object_key'] = Variable<String>(r2ObjectKey);
@@ -1458,6 +1485,9 @@ class Attachment extends DataClass implements Insertable<Attachment> {
       localPath: localPath == null && nullToAbsent
           ? const Value.absent()
           : Value(localPath),
+      localBytes: localBytes == null && nullToAbsent
+          ? const Value.absent()
+          : Value(localBytes),
       r2ObjectKey: r2ObjectKey == null && nullToAbsent
           ? const Value.absent()
           : Value(r2ObjectKey),
@@ -1500,6 +1530,7 @@ class Attachment extends DataClass implements Insertable<Attachment> {
       byteSize: serializer.fromJson<int>(json['byteSize']),
       sha256: serializer.fromJson<String>(json['sha256']),
       localPath: serializer.fromJson<String?>(json['localPath']),
+      localBytes: serializer.fromJson<Uint8List?>(json['localBytes']),
       r2ObjectKey: serializer.fromJson<String?>(json['r2ObjectKey']),
       width: serializer.fromJson<int?>(json['width']),
       height: serializer.fromJson<int?>(json['height']),
@@ -1527,6 +1558,7 @@ class Attachment extends DataClass implements Insertable<Attachment> {
       'byteSize': serializer.toJson<int>(byteSize),
       'sha256': serializer.toJson<String>(sha256),
       'localPath': serializer.toJson<String?>(localPath),
+      'localBytes': serializer.toJson<Uint8List?>(localBytes),
       'r2ObjectKey': serializer.toJson<String?>(r2ObjectKey),
       'width': serializer.toJson<int?>(width),
       'height': serializer.toJson<int?>(height),
@@ -1552,6 +1584,7 @@ class Attachment extends DataClass implements Insertable<Attachment> {
     int? byteSize,
     String? sha256,
     Value<String?> localPath = const Value.absent(),
+    Value<Uint8List?> localBytes = const Value.absent(),
     Value<String?> r2ObjectKey = const Value.absent(),
     Value<int?> width = const Value.absent(),
     Value<int?> height = const Value.absent(),
@@ -1574,6 +1607,7 @@ class Attachment extends DataClass implements Insertable<Attachment> {
     byteSize: byteSize ?? this.byteSize,
     sha256: sha256 ?? this.sha256,
     localPath: localPath.present ? localPath.value : this.localPath,
+    localBytes: localBytes.present ? localBytes.value : this.localBytes,
     r2ObjectKey: r2ObjectKey.present ? r2ObjectKey.value : this.r2ObjectKey,
     width: width.present ? width.value : this.width,
     height: height.present ? height.value : this.height,
@@ -1604,6 +1638,9 @@ class Attachment extends DataClass implements Insertable<Attachment> {
       byteSize: data.byteSize.present ? data.byteSize.value : this.byteSize,
       sha256: data.sha256.present ? data.sha256.value : this.sha256,
       localPath: data.localPath.present ? data.localPath.value : this.localPath,
+      localBytes: data.localBytes.present
+          ? data.localBytes.value
+          : this.localBytes,
       r2ObjectKey: data.r2ObjectKey.present
           ? data.r2ObjectKey.value
           : this.r2ObjectKey,
@@ -1645,6 +1682,7 @@ class Attachment extends DataClass implements Insertable<Attachment> {
           ..write('byteSize: $byteSize, ')
           ..write('sha256: $sha256, ')
           ..write('localPath: $localPath, ')
+          ..write('localBytes: $localBytes, ')
           ..write('r2ObjectKey: $r2ObjectKey, ')
           ..write('width: $width, ')
           ..write('height: $height, ')
@@ -1672,6 +1710,7 @@ class Attachment extends DataClass implements Insertable<Attachment> {
     byteSize,
     sha256,
     localPath,
+    $driftBlobEquality.hash(localBytes),
     r2ObjectKey,
     width,
     height,
@@ -1698,6 +1737,7 @@ class Attachment extends DataClass implements Insertable<Attachment> {
           other.byteSize == this.byteSize &&
           other.sha256 == this.sha256 &&
           other.localPath == this.localPath &&
+          $driftBlobEquality.equals(other.localBytes, this.localBytes) &&
           other.r2ObjectKey == this.r2ObjectKey &&
           other.width == this.width &&
           other.height == this.height &&
@@ -1722,6 +1762,7 @@ class AttachmentsCompanion extends UpdateCompanion<Attachment> {
   final Value<int> byteSize;
   final Value<String> sha256;
   final Value<String?> localPath;
+  final Value<Uint8List?> localBytes;
   final Value<String?> r2ObjectKey;
   final Value<int?> width;
   final Value<int?> height;
@@ -1745,6 +1786,7 @@ class AttachmentsCompanion extends UpdateCompanion<Attachment> {
     this.byteSize = const Value.absent(),
     this.sha256 = const Value.absent(),
     this.localPath = const Value.absent(),
+    this.localBytes = const Value.absent(),
     this.r2ObjectKey = const Value.absent(),
     this.width = const Value.absent(),
     this.height = const Value.absent(),
@@ -1769,6 +1811,7 @@ class AttachmentsCompanion extends UpdateCompanion<Attachment> {
     required int byteSize,
     required String sha256,
     this.localPath = const Value.absent(),
+    this.localBytes = const Value.absent(),
     this.r2ObjectKey = const Value.absent(),
     this.width = const Value.absent(),
     this.height = const Value.absent(),
@@ -1801,6 +1844,7 @@ class AttachmentsCompanion extends UpdateCompanion<Attachment> {
     Expression<int>? byteSize,
     Expression<String>? sha256,
     Expression<String>? localPath,
+    Expression<Uint8List>? localBytes,
     Expression<String>? r2ObjectKey,
     Expression<int>? width,
     Expression<int>? height,
@@ -1825,6 +1869,7 @@ class AttachmentsCompanion extends UpdateCompanion<Attachment> {
       if (byteSize != null) 'byte_size': byteSize,
       if (sha256 != null) 'sha256': sha256,
       if (localPath != null) 'local_path': localPath,
+      if (localBytes != null) 'local_bytes': localBytes,
       if (r2ObjectKey != null) 'r2_object_key': r2ObjectKey,
       if (width != null) 'width': width,
       if (height != null) 'height': height,
@@ -1851,6 +1896,7 @@ class AttachmentsCompanion extends UpdateCompanion<Attachment> {
     Value<int>? byteSize,
     Value<String>? sha256,
     Value<String?>? localPath,
+    Value<Uint8List?>? localBytes,
     Value<String?>? r2ObjectKey,
     Value<int?>? width,
     Value<int?>? height,
@@ -1875,6 +1921,7 @@ class AttachmentsCompanion extends UpdateCompanion<Attachment> {
       byteSize: byteSize ?? this.byteSize,
       sha256: sha256 ?? this.sha256,
       localPath: localPath ?? this.localPath,
+      localBytes: localBytes ?? this.localBytes,
       r2ObjectKey: r2ObjectKey ?? this.r2ObjectKey,
       width: width ?? this.width,
       height: height ?? this.height,
@@ -1920,6 +1967,9 @@ class AttachmentsCompanion extends UpdateCompanion<Attachment> {
     }
     if (localPath.present) {
       map['local_path'] = Variable<String>(localPath.value);
+    }
+    if (localBytes.present) {
+      map['local_bytes'] = Variable<Uint8List>(localBytes.value);
     }
     if (r2ObjectKey.present) {
       map['r2_object_key'] = Variable<String>(r2ObjectKey.value);
@@ -1975,6 +2025,7 @@ class AttachmentsCompanion extends UpdateCompanion<Attachment> {
           ..write('byteSize: $byteSize, ')
           ..write('sha256: $sha256, ')
           ..write('localPath: $localPath, ')
+          ..write('localBytes: $localBytes, ')
           ..write('r2ObjectKey: $r2ObjectKey, ')
           ..write('width: $width, ')
           ..write('height: $height, ')
@@ -5647,6 +5698,7 @@ typedef $$AttachmentsTableCreateCompanionBuilder =
       required int byteSize,
       required String sha256,
       Value<String?> localPath,
+      Value<Uint8List?> localBytes,
       Value<String?> r2ObjectKey,
       Value<int?> width,
       Value<int?> height,
@@ -5672,6 +5724,7 @@ typedef $$AttachmentsTableUpdateCompanionBuilder =
       Value<int> byteSize,
       Value<String> sha256,
       Value<String?> localPath,
+      Value<Uint8List?> localBytes,
       Value<String?> r2ObjectKey,
       Value<int?> width,
       Value<int?> height,
@@ -5755,6 +5808,11 @@ class $$AttachmentsTableFilterComposer
 
   ColumnFilters<String> get localPath => $composableBuilder(
     column: $table.localPath,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<Uint8List> get localBytes => $composableBuilder(
+    column: $table.localBytes,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -5891,6 +5949,11 @@ class $$AttachmentsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<Uint8List> get localBytes => $composableBuilder(
+    column: $table.localBytes,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get r2ObjectKey => $composableBuilder(
     column: $table.r2ObjectKey,
     builder: (column) => ColumnOrderings(column),
@@ -6012,6 +6075,11 @@ class $$AttachmentsTableAnnotationComposer
   GeneratedColumn<String> get localPath =>
       $composableBuilder(column: $table.localPath, builder: (column) => column);
 
+  GeneratedColumn<Uint8List> get localBytes => $composableBuilder(
+    column: $table.localBytes,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<String> get r2ObjectKey => $composableBuilder(
     column: $table.r2ObjectKey,
     builder: (column) => column,
@@ -6123,6 +6191,7 @@ class $$AttachmentsTableTableManager
                 Value<int> byteSize = const Value.absent(),
                 Value<String> sha256 = const Value.absent(),
                 Value<String?> localPath = const Value.absent(),
+                Value<Uint8List?> localBytes = const Value.absent(),
                 Value<String?> r2ObjectKey = const Value.absent(),
                 Value<int?> width = const Value.absent(),
                 Value<int?> height = const Value.absent(),
@@ -6146,6 +6215,7 @@ class $$AttachmentsTableTableManager
                 byteSize: byteSize,
                 sha256: sha256,
                 localPath: localPath,
+                localBytes: localBytes,
                 r2ObjectKey: r2ObjectKey,
                 width: width,
                 height: height,
@@ -6171,6 +6241,7 @@ class $$AttachmentsTableTableManager
                 required int byteSize,
                 required String sha256,
                 Value<String?> localPath = const Value.absent(),
+                Value<Uint8List?> localBytes = const Value.absent(),
                 Value<String?> r2ObjectKey = const Value.absent(),
                 Value<int?> width = const Value.absent(),
                 Value<int?> height = const Value.absent(),
@@ -6194,6 +6265,7 @@ class $$AttachmentsTableTableManager
                 byteSize: byteSize,
                 sha256: sha256,
                 localPath: localPath,
+                localBytes: localBytes,
                 r2ObjectKey: r2ObjectKey,
                 width: width,
                 height: height,
