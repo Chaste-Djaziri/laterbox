@@ -29,6 +29,7 @@
   ],
   "externally_connectable": {
     "matches": [
+      "https://laterbox.micorp.pro/*",
       "https://app.laterbox.com/*",
       "http://localhost/*"
     ]
