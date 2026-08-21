@@ -2,7 +2,12 @@ import 'dart:async';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path_provider/path_provider.dart';
 
+import '../../features/attachments/data/attachment_storage.dart';
+import '../../features/attachments/data/attachment_storage_api.dart';
+import '../../features/attachments/data/remote_attachment_data_source.dart';
+import '../../features/attachments/domain/attachment_sync_service.dart';
 import '../../features/collections/data/remote_collection_data_source.dart';
 import '../../features/enrichment/data/local_metadata_data_source.dart';
 import '../../features/enrichment/data/remote_metadata_data_source.dart';
@@ -21,16 +26,16 @@ final remoteItemDataSourceProvider = Provider<RemoteItemDataSource?>((ref) {
 
 final remoteCollectionDataSourceProvider =
     Provider<RemoteCollectionDataSource?>((ref) {
-  final client = ref.watch(supabaseClientProvider);
-  return client == null ? null : SupabaseRemoteCollectionDataSource(client);
-});
+      final client = ref.watch(supabaseClientProvider);
+      return client == null ? null : SupabaseRemoteCollectionDataSource(client);
+    });
 
-final remoteItemNoteDataSourceProvider = Provider<RemoteItemNoteDataSource?>(
-  (ref) {
-    final client = ref.watch(supabaseClientProvider);
-    return client == null ? null : SupabaseRemoteItemNoteDataSource(client);
-  },
-);
+final remoteItemNoteDataSourceProvider = Provider<RemoteItemNoteDataSource?>((
+  ref,
+) {
+  final client = ref.watch(supabaseClientProvider);
+  return client == null ? null : SupabaseRemoteItemNoteDataSource(client);
+});
 
 final syncServiceProvider = Provider<SyncService>((ref) {
   final client = ref.watch(supabaseClientProvider);
@@ -46,6 +51,17 @@ final syncServiceProvider = Provider<SyncService>((ref) {
     remoteCollections: ref.watch(remoteCollectionDataSourceProvider),
     localNotes: LocalItemNoteDataSource(ref.watch(appDatabaseProvider)),
     remoteNotes: ref.watch(remoteItemNoteDataSourceProvider),
+    attachmentSync: () async {
+      if (client == null) return null;
+      final database = ref.read(appDatabaseProvider);
+      final storage = AttachmentStorage(await getApplicationSupportDirectory());
+      return AttachmentSyncService(
+        database,
+        SupabaseRemoteAttachmentDataSource(client),
+        AttachmentStorageApi(client),
+        storage,
+      );
+    },
   );
 });
 
