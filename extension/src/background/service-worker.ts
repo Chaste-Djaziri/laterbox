@@ -131,14 +131,20 @@ const MAX_URL_LENGTH = 2000;
 const MAX_SELECTOR_EXACT = 5000;
 const MAX_SELECTOR_CONTEXT = 2000;
 
-const ALLOWED_EXTERNAL_HOSTS = new Set(["app.laterbox.com", "localhost"]);
+const ALLOWED_EXTERNAL_HOSTS = new Set([
+  "laterbox.micorp.pro",
+  "app.laterbox.com",
+  "localhost",
+]);
 
 function isTrustedSender(sender: chrome.runtime.MessageSender): boolean {
   const origin = sender.origin;
   if (!origin) return false;
   try {
     const url = new URL(origin);
-    if (url.hostname === "app.laterbox.com") return url.protocol === "https:";
+    if (url.hostname === "laterbox.micorp.pro" || url.hostname === "app.laterbox.com") {
+      return url.protocol === "https:";
+    }
     if (url.hostname === "localhost") {
       return url.protocol === "http:" || url.protocol === "https:";
     }
