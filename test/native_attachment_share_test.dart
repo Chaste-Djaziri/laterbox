@@ -140,4 +140,21 @@ void main() {
       expect(payload.hasFiles, isTrue);
     },
   );
+
+  test('extracts file:// URIs into filePaths when text is a file URL', () {
+    final payload = NativeSharePayload.fromMap({
+      'id': 'file-url-share-1',
+      'text':
+          'file:///Users/chastedjazirihabimanahirwa/Documents/2024093032.pdf',
+      'filePaths': <String>[],
+    });
+
+    expect(payload, isNotNull);
+    expect(payload!.hasFiles, isTrue);
+    expect(
+      payload.filePaths.single,
+      '/Users/chastedjazirihabimanahirwa/Documents/2024093032.pdf',
+    );
+    expect(payload.text, isNull);
+  });
 }
