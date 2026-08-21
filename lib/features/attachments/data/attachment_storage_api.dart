@@ -8,6 +8,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/database/app_database.dart';
 import 'attachment_storage.dart';
 
+const int multipartThresholdBytes = 100 * 1024 * 1024; // 100 MB
+const int multipartChunkSizeBytes = 20 * 1024 * 1024; // 20 MB
+
 class AttachmentStorageApi {
   AttachmentStorageApi(this._supabase, {http.Client? httpClient})
     : _http = httpClient ?? http.Client();
@@ -16,14 +19,21 @@ class AttachmentStorageApi {
   final http.Client _http;
 
   Future<String> upload(Attachment attachment, String absolutePath) async {
-    return _upload(attachment, File(absolutePath).openRead());
+    final file = File(absolutePath);
+    if (attachment.byteSize > multipartThresholdBytes) {
+      return _uploadMultipart(attachment, file);
+    }
+    return _uploadSinglePart(attachment, file.openRead());
   }
 
   Future<String> uploadBytes(Attachment attachment, Uint8List bytes) async {
-    return _upload(attachment, Stream.value(bytes));
+    return _uploadSinglePart(attachment, Stream.value(bytes));
   }
 
-  Future<String> _upload(Attachment attachment, Stream<List<int>> bytes) async {
+  Future<String> _uploadSinglePart(
+    Attachment attachment,
+    Stream<List<int>> bytes,
+  ) async {
     final body = _attachmentBody(attachment);
     final prepared = await _invoke({...body, 'action': 'prepare-upload'});
     final uploadUrl = Uri.parse(_requiredString(prepared, 'uploadUrl'));
@@ -49,6 +59,77 @@ class AttachmentStorageApi {
       throw const FormatException('R2 verification response did not match.');
     }
     return objectKey;
+  }
+
+  Future<String> _uploadMultipart(
+    Attachment attachment,
+    File file,
+  ) async {
+    final body = _attachmentBody(attachment);
+    // Fall back to single-part streaming if backend does not provide multipart actions
+    try {
+      final init = await _invoke({
+        ...body,
+        'action': 'create-multipart-upload',
+      });
+      final uploadId = _requiredString(init, 'uploadId');
+      final objectKey = _requiredString(init, 'objectKey');
+      final parts = <Map<String, dynamic>>[];
+
+      final fileSize = await file.length();
+      var offset = 0;
+      var partNumber = 1;
+
+      while (offset < fileSize) {
+        final end = (offset + multipartChunkSizeBytes).clamp(0, fileSize);
+        final chunkStream = file.openRead(offset, end);
+        final chunkBytes = await _readStreamBytes(chunkStream);
+
+        final partPrep = await _invoke({
+          ...body,
+          'action': 'prepare-upload-part',
+          'uploadId': uploadId,
+          'partNumber': partNumber,
+        });
+
+        final partUrl = Uri.parse(_requiredString(partPrep, 'uploadUrl'));
+        final putReq = http.Request('PUT', partUrl)
+          ..bodyBytes = chunkBytes
+          ..headers['content-type'] = attachment.mimeType;
+
+        final putRes = await _http.send(putReq);
+        if (putRes.statusCode < 200 || putRes.statusCode >= 300) {
+          throw HttpException(
+            'Part $partNumber upload failed with ${putRes.statusCode}',
+          );
+        }
+        final etag = putRes.headers['etag'] ?? '"part-$partNumber"';
+        parts.add({'partNumber': partNumber, 'etag': etag});
+
+        offset = end;
+        partNumber++;
+      }
+
+      final completed = await _invoke({
+        ...body,
+        'action': 'complete-multipart-upload',
+        'uploadId': uploadId,
+        'parts': parts,
+      });
+
+      return _requiredString(completed, 'objectKey');
+    } on Object catch (error) {
+      // Fallback to single-part stream upload if server unsupported
+      return _uploadSinglePart(attachment, file.openRead());
+    }
+  }
+
+  Future<Uint8List> _readStreamBytes(Stream<List<int>> stream) async {
+    final bytes = <int>[];
+    await for (final chunk in stream) {
+      bytes.addAll(chunk);
+    }
+    return Uint8List.fromList(bytes);
   }
 
   Future<String> download(
