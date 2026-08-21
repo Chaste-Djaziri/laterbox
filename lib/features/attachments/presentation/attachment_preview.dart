@@ -243,7 +243,11 @@ class _AttachmentRow extends ConsumerWidget {
     if (isUploading) {
       subtitleText = 'Uploading to cloud...';
     } else if (isFailed) {
-      subtitleText = 'Upload failed · Tap to retry';
+      final err = attachment.uploadLastError;
+      final errSnippet = err != null && err.isNotEmpty
+          ? (err.length > 30 ? '${err.substring(0, 30)}...' : err)
+          : 'Failed';
+      subtitleText = 'Upload failed ($errSnippet) · Tap to retry';
     } else if (isRemoteOnly) {
       subtitleText = 'Cloud file · Tap to download';
     } else {
