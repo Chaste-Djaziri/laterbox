@@ -70,7 +70,7 @@ class _DesktopSidebarState extends ConsumerState<DesktopSidebar> {
                       height: 34,
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(9),
-                        color: AppTheme.accent,
+                        color: const Color(0xFFE6EDB0),
                         boxShadow: [
                           BoxShadow(
                             color: Colors.black.withValues(alpha: 0.1),
