@@ -385,12 +385,14 @@ class AppDatabase extends _$AppDatabase {
                 ..where(items.userId.isNull()))
               .map((row) => row.read(items.id)!)
               .get();
-      if (guestItemIds.isEmpty) return;
-      await (update(items)..where((item) => item.id.isIn(guestItemIds))).write(
-        ItemsCompanion(userId: Value(userId)),
-      );
+      if (guestItemIds.isNotEmpty) {
+        await (update(items)
+              ..where((item) => item.id.isIn(guestItemIds)))
+            .write(ItemsCompanion(userId: Value(userId)));
+      }
+      
       await (update(attachments)
-            ..where((attachment) => attachment.itemId.isIn(guestItemIds)))
+            ..where((attachment) => attachment.userId.isNull()))
           .write(AttachmentsCompanion(userId: Value(userId)));
     });
 
@@ -734,7 +736,7 @@ class AppDatabase extends _$AppDatabase {
   Future<List<Attachment>> attachmentsNeedingUpload(String userId) {
     return (select(attachments)..where(
           (attachment) =>
-              (attachment.userId.equals(userId) | attachment.userId.isNull()) &
+              attachment.userId.equals(userId) &
               attachment.deletedAt.isNull() &
               (attachment.localPath.isNotNull() |
                   attachment.localBytes.isNotNull()) &
@@ -742,6 +744,7 @@ class AppDatabase extends _$AppDatabase {
               attachment.uploadStatus.isIn(const [
                 'local',
                 'pending',
+                'uploading',
                 'failed',
               ]),
         ))
@@ -751,7 +754,7 @@ class AppDatabase extends _$AppDatabase {
   Future<List<Attachment>> attachmentsNeedingSync(String userId) {
     return (select(attachments)..where(
           (attachment) =>
-              (attachment.userId.equals(userId) | attachment.userId.isNull()) &
+              attachment.userId.equals(userId) &
               attachment.syncStatus.isIn(const ['pending', 'failed']) &
               (attachment.deletedAt.isNotNull() |
                   attachment.r2ObjectKey.isNotNull()),
@@ -1263,15 +1266,35 @@ class AppDatabase extends _$AppDatabase {
   }
 
   Stream<SyncStatsData> watchSyncStats(String? userId) {
+    if (userId == null || userId.isEmpty) {
+      return customSelect(
+        '''
+        SELECT 
+          (SELECT COUNT(*) FROM items WHERE user_id IS NULL) as total_items,
+          0 as pending_items,
+          (SELECT COUNT(*) FROM attachments WHERE user_id IS NULL) as total_attachments,
+          0 as pending_attachments
+        ''',
+        readsFrom: {items, attachments},
+      ).watchSingle().map((row) {
+        return SyncStatsData(
+          totalItems: row.read<int>('total_items'),
+          pendingItems: 0,
+          totalAttachments: row.read<int>('total_attachments'),
+          pendingAttachments: 0,
+        );
+      });
+    }
+
     return customSelect(
       '''
       SELECT 
-        (SELECT COUNT(*) FROM items WHERE (:userId IS NULL OR user_id = :userId OR user_id IS NULL)) as total_items,
-        (SELECT COUNT(*) FROM items WHERE (:userId IS NULL OR user_id = :userId OR user_id IS NULL) AND sync_status IN ('pending', 'failed')) as pending_items,
-        (SELECT COUNT(*) FROM attachments WHERE (:userId IS NULL OR user_id = :userId OR user_id IS NULL)) as total_attachments,
-        (SELECT COUNT(*) FROM attachments WHERE (:userId IS NULL OR user_id = :userId OR user_id IS NULL) AND sync_status IN ('pending', 'failed')) as pending_attachments
+        (SELECT COUNT(*) FROM items WHERE user_id = :userId) as total_items,
+        (SELECT COUNT(*) FROM items WHERE user_id = :userId AND sync_status IN ('pending', 'failed')) as pending_items,
+        (SELECT COUNT(*) FROM attachments WHERE user_id = :userId) as total_attachments,
+        (SELECT COUNT(*) FROM attachments WHERE user_id = :userId AND (r2_object_key IS NULL OR sync_status IN ('pending', 'failed'))) as pending_attachments
       ''',
-      variables: [Variable.withString(userId ?? '')],
+      variables: [Variable.withString(userId)],
       readsFrom: {items, attachments},
     ).watchSingle().map((row) {
       final totalItems = row.read<int>('total_items');
