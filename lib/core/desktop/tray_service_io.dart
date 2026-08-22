@@ -48,11 +48,11 @@ class TrayService {
         isTemplate: Platform.isMacOS,
         iconSize: 16,
       );
-      await trayManager.setToolTip('LaterBox');
+      await trayManager.setToolTip('laterbox');
       await _applyMenu();
       debugPrint('[LaterBox Desktop] tray initialized');
     } on PlatformException catch (error) {
-      debugPrint('LaterBox tray could not be created: ${error.message}');
+      debugPrint('laterbox tray could not be created: ${error.message}');
     }
   }
 
@@ -68,12 +68,12 @@ class TrayService {
     final state = _menuState;
     final statusLines = state.statusLines();
     final items = <MenuItem>[
-      MenuItem(key: 'title', label: 'LaterBox', disabled: true),
+      MenuItem(key: 'title', label: 'laterbox', disabled: true),
       MenuItem(
         key: 'quick_capture',
         label: 'Quick Capture   ${state.quickCaptureShortcutLabel}',
       ),
-      MenuItem(key: 'open_laterbox', label: 'Open LaterBox'),
+      MenuItem(key: 'open_laterbox', label: 'Open laterbox'),
       MenuItem.separator(),
       for (final line in statusLines)
         MenuItem(key: 'status_$line', label: line, disabled: true),
