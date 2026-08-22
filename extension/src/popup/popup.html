@@ -26,6 +26,12 @@
         <p>Connect LaterBox to start saving across devices.</p>
         <button id="connect" type="button">Connect LaterBox</button>
       </section>
+      <section id="pending" class="connection-panel" hidden>
+        <p class="pending-label"><span class="pending-dot"></span>Waiting for connection...</p>
+        <p class="pending-sub">Complete authorization in your browser tab.</p>
+        <button id="open-approval" class="secondary-button" type="button">Open approval tab</button>
+        <button id="cancel-connect" class="link-button" type="button">Cancel request</button>
+      </section>
       <section id="connected" class="connection-panel" hidden>
         <p class="connected-label"><span class="status-dot"></span>Connected to LaterBox</p>
         <button id="save" type="button">Save to LaterBox</button>
