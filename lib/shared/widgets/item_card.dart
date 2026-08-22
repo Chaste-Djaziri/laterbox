@@ -187,8 +187,15 @@ class _LaterBoxLogoPlaceholder extends StatelessWidget {
           height: 44,
           padding: const EdgeInsets.all(6),
           decoration: BoxDecoration(
-            color: theme.colorScheme.primaryContainer.withValues(alpha: 0.7),
+            color: Colors.white,
             borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.08),
+                blurRadius: 4,
+                offset: const Offset(0, 1),
+              ),
+            ],
           ),
           child: Image.asset(
             'assets/branding/laterbox-icon.png',
