@@ -36,6 +36,12 @@ async function initialize(): Promise<void> {
   await refreshActivePage();
   await updateConnectionState();
   await refreshHighlightPermission();
+
+  browser.storage.onChanged.addListener((changes, areaName) => {
+    if (areaName === "local") {
+      void updateConnectionState();
+    }
+  });
 }
 
 async function refreshActivePage(): Promise<void> {
