@@ -35,7 +35,14 @@ void main() {
     expect(find.text('1. Join Testers Group'), findsOneWidget);
     expect(find.text('2. Download on Google Play'), findsOneWidget);
 
-    await tester.drag(find.byType(ListView), const Offset(0, -800));
+    await tester.drag(find.byType(ListView), const Offset(0, -600));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Laterbox Chrome & Browser Extension'), findsOneWidget);
+    expect(find.text('Download Chrome Extension (.zip)'), findsOneWidget);
+    expect(find.text('How to Load into Google Chrome (3 Quick Steps)'), findsOneWidget);
+
+    await tester.drag(find.byType(ListView), const Offset(0, -600));
     await tester.pumpAndSettle();
 
     expect(find.text('More platforms coming soon'), findsOneWidget);
@@ -44,7 +51,7 @@ void main() {
     expect(find.text('iOS'), findsOneWidget);
     expect(find.text('Android'), findsOneWidget);
 
-    await tester.drag(find.byType(ListView), const Offset(0, -800));
+    await tester.drag(find.byType(ListView), const Offset(0, -1200));
     await tester.pumpAndSettle();
 
     expect(find.text('Available right now on Web & Extensions'), findsOneWidget);
