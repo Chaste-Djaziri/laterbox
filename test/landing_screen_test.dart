@@ -20,7 +20,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('LaterBox'), findsWidgets);
+    expect(find.text('laterbox'), findsWidgets);
     expect(
       find.text('Save anything now.\nRead, watch & organize later.'),
       findsOneWidget,
@@ -32,7 +32,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Everything you need to capture & remember'), findsOneWidget);
-    expect(find.text('How LaterBox Works'), findsOneWidget);
-    expect(find.text('About LaterBox'), findsOneWidget);
+    expect(find.text('How laterbox Works'), findsOneWidget);
+    expect(find.text('About laterbox'), findsOneWidget);
   });
 }
