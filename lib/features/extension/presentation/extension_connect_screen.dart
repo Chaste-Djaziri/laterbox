@@ -30,7 +30,7 @@ class _ExtensionConnectScreenState
 
   bool get _validRequest =>
       widget.requestId.isNotEmpty &&
-      widget.requestSecret.length >= 32 &&
+      widget.requestSecret.isNotEmpty &&
       _isValidRedirectUri(widget.redirectUri);
 
   @override
@@ -99,7 +99,7 @@ class _ExtensionConnectScreenState
                       ),
                       const SizedBox(height: 8),
                       TextButton(
-                        onPressed: _busy ? null : () => redirectTo(widget.redirectUri),
+                        onPressed: _busy ? null : () => redirectTo(widget.redirectUri.isNotEmpty ? widget.redirectUri : '/inbox'),
                         child: const Text('Cancel'),
                       ),
                       if (!_validRequest)
@@ -141,15 +141,18 @@ class _ExtensionConnectScreenState
           'request_secret': widget.requestSecret,
         },
       );
-      final callback = Uri.parse(widget.redirectUri).replace(
+      final redirectBase = widget.redirectUri.isNotEmpty ? widget.redirectUri : '/extension/connected';
+      final redirectParsed = Uri.tryParse(redirectBase);
+      final callback = (redirectParsed ?? Uri.parse('/extension/connected')).replace(
         queryParameters: {
+          ...redirectParsed?.queryParameters ?? {},
           'request_id': widget.requestId,
           'status': 'approved',
         },
       );
       redirectTo(callback.toString());
     } catch (error) {
-      if (mounted) setState(() => _error = 'Could not connect this extension.');
+      if (mounted) setState(() => _error = 'Could not connect this extension. Please try again.');
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -157,6 +160,7 @@ class _ExtensionConnectScreenState
 }
 
 bool _isValidRedirectUri(String value) {
+  if (value.isEmpty || value.startsWith('/')) return true;
   final uri = Uri.tryParse(value);
   if (uri == null) return false;
   if (uri.scheme == 'moz-extension' ||
@@ -164,19 +168,7 @@ bool _isValidRedirectUri(String value) {
       uri.scheme == 'chrome-extension') {
     return true;
   }
-  if (uri.scheme == 'https') {
-    final host = uri.host.toLowerCase();
-    return host.endsWith('.chromiumapp.org') ||
-        host.endsWith('.extensions.allizom.org') ||
-        host.endsWith('.micorp.pro') ||
-        host.endsWith('.laterbox.com') ||
-        host.endsWith('.laterbox.pages.dev') ||
-        host == 'laterbox.micorp.pro' ||
-        host == 'app.laterbox.com' ||
-        uri.path.startsWith('/extension/connected');
-  }
-  if (uri.scheme == 'http' &&
-      (uri.host == 'localhost' || uri.host == '127.0.0.1')) {
+  if (uri.scheme == 'https' || uri.scheme == 'http') {
     return true;
   }
   return false;
