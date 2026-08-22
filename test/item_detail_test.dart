@@ -77,11 +77,31 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Keep'), findsOneWidget);
+    await tester.ensureVisible(find.text('Keep'));
     await tester.tap(find.text('Keep'));
     await tester.pumpAndSettle();
 
     expect(find.text('Nothing saved yet'), findsOneWidget);
     expect((await database.itemById('item-1'))!.status, 'saved');
+
+    await disposeDatabase(tester, database);
+  });
+
+  testWidgets('marking as seen from action sheet archives the item',
+      (tester) async {
+    final database = await seedDatabase();
+    await pumpApp(tester, database);
+
+    await tester.longPress(find.text('Flutter notes'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Mark as Seen'), findsOneWidget);
+    await tester.ensureVisible(find.text('Mark as Seen'));
+    await tester.tap(find.text('Mark as Seen'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Nothing saved yet'), findsOneWidget);
+    expect((await database.itemById('item-1'))!.status, 'archived');
 
     await disposeDatabase(tester, database);
   });
