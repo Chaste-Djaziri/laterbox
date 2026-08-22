@@ -7,13 +7,16 @@ class WebUpdateBannerOverlay extends ConsumerWidget {
   const WebUpdateBannerOverlay({
     super.key,
     required this.child,
+    this.enabled,
   });
 
   final Widget child;
+  final bool? enabled;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    if (!kIsWeb) return child;
+    final isEnabled = enabled ?? kIsWeb;
+    if (!isEnabled) return child;
 
     final updateState = ref.watch(webUpdateProvider);
 
