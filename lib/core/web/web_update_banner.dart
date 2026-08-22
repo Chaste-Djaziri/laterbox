@@ -95,15 +95,18 @@ class _WebUpdateCard extends ConsumerWidget {
             Row(
               children: [
                 Container(
-                  width: 34,
-                  height: 34,
+                  width: 36,
+                  height: 36,
+                  padding: const EdgeInsets.all(5),
                   decoration: BoxDecoration(
                     color: const Color(0xFFE7FF57),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: const Center(
-                    child: Icon(
-                      Icons.autorenew_rounded,
+                  child: Image.asset(
+                    'assets/branding/laterbox-icon.png',
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, error, stackTrace) => const Icon(
+                      Icons.refresh_rounded,
                       color: Color(0xFF171711),
                       size: 20,
                     ),
