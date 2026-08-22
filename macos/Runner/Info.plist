@@ -24,6 +24,14 @@
 	<string>public.app-category.productivity</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
+	<key>NSCameraUsageDescription</key>
+	<string>laterbox uses your camera to capture photos and scan documents to save for later.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>laterbox accesses your photo library to let you select and attach images to your saved items.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>laterbox uses your location to attach location context when saving notes or places if requested.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>laterbox uses your microphone to record voice notes and audio attachments.</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>$(MACOSX_DEPLOYMENT_TARGET)</string>
 	<key>NSHumanReadableCopyright</key>
