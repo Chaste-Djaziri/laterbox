@@ -1,7 +1,8 @@
 {
   "app_name": "laterbox",
   "version": "1.0.0",
-  "build_number": "2",
-  "built_at": "2026-08-22T06:14:00Z",
-  "package_name": "laterbox"
+  "build_number": "3",
+  "built_at": "2026-08-22T06:15:14Z",
+  "package_name": "laterbox",
+  "commit": "dbe0ab5"
 }
