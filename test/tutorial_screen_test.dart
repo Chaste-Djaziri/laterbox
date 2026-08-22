@@ -12,7 +12,7 @@ void main() {
     );
 
     expect(find.byType(TutorialScreen), findsOneWidget);
-    expect(find.text('LaterBox Guide'), findsOneWidget);
+    expect(find.text('laterbox Guide'), findsOneWidget);
     expect(find.text('Quick Capture Anywhere'), findsOneWidget);
 
     // Tap Next Feature button
