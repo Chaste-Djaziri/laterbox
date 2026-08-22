@@ -396,10 +396,23 @@ class AppDatabase extends _$AppDatabase {
           .write(AttachmentsCompanion(userId: Value(userId)));
     });
 
+    final unuploadedItemIds = await (selectOnly(attachments)
+          ..addColumns([attachments.itemId])
+          ..where(
+            attachments.userId.equals(userId) &
+                attachments.deletedAt.isNull() &
+                attachments.r2ObjectKey.isNull(),
+          ))
+        .map((row) => row.read(attachments.itemId)!)
+        .get();
+
     return (select(items)..where(
           (item) =>
               item.userId.equals(userId) &
-              item.syncStatus.isIn(const ['pending', 'failed']),
+              item.syncStatus.isIn(const ['pending', 'failed']) &
+              (unuploadedItemIds.isEmpty
+                  ? const Constant(true)
+                  : item.id.isNotIn(unuploadedItemIds)),
         ))
         .get();
   }
