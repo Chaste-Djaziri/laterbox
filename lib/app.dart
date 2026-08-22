@@ -13,6 +13,8 @@ import 'core/enrichment/enrichment_providers.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/scroll_behavior.dart';
+import 'core/web/web_update_banner.dart';
+import 'core/web/web_update_service.dart';
 import 'features/attachments/presentation/attachment_providers.dart';
 import 'features/attachments/domain/attachment_import_result.dart';
 import 'features/capture/domain/capture_providers.dart';
@@ -52,7 +54,12 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) _drainPendingShares();
+    if (state == AppLifecycleState.resumed) {
+      _drainPendingShares();
+      if (kIsWeb) {
+        ref.read(webUpdateProvider.notifier).checkForUpdate();
+      }
+    }
   }
 
   @override
@@ -212,10 +219,10 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
       routerConfig: ref.watch(appRouterProvider),
       scrollBehavior: const LaterBoxScrollBehavior(),
       builder: (context, child) {
-        if (quickCaptureActive) {
-          return const Material(child: QuickCaptureScreen());
-        }
-        return child ?? const SizedBox.shrink();
+        final content = quickCaptureActive
+            ? const Material(child: QuickCaptureScreen())
+            : (child ?? const SizedBox.shrink());
+        return WebUpdateBannerOverlay(child: content);
       },
     );
   }
