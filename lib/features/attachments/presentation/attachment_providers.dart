@@ -60,7 +60,7 @@ final attachmentImportServiceProvider = FutureProvider<AttachmentImportService>(
       currentUserId: () => ref.read(activeUserIdProvider),
       newId: const Uuid().v4,
       now: DateTime.now,
-      onSaved: () async => ref.watch(syncCoordinatorProvider).requestSync(),
+      onSaved: () async => ref.read(syncCoordinatorProvider).requestSync(),
     );
   },
 );
@@ -72,7 +72,7 @@ final webAttachmentImportServiceProvider = Provider<WebAttachmentImportService>(
     currentUserId: () => ref.read(activeUserIdProvider),
     newId: const Uuid().v4,
     now: DateTime.now,
-    onSaved: () async => ref.watch(syncCoordinatorProvider).requestSync(),
+    onSaved: () async => ref.read(syncCoordinatorProvider).requestSync(),
   ),
 );
 
