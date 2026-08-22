@@ -76,8 +76,13 @@ class AttachmentSyncService {
     for (final attachment in pending) {
       try {
         await _remote.upsertAttachment(attachment);
-        if (attachment.deletedAt != null && attachment.r2ObjectKey != null) {
-          await _storageApi.delete(attachment.id);
+        if (attachment.deletedAt != null) {
+          if (attachment.r2ObjectKey != null) {
+            await _storageApi.delete(attachment.id);
+          }
+          if (_storage != null) {
+            await _storage.removeOwnedCopies([attachment.id]);
+          }
         }
         await _database.markAttachmentSynced(attachment.id, syncedAt);
         pushed++;
