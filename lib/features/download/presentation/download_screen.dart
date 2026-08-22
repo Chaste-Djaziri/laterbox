@@ -24,7 +24,10 @@ class _DownloadScreenState extends ConsumerState<DownloadScreen> {
   Future<void> _triggerDownload(BuildContext context, String filename) async {
     final messenger = ScaffoldMessenger.of(context);
     final relativeUri = Uri.parse('/downloads/$filename');
-    final absoluteUri = Uri.parse('https://laterbox.micorp.pro/downloads/$filename');
+    final githubUri = Uri.parse(
+        'https://github.com/Chaste-Djaziri/laterbox/releases/latest/download/$filename');
+    final absoluteUri =
+        Uri.parse('https://laterbox.micorp.pro/downloads/$filename');
 
     try {
       final launched = await launchUrl(
@@ -32,10 +35,16 @@ class _DownloadScreenState extends ConsumerState<DownloadScreen> {
         mode: LaunchMode.platformDefault,
       );
       if (!launched) {
-        await launchUrl(
-          absoluteUri,
+        final githubLaunched = await launchUrl(
+          githubUri,
           mode: LaunchMode.externalApplication,
         );
+        if (!githubLaunched) {
+          await launchUrl(
+            absoluteUri,
+            mode: LaunchMode.externalApplication,
+          );
+        }
       }
       messenger.showSnackBar(
         SnackBar(
@@ -55,7 +64,7 @@ class _DownloadScreenState extends ConsumerState<DownloadScreen> {
     } catch (_) {
       try {
         await launchUrl(
-          absoluteUri,
+          githubUri,
           mode: LaunchMode.externalApplication,
         );
       } catch (e) {
@@ -68,6 +77,7 @@ class _DownloadScreenState extends ConsumerState<DownloadScreen> {
       }
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -593,8 +603,24 @@ class _WindowsDownloadSection extends StatelessWidget {
                       ),
                     ),
                   ),
+                  TextButton.icon(
+                    onPressed: () => launchUrl(
+                      Uri.parse('https://github.com/Chaste-Djaziri/laterbox/releases'),
+                      mode: LaunchMode.externalApplication,
+                    ),
+                    icon: const Icon(Icons.open_in_new_rounded, size: 16),
+                    label: const Text('GitHub Releases'),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 18,
+                        vertical: 16,
+                      ),
+                      minimumSize: Size(isMobile ? double.infinity : 0, 50),
+                    ),
+                  ),
                 ],
               ),
+
 
               const SizedBox(height: 16),
               Row(
