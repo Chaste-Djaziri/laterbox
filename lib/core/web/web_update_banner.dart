@@ -133,7 +133,7 @@ class _WebUpdateCard extends ConsumerWidget {
             ),
             const SizedBox(height: 10),
             const Text(
-              'A new version of LaterBox has been deployed. Reload now to apply the latest updates without cache.',
+              'A new version of laterbox has been deployed. Reload now to apply the latest updates without cache.',
               style: TextStyle(
                 color: Color(0xFFC7C6BC),
                 fontSize: 13,
