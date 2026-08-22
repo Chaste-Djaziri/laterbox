@@ -100,6 +100,12 @@ class _DownloadScreenState extends ConsumerState<DownloadScreen> {
                 onDownloadExe: () => _triggerDownload(context, 'laterbox-windows-setup.exe'),
                 onDownloadZip: () => _triggerDownload(context, 'laterbox-windows-x64.zip'),
               ),
+              _MacOSDownloadSection(
+                isDesktop: isDesktop,
+                isMobile: isMobile,
+                onDownloadPkg: () => _triggerDownload(context, 'laterbox-macos-installer.pkg'),
+                onDownloadZip: () => _triggerDownload(context, 'laterbox-macos-universal.zip'),
+              ),
               _AndroidDownloadSection(
                 isDesktop: isDesktop,
                 isMobile: isMobile,
@@ -637,6 +643,254 @@ class _WindowsDownloadSection extends StatelessWidget {
                   const SizedBox(width: 6),
                   Text(
                     'Safe, standalone installer. No telemetry or bloatware.',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MacOSDownloadSection extends StatelessWidget {
+  const _MacOSDownloadSection({
+    required this.isDesktop,
+    required this.isMobile,
+    required this.onDownloadPkg,
+    required this.onDownloadZip,
+  });
+
+  final bool isDesktop;
+  final bool isMobile;
+  final VoidCallback onDownloadPkg;
+  final VoidCallback onDownloadZip;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    const macAccent = Color(0xFF007AFF);
+
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 1040),
+        child: Container(
+          margin: EdgeInsets.symmetric(
+            horizontal: isMobile ? 16 : 24,
+            vertical: 16,
+          ),
+          padding: EdgeInsets.all(isMobile ? 20 : 36),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surfaceContainerLowest,
+            borderRadius: BorderRadius.circular(28),
+            border: Border.all(
+              color: macAccent.withValues(alpha: 0.35),
+              width: 1.5,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: macAccent.withValues(alpha: 0.08),
+                blurRadius: 36,
+                offset: const Offset(0, 16),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: macAccent.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(
+                        color: macAccent.withValues(alpha: 0.3),
+                      ),
+                    ),
+                    child: const Icon(
+                      Icons.laptop_mac_rounded,
+                      size: 36,
+                      color: macAccent,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Wrap(
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          spacing: 10,
+                          runSpacing: 6,
+                          children: [
+                            Text(
+                              'Laterbox for macOS',
+                              style: theme.textTheme.headlineSmall?.copyWith(
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: -0.5,
+                                fontSize: isMobile ? 20 : 24,
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF27C93F).withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(100),
+                                border: Border.all(
+                                  color: const Color(0xFF27C93F).withValues(alpha: 0.4),
+                                ),
+                              ),
+                              child: const Text(
+                                'AVAILABLE NOW',
+                                style: TextStyle(
+                                  color: Color(0xFF1E822E),
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 11,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'Version 1.0.0 • Apple Silicon (M1–M4) & Intel • macOS 12 Monterey or later',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              Divider(
+                color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                'macOS Desktop Features',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 14),
+              Wrap(
+                spacing: 12,
+                runSpacing: 10,
+                children: const [
+                  _FeaturePill(
+                    icon: Icons.menu_rounded,
+                    label: 'Status Bar Menu Item & Quick Window',
+                  ),
+                  _FeaturePill(
+                    icon: Icons.keyboard_command_key_rounded,
+                    label: 'Global Quick Capture (⌘+Shift+S)',
+                  ),
+                  _FeaturePill(
+                    icon: Icons.system_update_alt_rounded,
+                    label: 'Native macOS Installer Package (.pkg)',
+                  ),
+                  _FeaturePill(
+                    icon: Icons.flash_on_rounded,
+                    label: 'Offline SQLite Local Database',
+                  ),
+                  _FeaturePill(
+                    icon: Icons.power_settings_new_rounded,
+                    label: 'Launch at Login & Background Sync',
+                  ),
+                ],
+              ),
+              const SizedBox(height: 28),
+              Wrap(
+                spacing: 16,
+                runSpacing: 12,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  FilledButton.icon(
+                    onPressed: onDownloadPkg,
+                    icon: const Icon(Icons.download_rounded, size: 20),
+                    label: const Text('Download Installer (.pkg) • 23 MB'),
+                    style: FilledButton.styleFrom(
+                      elevation: 0,
+                      backgroundColor: theme.colorScheme.primary,
+                      foregroundColor: theme.colorScheme.onPrimary,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 26,
+                        vertical: 16,
+                      ),
+                      minimumSize: Size(isMobile ? double.infinity : 0, 50),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(100),
+                      ),
+                      textStyle: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: onDownloadZip,
+                    icon: const Icon(Icons.folder_zip_rounded, size: 20),
+                    label: const Text('Download App (.zip) • 23 MB'),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 22,
+                        vertical: 16,
+                      ),
+                      minimumSize: Size(isMobile ? double.infinity : 0, 50),
+                      side: BorderSide(
+                        color: theme.colorScheme.outlineVariant,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(100),
+                      ),
+                      textStyle: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  TextButton.icon(
+                    onPressed: () => launchUrl(
+                      Uri.parse('https://github.com/Chaste-Djaziri/laterbox/releases'),
+                      mode: LaunchMode.externalApplication,
+                    ),
+                    icon: const Icon(Icons.open_in_new_rounded, size: 16),
+                    label: const Text('GitHub Releases'),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 18,
+                        vertical: 16,
+                      ),
+                      minimumSize: Size(isMobile ? double.infinity : 0, 50),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Icon(
+                    Icons.verified_user_rounded,
+                    size: 16,
+                    color: theme.colorScheme.primary,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Safe macOS Installer. Automatically installs to /Applications.',
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
