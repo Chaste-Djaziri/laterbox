@@ -102,6 +102,23 @@ Future<void> showItemActions(
               },
             ),
             ListTile(
+              leading: Icon(
+                item.isArchived
+                    ? Icons.mark_email_unread_outlined
+                    : Icons.check_circle_outline_rounded,
+                color: item.isArchived ? null : Theme.of(sheetContext).colorScheme.primary,
+              ),
+              title: Text(item.isArchived ? 'Mark as Unseen (Move to Inbox)' : 'Mark as Seen'),
+              onTap: () {
+                Navigator.of(sheetContext).pop();
+                if (item.isArchived) {
+                  repository.markUnseen(itemId);
+                } else {
+                  repository.markSeen(itemId);
+                }
+              },
+            ),
+            ListTile(
               leading: Icon(statusIcon),
               title: Text(statusLabel),
               onTap: () {
