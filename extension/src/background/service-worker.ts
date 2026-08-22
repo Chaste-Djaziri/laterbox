@@ -318,17 +318,17 @@ async function createContextMenus(): Promise<void> {
   await browser.contextMenus.removeAll();
   browser.contextMenus.create({
     id: PAGE_MENU,
-    title: "Save page to LaterBox",
+    title: "Save page to laterbox",
     contexts: ["page"],
   });
   browser.contextMenus.create({
     id: LINK_MENU,
-    title: "Save link to LaterBox",
+    title: "Save link to laterbox",
     contexts: ["link"],
   });
   browser.contextMenus.create({
     id: SELECTION_MENU,
-    title: "Save selection to LaterBox",
+    title: "Save selection to laterbox",
     contexts: ["selection"],
   });
 }
