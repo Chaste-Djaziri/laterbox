@@ -104,7 +104,7 @@ async function prepareUpload(
   body: AttachmentBody,
 ): Promise<Response> {
   const attachment = validateAttachment(body);
-  await requireOwnedItem(attachment.itemId, userId);
+  await verifyItemOwnership(attachment.itemId, userId);
   const objectKey = objectKeyFor(userId, attachment.id, attachment.extension);
   const uploadUrl = await getSignedUrl(
     r2Client(),
@@ -140,7 +140,7 @@ async function completeUpload(
   body: AttachmentBody,
 ): Promise<Response> {
   const attachment = validateAttachment(body);
-  await requireOwnedItem(attachment.itemId, userId);
+  await verifyItemOwnership(attachment.itemId, userId);
   const objectKey = objectKeyFor(userId, attachment.id, attachment.extension);
   const head = await r2Client().send(
     new HeadObjectCommand({ Bucket: requiredEnv("R2_BUCKET"), Key: objectKey }),
@@ -263,15 +263,17 @@ async function authenticateUser(token: string): Promise<string | null> {
   return typeof user?.id === "string" ? user.id : null;
 }
 
-async function requireOwnedItem(itemId: string, userId: string): Promise<void> {
+async function verifyItemOwnership(itemId: string, userId: string): Promise<void> {
   const rows = await adminGet(
-    `items?select=id&id=eq.${encodeURIComponent(itemId)}&user_id=eq.${
-      encodeURIComponent(userId)
-    }&deleted_at=is.null`,
+    `items?select=id,user_id&id=eq.${encodeURIComponent(itemId)}`,
   );
-  if (!Array.isArray(rows) || rows.length !== 1) {
-    throw new RequestError("Item not found", 404);
+  if (Array.isArray(rows) && rows.length > 0) {
+    if (rows[0]?.user_id !== userId) {
+      throw new RequestError("Unauthorized item ownership", 403);
+    }
   }
+  // When an attachment is being uploaded for a new item, the item may not
+  // be inserted into the remote database yet (as attachments upload first).
 }
 
 async function ownedAttachment(
