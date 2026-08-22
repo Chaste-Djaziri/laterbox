@@ -32,7 +32,20 @@ class _DownloadScreenState extends ConsumerState<DownloadScreen> {
 
     try {
       if (kIsWeb) {
-        triggerBrowserDownload('/downloads/$filename', filename);
+        final downloaded =
+            await triggerBrowserDownload('/downloads/$filename', filename);
+        if (!downloaded) {
+          final launched = await launchUrl(
+            absoluteUri,
+            mode: LaunchMode.externalApplication,
+          );
+          if (!launched) {
+            await launchUrl(
+              githubUri,
+              mode: LaunchMode.externalApplication,
+            );
+          }
+        }
       } else {
         final launched = await launchUrl(
           absoluteUri,
@@ -102,6 +115,7 @@ class _DownloadScreenState extends ConsumerState<DownloadScreen> {
               _MacOSDownloadSection(
                 isDesktop: isDesktop,
                 isMobile: isMobile,
+                onDownloadDmg: () => _triggerDownload(context, 'laterbox-macos.dmg'),
                 onDownloadPkg: () => _triggerDownload(context, 'laterbox-macos-installer.pkg'),
                 onDownloadZip: () => _triggerDownload(context, 'laterbox-macos-universal.zip'),
               ),
@@ -666,12 +680,14 @@ class _MacOSDownloadSection extends StatelessWidget {
   const _MacOSDownloadSection({
     required this.isDesktop,
     required this.isMobile,
+    required this.onDownloadDmg,
     required this.onDownloadPkg,
     required this.onDownloadZip,
   });
 
   final bool isDesktop;
   final bool isMobile;
+  final VoidCallback onDownloadDmg;
   final VoidCallback onDownloadPkg;
   final VoidCallback onDownloadZip;
 
@@ -805,8 +821,8 @@ class _MacOSDownloadSection extends StatelessWidget {
                     label: 'Global Quick Capture (⌘+Shift+S)',
                   ),
                   _FeaturePill(
-                    icon: Icons.system_update_alt_rounded,
-                    label: 'Native macOS Installer Package (.pkg)',
+                    icon: Icons.album_rounded,
+                    label: 'macOS Disk Image (.dmg) & Installer (.pkg)',
                   ),
                   _FeaturePill(
                     icon: Icons.flash_on_rounded,
@@ -825,9 +841,9 @@ class _MacOSDownloadSection extends StatelessWidget {
                 crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
                   FilledButton.icon(
-                    onPressed: onDownloadPkg,
-                    icon: const Icon(Icons.download_rounded, size: 20),
-                    label: const Text('Download Installer (.pkg) • 23 MB'),
+                    onPressed: onDownloadDmg,
+                    icon: const Icon(Icons.album_rounded, size: 20),
+                    label: const Text('Download Disk Image (.dmg) • 25 MB'),
                     style: FilledButton.styleFrom(
                       elevation: 0,
                       backgroundColor: theme.colorScheme.primary,
@@ -843,6 +859,28 @@ class _MacOSDownloadSection extends StatelessWidget {
                       textStyle: const TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: onDownloadPkg,
+                    icon: const Icon(Icons.download_rounded, size: 20),
+                    label: const Text('Download Installer (.pkg) • 23 MB'),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 22,
+                        vertical: 16,
+                      ),
+                      minimumSize: Size(isMobile ? double.infinity : 0, 50),
+                      side: BorderSide(
+                        color: theme.colorScheme.outlineVariant,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(100),
+                      ),
+                      textStyle: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
                   ),
@@ -895,7 +933,7 @@ class _MacOSDownloadSection extends StatelessWidget {
                   ),
                   const SizedBox(width: 6),
                   Text(
-                    'Safe macOS Installer. Automatically installs to /Applications.',
+                    'Safe macOS Disk Image & Installer. Drag to Applications or auto-install.',
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                     ),

@@ -8,13 +8,14 @@
   Cache-Control: no-cache, no-store, must-revalidate
 
 /main.dart.js
-  Cache-Control: no-cache, must-revalidate
+  Cache-Control: no-cache, no-store, must-revalidate
 
 /version.json
   Cache-Control: no-cache, no-store, must-revalidate
   Access-Control-Allow-Origin: *
 
 /downloads/*
-  Cache-Control: public, max-age=3600
+  Cache-Control: public, max-age=0, must-revalidate
   Access-Control-Allow-Origin: *
+
 

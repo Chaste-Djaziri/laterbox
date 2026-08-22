@@ -65,6 +65,7 @@ def main():
         for artifact in [
             "laterbox-windows-setup.exe",
             "laterbox-windows-x64.zip",
+            "laterbox-macos.dmg",
             "laterbox-macos-installer.pkg",
             "laterbox-macos-universal.zip",
             "laterbox-chrome-extension.zip",
@@ -77,9 +78,18 @@ def main():
                 shutil.copy2(src, os.path.join(web_downloads_dir, artifact))
                 print(f"📦 Bundled download artifact: {artifact}")
 
-    # Deploy to Cloudflare Pages
-    deploy_cmd = ["npx", "wrangler", "pages", "deploy", "build/web", "--project-name=laterbox"]
-    print(f"🌐 Deploying to Cloudflare Pages: {' '.join(deploy_cmd)}")
+    # Deploy to Cloudflare Pages production branch (main)
+    deploy_cmd = [
+        "npx",
+        "wrangler",
+        "pages",
+        "deploy",
+        "build/web",
+        "--project-name=laterbox",
+        "--branch=main",
+        "--commit-dirty=true",
+    ]
+    print(f"🌐 Deploying to Cloudflare Pages (main): {' '.join(deploy_cmd)}")
     subprocess.check_call(deploy_cmd)
     print("✅ Web deployment complete!")
 
