@@ -65,6 +65,7 @@ def main():
         for artifact in [
             "laterbox-windows-setup.exe",
             "laterbox-windows-x64.zip",
+            "laterbox-macos.dmg",
             "laterbox-macos-installer.pkg",
             "laterbox-macos-universal.zip",
             "laterbox-chrome-extension.zip",
