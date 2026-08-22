@@ -40,3 +40,30 @@ export async function enqueueCapture(capture: Capture): Promise<void> {
 export async function replacePendingCaptures(queue: Capture[]): Promise<void> {
   await browser.storage.local.set({ [QUEUE_KEY]: queue });
 }
+
+const PENDING_CONN_KEY = "pendingConnection";
+
+export type PendingConnection = {
+  requestId: string;
+  requestSecret: string;
+  connectUrl: string;
+  tabId?: number;
+  createdAt: number;
+};
+
+export async function getPendingConnection(): Promise<PendingConnection | null> {
+  const values = await browser.storage.local.get(PENDING_CONN_KEY);
+  const conn = values[PENDING_CONN_KEY];
+  if (conn && typeof conn.requestId === "string") {
+    return conn as PendingConnection;
+  }
+  return null;
+}
+
+export async function setPendingConnection(conn: PendingConnection): Promise<void> {
+  await browser.storage.local.set({ [PENDING_CONN_KEY]: conn });
+}
+
+export async function clearPendingConnection(): Promise<void> {
+  await browser.storage.local.remove(PENDING_CONN_KEY);
+}
