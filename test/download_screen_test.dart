@@ -23,9 +23,12 @@ void main() {
     expect(find.text('laterbox'), findsWidgets);
     expect(find.text('Get laterbox for your device'), findsOneWidget);
     expect(find.text('Laterbox for Windows'), findsOneWidget);
-    expect(find.text('AVAILABLE NOW'), findsOneWidget);
     expect(find.text('Download Installer (.exe) • 12 MB'), findsOneWidget);
     expect(find.text('Download Portable (.zip) • 14 MB'), findsOneWidget);
+
+    expect(find.text('Laterbox for macOS'), findsOneWidget);
+    expect(find.text('Download Installer (.pkg) • 23 MB'), findsOneWidget);
+    expect(find.text('Download App (.zip) • 23 MB'), findsOneWidget);
 
     expect(find.text('Laterbox for Android'), findsOneWidget);
     expect(find.text('GOOGLE PLAY BETA'), findsOneWidget);
