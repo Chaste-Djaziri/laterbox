@@ -17,10 +17,9 @@ void main() {
         overrides: [
           authStateProvider.overrideWith(
             (ref) => Stream.value(
-              const AuthState(
+              const LaterBoxAuthState(
                 userId: 'user_123',
                 email: 'chastedjaziri@gmail.com',
-                status: AuthStatus.authenticated,
               ),
             ),
           ),
