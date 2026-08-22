@@ -85,18 +85,30 @@ class AppDelegate: FlutterAppDelegate {
 
     let logoImage: NSImage? = {
       if isDark {
-        if let whiteAsset = NSImage(named: "AppIconWhite") {
+        if let whiteAsset = NSImage(named: "AppIconWhite"), whiteAsset.isValid {
           return whiteAsset
         }
-        if let bundlePath = Bundle.main.resourcePath {
-          let assetPath = (bundlePath as NSString).appendingPathComponent("flutter_assets/assets/branding/laterbox-icon-white.png")
-          if let img = NSImage(contentsOfFile: assetPath) {
-            return img
+        for bundle in Bundle.allFrameworks + Bundle.allBundles + [Bundle.main] {
+          if let url = bundle.url(forResource: "laterbox-icon-white", withExtension: "png", subdirectory: "flutter_assets/assets/branding") ??
+                       bundle.url(forResource: "laterbox-icon-white", withExtension: "png") {
+            if let img = NSImage(contentsOf: url), img.isValid {
+              return img
+            }
           }
         }
-        return NSImage(named: "AppIcon")
+        if let base = NSImage(named: "AppIcon") ?? NSApp.applicationIconImage {
+          let baseSize = base.size.width > 0 ? base.size : NSSize(width: 512, height: 512)
+          let whiteIcon = NSImage(size: baseSize)
+          whiteIcon.lockFocus()
+          base.draw(in: NSRect(origin: .zero, size: baseSize), from: .zero, operation: .copy, fraction: 1.0)
+          NSColor.white.setFill()
+          NSRect(origin: .zero, size: baseSize).fill(using: .sourceIn)
+          whiteIcon.unlockFocus()
+          return whiteIcon
+        }
+        return nil
       } else {
-        return NSImage(named: "AppIcon")
+        return NSImage(named: "AppIcon") ?? NSApp.applicationIconImage
       }
     }()
 
@@ -113,6 +125,9 @@ class AppDelegate: FlutterAppDelegate {
 
     image.unlockFocus()
     NSApp.applicationIconImage = image
+    let dockImageView = NSImageView(frame: NSRect(origin: .zero, size: size))
+    dockImageView.image = image
+    NSApp.dockTile.contentView = dockImageView
     NSApp.dockTile.display()
   }
 
