@@ -10,11 +10,11 @@
   <body>
     <main class="popup">
       <header class="brand">
-        <img class="brand-logo" src="/logo.png" alt="LaterBox" />
+        <img class="brand-logo" src="/logo.png" alt="laterbox" />
       </header>
-      <section class="capture-preview" aria-live="polite">
-        <p id="domain" class="eyebrow">CURRENT PAGE</p>
-        <h1 id="title">Loading page...</h1>
+      <section class="card">
+        <p id="domain" class="domain">CURRENT PAGE</p>
+        <h1 id="title" class="title">Current page</h1>
         <p id="url" class="url"></p>
       </section>
       <section id="highlight" class="highlight-panel" hidden>
@@ -23,8 +23,8 @@
         <button id="save-highlight" type="button">Save highlight</button>
       </section>
       <section id="disconnected" class="connection-panel">
-        <p>Connect LaterBox to start saving across devices.</p>
-        <button id="connect" type="button">Connect LaterBox</button>
+        <p>Connect laterbox to start saving across devices.</p>
+        <button id="connect" type="button">Connect laterbox</button>
       </section>
       <section id="pending" class="connection-panel" hidden>
         <p class="pending-label"><span class="pending-dot"></span>Waiting for connection...</p>
@@ -33,8 +33,8 @@
         <button id="cancel-connect" class="link-button" type="button">Cancel request</button>
       </section>
       <section id="connected" class="connection-panel" hidden>
-        <p class="connected-label"><span class="status-dot"></span>Connected to LaterBox</p>
-        <button id="save" type="button">Save to LaterBox</button>
+        <p class="connected-label"><span class="status-dot"></span>Connected to laterbox</p>
+        <button id="save" type="button">Save to laterbox</button>
         <button id="open-panel" class="secondary-button" type="button">Open side panel</button>
         <button id="disconnect" class="link-button" type="button">Disconnect</button>
       </section>
