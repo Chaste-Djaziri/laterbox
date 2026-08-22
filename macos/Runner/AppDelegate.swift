@@ -83,7 +83,24 @@ class AppDelegate: FlutterAppDelegate {
 
     NSShadow().set()
 
-    if let logoImage = NSImage(named: "AppIcon") {
+    let logoImage: NSImage? = {
+      if isDark {
+        if let whiteAsset = NSImage(named: "AppIconWhite") {
+          return whiteAsset
+        }
+        if let bundlePath = Bundle.main.resourcePath {
+          let assetPath = (bundlePath as NSString).appendingPathComponent("flutter_assets/assets/branding/laterbox-icon-white.png")
+          if let img = NSImage(contentsOfFile: assetPath) {
+            return img
+          }
+        }
+        return NSImage(named: "AppIcon")
+      } else {
+        return NSImage(named: "AppIcon")
+      }
+    }()
+
+    if let logo = logoImage {
       let logoPadding: CGFloat = 72
       let logoRect = NSRect(
         x: squircleRect.origin.x + logoPadding,
@@ -91,11 +108,7 @@ class AppDelegate: FlutterAppDelegate {
         width: squircleRect.width - (logoPadding * 2),
         height: squircleRect.height - (logoPadding * 2)
       )
-      logoImage.draw(in: logoRect, from: .zero, operation: .sourceOver, fraction: 1.0)
-      if isDark {
-        NSColor.white.setFill()
-        logoRect.fill(using: .sourceIn)
-      }
+      logo.draw(in: logoRect, from: .zero, operation: .sourceOver, fraction: 1.0)
     }
 
     image.unlockFocus()
