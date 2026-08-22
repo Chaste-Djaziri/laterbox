@@ -9,34 +9,14 @@ import { getSignedUrl } from "npm:@aws-sdk/s3-request-presigner@3.888.0";
 
 const allowedOrigins = new Set([
   "https://laterbox.micorp.pro",
+  "https://laterbox.pages.dev",
   "https://app.laterbox.com",
   "http://localhost:8080",
+  "http://localhost:3000",
+  "http://localhost:5173",
 ]);
-const allowedExtensions = new Set([
-  "jpg",
-  "jpeg",
-  "png",
-  "webp",
-  "heic",
-  "pdf",
-  "txt",
-  "md",
-  "doc",
-  "docx",
-]);
-const allowedMimeTypes = new Set([
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-  "image/heic",
-  "image/heif",
-  "application/pdf",
-  "text/plain",
-  "text/markdown",
-  "application/msword",
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-]);
-const maxBytes = 104_857_600;
+
+const maxBytes = 5 * 1024 * 1024 * 1024; // 5 GiB
 
 type AttachmentBody = {
   action?: unknown;
@@ -49,12 +29,19 @@ type AttachmentBody = {
   sha256?: unknown;
 };
 
+function isAllowedOrigin(origin: string | null): boolean {
+  if (!origin) return true; // Native clients (Dart/macOS/iOS/Android)
+  if (allowedOrigins.has(origin)) return true;
+  if (/^https:\/\/([a-z0-9-]+\.)?laterbox\.pages\.dev$/.test(origin)) return true;
+  if (/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) return true;
+  return false;
+}
+
 const corsHeaders = (request: Request): HeadersInit => {
   const origin = request.headers.get("origin");
+  const allowOrigin = isAllowedOrigin(origin) ? (origin ?? "*") : "*";
   return {
-    ...(origin && allowedOrigins.has(origin)
-      ? { "Access-Control-Allow-Origin": origin }
-      : {}),
+    "Access-Control-Allow-Origin": allowOrigin,
     "Access-Control-Allow-Headers":
       "authorization, x-client-info, apikey, content-type, x-amz-meta-sha256, x-amz-meta-attachment-id, x-amz-meta-user-id",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
@@ -235,8 +222,11 @@ function validateAttachment(body: AttachmentBody): ValidAttachment {
   const mimeType = requireString(body.mimeType, "mimeType").toLowerCase();
   const byteSize = body.byteSize;
   const sha256 = requireString(body.sha256, "sha256").toLowerCase();
-  if (!allowedExtensions.has(extension) || !allowedMimeTypes.has(mimeType)) {
-    throw new RequestError("Unsupported attachment type", 400);
+  if (extension.length === 0 || extension.length > 50) {
+    throw new RequestError("Invalid file extension", 400);
+  }
+  if (mimeType.length === 0 || mimeType.length > 128) {
+    throw new RequestError("Invalid mime type", 400);
   }
   if (
     !Number.isInteger(byteSize) || Number(byteSize) < 1 ||
