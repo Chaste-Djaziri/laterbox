@@ -63,11 +63,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             NoTransitionPage(key: state.pageKey, child: const DownloadScreen()),
       ),
       GoRoute(
-        path: '/downloads/:filename',
-        pageBuilder: (context, state) =>
-            NoTransitionPage(key: state.pageKey, child: const DownloadScreen()),
-      ),
-      GoRoute(
         path: '/login',
         pageBuilder: (context, state) =>
             NoTransitionPage(key: state.pageKey, child: const AuthScreen()),
