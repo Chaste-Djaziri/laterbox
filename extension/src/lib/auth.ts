@@ -79,7 +79,7 @@ export async function connectLaterBoxViaTab(): Promise<string> {
     const connectionEndpoint = getConnectionEndpoint();
     const webUrl = import.meta.env.VITE_LATERBOX_WEB_URL ?? "";
     if (!connectionEndpoint || !webUrl) {
-      throw new Error("LaterBox connection is not configured");
+      throw new Error("laterbox connection is not configured");
     }
 
     const { requestId, requestSecret } = createConnectCredentials();
@@ -136,7 +136,7 @@ export async function connectLaterBoxViaTab(): Promise<string> {
 
       if (status !== "approved") {
         await closeTab(tab.id);
-        throw new Error("LaterBox connection timed out or was not approved.");
+        throw new Error("laterbox connection timed out or was not approved.");
       }
 
       const userId = await exchangeConnection(connectionEndpoint, requestId, requestSecret);
@@ -165,7 +165,7 @@ async function exchangeConnection(
     request_secret: requestSecret,
   });
   if (typeof response.extensionToken !== "string") {
-    throw new Error("LaterBox did not return an extension credential");
+    throw new Error("laterbox did not return an extension credential");
   }
 
   await setAccessToken(response.extensionToken);
