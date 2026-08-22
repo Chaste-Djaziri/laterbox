@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "laterbox",
+  "name": "LaterBox: Save for Later",
   "description": "Save the current page to laterbox.",
   "version": "0.1.0",
   "browser_specific_settings": {
