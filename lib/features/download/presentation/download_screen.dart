@@ -100,6 +100,10 @@ class _DownloadScreenState extends ConsumerState<DownloadScreen> {
                 onDownloadExe: () => _triggerDownload(context, 'laterbox-windows-setup.exe'),
                 onDownloadZip: () => _triggerDownload(context, 'laterbox-windows-x64.zip'),
               ),
+              _AndroidDownloadSection(
+                isDesktop: isDesktop,
+                isMobile: isMobile,
+              ),
               _RoadmapSection(isDesktop: isDesktop, isMobile: isMobile),
               _AvailablePlatformsSection(isDesktop: isDesktop, isMobile: isMobile),
               _QuickInstallGuide(isDesktop: isDesktop, isMobile: isMobile),
@@ -647,6 +651,317 @@ class _WindowsDownloadSection extends StatelessWidget {
   }
 }
 
+class _AndroidDownloadSection extends StatelessWidget {
+  const _AndroidDownloadSection({
+    required this.isDesktop,
+    required this.isMobile,
+  });
+
+  final bool isDesktop;
+  final bool isMobile;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    const androidGreen = Color(0xFF3DDC84);
+
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 1040),
+        child: Container(
+          margin: EdgeInsets.symmetric(
+            horizontal: isMobile ? 16 : 24,
+            vertical: 16,
+          ),
+          padding: EdgeInsets.all(isMobile ? 20 : 36),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surfaceContainerLowest,
+            borderRadius: BorderRadius.circular(28),
+            border: Border.all(
+              color: androidGreen.withValues(alpha: 0.4),
+              width: 1.5,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: androidGreen.withValues(alpha: 0.08),
+                blurRadius: 36,
+                offset: const Offset(0, 16),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: androidGreen.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(
+                        color: androidGreen.withValues(alpha: 0.3),
+                      ),
+                    ),
+                    child: const Icon(
+                      Icons.android_rounded,
+                      size: 36,
+                      color: androidGreen,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Wrap(
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          spacing: 10,
+                          runSpacing: 6,
+                          children: [
+                            Text(
+                              'Laterbox for Android',
+                              style: theme.textTheme.headlineSmall?.copyWith(
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: -0.5,
+                                fontSize: isMobile ? 20 : 24,
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: androidGreen.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(100),
+                                border: Border.all(
+                                  color: androidGreen.withValues(alpha: 0.4),
+                                ),
+                              ),
+                              child: const Text(
+                                'GOOGLE PLAY BETA',
+                                style: TextStyle(
+                                  color: Color(0xFF1E822E),
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 11,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'Version 1.0.0 (Build 3) • Android 9.0+ (API 28+) • Google Play Closed Testing',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              Divider(
+                color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                'How to Get Early Access on Google Play',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 14),
+              Container(
+                padding: const EdgeInsets.all(18),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    _StepItem(
+                      number: '1',
+                      title: 'Join the Google Group',
+                      description:
+                          'First, join our official testers Google Group with your active Google Account.',
+                      actionLabel: '1. Join Testers Group',
+                      icon: Icons.group_rounded,
+                      onTap: () => launchUrl(
+                        Uri.parse('https://groups.google.com/my-groups'),
+                        mode: LaunchMode.externalApplication,
+                      ),
+                    ),
+                    const Divider(height: 28),
+                    _StepItem(
+                      number: '2',
+                      title: 'Install from Google Play Store',
+                      description:
+                          'Visit Google Play using the exact same Google account used to join the group.',
+                      actionLabel: '2. Download on Google Play',
+                      icon: Icons.shop_two_rounded,
+                      isPrimary: true,
+                      onTap: () => launchUrl(
+                        Uri.parse(
+                            'https://play.google.com/store/apps/details?id=pro.micorp.laterbox'),
+                        mode: LaunchMode.externalApplication,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 22),
+              Text(
+                'Android Features',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 14),
+              Wrap(
+                spacing: 12,
+                runSpacing: 10,
+                children: const [
+                  _FeaturePill(
+                    icon: Icons.share_rounded,
+                    label: 'System Share Target (Save from Any App)',
+                  ),
+                  _FeaturePill(
+                    icon: Icons.cloud_sync_rounded,
+                    label: 'Real-Time Sync with Cloud Library',
+                  ),
+                  _FeaturePill(
+                    icon: Icons.offline_pin_rounded,
+                    label: 'Offline Reading & Local Storage',
+                  ),
+                  _FeaturePill(
+                    icon: Icons.dark_mode_rounded,
+                    label: 'Dynamic Dark & Light Mode Theme',
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _StepItem extends StatelessWidget {
+  const _StepItem({
+    required this.number,
+    required this.title,
+    required this.description,
+    required this.actionLabel,
+    required this.icon,
+    required this.onTap,
+    this.isPrimary = false,
+  });
+
+  final String number;
+  final String title;
+  final String description;
+  final String actionLabel;
+  final IconData icon;
+  final VoidCallback onTap;
+  final bool isPrimary;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isMobile = MediaQuery.sizeOf(context).width < 600;
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 32,
+          height: 32,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: isPrimary ? theme.colorScheme.primary : theme.colorScheme.surfaceContainerHighest,
+            shape: BoxShape.circle,
+          ),
+          child: Text(
+            number,
+            style: TextStyle(
+              color: isPrimary ? theme.colorScheme.onPrimary : theme.colorScheme.onSurface,
+              fontWeight: FontWeight.w900,
+              fontSize: 14,
+            ),
+          ),
+        ),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                description,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 10),
+              if (isPrimary)
+                FilledButton.icon(
+                  onPressed: onTap,
+                  icon: Icon(icon, size: 18),
+                  label: Text(actionLabel),
+                  style: FilledButton.styleFrom(
+                    elevation: 0,
+                    backgroundColor: theme.colorScheme.primary,
+                    foregroundColor: theme.colorScheme.onPrimary,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 18,
+                      vertical: 10,
+                    ),
+                    minimumSize: Size(isMobile ? double.infinity : 0, 42),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(100),
+                    ),
+                  ),
+                )
+              else
+                OutlinedButton.icon(
+                  onPressed: onTap,
+                  icon: Icon(icon, size: 18),
+                  label: Text(actionLabel),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 18,
+                      vertical: 10,
+                    ),
+                    minimumSize: Size(isMobile ? double.infinity : 0, 42),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(100),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class _FeaturePill extends StatelessWidget {
   const _FeaturePill({required this.icon, required this.label});
 
@@ -725,10 +1040,10 @@ class _RoadmapSection extends StatelessWidget {
         icon: Icons.android_rounded,
         title: 'Android',
         subtitle: 'Android 9.0+ (API 28+)',
-        status: 'IN DEVELOPMENT',
-        statusColor: Colors.purple,
+        status: 'BETA TESTING',
+        statusColor: const Color(0xFF3DDC84),
         format: 'Google Play & Direct APK',
-        features: 'System share target, Quick Settings capture tile, background cloud sync.',
+        features: 'Google Play testing open! System share target, offline cache, cloud sync.',
       ),
     ];
 
