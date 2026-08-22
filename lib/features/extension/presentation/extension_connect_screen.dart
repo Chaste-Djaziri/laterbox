@@ -159,16 +159,24 @@ class _ExtensionConnectScreenState
 bool _isValidRedirectUri(String value) {
   final uri = Uri.tryParse(value);
   if (uri == null) return false;
-  if (uri.scheme == 'moz-extension' || uri.scheme == 'safari-web-extension') {
+  if (uri.scheme == 'moz-extension' ||
+      uri.scheme == 'safari-web-extension' ||
+      uri.scheme == 'chrome-extension') {
     return true;
   }
   if (uri.scheme == 'https') {
     final host = uri.host.toLowerCase();
     return host.endsWith('.chromiumapp.org') ||
         host.endsWith('.extensions.allizom.org') ||
-        host == 'app.laterbox.com';
+        host.endsWith('.micorp.pro') ||
+        host.endsWith('.laterbox.com') ||
+        host.endsWith('.laterbox.pages.dev') ||
+        host == 'laterbox.micorp.pro' ||
+        host == 'app.laterbox.com' ||
+        uri.path.startsWith('/extension/connected');
   }
-  if (uri.scheme == 'http' && uri.host == 'localhost') {
+  if (uri.scheme == 'http' &&
+      (uri.host == 'localhost' || uri.host == '127.0.0.1')) {
     return true;
   }
   return false;
