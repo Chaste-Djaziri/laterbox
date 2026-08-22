@@ -16,6 +16,7 @@ import '../../attachments/data/attachment_storage_api.dart';
 import '../../attachments/presentation/attachment_preview.dart';
 import '../../attachments/presentation/attachment_providers.dart';
 import '../../collections/presentation/collection_providers.dart';
+import '../../inbox/presentation/inbox_providers.dart';
 import '../../notes/presentation/item_note_section.dart';
 import 'detail_providers.dart';
 
@@ -61,12 +62,43 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
           },
         ),
         actions: [
-          if (item != null)
+          if (item != null) ...[
+            IconButton(
+              tooltip: item.favorite ? 'Remove from favorites' : 'Favorite',
+              icon: Icon(
+                item.favorite ? Icons.star_rounded : Icons.star_border_rounded,
+                color: item.favorite
+                    ? Theme.of(context).colorScheme.primary
+                    : null,
+              ),
+              onPressed: () {
+                ref
+                    .read(itemRepositoryProvider)
+                    .setFavorite(item.id, !item.favorite);
+              },
+            ),
+            IconButton(
+              tooltip: item.isArchived ? 'Mark as unseen' : 'Mark as seen',
+              icon: Icon(
+                item.isArchived
+                    ? Icons.mark_email_unread_outlined
+                    : Icons.check_circle_outline_rounded,
+              ),
+              onPressed: () {
+                final repo = ref.read(itemRepositoryProvider);
+                if (item.isArchived) {
+                  repo.markUnseen(item.id);
+                } else {
+                  repo.markSeen(item.id);
+                }
+              },
+            ),
             IconButton(
               tooltip: 'More actions',
               onPressed: () => showItemActions(context, ref, item),
               icon: const Icon(Icons.more_horiz_rounded),
             ),
+          ],
           const SizedBox(width: 4),
         ],
       ),
