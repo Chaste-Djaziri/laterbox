@@ -24,7 +24,7 @@ class QuickCaptureSuccess extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            'Saved to LaterBox',
+            'Saved to laterbox',
             style: Theme.of(context)
                 .textTheme
                 .titleSmall
