@@ -51,8 +51,13 @@ app.*.map.json
 extension/node_modules/
 extension/dist/
 
+# Installer and binary distribution
+/dist/
+/web/downloads/
+
 # Wrangler local state
 .wrangler/
+
 
 # Flutter generated plugin registrants (regenerated on pub get)
 linux/flutter/generated_plugin_registrant.cc
