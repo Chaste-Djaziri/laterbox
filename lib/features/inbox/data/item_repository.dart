@@ -89,6 +89,10 @@ class ItemRepository {
 
   Future<void> archive(String id) => setStatus(id, ItemStatus.archived);
 
+  Future<void> markSeen(String id) => archive(id);
+
+  Future<void> markUnseen(String id) => setStatus(id, ItemStatus.inbox);
+
   Future<void> delete(String id) async {
     await _local.softDelete(id);
     unawaited(_onSaved());
