@@ -1,0 +1,1025 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		CAD5B16830399BD1005FB70C /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAD5B16730399BD1005FB70C /* AppDelegate.swift */; };
+		CAD5B16A30399BD1005FB70C /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAD5B16930399BD1005FB70C /* SceneDelegate.swift */; };
+		CAD5B16D30399BD1005FB70C /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = CAD5B16B30399BD1005FB70C /* LaunchScreen.storyboard */; };
+		CAD5B17030399BD1005FB70C /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = CAD5B16E30399BD1005FB70C /* Main.storyboard */; };
+		CAD5B17930399BD1005FB70C /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAD5B17830399BD1005FB70C /* AppDelegate.swift */; };
+		CAD5B17C30399BD1005FB70C /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = CAD5B17A30399BD1005FB70C /* Main.storyboard */; };
+		CAD5B18330399BD1005FB70C /* laterbox Extension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = CAD5B18230399BD1005FB70C /* laterbox Extension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		CAD5B18D30399BD1005FB70C /* laterbox Extension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = CAD5B18C30399BD1005FB70C /* laterbox Extension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		CAD5B19230399BD1005FB70C /* Main.html in Resources */ = {isa = PBXBuildFile; fileRef = CAD5B15730399BD0005FB70C /* Main.html */; };
+		CAD5B19330399BD1005FB70C /* Main.html in Resources */ = {isa = PBXBuildFile; fileRef = CAD5B15730399BD0005FB70C /* Main.html */; };
+		CAD5B19430399BD1005FB70C /* Icon.png in Resources */ = {isa = PBXBuildFile; fileRef = CAD5B15930399BD0005FB70C /* Icon.png */; };
+		CAD5B19530399BD1005FB70C /* Icon.png in Resources */ = {isa = PBXBuildFile; fileRef = CAD5B15930399BD0005FB70C /* Icon.png */; };
+		CAD5B19630399BD1005FB70C /* Style.css in Resources */ = {isa = PBXBuildFile; fileRef = CAD5B15A30399BD0005FB70C /* Style.css */; };
+		CAD5B19730399BD1005FB70C /* Style.css in Resources */ = {isa = PBXBuildFile; fileRef = CAD5B15A30399BD0005FB70C /* Style.css */; };
+		CAD5B19830399BD1005FB70C /* Script.js in Resources */ = {isa = PBXBuildFile; fileRef = CAD5B15B30399BD0005FB70C /* Script.js */; };
+		CAD5B19930399BD1005FB70C /* Script.js in Resources */ = {isa = PBXBuildFile; fileRef = CAD5B15B30399BD0005FB70C /* Script.js */; };
+		CAD5B19A30399BD1005FB70C /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAD5B15C30399BD0005FB70C /* ViewController.swift */; };
+		CAD5B19B30399BD1005FB70C /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAD5B15C30399BD0005FB70C /* ViewController.swift */; };
+		CAD5B19C30399BD1005FB70C /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = CAD5B15D30399BD1005FB70C /* Assets.xcassets */; };
+		CAD5B19D30399BD1005FB70C /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = CAD5B15D30399BD1005FB70C /* Assets.xcassets */; };
+		CAD5B19E30399BD1005FB70C /* SafariWebExtensionHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAD5B15F30399BD1005FB70C /* SafariWebExtensionHandler.swift */; };
+		CAD5B19F30399BD1005FB70C /* SafariWebExtensionHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAD5B15F30399BD1005FB70C /* SafariWebExtensionHandler.swift */; };
+		CAD5B1B930399BD2005FB70C /* popup.js in Resources */ = {isa = PBXBuildFile; fileRef = CAD5B1B130399BD2005FB70C /* popup.js */; };
+		CAD5B1BA30399BD2005FB70C /* sidepanel.js in Resources */ = {isa = PBXBuildFile; fileRef = CAD5B1B230399BD2005FB70C /* sidepanel.js */; };
+		CAD5B1BB30399BD2005FB70C /* background.js in Resources */ = {isa = PBXBuildFile; fileRef = CAD5B1B330399BD2005FB70C /* background.js */; };
+		CAD5B1BC30399BD2005FB70C /* logo.png in Resources */ = {isa = PBXBuildFile; fileRef = CAD5B1B430399BD2005FB70C /* logo.png */; };
+		CAD5B1BD30399BD2005FB70C /* icons in Resources */ = {isa = PBXBuildFile; fileRef = CAD5B1B530399BD2005FB70C /* icons */; };
+		CAD5B1BE30399BD2005FB70C /* manifest.json in Resources */ = {isa = PBXBuildFile; fileRef = CAD5B1B630399BD2005FB70C /* manifest.json */; };
+		CAD5B1BF30399BD2005FB70C /* assets in Resources */ = {isa = PBXBuildFile; fileRef = CAD5B1B730399BD2005FB70C /* assets */; };
+		CAD5B1C030399BD2005FB70C /* src in Resources */ = {isa = PBXBuildFile; fileRef = CAD5B1B830399BD2005FB70C /* src */; };
+		CAD5B1C130399BD2005FB70C /* popup.js in Resources */ = {isa = PBXBuildFile; fileRef = CAD5B1B130399BD2005FB70C /* popup.js */; };
+		CAD5B1C230399BD2005FB70C /* sidepanel.js in Resources */ = {isa = PBXBuildFile; fileRef = CAD5B1B230399BD2005FB70C /* sidepanel.js */; };
+		CAD5B1C330399BD2005FB70C /* background.js in Resources */ = {isa = PBXBuildFile; fileRef = CAD5B1B330399BD2005FB70C /* background.js */; };
+		CAD5B1C430399BD2005FB70C /* logo.png in Resources */ = {isa = PBXBuildFile; fileRef = CAD5B1B430399BD2005FB70C /* logo.png */; };
+		CAD5B1C530399BD2005FB70C /* icons in Resources */ = {isa = PBXBuildFile; fileRef = CAD5B1B530399BD2005FB70C /* icons */; };
+		CAD5B1C630399BD2005FB70C /* manifest.json in Resources */ = {isa = PBXBuildFile; fileRef = CAD5B1B630399BD2005FB70C /* manifest.json */; };
+		CAD5B1C730399BD2005FB70C /* assets in Resources */ = {isa = PBXBuildFile; fileRef = CAD5B1B730399BD2005FB70C /* assets */; };
+		CAD5B1C830399BD2005FB70C /* src in Resources */ = {isa = PBXBuildFile; fileRef = CAD5B1B830399BD2005FB70C /* src */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		CAD5B18430399BD1005FB70C /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = CAD5B15130399BD0005FB70C /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = CAD5B18130399BD1005FB70C;
+			remoteInfo = "laterbox Extension (iOS)";
+		};
+		CAD5B18E30399BD1005FB70C /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = CAD5B15130399BD0005FB70C /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = CAD5B18B30399BD1005FB70C;
+			remoteInfo = "laterbox Extension (macOS)";
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		CAD5B1A530399BD1005FB70C /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				CAD5B18330399BD1005FB70C /* laterbox Extension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CAD5B1AC30399BD1005FB70C /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				CAD5B18D30399BD1005FB70C /* laterbox Extension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		CAD5B15830399BD0005FB70C /* Base */ = {isa = PBXFileReference; lastKnownFileType = text.html; name = Base; path = Base.lproj/Main.html; sourceTree = "<group>"; };
+		CAD5B15930399BD0005FB70C /* Icon.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = Icon.png; sourceTree = "<group>"; };
+		CAD5B15A30399BD0005FB70C /* Style.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = Style.css; sourceTree = "<group>"; };
+		CAD5B15B30399BD0005FB70C /* Script.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = Script.js; sourceTree = "<group>"; };
+		CAD5B15C30399BD0005FB70C /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
+		CAD5B15D30399BD1005FB70C /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		CAD5B15F30399BD1005FB70C /* SafariWebExtensionHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SafariWebExtensionHandler.swift; sourceTree = "<group>"; };
+		CAD5B16430399BD1005FB70C /* laterbox.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = laterbox.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		CAD5B16730399BD1005FB70C /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		CAD5B16930399BD1005FB70C /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
+		CAD5B16C30399BD1005FB70C /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
+		CAD5B16F30399BD1005FB70C /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
+		CAD5B17130399BD1005FB70C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		CAD5B17630399BD1005FB70C /* laterbox.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = laterbox.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		CAD5B17830399BD1005FB70C /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		CAD5B17B30399BD1005FB70C /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
+		CAD5B17D30399BD1005FB70C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		CAD5B18230399BD1005FB70C /* laterbox Extension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "laterbox Extension.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
+		CAD5B18730399BD1005FB70C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		CAD5B18C30399BD1005FB70C /* laterbox Extension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "laterbox Extension.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
+		CAD5B19130399BD1005FB70C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		CAD5B1B130399BD2005FB70C /* popup.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = popup.js; path = ../../../extension/dist/safari/popup.js; sourceTree = "<group>"; };
+		CAD5B1B230399BD2005FB70C /* sidepanel.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = sidepanel.js; path = ../../../extension/dist/safari/sidepanel.js; sourceTree = "<group>"; };
+		CAD5B1B330399BD2005FB70C /* background.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = background.js; path = ../../../extension/dist/safari/background.js; sourceTree = "<group>"; };
+		CAD5B1B430399BD2005FB70C /* logo.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = logo.png; path = ../../../extension/dist/safari/logo.png; sourceTree = "<group>"; };
+		CAD5B1B530399BD2005FB70C /* icons */ = {isa = PBXFileReference; lastKnownFileType = folder; name = icons; path = ../../../extension/dist/safari/icons; sourceTree = "<group>"; };
+		CAD5B1B630399BD2005FB70C /* manifest.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; name = manifest.json; path = ../../../extension/dist/safari/manifest.json; sourceTree = "<group>"; };
+		CAD5B1B730399BD2005FB70C /* assets */ = {isa = PBXFileReference; lastKnownFileType = folder; name = assets; path = ../../../extension/dist/safari/assets; sourceTree = "<group>"; };
+		CAD5B1B830399BD2005FB70C /* src */ = {isa = PBXFileReference; lastKnownFileType = folder; name = src; path = ../../../extension/dist/safari/src; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		CAD5B16130399BD1005FB70C /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CAD5B17330399BD1005FB70C /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CAD5B17F30399BD1005FB70C /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CAD5B18930399BD1005FB70C /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		CAD5B15030399BD0005FB70C = {
+			isa = PBXGroup;
+			children = (
+				CAD5B15530399BD0005FB70C /* Shared (App) */,
+				CAD5B15E30399BD1005FB70C /* Shared (Extension) */,
+				CAD5B16630399BD1005FB70C /* iOS (App) */,
+				CAD5B17730399BD1005FB70C /* macOS (App) */,
+				CAD5B18630399BD1005FB70C /* iOS (Extension) */,
+				CAD5B19030399BD1005FB70C /* macOS (Extension) */,
+				CAD5B16530399BD1005FB70C /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		CAD5B15530399BD0005FB70C /* Shared (App) */ = {
+			isa = PBXGroup;
+			children = (
+				CAD5B15C30399BD0005FB70C /* ViewController.swift */,
+				CAD5B15D30399BD1005FB70C /* Assets.xcassets */,
+				CAD5B15630399BD0005FB70C /* Resources */,
+			);
+			path = "Shared (App)";
+			sourceTree = "<group>";
+		};
+		CAD5B15630399BD0005FB70C /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				CAD5B15730399BD0005FB70C /* Main.html */,
+				CAD5B15930399BD0005FB70C /* Icon.png */,
+				CAD5B15A30399BD0005FB70C /* Style.css */,
+				CAD5B15B30399BD0005FB70C /* Script.js */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		CAD5B15E30399BD1005FB70C /* Shared (Extension) */ = {
+			isa = PBXGroup;
+			children = (
+				CAD5B1B030399BD2005FB70C /* Resources */,
+				CAD5B15F30399BD1005FB70C /* SafariWebExtensionHandler.swift */,
+			);
+			path = "Shared (Extension)";
+			sourceTree = "<group>";
+		};
+		CAD5B16530399BD1005FB70C /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				CAD5B16430399BD1005FB70C /* laterbox.app */,
+				CAD5B17630399BD1005FB70C /* laterbox.app */,
+				CAD5B18230399BD1005FB70C /* laterbox Extension.appex */,
+				CAD5B18C30399BD1005FB70C /* laterbox Extension.appex */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		CAD5B16630399BD1005FB70C /* iOS (App) */ = {
+			isa = PBXGroup;
+			children = (
+				CAD5B16730399BD1005FB70C /* AppDelegate.swift */,
+				CAD5B16930399BD1005FB70C /* SceneDelegate.swift */,
+				CAD5B16B30399BD1005FB70C /* LaunchScreen.storyboard */,
+				CAD5B16E30399BD1005FB70C /* Main.storyboard */,
+				CAD5B17130399BD1005FB70C /* Info.plist */,
+			);
+			path = "iOS (App)";
+			sourceTree = "<group>";
+		};
+		CAD5B17730399BD1005FB70C /* macOS (App) */ = {
+			isa = PBXGroup;
+			children = (
+				CAD5B17830399BD1005FB70C /* AppDelegate.swift */,
+				CAD5B17A30399BD1005FB70C /* Main.storyboard */,
+				CAD5B17D30399BD1005FB70C /* Info.plist */,
+			);
+			path = "macOS (App)";
+			sourceTree = "<group>";
+		};
+		CAD5B18630399BD1005FB70C /* iOS (Extension) */ = {
+			isa = PBXGroup;
+			children = (
+				CAD5B18730399BD1005FB70C /* Info.plist */,
+			);
+			path = "iOS (Extension)";
+			sourceTree = "<group>";
+		};
+		CAD5B19030399BD1005FB70C /* macOS (Extension) */ = {
+			isa = PBXGroup;
+			children = (
+				CAD5B19130399BD1005FB70C /* Info.plist */,
+			);
+			path = "macOS (Extension)";
+			sourceTree = "<group>";
+		};
+		CAD5B1B030399BD2005FB70C /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				CAD5B1B130399BD2005FB70C /* popup.js */,
+				CAD5B1B230399BD2005FB70C /* sidepanel.js */,
+				CAD5B1B330399BD2005FB70C /* background.js */,
+				CAD5B1B430399BD2005FB70C /* logo.png */,
+				CAD5B1B530399BD2005FB70C /* icons */,
+				CAD5B1B630399BD2005FB70C /* manifest.json */,
+				CAD5B1B730399BD2005FB70C /* assets */,
+				CAD5B1B830399BD2005FB70C /* src */,
+			);
+			name = Resources;
+			path = "Shared (Extension)";
+			sourceTree = SOURCE_ROOT;
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		CAD5B16330399BD1005FB70C /* laterbox (iOS) */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = CAD5B1A630399BD1005FB70C /* Build configuration list for PBXNativeTarget "laterbox (iOS)" */;
+			buildPhases = (
+				CAD5B16030399BD1005FB70C /* Sources */,
+				CAD5B16130399BD1005FB70C /* Frameworks */,
+				CAD5B16230399BD1005FB70C /* Resources */,
+				CAD5B1A530399BD1005FB70C /* Embed Foundation Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				CAD5B18530399BD1005FB70C /* PBXTargetDependency */,
+			);
+			name = "laterbox (iOS)";
+			packageProductDependencies = (
+			);
+			productName = "laterbox (iOS)";
+			productReference = CAD5B16430399BD1005FB70C /* laterbox.app */;
+			productType = "com.apple.product-type.application";
+		};
+		CAD5B17530399BD1005FB70C /* laterbox (macOS) */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = CAD5B1AD30399BD1005FB70C /* Build configuration list for PBXNativeTarget "laterbox (macOS)" */;
+			buildPhases = (
+				CAD5B17230399BD1005FB70C /* Sources */,
+				CAD5B17330399BD1005FB70C /* Frameworks */,
+				CAD5B17430399BD1005FB70C /* Resources */,
+				CAD5B1AC30399BD1005FB70C /* Embed Foundation Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				CAD5B18F30399BD1005FB70C /* PBXTargetDependency */,
+			);
+			name = "laterbox (macOS)";
+			packageProductDependencies = (
+			);
+			productName = "laterbox (macOS)";
+			productReference = CAD5B17630399BD1005FB70C /* laterbox.app */;
+			productType = "com.apple.product-type.application";
+		};
+		CAD5B18130399BD1005FB70C /* laterbox Extension (iOS) */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = CAD5B1A230399BD1005FB70C /* Build configuration list for PBXNativeTarget "laterbox Extension (iOS)" */;
+			buildPhases = (
+				CAD5B17E30399BD1005FB70C /* Sources */,
+				CAD5B17F30399BD1005FB70C /* Frameworks */,
+				CAD5B18030399BD1005FB70C /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "laterbox Extension (iOS)";
+			packageProductDependencies = (
+			);
+			productName = "laterbox Extension (iOS)";
+			productReference = CAD5B18230399BD1005FB70C /* laterbox Extension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+		CAD5B18B30399BD1005FB70C /* laterbox Extension (macOS) */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = CAD5B1A930399BD1005FB70C /* Build configuration list for PBXNativeTarget "laterbox Extension (macOS)" */;
+			buildPhases = (
+				CAD5B18830399BD1005FB70C /* Sources */,
+				CAD5B18930399BD1005FB70C /* Frameworks */,
+				CAD5B18A30399BD1005FB70C /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "laterbox Extension (macOS)";
+			packageProductDependencies = (
+			);
+			productName = "laterbox Extension (macOS)";
+			productReference = CAD5B18C30399BD1005FB70C /* laterbox Extension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		CAD5B15130399BD0005FB70C /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2660;
+				LastUpgradeCheck = 2660;
+				TargetAttributes = {
+					CAD5B16330399BD1005FB70C = {
+						CreatedOnToolsVersion = 26.6;
+					};
+					CAD5B17530399BD1005FB70C = {
+						CreatedOnToolsVersion = 26.6;
+					};
+					CAD5B18130399BD1005FB70C = {
+						CreatedOnToolsVersion = 26.6;
+					};
+					CAD5B18B30399BD1005FB70C = {
+						CreatedOnToolsVersion = 26.6;
+					};
+				};
+			};
+			buildConfigurationList = CAD5B15430399BD0005FB70C /* Build configuration list for PBXProject "laterbox" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = CAD5B15030399BD0005FB70C;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = CAD5B16530399BD1005FB70C /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				CAD5B16330399BD1005FB70C /* laterbox (iOS) */,
+				CAD5B17530399BD1005FB70C /* laterbox (macOS) */,
+				CAD5B18130399BD1005FB70C /* laterbox Extension (iOS) */,
+				CAD5B18B30399BD1005FB70C /* laterbox Extension (macOS) */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		CAD5B16230399BD1005FB70C /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CAD5B19430399BD1005FB70C /* Icon.png in Resources */,
+				CAD5B16D30399BD1005FB70C /* LaunchScreen.storyboard in Resources */,
+				CAD5B19230399BD1005FB70C /* Main.html in Resources */,
+				CAD5B19830399BD1005FB70C /* Script.js in Resources */,
+				CAD5B19C30399BD1005FB70C /* Assets.xcassets in Resources */,
+				CAD5B17030399BD1005FB70C /* Main.storyboard in Resources */,
+				CAD5B19630399BD1005FB70C /* Style.css in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CAD5B17430399BD1005FB70C /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CAD5B19530399BD1005FB70C /* Icon.png in Resources */,
+				CAD5B19730399BD1005FB70C /* Style.css in Resources */,
+				CAD5B17C30399BD1005FB70C /* Main.storyboard in Resources */,
+				CAD5B19930399BD1005FB70C /* Script.js in Resources */,
+				CAD5B19D30399BD1005FB70C /* Assets.xcassets in Resources */,
+				CAD5B19330399BD1005FB70C /* Main.html in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CAD5B18030399BD1005FB70C /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CAD5B1C430399BD2005FB70C /* logo.png in Resources */,
+				CAD5B1C230399BD2005FB70C /* sidepanel.js in Resources */,
+				CAD5B1C730399BD2005FB70C /* assets in Resources */,
+				CAD5B1C830399BD2005FB70C /* src in Resources */,
+				CAD5B1C330399BD2005FB70C /* background.js in Resources */,
+				CAD5B1C530399BD2005FB70C /* icons in Resources */,
+				CAD5B1C630399BD2005FB70C /* manifest.json in Resources */,
+				CAD5B1C130399BD2005FB70C /* popup.js in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CAD5B18A30399BD1005FB70C /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CAD5B1BC30399BD2005FB70C /* logo.png in Resources */,
+				CAD5B1BA30399BD2005FB70C /* sidepanel.js in Resources */,
+				CAD5B1BF30399BD2005FB70C /* assets in Resources */,
+				CAD5B1C030399BD2005FB70C /* src in Resources */,
+				CAD5B1BB30399BD2005FB70C /* background.js in Resources */,
+				CAD5B1BD30399BD2005FB70C /* icons in Resources */,
+				CAD5B1BE30399BD2005FB70C /* manifest.json in Resources */,
+				CAD5B1B930399BD2005FB70C /* popup.js in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		CAD5B16030399BD1005FB70C /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CAD5B19A30399BD1005FB70C /* ViewController.swift in Sources */,
+				CAD5B16830399BD1005FB70C /* AppDelegate.swift in Sources */,
+				CAD5B16A30399BD1005FB70C /* SceneDelegate.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CAD5B17230399BD1005FB70C /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CAD5B19B30399BD1005FB70C /* ViewController.swift in Sources */,
+				CAD5B17930399BD1005FB70C /* AppDelegate.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CAD5B17E30399BD1005FB70C /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CAD5B19E30399BD1005FB70C /* SafariWebExtensionHandler.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CAD5B18830399BD1005FB70C /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CAD5B19F30399BD1005FB70C /* SafariWebExtensionHandler.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		CAD5B18530399BD1005FB70C /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = CAD5B18130399BD1005FB70C /* laterbox Extension (iOS) */;
+			targetProxy = CAD5B18430399BD1005FB70C /* PBXContainerItemProxy */;
+		};
+		CAD5B18F30399BD1005FB70C /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = CAD5B18B30399BD1005FB70C /* laterbox Extension (macOS) */;
+			targetProxy = CAD5B18E30399BD1005FB70C /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin PBXVariantGroup section */
+		CAD5B15730399BD0005FB70C /* Main.html */ = {
+			isa = PBXVariantGroup;
+			children = (
+				CAD5B15830399BD0005FB70C /* Base */,
+			);
+			name = Main.html;
+			sourceTree = "<group>";
+		};
+		CAD5B16B30399BD1005FB70C /* LaunchScreen.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				CAD5B16C30399BD1005FB70C /* Base */,
+			);
+			name = LaunchScreen.storyboard;
+			sourceTree = "<group>";
+		};
+		CAD5B16E30399BD1005FB70C /* Main.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				CAD5B16F30399BD1005FB70C /* Base */,
+			);
+			name = Main.storyboard;
+			sourceTree = "<group>";
+		};
+		CAD5B17A30399BD1005FB70C /* Main.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				CAD5B17B30399BD1005FB70C /* Base */,
+			);
+			name = Main.storyboard;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
+
+/* Begin XCBuildConfiguration section */
+		CAD5B1A030399BD1005FB70C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				DEVELOPMENT_TEAM = LS42X27YFY;
+				CODE_SIGN_STYLE = Automatic;
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		CAD5B1A130399BD1005FB70C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				DEVELOPMENT_TEAM = LS42X27YFY;
+				CODE_SIGN_STYLE = Automatic;
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SWIFT_COMPILATION_MODE = wholemodule;
+			};
+			name = Release;
+		};
+		CAD5B1A330399BD1005FB70C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				DEVELOPMENT_TEAM = LS42X27YFY;
+				CODE_SIGN_STYLE = Automatic;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "iOS (Extension)/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "laterbox Extension";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = pro.micorp.laterbox.safari.Extension;
+				PRODUCT_NAME = "laterbox Extension";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		CAD5B1A430399BD1005FB70C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				DEVELOPMENT_TEAM = LS42X27YFY;
+				CODE_SIGN_STYLE = Automatic;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "iOS (Extension)/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "laterbox Extension";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = pro.micorp.laterbox.safari.Extension;
+				PRODUCT_NAME = "laterbox Extension";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		CAD5B1A730399BD1005FB70C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				DEVELOPMENT_TEAM = LS42X27YFY;
+				CODE_SIGN_STYLE = Automatic;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "iOS (App)/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = laterbox;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
+				INFOPLIST_KEY_UIMainStoryboardFile = Main;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+					"-framework",
+					WebKit,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = pro.micorp.laterbox.safari;
+				PRODUCT_NAME = laterbox;
+				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		CAD5B1A830399BD1005FB70C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				DEVELOPMENT_TEAM = LS42X27YFY;
+				CODE_SIGN_STYLE = Automatic;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "iOS (App)/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = laterbox;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
+				INFOPLIST_KEY_UIMainStoryboardFile = Main;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+					"-framework",
+					WebKit,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = pro.micorp.laterbox.safari;
+				PRODUCT_NAME = laterbox;
+				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		CAD5B1AA30399BD1005FB70C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				DEVELOPMENT_TEAM = LS42X27YFY;
+				CODE_SIGN_STYLE = Automatic;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "macOS (Extension)/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "laterbox Extension";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 10.14;
+				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = pro.micorp.laterbox.safari.Extension;
+				PRODUCT_NAME = "laterbox Extension";
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		CAD5B1AB30399BD1005FB70C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				DEVELOPMENT_TEAM = LS42X27YFY;
+				CODE_SIGN_STYLE = Automatic;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "macOS (Extension)/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "laterbox Extension";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 10.14;
+				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = pro.micorp.laterbox.safari.Extension;
+				PRODUCT_NAME = "laterbox Extension";
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		CAD5B1AE30399BD1005FB70C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				DEVELOPMENT_TEAM = LS42X27YFY;
+				CODE_SIGN_STYLE = Automatic;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "macOS (App)/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = laterbox;
+				INFOPLIST_KEY_NSMainStoryboardFile = Main;
+				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 10.14;
+				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+					"-framework",
+					WebKit,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = pro.micorp.laterbox.safari;
+				PRODUCT_NAME = laterbox;
+				REGISTER_APP_GROUPS = YES;
+				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		CAD5B1AF30399BD1005FB70C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				DEVELOPMENT_TEAM = LS42X27YFY;
+				CODE_SIGN_STYLE = Automatic;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "macOS (App)/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = laterbox;
+				INFOPLIST_KEY_NSMainStoryboardFile = Main;
+				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 10.14;
+				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+					"-framework",
+					WebKit,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = pro.micorp.laterbox.safari;
+				PRODUCT_NAME = laterbox;
+				REGISTER_APP_GROUPS = YES;
+				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		CAD5B15430399BD0005FB70C /* Build configuration list for PBXProject "laterbox" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CAD5B1A030399BD1005FB70C /* Debug */,
+				CAD5B1A130399BD1005FB70C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		CAD5B1A230399BD1005FB70C /* Build configuration list for PBXNativeTarget "laterbox Extension (iOS)" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CAD5B1A330399BD1005FB70C /* Debug */,
+				CAD5B1A430399BD1005FB70C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		CAD5B1A630399BD1005FB70C /* Build configuration list for PBXNativeTarget "laterbox (iOS)" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CAD5B1A730399BD1005FB70C /* Debug */,
+				CAD5B1A830399BD1005FB70C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		CAD5B1A930399BD1005FB70C /* Build configuration list for PBXNativeTarget "laterbox Extension (macOS)" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CAD5B1AA30399BD1005FB70C /* Debug */,
+				CAD5B1AB30399BD1005FB70C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		CAD5B1AD30399BD1005FB70C /* Build configuration list for PBXNativeTarget "laterbox (macOS)" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CAD5B1AE30399BD1005FB70C /* Debug */,
+				CAD5B1AF30399BD1005FB70C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = CAD5B15130399BD0005FB70C /* Project object */;
+}
