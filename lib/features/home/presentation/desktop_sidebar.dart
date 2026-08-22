@@ -102,7 +102,7 @@ class _DesktopSidebarState extends ConsumerState<DesktopSidebar> {
                     if (!isCompact) ...[
                       const SizedBox(width: 12),
                       Text(
-                        'LaterBox',
+                        'laterbox',
                         style: theme.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.w800,
                           letterSpacing: -0.5,
