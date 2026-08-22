@@ -62,7 +62,12 @@ def main():
     web_downloads_dir = os.path.join(repo_dir, "build", "web", "downloads")
     if os.path.exists(dist_dir):
         os.makedirs(web_downloads_dir, exist_ok=True)
-        for artifact in ["laterbox-windows-setup.exe", "laterbox-windows-x64.zip"]:
+        for artifact in [
+            "laterbox-windows-setup.exe",
+            "laterbox-windows-x64.zip",
+            "laterbox-macos-installer.pkg",
+            "laterbox-macos-universal.zip",
+        ]:
             src = os.path.join(dist_dir, artifact)
             if os.path.exists(src):
                 import shutil
