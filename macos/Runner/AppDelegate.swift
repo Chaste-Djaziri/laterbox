@@ -32,6 +32,9 @@ class AppDelegate: FlutterAppDelegate {
     launchedAtLogin = Self.detectLoginItemLaunch()
     super.applicationDidFinishLaunching(notification)
     configureAppIcon()
+    DispatchQueue.main.async { [weak self] in
+      self?.configureAppIcon()
+    }
     registerAppearanceObserver()
     registerSelectionCaptureChannel()
     registerAppLaunchChannel()
@@ -48,13 +51,25 @@ class AppDelegate: FlutterAppDelegate {
     }
   }
 
-  private func configureAppIcon() {
-    let isDark: Bool
-    if #available(macOS 10.14, *) {
-      isDark = NSApp.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
-    } else {
-      isDark = false
+  private static func isSystemDarkMode() -> Bool {
+    if let style = UserDefaults.standard.string(forKey: "AppleInterfaceStyle"),
+       style.caseInsensitiveCompare("Dark") == .orderedSame {
+      return true
     }
+    if #available(macOS 10.14, *) {
+      let appearance = NSApp.effectiveAppearance.name
+      if appearance == .darkAqua || appearance == .vibrantDark ||
+         appearance == .accessibilityHighContrastDarkAqua ||
+         appearance == .accessibilityHighContrastVibrantDark {
+        return true
+      }
+      return NSApp.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+    }
+    return false
+  }
+
+  private func configureAppIcon() {
+    let isDark = Self.isSystemDarkMode()
 
     let size = NSSize(width: 512, height: 512)
     let image = NSImage(size: size)
@@ -97,7 +112,7 @@ class AppDelegate: FlutterAppDelegate {
           }
         }
         if let base = NSImage(named: "AppIcon") ?? NSApp.applicationIconImage {
-          let baseSize = base.size.width > 0 ? base.size : NSSize(width: 512, height: 512)
+          let baseSize = NSSize(width: 512, height: 512)
           let whiteIcon = NSImage(size: baseSize)
           whiteIcon.lockFocus()
           base.draw(in: NSRect(origin: .zero, size: baseSize), from: .zero, operation: .copy, fraction: 1.0)
