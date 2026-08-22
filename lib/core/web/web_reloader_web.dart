@@ -2,31 +2,46 @@ import 'dart:js_interop';
 import 'package:web/web.dart' as web;
 
 Future<void> reloadWebWithoutCache() async {
+  // 1. Unregister all service workers and wait for completion
   try {
     final sw = web.window.navigator.serviceWorker;
     final registrations = await sw.getRegistrations().toDart;
-    for (var i = 0; i < registrations.length; i++) {
-      final reg = registrations[i];
-      reg.unregister();
+    final jsList = registrations.toDart;
+    for (final reg in jsList) {
+      try {
+        await reg.unregister().toDart;
+      } catch (_) {}
     }
   } catch (_) {}
 
+  // 2. Clear all CacheStorage keys and wait for completion
   try {
     final caches = web.window.caches;
     final keys = await caches.keys().toDart;
-    for (var i = 0; i < keys.length; i++) {
-      final key = keys[i].toDart;
-      caches.delete(key);
+    final jsKeys = keys.toDart;
+    for (final key in jsKeys) {
+      try {
+        await caches.delete(key.toDart).toDart;
+      } catch (_) {}
     }
   } catch (_) {}
 
+  // 3. Clear transient sessionStorage
+  try {
+    web.window.sessionStorage.clear();
+  } catch (_) {}
+
+  // 4. Force browser navigation with fresh timestamp and reload
   try {
     final loc = web.window.location;
     final url = Uri.parse(loc.href);
     final freshParams = Map<String, String>.from(url.queryParameters);
-    freshParams['_v'] = DateTime.now().millisecondsSinceEpoch.toString();
-    loc.assign(url.replace(queryParameters: freshParams).toString());
+    freshParams['_update'] = DateTime.now().millisecondsSinceEpoch.toString();
+    final freshUrl = url.replace(queryParameters: freshParams).toString();
+    loc.replace(freshUrl);
   } catch (_) {
-    web.window.location.reload();
+    try {
+      web.window.location.reload();
+    } catch (_) {}
   }
 }
