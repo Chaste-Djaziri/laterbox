@@ -86,6 +86,14 @@ class SyncService {
       return const SyncResult(pushed: 0, pulled: 0, failed: 1);
     }
 
+    final attachmentSync = await _attachmentSync?.call();
+    if (attachmentSync != null) {
+      final result = await attachmentSync.sync(userId);
+      _pushed += result.pushed;
+      _pulled += result.pulled;
+      _failed += result.failed;
+    }
+
     final pendingItems = await _local.itemsNeedingSync(userId);
     for (final item in pendingItems) {
       try {
@@ -123,13 +131,6 @@ class SyncService {
 
     await _syncCollections(userId);
     await _syncNotes(userId);
-    final attachmentSync = await _attachmentSync?.call();
-    if (attachmentSync != null) {
-      final result = await attachmentSync.sync(userId);
-      _pushed += result.pushed;
-      _pulled += result.pulled;
-      _failed += result.failed;
-    }
 
     return SyncResult(pushed: _pushed, pulled: _pulled, failed: _failed);
   }
