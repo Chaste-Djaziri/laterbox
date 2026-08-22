@@ -6,6 +6,7 @@ import '../auth/auth_provider.dart';
 import '../../features/auth/presentation/auth_gate.dart';
 import '../../features/auth/presentation/auth_screen.dart';
 import '../../features/detail/presentation/item_detail_screen.dart';
+import '../../features/download/presentation/download_screen.dart';
 import '../../features/extension/presentation/extension_connect_screen.dart';
 import '../../features/extension/presentation/extension_connected_screen.dart';
 import '../../features/home/presentation/home_shell.dart';
@@ -50,6 +51,16 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/',
         pageBuilder: (context, state) =>
             NoTransitionPage(key: state.pageKey, child: const LandingScreen()),
+      ),
+      GoRoute(
+        path: '/download',
+        pageBuilder: (context, state) =>
+            NoTransitionPage(key: state.pageKey, child: const DownloadScreen()),
+      ),
+      GoRoute(
+        path: '/downloads',
+        pageBuilder: (context, state) =>
+            NoTransitionPage(key: state.pageKey, child: const DownloadScreen()),
       ),
       GoRoute(
         path: '/login',
