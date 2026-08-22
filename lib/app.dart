@@ -213,7 +213,7 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
       ),
     );
     return MaterialApp.router(
-      title: 'LaterBox',
+      title: 'laterbox',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
       routerConfig: ref.watch(appRouterProvider),
