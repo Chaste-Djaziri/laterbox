@@ -27,6 +27,7 @@ void main() {
     expect(find.text('Download Portable (.zip) • 14 MB'), findsOneWidget);
 
     expect(find.text('Laterbox for macOS'), findsOneWidget);
+    expect(find.text('Download Disk Image (.dmg) • 25 MB'), findsOneWidget);
     expect(find.text('Download Installer (.pkg) • 23 MB'), findsOneWidget);
     expect(find.text('Download App (.zip) • 23 MB'), findsOneWidget);
 
