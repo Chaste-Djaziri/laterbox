@@ -27,6 +27,11 @@ void main() {
     expect(find.text('Download Installer (.exe) • 12 MB'), findsOneWidget);
     expect(find.text('Download Portable (.zip) • 14 MB'), findsOneWidget);
 
+    expect(find.text('Laterbox for Android'), findsOneWidget);
+    expect(find.text('GOOGLE PLAY BETA'), findsOneWidget);
+    expect(find.text('1. Join Testers Group'), findsOneWidget);
+    expect(find.text('2. Download on Google Play'), findsOneWidget);
+
     await tester.drag(find.byType(ListView), const Offset(0, -800));
     await tester.pumpAndSettle();
 
