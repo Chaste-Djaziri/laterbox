@@ -28,6 +28,8 @@ class AppDelegate: FlutterAppDelegate {
     return true
   }
 
+  private var appearanceObservation: NSKeyValueObservation?
+
   override func applicationDidFinishLaunching(_ notification: Notification) {
     launchedAtLogin = Self.detectLoginItemLaunch()
     super.applicationDidFinishLaunching(notification)
@@ -36,18 +38,50 @@ class AppDelegate: FlutterAppDelegate {
       self?.configureAppIcon()
     }
     registerAppearanceObserver()
+    registerIconChannel()
     registerSelectionCaptureChannel()
     registerAppLaunchChannel()
     registerShareCaptureChannel()
   }
 
   private func registerAppearanceObserver() {
+    if #available(macOS 10.14, *) {
+      appearanceObservation = NSApp.observe(\.effectiveAppearance, options: [.new]) { [weak self] _, _ in
+        DispatchQueue.main.async {
+          self?.configureAppIcon()
+        }
+      }
+    }
+
     DistributedNotificationCenter.default().addObserver(
       forName: NSNotification.Name("AppleInterfaceThemeChangedNotification"),
       object: nil,
       queue: .main
     ) { [weak self] _ in
       self?.configureAppIcon()
+    }
+  }
+
+  private func registerIconChannel() {
+    guard let controller = mainFlutterWindow?.contentViewController as? FlutterViewController else {
+      return
+    }
+    let channel = FlutterMethodChannel(
+      name: "pro.micorp.laterbox/desktop_icon",
+      binaryMessenger: controller.engine.binaryMessenger
+    )
+    channel.setMethodCallHandler { [weak self] call, result in
+      if call.method == "updateIcon" {
+        if let args = call.arguments as? [String: Any], let isDark = args["isDark"] as? Bool {
+          self?.configureAppIcon(forceDark: isDark)
+          result(true)
+        } else {
+          self?.configureAppIcon()
+          result(true)
+        }
+      } else {
+        result(FlutterMethodNotImplemented)
+      }
     }
   }
 
@@ -68,8 +102,8 @@ class AppDelegate: FlutterAppDelegate {
     return false
   }
 
-  private func configureAppIcon() {
-    let isDark = Self.isSystemDarkMode()
+  private func configureAppIcon(forceDark: Bool? = nil) {
+    let isDark = forceDark ?? Self.isSystemDarkMode()
     let size: CGFloat = 512
 
     guard let rep = NSBitmapImageRep(
