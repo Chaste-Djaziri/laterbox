@@ -1,9 +1,11 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/auth/auth_provider.dart';
+import '../../../core/web/web_file_downloader.dart';
 
 class DownloadScreen extends ConsumerStatefulWidget {
   const DownloadScreen({super.key});
@@ -23,25 +25,22 @@ class _DownloadScreenState extends ConsumerState<DownloadScreen> {
 
   Future<void> _triggerDownload(BuildContext context, String filename) async {
     final messenger = ScaffoldMessenger.of(context);
-    final relativeUri = Uri.parse('/downloads/$filename');
-    final githubUri = Uri.parse(
-        'https://github.com/Chaste-Djaziri/laterbox/releases/latest/download/$filename');
     final absoluteUri =
         Uri.parse('https://laterbox.micorp.pro/downloads/$filename');
+    final githubUri = Uri.parse(
+        'https://github.com/Chaste-Djaziri/laterbox/releases/latest/download/$filename');
 
     try {
-      final launched = await launchUrl(
-        relativeUri,
-        mode: LaunchMode.platformDefault,
-      );
-      if (!launched) {
-        final githubLaunched = await launchUrl(
-          githubUri,
+      if (kIsWeb) {
+        triggerBrowserDownload('/downloads/$filename', filename);
+      } else {
+        final launched = await launchUrl(
+          absoluteUri,
           mode: LaunchMode.externalApplication,
         );
-        if (!githubLaunched) {
+        if (!launched) {
           await launchUrl(
-            absoluteUri,
+            githubUri,
             mode: LaunchMode.externalApplication,
           );
         }
@@ -109,6 +108,12 @@ class _DownloadScreenState extends ConsumerState<DownloadScreen> {
               _AndroidDownloadSection(
                 isDesktop: isDesktop,
                 isMobile: isMobile,
+              ),
+              _ChromeExtensionDownloadSection(
+                isDesktop: isDesktop,
+                isMobile: isMobile,
+                onDownloadChrome: () => _triggerDownload(context, 'laterbox-chrome-extension.zip'),
+                onDownloadFirefox: () => _triggerDownload(context, 'laterbox-firefox-extension.zip'),
               ),
               _RoadmapSection(isDesktop: isDesktop, isMobile: isMobile),
               _AvailablePlatformsSection(isDesktop: isDesktop, isMobile: isMobile),
@@ -1208,6 +1213,324 @@ class _StepItem extends StatelessWidget {
                     ),
                   ),
                 ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ChromeExtensionDownloadSection extends StatelessWidget {
+  const _ChromeExtensionDownloadSection({
+    required this.isDesktop,
+    required this.isMobile,
+    required this.onDownloadChrome,
+    required this.onDownloadFirefox,
+  });
+
+  final bool isDesktop;
+  final bool isMobile;
+  final VoidCallback onDownloadChrome;
+  final VoidCallback onDownloadFirefox;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    const chromeColor = Color(0xFFF4B400);
+
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 1040),
+        child: Container(
+          margin: EdgeInsets.symmetric(
+            horizontal: isMobile ? 16 : 24,
+            vertical: 16,
+          ),
+          padding: EdgeInsets.all(isMobile ? 20 : 36),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surfaceContainerLowest,
+            borderRadius: BorderRadius.circular(28),
+            border: Border.all(
+              color: chromeColor.withValues(alpha: 0.4),
+              width: 1.5,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: chromeColor.withValues(alpha: 0.08),
+                blurRadius: 36,
+                offset: const Offset(0, 16),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: chromeColor.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(
+                        color: chromeColor.withValues(alpha: 0.3),
+                      ),
+                    ),
+                    child: const Icon(
+                      Icons.extension_rounded,
+                      size: 36,
+                      color: chromeColor,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Wrap(
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          spacing: 10,
+                          runSpacing: 6,
+                          children: [
+                            Text(
+                              'Laterbox Chrome & Browser Extension',
+                              style: theme.textTheme.headlineSmall?.copyWith(
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: -0.5,
+                                fontSize: isMobile ? 20 : 24,
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF27C93F).withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(100),
+                                border: Border.all(
+                                  color: const Color(0xFF27C93F).withValues(alpha: 0.4),
+                                ),
+                              ),
+                              child: const Text(
+                                'MANIFEST V3 READY',
+                                style: TextStyle(
+                                  color: Color(0xFF1E822E),
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 11,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'Version 0.1.1 • Google Chrome, Brave, Microsoft Edge, Opera & Firefox',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              Divider(
+                color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                'How to Load into Google Chrome (3 Quick Steps)',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 14),
+              Container(
+                padding: const EdgeInsets.all(18),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    _InstructionStep(
+                      number: '1',
+                      title: 'Download & Unzip',
+                      description:
+                          'Download laterbox-chrome-extension.zip below and extract/unzip the archive into a folder on your computer.',
+                    ),
+                    const Divider(height: 20),
+                    _InstructionStep(
+                      number: '2',
+                      title: 'Open chrome://extensions in Chrome',
+                      description:
+                          'In Google Chrome, navigate to chrome://extensions in your address bar (or click Menu > Extensions > Manage Extensions).',
+                    ),
+                    const Divider(height: 20),
+                    _InstructionStep(
+                      number: '3',
+                      title: 'Turn on Developer Mode & Load Unpacked',
+                      description:
+                          'Enable the "Developer mode" toggle in the top-right corner, click "Load unpacked", and select the extracted folder.',
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 28),
+              Wrap(
+                spacing: 16,
+                runSpacing: 12,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  FilledButton.icon(
+                    onPressed: onDownloadChrome,
+                    icon: const Icon(Icons.download_rounded, size: 20),
+                    label: const Text('Download Chrome Extension (.zip)'),
+                    style: FilledButton.styleFrom(
+                      elevation: 0,
+                      backgroundColor: theme.colorScheme.primary,
+                      foregroundColor: theme.colorScheme.onPrimary,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 16,
+                      ),
+                      minimumSize: Size(isMobile ? double.infinity : 0, 50),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(100),
+                      ),
+                      textStyle: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: onDownloadFirefox,
+                    icon: const Icon(Icons.folder_zip_rounded, size: 20),
+                    label: const Text('Firefox Add-on (.zip)'),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 16,
+                      ),
+                      minimumSize: Size(isMobile ? double.infinity : 0, 50),
+                      side: BorderSide(
+                        color: theme.colorScheme.outlineVariant,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(100),
+                      ),
+                      textStyle: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  TextButton.icon(
+                    onPressed: () => context.go('/extension/connect'),
+                    icon: const Icon(Icons.link_rounded, size: 18),
+                    label: const Text('Connect Extension to Account'),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 18,
+                        vertical: 16,
+                      ),
+                      minimumSize: Size(isMobile ? double.infinity : 0, 50),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Icon(
+                    Icons.security_rounded,
+                    size: 16,
+                    color: theme.colorScheme.primary,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Lightweight Manifest V3 extension. 1-click capture popup and side panel.',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _InstructionStep extends StatelessWidget {
+  const _InstructionStep({
+    required this.number,
+    required this.title,
+    required this.description,
+  });
+
+  final String number;
+  final String title;
+  final String description;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 28,
+          height: 28,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: const Color(0xFFF4B400).withValues(alpha: 0.2),
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: const Color(0xFFF4B400).withValues(alpha: 0.5),
+            ),
+          ),
+          child: Text(
+            number,
+            style: const TextStyle(
+              color: Color(0xFFE37400),
+              fontWeight: FontWeight.w900,
+              fontSize: 13,
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                description,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                  height: 1.4,
+                ),
+              ),
             ],
           ),
         ),
