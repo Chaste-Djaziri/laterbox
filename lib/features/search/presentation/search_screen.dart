@@ -57,7 +57,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                 onChanged: _setQuery,
                 textInputAction: TextInputAction.search,
                 decoration: InputDecoration(
-                  hintText: 'Search LaterBox',
+                  hintText: 'Search laterbox',
                   prefixIcon: const Icon(Icons.search_rounded),
                   suffixIcon: query.isEmpty
                       ? null
