@@ -56,6 +56,12 @@ async function initialize(): Promise<void> {
   }
   await updateConnectionState();
   openPanelButton.hidden = !browserCapabilities.supportsSidePanel;
+
+  browser.storage.onChanged.addListener((changes, areaName) => {
+    if (areaName === "local") {
+      void updateConnectionState();
+    }
+  });
 }
 
 connectButton.addEventListener("click", () => {
