@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/auth/auth_provider.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../../shared/widgets/cloud_sync_indicator.dart';
 
 class DesktopSidebar extends ConsumerStatefulWidget {
@@ -69,7 +70,7 @@ class _DesktopSidebarState extends ConsumerState<DesktopSidebar> {
                       height: 34,
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(9),
-                        color: Colors.white,
+                        color: AppTheme.accent,
                         boxShadow: [
                           BoxShadow(
                             color: Colors.black.withValues(alpha: 0.1),
