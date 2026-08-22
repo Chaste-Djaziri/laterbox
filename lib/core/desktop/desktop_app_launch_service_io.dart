@@ -21,7 +21,7 @@ class DesktopAppLaunchService {
     if (!Platform.isWindows && !Platform.isLinux && !Platform.isMacOS) return;
     _launchedAtLogin = arguments.contains('--launch-at-login');
     LaunchAtStartup.instance.setup(
-      appName: 'LaterBox',
+      appName: 'laterbox',
       appPath: Platform.resolvedExecutable,
       args: const ['--launch-at-login'],
     );
