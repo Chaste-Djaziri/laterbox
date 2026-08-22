@@ -11,6 +11,9 @@
     "build:firefox": "cross-env BROWSER=firefox VITE_CAPTURE_API_URL=https://ltjisrgldssqskcylcbj.supabase.co/functions/v1/capture VITE_LATERBOX_WEB_URL=https://laterbox.micorp.pro vite build",
     "build:safari:local": "cross-env BROWSER=safari VITE_CAPTURE_API_URL=http://127.0.0.1:54321/functions/v1/capture VITE_LATERBOX_WEB_URL=http://localhost:8080 vite build",
     "build:safari": "cross-env BROWSER=safari VITE_CAPTURE_API_URL=https://ltjisrgldssqskcylcbj.supabase.co/functions/v1/capture VITE_LATERBOX_WEB_URL=https://laterbox.micorp.pro vite build",
+    "build:all": "npm run build:hosted && npm run build:safari && npm run build:firefox",
+    "zip": "cd dist/chromium && zip -r ../laterbox-chrome-extension.zip . && cd ../safari && zip -r ../laterbox-safari-extension.zip . && cd ../firefox && zip -r ../laterbox-firefox-extension.zip .",
+    "package": "npm run build:all && npm run zip",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
