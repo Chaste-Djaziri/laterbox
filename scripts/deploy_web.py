@@ -57,11 +57,24 @@ def main():
         json.dump(data, f, indent=2)
         f.write("\n")
 
+    # Ensure downloads are bundled with web deployment if available
+    dist_dir = os.path.join(repo_dir, "dist")
+    web_downloads_dir = os.path.join(repo_dir, "build", "web", "downloads")
+    if os.path.exists(dist_dir):
+        os.makedirs(web_downloads_dir, exist_ok=True)
+        for artifact in ["laterbox-windows-setup.exe", "laterbox-windows-x64.zip"]:
+            src = os.path.join(dist_dir, artifact)
+            if os.path.exists(src):
+                import shutil
+                shutil.copy2(src, os.path.join(web_downloads_dir, artifact))
+                print(f"📦 Bundled download artifact: {artifact}")
+
     # Deploy to Cloudflare Pages
     deploy_cmd = ["npx", "wrangler", "pages", "deploy", "build/web", "--project-name=laterbox"]
     print(f"🌐 Deploying to Cloudflare Pages: {' '.join(deploy_cmd)}")
     subprocess.check_call(deploy_cmd)
     print("✅ Web deployment complete!")
+
 
 if __name__ == "__main__":
     main()
