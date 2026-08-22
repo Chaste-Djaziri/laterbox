@@ -7,6 +7,7 @@ import 'package:timeago/timeago.dart' as timeago;
 import '../../features/attachments/presentation/attachment_preview.dart';
 import '../../features/attachments/presentation/attachment_providers.dart';
 import '../../features/enrichment/domain/content_type.dart';
+import '../../features/inbox/presentation/inbox_providers.dart';
 import '../models/laterbox_item.dart';
 import 'item_actions.dart';
 
@@ -255,13 +256,41 @@ class _GridCardContent extends StatelessWidget {
             ),
             if (isHovered)
               Consumer(
-                builder: (context, ref, _) => IconButton(
-                  icon: const Icon(Icons.more_horiz_rounded, size: 16),
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                  visualDensity: VisualDensity.compact,
-                  tooltip: 'More actions',
-                  onPressed: () => showItemActions(context, ref, item),
+                builder: (context, ref, _) => Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: Icon(
+                        item.isArchived
+                            ? Icons.mark_email_unread_outlined
+                            : Icons.check_circle_outline_rounded,
+                        size: 16,
+                      ),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      visualDensity: VisualDensity.compact,
+                      tooltip: item.isArchived
+                          ? 'Mark as unseen'
+                          : 'Mark as seen',
+                      onPressed: () {
+                        final repo = ref.read(itemRepositoryProvider);
+                        if (item.isArchived) {
+                          repo.markUnseen(item.id);
+                        } else {
+                          repo.markSeen(item.id);
+                        }
+                      },
+                    ),
+                    const SizedBox(width: 4),
+                    IconButton(
+                      icon: const Icon(Icons.more_horiz_rounded, size: 16),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      visualDensity: VisualDensity.compact,
+                      tooltip: 'More actions',
+                      onPressed: () => showItemActions(context, ref, item),
+                    ),
+                  ],
                 ),
               ),
           ],
@@ -356,13 +385,45 @@ class _ListCardContent extends StatelessWidget {
                   ),
                   if (isDesktop && isHovered)
                     Consumer(
-                      builder: (context, ref, _) => IconButton(
-                        icon: const Icon(Icons.more_horiz_rounded, size: 18),
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
-                        visualDensity: VisualDensity.compact,
-                        tooltip: 'More actions',
-                        onPressed: () => showItemActions(context, ref, item),
+                      builder: (context, ref, _) => Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: Icon(
+                              item.isArchived
+                                  ? Icons.mark_email_unread_outlined
+                                  : Icons.check_circle_outline_rounded,
+                              size: 18,
+                            ),
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                            visualDensity: VisualDensity.compact,
+                            tooltip: item.isArchived
+                                ? 'Mark as unseen'
+                                : 'Mark as seen',
+                            onPressed: () {
+                              final repo = ref.read(itemRepositoryProvider);
+                              if (item.isArchived) {
+                                repo.markUnseen(item.id);
+                              } else {
+                                repo.markSeen(item.id);
+                              }
+                            },
+                          ),
+                          const SizedBox(width: 6),
+                          IconButton(
+                            icon: const Icon(
+                              Icons.more_horiz_rounded,
+                              size: 18,
+                            ),
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                            visualDensity: VisualDensity.compact,
+                            tooltip: 'More actions',
+                            onPressed: () =>
+                                showItemActions(context, ref, item),
+                          ),
+                        ],
                       ),
                     ),
                 ],
