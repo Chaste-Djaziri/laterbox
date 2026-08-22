@@ -31,9 +31,45 @@ class AppDelegate: FlutterAppDelegate {
   override func applicationDidFinishLaunching(_ notification: Notification) {
     launchedAtLogin = Self.detectLoginItemLaunch()
     super.applicationDidFinishLaunching(notification)
+    configureAppIcon()
     registerSelectionCaptureChannel()
     registerAppLaunchChannel()
     registerShareCaptureChannel()
+  }
+
+  private func configureAppIcon() {
+    let size = NSSize(width: 512, height: 512)
+    let image = NSImage(size: size)
+    image.lockFocus()
+
+    let squircleRect = NSRect(x: 20, y: 20, width: 472, height: 472)
+    let path = NSBezierPath(roundedRect: squircleRect, xRadius: 105, yRadius: 105)
+
+    let shadow = NSShadow()
+    shadow.shadowColor = NSColor.black.withAlphaComponent(0.15)
+    shadow.shadowOffset = NSSize(width: 0, height: -4)
+    shadow.shadowBlurRadius = 10
+    shadow.set()
+
+    NSColor.white.setFill()
+    path.fill()
+
+    NSShadow().set()
+
+    if let logoImage = NSImage(named: "AppIcon") {
+      let logoPadding: CGFloat = 72
+      let logoRect = NSRect(
+        x: squircleRect.origin.x + logoPadding,
+        y: squircleRect.origin.y + logoPadding,
+        width: squircleRect.width - (logoPadding * 2),
+        height: squircleRect.height - (logoPadding * 2)
+      )
+      logoImage.draw(in: logoRect, from: .zero, operation: .sourceOver, fraction: 1.0)
+    }
+
+    image.unlockFocus()
+    NSApp.applicationIconImage = image
+    NSApp.dockTile.display()
   }
 
   private func registerShareCaptureChannel() {
