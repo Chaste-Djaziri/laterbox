@@ -31,7 +31,7 @@ class _TutorialScreenState extends State<TutorialScreen> {
       iconColor: Color(0xFF8B5CF6),
       title: 'Smart Metadata & Previews',
       subtitle:
-          'LaterBox automatically fetches rich article details, hero images, YouTube video embeds, and website metadata.',
+          'laterbox automatically fetches rich article details, hero images, YouTube video embeds, and website metadata.',
       bullets: [
         'Automatic article reading time estimates',
         'Embedded media playback for YouTube and web videos',
@@ -57,7 +57,7 @@ class _TutorialScreenState extends State<TutorialScreen> {
       iconColor: Color(0xFF10B981),
       title: 'Browser & Mobile Extensions',
       subtitle:
-          'Save from your browser or mobile phone directly into your unified LaterBox inbox.',
+          'Save from your browser or mobile phone directly into your unified laterbox inbox.',
       bullets: [
         'Chrome & Safari extension with 1-click token connection',
         'Native share target on iOS & Android share sheets',
@@ -81,7 +81,7 @@ class _TutorialScreenState extends State<TutorialScreen> {
       backgroundColor: theme.colorScheme.surface,
       appBar: AppBar(
         title: const Text(
-          'LaterBox Guide',
+          'laterbox Guide',
           style: TextStyle(fontWeight: FontWeight.w700),
         ),
         leading: IconButton(
