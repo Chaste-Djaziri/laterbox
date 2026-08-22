@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
-  "name": "LaterBox",
-  "description": "Save the current page to LaterBox.",
+  "name": "laterbox",
+  "description": "Save the current page to laterbox.",
   "version": "0.1.0",
   "icons": {
     "16": "icons/icon-16.png",
@@ -35,7 +35,7 @@
     ]
   },
   "action": {
-    "default_title": "Save to LaterBox",
+    "default_title": "Save to laterbox",
     "default_popup": "src/popup/popup.html",
     "default_icon": {
       "16": "icons/icon-16.png",
@@ -50,14 +50,14 @@
         "default": "Ctrl+Shift+L",
         "mac": "Command+Shift+L"
       },
-      "description": "Save current page to LaterBox"
+      "description": "Save current page to laterbox"
     },
     "open-sidepanel": {
       "suggested_key": {
         "default": "Ctrl+Shift+O",
         "mac": "Command+Shift+O"
       },
-      "description": "Open LaterBox side panel"
+      "description": "Open laterbox side panel"
     }
   },
   "side_panel": {
