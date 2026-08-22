@@ -9,3 +9,7 @@
 
 /main.dart.js
   Cache-Control: no-cache, must-revalidate
+
+/version.json
+  Cache-Control: no-cache, no-store, must-revalidate
+  Access-Control-Allow-Origin: *
