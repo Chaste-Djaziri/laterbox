@@ -67,6 +67,9 @@ def main():
             "laterbox-windows-x64.zip",
             "laterbox-macos-installer.pkg",
             "laterbox-macos-universal.zip",
+            "laterbox-chrome-extension.zip",
+            "laterbox-firefox-extension.zip",
+            "laterbox-safari-extension.zip",
         ]:
             src = os.path.join(dist_dir, artifact)
             if os.path.exists(src):
