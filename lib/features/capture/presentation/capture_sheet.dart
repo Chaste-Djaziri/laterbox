@@ -247,7 +247,7 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet> {
                 children: [
                   Expanded(
                     child: Text(
-                      'Save to LaterBox',
+                      'Save to laterbox',
                       style: Theme.of(context).textTheme.headlineSmall
                           ?.copyWith(
                             fontWeight: FontWeight.w800,
