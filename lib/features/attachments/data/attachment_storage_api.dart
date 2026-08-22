@@ -23,38 +23,36 @@ class AttachmentStorageApi {
     if (attachment.byteSize > multipartThresholdBytes) {
       return _uploadMultipart(attachment, file);
     }
-    return _uploadSinglePart(attachment, file.openRead());
+    return _uploadSinglePart(attachment, await file.readAsBytes());
   }
 
   Future<String> uploadBytes(Attachment attachment, Uint8List bytes) async {
-    return _uploadSinglePart(attachment, Stream.value(bytes));
+    return _uploadSinglePart(attachment, bytes);
   }
 
   Future<String> _uploadSinglePart(
     Attachment attachment,
-    Stream<List<int>> bytes,
+    Uint8List bytes,
   ) async {
     final body = _attachmentBody(attachment);
     final prepared = await _invoke({...body, 'action': 'prepare-upload'});
     final uploadUrl = Uri.parse(_requiredString(prepared, 'uploadUrl'));
     final objectKey = _requiredString(prepared, 'objectKey');
-    final request = http.StreamedRequest('PUT', uploadUrl)
-      ..contentLength = attachment.byteSize
-      ..headers.addAll({
+
+    final response = await _http.put(
+      uploadUrl,
+      headers: {
         'content-type': attachment.mimeType,
         'x-amz-meta-sha256': attachment.sha256,
         'x-amz-meta-attachment-id': attachment.id,
         'x-amz-meta-user-id': attachment.userId ?? '',
-      });
-    await request.sink.addStream(bytes).timeout(
+      },
+      body: bytes,
+    ).timeout(
       const Duration(minutes: 2),
-      onTimeout: () => throw TimeoutException('Upload stream timed out'),
-    );
-    await request.sink.close();
-    final response = await _http.send(request).timeout(
-      const Duration(seconds: 30),
       onTimeout: () => throw TimeoutException('Upload HTTP request timed out'),
     );
+
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw HttpException('R2 upload failed with ${response.statusCode}');
     }
@@ -128,7 +126,7 @@ class AttachmentStorageApi {
       return _requiredString(completed, 'objectKey');
     } on Object {
       // Fallback to single-part stream upload if server unsupported
-      return _uploadSinglePart(attachment, file.openRead());
+      return _uploadSinglePart(attachment, await file.readAsBytes());
     }
   }
 
