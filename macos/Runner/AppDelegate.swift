@@ -32,12 +32,30 @@ class AppDelegate: FlutterAppDelegate {
     launchedAtLogin = Self.detectLoginItemLaunch()
     super.applicationDidFinishLaunching(notification)
     configureAppIcon()
+    registerAppearanceObserver()
     registerSelectionCaptureChannel()
     registerAppLaunchChannel()
     registerShareCaptureChannel()
   }
 
+  private func registerAppearanceObserver() {
+    DistributedNotificationCenter.default().addObserver(
+      forName: NSNotification.Name("AppleInterfaceThemeChangedNotification"),
+      object: nil,
+      queue: .main
+    ) { [weak self] _ in
+      self?.configureAppIcon()
+    }
+  }
+
   private func configureAppIcon() {
+    let isDark: Bool
+    if #available(macOS 10.14, *) {
+      isDark = NSApp.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+    } else {
+      isDark = false
+    }
+
     let size = NSSize(width: 512, height: 512)
     let image = NSImage(size: size)
     image.lockFocus()
@@ -46,13 +64,22 @@ class AppDelegate: FlutterAppDelegate {
     let path = NSBezierPath(roundedRect: squircleRect, xRadius: 105, yRadius: 105)
 
     let shadow = NSShadow()
-    shadow.shadowColor = NSColor.black.withAlphaComponent(0.15)
+    shadow.shadowColor = NSColor.black.withAlphaComponent(isDark ? 0.35 : 0.15)
     shadow.shadowOffset = NSSize(width: 0, height: -4)
     shadow.shadowBlurRadius = 10
     shadow.set()
 
-    NSColor.white.setFill()
+    let bgColor = isDark
+      ? NSColor(calibratedRed: 0.11, green: 0.11, blue: 0.10, alpha: 1.0)
+      : NSColor.white
+    bgColor.setFill()
     path.fill()
+
+    if isDark {
+      NSColor.white.withAlphaComponent(0.12).setStroke()
+      path.lineWidth = 1.5
+      path.stroke()
+    }
 
     NSShadow().set()
 
@@ -65,6 +92,10 @@ class AppDelegate: FlutterAppDelegate {
         height: squircleRect.height - (logoPadding * 2)
       )
       logoImage.draw(in: logoRect, from: .zero, operation: .sourceOver, fraction: 1.0)
+      if isDark {
+        NSColor.white.setFill()
+        logoRect.fill(using: .sourceIn)
+      }
     }
 
     image.unlockFocus()
