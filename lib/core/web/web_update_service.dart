@@ -31,15 +31,17 @@ class WebUpdateState {
 }
 
 class WebUpdateNotifier extends StateNotifier<WebUpdateState> {
-  WebUpdateNotifier({http.Client? client})
+  WebUpdateNotifier({http.Client? client, bool? enabled})
       : _client = client ?? http.Client(),
+        _enabled = enabled ?? kIsWeb,
         super(const WebUpdateState()) {
-    if (kIsWeb) {
+    if (_enabled) {
       _init();
     }
   }
 
   final http.Client _client;
+  final bool _enabled;
   Timer? _pollingTimer;
   String? _initialPayload;
   bool _initialized = false;
@@ -60,7 +62,7 @@ class WebUpdateNotifier extends StateNotifier<WebUpdateState> {
   }
 
   Future<void> checkForUpdate({bool isInitial = false}) async {
-    if (!kIsWeb) return;
+    if (!_enabled) return;
     try {
       final uri = Uri.parse('/version.json').replace(
         queryParameters: {
