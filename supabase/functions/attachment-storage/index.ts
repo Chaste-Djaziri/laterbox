@@ -189,14 +189,21 @@ async function deleteAttachment(
 ): Promise<Response> {
   const attachmentId = requireUuid(body.attachmentId, "attachmentId");
   const row = await ownedAttachment(attachmentId, userId);
-  if (!row) throw new RequestError("Attachment not found", 404);
-  if (row.r2_object_key) {
-    await r2Client().send(
-      new DeleteObjectCommand({
-        Bucket: requiredEnv("R2_BUCKET"),
-        Key: row.r2_object_key,
-      }),
-    );
+  let objectKey = row?.r2_object_key;
+  if (!objectKey && typeof body.extension === "string" && body.extension.length > 0) {
+    objectKey = objectKeyFor(userId, attachmentId, body.extension.toLowerCase());
+  }
+  if (objectKey) {
+    try {
+      await r2Client().send(
+        new DeleteObjectCommand({
+          Bucket: requiredEnv("R2_BUCKET"),
+          Key: objectKey,
+        }),
+      );
+    } catch (error) {
+      console.warn("R2 deleteObject warning:", error);
+    }
   }
   return json(request, { deleted: true }, 200);
 }
