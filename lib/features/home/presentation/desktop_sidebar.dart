@@ -68,20 +68,24 @@ class _DesktopSidebarState extends ConsumerState<DesktopSidebar> {
                       width: 34,
                       height: 34,
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(10),
-                        color: theme.colorScheme.primaryContainer.withValues(alpha: 0.6),
+                        borderRadius: BorderRadius.circular(9),
+                        color: Colors.white,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.1),
+                            blurRadius: 3,
+                            offset: const Offset(0, 1),
+                          ),
+                        ],
                       ),
                       padding: const EdgeInsets.all(4),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(6),
-                        child: Image.asset(
-                          'assets/branding/laterbox-icon.png',
-                          fit: BoxFit.contain,
-                          errorBuilder: (context, error, stackTrace) => Icon(
-                            Icons.bookmark_rounded,
-                            color: theme.colorScheme.primary,
-                            size: 20,
-                          ),
+                      child: Image.asset(
+                        'assets/branding/laterbox-icon.png',
+                        fit: BoxFit.contain,
+                        errorBuilder: (context, error, stackTrace) => Icon(
+                          Icons.bookmark_rounded,
+                          color: theme.colorScheme.primary,
+                          size: 20,
                         ),
                       ),
                     ),
