@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
-  "name": "LaterBox",
-  "description": "Save the current page to LaterBox.",
+  "name": "laterbox",
+  "description": "Save the current page to laterbox.",
   "version": "0.1.0",
   "browser_specific_settings": {
     "safari": {
@@ -38,7 +38,7 @@
     ]
   },
   "action": {
-    "default_title": "Save to LaterBox",
+    "default_title": "Save to laterbox",
     "default_popup": "src/popup/popup.html",
     "default_icon": {
       "16": "icons/icon-16.png",
@@ -53,7 +53,7 @@
         "default": "Ctrl+Shift+L",
         "mac": "Command+Shift+L"
       },
-      "description": "Open LaterBox popup"
+      "description": "Open laterbox popup"
     }
   },
   "background": {
