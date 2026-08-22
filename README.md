@@ -1,7 +1,11 @@
 # laterbox
 
 <p align="center">
-  <img src="assets/branding/laterbox-logo.png" alt="laterbox logo" width="120" />
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/branding/laterbox-logo-white.png" />
+    <source media="(prefers-color-scheme: light)" srcset="assets/branding/laterbox-logo.png" />
+    <img alt="laterbox logo" src="assets/branding/laterbox-logo.png" width="220" />
+  </picture>
 </p>
 
 <h3 align="center">Save anything now. Read, watch & organize later.</h3>
