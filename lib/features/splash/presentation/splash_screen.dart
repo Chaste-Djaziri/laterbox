@@ -105,8 +105,15 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                           height: 80,
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: theme.colorScheme.primaryContainer,
+                            color: Colors.white,
                             borderRadius: BorderRadius.circular(20),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.1),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
                           ),
                           child: Image.asset(
                             'assets/branding/laterbox-icon.png',
