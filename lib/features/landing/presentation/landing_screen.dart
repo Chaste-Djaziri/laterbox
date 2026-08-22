@@ -65,6 +65,7 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
                 key: _aboutKey,
                 isDesktop: isDesktop,
               ),
+              _DownloadTeaserSection(isDesktop: isDesktop),
               _CtaBannerSection(isDesktop: isDesktop),
               _LandingFooter(
                 isDesktop: isDesktop,
@@ -168,6 +169,8 @@ class _LandingHeader extends ConsumerWidget {
                     _HeaderNavLink(label: 'How It Works', onTap: onHowItWorksTap),
                     const SizedBox(width: 20),
                     _HeaderNavLink(label: 'About', onTap: onAboutTap),
+                    const SizedBox(width: 20),
+                    _HeaderNavLink(label: 'Download', onTap: () => context.go('/download')),
                   ],
                 ),
               Row(
@@ -368,7 +371,7 @@ class _HeroSection extends ConsumerWidget {
           ),
           const SizedBox(height: 28),
           ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: isMobile ? 340 : 500),
+            constraints: BoxConstraints(maxWidth: isMobile ? 360 : 560),
             child: Wrap(
               spacing: 12,
               runSpacing: 10,
@@ -384,7 +387,7 @@ class _HeroSection extends ConsumerWidget {
                     backgroundColor: theme.colorScheme.primary,
                     foregroundColor: theme.colorScheme.onPrimary,
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 26,
+                      horizontal: 24,
                       vertical: 14,
                     ),
                     minimumSize: Size(isMobile ? double.infinity : 0, 46),
@@ -397,6 +400,25 @@ class _HeroSection extends ConsumerWidget {
                     ),
                   ),
                 ),
+                FilledButton.tonalIcon(
+                  onPressed: () => context.go('/download'),
+                  icon: const Icon(Icons.download_rounded, size: 18),
+                  label: const Text('Download App'),
+                  style: FilledButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 14,
+                    ),
+                    minimumSize: Size(isMobile ? double.infinity : 0, 46),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(100),
+                    ),
+                    textStyle: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
                 OutlinedButton.icon(
                   onPressed: () {
                     ref.read(guestModeProvider.notifier).state = true;
@@ -406,7 +428,7 @@ class _HeroSection extends ConsumerWidget {
                   label: const Text('Try Guest Mode'),
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 22,
+                      horizontal: 20,
                       vertical: 14,
                     ),
                     minimumSize: Size(isMobile ? double.infinity : 0, 46),
@@ -425,6 +447,7 @@ class _HeroSection extends ConsumerWidget {
               ],
             ),
           ),
+
           const SizedBox(height: 40),
           ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 860),
@@ -1210,6 +1233,165 @@ class _AboutSection extends StatelessWidget {
   }
 }
 
+class _DownloadTeaserSection extends StatelessWidget {
+  const _DownloadTeaserSection({required this.isDesktop});
+
+  final bool isDesktop;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final width = MediaQuery.sizeOf(context).width;
+    final isMobile = width < 600;
+
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(
+        horizontal: isMobile ? 20 : (isDesktop ? 64 : 32),
+        vertical: isMobile ? 36 : 48,
+      ),
+      color: theme.colorScheme.surface,
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1080),
+          child: Container(
+            padding: EdgeInsets.all(isMobile ? 22 : 32),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surfaceContainerLowest,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(
+                color: theme.colorScheme.primary.withValues(alpha: 0.25),
+                width: 1.2,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: theme.colorScheme.shadow.withValues(alpha: 0.03),
+                  blurRadius: 20,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.primaryContainer,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Icon(
+                        Icons.download_rounded,
+                        color: theme.colorScheme.primary,
+                        size: 30,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Text(
+                                'Download laterbox',
+                                style: theme.textTheme.headlineSmall?.copyWith(
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: isMobile ? 20 : 24,
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 3,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: theme.colorScheme.primary.withValues(alpha: 0.12),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  'Windows v1.0 Ready',
+                                  style: TextStyle(
+                                    color: theme.colorScheme.primary,
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 11,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            'Standalone Windows installer with offline SQLite and global capture shortcuts (Ctrl+Shift+S). Roadmap bundles for macOS, Linux, iOS & Android coming soon!',
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                              height: 1.45,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 22),
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 10,
+                  children: [
+                    FilledButton.icon(
+                      onPressed: () => context.go('/download'),
+                      icon: const Icon(Icons.download_rounded, size: 18),
+                      label: const Text('Download Installer & View Roadmap'),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: theme.colorScheme.primary,
+                        foregroundColor: theme.colorScheme.onPrimary,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 22,
+                          vertical: 14,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(100),
+                        ),
+                        textStyle: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                    OutlinedButton.icon(
+                      onPressed: () => context.go('/extension/connect'),
+                      icon: const Icon(Icons.extension_rounded, size: 18),
+                      label: const Text('Get Browser Extension'),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 14,
+                        ),
+                        side: BorderSide(color: theme.colorScheme.outlineVariant),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(100),
+                        ),
+                        textStyle: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _CtaBannerSection extends StatelessWidget {
   const _CtaBannerSection({required this.isDesktop});
 
@@ -1325,6 +1507,7 @@ class _LandingFooter extends StatelessWidget {
                       title: 'Product',
                       links: [
                         ('Open App', () => context.go('/inbox')),
+                        ('Download App', () => context.go('/download')),
                         ('Sign In', () => context.go('/login')),
                         ('Chrome Extension', () => context.go('/extension/connect')),
                       ],
@@ -1355,6 +1538,7 @@ class _LandingFooter extends StatelessWidget {
                         title: 'Product',
                         links: [
                           ('Open App', () => context.go('/inbox')),
+                          ('Download App', () => context.go('/download')),
                           ('Sign In', () => context.go('/login')),
                           ('Chrome Extension', () => context.go('/extension/connect')),
                         ],
@@ -1400,6 +1584,7 @@ class _LandingFooter extends StatelessWidget {
                     ),
                   ],
                 ),
+
               const SizedBox(height: 48),
               Divider(
                 color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
@@ -1538,38 +1723,67 @@ class _FooterLinksColumn extends StatelessWidget {
   }
 }
 
-class _PlatformChip extends StatelessWidget {
+class _PlatformChip extends StatefulWidget {
   const _PlatformChip({required this.label, required this.icon});
 
   final String label;
   final IconData icon;
 
   @override
+  State<_PlatformChip> createState() => _PlatformChipState();
+}
+
+class _PlatformChipState extends State<_PlatformChip> {
+  bool _hovered = false;
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
-        ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 14, color: theme.colorScheme.onSurfaceVariant),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: theme.textTheme.labelSmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-              fontWeight: FontWeight.w600,
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: GestureDetector(
+        onTap: () => context.go('/download'),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          decoration: BoxDecoration(
+            color: _hovered
+                ? theme.colorScheme.primaryContainer.withValues(alpha: 0.8)
+                : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: _hovered
+                  ? theme.colorScheme.primary.withValues(alpha: 0.5)
+                  : theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
             ),
           ),
-        ],
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                widget.icon,
+                size: 14,
+                color: _hovered
+                    ? theme.colorScheme.primary
+                    : theme.colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                widget.label,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: _hovered
+                      ? theme.colorScheme.primary
+                      : theme.colorScheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
 }
+
