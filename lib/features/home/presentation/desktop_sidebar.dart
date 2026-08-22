@@ -70,10 +70,17 @@ class _DesktopSidebarState extends ConsumerState<DesktopSidebar> {
                       height: 34,
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(9),
-                        color: const Color(0xFFE6EDB0),
+                        color: theme.brightness == Brightness.dark
+                            ? const Color(0xFF1E1E1E)
+                            : const Color(0xFFE6EDB0),
+                        border: theme.brightness == Brightness.dark
+                            ? Border.all(color: Colors.white.withValues(alpha: 0.12), width: 1)
+                            : null,
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.1),
+                            color: Colors.black.withValues(
+                              alpha: theme.brightness == Brightness.dark ? 0.35 : 0.1,
+                            ),
                             blurRadius: 3,
                             offset: const Offset(0, 1),
                           ),
@@ -81,7 +88,9 @@ class _DesktopSidebarState extends ConsumerState<DesktopSidebar> {
                       ),
                       padding: const EdgeInsets.all(4),
                       child: Image.asset(
-                        'assets/branding/laterbox-icon.png',
+                        theme.brightness == Brightness.dark
+                            ? 'assets/branding/laterbox-icon-white.png'
+                            : 'assets/branding/laterbox-icon.png',
                         fit: BoxFit.contain,
                         errorBuilder: (context, error, stackTrace) => Icon(
                           Icons.bookmark_rounded,
