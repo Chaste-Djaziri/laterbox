@@ -5,12 +5,14 @@ import 'package:go_router/go_router.dart';
 import 'package:timeago/timeago.dart' as timeago;
 
 import '../../../core/database/app_database.dart';
+import '../../../core/supabase/supabase_provider.dart';
 import '../../../core/sync/sync_providers.dart';
 import '../../../shared/models/laterbox_item.dart';
 import '../../../shared/utils/media_embed_helper.dart';
 import '../../../shared/widgets/item_actions.dart';
 import '../../../shared/widgets/item_card.dart';
 import '../../../shared/widgets/media_embed_hero.dart';
+import '../../attachments/data/attachment_storage_api.dart';
 import '../../attachments/presentation/attachment_preview.dart';
 import '../../attachments/presentation/attachment_providers.dart';
 import '../../collections/presentation/collection_providers.dart';
