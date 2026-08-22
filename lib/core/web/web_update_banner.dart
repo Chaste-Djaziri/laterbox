@@ -148,36 +148,39 @@ class _WebUpdateCard extends ConsumerWidget {
                   onPressed: state.isReloading ? null : () => notifier.dismiss(),
                   style: TextButton.styleFrom(
                     foregroundColor: const Color(0xFFA1A19A),
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   ),
                   child: const Text('Later'),
                 ),
                 const SizedBox(width: 8),
-                FilledButton.icon(
-                  onPressed: state.isReloading
-                      ? null
-                      : () => notifier.reloadAndApplyUpdate(),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: const Color(0xFFE7FF57),
-                    foregroundColor: const Color(0xFF171711),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
+                Flexible(
+                  child: FilledButton.icon(
+                    onPressed: state.isReloading
+                        ? null
+                        : () => notifier.reloadAndApplyUpdate(),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: const Color(0xFFE7FF57),
+                      foregroundColor: const Color(0xFF171711),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
                     ),
-                  ),
-                  icon: state.isReloading
-                      ? const SizedBox(
-                          width: 14,
-                          height: 14,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Color(0xFF171711),
-                          ),
-                        )
-                      : const Icon(Icons.refresh_rounded, size: 16),
-                  label: Text(
-                    state.isReloading ? 'Updating...' : 'Reload & update',
-                    style: const TextStyle(fontWeight: FontWeight.w700),
+                    icon: state.isReloading
+                        ? const SizedBox(
+                            width: 14,
+                            height: 14,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Color(0xFF171711),
+                            ),
+                          )
+                        : const Icon(Icons.refresh_rounded, size: 16),
+                    label: Text(
+                      state.isReloading ? 'Updating...' : 'Reload & update',
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                 ),
               ],
