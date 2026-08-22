@@ -147,7 +147,7 @@ class _LandingHeader extends ConsumerWidget {
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        'LaterBox',
+                        'laterbox',
                         style: theme.textTheme.titleLarge?.copyWith(
                           fontWeight: FontWeight.w900,
                           letterSpacing: -0.6,
@@ -357,7 +357,7 @@ class _HeroSection extends ConsumerWidget {
           ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 640),
             child: Text(
-              'LaterBox automatically enriches your saved links, articles, videos, and notes with key AI summaries, preview cards, favicons, and embedded media players.',
+              'laterbox automatically enriches your saved links, articles, videos, and notes with key AI summaries, preview cards, favicons, and embedded media players.',
               textAlign: TextAlign.center,
               style: theme.textTheme.bodyLarge?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
@@ -660,7 +660,7 @@ class _FeaturesSection extends StatelessWidget {
         icon: Icons.play_circle_outline_rounded,
         title: 'Native Media Embeds',
         description:
-            'Watch YouTube videos, Vimeo streams, and listen to Spotify or SoundCloud audio directly inside LaterBox.'
+            'Watch YouTube videos, Vimeo streams, and listen to Spotify or SoundCloud audio directly inside laterbox.'
       ),
       (
         icon: Icons.offline_bolt_rounded,
@@ -919,7 +919,7 @@ class _HowItWorksSection extends StatelessWidget {
       (
         step: '02',
         title: 'Auto AI Enrichment',
-        desc: 'LaterBox fetches preview covers, summaries, and categorizes media.'
+        desc: 'laterbox fetches preview covers, summaries, and categorizes media.'
       ),
       (
         step: '03',
@@ -936,7 +936,7 @@ class _HowItWorksSection extends StatelessWidget {
       child: Column(
         children: [
           Text(
-            'How LaterBox Works',
+            'How laterbox Works',
             textAlign: TextAlign.center,
             style: theme.textTheme.headlineLarge?.copyWith(
               fontWeight: FontWeight.w900,
@@ -1062,7 +1062,7 @@ class _AboutSection extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               Text(
-                'About LaterBox',
+                'About laterbox',
                 textAlign: TextAlign.center,
                 style: theme.textTheme.headlineLarge?.copyWith(
                   fontWeight: FontWeight.w900,
@@ -1083,7 +1083,7 @@ class _AboutSection extends StatelessWidget {
               ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 720),
                 child: Text(
-                  'LaterBox was created for readers, researchers, and creators who save valuable information online but get overwhelmed by chaotic browser tabs and lost bookmarks.',
+                  'laterbox was created for readers, researchers, and creators who save valuable information online but get overwhelmed by chaotic browser tabs and lost bookmarks.',
                   textAlign: TextAlign.center,
                   style: theme.textTheme.bodyLarge?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
@@ -1259,7 +1259,7 @@ class _CtaBannerSection extends StatelessWidget {
           FilledButton.icon(
             onPressed: () => context.go('/inbox'),
             icon: const Icon(Icons.rocket_launch_rounded, size: 20),
-            label: const Text('Open LaterBox Now'),
+            label: const Text('Open laterbox Now'),
             style: FilledButton.styleFrom(
               backgroundColor: theme.colorScheme.onPrimary,
               foregroundColor: theme.colorScheme.primary,
@@ -1410,7 +1410,7 @@ class _LandingFooter extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    '© ${DateTime.now().year} LaterBox. All rights reserved.',
+                    '© ${DateTime.now().year} laterbox. All rights reserved.',
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
@@ -1476,7 +1476,7 @@ class _FooterBrandColumn extends StatelessWidget {
             ),
             const SizedBox(width: 8),
             Text(
-              'LaterBox',
+              'laterbox',
               style: theme.textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.w900,
                 letterSpacing: -0.6,
