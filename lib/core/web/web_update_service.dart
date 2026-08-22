@@ -31,11 +31,14 @@ class WebUpdateState {
 }
 
 class WebUpdateNotifier extends StateNotifier<WebUpdateState> {
-  WebUpdateNotifier({http.Client? client, bool? enabled})
-      : _client = client ?? http.Client(),
+  WebUpdateNotifier({
+    http.Client? client,
+    bool? enabled,
+    bool autoStart = true,
+  })  : _client = client ?? http.Client(),
         _enabled = enabled ?? kIsWeb,
         super(const WebUpdateState()) {
-    if (_enabled) {
+    if (_enabled && autoStart) {
       _init();
     }
   }
