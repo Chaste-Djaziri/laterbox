@@ -755,7 +755,7 @@ class _RoadmapSection extends StatelessWidget {
               const SizedBox(height: 36),
               GridView.builder(
                 shrinkWrap: true,
-                physics: const NeverScrollableScrollExceptionScrollphysics(),
+                physics: const NeverScrollableScrollPhysics(),
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: isMobile ? 1 : (isDesktop ? 2 : 2),
                   crossAxisSpacing: 16,
