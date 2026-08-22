@@ -61,7 +61,7 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
                   ),
                   const SizedBox(width: 8),
                   const Text(
-                    'LaterBox',
+                    'laterbox',
                     style: TextStyle(
                       fontWeight: FontWeight.w800,
                       letterSpacing: -0.6,
