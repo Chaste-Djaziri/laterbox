@@ -1,10 +1,19 @@
 import 'dart:js_interop';
 import 'package:web/web.dart' as web;
 
-Future<void> triggerBrowserDownload(String url, String filename) async {
+Future<bool> triggerBrowserDownload(String url, String filename) async {
   try {
     final response = await web.window.fetch(url.toJS).toDart;
     if (response.status == 200) {
+      final contentType = response.headers.get('content-type') ?? '';
+      final isBinaryFile = filename.endsWith('.pkg') ||
+          filename.endsWith('.dmg') ||
+          filename.endsWith('.zip') ||
+          filename.endsWith('.exe');
+      if (isBinaryFile && contentType.contains('text/html')) {
+        return false;
+      }
+
       final blob = await response.blob().toDart;
       final blobUrl = web.URL.createObjectURL(blob);
       final anchor = web.document.createElement('a') as web.HTMLAnchorElement;
@@ -15,14 +24,9 @@ Future<void> triggerBrowserDownload(String url, String filename) async {
       anchor.click();
       anchor.remove();
       web.URL.revokeObjectURL(blobUrl);
-      return;
+      return true;
     }
   } catch (_) {}
 
-  try {
-    final absoluteUrl = url.startsWith('http')
-        ? url
-        : '${web.window.location.origin}$url';
-    web.window.open(absoluteUrl, '_blank');
-  } catch (_) {}
+  return false;
 }
