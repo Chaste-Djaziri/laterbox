@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -28,10 +29,49 @@ class _ExtensionConnectScreenState
   bool _busy = false;
   String? _error;
 
-  bool get _validRequest =>
-      widget.requestId.isNotEmpty &&
-      widget.requestSecret.isNotEmpty &&
-      _isValidRedirectUri(widget.redirectUri);
+  String get _requestId {
+    if (widget.requestId.isNotEmpty) return widget.requestId;
+    if (kIsWeb) {
+      final q = Uri.base.queryParameters['request_id'];
+      if (q != null && q.isNotEmpty) return q;
+      if (Uri.base.fragment.contains('request_id=')) {
+        final frag = Uri.tryParse(Uri.base.fragment);
+        final fragQ = frag?.queryParameters['request_id'];
+        if (fragQ != null && fragQ.isNotEmpty) return fragQ;
+      }
+    }
+    return '';
+  }
+
+  String get _requestSecret {
+    if (widget.requestSecret.isNotEmpty) return widget.requestSecret;
+    if (kIsWeb) {
+      final q = Uri.base.queryParameters['request_secret'];
+      if (q != null && q.isNotEmpty) return q;
+      if (Uri.base.fragment.contains('request_secret=')) {
+        final frag = Uri.tryParse(Uri.base.fragment);
+        final fragQ = frag?.queryParameters['request_secret'];
+        if (fragQ != null && fragQ.isNotEmpty) return fragQ;
+      }
+    }
+    return '';
+  }
+
+  String get _redirectUri {
+    if (widget.redirectUri.isNotEmpty) return widget.redirectUri;
+    if (kIsWeb) {
+      final q = Uri.base.queryParameters['redirect_uri'];
+      if (q != null && q.isNotEmpty) return q;
+      if (Uri.base.fragment.contains('redirect_uri=')) {
+        final frag = Uri.tryParse(Uri.base.fragment);
+        final fragQ = frag?.queryParameters['redirect_uri'];
+        if (fragQ != null && fragQ.isNotEmpty) return fragQ;
+      }
+    }
+    return '/extension/connected';
+  }
+
+  bool get _validRequest => _requestId.isNotEmpty && _requestSecret.isNotEmpty;
 
   @override
   Widget build(BuildContext context) {
@@ -99,15 +139,21 @@ class _ExtensionConnectScreenState
                       ),
                       const SizedBox(height: 8),
                       TextButton(
-                        onPressed: _busy ? null : () => redirectTo(widget.redirectUri.isNotEmpty ? widget.redirectUri : '/inbox'),
+                        onPressed: _busy
+                            ? null
+                            : () => redirectTo(
+                                _redirectUri.isNotEmpty ? _redirectUri : '/inbox'),
                         child: const Text('Cancel'),
                       ),
                       if (!_validRequest)
-                        Text(
-                          'This connection request is invalid or expired.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.error,
+                        Padding(
+                          padding: const EdgeInsets.only(top: 12),
+                          child: Text(
+                            'This connection request is missing required parameters.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.error,
+                            ),
                           ),
                         ),
                     ],
@@ -133,43 +179,39 @@ class _ExtensionConnectScreenState
     });
 
     try {
-      await client.functions.invoke(
+      final response = await client.functions.invoke(
         'extension-connect',
         body: {
           'action': 'approve',
-          'request_id': widget.requestId,
-          'request_secret': widget.requestSecret,
+          'request_id': _requestId,
+          'request_secret': _requestSecret,
         },
       );
-      final redirectBase = widget.redirectUri.isNotEmpty ? widget.redirectUri : '/extension/connected';
+      if (response.status >= 400) {
+        final data = response.data;
+        final msg = data is Map && data['error'] != null
+            ? data['error'].toString()
+            : 'Connection request expired or unavailable. Please click Connect in the extension again.';
+        if (mounted) setState(() => _error = msg);
+        return;
+      }
+      final redirectBase = _redirectUri.isNotEmpty ? _redirectUri : '/extension/connected';
       final redirectParsed = Uri.tryParse(redirectBase);
       final callback = (redirectParsed ?? Uri.parse('/extension/connected')).replace(
         queryParameters: {
           ...redirectParsed?.queryParameters ?? {},
-          'request_id': widget.requestId,
+          'request_id': _requestId,
           'status': 'approved',
         },
       );
       redirectTo(callback.toString());
     } catch (error) {
-      if (mounted) setState(() => _error = 'Could not connect this extension. Please try again.');
+      if (mounted) {
+        setState(() => _error =
+            'Could not connect this extension. Please click Connect in the extension to create a fresh link.');
+      }
     } finally {
       if (mounted) setState(() => _busy = false);
     }
   }
-}
-
-bool _isValidRedirectUri(String value) {
-  if (value.isEmpty || value.startsWith('/')) return true;
-  final uri = Uri.tryParse(value);
-  if (uri == null) return false;
-  if (uri.scheme == 'moz-extension' ||
-      uri.scheme == 'safari-web-extension' ||
-      uri.scheme == 'chrome-extension') {
-    return true;
-  }
-  if (uri.scheme == 'https' || uri.scheme == 'http') {
-    return true;
-  }
-  return false;
 }
