@@ -1,4 +1,8 @@
-import { connectLaterBoxViaTab } from "../lib/auth";
+import {
+  cancelPendingConnection,
+  connectLaterBoxViaTab,
+  openPendingApprovalTab,
+} from "../lib/auth";
 import { flushQueue, saveCapture } from "../lib/capture";
 import { highlightTextInTab } from "../lib/highlight";
 import { getPageContext } from "../lib/page";
@@ -26,12 +30,46 @@ browser.contextMenus.onClicked.addListener((info, tab) => {
 browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message?.type === "connect-laterbox") {
     connectLaterBoxViaTab()
-      .then((userId) => sendResponse({ userId }))
-      .catch((error: unknown) =>
-        sendResponse({
-          error: error instanceof Error ? error.message : "Connection cancelled.",
-        }),
-      );
+      .then((userId) => {
+        try {
+          sendResponse({ userId });
+        } catch {}
+      })
+      .catch((error: unknown) => {
+        try {
+          sendResponse({
+            error: error instanceof Error ? error.message : "Connection cancelled.",
+          });
+        } catch {}
+      });
+    return true;
+  }
+  if (message?.type === "cancel-connect") {
+    cancelPendingConnection()
+      .then(() => {
+        try {
+          sendResponse({ status: "cancelled" });
+        } catch {}
+      })
+      .catch(() => {
+        try {
+          sendResponse({ status: "error" });
+        } catch {}
+      });
+    return true;
+  }
+  if (message?.type === "open-approval-tab") {
+    openPendingApprovalTab()
+      .then(() => {
+        try {
+          sendResponse({ status: "ok" });
+        } catch {}
+      })
+      .catch(() => {
+        try {
+          sendResponse({ status: "error" });
+        } catch {}
+      });
     return true;
   }
   if (message?.type === "save-page") {
