@@ -130,7 +130,7 @@ async function updateConnectionState(): Promise<boolean> {
 
 async function connect(): Promise<void> {
   connectButton.disabled = true;
-  setStatus("Opening LaterBox in browser...");
+  setStatus("Opening laterbox in browser...");
   try {
     void connectLaterBox();
     await updateConnectionState();
@@ -157,7 +157,7 @@ async function disconnect(): Promise<void> {
   try {
     await disconnectLaterBox();
     await updateConnectionState();
-    setStatus("Disconnected from LaterBox.");
+    setStatus("Disconnected from laterbox.");
   } finally {
     disconnectButton.disabled = false;
   }
@@ -208,12 +208,12 @@ async function showCaptureResult(
   button: HTMLButtonElement,
 ): Promise<void> {
   if (result.status === "saved") {
-    setStatus("Saved to LaterBox.", "success");
+    setStatus("Saved to laterbox.", "success");
     window.setTimeout(() => window.close(), 700);
   } else if (result.status === "needsAuth") {
     await disconnectLaterBox();
     await updateConnectionState();
-    setStatus("Saved on this browser. Connect LaterBox to sync.");
+    setStatus("Saved on this browser. Connect laterbox to sync.");
     button.disabled = false;
   } else {
     setStatus(
