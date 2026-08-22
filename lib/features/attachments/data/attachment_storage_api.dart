@@ -46,9 +46,15 @@ class AttachmentStorageApi {
         'x-amz-meta-attachment-id': attachment.id,
         'x-amz-meta-user-id': attachment.userId ?? '',
       });
-    await request.sink.addStream(bytes);
+    await request.sink.addStream(bytes).timeout(
+      const Duration(minutes: 2),
+      onTimeout: () => throw TimeoutException('Upload stream timed out'),
+    );
     await request.sink.close();
-    final response = await _http.send(request);
+    final response = await _http.send(request).timeout(
+      const Duration(seconds: 30),
+      onTimeout: () => throw TimeoutException('Upload HTTP request timed out'),
+    );
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw HttpException('R2 upload failed with ${response.statusCode}');
     }
@@ -96,7 +102,10 @@ class AttachmentStorageApi {
           ..bodyBytes = chunkBytes
           ..headers['content-type'] = attachment.mimeType;
 
-        final putRes = await _http.send(putReq);
+        final putRes = await _http.send(putReq).timeout(
+          const Duration(minutes: 2),
+          onTimeout: () => throw TimeoutException('Multipart chunk upload timed out'),
+        );
         if (putRes.statusCode < 200 || putRes.statusCode >= 300) {
           throw HttpException(
             'Part $partNumber upload failed with ${putRes.statusCode}',
