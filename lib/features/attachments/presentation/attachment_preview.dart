@@ -237,7 +237,8 @@ class _AttachmentRow extends ConsumerWidget {
     final theme = Theme.of(context);
     final isUploading = attachment.uploadStatus == 'uploading';
     final isFailed = attachment.uploadStatus == 'failed';
-    final isRemoteOnly = path == null && resolveRemotePath != null;
+    final hasLocalBytes = attachment.localBytes != null;
+    final isRemoteOnly = !hasLocalBytes && path == null && resolveRemotePath != null;
 
     final String subtitleText;
     if (isUploading) {
@@ -281,7 +282,7 @@ class _AttachmentRow extends ConsumerWidget {
       trailingWidget = IconButton(
         tooltip: 'Open ${attachment.originalFileName}',
         icon: const Icon(Icons.open_in_new_rounded),
-        onPressed: path == null && resolveRemotePath == null
+        onPressed: !hasLocalBytes && path == null && resolveRemotePath == null
             ? null
             : () => _open(context),
       );
@@ -315,7 +316,7 @@ class _AttachmentRow extends ConsumerWidget {
         trailing: trailingWidget,
         onTap: isFailed
             ? () => _retryUpload(context, ref)
-            : path == null && resolveRemotePath == null
+            : !hasLocalBytes && path == null && resolveRemotePath == null
                 ? null
                 : () => _open(context),
       ),
@@ -338,6 +339,25 @@ class _AttachmentRow extends ConsumerWidget {
 
   Future<void> _open(BuildContext context) async {
     try {
+      if (kIsWeb) {
+        if (attachment.localBytes != null) {
+          final uri = Uri.dataFromBytes(
+            attachment.localBytes!,
+            mimeType: attachment.mimeType,
+          );
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
+          return;
+        }
+        if (resolveRemotePath != null) {
+          final remoteUrl = await resolveRemotePath!(attachment);
+          await launchUrl(
+            Uri.parse(remoteUrl),
+            mode: LaunchMode.externalApplication,
+          );
+          return;
+        }
+      }
+
       final resolved = path ?? await resolveRemotePath!(attachment);
       if (context.mounted) {
         await openLocalAttachment(context, resolved, attachment.mimeType);
@@ -465,6 +485,20 @@ Future<void> openLocalAttachment(
   String path,
   String mimeType,
 ) async {
+  if (kIsWeb || path.startsWith('http://') || path.startsWith('https://')) {
+    final uri = Uri.tryParse(path);
+    if (uri != null) {
+      final launched =
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (!launched && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not open this attachment.')),
+        );
+      }
+      return;
+    }
+  }
+
   final file = File(path);
   if (!await file.exists()) {
     if (context.mounted) {
