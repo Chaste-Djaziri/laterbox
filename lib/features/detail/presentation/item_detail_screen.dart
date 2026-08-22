@@ -121,6 +121,13 @@ class _ItemDetailBody extends ConsumerWidget {
     }
     final hasAttachmentPreview = attachments != null && attachments.isNotEmpty;
     Future<String> resolveRemotePath(Attachment attachment) async {
+      if (kIsWeb) {
+        final client = ref.read(supabaseClientProvider);
+        if (client != null && attachment.r2ObjectKey != null) {
+          return AttachmentStorageApi(client).prepareDownloadUrl(attachment.id);
+        }
+        throw StateError('Attachment is not available for remote download.');
+      }
       final service = await ref.read(attachmentSyncServiceProvider.future);
       if (service == null) {
         throw StateError('Attachment sync is unavailable.');
