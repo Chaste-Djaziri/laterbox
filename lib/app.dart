@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -40,6 +41,7 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
     unawaited(_cleanAttachmentOrphans());
     _drainPendingShares();
     _initDesktop();
+    _syncDesktopIconTheme();
   }
 
   @override
@@ -51,6 +53,22 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) _drainPendingShares();
+  }
+
+  @override
+  void didChangePlatformBrightness() {
+    super.didChangePlatformBrightness();
+    _syncDesktopIconTheme();
+  }
+
+  void _syncDesktopIconTheme() {
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.macOS) {
+      final brightness = WidgetsBinding.instance.platformDispatcher.platformBrightness;
+      const MethodChannel('pro.micorp.laterbox/desktop_icon').invokeMethod<void>(
+        'updateIcon',
+        {'isDark': brightness == Brightness.dark},
+      ).catchError((_) => null);
+    }
   }
 
   void _initDesktop() {
