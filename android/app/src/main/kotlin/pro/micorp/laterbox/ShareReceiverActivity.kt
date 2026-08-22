@@ -1,4 +1,4 @@
-package com.example.laterbox
+package pro.micorp.laterbox
 
 import android.app.Activity
 import android.content.Intent
