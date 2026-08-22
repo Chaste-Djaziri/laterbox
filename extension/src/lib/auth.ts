@@ -13,24 +13,14 @@ export async function connectWithAccessToken(token: string): Promise<void> {
 }
 
 export async function connectLaterBox(): Promise<string> {
-  const connectionEndpoint = getConnectionEndpoint();
-  const webUrl = import.meta.env.VITE_LATERBOX_WEB_URL ?? "";
-  if (!connectionEndpoint || !webUrl) {
-    throw new Error("LaterBox connection is not configured");
-  }
-
-  if (typeof browser.identity?.launchWebAuthFlow === "function") {
-    return await connectViaIdentityFlow(webUrl, connectionEndpoint);
-  }
-
-  // Safari has no `identity` API: run the tab-and-poll flow in the background
-  // so it survives the popup closing when the user focuses the approval tab.
   const response = await browser.runtime.sendMessage({ type: "connect-laterbox" });
   if (typeof response?.error === "string") throw new Error(response.error);
-  if (typeof response?.userId !== "string") {
-    throw new Error("LaterBox connection was cancelled");
+  if (typeof response?.userId === "string") {
+    return response.userId;
   }
-  return response.userId;
+  const storedUserId = await getConnectedUserId();
+  if (storedUserId) return storedUserId;
+  return "";
 }
 
 async function connectViaIdentityFlow(
