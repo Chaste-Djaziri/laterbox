@@ -64,7 +64,7 @@ class _QuickCaptureFieldState extends State<QuickCaptureField> {
               const SizedBox(width: 8),
               Flexible(
                 child: Text(
-                  'LaterBox Quick Capture',
+                  'laterbox quick capture',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.labelLarge?.copyWith(
