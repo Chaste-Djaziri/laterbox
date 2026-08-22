@@ -1,7 +1,10 @@
 import {
+  cancelConnectionRequest,
   connectLaterBox,
   disconnectLaterBox,
   getAccessToken,
+  getPendingConnection,
+  openApprovalTab,
 } from "../lib/auth";
 import { flushQueue, saveCapture, saveSelectionFromTab } from "../lib/capture";
 import { getPageContext, type PageContext } from "../lib/page";
@@ -16,8 +19,11 @@ const highlightPanel = document.querySelector<HTMLElement>("#highlight")!;
 const selectionElement = document.querySelector<HTMLElement>("#selection")!;
 const saveHighlightButton = document.querySelector<HTMLButtonElement>("#save-highlight")!;
 const disconnectedPanel = document.querySelector<HTMLElement>("#disconnected")!;
+const pendingPanel = document.querySelector<HTMLElement>("#pending")!;
 const connectedPanel = document.querySelector<HTMLElement>("#connected")!;
 const connectButton = document.querySelector<HTMLButtonElement>("#connect")!;
+const openApprovalButton = document.querySelector<HTMLButtonElement>("#open-approval")!;
+const cancelConnectButton = document.querySelector<HTMLButtonElement>("#cancel-connect")!;
 const saveButton = document.querySelector<HTMLButtonElement>("#save")!;
 const openPanelButton = document.querySelector<HTMLButtonElement>("#open-panel")!;
 const disconnectButton = document.querySelector<HTMLButtonElement>("#disconnect")!;
@@ -68,6 +74,14 @@ connectButton.addEventListener("click", () => {
   void connect();
 });
 
+openApprovalButton.addEventListener("click", () => {
+  void openApprovalTab();
+});
+
+cancelConnectButton.addEventListener("click", () => {
+  void cancelConnect();
+});
+
 saveButton.addEventListener("click", () => {
   void saveCurrentPage();
 });
@@ -96,9 +110,12 @@ async function updateConnectionState(): Promise<boolean> {
   const token = await getAccessToken();
   const userId = await getConnectedUserId();
   const connected = token.startsWith("lb_ext_") && userId.length > 0;
-  disconnectedPanel.hidden = connected;
+  const pending = !connected && (await getPendingConnection()) !== null;
+
+  disconnectedPanel.hidden = connected || pending;
+  pendingPanel.hidden = connected || !pending;
   connectedPanel.hidden = !connected;
-  connectButton.hidden = connected;
+  connectButton.hidden = connected || pending;
   disconnectButton.hidden = !connected;
   openPanelButton.hidden = !browserCapabilities.supportsSidePanel;
 
@@ -113,15 +130,25 @@ async function updateConnectionState(): Promise<boolean> {
 
 async function connect(): Promise<void> {
   connectButton.disabled = true;
-  setStatus("Opening LaterBox...");
+  setStatus("Opening LaterBox in browser...");
   try {
-    await connectLaterBox();
+    void connectLaterBox();
     await updateConnectionState();
-    setStatus("Connected to LaterBox.", "success");
   } catch (error) {
     setStatus(error instanceof Error ? error.message : "Connection cancelled.", "error");
   } finally {
     connectButton.disabled = false;
+  }
+}
+
+async function cancelConnect(): Promise<void> {
+  cancelConnectButton.disabled = true;
+  try {
+    await cancelConnectionRequest();
+    await updateConnectionState();
+    setStatus("Connection request cancelled.");
+  } finally {
+    cancelConnectButton.disabled = false;
   }
 }
 
