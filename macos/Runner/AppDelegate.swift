@@ -70,12 +70,27 @@ class AppDelegate: FlutterAppDelegate {
 
   private func configureAppIcon() {
     let isDark = Self.isSystemDarkMode()
+    let size: CGFloat = 512
 
-    let size = NSSize(width: 512, height: 512)
-    let image = NSImage(size: size)
-    image.lockFocus()
+    guard let rep = NSBitmapImageRep(
+      bitmapDataPlanes: nil,
+      pixelsWide: Int(size),
+      pixelsHigh: Int(size),
+      bitsPerSample: 8,
+      samplesPerPixel: 4,
+      hasAlpha: true,
+      isPlanar: false,
+      colorSpaceName: .deviceRGB,
+      bytesPerRow: Int(size) * 4,
+      bitsPerPixel: 32
+    ), let context = NSGraphicsContext(bitmapImageRep: rep) else {
+      return
+    }
 
-    let squircleRect = NSRect(x: 20, y: 20, width: 472, height: 472)
+    NSGraphicsContext.saveGraphicsState()
+    NSGraphicsContext.current = context
+
+    let squircleRect = NSRect(x: 20, y: 20, width: size - 40, height: size - 40)
     let path = NSBezierPath(roundedRect: squircleRect, xRadius: 105, yRadius: 105)
 
     let shadow = NSShadow()
@@ -98,52 +113,53 @@ class AppDelegate: FlutterAppDelegate {
 
     NSShadow().set()
 
-    let logoImage: NSImage? = {
-      if isDark {
-        if let whiteAsset = NSImage(named: "AppIconWhite"), whiteAsset.isValid {
-          return whiteAsset
-        }
-        for bundle in Bundle.allFrameworks + Bundle.allBundles + [Bundle.main] {
-          if let url = bundle.url(forResource: "laterbox-icon-white", withExtension: "png", subdirectory: "flutter_assets/assets/branding") ??
-                       bundle.url(forResource: "laterbox-icon-white", withExtension: "png") {
-            if let img = NSImage(contentsOf: url), img.isValid {
-              return img
-            }
-          }
-        }
-        if let base = NSImage(named: "AppIcon") ?? NSApp.applicationIconImage {
-          let baseSize = NSSize(width: 512, height: 512)
-          let whiteIcon = NSImage(size: baseSize)
-          whiteIcon.lockFocus()
-          base.draw(in: NSRect(origin: .zero, size: baseSize), from: .zero, operation: .copy, fraction: 1.0)
-          NSColor.white.setFill()
-          NSRect(origin: .zero, size: baseSize).fill(using: .sourceIn)
-          whiteIcon.unlockFocus()
-          return whiteIcon
-        }
-        return nil
-      } else {
-        return NSImage(named: "AppIcon") ?? NSApp.applicationIconImage
-      }
-    }()
+    let logoPadding: CGFloat = 72
+    let logoRect = NSRect(
+      x: squircleRect.origin.x + logoPadding,
+      y: squircleRect.origin.y + logoPadding,
+      width: squircleRect.width - (logoPadding * 2),
+      height: squircleRect.height - (logoPadding * 2)
+    )
 
-    if let logo = logoImage {
-      let logoPadding: CGFloat = 72
-      let logoRect = NSRect(
-        x: squircleRect.origin.x + logoPadding,
-        y: squircleRect.origin.y + logoPadding,
-        width: squircleRect.width - (logoPadding * 2),
-        height: squircleRect.height - (logoPadding * 2)
-      )
-      logo.draw(in: logoRect, from: .zero, operation: .sourceOver, fraction: 1.0)
+    let logoImage = Self.resolveLogoImage(isDark: isDark)
+    if let cg = logoImage?.cgImage(forProposedRect: nil, context: nil, hints: nil) {
+      if isDark {
+        context.cgContext.saveGState()
+        context.cgContext.clip(to: logoRect, mask: cg)
+        context.cgContext.setFillColor(CGColor(red: 1.0, green: 1.0, blue: 1.0, alpha: 1.0))
+        context.cgContext.fill(logoRect)
+        context.cgContext.restoreGState()
+      } else {
+        context.cgContext.draw(cg, in: logoRect)
+      }
     }
 
-    image.unlockFocus()
-    NSApp.applicationIconImage = image
-    let dockImageView = NSImageView(frame: NSRect(origin: .zero, size: size))
-    dockImageView.image = image
-    NSApp.dockTile.contentView = dockImageView
+    NSGraphicsContext.restoreGraphicsState()
+
+    let finalImage = NSImage(size: NSSize(width: size, height: size))
+    finalImage.addRepresentation(rep)
+
+    NSApp.applicationIconImage = finalImage
+    NSApp.dockTile.contentView = nil
     NSApp.dockTile.display()
+  }
+
+  private static func resolveLogoImage(isDark: Bool) -> NSImage? {
+    if isDark {
+      if let white = NSImage(named: "AppIconWhite"), white.isValid {
+        return white
+      }
+    }
+    for bundle in Bundle.allFrameworks + Bundle.allBundles + [Bundle.main] {
+      let assetName = isDark ? "laterbox-icon-white" : "laterbox-icon"
+      if let url = bundle.url(forResource: assetName, withExtension: "png", subdirectory: "flutter_assets/assets/branding") ??
+                   bundle.url(forResource: assetName, withExtension: "png") {
+        if let img = NSImage(contentsOf: url), img.isValid {
+          return img
+        }
+      }
+    }
+    return NSImage(named: "AppIcon") ?? NSApp.applicationIconImage
   }
 
   private func registerShareCaptureChannel() {
