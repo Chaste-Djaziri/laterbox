@@ -248,7 +248,7 @@ class _ItemDetailBody extends ConsumerWidget {
                 if (sourceTitle == null && item.url == null) ...[
                   const SizedBox(height: 6),
                   Text(
-                    'LaterBox note',
+                    'laterbox note',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
