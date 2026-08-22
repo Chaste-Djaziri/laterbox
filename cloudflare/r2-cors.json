@@ -4,23 +4,24 @@
       "id": "laterbox-app-uploads",
       "allowed": {
         "origins": [
-          "https://laterbox.micorp.pro",
-          "https://app.laterbox.com",
-          "http://localhost:8080"
+          "*"
         ],
         "methods": [
           "GET",
           "HEAD",
-          "PUT"
+          "PUT",
+          "POST",
+          "DELETE"
         ],
         "headers": [
-          "Content-Type",
-          "Content-Length",
-          "x-amz-*"
+          "*"
         ]
       },
       "exposeHeaders": [
-        "ETag"
+        "ETag",
+        "Content-Length",
+        "Content-Type",
+        "x-amz-*"
       ],
       "maxAgeSeconds": 3600
     }
