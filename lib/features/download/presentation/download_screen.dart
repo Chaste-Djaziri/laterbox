@@ -455,7 +455,10 @@ class _WindowsDownloadSection extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Row(
+                        Wrap(
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          spacing: 10,
+                          runSpacing: 6,
                           children: [
                             Text(
                               'Laterbox for Windows',
@@ -465,7 +468,6 @@ class _WindowsDownloadSection extends StatelessWidget {
                                 fontSize: isMobile ? 20 : 24,
                               ),
                             ),
-                            const SizedBox(width: 10),
                             Container(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 10,
@@ -542,10 +544,10 @@ class _WindowsDownloadSection extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 28),
-              Flex(
-                direction: isMobile ? Axis.vertical : Axis.horizontal,
-                mainAxisAlignment: MainAxisAlignment.start,
-                crossAxisAlignment: CrossAxisAlignment.center,
+              Wrap(
+                spacing: 16,
+                runSpacing: 12,
+                crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
                   FilledButton.icon(
                     onPressed: onDownloadExe,
@@ -568,10 +570,6 @@ class _WindowsDownloadSection extends StatelessWidget {
                         fontWeight: FontWeight.w800,
                       ),
                     ),
-                  ),
-                  SizedBox(
-                    width: isMobile ? 0 : 16,
-                    height: isMobile ? 12 : 0,
                   ),
                   OutlinedButton.icon(
                     onPressed: onDownloadZip,
@@ -597,6 +595,7 @@ class _WindowsDownloadSection extends StatelessWidget {
                   ),
                 ],
               ),
+
               const SizedBox(height: 16),
               Row(
                 children: [
@@ -914,12 +913,10 @@ class _AvailablePlatformsSection extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 32),
-              Flex(
-                direction: isMobile ? Axis.vertical : Axis.horizontal,
-                children: [
-                  Expanded(
-                    flex: isMobile ? 0 : 1,
-                    child: Container(
+              if (isMobile)
+                Column(
+                  children: [
+                    Container(
                       padding: const EdgeInsets.all(24),
                       decoration: BoxDecoration(
                         color: theme.colorScheme.surfaceContainerLowest,
@@ -980,14 +977,8 @@ class _AvailablePlatformsSection extends StatelessWidget {
                         ],
                       ),
                     ),
-                  ),
-                  SizedBox(
-                    width: isMobile ? 0 : 16,
-                    height: isMobile ? 16 : 0,
-                  ),
-                  Expanded(
-                    flex: isMobile ? 0 : 1,
-                    child: Container(
+                    const SizedBox(height: 16),
+                    Container(
                       padding: const EdgeInsets.all(24),
                       decoration: BoxDecoration(
                         color: theme.colorScheme.surfaceContainerLowest,
@@ -1046,9 +1037,140 @@ class _AvailablePlatformsSection extends StatelessWidget {
                         ],
                       ),
                     ),
-                  ),
-                ],
-              ),
+                  ],
+                )
+              else
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.all(24),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.surfaceContainerLowest,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(10),
+                                  decoration: BoxDecoration(
+                                    color: theme.colorScheme.primaryContainer,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Icon(
+                                    Icons.language_rounded,
+                                    color: theme.colorScheme.primary,
+                                    size: 24,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    'Laterbox Web Application',
+                                    style: theme.textTheme.titleMedium?.copyWith(
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 14),
+                            Text(
+                              'Works smoothly in Chrome, Edge, Safari, Firefox, and mobile web browsers with offline SQLite WASM persistence.',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant,
+                                height: 1.45,
+                              ),
+                            ),
+                            const SizedBox(height: 20),
+                            FilledButton.icon(
+                              onPressed: () => context.go('/inbox'),
+                              icon: const Icon(Icons.open_in_new_rounded, size: 16),
+                              label: const Text('Launch Web App'),
+                              style: FilledButton.styleFrom(
+                                backgroundColor: theme.colorScheme.primary,
+                                foregroundColor: theme.colorScheme.onPrimary,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(100),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.all(24),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.surfaceContainerLowest,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(10),
+                                  decoration: BoxDecoration(
+                                    color: theme.colorScheme.primaryContainer,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Icon(
+                                    Icons.extension_rounded,
+                                    color: theme.colorScheme.primary,
+                                    size: 24,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    'Chrome & Browser Extension',
+                                    style: theme.textTheme.titleMedium?.copyWith(
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 14),
+                            Text(
+                              'Save any tab, article, or YouTube video with one click directly into your Laterbox account with real-time sync.',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant,
+                                height: 1.45,
+                              ),
+                            ),
+                            const SizedBox(height: 20),
+                            OutlinedButton.icon(
+                              onPressed: () => context.go('/extension/connect'),
+                              icon: const Icon(Icons.cable_rounded, size: 16),
+                              label: const Text('Connect Extension'),
+                              style: OutlinedButton.styleFrom(
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(100),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+
             ],
           ),
         ),
