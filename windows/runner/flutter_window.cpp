@@ -37,22 +37,21 @@ std::optional<std::string> ReadSelectedText() {
     return std::nullopt;
   }
 
-  SAFEARRAY *ranges = nullptr;
+  IUIAutomationTextRangeArray *ranges = nullptr;
   result = text_pattern->GetSelection(&ranges);
   text_pattern->Release();
   if (FAILED(result) || ranges == nullptr) {
     return std::nullopt;
   }
 
-  LONG lower = 0;
-  LONG upper = -1;
-  SafeArrayGetLBound(ranges, 1, &lower);
-  SafeArrayGetUBound(ranges, 1, &upper);
   std::wstring selected;
-  for (LONG index = lower; index <= upper; ++index) {
+  int count = 0;
+  if (FAILED(ranges->get_Length(&count))) {
+    count = 0;
+  }
+  for (int index = 0; index < count; ++index) {
     IUIAutomationTextRange *range = nullptr;
-    if (SUCCEEDED(SafeArrayGetElement(ranges, &index, &range)) &&
-        range != nullptr) {
+    if (SUCCEEDED(ranges->GetElement(index, &range)) && range != nullptr) {
       BSTR text = nullptr;
       if (SUCCEEDED(range->GetText(-1, &text)) && text != nullptr) {
         selected.append(text, SysStringLen(text));
@@ -61,12 +60,12 @@ std::optional<std::string> ReadSelectedText() {
       range->Release();
     }
   }
-  SafeArrayDestroy(ranges);
+  ranges->Release();
 
   if (selected.find_first_not_of(L" \t\r\n") == std::wstring::npos) {
     return std::nullopt;
   }
-  return Utf8FromUtf16(selected);
+  return Utf8FromUtf16(selected.c_str());
 }
 
 std::optional<std::string> ReadFrontmostApplication() {
@@ -100,8 +99,9 @@ std::optional<std::string> ReadFrontmostApplication() {
   if (extension != std::wstring::npos) {
     name.resize(extension);
   }
-  return name.empty() ? std::nullopt
-                      : std::optional<std::string>(Utf8FromUtf16(name));
+  return name.empty()
+             ? std::nullopt
+             : std::optional<std::string>(Utf8FromUtf16(name.c_str()));
 }
 
 bool IsUiAutomationAvailable() {
