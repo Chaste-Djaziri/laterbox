@@ -1,6 +1,6 @@
 'use client';
 
-import React, { use } from 'react';
+import React, { use, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/layout/AppShell';
@@ -8,6 +8,8 @@ import { MediaEmbed } from '@/components/item/MediaEmbed';
 import { NoteEditor } from '@/components/item/NoteEditor';
 import { useItems } from '@/lib/store/ItemContext';
 import { extractDomain, formatTimeAgo, buildTextFragmentUrl } from '@/lib/utils/url';
+import { fetchAttachmentDownloadUrl } from '@/lib/utils/attachment';
+import { Attachment } from '@/lib/supabase/types';
 import {
   ArrowLeft,
   Star,
@@ -20,7 +22,106 @@ import {
   Clock,
   Link2,
   Paperclip,
+  Download,
+  FileText,
+  FileSpreadsheet,
+  FileCode,
+  File,
+  Image as ImageIcon,
+  PlayCircle,
+  Music2,
 } from 'lucide-react';
+
+function formatBytes(bytes?: number): string {
+  if (!bytes) return '0 B';
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function AttachmentRow({ attachment }: { attachment: Attachment }) {
+  const [downloading, setDownloading] = useState(false);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+
+  const ext = attachment.file_extension.toLowerCase();
+  const isImage = attachment.mime_type.startsWith('image/') || ['jpg', 'jpeg', 'png', 'gif', 'webp', 'heic', 'svg'].includes(ext);
+
+  useEffect(() => {
+    if (isImage) {
+      if (attachment.local_path?.startsWith('data:') || attachment.local_path?.startsWith('http')) {
+        setImageUrl(attachment.local_path);
+        return;
+      }
+      fetchAttachmentDownloadUrl(attachment.id).then((url) => {
+        if (url) setImageUrl(url);
+      });
+    }
+  }, [attachment.id, attachment.local_path, isImage]);
+
+  const handleDownload = async () => {
+    if (downloading) return;
+    setDownloading(true);
+    try {
+      const url = imageUrl || await fetchAttachmentDownloadUrl(attachment.id);
+      if (url) {
+        window.open(url, '_blank');
+      } else {
+        alert('Could not generate download URL. Please try again.');
+      }
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  return (
+    <div className="p-3.5 rounded-2xl bg-[#ebe7dc]/50 border border-[#e4e0d5] flex flex-col gap-3">
+      {/* If it's an image, render preview image */}
+      {isImage && imageUrl && (
+        <div className="w-full aspect-video rounded-xl overflow-hidden bg-white border border-[#e4e0d5]">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={imageUrl}
+            alt={attachment.original_file_name}
+            className="w-full h-full object-contain"
+          />
+        </div>
+      )}
+
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="w-9 h-9 rounded-xl bg-white flex items-center justify-center shrink-0 border border-[#e4e0d5] shadow-2xs">
+            {isImage ? (
+              <ImageIcon className="w-4 h-4 text-[#0284c7]" />
+            ) : ext === 'pdf' ? (
+              <FileText className="w-4 h-4 text-red-600" />
+            ) : ['mp4', 'mov'].includes(ext) ? (
+              <PlayCircle className="w-4 h-4 text-rose-600" />
+            ) : (
+              <Paperclip className="w-4 h-4 text-[#6c6b63]" />
+            )}
+          </div>
+          <div className="min-w-0">
+            <p className="text-xs font-bold text-[#171711] truncate">
+              {attachment.original_file_name}
+            </p>
+            <p className="text-[10px] text-[#6c6b63]">
+              {attachment.file_extension.toUpperCase()} • {formatBytes(attachment.byte_size)}
+            </p>
+          </div>
+        </div>
+
+        <button
+          onClick={handleDownload}
+          disabled={downloading}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-[#ebe7dc] border border-[#e4e0d5] text-xs font-bold text-[#171711] shadow-2xs transition-colors cursor-pointer shrink-0"
+        >
+          <Download className="w-3.5 h-3.5" />
+          <span>{downloading ? 'Loading…' : 'Open'}</span>
+        </button>
+      </div>
+    </div>
+  );
+}
 
 export default function ItemDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -39,8 +140,7 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
             href="/inbox"
             className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#171711] text-white text-xs font-bold"
           >
-            <ArrowLeft className="w-4 h-4" />
-            <span>Return to Inbox</span>
+            <span>Back to Inbox</span>
           </Link>
         </div>
       </AppShell>
@@ -48,10 +148,10 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
   }
 
   const domain = extractDomain(item.url) || item.metadata?.domain;
-  const title = item.metadata?.title || item.title || domain || 'Saved Item';
+  const title = item.metadata?.title || item.title || (item.attachments && item.attachments.length > 0 ? item.attachments[0].original_file_name : null) || domain || 'Saved Item';
   const description = item.metadata?.description || item.text_content;
-  const previewImage = item.metadata?.preview_image_url;
   const timeAgo = formatTimeAgo(item.created_at);
+  const previewImage = item.metadata?.preview_image_url;
 
   const destinationUrl = item.url
     ? buildTextFragmentUrl(item.url, item.text_content, item.text_selector ? JSON.parse(item.text_selector).before : null)
@@ -170,7 +270,7 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
                 <img
                   src={item.metadata.favicon_url}
                   alt=""
-                  className="w-4 h-4 rounded object-contain"
+                  className="w-4 h-4 rounded-xs object-contain"
                   onError={(e) => {
                     (e.target as HTMLElement).style.display = 'none';
                   }}
@@ -217,7 +317,7 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
                 <span>Captured Highlight</span>
               </div>
               <p className="text-sm font-medium italic leading-relaxed">
-                "{item.text_content}"
+                &ldquo;{item.text_content}&rdquo;
               </p>
               {destinationUrl && (
                 <div className="pt-1">
@@ -249,26 +349,9 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
                 <Paperclip className="w-3.5 h-3.5 text-[#0284c7]" />
                 <span>Attachments ({item.attachments.length})</span>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {item.attachments.map((att) => (
-                  <div
-                    key={att.id}
-                    className="p-3 rounded-2xl bg-[#ebe7dc]/50 border border-[#e4e0d5] flex items-center justify-between gap-3"
-                  >
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="w-8 h-8 rounded-xl bg-white flex items-center justify-center shrink-0 border border-[#e4e0d5]">
-                        <Paperclip className="w-4 h-4 text-[#6c6b63]" />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-xs font-bold text-[#171711] truncate">
-                          {att.original_file_name}
-                        </p>
-                        <p className="text-[10px] text-[#6c6b63]">
-                          {att.file_extension.toUpperCase()} • {att.byte_size < 1024 * 1024 ? `${(att.byte_size / 1024).toFixed(1)} KB` : `${(att.byte_size / (1024 * 1024)).toFixed(1)} MB`}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
+                  <AttachmentRow key={att.id} attachment={att} />
                 ))}
               </div>
             </div>
