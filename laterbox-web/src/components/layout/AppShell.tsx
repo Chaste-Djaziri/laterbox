@@ -39,7 +39,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   ];
 
   return (
-    <div className="flex h-screen w-full bg-zinc-100/50 dark:bg-zinc-950 overflow-hidden">
+    <div className="flex h-screen w-full bg-zinc-100/50 overflow-hidden">
       {/* Desktop Sidebar */}
       <div className="hidden md:flex shrink-0">
         <AppSidebar onOpenCapture={() => setCaptureOpen(true)} />
@@ -48,12 +48,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
         {/* Mobile Top Header */}
-        <header className="md:hidden flex items-center justify-between px-4 h-14 bg-white dark:bg-zinc-950 border-b border-zinc-200/80 dark:border-zinc-800/80 shrink-0 z-20">
+        <header className="md:hidden flex items-center justify-between px-4 h-14 bg-white border-b border-zinc-200/80 shrink-0 z-20">
           <Link href="/inbox" className="flex items-center gap-2">
             <div className="w-7 h-7 relative rounded-lg overflow-hidden">
               <Image src="/branding/laterbox-icon.png" alt="laterbox" fill className="object-contain" />
             </div>
-            <span className="text-lg font-black tracking-tight text-zinc-900 dark:text-white">laterbox</span>
+            <span className="text-lg font-black tracking-tight text-zinc-900">laterbox</span>
           </Link>
           <div className="flex items-center gap-2">
             <CloudSyncIndicator compact />
@@ -70,7 +70,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <main className="flex-1 overflow-y-auto pb-20 md:pb-0">{children}</main>
 
         {/* Mobile Bottom Navigation Bar */}
-        <nav className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-lg border-t border-zinc-200/80 dark:border-zinc-800/80 flex items-center justify-around px-2 z-30">
+        <nav className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-white/95 backdrop-blur-lg border-t border-zinc-200/80 flex items-center justify-around px-2 z-30">
           {mobileNavItems.map(({ href, label, icon, badge }) => {
             const isActive = pathname === href || pathname.startsWith(`${href}/`);
             return (
@@ -79,8 +79,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 href={href}
                 className={`relative flex flex-col items-center justify-center py-1 px-3 rounded-2xl transition-colors ${
                   isActive
-                    ? 'text-emerald-600 dark:text-emerald-400 font-bold'
-                    : 'text-zinc-500 dark:text-zinc-400 font-medium'
+                    ? 'text-emerald-600 font-bold'
+                    : 'text-zinc-500 font-medium'
                 }`}
               >
                 <div className="relative">
