@@ -6,7 +6,7 @@ This guide describes how to build, package, and deploy laterbox across all suppo
 
 ## 1. Web Application (Cloudflare Pages)
 
-The web app is hosted on Cloudflare Pages (`https://laterbox.micorp.pro`).
+The web app is hosted on Cloudflare Pages (`https://laterbox.dev`).
 
 ### Automated Deployment & Version Stamping
 We provide an automated deployment script that auto-increments the build version in `web/version.json`, compiles Flutter Web, and deploys directly to Cloudflare Pages:
