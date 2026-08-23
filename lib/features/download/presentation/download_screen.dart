@@ -26,7 +26,7 @@ class _DownloadScreenState extends ConsumerState<DownloadScreen> {
   Future<void> _triggerDownload(BuildContext context, String filename) async {
     final messenger = ScaffoldMessenger.of(context);
     final absoluteUri =
-        Uri.parse('https://laterbox.micorp.pro/downloads/$filename');
+        Uri.parse('https://laterbox.dev/downloads/$filename');
     final githubUri = Uri.parse(
         'https://github.com/Chaste-Djaziri/laterbox/releases/latest/download/$filename');
 
