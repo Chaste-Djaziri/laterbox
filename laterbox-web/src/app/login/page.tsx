@@ -5,7 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/store/AuthContext';
-import { Mail, Lock, Sparkles, ArrowRight, Compass, AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
+import { Mail, Lock, Sparkles, Compass, AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -53,8 +53,8 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 sm:p-6 bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100">
-      <div className="w-full max-w-md bg-white dark:bg-zinc-900 rounded-3xl p-7 sm:p-9 shadow-2xl border border-zinc-200/80 dark:border-zinc-800 space-y-7">
+    <div className="min-h-screen flex items-center justify-center p-4 sm:p-6 bg-zinc-50 text-zinc-900">
+      <div className="w-full max-w-md bg-white rounded-3xl p-7 sm:p-9 shadow-2xl border border-zinc-200/80 space-y-7">
         {/* Header */}
         <div className="text-center space-y-2">
           <Link href="/" className="inline-block">
@@ -62,10 +62,10 @@ export default function LoginPage() {
               <Image src="/branding/laterbox-icon.png" alt="laterbox" fill className="object-contain" priority />
             </div>
           </Link>
-          <h1 className="text-2xl font-black tracking-tight text-zinc-900 dark:text-white">
+          <h1 className="text-2xl font-black tracking-tight text-zinc-900">
             {mode === 'signup' ? 'Create your account' : 'Welcome to laterbox'}
           </h1>
-          <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">
+          <p className="text-xs sm:text-sm text-zinc-500">
             {mode === 'otp'
               ? 'Enter your email for a passwordless sign-in link'
               : mode === 'password'
@@ -76,14 +76,14 @@ export default function LoginPage() {
 
         {/* Alerts */}
         {error && (
-          <div className="p-3.5 rounded-2xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 text-red-600 dark:text-red-400 text-xs font-semibold flex items-center gap-2">
+          <div className="p-3.5 rounded-2xl bg-red-50 border border-red-200 text-red-600 text-xs font-semibold flex items-center gap-2">
             <AlertCircle className="w-4 h-4 shrink-0" />
             <span>{error}</span>
           </div>
         )}
 
         {message && (
-          <div className="p-3.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900 text-emerald-700 dark:text-emerald-300 text-xs font-semibold flex items-center gap-2">
+          <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-semibold flex items-center gap-2">
             <CheckCircle className="w-4 h-4 shrink-0" />
             <span>{message}</span>
           </div>
@@ -103,7 +103,7 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
-                className="w-full pl-10 pr-4 py-2.5 text-sm bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                className="w-full pl-10 pr-4 py-2.5 text-sm bg-zinc-50 border border-zinc-200 rounded-xl text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
               />
             </div>
           </div>
@@ -121,7 +121,7 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full pl-10 pr-4 py-2.5 text-sm bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  className="w-full pl-10 pr-4 py-2.5 text-sm bg-zinc-50 border border-zinc-200 rounded-xl text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
             </div>
@@ -174,10 +174,10 @@ export default function LoginPage() {
         </div>
 
         {/* Guest Mode Divider */}
-        <div className="pt-2 border-t border-zinc-200/80 dark:border-zinc-800 space-y-3">
+        <div className="pt-2 border-t border-zinc-200/80 space-y-3">
           <button
             onClick={handleGuest}
-            className="w-full inline-flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 font-bold text-xs transition-all"
+            className="w-full inline-flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-zinc-100 hover:bg-zinc-200 text-zinc-700 font-bold text-xs transition-all"
           >
             <Compass className="w-4 h-4 text-zinc-500" />
             <span>Continue as Guest (No account required)</span>
