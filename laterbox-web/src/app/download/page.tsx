@@ -310,13 +310,13 @@ export default function DownloadPage() {
                 </button>
 
                 <a
-                  href="https://testflight.apple.com"
+                  href="https://testflight.apple.com/join/Gwk1yArJ"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-white hover:bg-[#ebe7dc] border border-[#e4e0d5] text-[#171711] text-xs font-bold transition-all cursor-pointer"
                 >
                   <ExternalLink className="w-4 h-4 text-[#6c6b63]" />
-                  <span>TestFlight Beta</span>
+                  <span>Join TestFlight Beta</span>
                 </a>
               </div>
 
