@@ -14,11 +14,19 @@ Write-Host "========================================" -ForegroundColor Cyan
 $ErrorActionPreference = 'Stop'
 
 $Repo = "Chaste-Djaziri/laterbox"
-$ExeUrl = "https://github.com/$Repo/releases/latest/download/laterbox-windows-setup.exe"
+$PrimaryUrl = "https://laterbox.dev/downloads/laterbox-windows-setup.exe"
+$FallbackUrl = "https://github.com/$Repo/releases/latest/download/laterbox-windows-setup.exe"
 $TempFile = [System.IO.Path]::Combine([System.IO.Path]::GetTempPath(), "laterbox-windows-setup.exe")
 
 Write-Host "\`n[1/3] Downloading latest LaterBox Setup installer..." -ForegroundColor Yellow
-Invoke-WebRequest -Uri $ExeUrl -OutFile $TempFile -UseBasicParsing
+
+try {
+    Write-Host "  • Fetching: $PrimaryUrl"
+    Invoke-WebRequest -Uri $PrimaryUrl -OutFile $TempFile -UseBasicParsing
+} catch {
+    Write-Host "  • Retrying via GitHub direct release..." -ForegroundColor Yellow
+    Invoke-WebRequest -Uri $FallbackUrl -OutFile $TempFile -UseBasicParsing
+}
 
 Write-Host "[2/3] Launching LaterBox installer..." -ForegroundColor Yellow
 Start-Process -FilePath $TempFile -Wait
