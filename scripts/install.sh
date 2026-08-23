@@ -38,7 +38,8 @@ echo "  • Architecture:     $ARCH"
 
 # Determine Latest Release download URLs
 GITHUB_REPO="Chaste-Djaziri/laterbox"
-BASE_URL="https://github.com/${GITHUB_REPO}/releases/latest/download"
+PRIMARY_URL="https://laterbox.dev/downloads"
+FALLBACK_URL="https://github.com/${GITHUB_REPO}/releases/latest/download"
 
 TMP_DIR="$(mktemp -d)"
 cleanup() {
@@ -58,14 +59,17 @@ if [ "$OS" = "Darwin" ]; then
     DMG_NAME="laterbox-macos-intel.dmg"
   fi
   
-  DOWNLOAD_URL="${BASE_URL}/${DMG_NAME}"
+  DOWNLOAD_URL="${PRIMARY_URL}/${DMG_NAME}"
   TARGET_DMG="${TMP_DIR}/${DMG_NAME}"
 
   echo "  • Fetching: ${DOWNLOAD_URL}"
   if ! curl -fsSL "$DOWNLOAD_URL" -o "$TARGET_DMG"; then
-    echo -e "${YELLOW}Falling back to universal release asset...${NC}"
-    DOWNLOAD_URL="${BASE_URL}/laterbox-macos.dmg"
-    curl -fsSL "$DOWNLOAD_URL" -o "$TARGET_DMG"
+    echo -e "${YELLOW}Retrying via GitHub direct release...${NC}"
+    DOWNLOAD_URL="${FALLBACK_URL}/${DMG_NAME}"
+    if ! curl -fsSL "$DOWNLOAD_URL" -o "$TARGET_DMG"; then
+      echo -e "${YELLOW}Falling back to universal release asset...${NC}"
+      curl -fsSL "${PRIMARY_URL}/laterbox-macos.dmg" -o "$TARGET_DMG" || curl -fsSL "${FALLBACK_URL}/laterbox-macos.dmg" -o "$TARGET_DMG"
+    fi
   fi
 
   echo -e "\n${BOLD}[3/4] Installing LaterBox into Applications...${NC}"
@@ -124,11 +128,14 @@ EOF
 elif [ "$OS" = "Linux" ]; then
   echo -e "\n${BOLD}[2/4] Downloading LaterBox for Linux...${NC}"
   TAR_NAME="laterbox-linux-x64.tar.gz"
-  DOWNLOAD_URL="${BASE_URL}/${TAR_NAME}"
+  DOWNLOAD_URL="${PRIMARY_URL}/${TAR_NAME}"
   TARGET_TAR="${TMP_DIR}/${TAR_NAME}"
 
   echo "  • Fetching: ${DOWNLOAD_URL}"
-  curl -fsSL "$DOWNLOAD_URL" -o "$TARGET_TAR"
+  if ! curl -fsSL "$DOWNLOAD_URL" -o "$TARGET_TAR"; then
+    echo -e "${YELLOW}Retrying via GitHub direct release...${NC}"
+    curl -fsSL "${FALLBACK_URL}/${TAR_NAME}" -o "$TARGET_TAR"
+  fi
 
   echo -e "\n${BOLD}[3/4] Installing LaterBox...${NC}"
   INSTALL_DIR="$HOME/.local/share/laterbox"
