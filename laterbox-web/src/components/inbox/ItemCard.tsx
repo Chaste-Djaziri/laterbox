@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { LaterBoxItem } from '@/lib/supabase/types';
+import { LaterBoxItem, Attachment } from '@/lib/supabase/types';
 import { useItems } from '@/lib/store/ItemContext';
 import { formatTimeAgo, extractDomain, buildTextFragmentUrl } from '@/lib/utils/url';
 import {
@@ -37,27 +37,185 @@ function formatBytes(bytes?: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function getFileIcon(filename: string, mime?: string) {
+function getFileCategory(filename: string, mime?: string): 'image' | 'pdf' | 'video' | 'audio' | 'spreadsheet' | 'code' | 'file' {
   const ext = filename.split('.').pop()?.toLowerCase() || '';
   if (mime?.startsWith('image/') || ['jpg', 'jpeg', 'png', 'gif', 'webp', 'heic', 'svg'].includes(ext)) {
-    return <ImageIcon className="w-4 h-4 text-blue-600 shrink-0" />;
+    return 'image';
+  }
+  if (ext === 'pdf' || mime === 'application/pdf') {
+    return 'pdf';
   }
   if (mime?.startsWith('video/') || ['mp4', 'mov', 'mkv', 'webm'].includes(ext)) {
-    return <PlayCircle className="w-4 h-4 text-rose-600 shrink-0" />;
+    return 'video';
   }
   if (mime?.startsWith('audio/') || ['mp3', 'm4a', 'wav', 'aac'].includes(ext)) {
-    return <Music2 className="w-4 h-4 text-emerald-600 shrink-0" />;
+    return 'audio';
   }
   if (['xls', 'xlsx', 'csv'].includes(ext)) {
-    return <FileSpreadsheet className="w-4 h-4 text-green-600 shrink-0" />;
+    return 'spreadsheet';
   }
-  if (['js', 'ts', 'jsx', 'tsx', 'html', 'css', 'json', 'py', 'dart'].includes(ext)) {
-    return <FileCode className="w-4 h-4 text-purple-600 shrink-0" />;
+  if (['js', 'ts', 'jsx', 'tsx', 'html', 'css', 'json', 'py', 'dart', 'rs', 'go', 'cpp', 'c', 'sh'].includes(ext)) {
+    return 'code';
   }
-  if (ext === 'pdf') {
-    return <FileText className="w-4 h-4 text-red-600 shrink-0" />;
+  return 'file';
+}
+
+function renderAttachmentPreviewCover(attachment: Attachment, extraCount: number) {
+  const category = getFileCategory(attachment.original_file_name, attachment.mime_type);
+  const formattedSize = formatBytes(attachment.byte_size);
+
+  switch (category) {
+    case 'pdf':
+      return (
+        <div className="relative w-full aspect-video bg-gradient-to-br from-[#fef2f2] via-[#fee2e2] to-[#fecaca] border-b border-[#fca5a5]/30 flex flex-col items-center justify-center p-4 text-center overflow-hidden group">
+          {/* Subtle document sheet illustration */}
+          <div className="relative w-28 h-20 bg-white rounded-xl shadow-md border border-[#fca5a5]/40 flex flex-col items-center justify-center p-2 transition-transform duration-300 group-hover:scale-105">
+            <div className="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded-md bg-[#ef4444] text-white text-[9px] font-black tracking-wider">
+              PDF
+            </div>
+            <FileText className="w-7 h-7 text-[#ef4444] mb-1" />
+            <span className="text-[10px] font-bold text-[#171711] truncate max-w-[80px]">
+              {attachment.original_file_name}
+            </span>
+          </div>
+
+          <div className="mt-2.5 flex items-center gap-1.5">
+            <span className="px-2.5 py-0.5 rounded-full bg-white/80 backdrop-blur-xs text-[11px] font-extrabold text-[#991b1b] border border-[#fca5a5]/50">
+              PDF Document • {formattedSize}
+            </span>
+            {extraCount > 0 && (
+              <span className="px-2 py-0.5 rounded-full bg-[#171711] text-white text-[10px] font-extrabold">
+                +{extraCount} more
+              </span>
+            )}
+          </div>
+        </div>
+      );
+
+    case 'image':
+      return (
+        <div className="relative w-full aspect-video bg-gradient-to-br from-[#f0f9ff] via-[#e0f2fe] to-[#bae6fd] border-b border-[#7dd3fc]/30 flex flex-col items-center justify-center p-4 text-center overflow-hidden group">
+          <div className="relative w-28 h-20 bg-white rounded-xl shadow-md border border-[#7dd3fc]/40 flex flex-col items-center justify-center p-2 transition-transform duration-300 group-hover:scale-105">
+            <ImageIcon className="w-8 h-8 text-[#0284c7] mb-1" />
+            <span className="text-[10px] font-bold text-[#171711] truncate max-w-[80px]">
+              {attachment.original_file_name}
+            </span>
+          </div>
+
+          <div className="mt-2.5 flex items-center gap-1.5">
+            <span className="px-2.5 py-0.5 rounded-full bg-white/80 backdrop-blur-xs text-[11px] font-extrabold text-[#0369a1] border border-[#7dd3fc]/50">
+              Image • {formattedSize}
+            </span>
+            {extraCount > 0 && (
+              <span className="px-2 py-0.5 rounded-full bg-[#171711] text-white text-[10px] font-extrabold">
+                +{extraCount} more
+              </span>
+            )}
+          </div>
+        </div>
+      );
+
+    case 'video':
+      return (
+        <div className="relative w-full aspect-video bg-gradient-to-br from-[#fff1f2] via-[#ffe4e6] to-[#fecdd3] border-b border-[#fda4af]/30 flex flex-col items-center justify-center p-4 text-center overflow-hidden group">
+          <div className="w-12 h-12 rounded-2xl bg-white shadow-md border border-[#fda4af]/40 flex items-center justify-center transition-transform duration-300 group-hover:scale-110">
+            <PlayCircle className="w-7 h-7 text-[#e11d48]" />
+          </div>
+          <div className="mt-2.5 flex items-center gap-1.5">
+            <span className="px-2.5 py-0.5 rounded-full bg-white/80 backdrop-blur-xs text-[11px] font-extrabold text-[#be123c] border border-[#fda4af]/50">
+              Video • {formattedSize}
+            </span>
+            {extraCount > 0 && (
+              <span className="px-2 py-0.5 rounded-full bg-[#171711] text-white text-[10px] font-extrabold">
+                +{extraCount} more
+              </span>
+            )}
+          </div>
+        </div>
+      );
+
+    case 'audio':
+      return (
+        <div className="relative w-full aspect-video bg-gradient-to-br from-[#ecfdf5] via-[#d1fae5] to-[#a7f3d0] border-b border-[#6ee7b7]/30 flex flex-col items-center justify-center p-4 text-center overflow-hidden group">
+          <div className="w-12 h-12 rounded-2xl bg-white shadow-md border border-[#6ee7b7]/40 flex items-center justify-center transition-transform duration-300 group-hover:scale-110">
+            <Music2 className="w-7 h-7 text-[#059669]" />
+          </div>
+          <div className="mt-2.5 flex items-center gap-1.5">
+            <span className="px-2.5 py-0.5 rounded-full bg-white/80 backdrop-blur-xs text-[11px] font-extrabold text-[#047857] border border-[#6ee7b7]/50">
+              Audio • {formattedSize}
+            </span>
+            {extraCount > 0 && (
+              <span className="px-2 py-0.5 rounded-full bg-[#171711] text-white text-[10px] font-extrabold">
+                +{extraCount} more
+              </span>
+            )}
+          </div>
+        </div>
+      );
+
+    case 'spreadsheet':
+      return (
+        <div className="relative w-full aspect-video bg-gradient-to-br from-[#f0fdf4] via-[#dcfce7] to-[#bbf7d0] border-b border-[#86efac]/30 flex flex-col items-center justify-center p-4 text-center overflow-hidden group">
+          <div className="relative w-28 h-20 bg-white rounded-xl shadow-md border border-[#86efac]/40 flex flex-col items-center justify-center p-2 transition-transform duration-300 group-hover:scale-105">
+            <FileSpreadsheet className="w-8 h-8 text-[#16a34a] mb-1" />
+            <span className="text-[10px] font-bold text-[#171711] truncate max-w-[80px]">
+              {attachment.original_file_name}
+            </span>
+          </div>
+          <div className="mt-2.5 flex items-center gap-1.5">
+            <span className="px-2.5 py-0.5 rounded-full bg-white/80 backdrop-blur-xs text-[11px] font-extrabold text-[#15803d] border border-[#86efac]/50">
+              Spreadsheet • {formattedSize}
+            </span>
+            {extraCount > 0 && (
+              <span className="px-2 py-0.5 rounded-full bg-[#171711] text-white text-[10px] font-extrabold">
+                +{extraCount} more
+              </span>
+            )}
+          </div>
+        </div>
+      );
+
+    case 'code':
+      return (
+        <div className="relative w-full aspect-video bg-gradient-to-br from-[#faf5ff] via-[#f3e8ff] to-[#e9d5ff] border-b border-[#d8b4fe]/30 flex flex-col items-center justify-center p-4 text-center overflow-hidden group">
+          <div className="relative w-28 h-20 bg-[#1e1e1e] text-white rounded-xl shadow-md border border-[#d8b4fe]/40 flex flex-col items-center justify-center p-2 transition-transform duration-300 group-hover:scale-105">
+            <FileCode className="w-8 h-8 text-[#c084fc] mb-1" />
+            <span className="text-[10px] font-mono text-white/90 truncate max-w-[80px]">
+              {attachment.original_file_name}
+            </span>
+          </div>
+          <div className="mt-2.5 flex items-center gap-1.5">
+            <span className="px-2.5 py-0.5 rounded-full bg-white/80 backdrop-blur-xs text-[11px] font-extrabold text-[#7e22ce] border border-[#d8b4fe]/50">
+              Source Code • {formattedSize}
+            </span>
+            {extraCount > 0 && (
+              <span className="px-2 py-0.5 rounded-full bg-[#171711] text-white text-[10px] font-extrabold">
+                +{extraCount} more
+              </span>
+            )}
+          </div>
+        </div>
+      );
+
+    default:
+      return (
+        <div className="relative w-full aspect-video bg-gradient-to-br from-[#f5f5f4] via-[#e7e5e4] to-[#d6d3d1] border-b border-[#e4e0d5] flex flex-col items-center justify-center p-4 text-center overflow-hidden group">
+          <div className="w-12 h-12 rounded-2xl bg-white shadow-md border border-[#e4e0d5] flex items-center justify-center transition-transform duration-300 group-hover:scale-110">
+            <File className="w-7 h-7 text-[#57534e]" />
+          </div>
+          <div className="mt-2.5 flex items-center gap-1.5">
+            <span className="px-2.5 py-0.5 rounded-full bg-white/80 backdrop-blur-xs text-[11px] font-extrabold text-[#44403c] border border-[#e4e0d5]">
+              {attachment.file_extension.toUpperCase()} • {formattedSize}
+            </span>
+            {extraCount > 0 && (
+              <span className="px-2 py-0.5 rounded-full bg-[#171711] text-white text-[10px] font-extrabold">
+                +{extraCount} more
+              </span>
+            )}
+          </div>
+        </div>
+      );
   }
-  return <File className="w-4 h-4 text-[#6c6b63] shrink-0" />;
 }
 
 export function ItemCard({ item }: ItemCardProps) {
@@ -124,8 +282,7 @@ export function ItemCard({ item }: ItemCardProps) {
     }
   };
 
-  const handleCardClick = (e: React.MouseEvent) => {
-    // Navigate to details page when clicking anywhere on the card
+  const handleCardClick = () => {
     router.push(`/item/${item.id}`);
   };
 
@@ -134,8 +291,8 @@ export function ItemCard({ item }: ItemCardProps) {
       onClick={handleCardClick}
       className="group relative flex flex-col justify-between rounded-3xl bg-white border border-[#e4e0d5] hover:border-[#cfdb84] hover:shadow-md transition-all duration-200 overflow-hidden cursor-pointer"
     >
-      {/* Top Media Preview */}
-      {previewImage && !imgError && (
+      {/* Top Media Preview: OG Preview Image OR Stylized Attachment Preview Cover */}
+      {previewImage && !imgError ? (
         <div className="relative w-full aspect-video overflow-hidden bg-[#ebe7dc]/50 block">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
@@ -146,7 +303,9 @@ export function ItemCard({ item }: ItemCardProps) {
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
         </div>
-      )}
+      ) : primaryAttachment ? (
+        renderAttachmentPreviewCover(primaryAttachment, attachments.length - 1)
+      ) : null}
 
       {/* Card Body */}
       <div className="p-5 flex-1 flex flex-col justify-between">
@@ -191,31 +350,6 @@ export function ItemCard({ item }: ItemCardProps) {
             <div className="flex items-center gap-1.5 p-2 rounded-xl bg-[#fef3c7]/60 text-[#b45309] text-[11px] font-medium mb-3 border border-[#fde68a]">
               <Quote className="w-3.5 h-3.5 shrink-0" />
               <span className="truncate italic">&ldquo;{item.text_content}&rdquo;</span>
-            </div>
-          )}
-
-          {/* Single Attachment Preview Box */}
-          {primaryAttachment && (
-            <div className="flex items-center justify-between gap-2 p-2.5 rounded-2xl bg-[#ebe7dc]/50 border border-[#e4e0d5] mb-3 group-hover:bg-[#ebe7dc]/70 transition-colors">
-              <div className="flex items-center gap-2 min-w-0">
-                <div className="w-7 h-7 rounded-lg bg-white border border-[#e4e0d5] flex items-center justify-center shrink-0 shadow-2xs">
-                  {getFileIcon(primaryAttachment.original_file_name, primaryAttachment.mime_type)}
-                </div>
-                <div className="min-w-0">
-                  <p className="text-xs font-bold text-[#171711] truncate max-w-[170px] sm:max-w-[200px]">
-                    {primaryAttachment.original_file_name}
-                  </p>
-                  <p className="text-[10px] text-[#6c6b63]">
-                    {formatBytes(primaryAttachment.byte_size)}
-                  </p>
-                </div>
-              </div>
-
-              {attachments.length > 1 && (
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-[#e6edb0] text-[#171711] shrink-0 border border-[#d0db84]">
-                  +{attachments.length - 1} more
-                </span>
-              )}
             </div>
           )}
         </div>
