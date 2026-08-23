@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { LaterBoxItem } from '@/lib/supabase/types';
 import { useItems } from '@/lib/store/ItemContext';
 import { formatTimeAgo, extractDomain, buildTextFragmentUrl } from '@/lib/utils/url';
@@ -39,36 +40,38 @@ function formatBytes(bytes?: number): string {
 function getFileIcon(filename: string, mime?: string) {
   const ext = filename.split('.').pop()?.toLowerCase() || '';
   if (mime?.startsWith('image/') || ['jpg', 'jpeg', 'png', 'gif', 'webp', 'heic', 'svg'].includes(ext)) {
-    return <ImageIcon className="w-3.5 h-3.5 text-blue-600" />;
+    return <ImageIcon className="w-4 h-4 text-blue-600 shrink-0" />;
   }
   if (mime?.startsWith('video/') || ['mp4', 'mov', 'mkv', 'webm'].includes(ext)) {
-    return <PlayCircle className="w-3.5 h-3.5 text-rose-600" />;
+    return <PlayCircle className="w-4 h-4 text-rose-600 shrink-0" />;
   }
   if (mime?.startsWith('audio/') || ['mp3', 'm4a', 'wav', 'aac'].includes(ext)) {
-    return <Music2 className="w-3.5 h-3.5 text-emerald-600" />;
+    return <Music2 className="w-4 h-4 text-emerald-600 shrink-0" />;
   }
   if (['xls', 'xlsx', 'csv'].includes(ext)) {
-    return <FileSpreadsheet className="w-3.5 h-3.5 text-green-600" />;
+    return <FileSpreadsheet className="w-4 h-4 text-green-600 shrink-0" />;
   }
   if (['js', 'ts', 'jsx', 'tsx', 'html', 'css', 'json', 'py', 'dart'].includes(ext)) {
-    return <FileCode className="w-3.5 h-3.5 text-purple-600" />;
+    return <FileCode className="w-4 h-4 text-purple-600 shrink-0" />;
   }
   if (ext === 'pdf') {
-    return <FileText className="w-3.5 h-3.5 text-red-600" />;
+    return <FileText className="w-4 h-4 text-red-600 shrink-0" />;
   }
-  return <File className="w-3.5 h-3.5 text-[#6c6b63]" />;
+  return <File className="w-4 h-4 text-[#6c6b63] shrink-0" />;
 }
 
 export function ItemCard({ item }: ItemCardProps) {
+  const router = useRouter();
   const { setFavorite, keepItem, archiveItem, markUnseen, deleteItem } = useItems();
   const [menuOpen, setMenuOpen] = useState(false);
   const [imgError, setImgError] = useState(false);
 
   const attachments = item.attachments || [];
   const hasAttachments = attachments.length > 0;
+  const primaryAttachment = hasAttachments ? attachments[0] : null;
 
   const domain = extractDomain(item.url) || item.metadata?.domain || (item.url ? 'link' : null);
-  const title = item.metadata?.title || item.title || (hasAttachments ? attachments[0].original_file_name : null) || domain || 'Saved Item';
+  const title = item.metadata?.title || item.title || (primaryAttachment ? primaryAttachment.original_file_name : null) || domain || 'Saved Item';
   const description = item.metadata?.description || item.text_content;
   const timeAgo = formatTimeAgo(item.created_at);
   const previewImage = item.metadata?.preview_image_url;
@@ -121,11 +124,19 @@ export function ItemCard({ item }: ItemCardProps) {
     }
   };
 
+  const handleCardClick = (e: React.MouseEvent) => {
+    // Navigate to details page when clicking anywhere on the card
+    router.push(`/item/${item.id}`);
+  };
+
   return (
-    <div className="group relative flex flex-col justify-between rounded-3xl bg-white border border-[#e4e0d5] hover:border-[#cfdb84] hover:shadow-md transition-all duration-200 overflow-hidden">
+    <div
+      onClick={handleCardClick}
+      className="group relative flex flex-col justify-between rounded-3xl bg-white border border-[#e4e0d5] hover:border-[#cfdb84] hover:shadow-md transition-all duration-200 overflow-hidden cursor-pointer"
+    >
       {/* Top Media Preview */}
       {previewImage && !imgError && (
-        <Link href={`/item/${item.id}`} className="relative w-full aspect-video overflow-hidden bg-[#ebe7dc]/50 block">
+        <div className="relative w-full aspect-video overflow-hidden bg-[#ebe7dc]/50 block">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={previewImage}
@@ -134,7 +145,7 @@ export function ItemCard({ item }: ItemCardProps) {
             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-        </Link>
+        </div>
       )}
 
       {/* Card Body */}
@@ -148,7 +159,7 @@ export function ItemCard({ item }: ItemCardProps) {
                 <img
                   src={item.metadata.favicon_url}
                   alt=""
-                  className="w-4 h-4 rounded-sm shrink-0 object-contain"
+                  className="w-4 h-4 rounded-xs shrink-0 object-contain"
                   onError={(e) => {
                     (e.target as HTMLElement).style.display = 'none';
                   }}
@@ -164,11 +175,9 @@ export function ItemCard({ item }: ItemCardProps) {
           </div>
 
           {/* Title */}
-          <Link href={`/item/${item.id}`} className="block group-hover:text-[#171711] transition-colors">
-            <h3 className="text-base font-extrabold text-[#171711] line-clamp-2 leading-snug tracking-tight mb-1.5">
-              {title}
-            </h3>
-          </Link>
+          <h3 className="text-base font-extrabold text-[#171711] group-hover:text-black line-clamp-2 leading-snug tracking-tight mb-1.5 transition-colors">
+            {title}
+          </h3>
 
           {/* Description / Text Content */}
           {description && (
@@ -185,22 +194,28 @@ export function ItemCard({ item }: ItemCardProps) {
             </div>
           )}
 
-          {/* Attached Files Chips */}
-          {hasAttachments && (
-            <div className="flex flex-wrap gap-1.5 mb-3">
-              {attachments.map((att) => (
-                <Link
-                  key={att.id}
-                  href={`/item/${item.id}`}
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-[#ebe7dc]/60 hover:bg-[#e0dbc9] border border-[#e4e0d5] text-[11px] font-semibold text-[#171711] max-w-full transition-colors"
-                >
-                  {getFileIcon(att.original_file_name, att.mime_type)}
-                  <span className="truncate max-w-[140px]">{att.original_file_name}</span>
-                  <span className="text-[10px] text-[#6c6b63] shrink-0">
-                    ({formatBytes(att.byte_size)})
-                  </span>
-                </Link>
-              ))}
+          {/* Single Attachment Preview Box */}
+          {primaryAttachment && (
+            <div className="flex items-center justify-between gap-2 p-2.5 rounded-2xl bg-[#ebe7dc]/50 border border-[#e4e0d5] mb-3 group-hover:bg-[#ebe7dc]/70 transition-colors">
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="w-7 h-7 rounded-lg bg-white border border-[#e4e0d5] flex items-center justify-center shrink-0 shadow-2xs">
+                  {getFileIcon(primaryAttachment.original_file_name, primaryAttachment.mime_type)}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-bold text-[#171711] truncate max-w-[170px] sm:max-w-[200px]">
+                    {primaryAttachment.original_file_name}
+                  </p>
+                  <p className="text-[10px] text-[#6c6b63]">
+                    {formatBytes(primaryAttachment.byte_size)}
+                  </p>
+                </div>
+              </div>
+
+              {attachments.length > 1 && (
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-[#e6edb0] text-[#171711] shrink-0 border border-[#d0db84]">
+                  +{attachments.length - 1} more
+                </span>
+              )}
             </div>
           )}
         </div>
@@ -211,10 +226,16 @@ export function ItemCard({ item }: ItemCardProps) {
             {timeAgo}
           </span>
 
-          <div className="flex items-center gap-1">
+          <div
+            className="flex items-center gap-1"
+            onClick={(e) => e.stopPropagation()}
+          >
             {/* Star Button */}
             <button
-              onClick={() => setFavorite(item.id, !item.favorite)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setFavorite(item.id, !item.favorite);
+              }}
               title={item.favorite ? 'Unstar' : 'Star'}
               className={`p-1.5 rounded-xl transition-colors cursor-pointer ${
                 item.favorite
@@ -228,7 +249,10 @@ export function ItemCard({ item }: ItemCardProps) {
             {/* Status Change Buttons */}
             {item.status === 'inbox' ? (
               <button
-                onClick={() => keepItem(item.id)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  keepItem(item.id);
+                }}
                 title="Mark as Kept"
                 className="p-1.5 rounded-xl text-[#9e9b92] hover:text-[#171711] hover:bg-[#e6edb0] transition-colors cursor-pointer"
               >
@@ -236,7 +260,10 @@ export function ItemCard({ item }: ItemCardProps) {
               </button>
             ) : item.status === 'saved' ? (
               <button
-                onClick={() => archiveItem(item.id)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  archiveItem(item.id);
+                }}
                 title="Archive"
                 className="p-1.5 rounded-xl text-[#9e9b92] hover:text-[#171711] hover:bg-[#ebe7dc]/60 transition-colors cursor-pointer"
               >
@@ -244,7 +271,10 @@ export function ItemCard({ item }: ItemCardProps) {
               </button>
             ) : (
               <button
-                onClick={() => markUnseen(item.id)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  markUnseen(item.id);
+                }}
                 title="Move back to Inbox"
                 className="p-1.5 rounded-xl text-[#9e9b92] hover:text-[#171711] hover:bg-[#e6edb0] transition-colors cursor-pointer"
               >
@@ -258,6 +288,7 @@ export function ItemCard({ item }: ItemCardProps) {
                 href={destinationUrl}
                 target="_blank"
                 rel="noreferrer"
+                onClick={(e) => e.stopPropagation()}
                 title="Open Source Link"
                 className="p-1.5 rounded-xl text-[#9e9b92] hover:text-[#171711] hover:bg-[#ebe7dc]/60 transition-colors"
               >
@@ -268,7 +299,10 @@ export function ItemCard({ item }: ItemCardProps) {
             {/* Dropdown Menu */}
             <div className="relative">
               <button
-                onClick={() => setMenuOpen(!menuOpen)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setMenuOpen(!menuOpen);
+                }}
                 className="p-1.5 rounded-xl text-[#9e9b92] hover:text-[#171711] hover:bg-[#ebe7dc]/60 transition-colors cursor-pointer"
               >
                 <MoreVertical className="w-4 h-4" />
@@ -278,9 +312,15 @@ export function ItemCard({ item }: ItemCardProps) {
                 <>
                   <div
                     className="fixed inset-0 z-10"
-                    onClick={() => setMenuOpen(false)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setMenuOpen(false);
+                    }}
                   />
-                  <div className="absolute right-0 bottom-full mb-1 z-20 w-44 rounded-2xl bg-white border border-[#e4e0d5] shadow-lg py-1.5 text-xs font-semibold">
+                  <div
+                    className="absolute right-0 bottom-full mb-1 z-20 w-44 rounded-2xl bg-white border border-[#e4e0d5] shadow-lg py-1.5 text-xs font-semibold"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <Link
                       href={`/item/${item.id}`}
                       className="flex items-center gap-2 px-3.5 py-2 text-[#171711] hover:bg-[#ebe7dc]/50 transition-colors"
@@ -289,7 +329,8 @@ export function ItemCard({ item }: ItemCardProps) {
                       <span>View details</span>
                     </Link>
                     <button
-                      onClick={() => {
+                      onClick={(e) => {
+                        e.stopPropagation();
                         setMenuOpen(false);
                         if (confirm('Delete this item?')) {
                           deleteItem(item.id);
