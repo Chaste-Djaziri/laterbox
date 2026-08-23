@@ -6,11 +6,11 @@ import 'package:laterbox/core/auth/auth_state.dart';
 import 'package:laterbox/features/extension/presentation/extension_connect_screen.dart';
 
 void main() {
-  testWidgets('ExtensionConnectScreen enables connect button for valid https://laterbox.micorp.pro redirect URI',
+  testWidgets('ExtensionConnectScreen enables connect button for valid https://laterbox.dev redirect URI',
       (tester) async {
     const requestId = '72eda98ce57a438aa4f92f99a0c6fb0b';
     const requestSecret = 'SBRCb4ElXO7LGplEzOSn2_PZXkCSzLIJaGBrmWOScns';
-    const redirectUri = 'https://laterbox.micorp.pro/extension/connected';
+    const redirectUri = 'https://laterbox.dev/extension/connected';
 
     await tester.pumpWidget(
       ProviderScope(
