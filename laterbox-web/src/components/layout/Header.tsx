@@ -4,13 +4,13 @@ import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useAuth } from '@/lib/store/AuthContext';
-import { Bolt, Download, LogIn, Compass } from 'lucide-react';
+import { Bolt, LogIn } from 'lucide-react';
 
 export function Header() {
   const { user, continueAsGuest } = useAuth();
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-zinc-200/80 dark:border-zinc-800/80 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md transition-all">
+    <header className="sticky top-0 z-40 w-full border-b border-zinc-200/80 bg-white/80 backdrop-blur-md transition-all">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         {/* Brand Logo */}
         <Link href="/" className="flex items-center gap-2.5 group">
@@ -23,23 +23,23 @@ export function Header() {
               priority
             />
           </div>
-          <span className="text-xl font-black tracking-tight text-zinc-900 dark:text-white">
+          <span className="text-xl font-black tracking-tight text-zinc-900">
             laterbox
           </span>
         </Link>
 
         {/* Nav Links */}
-        <nav className="hidden md:flex items-center gap-6 text-sm font-semibold text-zinc-600 dark:text-zinc-400">
-          <Link href="/#features" className="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">
+        <nav className="hidden md:flex items-center gap-6 text-sm font-semibold text-zinc-600">
+          <Link href="/#features" className="hover:text-emerald-600 transition-colors">
             Features
           </Link>
-          <Link href="/#how-it-works" className="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">
+          <Link href="/#how-it-works" className="hover:text-emerald-600 transition-colors">
             How It Works
           </Link>
-          <Link href="/tutorial" className="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">
+          <Link href="/tutorial" className="hover:text-emerald-600 transition-colors">
             Guide
           </Link>
-          <Link href="/download" className="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">
+          <Link href="/download" className="hover:text-emerald-600 transition-colors">
             Download
           </Link>
         </nav>
@@ -58,7 +58,7 @@ export function Header() {
             <>
               <Link
                 href="/login"
-                className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-zinc-700 dark:text-zinc-300 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors"
+                className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-zinc-700 hover:text-emerald-600 transition-colors"
               >
                 <LogIn className="w-4 h-4" />
                 <span>Sign In</span>
