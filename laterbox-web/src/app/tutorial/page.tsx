@@ -10,7 +10,6 @@ import {
   Keyboard,
   FolderPlus,
   StickyNote,
-  Sparkles,
   Zap,
 } from 'lucide-react';
 
@@ -49,19 +48,19 @@ export default function TutorialPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100">
+    <div className="min-h-screen bg-zinc-50 text-zinc-900">
       <Header />
 
       <main className="max-w-4xl mx-auto px-4 sm:px-6 py-12 sm:py-16 space-y-10">
         <div className="text-center space-y-3">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 text-xs font-bold border border-emerald-200 dark:border-emerald-800">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-200">
             <Compass className="w-3.5 h-3.5" />
             <span>Getting Started Guide</span>
           </div>
-          <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-zinc-900 dark:text-white">
+          <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-zinc-900">
             Mastering laterbox
           </h1>
-          <p className="text-sm text-zinc-500 dark:text-zinc-400 max-w-xl mx-auto">
+          <p className="text-sm text-zinc-500 max-w-xl mx-auto">
             Everything you need to know about capturing, reading, and organizing your content library.
           </p>
         </div>
@@ -70,14 +69,14 @@ export default function TutorialPage() {
           {guides.map((g, idx) => (
             <div
               key={idx}
-              className="p-6 sm:p-7 rounded-3xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 shadow-sm flex items-start gap-5"
+              className="p-6 sm:p-7 rounded-3xl bg-white border border-zinc-200/80 shadow-sm flex items-start gap-5"
             >
-              <div className="w-12 h-12 rounded-2xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center shrink-0">
+              <div className="w-12 h-12 rounded-2xl bg-zinc-100 flex items-center justify-center shrink-0">
                 {g.icon}
               </div>
               <div className="space-y-2">
-                <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">{g.title}</h3>
-                <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed">{g.content}</p>
+                <h3 className="text-lg font-bold text-zinc-900">{g.title}</h3>
+                <p className="text-sm text-zinc-600 leading-relaxed">{g.content}</p>
               </div>
             </div>
           ))}
