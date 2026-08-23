@@ -52,18 +52,16 @@ class _ItemCardState extends ConsumerState<ItemCard> {
         : widget.item.metadata?.description?.trim();
     final faviconUrl = widget.item.metadata?.faviconUrl;
     final coverUrl = widget.item.metadata?.previewImageUrl;
-    final attachments = isFile
-        ? ref.watch(attachmentsForItemProvider(widget.item.id)).value
-        : null;
-    final attachmentStorage = isFile && !kIsWeb
+    final attachments = ref.watch(attachmentsForItemProvider(widget.item.id)).value;
+    final hasAttachments = attachments != null && attachments.isNotEmpty;
+    final attachmentStorage = !kIsWeb
         ? ref.watch(attachmentStorageProvider).value
         : null;
     final previewAttachment = attachments?.firstOrNull;
     final needsRemotePreview =
         previewAttachment != null &&
         previewAttachment.mimeType.startsWith('image/') &&
-        previewAttachment.r2ObjectKey != null &&
-        (kIsWeb || previewAttachment.localPath == null);
+        previewAttachment.r2ObjectKey != null;
     final remoteImageUrl = needsRemotePreview
         ? ref.watch(attachmentPreviewUrlProvider(previewAttachment.id)).value
         : null;
