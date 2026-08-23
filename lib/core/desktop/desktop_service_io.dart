@@ -7,8 +7,8 @@ import 'package:window_manager/window_manager.dart';
 
 import 'desktop_capabilities.dart';
 
-const captureWindowSize = Size(620, 240);
-const captureWindowMinimumSize = Size(400, 160);
+const captureWindowSize = Size(640, 290);
+const captureWindowMinimumSize = Size(480, 220);
 const defaultMainWindowSize = Size(1100, 720);
 const defaultMainWindowMinimumSize = Size(480, 400);
 
