@@ -39,9 +39,9 @@ final class QueueTests: XCTestCase {
         let first = try XCTUnwrap(queue)
         first.enqueue(makeCapture(id: "7", value: "durable", kind: "text"))
         let second = ShareCaptureQueue(appGroupId: "group.pro.micorp.laterbox")
-        let captures = second?.readAll()
-        XCTAssertEqual(captures?.first?.id, "7")
-        XCTAssertEqual(captures?.first?.value, "durable")
+        let captures = second.readAll()
+        XCTAssertEqual(captures.first?.id, "7")
+        XCTAssertEqual(captures.first?.value, "durable")
     }
 
     func testAttachmentCaptureKeepsGroupedPaths() throws {
