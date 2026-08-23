@@ -22,14 +22,14 @@ import UIKit
     channel.setMethodCallHandler { call, result in
       switch call.method {
       case "consumePending":
-        result(self.queue?.readAll().map(\.toDictionary) ?? [])
+        result(self.queue.readAll().map(\.toDictionary))
       case "clearPending":
-        self.queue?.clear()
+        self.queue.clear()
         result(nil)
       case "acknowledgePending":
         let arguments = call.arguments as? [String: Any]
         let ids = Set(arguments?["ids"] as? [String] ?? [])
-        result(self.queue?.acknowledge(ids: ids) ?? false)
+        result(self.queue.acknowledge(ids: ids))
       default:
         result(FlutterMethodNotImplemented)
       }
