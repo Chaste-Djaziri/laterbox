@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useState } from 'react';
-import Link from 'next/link';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { LaterBoxItem, Attachment } from '@/lib/supabase/types';
 import { useItems } from '@/lib/store/ItemContext';
 import { formatTimeAgo, extractDomain, buildTextFragmentUrl } from '@/lib/utils/url';
+import { fetchAttachmentDownloadUrl } from '@/lib/utils/attachment';
 import {
   Star,
   CheckCircle,
@@ -60,15 +60,110 @@ function getFileCategory(filename: string, mime?: string): 'image' | 'pdf' | 'vi
   return 'file';
 }
 
-function renderAttachmentPreviewCover(attachment: Attachment, extraCount: number) {
+function ImageAttachmentPreview({
+  attachment,
+  title,
+  extraCount,
+}: {
+  attachment: Attachment;
+  title: string;
+  extraCount: number;
+}) {
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [imgError, setImgError] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+
+    // Check if local path is data URL or direct link
+    if (attachment.local_path?.startsWith('data:') || attachment.local_path?.startsWith('http')) {
+      setImageUrl(attachment.local_path);
+      setLoading(false);
+      return;
+    }
+
+    fetchAttachmentDownloadUrl(attachment.id).then((url) => {
+      if (active) {
+        setImageUrl(url);
+        setLoading(false);
+      }
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [attachment.id, attachment.local_path]);
+
+  if (imageUrl && !imgError) {
+    return (
+      <div className="relative w-full aspect-video overflow-hidden bg-[#ebe7dc]/50 block group">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={imageUrl}
+          alt={title}
+          onError={() => setImgError(true)}
+          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+        {extraCount > 0 && (
+          <div className="absolute bottom-2.5 right-2.5 px-2 py-0.5 rounded-full bg-[#171711]/80 backdrop-blur-xs text-white text-[10px] font-extrabold shadow-xs">
+            +{extraCount} more
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Loading skeleton or fallback
+  return (
+    <div className="relative w-full aspect-video bg-gradient-to-br from-[#f0f9ff] via-[#e0f2fe] to-[#bae6fd] border-b border-[#7dd3fc]/30 flex flex-col items-center justify-center p-4 text-center overflow-hidden group">
+      <div className="relative w-24 h-16 bg-white rounded-xl shadow-md border border-[#7dd3fc]/40 flex flex-col items-center justify-center p-2 transition-transform duration-300 group-hover:scale-105">
+        <ImageIcon className="w-6 h-6 text-[#0284c7] mb-1" />
+        <span className="text-[9px] font-bold text-[#171711] truncate max-w-[70px]">
+          {attachment.original_file_name}
+        </span>
+      </div>
+      <div className="mt-2 flex items-center gap-1.5">
+        <span className="px-2.5 py-0.5 rounded-full bg-white/80 backdrop-blur-xs text-[10px] font-extrabold text-[#0369a1] border border-[#7dd3fc]/50">
+          {loading ? 'Loading image…' : `Image • ${formatBytes(attachment.byte_size)}`}
+        </span>
+        {extraCount > 0 && (
+          <span className="px-2 py-0.5 rounded-full bg-[#171711] text-white text-[10px] font-extrabold">
+            +{extraCount} more
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function AttachmentPreviewCover({
+  attachment,
+  title,
+  extraCount,
+}: {
+  attachment: Attachment;
+  title: string;
+  extraCount: number;
+}) {
   const category = getFileCategory(attachment.original_file_name, attachment.mime_type);
   const formattedSize = formatBytes(attachment.byte_size);
+
+  if (category === 'image') {
+    return (
+      <ImageAttachmentPreview
+        attachment={attachment}
+        title={title}
+        extraCount={extraCount}
+      />
+    );
+  }
 
   switch (category) {
     case 'pdf':
       return (
         <div className="relative w-full aspect-video bg-gradient-to-br from-[#fef2f2] via-[#fee2e2] to-[#fecaca] border-b border-[#fca5a5]/30 flex flex-col items-center justify-center p-4 text-center overflow-hidden group">
-          {/* Subtle document sheet illustration */}
           <div className="relative w-28 h-20 bg-white rounded-xl shadow-md border border-[#fca5a5]/40 flex flex-col items-center justify-center p-2 transition-transform duration-300 group-hover:scale-105">
             <div className="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded-md bg-[#ef4444] text-white text-[9px] font-black tracking-wider">
               PDF
@@ -82,29 +177,6 @@ function renderAttachmentPreviewCover(attachment: Attachment, extraCount: number
           <div className="mt-2.5 flex items-center gap-1.5">
             <span className="px-2.5 py-0.5 rounded-full bg-white/80 backdrop-blur-xs text-[11px] font-extrabold text-[#991b1b] border border-[#fca5a5]/50">
               PDF Document • {formattedSize}
-            </span>
-            {extraCount > 0 && (
-              <span className="px-2 py-0.5 rounded-full bg-[#171711] text-white text-[10px] font-extrabold">
-                +{extraCount} more
-              </span>
-            )}
-          </div>
-        </div>
-      );
-
-    case 'image':
-      return (
-        <div className="relative w-full aspect-video bg-gradient-to-br from-[#f0f9ff] via-[#e0f2fe] to-[#bae6fd] border-b border-[#7dd3fc]/30 flex flex-col items-center justify-center p-4 text-center overflow-hidden group">
-          <div className="relative w-28 h-20 bg-white rounded-xl shadow-md border border-[#7dd3fc]/40 flex flex-col items-center justify-center p-2 transition-transform duration-300 group-hover:scale-105">
-            <ImageIcon className="w-8 h-8 text-[#0284c7] mb-1" />
-            <span className="text-[10px] font-bold text-[#171711] truncate max-w-[80px]">
-              {attachment.original_file_name}
-            </span>
-          </div>
-
-          <div className="mt-2.5 flex items-center gap-1.5">
-            <span className="px-2.5 py-0.5 rounded-full bg-white/80 backdrop-blur-xs text-[11px] font-extrabold text-[#0369a1] border border-[#7dd3fc]/50">
-              Image • {formattedSize}
             </span>
             {extraCount > 0 && (
               <span className="px-2 py-0.5 rounded-full bg-[#171711] text-white text-[10px] font-extrabold">
@@ -291,7 +363,7 @@ export function ItemCard({ item }: ItemCardProps) {
       onClick={handleCardClick}
       className="group relative flex flex-col justify-between rounded-3xl bg-white border border-[#e4e0d5] hover:border-[#cfdb84] hover:shadow-md transition-all duration-200 overflow-hidden cursor-pointer"
     >
-      {/* Top Media Preview: OG Preview Image OR Stylized Attachment Preview Cover */}
+      {/* Top Media Preview: OG Preview Image OR Real Image / Document Attachment Preview Cover */}
       {previewImage && !imgError ? (
         <div className="relative w-full aspect-video overflow-hidden bg-[#ebe7dc]/50 block">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -304,7 +376,11 @@ export function ItemCard({ item }: ItemCardProps) {
           <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
         </div>
       ) : primaryAttachment ? (
-        renderAttachmentPreviewCover(primaryAttachment, attachments.length - 1)
+        <AttachmentPreviewCover
+          attachment={primaryAttachment}
+          title={title}
+          extraCount={attachments.length - 1}
+        />
       ) : null}
 
       {/* Card Body */}
@@ -455,13 +531,16 @@ export function ItemCard({ item }: ItemCardProps) {
                     className="absolute right-0 bottom-full mb-1 z-20 w-44 rounded-2xl bg-white border border-[#e4e0d5] shadow-lg py-1.5 text-xs font-semibold"
                     onClick={(e) => e.stopPropagation()}
                   >
-                    <Link
-                      href={`/item/${item.id}`}
-                      className="flex items-center gap-2 px-3.5 py-2 text-[#171711] hover:bg-[#ebe7dc]/50 transition-colors"
+                    <button
+                      onClick={() => {
+                        setMenuOpen(false);
+                        router.push(`/item/${item.id}`);
+                      }}
+                      className="w-full flex items-center gap-2 px-3.5 py-2 text-[#171711] hover:bg-[#ebe7dc]/50 transition-colors text-left cursor-pointer"
                     >
                       <FileText className="w-3.5 h-3.5" />
                       <span>View details</span>
-                    </Link>
+                    </button>
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
