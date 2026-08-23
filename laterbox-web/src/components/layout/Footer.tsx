@@ -37,8 +37,11 @@ export function Footer() {
           <Link href="/download" className="hover:text-[#171711] transition-colors">
             Downloads
           </Link>
-          <Link href="/login" className="hover:text-[#171711] transition-colors">
-            Account
+          <Link href="/privacy" className="hover:text-[#171711] transition-colors">
+            Privacy Policy
+          </Link>
+          <Link href="/terms" className="hover:text-[#171711] transition-colors">
+            Terms of Service
           </Link>
           <Link href="/inbox" className="hover:text-[#171711] transition-colors">
             Web App
