@@ -68,9 +68,17 @@ function AttachmentRow({ attachment }: { attachment: Attachment }) {
     if (downloading) return;
     setDownloading(true);
     try {
-      const url = mediaUrl || await fetchAttachmentDownloadUrl(attachment.id);
+      const url = mediaUrl || (await fetchAttachmentDownloadUrl(attachment.id));
       if (url) {
-        window.open(url, '_blank');
+        // Create download link to trigger file save
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = attachment.original_file_name || 'download';
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
       } else {
         alert('Could not generate download URL. Please try again.');
       }
@@ -180,10 +188,11 @@ function AttachmentRow({ attachment }: { attachment: Attachment }) {
         <button
           onClick={handleDownload}
           disabled={downloading}
+          title={`Download ${attachment.original_file_name}`}
           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-[#ebe7dc] border border-[#e4e0d5] text-xs font-bold text-[#171711] shadow-2xs transition-colors cursor-pointer shrink-0"
         >
           <Download className="w-3.5 h-3.5" />
-          <span>{downloading ? 'Loading…' : 'Open / Download'}</span>
+          <span>{downloading ? 'Downloading…' : 'Download'}</span>
         </button>
       </div>
     </div>
