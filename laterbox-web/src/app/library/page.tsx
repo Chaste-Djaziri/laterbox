@@ -5,7 +5,6 @@ import { AppShell } from '@/components/layout/AppShell';
 import { ItemCard } from '@/components/inbox/ItemCard';
 import { useItems } from '@/lib/store/ItemContext';
 import {
-  BookMarked,
   Star,
   CheckCircle,
   Archive,
@@ -18,7 +17,7 @@ import {
 type LibraryTab = 'collections' | 'starred' | 'saved' | 'archived';
 
 export default function LibraryPage() {
-  const { items, starredItems, savedItems, archivedItems, collections, createCollection, deleteCollection } = useItems();
+  const { starredItems, savedItems, archivedItems, collections, createCollection, deleteCollection } = useItems();
   const [activeTab, setActiveTab] = useState<LibraryTab>('collections');
   const [newColName, setNewColName] = useState('');
   const [showColModal, setShowColModal] = useState(false);
@@ -43,10 +42,10 @@ export default function LibraryPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-black text-zinc-900 dark:text-white tracking-tight">
+            <h1 className="text-2xl sm:text-3xl font-black text-zinc-900 tracking-tight">
               Library
             </h1>
-            <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 font-medium mt-0.5">
+            <p className="text-xs sm:text-sm text-zinc-500 font-medium mt-0.5">
               Organize your permanent knowledge base, favorite items, and archived reads
             </p>
           </div>
@@ -63,7 +62,7 @@ export default function LibraryPage() {
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex items-center gap-2 border-b border-zinc-200 dark:border-zinc-800 pb-3 overflow-x-auto scrollbar-none">
+        <div className="flex items-center gap-2 border-b border-zinc-200 pb-3 overflow-x-auto scrollbar-none">
           {tabs.map((tab) => {
             const active = activeTab === tab.id;
             return (
@@ -72,8 +71,8 @@ export default function LibraryPage() {
                 onClick={() => setActiveTab(tab.id)}
                 className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
                   active
-                    ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-sm'
-                    : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700'
+                    ? 'bg-zinc-900 text-white shadow-sm'
+                    : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'
                 }`}
               >
                 {tab.icon}
@@ -81,8 +80,8 @@ export default function LibraryPage() {
                 <span
                   className={`px-1.5 py-0.2 rounded-md text-[10px] font-mono ${
                     active
-                      ? 'bg-zinc-700 text-zinc-200 dark:bg-zinc-200 dark:text-zinc-900'
-                      : 'bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300'
+                      ? 'bg-zinc-700 text-zinc-200'
+                      : 'bg-zinc-200 text-zinc-600'
                   }`}
                 >
                   {tab.count}
@@ -96,9 +95,9 @@ export default function LibraryPage() {
         {activeTab === 'collections' && (
           <div>
             {collections.length === 0 ? (
-              <div className="text-center py-20 px-4 rounded-3xl bg-white dark:bg-zinc-900/50 border border-dashed border-zinc-300 dark:border-zinc-800 space-y-3">
+              <div className="text-center py-20 px-4 rounded-3xl bg-white border border-dashed border-zinc-300 space-y-3">
                 <Folder className="w-10 h-10 text-emerald-500 mx-auto" />
-                <h3 className="text-base font-bold text-zinc-700 dark:text-zinc-300">
+                <h3 className="text-base font-bold text-zinc-700">
                   No Collections Created Yet
                 </h3>
                 <p className="text-xs text-zinc-500 max-w-sm mx-auto">
@@ -119,15 +118,15 @@ export default function LibraryPage() {
                 {collections.map((col) => (
                   <div
                     key={col.id}
-                    className="p-6 rounded-3xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 hover:border-emerald-500/50 hover:shadow-lg transition-all flex flex-col justify-between"
+                    className="p-6 rounded-3xl bg-white border border-zinc-200/80 hover:border-emerald-500/50 hover:shadow-lg transition-all flex flex-col justify-between"
                   >
                     <div className="flex items-center justify-between mb-4">
-                      <div className="w-10 h-10 rounded-2xl bg-emerald-50 dark:bg-emerald-950 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+                      <div className="w-10 h-10 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-600">
                         <Folder className="w-5 h-5" />
                       </div>
                       <button
                         onClick={() => deleteCollection(col.id)}
-                        className="p-1.5 text-zinc-400 hover:text-red-600 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                        className="p-1.5 text-zinc-400 hover:text-red-600 rounded-lg hover:bg-zinc-100 transition-colors"
                         title="Delete Collection"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -135,7 +134,7 @@ export default function LibraryPage() {
                     </div>
 
                     <div>
-                      <h3 className="text-base font-bold text-zinc-900 dark:text-zinc-100">{col.name}</h3>
+                      <h3 className="text-base font-bold text-zinc-900">{col.name}</h3>
                       <p className="text-xs text-zinc-400 mt-1">Collection</p>
                     </div>
                   </div>
@@ -148,9 +147,9 @@ export default function LibraryPage() {
         {activeTab === 'starred' && (
           <div>
             {starredItems.length === 0 ? (
-              <div className="text-center py-20 px-4 rounded-3xl bg-white dark:bg-zinc-900/50 border border-dashed border-zinc-300 dark:border-zinc-800 space-y-3">
+              <div className="text-center py-20 px-4 rounded-3xl bg-white border border-dashed border-zinc-300 space-y-3">
                 <Star className="w-10 h-10 text-amber-400 mx-auto" />
-                <h3 className="text-base font-bold text-zinc-700 dark:text-zinc-300">
+                <h3 className="text-base font-bold text-zinc-700">
                   No Favorites Starred Yet
                 </h3>
                 <p className="text-xs text-zinc-500 max-w-sm mx-auto">
@@ -170,9 +169,9 @@ export default function LibraryPage() {
         {activeTab === 'saved' && (
           <div>
             {savedItems.length === 0 ? (
-              <div className="text-center py-20 px-4 rounded-3xl bg-white dark:bg-zinc-900/50 border border-dashed border-zinc-300 dark:border-zinc-800 space-y-3">
+              <div className="text-center py-20 px-4 rounded-3xl bg-white border border-dashed border-zinc-300 space-y-3">
                 <CheckCircle className="w-10 h-10 text-emerald-500 mx-auto" />
-                <h3 className="text-base font-bold text-zinc-700 dark:text-zinc-300">
+                <h3 className="text-base font-bold text-zinc-700">
                   No Kept Items Yet
                 </h3>
                 <p className="text-xs text-zinc-500 max-w-sm mx-auto">
@@ -192,9 +191,9 @@ export default function LibraryPage() {
         {activeTab === 'archived' && (
           <div>
             {archivedItems.length === 0 ? (
-              <div className="text-center py-20 px-4 rounded-3xl bg-white dark:bg-zinc-900/50 border border-dashed border-zinc-300 dark:border-zinc-800 space-y-3">
+              <div className="text-center py-20 px-4 rounded-3xl bg-white border border-dashed border-zinc-300 space-y-3">
                 <Archive className="w-10 h-10 text-zinc-400 mx-auto" />
-                <h3 className="text-base font-bold text-zinc-700 dark:text-zinc-300">
+                <h3 className="text-base font-bold text-zinc-700">
                   Archive is Empty
                 </h3>
                 <p className="text-xs text-zinc-500 max-w-sm mx-auto">
@@ -215,9 +214,9 @@ export default function LibraryPage() {
       {/* New Collection Modal */}
       {showColModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
-          <div className="w-full max-w-md bg-white dark:bg-zinc-900 rounded-3xl p-6 shadow-2xl border border-zinc-200 dark:border-zinc-800">
-            <h3 className="text-lg font-bold text-zinc-900 dark:text-white mb-2">Create New Collection</h3>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-4">
+          <div className="w-full max-w-md bg-white rounded-3xl p-6 shadow-2xl border border-zinc-200">
+            <h3 className="text-lg font-bold text-zinc-900 mb-2">Create New Collection</h3>
+            <p className="text-xs text-zinc-500 mb-4">
               Enter a name for your new collection.
             </p>
             <form onSubmit={handleCreateCol} className="space-y-4">
@@ -227,13 +226,13 @@ export default function LibraryPage() {
                 onChange={(e) => setNewColName(e.target.value)}
                 placeholder="e.g. Flutter Guides, AI Research, Recipes..."
                 autoFocus
-                className="w-full px-4 py-2.5 text-sm bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                className="w-full px-4 py-2.5 text-sm bg-zinc-50 border border-zinc-200 rounded-xl text-zinc-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
               />
               <div className="flex items-center justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setShowColModal(false)}
-                  className="px-4 py-2 text-xs font-semibold text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-xl"
+                  className="px-4 py-2 text-xs font-semibold text-zinc-600 hover:bg-zinc-100 rounded-xl"
                 >
                   Cancel
                 </button>
