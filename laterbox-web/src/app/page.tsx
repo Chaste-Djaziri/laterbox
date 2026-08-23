@@ -4,6 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Header } from '@/components/layout/Header';
+import { Footer } from '@/components/layout/Footer';
 import { useAuth } from '@/lib/store/AuthContext';
 import {
   Sparkles,
@@ -306,23 +307,8 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="border-t border-[#e4e0d5] py-12 text-xs text-[#6c6b63]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <div className="w-5 h-5 relative">
-              <Image src="/branding/laterbox-icon.png" alt="" fill className="object-contain" />
-            </div>
-            <span className="font-bold text-[#171711]">laterbox</span>
-            <span>© {new Date().getFullYear()} laterbox. All rights reserved.</span>
-          </div>
-          <div className="flex items-center gap-6">
-            <Link href="/tutorial" className="hover:text-[#171711]">Guide</Link>
-            <Link href="/download" className="hover:text-[#171711]">Downloads</Link>
-            <Link href="/inbox" className="hover:text-[#171711]">Web App</Link>
-          </div>
-        </div>
-      </footer>
+      {/* Global Footer */}
+      <Footer />
     </div>
   );
 }
