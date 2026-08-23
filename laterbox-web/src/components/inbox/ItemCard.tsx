@@ -48,19 +48,19 @@ function getFileCategory(filename: string, mime?: string): 'image' | 'pdf' | 'vi
   if (mime?.startsWith('video/') || ['mp4', 'mov', 'mkv', 'webm'].includes(ext)) {
     return 'video';
   }
-  if (mime?.startsWith('audio/') || ['mp3', 'm4a', 'wav', 'aac'].includes(ext)) {
+  if (mime?.startsWith('audio/') || ['mp3', 'm4a', 'wav', 'aac', 'ogg'].includes(ext)) {
     return 'audio';
   }
   if (['xls', 'xlsx', 'csv'].includes(ext)) {
     return 'spreadsheet';
   }
-  if (['js', 'ts', 'jsx', 'tsx', 'html', 'css', 'json', 'py', 'dart', 'rs', 'go', 'cpp', 'c', 'sh'].includes(ext)) {
+  if (['js', 'ts', 'jsx', 'tsx', 'html', 'css', 'json', 'py', 'dart', 'rs', 'go', 'cpp', 'c', 'sh', 'md', 'txt'].includes(ext)) {
     return 'code';
   }
   return 'file';
 }
 
-function ImageAttachmentPreview({
+function AttachmentMediaPreview({
   attachment,
   title,
   extraCount,
@@ -69,23 +69,25 @@ function ImageAttachmentPreview({
   title: string;
   extraCount: number;
 }) {
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [imgError, setImgError] = useState(false);
+  const [loadError, setLoadError] = useState(false);
+
+  const category = getFileCategory(attachment.original_file_name, attachment.mime_type);
+  const formattedSize = formatBytes(attachment.byte_size);
 
   useEffect(() => {
     let active = true;
 
-    // Check if local path is data URL or direct link
     if (attachment.local_path?.startsWith('data:') || attachment.local_path?.startsWith('http')) {
-      setImageUrl(attachment.local_path);
+      setDownloadUrl(attachment.local_path);
       setLoading(false);
       return;
     }
 
     fetchAttachmentDownloadUrl(attachment.id).then((url) => {
       if (active) {
-        setImageUrl(url);
+        setDownloadUrl(url);
         setLoading(false);
       }
     });
@@ -95,38 +97,227 @@ function ImageAttachmentPreview({
     };
   }, [attachment.id, attachment.local_path]);
 
-  if (imageUrl && !imgError) {
+  // Render Image Preview
+  if (category === 'image') {
+    if (downloadUrl && !loadError) {
+      return (
+        <div className="relative w-full aspect-video overflow-hidden bg-[#ebe7dc]/50 block group">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={downloadUrl}
+            alt={title}
+            onError={() => setLoadError(true)}
+            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+          {extraCount > 0 && (
+            <div className="absolute bottom-2.5 right-2.5 px-2 py-0.5 rounded-full bg-[#171711]/80 backdrop-blur-xs text-white text-[10px] font-extrabold shadow-xs">
+              +{extraCount} more
+            </div>
+          )}
+        </div>
+      );
+    }
+
     return (
-      <div className="relative w-full aspect-video overflow-hidden bg-[#ebe7dc]/50 block group">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={imageUrl}
-          alt={title}
-          onError={() => setImgError(true)}
-          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-        {extraCount > 0 && (
-          <div className="absolute bottom-2.5 right-2.5 px-2 py-0.5 rounded-full bg-[#171711]/80 backdrop-blur-xs text-white text-[10px] font-extrabold shadow-xs">
-            +{extraCount} more
-          </div>
-        )}
+      <div className="relative w-full aspect-video bg-gradient-to-br from-[#f0f9ff] via-[#e0f2fe] to-[#bae6fd] border-b border-[#7dd3fc]/30 flex flex-col items-center justify-center p-4 text-center overflow-hidden group">
+        <div className="relative w-24 h-16 bg-white rounded-xl shadow-md border border-[#7dd3fc]/40 flex flex-col items-center justify-center p-2 transition-transform duration-300 group-hover:scale-105">
+          <ImageIcon className="w-6 h-6 text-[#0284c7] mb-1" />
+          <span className="text-[9px] font-bold text-[#171711] truncate max-w-[70px]">
+            {attachment.original_file_name}
+          </span>
+        </div>
+        <div className="mt-2 flex items-center gap-1.5">
+          <span className="px-2.5 py-0.5 rounded-full bg-white/80 backdrop-blur-xs text-[10px] font-extrabold text-[#0369a1] border border-[#7dd3fc]/50">
+            {loading ? 'Loading image…' : `Image • ${formattedSize}`}
+          </span>
+          {extraCount > 0 && (
+            <span className="px-2 py-0.5 rounded-full bg-[#171711] text-white text-[10px] font-extrabold">
+              +{extraCount} more
+            </span>
+          )}
+        </div>
       </div>
     );
   }
 
-  // Loading skeleton or fallback
-  return (
-    <div className="relative w-full aspect-video bg-gradient-to-br from-[#f0f9ff] via-[#e0f2fe] to-[#bae6fd] border-b border-[#7dd3fc]/30 flex flex-col items-center justify-center p-4 text-center overflow-hidden group">
-      <div className="relative w-24 h-16 bg-white rounded-xl shadow-md border border-[#7dd3fc]/40 flex flex-col items-center justify-center p-2 transition-transform duration-300 group-hover:scale-105">
-        <ImageIcon className="w-6 h-6 text-[#0284c7] mb-1" />
-        <span className="text-[9px] font-bold text-[#171711] truncate max-w-[70px]">
-          {attachment.original_file_name}
-        </span>
+  // Render PDF Preview
+  if (category === 'pdf') {
+    if (downloadUrl && !loadError) {
+      return (
+        <div className="relative w-full aspect-video overflow-hidden bg-[#fef2f2] border-b border-[#fca5a5]/30 group">
+          <object
+            data={`${downloadUrl}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`}
+            type="application/pdf"
+            className="w-full h-full pointer-events-none border-0 overflow-hidden"
+          >
+            <div className="w-full h-full flex flex-col items-center justify-center p-4">
+              <FileText className="w-8 h-8 text-[#ef4444] mb-1" />
+              <span className="text-xs font-bold text-[#991b1b]">{attachment.original_file_name}</span>
+            </div>
+          </object>
+          {/* Overlay to ensure card is cleanly clickable */}
+          <div className="absolute inset-0 bg-transparent" />
+          <div className="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-md bg-[#ef4444] text-white text-[9px] font-black tracking-wider shadow-xs">
+            PDF
+          </div>
+          {extraCount > 0 && (
+            <div className="absolute bottom-2.5 right-2.5 px-2 py-0.5 rounded-full bg-[#171711]/80 backdrop-blur-xs text-white text-[10px] font-extrabold shadow-xs">
+              +{extraCount} more
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    return (
+      <div className="relative w-full aspect-video bg-gradient-to-br from-[#fef2f2] via-[#fee2e2] to-[#fecaca] border-b border-[#fca5a5]/30 flex flex-col items-center justify-center p-4 text-center overflow-hidden group">
+        <div className="relative w-28 h-20 bg-white rounded-xl shadow-md border border-[#fca5a5]/40 flex flex-col items-center justify-center p-2 transition-transform duration-300 group-hover:scale-105">
+          <div className="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded-md bg-[#ef4444] text-white text-[9px] font-black tracking-wider">
+            PDF
+          </div>
+          <FileText className="w-7 h-7 text-[#ef4444] mb-1" />
+          <span className="text-[10px] font-bold text-[#171711] truncate max-w-[80px]">
+            {attachment.original_file_name}
+          </span>
+        </div>
+        <div className="mt-2.5 flex items-center gap-1.5">
+          <span className="px-2.5 py-0.5 rounded-full bg-white/80 backdrop-blur-xs text-[11px] font-extrabold text-[#991b1b] border border-[#fca5a5]/50">
+            {loading ? 'Loading PDF…' : `PDF • ${formattedSize}`}
+          </span>
+          {extraCount > 0 && (
+            <span className="px-2 py-0.5 rounded-full bg-[#171711] text-white text-[10px] font-extrabold">
+              +{extraCount} more
+            </span>
+          )}
+        </div>
       </div>
-      <div className="mt-2 flex items-center gap-1.5">
-        <span className="px-2.5 py-0.5 rounded-full bg-white/80 backdrop-blur-xs text-[10px] font-extrabold text-[#0369a1] border border-[#7dd3fc]/50">
-          {loading ? 'Loading image…' : `Image • ${formatBytes(attachment.byte_size)}`}
+    );
+  }
+
+  // Render Video Preview
+  if (category === 'video') {
+    if (downloadUrl && !loadError) {
+      return (
+        <div className="relative w-full aspect-video overflow-hidden bg-black block group">
+          <video
+            src={downloadUrl}
+            preload="metadata"
+            muted
+            playsInline
+            className="w-full h-full object-cover pointer-events-none"
+          />
+          <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
+            <div className="w-11 h-11 rounded-full bg-white/90 backdrop-blur-xs flex items-center justify-center shadow-lg transition-transform duration-300 group-hover:scale-110">
+              <PlayCircle className="w-7 h-7 text-[#e11d48]" />
+            </div>
+          </div>
+          {extraCount > 0 && (
+            <div className="absolute bottom-2.5 right-2.5 px-2 py-0.5 rounded-full bg-[#171711]/80 backdrop-blur-xs text-white text-[10px] font-extrabold shadow-xs">
+              +{extraCount} more
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    return (
+      <div className="relative w-full aspect-video bg-gradient-to-br from-[#fff1f2] via-[#ffe4e6] to-[#fecdd3] border-b border-[#fda4af]/30 flex flex-col items-center justify-center p-4 text-center overflow-hidden group">
+        <div className="w-12 h-12 rounded-2xl bg-white shadow-md border border-[#fda4af]/40 flex items-center justify-center transition-transform duration-300 group-hover:scale-110">
+          <PlayCircle className="w-7 h-7 text-[#e11d48]" />
+        </div>
+        <div className="mt-2.5 flex items-center gap-1.5">
+          <span className="px-2.5 py-0.5 rounded-full bg-white/80 backdrop-blur-xs text-[11px] font-extrabold text-[#be123c] border border-[#fda4af]/50">
+            Video • {formattedSize}
+          </span>
+          {extraCount > 0 && (
+            <span className="px-2 py-0.5 rounded-full bg-[#171711] text-white text-[10px] font-extrabold">
+              +{extraCount} more
+            </span>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Render Audio Preview
+  if (category === 'audio') {
+    return (
+      <div className="relative w-full aspect-video bg-gradient-to-br from-[#ecfdf5] via-[#d1fae5] to-[#a7f3d0] border-b border-[#6ee7b7]/30 flex flex-col items-center justify-center p-4 text-center overflow-hidden group">
+        <div className="w-12 h-12 rounded-2xl bg-white shadow-md border border-[#6ee7b7]/40 flex items-center justify-center transition-transform duration-300 group-hover:scale-110">
+          <Music2 className="w-7 h-7 text-[#059669]" />
+        </div>
+        <div className="mt-2.5 flex items-center gap-1.5">
+          <span className="px-2.5 py-0.5 rounded-full bg-white/80 backdrop-blur-xs text-[11px] font-extrabold text-[#047857] border border-[#6ee7b7]/50">
+            Audio • {formattedSize}
+          </span>
+          {extraCount > 0 && (
+            <span className="px-2 py-0.5 rounded-full bg-[#171711] text-white text-[10px] font-extrabold">
+              +{extraCount} more
+            </span>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Render Spreadsheet Preview
+  if (category === 'spreadsheet') {
+    return (
+      <div className="relative w-full aspect-video bg-gradient-to-br from-[#f0fdf4] via-[#dcfce7] to-[#bbf7d0] border-b border-[#86efac]/30 flex flex-col items-center justify-center p-4 text-center overflow-hidden group">
+        <div className="relative w-28 h-20 bg-white rounded-xl shadow-md border border-[#86efac]/40 flex flex-col items-center justify-center p-2 transition-transform duration-300 group-hover:scale-105">
+          <FileSpreadsheet className="w-8 h-8 text-[#16a34a] mb-1" />
+          <span className="text-[10px] font-bold text-[#171711] truncate max-w-[80px]">
+            {attachment.original_file_name}
+          </span>
+        </div>
+        <div className="mt-2.5 flex items-center gap-1.5">
+          <span className="px-2.5 py-0.5 rounded-full bg-white/80 backdrop-blur-xs text-[11px] font-extrabold text-[#15803d] border border-[#86efac]/50">
+            Spreadsheet • {formattedSize}
+          </span>
+          {extraCount > 0 && (
+            <span className="px-2 py-0.5 rounded-full bg-[#171711] text-white text-[10px] font-extrabold">
+              +{extraCount} more
+            </span>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Render Code / Document
+  if (category === 'code') {
+    return (
+      <div className="relative w-full aspect-video bg-gradient-to-br from-[#faf5ff] via-[#f3e8ff] to-[#e9d5ff] border-b border-[#d8b4fe]/30 flex flex-col items-center justify-center p-4 text-center overflow-hidden group">
+        <div className="relative w-28 h-20 bg-[#1e1e1e] text-white rounded-xl shadow-md border border-[#d8b4fe]/40 flex flex-col items-center justify-center p-2 transition-transform duration-300 group-hover:scale-105">
+          <FileCode className="w-8 h-8 text-[#c084fc] mb-1" />
+          <span className="text-[10px] font-mono text-white/90 truncate max-w-[80px]">
+            {attachment.original_file_name}
+          </span>
+        </div>
+        <div className="mt-2.5 flex items-center gap-1.5">
+          <span className="px-2.5 py-0.5 rounded-full bg-white/80 backdrop-blur-xs text-[11px] font-extrabold text-[#7e22ce] border border-[#d8b4fe]/50">
+            {attachment.file_extension.toUpperCase()} Document • {formattedSize}
+          </span>
+          {extraCount > 0 && (
+            <span className="px-2 py-0.5 rounded-full bg-[#171711] text-white text-[10px] font-extrabold">
+              +{extraCount} more
+            </span>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Fallback General File
+  return (
+    <div className="relative w-full aspect-video bg-gradient-to-br from-[#f5f5f4] via-[#e7e5e4] to-[#d6d3d1] border-b border-[#e4e0d5] flex flex-col items-center justify-center p-4 text-center overflow-hidden group">
+      <div className="w-12 h-12 rounded-2xl bg-white shadow-md border border-[#e4e0d5] flex items-center justify-center transition-transform duration-300 group-hover:scale-110">
+        <File className="w-7 h-7 text-[#57534e]" />
+      </div>
+      <div className="mt-2.5 flex items-center gap-1.5">
+        <span className="px-2.5 py-0.5 rounded-full bg-white/80 backdrop-blur-xs text-[11px] font-extrabold text-[#44403c] border border-[#e4e0d5]">
+          {attachment.file_extension.toUpperCase()} • {formattedSize}
         </span>
         {extraCount > 0 && (
           <span className="px-2 py-0.5 rounded-full bg-[#171711] text-white text-[10px] font-extrabold">
@@ -136,158 +327,6 @@ function ImageAttachmentPreview({
       </div>
     </div>
   );
-}
-
-function AttachmentPreviewCover({
-  attachment,
-  title,
-  extraCount,
-}: {
-  attachment: Attachment;
-  title: string;
-  extraCount: number;
-}) {
-  const category = getFileCategory(attachment.original_file_name, attachment.mime_type);
-  const formattedSize = formatBytes(attachment.byte_size);
-
-  if (category === 'image') {
-    return (
-      <ImageAttachmentPreview
-        attachment={attachment}
-        title={title}
-        extraCount={extraCount}
-      />
-    );
-  }
-
-  switch (category) {
-    case 'pdf':
-      return (
-        <div className="relative w-full aspect-video bg-gradient-to-br from-[#fef2f2] via-[#fee2e2] to-[#fecaca] border-b border-[#fca5a5]/30 flex flex-col items-center justify-center p-4 text-center overflow-hidden group">
-          <div className="relative w-28 h-20 bg-white rounded-xl shadow-md border border-[#fca5a5]/40 flex flex-col items-center justify-center p-2 transition-transform duration-300 group-hover:scale-105">
-            <div className="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded-md bg-[#ef4444] text-white text-[9px] font-black tracking-wider">
-              PDF
-            </div>
-            <FileText className="w-7 h-7 text-[#ef4444] mb-1" />
-            <span className="text-[10px] font-bold text-[#171711] truncate max-w-[80px]">
-              {attachment.original_file_name}
-            </span>
-          </div>
-
-          <div className="mt-2.5 flex items-center gap-1.5">
-            <span className="px-2.5 py-0.5 rounded-full bg-white/80 backdrop-blur-xs text-[11px] font-extrabold text-[#991b1b] border border-[#fca5a5]/50">
-              PDF Document • {formattedSize}
-            </span>
-            {extraCount > 0 && (
-              <span className="px-2 py-0.5 rounded-full bg-[#171711] text-white text-[10px] font-extrabold">
-                +{extraCount} more
-              </span>
-            )}
-          </div>
-        </div>
-      );
-
-    case 'video':
-      return (
-        <div className="relative w-full aspect-video bg-gradient-to-br from-[#fff1f2] via-[#ffe4e6] to-[#fecdd3] border-b border-[#fda4af]/30 flex flex-col items-center justify-center p-4 text-center overflow-hidden group">
-          <div className="w-12 h-12 rounded-2xl bg-white shadow-md border border-[#fda4af]/40 flex items-center justify-center transition-transform duration-300 group-hover:scale-110">
-            <PlayCircle className="w-7 h-7 text-[#e11d48]" />
-          </div>
-          <div className="mt-2.5 flex items-center gap-1.5">
-            <span className="px-2.5 py-0.5 rounded-full bg-white/80 backdrop-blur-xs text-[11px] font-extrabold text-[#be123c] border border-[#fda4af]/50">
-              Video • {formattedSize}
-            </span>
-            {extraCount > 0 && (
-              <span className="px-2 py-0.5 rounded-full bg-[#171711] text-white text-[10px] font-extrabold">
-                +{extraCount} more
-              </span>
-            )}
-          </div>
-        </div>
-      );
-
-    case 'audio':
-      return (
-        <div className="relative w-full aspect-video bg-gradient-to-br from-[#ecfdf5] via-[#d1fae5] to-[#a7f3d0] border-b border-[#6ee7b7]/30 flex flex-col items-center justify-center p-4 text-center overflow-hidden group">
-          <div className="w-12 h-12 rounded-2xl bg-white shadow-md border border-[#6ee7b7]/40 flex items-center justify-center transition-transform duration-300 group-hover:scale-110">
-            <Music2 className="w-7 h-7 text-[#059669]" />
-          </div>
-          <div className="mt-2.5 flex items-center gap-1.5">
-            <span className="px-2.5 py-0.5 rounded-full bg-white/80 backdrop-blur-xs text-[11px] font-extrabold text-[#047857] border border-[#6ee7b7]/50">
-              Audio • {formattedSize}
-            </span>
-            {extraCount > 0 && (
-              <span className="px-2 py-0.5 rounded-full bg-[#171711] text-white text-[10px] font-extrabold">
-                +{extraCount} more
-              </span>
-            )}
-          </div>
-        </div>
-      );
-
-    case 'spreadsheet':
-      return (
-        <div className="relative w-full aspect-video bg-gradient-to-br from-[#f0fdf4] via-[#dcfce7] to-[#bbf7d0] border-b border-[#86efac]/30 flex flex-col items-center justify-center p-4 text-center overflow-hidden group">
-          <div className="relative w-28 h-20 bg-white rounded-xl shadow-md border border-[#86efac]/40 flex flex-col items-center justify-center p-2 transition-transform duration-300 group-hover:scale-105">
-            <FileSpreadsheet className="w-8 h-8 text-[#16a34a] mb-1" />
-            <span className="text-[10px] font-bold text-[#171711] truncate max-w-[80px]">
-              {attachment.original_file_name}
-            </span>
-          </div>
-          <div className="mt-2.5 flex items-center gap-1.5">
-            <span className="px-2.5 py-0.5 rounded-full bg-white/80 backdrop-blur-xs text-[11px] font-extrabold text-[#15803d] border border-[#86efac]/50">
-              Spreadsheet • {formattedSize}
-            </span>
-            {extraCount > 0 && (
-              <span className="px-2 py-0.5 rounded-full bg-[#171711] text-white text-[10px] font-extrabold">
-                +{extraCount} more
-              </span>
-            )}
-          </div>
-        </div>
-      );
-
-    case 'code':
-      return (
-        <div className="relative w-full aspect-video bg-gradient-to-br from-[#faf5ff] via-[#f3e8ff] to-[#e9d5ff] border-b border-[#d8b4fe]/30 flex flex-col items-center justify-center p-4 text-center overflow-hidden group">
-          <div className="relative w-28 h-20 bg-[#1e1e1e] text-white rounded-xl shadow-md border border-[#d8b4fe]/40 flex flex-col items-center justify-center p-2 transition-transform duration-300 group-hover:scale-105">
-            <FileCode className="w-8 h-8 text-[#c084fc] mb-1" />
-            <span className="text-[10px] font-mono text-white/90 truncate max-w-[80px]">
-              {attachment.original_file_name}
-            </span>
-          </div>
-          <div className="mt-2.5 flex items-center gap-1.5">
-            <span className="px-2.5 py-0.5 rounded-full bg-white/80 backdrop-blur-xs text-[11px] font-extrabold text-[#7e22ce] border border-[#d8b4fe]/50">
-              Source Code • {formattedSize}
-            </span>
-            {extraCount > 0 && (
-              <span className="px-2 py-0.5 rounded-full bg-[#171711] text-white text-[10px] font-extrabold">
-                +{extraCount} more
-              </span>
-            )}
-          </div>
-        </div>
-      );
-
-    default:
-      return (
-        <div className="relative w-full aspect-video bg-gradient-to-br from-[#f5f5f4] via-[#e7e5e4] to-[#d6d3d1] border-b border-[#e4e0d5] flex flex-col items-center justify-center p-4 text-center overflow-hidden group">
-          <div className="w-12 h-12 rounded-2xl bg-white shadow-md border border-[#e4e0d5] flex items-center justify-center transition-transform duration-300 group-hover:scale-110">
-            <File className="w-7 h-7 text-[#57534e]" />
-          </div>
-          <div className="mt-2.5 flex items-center gap-1.5">
-            <span className="px-2.5 py-0.5 rounded-full bg-white/80 backdrop-blur-xs text-[11px] font-extrabold text-[#44403c] border border-[#e4e0d5]">
-              {attachment.file_extension.toUpperCase()} • {formattedSize}
-            </span>
-            {extraCount > 0 && (
-              <span className="px-2 py-0.5 rounded-full bg-[#171711] text-white text-[10px] font-extrabold">
-                +{extraCount} more
-              </span>
-            )}
-          </div>
-        </div>
-      );
-  }
 }
 
 export function ItemCard({ item }: ItemCardProps) {
@@ -363,7 +402,7 @@ export function ItemCard({ item }: ItemCardProps) {
       onClick={handleCardClick}
       className="group relative flex flex-col justify-between rounded-3xl bg-white border border-[#e4e0d5] hover:border-[#cfdb84] hover:shadow-md transition-all duration-200 overflow-hidden cursor-pointer"
     >
-      {/* Top Media Preview: OG Preview Image OR Real Image / Document Attachment Preview Cover */}
+      {/* Top Media Preview: OG Preview Image OR Live Attachment Media Preview */}
       {previewImage && !imgError ? (
         <div className="relative w-full aspect-video overflow-hidden bg-[#ebe7dc]/50 block">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -376,7 +415,7 @@ export function ItemCard({ item }: ItemCardProps) {
           <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
         </div>
       ) : primaryAttachment ? (
-        <AttachmentPreviewCover
+        <AttachmentMediaPreview
           attachment={primaryAttachment}
           title={title}
           extraCount={attachments.length - 1}
