@@ -35,9 +35,9 @@ function ExtensionConnectContent() {
         },
       });
 
-      if (response.error || response.status >= 400) {
+      if (response.error) {
         const msg =
-          response.data?.error ||
+          response.error.message ||
           'Connection request expired or invalid. Please click Connect in the extension again.';
         setError(msg);
         return;
