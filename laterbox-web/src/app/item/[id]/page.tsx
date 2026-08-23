@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/layout/AppShell';
 import { MediaEmbed } from '@/components/item/MediaEmbed';
 import { NoteEditor } from '@/components/item/NoteEditor';
+import { AddToCollectionModal } from '@/components/collections/AddToCollectionModal';
 import { useItems } from '@/lib/store/ItemContext';
 import { extractDomain, formatTimeAgo, buildTextFragmentUrl } from '@/lib/utils/url';
 import { fetchAttachmentDownloadUrl } from '@/lib/utils/attachment';
@@ -15,22 +16,22 @@ import {
   Star,
   CheckCircle,
   Archive,
+  Inbox,
+  FolderPlus,
+  Folder,
   ExternalLink,
   Trash2,
   Copy,
+  Check,
   Quote,
   Clock,
   Link2,
   Paperclip,
   Download,
   FileText,
-  FileSpreadsheet,
-  FileCode,
-  File,
-  Image as ImageIcon,
   PlayCircle,
   Music2,
-  Eye,
+  ImageIcon,
   ChevronDown,
   ChevronUp,
 } from 'lucide-react';
@@ -202,7 +203,18 @@ function AttachmentRow({ attachment }: { attachment: Attachment }) {
 export default function ItemDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
-  const { getItemById, setFavorite, keepItem, archiveItem, markUnseen, deleteItem } = useItems();
+  const {
+    getItemById,
+    setFavorite,
+    keepItem,
+    archiveItem,
+    markUnseen,
+    deleteItem,
+    collections,
+  } = useItems();
+
+  const [collectionModalOpen, setCollectionModalOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const item = getItemById(id);
 
@@ -233,6 +245,8 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
     ? buildTextFragmentUrl(item.url, item.text_content, item.text_selector ? JSON.parse(item.text_selector).before : null)
     : null;
 
+  const itemCollections = collections.filter((col) => col.items?.includes(item.id));
+
   const handleDelete = async () => {
     if (confirm('Are you sure you want to delete this item?')) {
       await deleteItem(item.id);
@@ -241,78 +255,93 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
   };
 
   const handleCopyLink = () => {
-    if (item.url) {
-      navigator.clipboard.writeText(destinationUrl || item.url);
-      alert('Link copied to clipboard!');
-    }
+    const textToCopy = destinationUrl || item.url || item.text_content || title;
+    navigator.clipboard.writeText(textToCopy);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
   };
 
   return (
     <AppShell>
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6">
-        {/* Top Back & Actions Navigation */}
-        <div className="flex items-center justify-between gap-4">
+        {/* Top Header & Actions Navigation */}
+        <div className="flex flex-wrap items-center justify-between gap-3 pb-2 border-b border-[#e4e0d5]">
           <Link
             href="/inbox"
             className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold text-[#6c6b63] hover:text-[#171711] hover:bg-[#ebe7dc]/60 transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
-            <span>Back</span>
+            <span>Back to Inbox</span>
           </Link>
 
-          <div className="flex items-center gap-1">
-            {/* Star button */}
+          <div className="flex items-center gap-1.5">
+            {/* Star Button */}
             <button
               onClick={() => setFavorite(item.id, !item.favorite)}
               title={item.favorite ? 'Unstar' : 'Star'}
               className={`p-2 rounded-xl transition-colors cursor-pointer ${
                 item.favorite
-                  ? 'text-amber-500 hover:bg-amber-50'
+                  ? 'text-amber-500 hover:bg-amber-50 bg-amber-50/50'
                   : 'text-[#9e9b92] hover:text-[#171711] hover:bg-[#ebe7dc]/60'
               }`}
             >
               <Star className={`w-5 h-5 ${item.favorite ? 'fill-amber-500' : ''}`} />
             </button>
 
-            {/* Status change */}
+            {/* Keep in Library / Archive / Move to Inbox Button */}
             {item.status === 'inbox' ? (
               <button
                 onClick={() => keepItem(item.id)}
-                title="Mark as Kept"
-                className="p-2 rounded-xl text-[#9e9b92] hover:text-[#171711] hover:bg-[#e6edb0] transition-colors cursor-pointer"
+                title="Keep in Library"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-[#e6edb0] hover:bg-[#dbe49e] text-[#171711] transition-colors cursor-pointer shadow-2xs"
               >
-                <CheckCircle className="w-5 h-5" />
+                <CheckCircle className="w-4 h-4" />
+                <span className="hidden sm:inline">Keep</span>
               </button>
             ) : item.status === 'saved' ? (
               <button
                 onClick={() => archiveItem(item.id)}
                 title="Archive"
-                className="p-2 rounded-xl text-[#9e9b92] hover:text-[#171711] hover:bg-[#ebe7dc]/60 transition-colors cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-[#6c6b63] hover:text-[#171711] hover:bg-[#ebe7dc]/60 transition-colors cursor-pointer"
               >
-                <Archive className="w-5 h-5" />
+                <Archive className="w-4 h-4" />
+                <span className="hidden sm:inline">Archive</span>
               </button>
             ) : (
               <button
                 onClick={() => markUnseen(item.id)}
                 title="Move back to Inbox"
-                className="p-2 rounded-xl text-[#9e9b92] hover:text-[#171711] hover:bg-[#e6edb0] transition-colors cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-[#171711] bg-[#e6edb0] hover:bg-[#dbe49e] transition-colors cursor-pointer"
               >
-                <CheckCircle className="w-5 h-5 text-[#171711]" />
+                <Inbox className="w-4 h-4" />
+                <span className="hidden sm:inline">Move to Inbox</span>
               </button>
             )}
 
-            {/* Copy button */}
-            {item.url && (
-              <button
-                onClick={handleCopyLink}
-                title="Copy Link"
-                className="p-2 rounded-xl text-[#9e9b92] hover:text-[#171711] hover:bg-[#ebe7dc]/60 transition-colors cursor-pointer"
-              >
+            {/* Add to Collection Button */}
+            <button
+              onClick={() => setCollectionModalOpen(true)}
+              title="Add to Collection"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-[#171711] bg-white hover:bg-[#ebe7dc] border border-[#e4e0d5] transition-colors cursor-pointer shadow-2xs"
+            >
+              <FolderPlus className="w-4 h-4 text-[#0369a1]" />
+              <span className="hidden sm:inline">Collections</span>
+            </button>
+
+            {/* Copy Button */}
+            <button
+              onClick={handleCopyLink}
+              title={item.url ? 'Copy Link' : 'Copy Text'}
+              className="p-2 rounded-xl text-[#9e9b92] hover:text-[#171711] hover:bg-[#ebe7dc]/60 transition-colors cursor-pointer"
+            >
+              {copied ? (
+                <Check className="w-5 h-5 text-emerald-600" />
+              ) : (
                 <Copy className="w-5 h-5" />
-              </button>
-            )}
+              )}
+            </button>
 
-            {/* External source */}
+            {/* External source Link */}
             {item.url && (
               <a
                 href={destinationUrl || item.url}
@@ -325,7 +354,7 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
               </a>
             )}
 
-            {/* Delete */}
+            {/* Delete Button */}
             <button
               onClick={handleDelete}
               title="Delete Item"
@@ -340,7 +369,7 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
         <article className="p-6 sm:p-8 rounded-3xl bg-white border border-[#e4e0d5] shadow-xs space-y-6">
           {/* Metadata Top Bar */}
           <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-[#9e9b92]">
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               {item.metadata?.favicon_url ? (
                 /* eslint-disable-next-line @next/next/no-img-element */
                 <img
@@ -362,12 +391,52 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
               </div>
             </div>
 
-            {item.metadata?.content_type && (
-              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-[#ebe7dc] text-[#171711]">
-                {item.metadata.content_type}
+            <div className="flex items-center gap-1.5">
+              {/* Status Badge */}
+              <span
+                className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider ${
+                  item.status === 'inbox'
+                    ? 'bg-[#e0f2fe] text-[#0369a1]'
+                    : item.status === 'saved'
+                    ? 'bg-[#e6edb0] text-[#171711]'
+                    : 'bg-[#f4f4f5] text-[#71717a]'
+                }`}
+              >
+                {item.status === 'inbox' ? 'Inbox' : item.status === 'saved' ? 'Kept' : 'Archived'}
               </span>
-            )}
+
+              {item.metadata?.content_type && (
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-[#ebe7dc] text-[#171711]">
+                  {item.metadata.content_type}
+                </span>
+              )}
+            </div>
           </div>
+
+          {/* Collections Pill Bar */}
+          {itemCollections.length > 0 && (
+            <div className="flex flex-wrap items-center gap-1.5 pt-1">
+              <span className="text-xs font-semibold text-[#9e9b92] mr-1 flex items-center gap-1">
+                <Folder className="w-3.5 h-3.5 text-[#0369a1]" />
+                <span>In:</span>
+              </span>
+              {itemCollections.map((col) => (
+                <Link
+                  key={col.id}
+                  href={`/library?collection=${col.id}`}
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-[#e0f2fe] hover:bg-[#bae6fd] text-[#0369a1] transition-colors"
+                >
+                  <span>{col.name}</span>
+                </Link>
+              ))}
+              <button
+                onClick={() => setCollectionModalOpen(true)}
+                className="text-xs text-[#0369a1] hover:underline font-semibold ml-1 cursor-pointer"
+              >
+                + Edit
+              </button>
+            </div>
+          )}
 
           {/* Title */}
           <h1 className="text-2xl sm:text-3xl font-black text-[#171711] tracking-tight leading-snug">
@@ -453,6 +522,13 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
         {/* Personal Note Editor */}
         <NoteEditor itemId={item.id} initialContent={item.note?.content} />
       </div>
+
+      {/* Add / Manage Collections Modal */}
+      <AddToCollectionModal
+        item={item}
+        isOpen={collectionModalOpen}
+        onClose={() => setCollectionModalOpen(false)}
+      />
     </AppShell>
   );
 }
