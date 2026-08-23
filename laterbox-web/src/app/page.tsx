@@ -143,7 +143,7 @@ export default function LandingPage() {
               <div className="w-3 h-3 rounded-full bg-[#e4e0d5]" />
               <div className="w-3 h-3 rounded-full bg-[#e4e0d5]" />
               <div className="mx-auto text-xs font-mono font-medium text-[#9e9b92]">
-                laterbox.micorp.pro/inbox
+                laterbox.dev/inbox
               </div>
             </div>
 
