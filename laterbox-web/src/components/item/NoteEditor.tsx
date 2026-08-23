@@ -54,22 +54,22 @@ export function NoteEditor({ itemId, initialContent }: NoteEditorProps) {
   };
 
   return (
-    <div className="rounded-2xl bg-zinc-50 border border-zinc-200/80 p-4 sm:p-5 my-4 transition-all">
+    <div className="rounded-2xl bg-[#f7f5ee] border border-[#e4e0d5] p-4 sm:p-5 my-4 transition-all">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <StickyNote className="w-4 h-4 text-emerald-600" />
-          <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-700">Personal Note</h3>
+          <StickyNote className="w-4 h-4 text-[#171711]" />
+          <h3 className="text-xs font-bold uppercase tracking-wider text-[#171711]">Personal Note</h3>
         </div>
 
         <div className="flex items-center gap-2">
           {saving && (
-            <span className="inline-flex items-center gap-1 text-[11px] text-zinc-400 font-medium">
+            <span className="inline-flex items-center gap-1 text-[11px] text-[#9e9b92] font-medium">
               <Loader2 className="w-3 h-3 animate-spin" />
               Saving…
             </span>
           )}
           {saved && !saving && (
-            <span className="inline-flex items-center gap-1 text-[11px] text-emerald-600 font-semibold animate-in fade-in">
+            <span className="inline-flex items-center gap-1 text-[11px] text-[#171711] font-semibold animate-in fade-in">
               <Check className="w-3 h-3" />
               Saved
             </span>
@@ -78,7 +78,7 @@ export function NoteEditor({ itemId, initialContent }: NoteEditorProps) {
             <button
               onClick={handleClear}
               title="Delete Note"
-              className="p-1 text-zinc-400 hover:text-red-500 rounded-lg hover:bg-zinc-200/50 transition-colors"
+              className="p-1 text-[#9e9b92] hover:text-red-500 rounded-lg hover:bg-[#ebe7dc]/60 transition-colors cursor-pointer"
             >
               <Trash2 className="w-3.5 h-3.5" />
             </button>
@@ -91,7 +91,7 @@ export function NoteEditor({ itemId, initialContent }: NoteEditorProps) {
         onChange={handleChange}
         placeholder="Add thoughts, key quotes, or action items..."
         rows={4}
-        className="w-full bg-white border border-zinc-200/80 rounded-xl p-3 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/80 focus:border-transparent transition-all resize-none leading-relaxed"
+        className="w-full bg-white border border-[#e4e0d5] rounded-xl p-3 text-sm text-[#171711] placeholder:text-[#9e9b92] focus:outline-none focus:ring-2 focus:ring-zinc-900/10 focus:border-zinc-500 transition-all resize-none leading-relaxed"
       />
     </div>
   );
