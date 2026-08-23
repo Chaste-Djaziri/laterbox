@@ -170,6 +170,8 @@ const MAX_SELECTOR_EXACT = 5000;
 const MAX_SELECTOR_CONTEXT = 2000;
 
 const ALLOWED_EXTERNAL_HOSTS = new Set([
+  "laterbox.dev",
+  "www.laterbox.dev",
   "laterbox.micorp.pro",
   "app.laterbox.com",
   "localhost",
@@ -180,7 +182,12 @@ function isTrustedSender(sender: chrome.runtime.MessageSender): boolean {
   if (!origin) return false;
   try {
     const url = new URL(origin);
-    if (url.hostname === "laterbox.micorp.pro" || url.hostname === "app.laterbox.com") {
+    if (
+      url.hostname === "laterbox.dev" ||
+      url.hostname === "www.laterbox.dev" ||
+      url.hostname === "laterbox.micorp.pro" ||
+      url.hostname === "app.laterbox.com"
+    ) {
       return url.protocol === "https:";
     }
     if (url.hostname === "localhost") {
