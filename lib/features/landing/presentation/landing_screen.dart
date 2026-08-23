@@ -511,7 +511,7 @@ class _HeroSection extends ConsumerWidget {
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
-                            'https://laterbox.app/inbox',
+                            'https://laterbox.micorp.pro/inbox',
                             overflow: TextOverflow.ellipsis,
                             style: theme.textTheme.labelSmall?.copyWith(
                               color: theme.colorScheme.onSurfaceVariant,
