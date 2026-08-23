@@ -11,7 +11,7 @@
 <h3 align="center">Save anything now. Read, watch & organize later.</h3>
 
 <p align="center">
-  <a href="https://laterbox.micorp.pro"><strong>Live Web App</strong></a> •
+  <a href="https://laterbox.dev"><strong>Live Web App</strong></a> •
   <a href="#quick-start"><strong>Quick Start</strong></a> •
   <a href="docs/architecture.md"><strong>Architecture</strong></a> •
   <a href="docs/deployment.md"><strong>Deployment</strong></a> •
