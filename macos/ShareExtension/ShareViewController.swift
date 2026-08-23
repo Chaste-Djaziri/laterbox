@@ -105,12 +105,7 @@ final class ShareViewController: NSViewController {
         captureId: String,
         existingPaths: [String]
     ) -> URL? {
-        guard let container = FileManager.default.containerURL(
-            forSecurityApplicationGroupIdentifier: AppGroup.identifier
-        ) else { return nil }
-        let directory = container
-            .appendingPathComponent("PendingAttachments", isDirectory: true)
-            .appendingPathComponent(captureId, isDirectory: true)
+        let directory = queue.stagingDirectory(for: captureId)
         do {
             try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
             let type = UTType(identifier)
@@ -153,13 +148,8 @@ final class ShareViewController: NSViewController {
     private func save(captureId: String, text: String?, filePaths: [String], failureCount: Int) {
         let trimmed = normalizedText(text)
         guard trimmed != nil || !filePaths.isEmpty else {
-            deleteStagingDirectory(captureId)
+            queue.deleteStagingDirectory(id: captureId)
             finishWithFailure("LaterBox could not read this content")
-            return
-        }
-        guard let queue else {
-            deleteStagingDirectory(captureId)
-            finishWithFailure("LaterBox storage is unavailable")
             return
         }
         let capture = PendingShareCapture(
@@ -171,7 +161,7 @@ final class ShareViewController: NSViewController {
             filePaths: filePaths
         )
         guard queue.enqueue(capture) else {
-            deleteStagingDirectory(captureId)
+            queue.deleteStagingDirectory(id: captureId)
             finishWithFailure("LaterBox could not save this content")
             return
         }
@@ -214,13 +204,7 @@ final class ShareViewController: NSViewController {
     }
 
     private func deleteStagingDirectory(_ captureId: String) {
-        guard let container = FileManager.default.containerURL(
-            forSecurityApplicationGroupIdentifier: AppGroup.identifier
-        ) else { return }
-        let directory = container
-            .appendingPathComponent("PendingAttachments", isDirectory: true)
-            .appendingPathComponent(captureId, isDirectory: true)
-        try? FileManager.default.removeItem(at: directory)
+        queue.deleteStagingDirectory(id: captureId)
     }
 }
 
