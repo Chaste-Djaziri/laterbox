@@ -82,7 +82,7 @@ export default function TermsOfServicePage() {
               <span>1. Acceptance of Terms</span>
             </h2>
             <p>
-              By accessing, installing, or using LaterBox (including the web app at <a href="https://laterbox.micorp.pro" className="text-[#171711] font-semibold underline">laterbox.micorp.pro</a>, desktop clients on macOS/Windows/Linux, mobile apps on iOS/Android, and the browser extension), you agree to be bound by these Terms. If you do not agree to these Terms, please do not use the service.
+              By accessing, installing, or using LaterBox (including the web app at <a href="https://laterbox.dev" className="text-[#171711] font-semibold underline">laterbox.dev</a>, desktop clients on macOS/Windows/Linux, mobile apps on iOS/Android, and the browser extension), you agree to be bound by these Terms. If you do not agree to these Terms, please do not use the service.
             </p>
           </section>
 
@@ -168,7 +168,7 @@ export default function TermsOfServicePage() {
             <div className="p-4 rounded-2xl bg-[#e6edb0]/40 border border-[#d0db84] space-y-1">
               <p className="font-bold text-xs text-[#171711]">MICORP PRO (LaterBox)</p>
               <p className="text-xs text-[#6c6b63]">Support Email: <a href="mailto:support@micorp.pro" className="font-semibold text-[#171711] underline">support@micorp.pro</a></p>
-              <p className="text-xs text-[#6c6b63]">Website: <a href="https://laterbox.micorp.pro" className="font-semibold text-[#171711] underline">https://laterbox.micorp.pro</a></p>
+              <p className="text-xs text-[#6c6b63]">Website: <a href="https://laterbox.dev" className="font-semibold text-[#171711] underline">https://laterbox.dev</a></p>
             </div>
           </section>
         </div>
