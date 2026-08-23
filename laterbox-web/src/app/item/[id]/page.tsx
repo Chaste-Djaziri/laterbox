@@ -19,6 +19,7 @@ import {
   Quote,
   Clock,
   Link2,
+  Paperclip,
 } from 'lucide-react';
 
 export default function ItemDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -238,6 +239,38 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
           {description && (!item.url || description !== item.text_content) && (
             <div className="text-sm sm:text-base text-[#6c6b63] leading-relaxed space-y-3 font-normal">
               <p>{description}</p>
+            </div>
+          )}
+
+          {/* Attached Files & Assets */}
+          {item.attachments && item.attachments.length > 0 && (
+            <div className="pt-4 border-t border-[#e4e0d5]/70 space-y-3">
+              <div className="flex items-center gap-2 text-xs font-bold text-[#171711] uppercase tracking-wider">
+                <Paperclip className="w-3.5 h-3.5 text-[#0284c7]" />
+                <span>Attachments ({item.attachments.length})</span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                {item.attachments.map((att) => (
+                  <div
+                    key={att.id}
+                    className="p-3 rounded-2xl bg-[#ebe7dc]/50 border border-[#e4e0d5] flex items-center justify-between gap-3"
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="w-8 h-8 rounded-xl bg-white flex items-center justify-center shrink-0 border border-[#e4e0d5]">
+                        <Paperclip className="w-4 h-4 text-[#6c6b63]" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs font-bold text-[#171711] truncate">
+                          {att.original_file_name}
+                        </p>
+                        <p className="text-[10px] text-[#6c6b63]">
+                          {att.file_extension.toUpperCase()} • {att.byte_size < 1024 * 1024 ? `${(att.byte_size / 1024).toFixed(1)} KB` : `${(att.byte_size / (1024 * 1024)).toFixed(1)} MB`}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
