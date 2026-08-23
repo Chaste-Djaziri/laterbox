@@ -29,6 +29,12 @@ class PendingShareQueue(private val context: Context) {
     @Synchronized
     fun enqueue(capture: PendingShareCapture): Boolean {
         val items = readAll().toMutableList()
+        val isDuplicate = items.any { existing ->
+            existing.id == capture.id ||
+                (!capture.text.isNullOrBlank() && existing.text?.trim() == capture.text.trim()) ||
+                (capture.filePaths.isNotEmpty() && existing.filePaths == capture.filePaths)
+        }
+        if (isDuplicate) return true
         items.add(capture)
         return write(items)
     }
