@@ -245,7 +245,7 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
     ? buildTextFragmentUrl(item.url, item.text_content, item.text_selector ? JSON.parse(item.text_selector).before : null)
     : null;
 
-  const itemCollections = collections.filter((col) => col.items?.includes(item.id));
+  const itemCollections = item.collections || [];
 
   const handleDelete = async () => {
     if (confirm('Are you sure you want to delete this item?')) {
