@@ -30,8 +30,29 @@ final itemRepositoryProvider = Provider<ItemRepository>((ref) {
   );
 });
 
+List<LaterBoxItem> deduplicateInboxItems(List<LaterBoxItem> items) {
+  final seenIds = <String>{};
+  final seenKeys = <String>{};
+  final result = <LaterBoxItem>[];
+
+  for (final item in items) {
+    if (!seenIds.add(item.id)) continue;
+    final key = item.url != null && item.url!.isNotEmpty
+        ? 'url:${item.url}'
+        : (item.text != null && item.text!.isNotEmpty
+            ? 'text:${item.text}'
+            : null);
+    if (key != null && !seenKeys.add(key)) continue;
+    result.add(item);
+  }
+  return result;
+}
+
 final inboxItemsProvider = StreamProvider<List<LaterBoxItem>>((ref) {
-  return ref.watch(itemRepositoryProvider).watchInboxItems();
+  return ref
+      .watch(itemRepositoryProvider)
+      .watchInboxItems()
+      .map(deduplicateInboxItems);
 });
 
 final inboxFilterProvider =
