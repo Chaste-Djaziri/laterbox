@@ -1,0 +1,64 @@
+{
+  "manifest_version": 3,
+  "name": "LaterBox - Save for Later",
+  "description": "Save the current page to laterbox.",
+  "version": "1.0.10",
+  "browser_specific_settings": {
+    "safari": {
+      "strict_min_version": "15.4"
+    }
+  },
+  "icons": {
+    "16": "icons/icon-16.png",
+    "32": "icons/icon-32.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
+  "permissions": [
+    "activeTab",
+    "contextMenus",
+    "scripting",
+    "storage",
+    "tabs"
+  ],
+  "host_permissions": [
+    "https://*.supabase.co/*",
+    "http://127.0.0.1:54321/*",
+    "http://localhost:54321/*"
+  ],
+  "optional_permissions": [
+    "http://*/*",
+    "https://*/*"
+  ],
+  "externally_connectable": {
+    "matches": [
+      "https://laterbox.dev/*",
+      "https://www.laterbox.dev/*",
+      "https://laterbox.micorp.pro/*",
+      "https://app.laterbox.com/*",
+      "http://localhost/*"
+    ]
+  },
+  "action": {
+    "default_title": "Save to laterbox",
+    "default_popup": "src/popup/popup.html",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "32": "icons/icon-32.png",
+      "48": "icons/icon-48.png",
+      "128": "icons/icon-128.png"
+    }
+  },
+  "commands": {
+    "_execute_action": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+L",
+        "mac": "Command+Shift+L"
+      },
+      "description": "Open laterbox popup"
+    }
+  },
+  "background": {
+    "service_worker": "background.js"
+  }
+}

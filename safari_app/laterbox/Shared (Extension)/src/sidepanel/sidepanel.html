@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>laterbox</title>
+    <link rel="icon" type="image/png" href="/icons/icon-16.png" />
+    <script type="module" crossorigin src="/sidepanel.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/sidepanel.css">
+  </head>
+  <body>
+    <main class="panel">
+      <header class="brand"><img class="brand-logo" src="/logo.png" alt="laterbox" /></header>
+      <section class="page-card">
+        <p id="domain" class="eyebrow">CURRENT PAGE</p>
+        <h1 id="title">Loading page...</h1>
+        <p id="url" class="url"></p>
+      </section>
+      <section id="highlight" class="highlight" hidden>
+        <p class="eyebrow">SELECTION</p>
+        <blockquote id="selection"></blockquote>
+        <button id="save-selection" type="button">Save selection</button>
+      </section>
+      <section id="disconnected" class="connection">
+        <p>Connect laterbox to save across devices.</p>
+        <button id="connect" type="button">Connect laterbox</button>
+      </section>
+      <section id="connected" class="connection" hidden>
+        <p class="connected"><span class="status-dot"></span> Connected to laterbox</p>
+        <button id="save" type="button">Save to laterbox</button>
+        <button id="disconnect" class="secondary" type="button">Disconnect</button>
+      </section>
+      <section id="highlight-permission" class="permission-note" hidden>
+        <p>Precise highlighting scrolls to your saved quote on any page. Allow access when you open a saved selection.</p>
+        <button id="enable-highlighting" class="secondary" type="button">Enable precise highlighting</button>
+      </section>
+      <button id="open-laterbox" class="link" type="button">Open laterbox</button>
+      <p id="status" class="status" role="status"></p>
+    </main>
+  </body>
+</html>

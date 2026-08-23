@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LaterBox</title>
+    <link rel="icon" type="image/png" href="/icons/icon-16.png" />
+    <script type="module" crossorigin src="/popup.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/popup.css">
+  </head>
+  <body>
+    <main class="popup">
+      <header class="brand">
+        <img class="brand-logo" src="/logo.png" alt="laterbox" />
+      </header>
+      <section class="card">
+        <p id="domain" class="domain">CURRENT PAGE</p>
+        <h1 id="title" class="title">Current page</h1>
+        <p id="url" class="url"></p>
+      </section>
+      <section id="highlight" class="highlight-panel" hidden>
+        <p class="eyebrow">HIGHLIGHT</p>
+        <blockquote id="selection"></blockquote>
+        <button id="save-highlight" type="button">Save highlight</button>
+      </section>
+      <section id="disconnected" class="connection-panel">
+        <p>Connect laterbox to start saving across devices.</p>
+        <button id="connect" type="button">Connect laterbox</button>
+      </section>
+      <section id="pending" class="connection-panel" hidden>
+        <p class="pending-label"><span class="pending-dot"></span>Waiting for connection...</p>
+        <p class="pending-sub">Complete authorization in your browser tab.</p>
+        <button id="open-approval" class="secondary-button" type="button">Open approval tab</button>
+        <button id="cancel-connect" class="link-button" type="button">Cancel request</button>
+      </section>
+      <section id="connected" class="connection-panel" hidden>
+        <p class="connected-label"><span class="status-dot"></span>Connected to laterbox</p>
+        <button id="save" type="button">Save to laterbox</button>
+        <button id="open-panel" class="secondary-button" type="button">Open side panel</button>
+        <button id="disconnect" class="link-button" type="button">Disconnect</button>
+      </section>
+      <p id="status" class="status" role="status"></p>
+    </main>
+  </body>
+</html>
