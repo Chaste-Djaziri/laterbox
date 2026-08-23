@@ -16,6 +16,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  bool _showPassword = false;
   bool _busy = false;
   String? _message;
 
@@ -102,9 +103,24 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                     const SizedBox(height: 14),
                     TextFormField(
                       controller: _passwordController,
-                      obscureText: true,
+                      obscureText: !_showPassword,
                       autofillHints: const [AutofillHints.password],
-                      decoration: const InputDecoration(labelText: 'Password'),
+                      decoration: InputDecoration(
+                        labelText: 'Password',
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _showPassword
+                                ? Icons.visibility_off_outlined
+                                : Icons.visibility_outlined,
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              _showPassword = !_showPassword;
+                            });
+                          },
+                          tooltip: _showPassword ? 'Hide password' : 'Show password',
+                        ),
+                      ),
                       validator: (value) => value == null || value.length < 6
                           ? 'Password must be at least 6 characters.'
                           : null,
