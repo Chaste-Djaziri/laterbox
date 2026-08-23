@@ -169,14 +169,29 @@ class AttachmentStorageApi {
   }
 
   Future<Map<String, dynamic>> _invoke(Map<String, Object?> body) async {
-    final response = await _supabase.functions
-        .invoke('attachment-storage', body: body)
-        .timeout(
-          const Duration(seconds: 15),
-          onTimeout: () => throw TimeoutException(
-            'Edge function attachment-storage timed out after 15s',
-          ),
-        );
+    final session = _supabase.auth.currentSession;
+    if (session == null || session.isExpired) {
+      throw const HttpException(
+        'Unauthenticated: No active session available for attachment storage.',
+      );
+    }
+
+    final FunctionResponse response;
+    try {
+      response = await _supabase.functions
+          .invoke('attachment-storage', body: body)
+          .timeout(
+            const Duration(seconds: 15),
+            onTimeout: () => throw TimeoutException(
+              'Edge function attachment-storage timed out after 15s',
+            ),
+          );
+    } on FunctionsException catch (e) {
+      throw HttpException(
+        'Storage function error (${e.status}): ${e.details ?? e.message}',
+      );
+    }
+
     if (response.status < 200 || response.status >= 300) {
       final errorMsg = response.data is Map &&
               (response.data as Map).containsKey('error')
