@@ -70,12 +70,12 @@ export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
         {/* Brand */}
         <div className="flex items-center justify-between px-2">
           <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="w-8 h-8 relative rounded-xl overflow-hidden shadow-sm transition-transform group-hover:scale-105">
+            <div className="w-8 h-8 relative rounded-xl overflow-hidden shadow-sm transition-transform group-hover:scale-105 bg-[#e6edb0] p-1">
               <Image
                 src="/branding/laterbox-icon.png"
                 alt="laterbox"
                 fill
-                className="object-contain"
+                className="object-contain p-0.5"
                 priority
               />
             </div>
