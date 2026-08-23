@@ -53,7 +53,7 @@ export default function DownloadPage() {
   useEffect(() => {
     // 1. Fetch current local build version info
     fetch(`/api/version?_t=${Date.now()}`)
-      .then((res) => res.json())
+      .then((res) => res.json() as Promise<{ version?: string }>)
       .then((data) => {
         if (data.version) {
           setLatestVersionTag(data.version);
