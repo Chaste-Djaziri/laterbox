@@ -186,10 +186,13 @@ class AttachmentStorageApi {
               'Edge function attachment-storage timed out after 15s',
             ),
           );
-    } on FunctionsException catch (e) {
+    } on FunctionsHttpException catch (e) {
       throw HttpException(
-        'Storage function error (${e.status}): ${e.details ?? e.message}',
+        'Storage function error (${e.status}): ${e.details ?? e.reasonPhrase}',
       );
+    } on Object catch (e) {
+      if (e is TimeoutException || e is HttpException) rethrow;
+      throw HttpException('Storage function error: $e');
     }
 
     if (response.status < 200 || response.status >= 300) {
