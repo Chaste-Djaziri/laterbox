@@ -12,12 +12,12 @@ interface FilterOption {
 }
 
 const FILTER_OPTIONS: FilterOption[] = [
-  { type: 'all', label: 'All', icon: <Inbox className="w-4 h-4" /> },
-  { type: 'articles', label: 'Articles', icon: <FileText className="w-4 h-4" /> },
-  { type: 'videos', label: 'Videos', icon: <PlayCircle className="w-4 h-4" /> },
-  { type: 'music', label: 'Music', icon: <Music2 className="w-4 h-4" /> },
-  { type: 'notes', label: 'Notes', icon: <StickyNote className="w-4 h-4" /> },
-  { type: 'starred', label: 'Starred', icon: <Star className="w-4 h-4" /> },
+  { type: 'all', label: 'All', icon: <Inbox className="w-3.5 h-3.5" /> },
+  { type: 'articles', label: 'Articles', icon: <FileText className="w-3.5 h-3.5" /> },
+  { type: 'videos', label: 'Videos', icon: <PlayCircle className="w-3.5 h-3.5" /> },
+  { type: 'music', label: 'Music', icon: <Music2 className="w-3.5 h-3.5" /> },
+  { type: 'notes', label: 'Notes', icon: <StickyNote className="w-3.5 h-3.5" /> },
+  { type: 'starred', label: 'Starred', icon: <Star className="w-3.5 h-3.5" /> },
 ];
 
 export function FilterBar() {
@@ -43,7 +43,7 @@ export function FilterBar() {
   };
 
   return (
-    <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none touch-pan-x">
+    <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none touch-pan-x">
       {FILTER_OPTIONS.map(({ type, label, icon }) => {
         const isActive = activeFilter === type;
         const count = getCount(type);
@@ -52,23 +52,25 @@ export function FilterBar() {
           <button
             key={type}
             onClick={() => setActiveFilter(type)}
-            className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all duration-150 shrink-0 select-none ${
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs transition-all duration-150 shrink-0 select-none cursor-pointer ${
               isActive
-                ? 'bg-zinc-900 text-white shadow-sm'
-                : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200/70 hover:text-zinc-900'
+                ? 'bg-[#e6edb0] border border-[#cfdb84] text-[#171711] font-bold shadow-none'
+                : 'bg-white border border-[#e4e0d5] text-[#6c6b63] hover:bg-[#ebe7dc]/60 hover:text-[#171711] font-medium'
             }`}
           >
             {icon}
             <span>{label}</span>
-            <span
-              className={`px-1.5 py-0.2 rounded-md text-[10px] font-mono font-medium ${
-                isActive
-                  ? 'bg-zinc-700 text-zinc-200'
-                  : 'bg-zinc-200 text-zinc-600'
-              }`}
-            >
-              {count}
-            </span>
+            {count > 0 && (
+              <span
+                className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold ${
+                  isActive
+                    ? 'bg-[#171711]/15 text-[#171711]'
+                    : 'bg-[#ebe7dc] text-[#6c6b63]'
+                }`}
+              >
+                {count}
+              </span>
+            )}
           </button>
         );
       })}
