@@ -44,8 +44,8 @@ export default function SettingsPage() {
   useEffect(() => {
     // Fetch initial version info
     fetch(`/api/version?_t=${Date.now()}`, { cache: 'no-store' })
-      .then((res) => res.json())
-      .then((data: VersionInfo) => {
+      .then((res) => res.json() as Promise<VersionInfo>)
+      .then((data) => {
         setCurrentVersion(data);
       })
       .catch(() => {
