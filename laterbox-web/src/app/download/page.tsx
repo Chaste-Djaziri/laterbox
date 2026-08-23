@@ -65,9 +65,9 @@ export default function DownloadPage() {
     fetch('https://api.github.com/repos/Chaste-Djaziri/laterbox/releases')
       .then((res) => {
         if (!res.ok) throw new Error('API unavailable');
-        return res.json();
+        return res.json() as Promise<GitHubRelease[]>;
       })
-      .then((data: GitHubRelease[]) => {
+      .then((data) => {
         if (Array.isArray(data) && data.length > 0) {
           setReleases(data);
           const firstTag = data[0].tag_name.replace(/^v/, '');
