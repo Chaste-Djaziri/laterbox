@@ -15,21 +15,28 @@ import {
   Music2,
   StickyNote,
   Link2,
+  Paperclip,
 } from 'lucide-react';
 
 export function ItemListRow({ item }: { item: LaterBoxItem }) {
   const { setFavorite, keepItem, deleteItem } = useItems();
 
+  const attachments = item.attachments || [];
+  const hasAttachments = attachments.length > 0;
+
   const domain = extractDomain(item.url) || item.metadata?.domain;
-  const title = item.metadata?.title || item.title || domain || 'Saved Item';
+  const title = item.metadata?.title || item.title || (hasAttachments ? attachments[0].original_file_name : null) || domain || 'Saved Item';
   const timeAgo = formatTimeAgo(item.created_at);
-  const contentType = item.metadata?.content_type || (item.url ? 'link' : 'note');
+  const contentType = item.metadata?.content_type || (hasAttachments ? 'file' : item.url ? 'link' : 'note');
 
   const destinationUrl = item.url
     ? buildTextFragmentUrl(item.url, item.text_content, item.text_selector ? JSON.parse(item.text_selector).before : null)
     : `/item/${item.id}`;
 
   const renderIcon = () => {
+    if (hasAttachments) {
+      return <Paperclip className="w-5 h-5 text-[#0284c7] shrink-0" />;
+    }
     switch (contentType) {
       case 'video':
         return <PlayCircle className="w-5 h-5 text-red-500 shrink-0" />;
@@ -52,7 +59,7 @@ export function ItemListRow({ item }: { item: LaterBoxItem }) {
           <img
             src={item.metadata.favicon_url}
             alt=""
-            className="w-5 h-5 rounded object-contain shrink-0"
+            className="w-5 h-5 rounded-xs object-contain shrink-0"
             onError={(e) => {
               (e.target as HTMLElement).style.display = 'none';
             }}
@@ -69,6 +76,12 @@ export function ItemListRow({ item }: { item: LaterBoxItem }) {
             >
               {title}
             </Link>
+            {hasAttachments && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.2 rounded-full text-[10px] font-bold bg-[#e0f2fe] text-[#0369a1] shrink-0">
+                <Paperclip className="w-2.5 h-2.5" />
+                <span>{attachments.length}</span>
+              </span>
+            )}
           </div>
           <div className="flex items-center gap-2 mt-0.5 text-xs text-[#9e9b92]">
             {domain && <span className="font-semibold text-[#6c6b63]">{domain}</span>}
