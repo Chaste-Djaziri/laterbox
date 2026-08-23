@@ -259,7 +259,7 @@ jobs:
           serviceAccountJsonPlainText: ${{ secrets.PLAY_STORE_SERVICE_ACCOUNT_JSON }}
           packageName: pro.micorp.laterbox
           releaseFiles: build/app/outputs/bundle/release/app-release.aab
-          track: internal
+          tracks: internal
           status: completed
         env:
           PLAY_STORE_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_STORE_SERVICE_ACCOUNT_JSON }}
@@ -365,29 +365,21 @@ jobs:
         if: env.APPLE_CERTIFICATE_BASE64 != ''
         shell: bash
         run: |
-          MAIN_NAME=$(security cms -D -i /tmp/main.mobileprovision | grep -A1 '<key>Name</key>' | grep '<string>' | sed 's/.*<string>\(.*\)<\/string>.*/\1/' | xargs)
-          SHARE_NAME=""
-          if [ -f /tmp/share.mobileprovision ]; then
-            SHARE_NAME=$(security cms -D -i /tmp/share.mobileprovision | grep -A1 '<key>Name</key>' | grep '<string>' | sed 's/.*<string>\(.*\)<\/string>.*/\1/' | xargs)
-          fi
-
           mkdir -p build/ios/archive
           mkdir -p build/ios/ipa
 
-          # 1. Archive with manual signing
+          # 1. Archive
           xcodebuild -workspace ios/Runner.xcworkspace \
             -scheme Runner \
             -configuration Release \
             -archivePath build/ios/archive/Runner.xcarchive \
             -destination 'generic/platform=iOS' \
-            CODE_SIGN_STYLE="Manual" \
-            CODE_SIGN_IDENTITY="Apple Distribution" \
-            DEVELOPMENT_TEAM="${{ secrets.APPLE_TEAM_ID }}" \
-            PROVISIONING_PROFILE_SPECIFIER="$MAIN_NAME" \
-            PROVISIONING_PROFILE_SPECIFIER[target=ShareExtension]="$SHARE_NAME" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
             archive
 
-          # 2. Export App Store IPA
+          # 2. Export App Store IPA with manual profile and certificate signing
           xcodebuild -exportArchive \
             -archivePath build/ios/archive/Runner.xcarchive \
             -exportPath build/ios/ipa \
