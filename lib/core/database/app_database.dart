@@ -423,6 +423,28 @@ class AppDatabase extends _$AppDatabase {
     )..where((item) => item.id.equals(id))).getSingleOrNull();
   }
 
+  Future<Item?> findActiveInboxItem(
+    String? userId, {
+    String? url,
+    String? textContent,
+  }) {
+    if (url == null && textContent == null) return Future.value(null);
+    final query = select(items)
+      ..where(
+        (item) =>
+            item.deletedAt.isNull() &
+            item.status.equals('inbox') &
+            (userId == null
+                ? item.userId.isNull()
+                : item.userId.equals(userId)) &
+            (url != null
+                ? item.url.equals(url)
+                : item.textContent.equals(textContent!)),
+      )
+      ..limit(1);
+    return query.getSingleOrNull();
+  }
+
   Future<void> upsertRemoteItem(ItemsCompanion item) {
     return into(items).insertOnConflictUpdate(item);
   }
