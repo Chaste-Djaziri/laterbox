@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useItems } from '@/lib/store/ItemContext';
-import { X, Link2, FileText, Upload, Check, AlertCircle, Loader2 } from 'lucide-react';
+import { X, Link2, Check, AlertCircle, Loader2 } from 'lucide-react';
 
 interface QuickCaptureModalProps {
   isOpen: boolean;
@@ -63,13 +63,13 @@ export function QuickCaptureModal({ isOpen, onClose }: QuickCaptureModalProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm transition-all duration-300 animate-in fade-in">
       <div
-        className="w-full max-w-lg bg-white dark:bg-zinc-900 rounded-t-3xl sm:rounded-3xl shadow-2xl border border-zinc-200/80 dark:border-zinc-800 p-6 sm:p-7 relative transition-all duration-200 scale-100"
+        className="w-full max-w-lg bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl border border-zinc-200/80 p-6 sm:p-7 relative transition-all duration-200 scale-100"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-5 right-5 p-2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+          className="absolute top-5 right-5 p-2 text-zinc-400 hover:text-zinc-600 rounded-full hover:bg-zinc-100 transition-colors"
           title="Close (Esc)"
         >
           <X className="w-5 h-5" />
@@ -77,12 +77,12 @@ export function QuickCaptureModal({ isOpen, onClose }: QuickCaptureModalProps) {
 
         {/* Header */}
         <div className="flex items-center gap-3 mb-5">
-          <div className="w-10 h-10 rounded-2xl bg-emerald-50 dark:bg-emerald-950/50 flex items-center justify-center text-emerald-600 dark:text-emerald-400 border border-emerald-200/50 dark:border-emerald-800/40">
+          <div className="w-10 h-10 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-600 border border-emerald-200/50">
             <Link2 className="w-5 h-5" />
           </div>
           <div>
-            <h2 className="text-xl font-extrabold text-zinc-900 dark:text-white tracking-tight">Save to laterbox</h2>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">
+            <h2 className="text-xl font-extrabold text-zinc-900 tracking-tight">Save to laterbox</h2>
+            <p className="text-xs text-zinc-500 font-medium">
               Paste a URL, markdown snippet, or quick note
             </p>
           </div>
@@ -98,34 +98,34 @@ export function QuickCaptureModal({ isOpen, onClose }: QuickCaptureModalProps) {
               value={content}
               onChange={(e) => setContent(e.target.value)}
               placeholder="https://... or type anything to remember"
-              className="w-full px-4 py-3.5 text-sm bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-2xl text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/80 focus:border-transparent transition-all resize-none font-normal leading-relaxed"
+              className="w-full px-4 py-3.5 text-sm bg-zinc-50 border border-zinc-200 rounded-2xl text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/80 focus:border-transparent transition-all resize-none font-normal leading-relaxed"
             />
           </div>
 
           {error && (
-            <div className="flex items-center gap-2 p-3 rounded-xl bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 text-xs font-medium border border-red-200/60 dark:border-red-900/40">
+            <div className="flex items-center gap-2 p-3 rounded-xl bg-red-50 text-red-600 text-xs font-medium border border-red-200/60">
               <AlertCircle className="w-4 h-4 shrink-0" />
               <span>{error}</span>
             </div>
           )}
 
           {success && (
-            <div className="flex items-center gap-2 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 text-xs font-semibold border border-emerald-200/60 dark:border-emerald-900/40">
+            <div className="flex items-center gap-2 p-3 rounded-xl bg-emerald-50 text-emerald-600 text-xs font-semibold border border-emerald-200/60">
               <Check className="w-4 h-4 shrink-0" />
               <span>Saved to your inbox!</span>
             </div>
           )}
 
           <div className="flex items-center justify-between pt-2">
-            <span className="text-xs text-zinc-400 dark:text-zinc-500 hidden sm:inline-block">
-              Press <kbd className="px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-[10px] font-mono">⌘+Enter</kbd> to save
+            <span className="text-xs text-zinc-400 hidden sm:inline-block">
+              Press <kbd className="px-1.5 py-0.5 rounded bg-zinc-100 text-[10px] font-mono">⌘+Enter</kbd> to save
             </span>
 
             <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2.5 text-xs font-semibold text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-xl transition-colors"
+                className="px-4 py-2.5 text-xs font-semibold text-zinc-600 hover:bg-zinc-100 rounded-xl transition-colors"
               >
                 Cancel
               </button>
