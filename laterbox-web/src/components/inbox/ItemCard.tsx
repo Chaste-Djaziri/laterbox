@@ -20,11 +20,16 @@ import {
   Link2,
   Quote,
   Paperclip,
+  FolderPlus,
+  Copy,
+  Check,
+  Inbox,
   FileSpreadsheet,
   FileCode,
   File,
   Image as ImageIcon,
 } from 'lucide-react';
+import { AddToCollectionModal } from '../collections/AddToCollectionModal';
 
 interface ItemCardProps {
   item: LaterBoxItem;
@@ -248,7 +253,7 @@ function AttachmentMediaPreview({
           <Music2 className="w-7 h-7 text-[#059669]" />
         </div>
         <div className="mt-2.5 flex items-center gap-1.5">
-          <span className="px-2.5 py-0.5 rounded-full bg-white/80 backdrop-blur-xs text-[11px] font-extrabold text-[#047857] border border-[#6ee7b7]/50">
+          <span className="px-2.5 py-0.5 rounded-full bg-white/80 backdrop-blur-xs text-[11px] font-extrabold text-[#065f46] border border-[#6ee7b7]/50">
             Audio • {formattedSize}
           </span>
           {extraCount > 0 && (
@@ -266,13 +271,16 @@ function AttachmentMediaPreview({
     return (
       <div className="relative w-full aspect-video bg-gradient-to-br from-[#f0fdf4] via-[#dcfce7] to-[#bbf7d0] border-b border-[#86efac]/30 flex flex-col items-center justify-center p-4 text-center overflow-hidden group">
         <div className="relative w-28 h-20 bg-white rounded-xl shadow-md border border-[#86efac]/40 flex flex-col items-center justify-center p-2 transition-transform duration-300 group-hover:scale-105">
-          <FileSpreadsheet className="w-8 h-8 text-[#16a34a] mb-1" />
+          <div className="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded-md bg-[#16a34a] text-white text-[9px] font-black tracking-wider">
+            XLS
+          </div>
+          <FileSpreadsheet className="w-7 h-7 text-[#16a34a] mb-1" />
           <span className="text-[10px] font-bold text-[#171711] truncate max-w-[80px]">
             {attachment.original_file_name}
           </span>
         </div>
         <div className="mt-2.5 flex items-center gap-1.5">
-          <span className="px-2.5 py-0.5 rounded-full bg-white/80 backdrop-blur-xs text-[11px] font-extrabold text-[#15803d] border border-[#86efac]/50">
+          <span className="px-2.5 py-0.5 rounded-full bg-white/80 backdrop-blur-xs text-[11px] font-extrabold text-[#166534] border border-[#86efac]/50">
             Spreadsheet • {formattedSize}
           </span>
           {extraCount > 0 && (
@@ -285,22 +293,25 @@ function AttachmentMediaPreview({
     );
   }
 
-  // Render Code / Document
+  // Render Code Preview
   if (category === 'code') {
     return (
-      <div className="relative w-full aspect-video bg-gradient-to-br from-[#faf5ff] via-[#f3e8ff] to-[#e9d5ff] border-b border-[#d8b4fe]/30 flex flex-col items-center justify-center p-4 text-center overflow-hidden group">
-        <div className="relative w-28 h-20 bg-[#1e1e1e] text-white rounded-xl shadow-md border border-[#d8b4fe]/40 flex flex-col items-center justify-center p-2 transition-transform duration-300 group-hover:scale-105">
-          <FileCode className="w-8 h-8 text-[#c084fc] mb-1" />
-          <span className="text-[10px] font-mono text-white/90 truncate max-w-[80px]">
+      <div className="relative w-full aspect-video bg-gradient-to-br from-[#1e293b] via-[#0f172a] to-[#020617] border-b border-white/10 flex flex-col items-center justify-center p-4 text-center overflow-hidden group">
+        <div className="relative w-28 h-20 bg-[#1e293b]/90 rounded-xl shadow-md border border-white/15 flex flex-col items-center justify-center p-2 transition-transform duration-300 group-hover:scale-105">
+          <div className="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded-md bg-[#6366f1] text-white text-[9px] font-mono font-bold tracking-wider">
+            {attachment.file_extension.toUpperCase()}
+          </div>
+          <FileCode className="w-7 h-7 text-[#818cf8] mb-1" />
+          <span className="text-[10px] font-mono font-bold text-white truncate max-w-[80px]">
             {attachment.original_file_name}
           </span>
         </div>
         <div className="mt-2.5 flex items-center gap-1.5">
-          <span className="px-2.5 py-0.5 rounded-full bg-white/80 backdrop-blur-xs text-[11px] font-extrabold text-[#7e22ce] border border-[#d8b4fe]/50">
-            {attachment.file_extension.toUpperCase()} Document • {formattedSize}
+          <span className="px-2.5 py-0.5 rounded-full bg-black/60 backdrop-blur-xs text-[11px] font-extrabold text-white border border-white/20 font-mono">
+            Code • {formattedSize}
           </span>
           {extraCount > 0 && (
-            <span className="px-2 py-0.5 rounded-full bg-[#171711] text-white text-[10px] font-extrabold">
+            <span className="px-2 py-0.5 rounded-full bg-white text-[#171711] text-[10px] font-extrabold">
               +{extraCount} more
             </span>
           )}
@@ -309,14 +320,14 @@ function AttachmentMediaPreview({
     );
   }
 
-  // Fallback General File
+  // Generic File Preview
   return (
-    <div className="relative w-full aspect-video bg-gradient-to-br from-[#f5f5f4] via-[#e7e5e4] to-[#d6d3d1] border-b border-[#e4e0d5] flex flex-col items-center justify-center p-4 text-center overflow-hidden group">
-      <div className="w-12 h-12 rounded-2xl bg-white shadow-md border border-[#e4e0d5] flex items-center justify-center transition-transform duration-300 group-hover:scale-110">
-        <File className="w-7 h-7 text-[#57534e]" />
+    <div className="relative w-full aspect-video bg-gradient-to-br from-[#f7f5ee] via-[#ebe7dc] to-[#ded9cd] border-b border-[#e4e0d5] flex flex-col items-center justify-center p-4 text-center overflow-hidden group">
+      <div className="w-12 h-12 rounded-2xl bg-white shadow-md border border-[#e4e0d5] flex items-center justify-center transition-transform duration-300 group-hover:scale-105">
+        <File className="w-6 h-6 text-[#6c6b63]" />
       </div>
       <div className="mt-2.5 flex items-center gap-1.5">
-        <span className="px-2.5 py-0.5 rounded-full bg-white/80 backdrop-blur-xs text-[11px] font-extrabold text-[#44403c] border border-[#e4e0d5]">
+        <span className="px-2.5 py-0.5 rounded-full bg-white/80 backdrop-blur-xs text-[11px] font-bold text-[#171711] border border-[#e4e0d5]">
           {attachment.file_extension.toUpperCase()} • {formattedSize}
         </span>
         {extraCount > 0 && (
@@ -334,6 +345,8 @@ export function ItemCard({ item }: ItemCardProps) {
   const { setFavorite, keepItem, archiveItem, markUnseen, deleteItem } = useItems();
   const [menuOpen, setMenuOpen] = useState(false);
   const [imgError, setImgError] = useState(false);
+  const [collectionModalOpen, setCollectionModalOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const attachments = item.attachments || [];
   const hasAttachments = attachments.length > 0;
@@ -397,209 +410,314 @@ export function ItemCard({ item }: ItemCardProps) {
     router.push(`/item/${item.id}`);
   };
 
+  const handleCopy = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const textToCopy = item.url || item.text_content || title;
+    navigator.clipboard.writeText(textToCopy);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+    setMenuOpen(false);
+  };
+
   return (
-    <div
-      onClick={handleCardClick}
-      className="group relative flex flex-col justify-between rounded-3xl bg-white border border-[#e4e0d5] hover:border-[#cfdb84] hover:shadow-md transition-all duration-200 overflow-hidden cursor-pointer"
-    >
-      {/* Top Media Preview: OG Preview Image OR Live Attachment Media Preview */}
-      {previewImage && !imgError ? (
-        <div className="relative w-full aspect-video overflow-hidden bg-[#ebe7dc]/50 block">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={previewImage}
-            alt={title}
-            onError={() => setImgError(true)}
-            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-        </div>
-      ) : primaryAttachment ? (
-        <AttachmentMediaPreview
-          attachment={primaryAttachment}
-          title={title}
-          extraCount={attachments.length - 1}
-        />
-      ) : null}
-
-      {/* Card Body */}
-      <div className="p-5 flex-1 flex flex-col justify-between">
-        <div>
-          {/* Domain & Badge Row */}
-          <div className="flex items-center justify-between gap-2 mb-2.5">
-            <div className="flex items-center gap-2 min-w-0">
-              {item.metadata?.favicon_url ? (
-                /* eslint-disable-next-line @next/next/no-img-element */
-                <img
-                  src={item.metadata.favicon_url}
-                  alt=""
-                  className="w-4 h-4 rounded-xs shrink-0 object-contain"
-                  onError={(e) => {
-                    (e.target as HTMLElement).style.display = 'none';
-                  }}
-                />
-              ) : null}
-              {domain && (
-                <span className="text-xs font-semibold text-[#6c6b63] truncate">
-                  {domain}
-                </span>
-              )}
-            </div>
-            {renderBadge()}
+    <>
+      <div
+        onClick={handleCardClick}
+        className="group relative flex flex-col justify-between rounded-3xl bg-white border border-[#e4e0d5] hover:border-[#cfdb84] hover:shadow-md transition-all duration-200 overflow-hidden cursor-pointer"
+      >
+        {/* Top Media Preview: OG Preview Image OR Live Attachment Media Preview */}
+        {previewImage && !imgError ? (
+          <div className="relative w-full aspect-video overflow-hidden bg-[#ebe7dc]/50 block">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={previewImage}
+              alt={title}
+              onError={() => setImgError(true)}
+              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
           </div>
+        ) : primaryAttachment ? (
+          <AttachmentMediaPreview
+            attachment={primaryAttachment}
+            title={title}
+            extraCount={attachments.length - 1}
+          />
+        ) : null}
 
-          {/* Title */}
-          <h3 className="text-base font-extrabold text-[#171711] group-hover:text-black line-clamp-2 leading-snug tracking-tight mb-1.5 transition-colors">
-            {title}
-          </h3>
-
-          {/* Description / Text Content */}
-          {description && (
-            <p className="text-xs text-[#6c6b63] line-clamp-2 leading-relaxed mb-3">
-              {description}
-            </p>
-          )}
-
-          {/* Highlighted Quote Indicator */}
-          {item.url && item.text_content && (
-            <div className="flex items-center gap-1.5 p-2 rounded-xl bg-[#fef3c7]/60 text-[#b45309] text-[11px] font-medium mb-3 border border-[#fde68a]">
-              <Quote className="w-3.5 h-3.5 shrink-0" />
-              <span className="truncate italic">&ldquo;{item.text_content}&rdquo;</span>
-            </div>
-          )}
-        </div>
-
-        {/* Card Footer Actions */}
-        <div className="pt-3 mt-3 border-t border-[#e4e0d5]/70 flex items-center justify-between">
-          <span className="text-[11px] font-medium text-[#9e9b92]">
-            {timeAgo}
-          </span>
-
-          <div
-            className="flex items-center gap-1"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Star Button */}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setFavorite(item.id, !item.favorite);
-              }}
-              title={item.favorite ? 'Unstar' : 'Star'}
-              className={`p-1.5 rounded-xl transition-colors cursor-pointer ${
-                item.favorite
-                  ? 'text-amber-500 hover:bg-amber-50'
-                  : 'text-[#9e9b92] hover:text-[#171711] hover:bg-[#ebe7dc]/60'
-              }`}
-            >
-              <Star className={`w-4 h-4 ${item.favorite ? 'fill-amber-500' : ''}`} />
-            </button>
-
-            {/* Status Change Buttons */}
-            {item.status === 'inbox' ? (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  keepItem(item.id);
-                }}
-                title="Mark as Kept"
-                className="p-1.5 rounded-xl text-[#9e9b92] hover:text-[#171711] hover:bg-[#e6edb0] transition-colors cursor-pointer"
-              >
-                <CheckCircle className="w-4 h-4" />
-              </button>
-            ) : item.status === 'saved' ? (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  archiveItem(item.id);
-                }}
-                title="Archive"
-                className="p-1.5 rounded-xl text-[#9e9b92] hover:text-[#171711] hover:bg-[#ebe7dc]/60 transition-colors cursor-pointer"
-              >
-                <Archive className="w-4 h-4" />
-              </button>
-            ) : (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  markUnseen(item.id);
-                }}
-                title="Move back to Inbox"
-                className="p-1.5 rounded-xl text-[#9e9b92] hover:text-[#171711] hover:bg-[#e6edb0] transition-colors cursor-pointer"
-              >
-                <CheckCircle className="w-4 h-4 text-[#171711]" />
-              </button>
-            )}
-
-            {/* External URL Link */}
-            {item.url && (
-              <a
-                href={destinationUrl}
-                target="_blank"
-                rel="noreferrer"
-                onClick={(e) => e.stopPropagation()}
-                title="Open Source Link"
-                className="p-1.5 rounded-xl text-[#9e9b92] hover:text-[#171711] hover:bg-[#ebe7dc]/60 transition-colors"
-              >
-                <ExternalLink className="w-4 h-4" />
-              </a>
-            )}
-
-            {/* Dropdown Menu */}
-            <div className="relative">
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setMenuOpen(!menuOpen);
-                }}
-                className="p-1.5 rounded-xl text-[#9e9b92] hover:text-[#171711] hover:bg-[#ebe7dc]/60 transition-colors cursor-pointer"
-              >
-                <MoreVertical className="w-4 h-4" />
-              </button>
-
-              {menuOpen && (
-                <>
-                  <div
-                    className="fixed inset-0 z-10"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setMenuOpen(false);
+        {/* Card Body */}
+        <div className="p-5 flex-1 flex flex-col justify-between">
+          <div>
+            {/* Domain & Badge Row */}
+            <div className="flex items-center justify-between gap-2 mb-2.5">
+              <div className="flex items-center gap-2 min-w-0">
+                {item.metadata?.favicon_url ? (
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img
+                    src={item.metadata.favicon_url}
+                    alt=""
+                    className="w-4 h-4 rounded-xs shrink-0 object-contain"
+                    onError={(e) => {
+                      (e.target as HTMLElement).style.display = 'none';
                     }}
                   />
-                  <div
-                    className="absolute right-0 bottom-full mb-1 z-20 w-44 rounded-2xl bg-white border border-[#e4e0d5] shadow-lg py-1.5 text-xs font-semibold"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <button
-                      onClick={() => {
-                        setMenuOpen(false);
-                        router.push(`/item/${item.id}`);
-                      }}
-                      className="w-full flex items-center gap-2 px-3.5 py-2 text-[#171711] hover:bg-[#ebe7dc]/50 transition-colors text-left cursor-pointer"
-                    >
-                      <FileText className="w-3.5 h-3.5" />
-                      <span>View details</span>
-                    </button>
-                    <button
+                ) : null}
+                {domain && (
+                  <span className="text-xs font-semibold text-[#6c6b63] truncate">
+                    {domain}
+                  </span>
+                )}
+              </div>
+              {renderBadge()}
+            </div>
+
+            {/* Title */}
+            <h3 className="text-base font-extrabold text-[#171711] group-hover:text-black line-clamp-2 leading-snug tracking-tight mb-1.5 transition-colors">
+              {title}
+            </h3>
+
+            {/* Description / Text Content */}
+            {description && (
+              <p className="text-xs text-[#6c6b63] line-clamp-2 leading-relaxed mb-3">
+                {description}
+              </p>
+            )}
+
+            {/* Highlighted Quote Indicator */}
+            {item.url && item.text_content && (
+              <div className="flex items-center gap-1.5 p-2 rounded-xl bg-[#fef3c7]/60 text-[#b45309] text-[11px] font-medium mb-3 border border-[#fde68a]">
+                <Quote className="w-3.5 h-3.5 shrink-0" />
+                <span className="truncate italic">&ldquo;{item.text_content}&rdquo;</span>
+              </div>
+            )}
+          </div>
+
+          {/* Card Footer Actions */}
+          <div className="pt-3 mt-3 border-t border-[#e4e0d5]/70 flex items-center justify-between">
+            <span className="text-[11px] font-medium text-[#9e9b92]">
+              {timeAgo}
+            </span>
+
+            <div
+              className="flex items-center gap-1"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Star Button */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setFavorite(item.id, !item.favorite);
+                }}
+                title={item.favorite ? 'Unstar' : 'Star'}
+                className={`p-1.5 rounded-xl transition-colors cursor-pointer ${
+                  item.favorite
+                    ? 'text-amber-500 hover:bg-amber-50'
+                    : 'text-[#9e9b92] hover:text-[#171711] hover:bg-[#ebe7dc]/60'
+                }`}
+              >
+                <Star className={`w-4 h-4 ${item.favorite ? 'fill-amber-500' : ''}`} />
+              </button>
+
+              {/* Status Change Buttons */}
+              {item.status === 'inbox' ? (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    keepItem(item.id);
+                  }}
+                  title="Keep in Library"
+                  className="p-1.5 rounded-xl text-[#9e9b92] hover:text-[#171711] hover:bg-[#e6edb0] transition-colors cursor-pointer"
+                >
+                  <CheckCircle className="w-4 h-4" />
+                </button>
+              ) : item.status === 'saved' ? (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    archiveItem(item.id);
+                  }}
+                  title="Archive"
+                  className="p-1.5 rounded-xl text-[#9e9b92] hover:text-[#171711] hover:bg-[#ebe7dc]/60 transition-colors cursor-pointer"
+                >
+                  <Archive className="w-4 h-4" />
+                </button>
+              ) : (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    markUnseen(item.id);
+                  }}
+                  title="Move back to Inbox"
+                  className="p-1.5 rounded-xl text-[#9e9b92] hover:text-[#171711] hover:bg-[#e6edb0] transition-colors cursor-pointer"
+                >
+                  <CheckCircle className="w-4 h-4 text-[#171711]" />
+                </button>
+              )}
+
+              {/* Add to Collection Button */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setCollectionModalOpen(true);
+                }}
+                title="Add to Collection"
+                className="p-1.5 rounded-xl text-[#9e9b92] hover:text-[#171711] hover:bg-[#ebe7dc]/60 transition-colors cursor-pointer"
+              >
+                <FolderPlus className="w-4 h-4" />
+              </button>
+
+              {/* External URL Link */}
+              {item.url && (
+                <a
+                  href={destinationUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  title="Open Source Link"
+                  className="p-1.5 rounded-xl text-[#9e9b92] hover:text-[#171711] hover:bg-[#ebe7dc]/60 transition-colors"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                </a>
+              )}
+
+              {/* Dropdown Menu */}
+              <div className="relative">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setMenuOpen(!menuOpen);
+                  }}
+                  className="p-1.5 rounded-xl text-[#9e9b92] hover:text-[#171711] hover:bg-[#ebe7dc]/60 transition-colors cursor-pointer"
+                >
+                  <MoreVertical className="w-4 h-4" />
+                </button>
+
+                {menuOpen && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-10"
                       onClick={(e) => {
                         e.stopPropagation();
                         setMenuOpen(false);
-                        if (confirm('Delete this item?')) {
-                          deleteItem(item.id);
-                        }
                       }}
-                      className="w-full flex items-center gap-2 px-3.5 py-2 text-red-600 hover:bg-red-50 transition-colors text-left cursor-pointer"
+                    />
+                    <div
+                      className="absolute right-0 bottom-full mb-1 z-20 w-48 rounded-2xl bg-white border border-[#e4e0d5] shadow-xl py-1.5 text-xs font-semibold animate-in fade-in"
+                      onClick={(e) => e.stopPropagation()}
                     >
-                      <Trash2 className="w-3.5 h-3.5" />
-                      <span>Delete</span>
-                    </button>
-                  </div>
-                </>
-              )}
+                      {/* Keep / Status action in menu */}
+                      {item.status === 'inbox' ? (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setMenuOpen(false);
+                            keepItem(item.id);
+                          }}
+                          className="w-full flex items-center gap-2.5 px-3.5 py-2 text-[#171711] hover:bg-[#ebe7dc]/50 transition-colors text-left cursor-pointer"
+                        >
+                          <CheckCircle className="w-3.5 h-3.5 text-[#171711]" />
+                          <span>Keep in Library</span>
+                        </button>
+                      ) : item.status === 'saved' ? (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setMenuOpen(false);
+                            archiveItem(item.id);
+                          }}
+                          className="w-full flex items-center gap-2.5 px-3.5 py-2 text-[#171711] hover:bg-[#ebe7dc]/50 transition-colors text-left cursor-pointer"
+                        >
+                          <Archive className="w-3.5 h-3.5 text-[#6c6b63]" />
+                          <span>Archive</span>
+                        </button>
+                      ) : (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setMenuOpen(false);
+                            markUnseen(item.id);
+                          }}
+                          className="w-full flex items-center gap-2.5 px-3.5 py-2 text-[#171711] hover:bg-[#ebe7dc]/50 transition-colors text-left cursor-pointer"
+                        >
+                          <Inbox className="w-3.5 h-3.5 text-[#171711]" />
+                          <span>Move to Inbox</span>
+                        </button>
+                      )}
+
+                      {/* Add to Collection in menu */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setMenuOpen(false);
+                          setCollectionModalOpen(true);
+                        }}
+                        className="w-full flex items-center gap-2.5 px-3.5 py-2 text-[#171711] hover:bg-[#ebe7dc]/50 transition-colors text-left cursor-pointer"
+                      >
+                        <FolderPlus className="w-3.5 h-3.5 text-[#0369a1]" />
+                        <span>Add to Collection…</span>
+                      </button>
+
+                      {/* Copy Link / Content */}
+                      <button
+                        onClick={handleCopy}
+                        className="w-full flex items-center gap-2.5 px-3.5 py-2 text-[#171711] hover:bg-[#ebe7dc]/50 transition-colors text-left cursor-pointer"
+                      >
+                        {copied ? (
+                          <>
+                            <Check className="w-3.5 h-3.5 text-emerald-600" />
+                            <span className="text-emerald-600">Copied!</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="w-3.5 h-3.5 text-[#6c6b63]" />
+                            <span>Copy {item.url ? 'Link' : 'Text'}</span>
+                          </>
+                        )}
+                      </button>
+
+                      {/* View Details */}
+                      <button
+                        onClick={() => {
+                          setMenuOpen(false);
+                          router.push(`/item/${item.id}`);
+                        }}
+                        className="w-full flex items-center gap-2.5 px-3.5 py-2 text-[#171711] hover:bg-[#ebe7dc]/50 transition-colors text-left cursor-pointer"
+                      >
+                        <FileText className="w-3.5 h-3.5 text-[#6c6b63]" />
+                        <span>View Details</span>
+                      </button>
+
+                      <div className="my-1 border-t border-[#e4e0d5]" />
+
+                      {/* Delete */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setMenuOpen(false);
+                          if (confirm('Delete this item?')) {
+                            deleteItem(item.id);
+                          }
+                        }}
+                        className="w-full flex items-center gap-2.5 px-3.5 py-2 text-red-600 hover:bg-red-50 transition-colors text-left cursor-pointer"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>Delete</span>
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
+
+      {/* Add To Collection Modal */}
+      <AddToCollectionModal
+        item={item}
+        isOpen={collectionModalOpen}
+        onClose={() => setCollectionModalOpen(false)}
+      />
+    </>
   );
 }
