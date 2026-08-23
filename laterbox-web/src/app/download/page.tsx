@@ -106,9 +106,19 @@ export default function DownloadPage() {
 
   const triggerDownload = (filename: string, directUrl?: string) => {
     setDownloadingFile(filename);
-    const downloadUrl = directUrl || `https://github.com/Chaste-Djaziri/laterbox/releases/latest/download/${filename}`;
-    window.location.href = downloadUrl;
-    setTimeout(() => setDownloadingFile(null), 3500);
+    const downloadUrl = `/api/download/${encodeURIComponent(filename)}`;
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.setAttribute('download', filename);
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+    setTimeout(() => {
+      if (document.body.contains(link)) {
+        document.body.removeChild(link);
+      }
+      setDownloadingFile(null);
+    }, 3500);
   };
 
   const handleCopyCode = (text: string) => {
@@ -713,11 +723,11 @@ export default function DownloadPage() {
                             : undefined;
 
                           return (
-                            <a
+                            <button
                               key={asset.name}
-                              href={asset.browser_download_url}
-                              download
-                              className="flex items-center justify-between p-3 rounded-2xl bg-white hover:bg-[#f7f5ee] border border-[#e4e0d5] hover:border-[#171711] transition-all group/item shadow-2xs"
+                              type="button"
+                              onClick={() => triggerDownload(asset.name, asset.browser_download_url)}
+                              className="flex items-center justify-between p-3 rounded-2xl bg-white hover:bg-[#f7f5ee] border border-[#e4e0d5] hover:border-[#171711] transition-all group/item shadow-2xs text-left cursor-pointer w-full"
                             >
                               <div className="flex items-center gap-2.5 min-w-0 pr-2">
                                 <div className="p-2 rounded-xl bg-[#ebe7dc] group-hover/item:bg-[#e6edb0] transition-colors shrink-0">
@@ -737,7 +747,7 @@ export default function DownloadPage() {
                               <span className="text-[10px] font-bold text-[#6c6b63] group-hover/item:text-[#171711] shrink-0 font-mono">
                                 Get
                               </span>
-                            </a>
+                            </button>
                           );
                         })}
                       </div>
