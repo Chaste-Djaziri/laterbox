@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState, useMemo, useCallback, ReactNode } from 'react';
 import { getSupabaseClient } from '../supabase/client';
-import { LaterBoxItem, ItemStatus, InboxFilterType, Collection } from '../supabase/types';
+import { LaterBoxItem, ItemStatus, InboxFilterType, Collection, Attachment } from '../supabase/types';
 import { useAuth } from './AuthContext';
 import { normalizeUrl, isUrl, extractDomain } from '../utils/url';
 
@@ -112,6 +112,13 @@ export function ItemProvider({ children }: { children: ReactNode }) {
         .eq('user_id', user.id)
         .is('deleted_at', null);
 
+      // Fetch attachments
+      const { data: attachmentRows } = await supabase
+        .from('attachments')
+        .select('*')
+        .eq('user_id', user.id)
+        .is('deleted_at', null);
+
       // Fetch collections
       const { data: colRows } = await supabase
         .from('collections')
@@ -122,11 +129,18 @@ export function ItemProvider({ children }: { children: ReactNode }) {
 
       const metaMap = new Map((metaRows || []).map((m) => [m.item_id, m]));
       const noteMap = new Map((noteRows || []).map((n) => [n.item_id, n]));
+      const attachmentMap = new Map<string, Attachment[]>();
+      (attachmentRows || []).forEach((att) => {
+        const list = attachmentMap.get(att.item_id) || [];
+        list.push(att);
+        attachmentMap.set(att.item_id, list);
+      });
 
       const mappedItems: LaterBoxItem[] = (itemRows || []).map((item) => ({
         ...item,
         metadata: metaMap.get(item.id) || null,
         note: noteMap.get(item.id) || null,
+        attachments: attachmentMap.get(item.id) || [],
       }));
 
       // Deduplicate items by ID and URL/text
