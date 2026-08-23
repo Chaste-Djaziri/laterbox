@@ -94,6 +94,7 @@ class MainActivity : FlutterActivity() {
             ?.takeIf { it.isNotEmpty() }
             ?: return
 
+        intent.action = null
         pendingShares.enqueue(text)
     }
 
