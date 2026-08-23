@@ -3,6 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { Header } from '@/components/layout/Header';
+import { Footer } from '@/components/layout/Footer';
 import {
   Compass,
   ArrowRight,
@@ -92,6 +93,8 @@ export default function TutorialPage() {
           </Link>
         </div>
       </main>
+
+      <Footer />
     </div>
   );
 }
