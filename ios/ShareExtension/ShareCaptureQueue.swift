@@ -70,6 +70,12 @@ final class ShareCaptureQueue {
     @discardableResult
     func enqueue(_ capture: PendingShareCapture) -> Bool {
         var captures = readAll()
+        let isDuplicate = captures.contains { existing in
+            existing.id == capture.id ||
+                (capture.value != nil && !capture.value!.isEmpty && existing.value?.trimmingCharacters(in: .whitespacesAndNewlines) == capture.value?.trimmingCharacters(in: .whitespacesAndNewlines)) ||
+                (!capture.filePaths.isEmpty && existing.filePaths == capture.filePaths)
+        }
+        if isDuplicate { return true }
         captures.append(capture)
         guard let data = try? JSONEncoder().encode(captures) else { return false }
         do {
