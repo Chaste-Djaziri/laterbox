@@ -44,6 +44,7 @@ jobs:
           xcodebuild -workspace macos/Runner.xcworkspace \
             -scheme Runner \
             -configuration Release \
+            -derivedDataPath build/macos \
             CODE_SIGN_IDENTITY="-" \
             CODE_SIGN_STYLE="Manual" \
             CODE_SIGNING_REQUIRED=NO \
@@ -55,9 +56,12 @@ jobs:
         shell: bash
         run: |
           mkdir -p dist
-          APP_PATH="build/macos/Build/Products/Release/laterbox.app"
-          if [ ! -d "$APP_PATH" ]; then
-            APP_PATH=$(find build/macos/Build/Products/Release -name "*.app" -type d | head -n 1)
+          APP_PATH=$(find build/macos -name "laterbox.app" -type d | head -n 1)
+          if [ -z "$APP_PATH" ]; then
+            APP_PATH=$(find build/macos -name "*.app" -type d | head -n 1)
+          fi
+          if [ -z "$APP_PATH" ]; then
+            APP_PATH=$(find ~/Library/Developer/Xcode/DerivedData -name "laterbox.app" -type d | head -n 1)
           fi
           
           echo "Packaging application from: $APP_PATH"
@@ -296,39 +300,101 @@ jobs:
           # Install Main Provisioning Profile
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           echo "$APPLE_PROVISIONING_PROFILE_BASE64" | base64 --decode > /tmp/main.mobileprovision
-          MAIN_UUID=$(security cms -D -i /tmp/main.mobileprovision | grep -A1 '<key>UUID</key>' | grep '<string>' | sed 's/.*<string>\(.*\)<\/string>.*/\1/')
+          MAIN_UUID=$(security cms -D -i /tmp/main.mobileprovision | grep -A1 '<key>UUID</key>' | grep '<string>' | sed 's/.*<string>\(.*\)<\/string>.*/\1/' | xargs)
+          MAIN_NAME=$(security cms -D -i /tmp/main.mobileprovision | grep -A1 '<key>Name</key>' | grep '<string>' | sed 's/.*<string>\(.*\)<\/string>.*/\1/' | xargs)
           if [ -n "$MAIN_UUID" ]; then
             cp /tmp/main.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/${MAIN_UUID}.mobileprovision
-            echo "Installed main profile UUID: $MAIN_UUID"
-          else
-            cp /tmp/main.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/main.mobileprovision
+            echo "Installed main profile: '$MAIN_NAME' (UUID: $MAIN_UUID)"
           fi
 
           # Install Share Extension Provisioning Profile
+          SHARE_NAME=""
+          SHARE_UUID=""
           if [ -n "$APPLE_SHARE_EXTENSION_PROVISIONING_PROFILE_BASE64" ]; then
             echo "$APPLE_SHARE_EXTENSION_PROVISIONING_PROFILE_BASE64" | base64 --decode > /tmp/share.mobileprovision
-            SHARE_UUID=$(security cms -D -i /tmp/share.mobileprovision | grep -A1 '<key>UUID</key>' | grep '<string>' | sed 's/.*<string>\(.*\)<\/string>.*/\1/')
+            SHARE_UUID=$(security cms -D -i /tmp/share.mobileprovision | grep -A1 '<key>UUID</key>' | grep '<string>' | sed 's/.*<string>\(.*\)<\/string>.*/\1/' | xargs)
+            SHARE_NAME=$(security cms -D -i /tmp/share.mobileprovision | grep -A1 '<key>Name</key>' | grep '<string>' | sed 's/.*<string>\(.*\)<\/string>.*/\1/' | xargs)
             if [ -n "$SHARE_UUID" ]; then
               cp /tmp/share.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/${SHARE_UUID}.mobileprovision
-              echo "Installed share extension profile UUID: $SHARE_UUID"
-            else
-              cp /tmp/share.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/share.mobileprovision
+              echo "Installed share extension profile: '$SHARE_NAME' (UUID: $SHARE_UUID)"
             fi
           fi
+
+          # Generate dynamic ExportOptions.plist
+          mkdir -p ios
+          cat <<EOF > ios/ExportOptions.plist
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key>
+            <string>app-store</string>
+            <key>signingStyle</key>
+            <string>manual</string>
+            <key>signingCertificate</key>
+            <string>Apple Distribution</string>
+            <key>teamID</key>
+            <string>${{ secrets.APPLE_TEAM_ID }}</string>
+            <key>uploadSymbols</key>
+            <true/>
+            <key>uploadBitcode</key>
+            <false/>
+            <key>manageAppVersionAndBuildNumber</key>
+            <false/>
+            <key>provisioningProfiles</key>
+            <dict>
+              <key>pro.micorp.laterbox</key>
+              <string>$MAIN_NAME</string>
+              <key>pro.micorp.laterbox.ShareExtension</key>
+              <string>$SHARE_NAME</string>
+            </dict>
+          </dict>
+          </plist>
+          EOF
+          cat ios/ExportOptions.plist
         env:
           APPLE_CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
           APPLE_PROVISIONING_PROFILE_BASE64: ${{ secrets.APPLE_PROVISIONING_PROFILE_BASE64 }}
           APPLE_SHARE_EXTENSION_PROVISIONING_PROFILE_BASE64: ${{ secrets.APPLE_SHARE_EXTENSION_PROVISIONING_PROFILE_BASE64 }}
 
-      - name: Build iOS IPA
+      - name: Build Flutter iOS Bundle (no initial codesign)
+        run: flutter build ios --release --no-codesign
+
+      - name: Archive and Sign iOS IPA
+        if: env.APPLE_CERTIFICATE_BASE64 != ''
         shell: bash
         run: |
-          if [ -n "${{ secrets.APPLE_CERTIFICATE_BASE64 }}" ]; then
-            flutter build ipa --release --export-options-plist=ios/ExportOptions.plist
-          else
-            flutter build ios --release --no-codesign
+          MAIN_NAME=$(security cms -D -i /tmp/main.mobileprovision | grep -A1 '<key>Name</key>' | grep '<string>' | sed 's/.*<string>\(.*\)<\/string>.*/\1/' | xargs)
+          SHARE_NAME=""
+          if [ -f /tmp/share.mobileprovision ]; then
+            SHARE_NAME=$(security cms -D -i /tmp/share.mobileprovision | grep -A1 '<key>Name</key>' | grep '<string>' | sed 's/.*<string>\(.*\)<\/string>.*/\1/' | xargs)
           fi
+
+          mkdir -p build/ios/archive
+          mkdir -p build/ios/ipa
+
+          # 1. Archive with manual signing
+          xcodebuild -workspace ios/Runner.xcworkspace \
+            -scheme Runner \
+            -configuration Release \
+            -archivePath build/ios/archive/Runner.xcarchive \
+            -destination 'generic/platform=iOS' \
+            CODE_SIGN_STYLE="Manual" \
+            CODE_SIGN_IDENTITY="Apple Distribution" \
+            DEVELOPMENT_TEAM="${{ secrets.APPLE_TEAM_ID }}" \
+            PROVISIONING_PROFILE_SPECIFIER="$MAIN_NAME" \
+            PROVISIONING_PROFILE_SPECIFIER[target=ShareExtension]="$SHARE_NAME" \
+            archive
+
+          # 2. Export App Store IPA
+          xcodebuild -exportArchive \
+            -archivePath build/ios/archive/Runner.xcarchive \
+            -exportPath build/ios/ipa \
+            -exportOptionsPlist ios/ExportOptions.plist \
+            -allowProvisioningUpdates
+        env:
+          APPLE_CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
 
       - name: Package iOS IPA Artifact
         shell: bash
