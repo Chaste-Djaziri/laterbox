@@ -450,9 +450,7 @@ jobs:
           mkdir -p ../dist
           cp dist/laterbox-chrome-extension.zip ../dist/
           cp dist/laterbox-firefox-extension.zip ../dist/
-          if [ -f dist/laterbox-safari-extension.zip ]; then
-            cp dist/laterbox-safari-extension.zip ../dist/
-          fi
+          cp dist/laterbox-safari-extension.zip ../dist/
 
       - name: Upload Extension Dist Artifacts
         uses: actions/upload-artifact@v4
@@ -461,6 +459,7 @@ jobs:
           path: |
             dist/laterbox-chrome-extension.zip
             dist/laterbox-firefox-extension.zip
+            dist/laterbox-safari-extension.zip
           if-no-files-found: error
 
   build-and-deploy-web:
