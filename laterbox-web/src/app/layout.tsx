@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { AuthProvider } from '@/lib/store/AuthContext';
 import { ItemProvider } from '@/lib/store/ItemContext';
+import { WebUpdateBanner } from '@/components/ui/WebUpdateBanner';
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://laterbox.micorp.pro'),
@@ -66,7 +67,10 @@ export default function RootLayout({
     <html lang="en">
       <body className="min-h-screen bg-zinc-50 text-zinc-900 antialiased selection:bg-emerald-500 selection:text-white">
         <AuthProvider>
-          <ItemProvider>{children}</ItemProvider>
+          <ItemProvider>
+            {children}
+            <WebUpdateBanner />
+          </ItemProvider>
         </AuthProvider>
       </body>
     </html>
