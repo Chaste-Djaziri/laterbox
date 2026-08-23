@@ -149,7 +149,7 @@ class _ItemDetailBody extends ConsumerWidget {
           (attachmentStorage == null || attachment.localPath == null)) {
         final url = ref
             .watch(attachmentPreviewUrlProvider(attachment.id))
-            .value;
+            .valueOrNull;
         if (url != null) remoteImageUrls[attachment.id] = url;
       }
     }
@@ -158,7 +158,12 @@ class _ItemDetailBody extends ConsumerWidget {
       if (kIsWeb) {
         final client = ref.read(supabaseClientProvider);
         if (client != null && attachment.r2ObjectKey != null) {
-          return AttachmentStorageApi(client).prepareDownloadUrl(attachment.id);
+          try {
+            return await AttachmentStorageApi(client).prepareDownloadUrl(attachment.id);
+          } catch (error) {
+            debugPrint('[LaterBox Detail] resolve remote download failed: $error');
+            throw StateError('Attachment is not available for download.');
+          }
         }
         throw StateError('Attachment is not available for remote download.');
       }
