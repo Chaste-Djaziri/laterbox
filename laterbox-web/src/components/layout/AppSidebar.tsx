@@ -64,7 +64,7 @@ export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
   ];
 
   return (
-    <aside className="w-64 h-screen bg-zinc-50/80 dark:bg-zinc-950/80 border-r border-zinc-200/80 dark:border-zinc-800/80 flex flex-col justify-between p-4 shrink-0 transition-all">
+    <aside className="w-64 h-screen bg-zinc-50/80 border-r border-zinc-200/80 flex flex-col justify-between p-4 shrink-0 transition-all">
       {/* Top Section */}
       <div className="space-y-6">
         {/* Brand */}
@@ -79,7 +79,7 @@ export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
                 priority
               />
             </div>
-            <span className="text-xl font-black tracking-tight text-zinc-900 dark:text-white">
+            <span className="text-xl font-black tracking-tight text-zinc-900">
               laterbox
             </span>
           </Link>
@@ -105,8 +105,8 @@ export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
                 href={href}
                 className={`flex items-center justify-between px-3.5 py-2.5 rounded-2xl text-sm font-bold transition-all duration-150 ${
                   isActive
-                    ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 shadow-sm'
-                    : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200/60 dark:hover:bg-zinc-800/60 hover:text-zinc-900 dark:hover:text-zinc-100'
+                    ? 'bg-zinc-900 text-white shadow-sm'
+                    : 'text-zinc-600 hover:bg-zinc-200/60 hover:text-zinc-900'
                 }`}
               >
                 <div className="flex items-center gap-3">
@@ -117,8 +117,8 @@ export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
                   <span
                     className={`px-2 py-0.5 rounded-full text-[11px] font-mono font-bold ${
                       isActive
-                        ? 'bg-zinc-700 text-zinc-200 dark:bg-zinc-300 dark:text-zinc-900'
-                        : 'bg-zinc-200 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
+                        ? 'bg-zinc-700 text-zinc-200'
+                        : 'bg-zinc-200 text-zinc-600'
                     }`}
                   >
                     {badge}
@@ -131,15 +131,15 @@ export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
       </div>
 
       {/* Bottom User Profile Section */}
-      <div className="pt-4 border-t border-zinc-200/80 dark:border-zinc-800/80 space-y-3">
+      <div className="pt-4 border-t border-zinc-200/80 space-y-3">
         {user ? (
-          <div className="flex items-center justify-between p-2 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/60 dark:border-zinc-800/60">
+          <div className="flex items-center justify-between p-2 rounded-2xl bg-white border border-zinc-200/60">
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-950 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0 font-bold text-xs">
+              <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 shrink-0 font-bold text-xs">
                 {user.email?.[0].toUpperCase() || <User className="w-4 h-4" />}
               </div>
               <div className="min-w-0">
-                <p className="text-xs font-bold text-zinc-900 dark:text-zinc-100 truncate">
+                <p className="text-xs font-bold text-zinc-900 truncate">
                   {user.email}
                 </p>
                 <p className="text-[10px] text-zinc-400 font-medium truncate">Logged in</p>
@@ -148,20 +148,20 @@ export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
             <button
               onClick={() => signOut()}
               title="Sign Out"
-              className="p-1.5 rounded-xl text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+              className="p-1.5 rounded-xl text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 transition-colors"
             >
               <LogOut className="w-4 h-4" />
             </button>
           </div>
         ) : (
-          <div className="p-3 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/60 dark:border-emerald-900/40 space-y-2">
+          <div className="p-3 rounded-2xl bg-emerald-50 border border-emerald-200/60 space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-extrabold text-emerald-800 dark:text-emerald-300">
+              <span className="text-xs font-extrabold text-emerald-800">
                 Guest Mode
               </span>
               <CloudSyncIndicator compact />
             </div>
-            <p className="text-[11px] text-emerald-700/80 dark:text-emerald-400/80 leading-relaxed">
+            <p className="text-[11px] text-emerald-700/80 leading-relaxed">
               Items saved locally. Sign in to sync across your Mac, iPhone, and Android.
             </p>
             <Link
