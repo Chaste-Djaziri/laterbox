@@ -209,14 +209,14 @@ class AppDelegate: FlutterAppDelegate {
     channel.setMethodCallHandler { call, result in
       switch call.method {
       case "consumePending":
-        result(self.shareQueue?.readAll().map(\.toDictionary) ?? [])
+        result(self.shareQueue.readAll().map(\.toDictionary))
       case "clearPending":
-        self.shareQueue?.clear()
+        self.shareQueue.clear()
         result(nil)
       case "acknowledgePending":
         let arguments = call.arguments as? [String: Any]
         let ids = Set(arguments?["ids"] as? [String] ?? [])
-        result(self.shareQueue?.acknowledge(ids: ids) ?? false)
+        result(self.shareQueue.acknowledge(ids: ids))
       default:
         result(FlutterMethodNotImplemented)
       }
