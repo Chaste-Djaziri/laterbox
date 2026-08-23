@@ -4,6 +4,7 @@ import { AuthProvider } from '@/lib/store/AuthContext';
 import { ItemProvider } from '@/lib/store/ItemContext';
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://laterbox.app'),
   title: {
     default: 'laterbox - Save anything now. Read, watch & organize later.',
     template: '%s | laterbox',
