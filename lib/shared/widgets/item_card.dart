@@ -65,7 +65,7 @@ class _ItemCardState extends ConsumerState<ItemCard> {
         previewAttachment.mimeType.startsWith('image/') &&
         previewAttachment.r2ObjectKey != null;
     final remoteImageUrl = needsRemotePreview
-        ? ref.watch(attachmentPreviewUrlProvider(previewAttachment.id)).value
+        ? ref.watch(attachmentPreviewUrlProvider(previewAttachment.id)).valueOrNull
         : null;
     final theme = Theme.of(context);
 
