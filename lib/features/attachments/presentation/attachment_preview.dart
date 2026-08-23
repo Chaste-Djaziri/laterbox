@@ -392,6 +392,7 @@ class _LocalImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final remoteUrl = this.remoteUrl;
     final localBytes = attachment.localBytes;
     if (localBytes != null) {
       return Image.memory(
@@ -417,7 +418,7 @@ class _LocalImage extends StatelessWidget {
           errorBuilder: (context, error, stackTrace) {
             if (remoteUrl != null) {
               return Image.network(
-                remoteUrl!,
+                remoteUrl,
                 key: ValueKey('attachmentImage:${attachment.id}:remoteFallback'),
                 fit: fit,
                 gaplessPlayback: true,
@@ -431,7 +432,6 @@ class _LocalImage extends StatelessWidget {
         );
       }
     }
-    final remoteUrl = this.remoteUrl;
     if (remoteUrl != null) {
       return Image.network(
         remoteUrl,
@@ -583,10 +583,10 @@ class _FilePreviewSurface extends StatelessWidget {
                   ),
                 ],
               ),
-              child: Icon(
+              child: const Icon(
                 Icons.play_arrow_rounded,
                 size: 36,
-                color: Colors.rose.shade700,
+                color: Color(0xFFE11D48),
               ),
             ),
             Positioned(
@@ -620,8 +620,8 @@ class _FilePreviewSurface extends StatelessWidget {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              Colors.emerald.shade50,
-              Colors.emerald.shade100,
+              Colors.teal.shade50,
+              Colors.teal.shade100,
             ],
           ),
         ),
@@ -636,7 +636,7 @@ class _FilePreviewSurface extends StatelessWidget {
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.emerald.shade900.withValues(alpha: 0.08),
+                    color: Colors.teal.shade900.withValues(alpha: 0.08),
                     blurRadius: 8,
                   ),
                 ],
@@ -644,7 +644,7 @@ class _FilePreviewSurface extends StatelessWidget {
               child: Icon(
                 Icons.music_note_rounded,
                 size: 28,
-                color: Colors.emerald.shade700,
+                color: Colors.teal.shade700,
               ),
             ),
             Positioned(
@@ -654,14 +654,14 @@ class _FilePreviewSurface extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.9),
                   borderRadius: BorderRadius.circular(999),
-                  border: Border.all(color: Colors.emerald.shade200),
+                  border: Border.all(color: Colors.teal.shade200),
                 ),
                 child: Text(
                   'Audio · ${formatAttachmentBytes(attachment.byteSize)}',
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w800,
-                    color: Colors.emerald.shade900,
+                    color: Colors.teal.shade900,
                   ),
                 ),
               ),
