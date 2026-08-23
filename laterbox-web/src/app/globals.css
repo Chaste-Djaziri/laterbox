@@ -1,13 +1,16 @@
 @import "tailwindcss";
 
 :root {
-  --background: #fafafa;
-  --foreground: #18181b;
+  --background: #f7f5ee;
+  --foreground: #171711;
   --card: #ffffff;
-  --card-foreground: #18181b;
-  --primary: #059669;
+  --card-foreground: #171711;
+  --primary: #171711;
   --primary-foreground: #ffffff;
-  --border: #e4e4e7;
+  --accent: #e6edb0;
+  --accent-foreground: #171711;
+  --muted: #6c6b63;
+  --border: #e4e0d5;
 }
 
 body {
@@ -30,12 +33,12 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(150, 150, 150, 0.25);
+  background: rgba(140, 138, 128, 0.25);
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(150, 150, 150, 0.4);
+  background: rgba(140, 138, 128, 0.4);
 }
 
 /* Utilities */
