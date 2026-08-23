@@ -65,7 +65,7 @@ class AttachmentCardPreview extends StatelessWidget {
                     ),
                   ),
                   child: Text(
-                    '+$additionalCount more',
+                    '+$additionalCount',
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 11,
