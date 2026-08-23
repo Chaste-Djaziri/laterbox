@@ -150,14 +150,7 @@ final class ShareViewController: UIViewController {
         captureId: String,
         existingPaths: [String]
     ) -> URL? {
-        guard
-            let container = FileManager.default.containerURL(
-                forSecurityApplicationGroupIdentifier: AppGroup.identifier
-            )
-        else { return nil }
-        let directory = container
-            .appendingPathComponent("PendingAttachments", isDirectory: true)
-            .appendingPathComponent(captureId, isDirectory: true)
+        let directory = queue.stagingDirectory(for: captureId)
         do {
             try FileManager.default.createDirectory(
                 at: directory,
@@ -193,24 +186,31 @@ final class ShareViewController: UIViewController {
             $0.hasItemConformingToTypeIdentifier(UTType.url.identifier)
         }) {
             urlProvider.loadItem(forTypeIdentifier: UTType.url.identifier, options: nil) { item, _ in
-                if let url = item as? URL {
-                    if !url.isFileURL {
-                        completion(url.absoluteString)
-                        return
-                    }
+                if let url = item as? URL, !url.isFileURL {
+                    completion(url.absoluteString)
+                    return
+                } else if let urlString = item as? String, !urlString.hasPrefix("file://") {
+                    completion(urlString)
+                    return
                 }
-                completion(nil)
+                self.loadPlainText(from: providers, completion: completion)
             }
             return
         }
-        guard let textProvider = providers.first(where: {
-            $0.suggestedName == nil &&
-                $0.hasItemConformingToTypeIdentifier(UTType.plainText.identifier)
+        loadPlainText(from: providers, completion: completion)
+    }
+
+    private func loadPlainText(
+        from providers: [NSItemProvider],
+        completion: @escaping (String?) -> Void
+    ) {
+        guard let provider = providers.first(where: {
+            $0.suggestedName == nil && $0.hasItemConformingToTypeIdentifier(UTType.plainText.identifier)
         }) else {
             completion(nil)
             return
         }
-        textProvider.loadItem(
+        provider.loadItem(
             forTypeIdentifier: UTType.plainText.identifier,
             options: nil
         ) { item, _ in
@@ -226,13 +226,8 @@ final class ShareViewController: UIViewController {
     ) {
         let trimmed = normalizedText(text)
         guard trimmed != nil || !filePaths.isEmpty else {
-            deleteStagingDirectory(captureId: captureId)
+            queue.deleteStagingDirectory(id: captureId)
             showFailure("Couldn't read the shared content")
-            return
-        }
-        guard let queue else {
-            deleteStagingDirectory(captureId: captureId)
-            showFailure("LaterBox storage is unavailable")
             return
         }
         let capture = PendingShareCapture(
@@ -256,7 +251,7 @@ final class ShareViewController: UIViewController {
             }
             showSuccess(subtitle: subtitle)
         } else {
-            deleteStagingDirectory(captureId: captureId)
+            queue.deleteStagingDirectory(id: captureId)
             showFailure("Couldn't write to LaterBox storage")
         }
     }
@@ -285,13 +280,7 @@ final class ShareViewController: UIViewController {
     }
 
     private func deleteStagingDirectory(captureId: String) {
-        guard let container = FileManager.default.containerURL(
-            forSecurityApplicationGroupIdentifier: AppGroup.identifier
-        ) else { return }
-        let directory = container
-            .appendingPathComponent("PendingAttachments", isDirectory: true)
-            .appendingPathComponent(captureId, isDirectory: true)
-        try? FileManager.default.removeItem(at: directory)
+        queue.deleteStagingDirectory(id: captureId)
     }
 
     // MARK: States
