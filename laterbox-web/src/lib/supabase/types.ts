@@ -53,6 +53,7 @@ export interface Attachment {
   file_extension: string;
   mime_type: string;
   byte_size: number;
+  sha256?: string;
   local_path?: string | null;
   r2_object_key?: string | null;
   preview_object_key?: string | null;
