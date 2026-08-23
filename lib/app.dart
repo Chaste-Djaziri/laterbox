@@ -32,6 +32,8 @@ class LaterBoxApp extends ConsumerStatefulWidget {
 class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
     with WidgetsBindingObserver {
   bool _drainingShares = false;
+  final Set<String> _inFlightShareIds = {};
+  final Set<String> _processedShareIds = {};
 
   @override
   void initState() {
@@ -118,14 +120,22 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
 
   Future<void> _captureAndroidShares() async {
     try {
-      final pending = await ref
-          .read(androidShareReceiverProvider)
-          .consumePendingShares();
+      final receiver = ref.read(androidShareReceiverProvider);
+      final pending = await receiver.consumePendingShares();
       for (final payload in pending) {
-        if (await _importNativeShare(payload, CaptureSource.androidShare)) {
-          await ref.read(androidShareReceiverProvider).acknowledge([
-            payload.id,
-          ]);
+        if (_inFlightShareIds.contains(payload.id)) continue;
+        if (_processedShareIds.contains(payload.id)) {
+          await receiver.acknowledge([payload.id]);
+          continue;
+        }
+        _inFlightShareIds.add(payload.id);
+        try {
+          if (await _importNativeShare(payload, CaptureSource.androidShare)) {
+            _processedShareIds.add(payload.id);
+            await receiver.acknowledge([payload.id]);
+          }
+        } finally {
+          _inFlightShareIds.remove(payload.id);
         }
       }
     } on MissingPluginException {
@@ -141,11 +151,22 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
       final pending = await receiver.consumePendingShares();
       if (pending.isEmpty) return;
       for (final payload in pending) {
-        final source = Platform.isMacOS
-            ? CaptureSource.macosShare
-            : CaptureSource.iosShare;
-        if (await _importNativeShare(payload, source)) {
+        if (_inFlightShareIds.contains(payload.id)) continue;
+        if (_processedShareIds.contains(payload.id)) {
           await receiver.acknowledge([payload.id]);
+          continue;
+        }
+        _inFlightShareIds.add(payload.id);
+        try {
+          final source = Platform.isMacOS
+              ? CaptureSource.macosShare
+              : CaptureSource.iosShare;
+          if (await _importNativeShare(payload, source)) {
+            _processedShareIds.add(payload.id);
+            await receiver.acknowledge([payload.id]);
+          }
+        } finally {
+          _inFlightShareIds.remove(payload.id);
         }
       }
     } on MissingPluginException {
