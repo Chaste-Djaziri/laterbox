@@ -42,10 +42,10 @@ export default function SearchPage() {
     <AppShell>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-black text-zinc-900 dark:text-white tracking-tight">
+          <h1 className="text-2xl sm:text-3xl font-black text-zinc-900 tracking-tight">
             Deep Search
           </h1>
-          <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 font-medium mt-0.5">
+          <p className="text-xs sm:text-sm text-zinc-500 font-medium mt-0.5">
             Search across your entire saved library, notes, quotes, and web links
           </p>
         </div>
@@ -59,12 +59,12 @@ export default function SearchPage() {
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search keywords, domains, titles, personal notes..."
             autoFocus
-            className="w-full pl-12 pr-10 py-3.5 text-sm bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 rounded-2xl text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/80 shadow-sm"
+            className="w-full pl-12 pr-10 py-3.5 text-sm bg-white border border-zinc-200/80 rounded-2xl text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/80 shadow-sm"
           />
           {query && (
             <button
               onClick={() => setQuery('')}
-              className="absolute right-3.5 top-1/2 -translate-y-1/2 p-1 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 rounded-full"
+              className="absolute right-3.5 top-1/2 -translate-y-1/2 p-1 text-zinc-400 hover:text-zinc-600 rounded-full"
             >
               <X className="w-4 h-4" />
             </button>
@@ -81,8 +81,8 @@ export default function SearchPage() {
                 onClick={() => setTypeFilter(chip.id)}
                 className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
                   active
-                    ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-sm'
-                    : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700'
+                    ? 'bg-zinc-900 text-white shadow-sm'
+                    : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'
                 }`}
               >
                 {chip.icon}
@@ -101,9 +101,9 @@ export default function SearchPage() {
 
         {/* Results Grid */}
         {filtered.length === 0 ? (
-          <div className="text-center py-20 px-4 rounded-3xl bg-white dark:bg-zinc-900/50 border border-dashed border-zinc-300 dark:border-zinc-800 space-y-3">
+          <div className="text-center py-20 px-4 rounded-3xl bg-white border border-dashed border-zinc-300 space-y-3">
             <SearchIcon className="w-8 h-8 text-zinc-300 mx-auto" />
-            <h3 className="text-base font-bold text-zinc-700 dark:text-zinc-300">
+            <h3 className="text-base font-bold text-zinc-700">
               No results found
             </h3>
             <p className="text-xs text-zinc-500 max-w-sm mx-auto">
