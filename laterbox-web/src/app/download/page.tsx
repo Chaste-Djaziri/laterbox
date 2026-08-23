@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
+import { AndroidTesterModal } from '@/components/download/AndroidTesterModal';
 import {
   Download,
   Apple,
@@ -10,10 +11,12 @@ import {
   Smartphone,
   Puzzle,
   CheckCircle2,
+  Users,
 } from 'lucide-react';
 
 export default function DownloadPage() {
   const [downloadingFile, setDownloadingFile] = useState<string | null>(null);
+  const [isAndroidModalOpen, setIsAndroidModalOpen] = useState(false);
 
   const triggerDownload = (filename: string) => {
     setDownloadingFile(filename);
@@ -24,6 +27,7 @@ export default function DownloadPage() {
 
   const platforms = [
     {
+      id: 'macos',
       name: 'macOS',
       icon: <Apple className="w-8 h-8 text-[#171711]" />,
       desc: 'Universal build for Apple Silicon (M1/M2/M3/M4) and Intel Macs.',
@@ -35,6 +39,7 @@ export default function DownloadPage() {
       ],
     },
     {
+      id: 'windows',
       name: 'Windows',
       icon: <Laptop className="w-8 h-8 text-[#171711]" />,
       desc: 'Native desktop application for Windows 10 and 11 (64-bit).',
@@ -45,15 +50,18 @@ export default function DownloadPage() {
       ],
     },
     {
+      id: 'android',
       name: 'Android',
       icon: <Smartphone className="w-8 h-8 text-[#171711]" />,
-      desc: 'Native Android APK with system share sheet integration and offline queue.',
-      badge: 'Mobile App',
+      desc: 'Google Play closed testing track and direct APK with system share sheet integration.',
+      badge: 'Google Play Beta',
+      isAndroid: true,
       actions: [
-        { label: 'Download .apk', filename: 'laterbox-android.apk', primary: true },
+        { label: 'Download .apk', filename: 'laterbox-android.apk', primary: false },
       ],
     },
     {
+      id: 'extensions',
       name: 'Browser Extensions',
       icon: <Puzzle className="w-8 h-8 text-[#171711]" />,
       desc: 'Capture links, articles, and text highlights with 1 click from Chrome, Brave, Edge & Firefox.',
@@ -117,20 +125,42 @@ export default function DownloadPage() {
               </div>
 
               <div className="flex flex-wrap gap-2.5 pt-4 border-t border-[#e4e0d5]">
-                {p.actions.map((act) => (
-                  <button
-                    key={act.filename}
-                    onClick={() => triggerDownload(act.filename)}
-                    className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                      act.primary
-                        ? 'bg-[#171711] hover:bg-[#282723] active:bg-[#0f0f0e] text-white shadow-xs'
-                        : 'bg-[#ebe7dc] hover:bg-[#e0dbc9] text-[#171711]'
-                    }`}
-                  >
-                    <Download className="w-3.5 h-3.5" />
-                    <span>{act.label}</span>
-                  </button>
-                ))}
+                {p.isAndroid ? (
+                  <>
+                    <button
+                      onClick={() => setIsAndroidModalOpen(true)}
+                      className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-extrabold bg-[#171711] hover:bg-[#282723] active:bg-[#0f0f0e] text-white shadow-xs transition-all cursor-pointer"
+                    >
+                      <Users className="w-3.5 h-3.5 text-[#e6edb0]" />
+                      <span>Google Play Beta (Join Group)</span>
+                    </button>
+                    {p.actions.map((act) => (
+                      <button
+                        key={act.filename}
+                        onClick={() => triggerDownload(act.filename)}
+                        className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold bg-[#ebe7dc] hover:bg-[#e0dbc9] text-[#171711] transition-all cursor-pointer"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                        <span>{act.label}</span>
+                      </button>
+                    ))}
+                  </>
+                ) : (
+                  p.actions.map((act) => (
+                    <button
+                      key={act.filename}
+                      onClick={() => triggerDownload(act.filename)}
+                      className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                        act.primary
+                          ? 'bg-[#171711] hover:bg-[#282723] active:bg-[#0f0f0e] text-white shadow-xs'
+                          : 'bg-[#ebe7dc] hover:bg-[#e0dbc9] text-[#171711]'
+                      }`}
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      <span>{act.label}</span>
+                    </button>
+                  ))
+                )}
               </div>
             </div>
           ))}
@@ -155,6 +185,13 @@ export default function DownloadPage() {
       </main>
 
       <Footer />
+
+      {/* Android Tester Modal */}
+      <AndroidTesterModal
+        isOpen={isAndroidModalOpen}
+        onClose={() => setIsAndroidModalOpen(false)}
+        onDownloadApk={() => triggerDownload('laterbox-android.apk')}
+      />
     </div>
   );
 }
