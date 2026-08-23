@@ -6,7 +6,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useAuth } from '@/lib/store/AuthContext';
 import { getSupabaseClient } from '@/lib/supabase/client';
-import { Puzzle, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 
 function ExtensionConnectContent() {
   const searchParams = useSearchParams();
@@ -59,7 +59,7 @@ function ExtensionConnectContent() {
 
   if (authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-zinc-50 dark:bg-zinc-950">
+      <div className="min-h-screen flex items-center justify-center bg-zinc-50">
         <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
       </div>
     );
@@ -67,8 +67,8 @@ function ExtensionConnectContent() {
 
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4 bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100">
-        <div className="w-full max-w-md bg-white dark:bg-zinc-900 rounded-3xl p-8 border border-zinc-200 dark:border-zinc-800 shadow-2xl text-center space-y-6">
+      <div className="min-h-screen flex items-center justify-center p-4 bg-zinc-50 text-zinc-900">
+        <div className="w-full max-w-md bg-white rounded-3xl p-8 border border-zinc-200 shadow-2xl text-center space-y-6">
           <div className="w-12 h-12 mx-auto relative">
             <Image src="/branding/laterbox-icon.png" alt="laterbox" fill className="object-contain" />
           </div>
@@ -90,28 +90,28 @@ function ExtensionConnectContent() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100">
-      <div className="w-full max-w-md bg-white dark:bg-zinc-900 rounded-3xl p-8 border border-zinc-200/80 dark:border-zinc-800 shadow-2xl space-y-6">
+    <div className="min-h-screen flex items-center justify-center p-4 bg-zinc-50 text-zinc-900">
+      <div className="w-full max-w-md bg-white rounded-3xl p-8 border border-zinc-200/80 shadow-2xl space-y-6">
         <div className="text-center space-y-3">
           <div className="w-12 h-12 mx-auto relative rounded-2xl overflow-hidden">
             <Image src="/branding/laterbox-icon.png" alt="laterbox" fill className="object-contain" />
           </div>
           <h1 className="text-2xl font-black tracking-tight">Connect Browser Extension</h1>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">
+          <p className="text-xs text-zinc-500">
             Authorize the laterbox browser extension to save links directly to{' '}
-            <strong className="text-zinc-800 dark:text-zinc-200">{user.email}</strong>.
+            <strong className="text-zinc-800">{user.email}</strong>.
           </p>
         </div>
 
         {error && (
-          <div className="p-3.5 rounded-2xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 text-red-600 dark:text-red-400 text-xs font-semibold flex items-center gap-2">
+          <div className="p-3.5 rounded-2xl bg-red-50 border border-red-200 text-red-600 text-xs font-semibold flex items-center gap-2">
             <AlertCircle className="w-4 h-4 shrink-0" />
             <span>{error}</span>
           </div>
         )}
 
         {!isValidRequest && (
-          <div className="p-3.5 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 text-amber-700 dark:text-amber-300 text-xs font-medium">
+          <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-200 text-amber-700 text-xs font-medium">
             This authorization link is missing required request parameters.
           </div>
         )}
@@ -137,7 +137,7 @@ function ExtensionConnectContent() {
 
           <Link
             href="/inbox"
-            className="w-full inline-flex items-center justify-center py-2.5 px-4 rounded-xl text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 text-xs font-semibold"
+            className="w-full inline-flex items-center justify-center py-2.5 px-4 rounded-xl text-zinc-500 hover:text-zinc-700 text-xs font-semibold"
           >
             <span>Cancel</span>
           </Link>
@@ -151,7 +151,7 @@ export default function ExtensionConnectPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen flex items-center justify-center bg-zinc-50 dark:bg-zinc-950">
+        <div className="min-h-screen flex items-center justify-center bg-zinc-50">
           <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
         </div>
       }
