@@ -94,9 +94,9 @@ export default function LoginPage() {
           <Image
             src="/branding/laterbox-logo.png"
             alt="laterbox"
-            width={200}
-            height={48}
-            className="h-10 sm:h-11 w-auto object-contain"
+            width={280}
+            height={75}
+            className="w-56 sm:w-64 h-auto object-contain"
             priority
           />
         </div>
