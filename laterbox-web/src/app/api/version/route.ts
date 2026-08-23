@@ -3,15 +3,17 @@ import { NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-// Current build identifier (can be overridden by environment or deployment)
-const BUILD_TIME = process.env.BUILD_TIME || new Date().toISOString();
-const APP_VERSION = process.env.NEXT_PUBLIC_APP_VERSION || '1.0.0';
+import { APP_VERSION, BUILD_TIME, BUILD_NUMBER, MAJOR_VERSION, MINOR_VERSION, PATCH_VERSION } from '@/lib/version';
 
 export async function GET() {
   return NextResponse.json(
     {
       app: 'laterbox-web',
       version: APP_VERSION,
+      major: MAJOR_VERSION,
+      minor: MINOR_VERSION,
+      patch: PATCH_VERSION,
+      buildNumber: BUILD_NUMBER,
       buildTime: BUILD_TIME,
       timestamp: Date.now(),
     },
