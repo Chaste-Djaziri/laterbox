@@ -17,7 +17,7 @@ export function MediaEmbed({ url, title }: MediaEmbedProps) {
   if (youtubeMatch && youtubeMatch[1]) {
     const videoId = youtubeMatch[1];
     return (
-      <div className="w-full aspect-video rounded-2xl overflow-hidden shadow-lg border border-zinc-200 dark:border-zinc-800 bg-black my-4">
+      <div className="w-full aspect-video rounded-2xl overflow-hidden shadow-lg border border-zinc-200 bg-black my-4">
         <iframe
           src={`https://www.youtube-nocookie.com/embed/${videoId}?autoplay=0&rel=0`}
           title={title || 'YouTube Video'}
@@ -35,7 +35,7 @@ export function MediaEmbed({ url, title }: MediaEmbedProps) {
     const type = spotifyMatch[1];
     const id = spotifyMatch[2];
     return (
-      <div className="w-full rounded-2xl overflow-hidden shadow-md border border-zinc-200 dark:border-zinc-800 my-4 bg-zinc-900">
+      <div className="w-full rounded-2xl overflow-hidden shadow-md border border-zinc-200 my-4 bg-zinc-900">
         <iframe
           src={`https://open.spotify.com/embed/${type}/${id}?utm_source=generator`}
           width="100%"
@@ -53,7 +53,7 @@ export function MediaEmbed({ url, title }: MediaEmbedProps) {
   if (vimeoMatch && vimeoMatch[1]) {
     const videoId = vimeoMatch[1];
     return (
-      <div className="w-full aspect-video rounded-2xl overflow-hidden shadow-lg border border-zinc-200 dark:border-zinc-800 bg-black my-4">
+      <div className="w-full aspect-video rounded-2xl overflow-hidden shadow-lg border border-zinc-200 bg-black my-4">
         <iframe
           src={`https://player.vimeo.com/video/${videoId}`}
           title={title || 'Vimeo Video'}
