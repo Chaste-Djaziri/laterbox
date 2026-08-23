@@ -5,6 +5,7 @@ import { getSupabaseClient } from '../supabase/client';
 import { LaterBoxItem, ItemStatus, InboxFilterType, Collection, Attachment } from '../supabase/types';
 import { useAuth } from './AuthContext';
 import { normalizeUrl, isUrl, extractDomain } from '../utils/url';
+import { uploadAttachmentFile } from '../utils/attachment';
 
 const LOCAL_ITEMS_KEY = 'laterbox_local_items';
 const LOCAL_COLLECTIONS_KEY = 'laterbox_local_collections';
@@ -23,7 +24,7 @@ interface ItemContextType {
   setActiveFilter: (filter: InboxFilterType) => void;
   loading: boolean;
   syncStatus: SyncState;
-  saveItem: (value: string, options?: { id?: string; textSelector?: string }) => Promise<LaterBoxItem>;
+  saveItem: (value: string, options?: { id?: string; textSelector?: string; files?: File[] }) => Promise<LaterBoxItem>;
   setFavorite: (id: string, favorite: boolean) => Promise<void>;
   setStatus: (id: string, status: ItemStatus) => Promise<void>;
   keepItem: (id: string) => Promise<void>;
@@ -175,45 +176,58 @@ export function ItemProvider({ children }: { children: ReactNode }) {
     fetchData();
   }, [fetchData]);
 
-  // Save Item (URL or text)
-  const saveItem = async (value: string, options?: { id?: string; textSelector?: string }): Promise<LaterBoxItem> => {
+  // Save Item (URL, text, or file attachments)
+  const saveItem = async (
+    value: string,
+    options?: { id?: string; textSelector?: string; files?: File[] }
+  ): Promise<LaterBoxItem> => {
     const trimmed = value.trim();
-    if (!trimmed) {
-      throw new Error('Paste a URL or some text to save.');
+    const files = options?.files || [];
+
+    if (!trimmed && files.length === 0) {
+      throw new Error('Enter a URL, some text, or upload an attachment.');
     }
 
-    const isLink = isUrl(trimmed);
+    const isLink = files.length === 0 && isUrl(trimmed);
     const normalizedUrl = isLink ? normalizeUrl(trimmed) : null;
-    const textContent = isLink ? null : trimmed;
+    const textContent = isLink ? null : trimmed || null;
     const now = new Date().toISOString();
     const itemId = options?.id || crypto.randomUUID();
 
-    // Deduplication check: do not add if identical URL or text exists in inbox
-    const existing = items.find(
-      (i) =>
-        i.status === 'inbox' &&
-        !i.deleted_at &&
-        ((normalizedUrl && i.url === normalizedUrl) || (textContent && i.text_content === textContent))
-    );
+    // Deduplication check: do not add if identical URL or text exists in inbox (and no files)
+    if (files.length === 0) {
+      const existing = items.find(
+        (i) =>
+          i.status === 'inbox' &&
+          !i.deleted_at &&
+          ((normalizedUrl && i.url === normalizedUrl) || (textContent && i.text_content === textContent))
+      );
 
-    if (existing) {
-      return existing;
+      if (existing) {
+        return existing;
+      }
     }
 
     const domain = normalizedUrl ? extractDomain(normalizedUrl) : null;
+    const defaultTitle = files.length > 0
+      ? files[0].name
+      : domain || textContent?.slice(0, 60) || 'New Capture';
+
+    const itemType = files.length > 0 ? 'file' : isLink ? 'link' : 'text';
 
     const newItem: LaterBoxItem = {
       id: itemId,
       user_id: user?.id || null,
       url: normalizedUrl,
-      title: domain || textContent?.slice(0, 60) || 'New Capture',
+      title: defaultTitle,
       text_content: textContent,
       text_selector: options?.textSelector || null,
-      type: isLink ? 'link' : 'text',
+      type: itemType,
       favorite: false,
       status: 'inbox',
       created_at: now,
       updated_at: now,
+      attachments: [],
       metadata: isLink
         ? {
             item_id: itemId,
@@ -229,6 +243,20 @@ export function ItemProvider({ children }: { children: ReactNode }) {
           }
         : null,
     };
+
+    // Upload files if provided
+    let uploadedAttachments: Attachment[] = [];
+    if (files.length > 0 && user) {
+      try {
+        const uploadPromises = files.map((file) =>
+          uploadAttachmentFile(file, itemId, user.id)
+        );
+        uploadedAttachments = await Promise.all(uploadPromises);
+        newItem.attachments = uploadedAttachments;
+      } catch (err) {
+        console.warn('[LaterBox] Attachment upload warning:', err);
+      }
+    }
 
     const updated = [newItem, ...items];
     setItems(updated);
