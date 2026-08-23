@@ -54,8 +54,8 @@ export function FilterBar() {
             onClick={() => setActiveFilter(type)}
             className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all duration-150 shrink-0 select-none ${
               isActive
-                ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-sm'
-                : 'bg-zinc-100 dark:bg-zinc-800/70 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200/70 dark:hover:bg-zinc-700/70 hover:text-zinc-900 dark:hover:text-zinc-200'
+                ? 'bg-zinc-900 text-white shadow-sm'
+                : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200/70 hover:text-zinc-900'
             }`}
           >
             {icon}
@@ -63,8 +63,8 @@ export function FilterBar() {
             <span
               className={`px-1.5 py-0.2 rounded-md text-[10px] font-mono font-medium ${
                 isActive
-                  ? 'bg-zinc-700 text-zinc-200 dark:bg-zinc-200 dark:text-zinc-800'
-                  : 'bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300'
+                  ? 'bg-zinc-700 text-zinc-200'
+                  : 'bg-zinc-200 text-zinc-600'
               }`}
             >
               {count}
