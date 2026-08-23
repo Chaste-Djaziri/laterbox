@@ -52,9 +52,12 @@ class _ItemCardState extends ConsumerState<ItemCard> {
         : widget.item.metadata?.description?.trim();
     final faviconUrl = widget.item.metadata?.faviconUrl;
     final coverUrl = widget.item.metadata?.previewImageUrl;
-    final attachments = ref.watch(attachmentsForItemProvider(widget.item.id)).value;
+    final isFile = widget.item.type == 'file';
+    final attachments = isFile
+        ? ref.watch(attachmentsForItemProvider(widget.item.id)).value
+        : null;
     final hasAttachments = attachments != null && attachments.isNotEmpty;
-    final attachmentStorage = !kIsWeb
+    final attachmentStorage = isFile && !kIsWeb
         ? ref.watch(attachmentStorageProvider).value
         : null;
     final previewAttachment = attachments?.firstOrNull;
