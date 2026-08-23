@@ -52,7 +52,6 @@ class _ItemCardState extends ConsumerState<ItemCard> {
         : widget.item.metadata?.description?.trim();
     final faviconUrl = widget.item.metadata?.faviconUrl;
     final coverUrl = widget.item.metadata?.previewImageUrl;
-    final isFile = widget.item.type == 'file';
     final attachments = isFile
         ? ref.watch(attachmentsForItemProvider(widget.item.id)).value
         : null;
