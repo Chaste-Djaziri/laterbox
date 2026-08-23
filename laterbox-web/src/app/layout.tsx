@@ -4,7 +4,7 @@ import { AuthProvider } from '@/lib/store/AuthContext';
 import { ItemProvider } from '@/lib/store/ItemContext';
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://laterbox.app'),
+  metadataBase: new URL('https://laterbox.micorp.pro'),
   title: {
     default: 'laterbox - Save anything now. Read, watch & organize later.',
     template: '%s | laterbox',
@@ -29,7 +29,7 @@ export const metadata: Metadata = {
     title: 'laterbox - Save anything now. Read, watch & organize later.',
     description:
       'Universal save-for-later memory app. Save articles, YouTube videos, tweets, notes and PDFs across Web, Desktop, iOS, Android, and Browser Extensions.',
-    url: 'https://laterbox.app',
+    url: 'https://laterbox.micorp.pro',
     siteName: 'laterbox',
     images: [
       {
