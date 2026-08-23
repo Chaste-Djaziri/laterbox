@@ -266,38 +266,42 @@ export default function DownloadPage() {
           {selectedPlatform === 'macos' && (
             <div className="space-y-4">
               <div className="flex flex-wrap items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => triggerDownload('laterbox-macos-apple-silicon.dmg')}
+                <a
+                  href="/api/download/laterbox-macos-apple-silicon.dmg"
+                  download="laterbox-macos-apple-silicon.dmg"
+                  onClick={() => setDownloadingFile('laterbox-macos-apple-silicon.dmg')}
                   className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-[#171711] hover:bg-[#282723] text-white text-xs font-bold shadow-xs transition-all cursor-pointer"
                 >
                   <Apple className="w-4 h-4" />
                   <span>Download for Apple Silicon (.dmg)</span>
-                </button>
+                </a>
 
-                <button
-                  type="button"
-                  onClick={() => triggerDownload('laterbox-macos-intel.dmg')}
+                <a
+                  href="/api/download/laterbox-macos-intel.dmg"
+                  download="laterbox-macos-intel.dmg"
+                  onClick={() => setDownloadingFile('laterbox-macos-intel.dmg')}
                   className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-white hover:bg-[#ebe7dc] border border-[#e4e0d5] text-[#171711] text-xs font-bold transition-all cursor-pointer"
                 >
                   <span>Download for Intel (.dmg)</span>
-                </button>
+                </a>
 
-                <button
-                  type="button"
-                  onClick={() => triggerDownload('laterbox-macos-installer.pkg')}
+                <a
+                  href="/api/download/laterbox-macos-installer.pkg"
+                  download="laterbox-macos-installer.pkg"
+                  onClick={() => setDownloadingFile('laterbox-macos-installer.pkg')}
                   className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-full bg-[#ebe7dc] hover:bg-[#e0dbc9] text-[#171711] text-xs font-bold transition-all cursor-pointer"
                 >
                   <span>macOS Installer (.pkg)</span>
-                </button>
+                </a>
 
-                <button
-                  type="button"
-                  onClick={() => triggerDownload('laterbox-macos-universal.zip')}
+                <a
+                  href="/api/download/laterbox-macos-universal.zip"
+                  download="laterbox-macos-universal.zip"
+                  onClick={() => setDownloadingFile('laterbox-macos-universal.zip')}
                   className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-full bg-[#ebe7dc] hover:bg-[#e0dbc9] text-[#171711] text-xs font-bold transition-all cursor-pointer"
                 >
                   <span>Universal (.zip)</span>
-                </button>
+                </a>
               </div>
 
               <div className="text-[11px] text-[#6c6b63]">
@@ -310,14 +314,15 @@ export default function DownloadPage() {
           {selectedPlatform === 'ios' && (
             <div className="space-y-4">
               <div className="flex flex-wrap items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => triggerDownload('laterbox-ios.ipa')}
+                <a
+                  href="/api/download/laterbox-ios.ipa"
+                  download="laterbox-ios.ipa"
+                  onClick={() => setDownloadingFile('laterbox-ios.ipa')}
                   className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-[#171711] hover:bg-[#282723] text-white text-xs font-bold shadow-xs transition-all cursor-pointer"
                 >
                   <Apple className="w-4 h-4 text-[#E7FF57]" />
                   <span>Download iOS App (.ipa)</span>
-                </button>
+                </a>
 
                 <a
                   href="https://testflight.apple.com/join/Gwk1yArJ"
@@ -344,23 +349,25 @@ export default function DownloadPage() {
           {selectedPlatform === 'android' && (
             <div className="space-y-4">
               <div className="flex flex-wrap items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => triggerDownload('laterbox-android-release.apk')}
+                <a
+                  href="/api/download/laterbox-android-release.apk"
+                  download="laterbox-android-release.apk"
+                  onClick={() => setDownloadingFile('laterbox-android-release.apk')}
                   className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-[#171711] hover:bg-[#282723] text-white text-xs font-bold shadow-xs transition-all cursor-pointer"
                 >
                   <Smartphone className="w-4 h-4 text-[#E7FF57]" />
                   <span>Download Release APK (.apk)</span>
-                </button>
+                </a>
 
-                <button
-                  type="button"
-                  onClick={() => triggerDownload('laterbox-android.apk')}
+                <a
+                  href="/api/download/laterbox-android.apk"
+                  download="laterbox-android.apk"
+                  onClick={() => setDownloadingFile('laterbox-android.apk')}
                   className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-white hover:bg-[#ebe7dc] border border-[#e4e0d5] text-[#171711] text-xs font-bold transition-all cursor-pointer"
                 >
                   <Smartphone className="w-4 h-4" />
                   <span>Standard APK (.apk)</span>
-                </button>
+                </a>
 
                 <button
                   type="button"
@@ -382,22 +389,24 @@ export default function DownloadPage() {
           {selectedPlatform === 'windows' && (
             <div className="space-y-4">
               <div className="flex flex-wrap items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => triggerDownload('laterbox-windows-setup.exe')}
+                <a
+                  href="/api/download/laterbox-windows-setup.exe"
+                  download="laterbox-windows-setup.exe"
+                  onClick={() => setDownloadingFile('laterbox-windows-setup.exe')}
                   className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-[#171711] hover:bg-[#282723] text-white text-xs font-bold shadow-xs transition-all cursor-pointer"
                 >
                   <Laptop className="w-4 h-4" />
                   <span>Download for Windows x64 (.exe)</span>
-                </button>
+                </a>
 
-                <button
-                  type="button"
-                  onClick={() => triggerDownload('laterbox-windows-x64.zip')}
+                <a
+                  href="/api/download/laterbox-windows-x64.zip"
+                  download="laterbox-windows-x64.zip"
+                  onClick={() => setDownloadingFile('laterbox-windows-x64.zip')}
                   className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-white hover:bg-[#ebe7dc] border border-[#e4e0d5] text-[#171711] text-xs font-bold transition-all cursor-pointer"
                 >
                   <span>Portable (.zip)</span>
-                </button>
+                </a>
               </div>
 
               <div className="text-[11px] text-[#6c6b63]">
@@ -410,22 +419,24 @@ export default function DownloadPage() {
           {selectedPlatform === 'linux' && (
             <div className="space-y-4">
               <div className="flex flex-wrap items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => triggerDownload('laterbox-linux-x64.tar.gz')}
+                <a
+                  href="/api/download/laterbox-linux-x64.tar.gz"
+                  download="laterbox-linux-x64.tar.gz"
+                  onClick={() => setDownloadingFile('laterbox-linux-x64.tar.gz')}
                   className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-[#171711] hover:bg-[#282723] text-white text-xs font-bold shadow-xs transition-all cursor-pointer"
                 >
                   <Terminal className="w-4 h-4" />
                   <span>Download for Linux x64 (.tar.gz)</span>
-                </button>
+                </a>
 
-                <button
-                  type="button"
-                  onClick={() => triggerDownload('laterbox-linux-x64.zip')}
+                <a
+                  href="/api/download/laterbox-linux-x64.zip"
+                  download="laterbox-linux-x64.zip"
+                  onClick={() => setDownloadingFile('laterbox-linux-x64.zip')}
                   className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-white hover:bg-[#ebe7dc] border border-[#e4e0d5] text-[#171711] text-xs font-bold transition-all cursor-pointer"
                 >
                   <span>Portable (.zip)</span>
-                </button>
+                </a>
               </div>
 
               <div className="text-[11px] text-[#6c6b63]">
@@ -438,31 +449,34 @@ export default function DownloadPage() {
           {selectedPlatform === 'extensions' && (
             <div className="space-y-4">
               <div className="flex flex-wrap items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => triggerDownload('laterbox-chrome-extension.zip')}
+                <a
+                  href="/api/download/laterbox-chrome-extension.zip"
+                  download="laterbox-chrome-extension.zip"
+                  onClick={() => setDownloadingFile('laterbox-chrome-extension.zip')}
                   className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-[#171711] hover:bg-[#282723] text-white text-xs font-bold shadow-xs transition-all cursor-pointer"
                 >
                   <Puzzle className="w-4 h-4" />
                   <span>Chrome / Chromium (.zip)</span>
-                </button>
+                </a>
 
-                <button
-                  type="button"
-                  onClick={() => triggerDownload('laterbox-firefox-extension.zip')}
+                <a
+                  href="/api/download/laterbox-firefox-extension.zip"
+                  download="laterbox-firefox-extension.zip"
+                  onClick={() => setDownloadingFile('laterbox-firefox-extension.zip')}
                   className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-white hover:bg-[#ebe7dc] border border-[#e4e0d5] text-[#171711] text-xs font-bold transition-all cursor-pointer"
                 >
                   <span>Firefox (.zip)</span>
-                </button>
+                </a>
 
-                <button
-                  type="button"
-                  onClick={() => triggerDownload('laterbox-safari-extension.zip')}
+                <a
+                  href="/api/download/laterbox-safari-extension.zip"
+                  download="laterbox-safari-extension.zip"
+                  onClick={() => setDownloadingFile('laterbox-safari-extension.zip')}
                   className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-white hover:bg-[#ebe7dc] border border-[#e4e0d5] text-[#171711] text-xs font-bold transition-all cursor-pointer"
                 >
                   <Apple className="w-4 h-4" />
                   <span>Safari (.zip)</span>
-                </button>
+                </a>
               </div>
 
               <div className="text-[11px] text-[#6c6b63]">
@@ -552,14 +566,15 @@ export default function DownloadPage() {
                   1-click capture popup, keyboard shortcut (⌘+Shift+S), and right-click context menu.
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={() => triggerDownload('laterbox-chrome-extension.zip')}
+              <a
+                href="/api/download/laterbox-chrome-extension.zip"
+                download="laterbox-chrome-extension.zip"
+                onClick={() => setDownloadingFile('laterbox-chrome-extension.zip')}
                 className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#171711] hover:bg-[#282723] text-white text-xs font-bold shadow-2xs transition-all cursor-pointer"
               >
                 <Download className="w-3.5 h-3.5" />
                 <span>Chrome Extension (.zip)</span>
-              </button>
+              </a>
             </div>
 
             <div className="p-5 rounded-3xl bg-white border border-[#e4e0d5] space-y-3 flex flex-col justify-between">
@@ -577,14 +592,15 @@ export default function DownloadPage() {
                   Native Firefox add-on with quick capture sheet and auto-sync with your web dashboard.
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={() => triggerDownload('laterbox-firefox-extension.zip')}
+              <a
+                href="/api/download/laterbox-firefox-extension.zip"
+                download="laterbox-firefox-extension.zip"
+                onClick={() => setDownloadingFile('laterbox-firefox-extension.zip')}
                 className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-white hover:bg-[#ebe7dc] border border-[#e4e0d5] text-[#171711] text-xs font-bold transition-all cursor-pointer"
               >
                 <Download className="w-3.5 h-3.5" />
                 <span>Firefox Extension (.zip)</span>
-              </button>
+              </a>
             </div>
 
             <div className="p-5 rounded-3xl bg-white border border-[#e4e0d5] space-y-3 flex flex-col justify-between">
@@ -602,14 +618,15 @@ export default function DownloadPage() {
                   Safari Web Extension bundle for macOS and iOS Safari toolbar & sidepanel.
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={() => triggerDownload('laterbox-safari-extension.zip')}
+              <a
+                href="/api/download/laterbox-safari-extension.zip"
+                download="laterbox-safari-extension.zip"
+                onClick={() => setDownloadingFile('laterbox-safari-extension.zip')}
                 className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-white hover:bg-[#ebe7dc] border border-[#e4e0d5] text-[#171711] text-xs font-bold transition-all cursor-pointer"
               >
                 <Download className="w-3.5 h-3.5" />
                 <span>Safari Extension (.zip)</span>
-              </button>
+              </a>
             </div>
           </div>
         </section>
@@ -723,10 +740,11 @@ export default function DownloadPage() {
                             : undefined;
 
                           return (
-                            <button
+                            <a
                               key={asset.name}
-                              type="button"
-                              onClick={() => triggerDownload(asset.name, asset.browser_download_url)}
+                              href={`/api/download/${encodeURIComponent(asset.name)}`}
+                              download={asset.name}
+                              onClick={() => setDownloadingFile(asset.name)}
                               className="flex items-center justify-between p-3 rounded-2xl bg-white hover:bg-[#f7f5ee] border border-[#e4e0d5] hover:border-[#171711] transition-all group/item shadow-2xs text-left cursor-pointer w-full"
                             >
                               <div className="flex items-center gap-2.5 min-w-0 pr-2">
@@ -747,7 +765,7 @@ export default function DownloadPage() {
                               <span className="text-[10px] font-bold text-[#6c6b63] group-hover/item:text-[#171711] shrink-0 font-mono">
                                 Get
                               </span>
-                            </button>
+                            </a>
                           );
                         })}
                       </div>
