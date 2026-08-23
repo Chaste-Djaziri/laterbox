@@ -139,8 +139,8 @@ export default function DownloadPage() {
 
   const cliSnippet =
     selectedPlatform === 'windows'
-      ? 'irm https://laterbox.micorp.pro/install.ps1 | iex'
-      : 'curl -fsSL https://laterbox.micorp.pro/install.sh | bash';
+      ? 'irm https://laterbox.dev/install.ps1 | iex'
+      : 'curl -fsSL https://laterbox.dev/install.sh | bash';
 
   return (
     <AppShell>
