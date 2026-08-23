@@ -111,194 +111,205 @@ class _QuickCaptureFieldState extends State<QuickCaptureField> {
     final hasText = widget.controller.text.isNotEmpty;
     final hasFiles = widget.selectedFiles.isNotEmpty;
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Header Bar
-          Row(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SingleChildScrollView(
+          physics: const ClampingScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
-                Icons.quickreply_rounded,
-                size: 18,
-                color: theme.colorScheme.primary,
-              ),
-              const SizedBox(width: 8),
-              Flexible(
-                child: Text(
-                  'laterbox quick capture',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.labelLarge?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -0.2,
-                  ),
-                ),
-              ),
-              const Spacer(),
-              // Paste Button
-              IconButton(
-                onPressed: _pasteFromClipboard,
-                tooltip: 'Paste from clipboard',
-                icon: const Icon(Icons.content_paste_rounded, size: 16),
-                style: IconButton.styleFrom(
-                  padding: const EdgeInsets.all(6),
-                  visualDensity: VisualDensity.compact,
-                ),
-              ),
-              // Attach Files Button
-              IconButton(
-                onPressed: widget.onPickAttachments,
-                tooltip: 'Attach images, PDFs or documents',
-                icon: const Icon(Icons.attach_file_rounded, size: 16),
-                style: IconButton.styleFrom(
-                  padding: const EdgeInsets.all(6),
-                  visualDensity: VisualDensity.compact,
-                ),
-              ),
-              const SizedBox(width: 4),
-              Text(
-                defaultTargetPlatform == TargetPlatform.windows
-                    ? 'Ctrl+Enter'
-                    : '⌘↵',
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: theme.colorScheme.outline,
-                ),
-              ),
-              const SizedBox(width: 8),
-              FilledButton.icon(
-                onPressed: (hasText || hasFiles) && !widget.isSaving
-                    ? widget.onSave
-                    : null,
-                icon: widget.isSaving
-                    ? const SizedBox(
-                        width: 12,
-                        height: 12,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : const Icon(Icons.check_rounded, size: 14),
-                label: Text(widget.isSaving ? 'Saving…' : 'Save'),
-                style: FilledButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 6,
-                  ),
-                  minimumSize: const Size(0, 32),
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  visualDensity: VisualDensity.compact,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(100),
-                  ),
-                ),
-              ),
-            ],
-          ),
-
-          if (sourceLabel != null) ...[
-            const SizedBox(height: 6),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.primary.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
+              // Header Bar
+              Row(
                 children: [
                   Icon(
-                    Icons.touch_app_rounded,
-                    size: 13,
+                    Icons.quickreply_rounded,
+                    size: 18,
                     color: theme.colorScheme.primary,
                   ),
-                  const SizedBox(width: 6),
+                  const SizedBox(width: 8),
                   Flexible(
                     child: Text(
-                      'Selected from $sourceLabel',
+                      'laterbox quick capture',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: theme.colorScheme.primary,
-                        fontWeight: FontWeight.w700,
+                      style: theme.textTheme.labelLarge?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.2,
+                      ),
+                    ),
+                  ),
+                  const Spacer(),
+                  // Paste Button
+                  IconButton(
+                    onPressed: _pasteFromClipboard,
+                    tooltip: 'Paste from clipboard',
+                    icon: const Icon(Icons.content_paste_rounded, size: 16),
+                    style: IconButton.styleFrom(
+                      padding: const EdgeInsets.all(6),
+                      visualDensity: VisualDensity.compact,
+                    ),
+                  ),
+                  // Attach Files Button
+                  IconButton(
+                    onPressed: widget.onPickAttachments,
+                    tooltip: 'Attach images, PDFs or documents',
+                    icon: const Icon(Icons.attach_file_rounded, size: 16),
+                    style: IconButton.styleFrom(
+                      padding: const EdgeInsets.all(6),
+                      visualDensity: VisualDensity.compact,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    defaultTargetPlatform == TargetPlatform.windows
+                        ? 'Ctrl+Enter'
+                        : '⌘↵',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.outline,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  FilledButton.icon(
+                    onPressed: (hasText || hasFiles) && !widget.isSaving
+                        ? widget.onSave
+                        : null,
+                    icon: widget.isSaving
+                        ? const SizedBox(
+                            width: 12,
+                            height: 12,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : const Icon(Icons.check_rounded, size: 14),
+                    label: Text(widget.isSaving ? 'Saving…' : 'Save'),
+                    style: FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 6,
+                      ),
+                      minimumSize: const Size(0, 32),
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      visualDensity: VisualDensity.compact,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(100),
                       ),
                     ),
                   ),
                 ],
               ),
-            ),
-          ],
 
-          const SizedBox(height: 8),
-
-          // Main Text Input with clear button
-          Stack(
-            alignment: Alignment.topRight,
-            children: [
-              TextField(
-                controller: widget.controller,
-                focusNode: _focusNode,
-                minLines: 2,
-                maxLines: 4,
-                keyboardType: TextInputType.multiline,
-                autocorrect: false,
-                enableSuggestions: false,
-                decoration: InputDecoration(
-                  hintText: 'Paste a link, note, or attach files…',
-                  border: const OutlineInputBorder(),
-                  isDense: true,
-                  contentPadding: EdgeInsets.fromLTRB(
-                    12,
-                    10,
-                    hasText ? 36 : 12,
-                    10,
+              if (sourceLabel != null) ...[
+                const SizedBox(height: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primary.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.touch_app_rounded,
+                        size: 13,
+                        color: theme.colorScheme.primary,
+                      ),
+                      const SizedBox(width: 6),
+                      Flexible(
+                        child: Text(
+                          'Selected from $sourceLabel',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: theme.colorScheme.primary,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                onChanged: widget.onChanged,
+              ],
+
+              const SizedBox(height: 8),
+
+              // Main Text Input with clear button
+              Stack(
+                alignment: Alignment.topRight,
+                children: [
+                  TextField(
+                    controller: widget.controller,
+                    focusNode: _focusNode,
+                    minLines: 2,
+                    maxLines: 4,
+                    keyboardType: TextInputType.multiline,
+                    autocorrect: false,
+                    enableSuggestions: false,
+                    decoration: InputDecoration(
+                      hintText: 'Paste a link, note, or attach files…',
+                      border: const OutlineInputBorder(),
+                      isDense: true,
+                      contentPadding: EdgeInsets.fromLTRB(
+                        12,
+                        10,
+                        hasText ? 36 : 12,
+                        10,
+                      ),
+                    ),
+                    onChanged: widget.onChanged,
+                  ),
+                  if (hasText)
+                    Positioned(
+                      top: 4,
+                      right: 4,
+                      child: IconButton(
+                        onPressed: () {
+                          widget.controller.clear();
+                          widget.onChanged('');
+                          _focusNode.requestFocus();
+                        },
+                        tooltip: 'Clear text',
+                        icon: const Icon(Icons.close_rounded, size: 16),
+                        style: IconButton.styleFrom(
+                          padding: const EdgeInsets.all(4),
+                          visualDensity: VisualDensity.compact,
+                        ),
+                      ),
+                    ),
+                ],
               ),
-              if (hasText)
-                Positioned(
-                  top: 4,
-                  right: 4,
-                  child: IconButton(
-                    onPressed: () {
-                      widget.controller.clear();
-                      widget.onChanged('');
-                      _focusNode.requestFocus();
-                    },
-                    tooltip: 'Clear text',
-                    icon: const Icon(Icons.close_rounded, size: 16),
-                    style: IconButton.styleFrom(
-                      padding: const EdgeInsets.all(4),
-                      visualDensity: VisualDensity.compact,
+
+              // Selected Attachment Chips (scrollable if many)
+              if (widget.selectedFiles.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxHeight: 72),
+                  child: SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    child: Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: [
+                        for (var i = 0; i < widget.selectedFiles.length; i++)
+                          _AttachmentChip(
+                            file: widget.selectedFiles[i],
+                            icon: _getFileIcon(widget.selectedFiles[i].name),
+                            formattedSize: _formatFileSize(widget.selectedFiles[i].size),
+                            onDelete: () => widget.onRemoveAttachment(i),
+                          ),
+                      ],
                     ),
                   ),
                 ),
+              ],
             ],
           ),
-
-          // Selected Attachment Chips
-          if (widget.selectedFiles.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 6,
-              runSpacing: 6,
-              children: [
-                for (var i = 0; i < widget.selectedFiles.length; i++)
-                  _AttachmentChip(
-                    file: widget.selectedFiles[i],
-                    icon: _getFileIcon(widget.selectedFiles[i].name),
-                    formattedSize: _formatFileSize(widget.selectedFiles[i].size),
-                    onDelete: () => widget.onRemoveAttachment(i),
-                  ),
-              ],
-            ),
-          ],
-        ],
-      ),
+        );
+      },
     );
   }
 }
