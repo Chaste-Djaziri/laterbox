@@ -2,7 +2,7 @@
 ; Creates a standalone Windows installer for Laterbox
 
 #define AppName "Laterbox"
-#define AppVersion "1.0.7"
+#define AppVersion "1.0.8"
 #define AppPublisher "Laterbox"
 #define AppURL "https://laterbox.dev"
 #define AppExeName "laterbox.exe"
