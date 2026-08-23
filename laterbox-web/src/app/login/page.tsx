@@ -1,189 +1,193 @@
 'use client';
 
 import React, { useState } from 'react';
-import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/store/AuthContext';
-import { Mail, Lock, Sparkles, Compass, AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
+import { Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
 
 export default function LoginPage() {
   const router = useRouter();
-  const { signInWithOtp, signInWithPassword, signUpWithPassword, continueAsGuest } = useAuth();
+  const { signInWithPassword, signUpWithPassword, continueAsGuest } = useAuth();
 
-  const [mode, setMode] = useState<'otp' | 'password' | 'signup'>('otp');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [loadingAction, setLoadingAction] = useState<'signin' | 'create' | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email.trim()) return;
+  const handleSignIn = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!email.trim() || !password) {
+      setError('Please enter your email and password.');
+      return;
+    }
 
-    setLoading(true);
+    setLoadingAction('signin');
     setError(null);
     setMessage(null);
 
     try {
-      if (mode === 'otp') {
-        const { error: err } = await signInWithOtp(email.trim());
-        if (err) throw err;
-        setMessage('Magic login link sent! Check your email to sign in.');
-      } else if (mode === 'password') {
-        const { error: err } = await signInWithPassword(email.trim(), password);
-        if (err) throw err;
-        router.push('/inbox');
-      } else if (mode === 'signup') {
-        const { error: err } = await signUpWithPassword(email.trim(), password);
-        if (err) throw err;
-        setMessage('Account created! Check your email to confirm your account.');
+      const { error: err } = await signInWithPassword(email.trim(), password);
+      if (err) {
+        throw err;
       }
+      router.push('/inbox');
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Authentication failed. Please check your credentials.');
+      setError(err instanceof Error ? err.message : 'Invalid login credentials.');
     } finally {
-      setLoading(false);
+      setLoadingAction(null);
     }
   };
 
-  const handleGuest = () => {
+  const handleCreateAccount = async () => {
+    if (!email.trim() || !password) {
+      setError('Please enter your email and password to create an account.');
+      return;
+    }
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters long.');
+      return;
+    }
+
+    setLoadingAction('create');
+    setError(null);
+    setMessage(null);
+
+    try {
+      const { error: err } = await signUpWithPassword(email.trim(), password);
+      if (err) {
+        // If user already registered, automatically attempt sign in
+        if (
+          err.message.toLowerCase().includes('already registered') ||
+          err.message.toLowerCase().includes('already exists')
+        ) {
+          const { error: signInErr } = await signInWithPassword(email.trim(), password);
+          if (!signInErr) {
+            router.push('/inbox');
+            return;
+          }
+        }
+        throw err;
+      }
+
+      // Check if session was established directly or confirmation is pending
+      setMessage('Account created! Please check your email to confirm, or sign in.');
+      router.push('/inbox');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Could not create account. Please try again.');
+    } finally {
+      setLoadingAction(null);
+    }
+  };
+
+  const handleContinueWithoutAccount = () => {
     continueAsGuest();
     router.push('/inbox');
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 sm:p-6 bg-zinc-50 text-zinc-900">
-      <div className="w-full max-w-md bg-white rounded-3xl p-7 sm:p-9 shadow-2xl border border-zinc-200/80 space-y-7">
-        {/* Header */}
-        <div className="text-center space-y-2">
-          <Link href="/" className="inline-block">
-            <div className="w-12 h-12 mx-auto relative rounded-2xl overflow-hidden shadow-sm">
-              <Image src="/branding/laterbox-icon.png" alt="laterbox" fill className="object-contain" priority />
-            </div>
-          </Link>
-          <h1 className="text-2xl font-black tracking-tight text-zinc-900">
-            {mode === 'signup' ? 'Create your account' : 'Welcome to laterbox'}
-          </h1>
-          <p className="text-xs sm:text-sm text-zinc-500">
-            {mode === 'otp'
-              ? 'Enter your email for a passwordless sign-in link'
-              : mode === 'password'
-              ? 'Sign in with your email and password'
-              : 'Sign up to sync your captures across all devices'}
-          </p>
+    <main className="min-h-screen bg-[#f7f5ee] flex flex-col items-center justify-center p-6 text-[#181816] selection:bg-zinc-900 selection:text-white">
+      <div className="w-full max-w-[420px] flex flex-col items-center text-center">
+        {/* Brand Logo */}
+        <div className="relative mb-3 flex items-center justify-center">
+          <Image
+            src="/branding/laterbox-logo.png"
+            alt="laterbox"
+            width={200}
+            height={48}
+            className="h-10 sm:h-11 w-auto object-contain"
+            priority
+          />
         </div>
 
-        {/* Alerts */}
+        {/* Subtitle / Tagline */}
+        <p className="text-[15px] text-[#6b6961] font-normal tracking-normal mb-8">
+          Put it here. Find it later.
+        </p>
+
+        {/* Feedback Alerts */}
         {error && (
-          <div className="p-3.5 rounded-2xl bg-red-50 border border-red-200 text-red-600 text-xs font-semibold flex items-center gap-2">
+          <div className="w-full mb-4 p-3.5 rounded-[16px] bg-red-50/90 border border-red-200 text-red-700 text-xs font-semibold flex items-center gap-2 text-left animate-in fade-in">
             <AlertCircle className="w-4 h-4 shrink-0" />
             <span>{error}</span>
           </div>
         )}
 
         {message && (
-          <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-semibold flex items-center gap-2">
-            <CheckCircle className="w-4 h-4 shrink-0" />
+          <div className="w-full mb-4 p-3.5 rounded-[16px] bg-emerald-50/90 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center gap-2 text-left animate-in fade-in">
+            <CheckCircle2 className="w-4 h-4 shrink-0" />
             <span>{message}</span>
           </div>
         )}
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Auth Form */}
+        <form onSubmit={handleSignIn} className="w-full space-y-3.5">
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-zinc-500 mb-1.5">
-              Email Address
-            </label>
-            <div className="relative">
-              <Mail className="w-4 h-4 text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
-                className="w-full pl-10 pr-4 py-2.5 text-sm bg-zinc-50 border border-zinc-200 rounded-xl text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              />
-            </div>
+            <input
+              type="email"
+              autoComplete="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Email"
+              className="w-full h-14 px-5 bg-white border border-[#e5e1d7] rounded-[18px] text-[15px] text-[#181816] placeholder:text-[#9e9b92] focus:outline-none focus:ring-2 focus:ring-zinc-900/10 focus:border-zinc-500 transition-all font-normal"
+            />
           </div>
 
-          {(mode === 'password' || mode === 'signup') && (
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-zinc-500 mb-1.5">
-                Password
-              </label>
-              <div className="relative">
-                <Lock className="w-4 h-4 text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                <input
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full pl-10 pr-4 py-2.5 text-sm bg-zinc-50 border border-zinc-200 rounded-xl text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                />
-              </div>
-            </div>
-          )}
+          <div>
+            <input
+              type="password"
+              autoComplete="current-password"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Password"
+              className="w-full h-14 px-5 bg-white border border-[#e5e1d7] rounded-[18px] text-[15px] text-[#181816] placeholder:text-[#9e9b92] focus:outline-none focus:ring-2 focus:ring-zinc-900/10 focus:border-zinc-500 transition-all font-normal"
+            />
+          </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full inline-flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 disabled:opacity-50 text-white font-extrabold text-sm shadow-md transition-all"
-          >
-            {loading ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                <span>Processing…</span>
-              </>
-            ) : mode === 'otp' ? (
-              <>
-                <Sparkles className="w-4 h-4" />
-                <span>Send Magic Link</span>
-              </>
-            ) : mode === 'signup' ? (
-              <span>Create Account</span>
-            ) : (
-              <span>Sign In</span>
-            )}
-          </button>
+          {/* Sign In Button */}
+          <div className="pt-1.5 space-y-3">
+            <button
+              type="submit"
+              disabled={loadingAction !== null}
+              className="w-full h-14 bg-[#181816] hover:bg-[#282723] active:bg-[#0f0f0e] text-white font-bold text-[15px] rounded-[18px] shadow-sm transition-all duration-150 flex items-center justify-center disabled:opacity-60 cursor-pointer"
+            >
+              {loadingAction === 'signin' ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : (
+                'Sign In'
+              )}
+            </button>
+
+            {/* Create Account Button */}
+            <button
+              type="button"
+              onClick={handleCreateAccount}
+              disabled={loadingAction !== null}
+              className="w-full h-14 bg-[#f2efe6]/80 hover:bg-[#ede9dc] active:bg-[#e6e2d4] border border-[#e5e1d7] text-[#181816] font-medium text-[15px] rounded-[18px] transition-all duration-150 flex items-center justify-center disabled:opacity-60 cursor-pointer"
+            >
+              {loadingAction === 'create' ? (
+                <Loader2 className="w-5 h-5 animate-spin text-[#181816]" />
+              ) : (
+                'Create account'
+              )}
+            </button>
+          </div>
+
+          {/* Continue without account */}
+          <div className="pt-2">
+            <button
+              type="button"
+              onClick={handleContinueWithoutAccount}
+              className="text-[14px] text-[#181816] hover:text-black font-normal transition-colors cursor-pointer py-1"
+            >
+              Continue without account
+            </button>
+          </div>
         </form>
-
-        {/* Mode Toggles */}
-        <div className="flex items-center justify-center gap-4 text-xs font-bold text-zinc-500">
-          {mode === 'otp' ? (
-            <button onClick={() => setMode('password')} className="hover:text-emerald-600">
-              Sign in with password
-            </button>
-          ) : (
-            <button onClick={() => setMode('otp')} className="hover:text-emerald-600">
-              Sign in with magic link
-            </button>
-          )}
-          <span>•</span>
-          {mode === 'signup' ? (
-            <button onClick={() => setMode('otp')} className="hover:text-emerald-600">
-              Already have an account? Sign in
-            </button>
-          ) : (
-            <button onClick={() => setMode('signup')} className="hover:text-emerald-600">
-              Create an account
-            </button>
-          )}
-        </div>
-
-        {/* Guest Mode Divider */}
-        <div className="pt-2 border-t border-zinc-200/80 space-y-3">
-          <button
-            onClick={handleGuest}
-            className="w-full inline-flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-zinc-100 hover:bg-zinc-200 text-zinc-700 font-bold text-xs transition-all"
-          >
-            <Compass className="w-4 h-4 text-zinc-500" />
-            <span>Continue as Guest (No account required)</span>
-          </button>
-        </div>
       </div>
-    </div>
+    </main>
   );
 }
