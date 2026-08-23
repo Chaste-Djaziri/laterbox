@@ -44,31 +44,31 @@ export function ItemCard({ item }: ItemCardProps) {
     switch (contentType) {
       case 'video':
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-red-50 text-red-600">
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-[#fee2e2] text-[#b91c1c]">
             <PlayCircle className="w-3 h-3" /> Video
           </span>
         );
       case 'music':
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-600">
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-[#ecfdf5] text-[#047857]">
             <Music2 className="w-3 h-3" /> Music
           </span>
         );
       case 'article':
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-blue-50 text-blue-600">
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-[#e6edb0] text-[#171711]">
             <FileText className="w-3 h-3" /> Article
           </span>
         );
       case 'note':
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-amber-50 text-amber-600">
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-[#fef3c7] text-[#b45309]">
             <StickyNote className="w-3 h-3" /> Note
           </span>
         );
       default:
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-zinc-100 text-zinc-600">
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-[#ebe7dc] text-[#6c6b63]">
             <Link2 className="w-3 h-3" /> Link
           </span>
         );
@@ -76,10 +76,10 @@ export function ItemCard({ item }: ItemCardProps) {
   };
 
   return (
-    <div className="group relative flex flex-col justify-between rounded-3xl bg-white border border-zinc-200/80 hover:border-emerald-500/40 hover:shadow-xl transition-all duration-300 overflow-hidden">
+    <div className="group relative flex flex-col justify-between rounded-3xl bg-white border border-[#e4e0d5] hover:border-[#cfdb84] hover:shadow-md transition-all duration-200 overflow-hidden">
       {/* Top Media Preview */}
       {previewImage && !imgError && (
-        <Link href={`/item/${item.id}`} className="relative w-full aspect-video overflow-hidden bg-zinc-100 block">
+        <Link href={`/item/${item.id}`} className="relative w-full aspect-video overflow-hidden bg-[#ebe7dc]/50 block">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={previewImage}
@@ -109,7 +109,7 @@ export function ItemCard({ item }: ItemCardProps) {
                 />
               ) : null}
               {domain && (
-                <span className="text-xs font-semibold text-zinc-500 truncate">
+                <span className="text-xs font-semibold text-[#6c6b63] truncate">
                   {domain}
                 </span>
               )}
@@ -118,22 +118,22 @@ export function ItemCard({ item }: ItemCardProps) {
           </div>
 
           {/* Title */}
-          <Link href={`/item/${item.id}`} className="block group-hover:text-emerald-600 transition-colors">
-            <h3 className="text-base font-extrabold text-zinc-900 line-clamp-2 leading-snug tracking-tight mb-1.5">
+          <Link href={`/item/${item.id}`} className="block group-hover:text-[#171711] transition-colors">
+            <h3 className="text-base font-extrabold text-[#171711] line-clamp-2 leading-snug tracking-tight mb-1.5">
               {title}
             </h3>
           </Link>
 
           {/* Description / Text Content */}
           {description && (
-            <p className="text-xs text-zinc-500 line-clamp-2 leading-relaxed mb-3">
+            <p className="text-xs text-[#6c6b63] line-clamp-2 leading-relaxed mb-3">
               {description}
             </p>
           )}
 
           {/* Highlighted Quote Indicator */}
           {item.url && item.text_content && (
-            <div className="flex items-center gap-1.5 p-2 rounded-xl bg-amber-50/70 text-amber-800 text-[11px] font-medium mb-3 border border-amber-200/50">
+            <div className="flex items-center gap-1.5 p-2 rounded-xl bg-[#fef3c7]/60 text-[#b45309] text-[11px] font-medium mb-3 border border-[#fde68a]">
               <Quote className="w-3.5 h-3.5 shrink-0" />
               <span className="truncate italic">"{item.text_content}"</span>
             </div>
@@ -141,8 +141,8 @@ export function ItemCard({ item }: ItemCardProps) {
         </div>
 
         {/* Card Footer Actions */}
-        <div className="pt-3 mt-3 border-t border-zinc-100 flex items-center justify-between">
-          <span className="text-[11px] font-medium text-zinc-400">
+        <div className="pt-3 mt-3 border-t border-[#e4e0d5]/70 flex items-center justify-between">
+          <span className="text-[11px] font-medium text-[#9e9b92]">
             {timeAgo}
           </span>
 
@@ -151,10 +151,10 @@ export function ItemCard({ item }: ItemCardProps) {
             <button
               onClick={() => setFavorite(item.id, !item.favorite)}
               title={item.favorite ? 'Unstar' : 'Star'}
-              className={`p-1.5 rounded-xl transition-colors ${
+              className={`p-1.5 rounded-xl transition-colors cursor-pointer ${
                 item.favorite
                   ? 'text-amber-500 hover:bg-amber-50'
-                  : 'text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100'
+                  : 'text-[#9e9b92] hover:text-[#171711] hover:bg-[#ebe7dc]/60'
               }`}
             >
               <Star className={`w-4 h-4 ${item.favorite ? 'fill-amber-500' : ''}`} />
@@ -165,7 +165,7 @@ export function ItemCard({ item }: ItemCardProps) {
               <button
                 onClick={() => keepItem(item.id)}
                 title="Mark as Kept / Seen"
-                className="p-1.5 rounded-xl text-zinc-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors"
+                className="p-1.5 rounded-xl text-[#9e9b92] hover:text-[#171711] hover:bg-[#e6edb0] transition-colors cursor-pointer"
               >
                 <CheckCircle className="w-4 h-4" />
               </button>
@@ -173,7 +173,7 @@ export function ItemCard({ item }: ItemCardProps) {
               <button
                 onClick={() => archiveItem(item.id)}
                 title="Archive"
-                className="p-1.5 rounded-xl text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 transition-colors"
+                className="p-1.5 rounded-xl text-[#9e9b92] hover:text-[#171711] hover:bg-[#ebe7dc]/60 transition-colors cursor-pointer"
               >
                 <Archive className="w-4 h-4" />
               </button>
@@ -181,9 +181,9 @@ export function ItemCard({ item }: ItemCardProps) {
               <button
                 onClick={() => markUnseen(item.id)}
                 title="Move back to Inbox"
-                className="p-1.5 rounded-xl text-zinc-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors"
+                className="p-1.5 rounded-xl text-[#9e9b92] hover:text-[#171711] hover:bg-[#e6edb0] transition-colors cursor-pointer"
               >
-                <CheckCircle className="w-4 h-4 text-emerald-500" />
+                <CheckCircle className="w-4 h-4 text-[#171711]" />
               </button>
             )}
 
@@ -194,7 +194,7 @@ export function ItemCard({ item }: ItemCardProps) {
                 target="_blank"
                 rel="noreferrer"
                 title="Open Source Link"
-                className="p-1.5 rounded-xl text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 transition-colors"
+                className="p-1.5 rounded-xl text-[#9e9b92] hover:text-[#171711] hover:bg-[#ebe7dc]/60 transition-colors"
               >
                 <ExternalLink className="w-4 h-4" />
               </a>
@@ -204,7 +204,7 @@ export function ItemCard({ item }: ItemCardProps) {
             <div className="relative">
               <button
                 onClick={() => setMenuOpen(!menuOpen)}
-                className="p-1.5 rounded-xl text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 transition-colors"
+                className="p-1.5 rounded-xl text-[#9e9b92] hover:text-[#171711] hover:bg-[#ebe7dc]/60 transition-colors cursor-pointer"
               >
                 <MoreVertical className="w-4 h-4" />
               </button>
@@ -212,10 +212,10 @@ export function ItemCard({ item }: ItemCardProps) {
               {menuOpen && (
                 <>
                   <div className="fixed inset-0 z-20" onClick={() => setMenuOpen(false)} />
-                  <div className="absolute right-0 bottom-full mb-2 w-40 rounded-2xl bg-white shadow-xl border border-zinc-200 py-1.5 z-30 animate-in fade-in zoom-in-95 duration-150">
+                  <div className="absolute right-0 bottom-full mb-2 w-40 rounded-2xl bg-white shadow-xl border border-[#e4e0d5] py-1.5 z-30 animate-in fade-in zoom-in-95 duration-150">
                     <Link
                       href={`/item/${item.id}`}
-                      className="w-full text-left px-3.5 py-2 text-xs font-semibold text-zinc-700 hover:bg-zinc-100 block"
+                      className="w-full text-left px-3.5 py-2 text-xs font-semibold text-[#171711] hover:bg-[#ebe7dc]/60 block"
                       onClick={() => setMenuOpen(false)}
                     >
                       View Details & Notes
@@ -225,7 +225,7 @@ export function ItemCard({ item }: ItemCardProps) {
                         setMenuOpen(false);
                         deleteItem(item.id);
                       }}
-                      className="w-full text-left px-3.5 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 flex items-center gap-2"
+                      className="w-full text-left px-3.5 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 flex items-center gap-2 cursor-pointer"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                       Delete Item
