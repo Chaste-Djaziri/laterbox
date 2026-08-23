@@ -5,7 +5,7 @@ import { ItemProvider } from '@/lib/store/ItemContext';
 import { WebUpdateBanner } from '@/components/ui/WebUpdateBanner';
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://laterbox.micorp.pro'),
+  metadataBase: new URL('https://laterbox.dev'),
   title: {
     default: 'laterbox - Save anything now. Read, watch & organize later.',
     template: '%s | laterbox',
@@ -30,7 +30,7 @@ export const metadata: Metadata = {
     title: 'laterbox - Save anything now. Read, watch & organize later.',
     description:
       'Universal save-for-later memory app. Save articles, YouTube videos, tweets, notes and PDFs across Web, Desktop, iOS, Android, and Browser Extensions.',
-    url: 'https://laterbox.micorp.pro',
+    url: 'https://laterbox.dev',
     siteName: 'laterbox',
     images: [
       {
