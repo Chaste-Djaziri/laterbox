@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useAuth } from '@/lib/store/AuthContext';
@@ -8,13 +8,40 @@ import { Bolt, LogIn } from 'lucide-react';
 
 export function Header() {
   const { user, continueAsGuest } = useAuth();
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 20) {
+        setIsScrolled(true);
+      } else {
+        setIsScrolled(false);
+      }
+    };
+
+    handleScroll();
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   return (
-    <div className="sticky top-3 sm:top-5 z-40 w-full px-3.5 sm:px-6 lg:px-8 max-w-6xl mx-auto pointer-events-none transition-all duration-300">
-      <header className="pointer-events-auto bg-white/90 backdrop-blur-xl border border-[#e4e0d5] shadow-lg shadow-black/[0.03] rounded-2xl sm:rounded-3xl px-4 sm:px-6 py-3 sm:py-3.5 flex items-center justify-between transition-all">
+    <div
+      className={`sticky z-40 w-full transition-all duration-300 ${
+        isScrolled
+          ? 'top-3 sm:top-4 px-3.5 sm:px-6 lg:px-8 max-w-6xl mx-auto pointer-events-none'
+          : 'top-0 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto pointer-events-auto bg-transparent'
+      }`}
+    >
+      <header
+        className={`w-full flex items-center justify-between transition-all duration-300 ${
+          isScrolled
+            ? 'pointer-events-auto bg-white/90 backdrop-blur-xl border border-[#e4e0d5] shadow-lg shadow-black/[0.03] rounded-2xl sm:rounded-3xl px-4 sm:px-6 py-2.5 sm:py-3'
+            : 'bg-transparent border-b border-transparent py-5 sm:py-6'
+        }`}
+      >
         {/* Brand Logo */}
         <Link href="/" className="flex items-center gap-3 group">
-          <div className="w-[40px] h-[40px] relative rounded-xl overflow-hidden shadow-xs transition-transform group-hover:scale-105 bg-[#e6edb0] p-1.5 shrink-0">
+          <div className="w-[42px] h-[42px] relative rounded-xl overflow-hidden shadow-xs transition-transform group-hover:scale-105 bg-[#e6edb0] p-1.5 shrink-0">
             <Image
               src="/branding/laterbox-icon.png"
               alt="laterbox"
