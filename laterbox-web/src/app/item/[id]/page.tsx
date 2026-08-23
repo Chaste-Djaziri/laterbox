@@ -32,11 +32,11 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
     return (
       <AppShell>
         <div className="max-w-4xl mx-auto px-4 py-16 text-center space-y-4">
-          <h2 className="text-xl font-bold text-zinc-900">Item Not Found</h2>
-          <p className="text-sm text-zinc-500">The item you are looking for does not exist or was deleted.</p>
+          <h2 className="text-xl font-bold text-[#171711]">Item Not Found</h2>
+          <p className="text-sm text-[#6c6b63]">The item you are looking for does not exist or was deleted.</p>
           <Link
             href="/inbox"
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 text-white text-xs font-bold"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#171711] text-white text-xs font-bold"
           >
             <ArrowLeft className="w-4 h-4" />
             <span>Return to Inbox</span>
@@ -77,7 +77,7 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
         <div className="flex items-center justify-between gap-4">
           <Link
             href="/inbox"
-            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold text-zinc-600 hover:bg-zinc-100 transition-colors"
+            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold text-[#6c6b63] hover:text-[#171711] hover:bg-[#ebe7dc]/60 transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
             <span>Back</span>
@@ -88,10 +88,10 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
             <button
               onClick={() => setFavorite(item.id, !item.favorite)}
               title={item.favorite ? 'Unstar' : 'Star'}
-              className={`p-2 rounded-xl transition-colors ${
+              className={`p-2 rounded-xl transition-colors cursor-pointer ${
                 item.favorite
                   ? 'text-amber-500 hover:bg-amber-50'
-                  : 'text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100'
+                  : 'text-[#9e9b92] hover:text-[#171711] hover:bg-[#ebe7dc]/60'
               }`}
             >
               <Star className={`w-5 h-5 ${item.favorite ? 'fill-amber-500' : ''}`} />
@@ -102,7 +102,7 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
               <button
                 onClick={() => keepItem(item.id)}
                 title="Mark as Kept"
-                className="p-2 rounded-xl text-zinc-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors"
+                className="p-2 rounded-xl text-[#9e9b92] hover:text-[#171711] hover:bg-[#e6edb0] transition-colors cursor-pointer"
               >
                 <CheckCircle className="w-5 h-5" />
               </button>
@@ -110,7 +110,7 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
               <button
                 onClick={() => archiveItem(item.id)}
                 title="Archive"
-                className="p-2 rounded-xl text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 transition-colors"
+                className="p-2 rounded-xl text-[#9e9b92] hover:text-[#171711] hover:bg-[#ebe7dc]/60 transition-colors cursor-pointer"
               >
                 <Archive className="w-5 h-5" />
               </button>
@@ -118,9 +118,9 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
               <button
                 onClick={() => markUnseen(item.id)}
                 title="Move back to Inbox"
-                className="p-2 rounded-xl text-zinc-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors"
+                className="p-2 rounded-xl text-[#9e9b92] hover:text-[#171711] hover:bg-[#e6edb0] transition-colors cursor-pointer"
               >
-                <CheckCircle className="w-5 h-5 text-emerald-500" />
+                <CheckCircle className="w-5 h-5 text-[#171711]" />
               </button>
             )}
 
@@ -129,7 +129,7 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
               <button
                 onClick={handleCopyLink}
                 title="Copy Link"
-                className="p-2 rounded-xl text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 transition-colors"
+                className="p-2 rounded-xl text-[#9e9b92] hover:text-[#171711] hover:bg-[#ebe7dc]/60 transition-colors cursor-pointer"
               >
                 <Copy className="w-5 h-5" />
               </button>
@@ -142,7 +142,7 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
                 target="_blank"
                 rel="noreferrer"
                 title="Open Source in New Tab"
-                className="p-2 rounded-xl text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 transition-colors"
+                className="p-2 rounded-xl text-[#9e9b92] hover:text-[#171711] hover:bg-[#ebe7dc]/60 transition-colors"
               >
                 <ExternalLink className="w-5 h-5" />
               </a>
@@ -152,7 +152,7 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
             <button
               onClick={handleDelete}
               title="Delete Item"
-              className="p-2 rounded-xl text-zinc-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+              className="p-2 rounded-xl text-[#9e9b92] hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
             >
               <Trash2 className="w-5 h-5" />
             </button>
@@ -160,9 +160,9 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
         </div>
 
         {/* Main Item Card */}
-        <article className="p-6 sm:p-8 rounded-3xl bg-white border border-zinc-200/80 shadow-sm space-y-6">
+        <article className="p-6 sm:p-8 rounded-3xl bg-white border border-[#e4e0d5] shadow-xs space-y-6">
           {/* Metadata Top Bar */}
-          <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-zinc-400">
+          <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-[#9e9b92]">
             <div className="flex items-center gap-2">
               {item.metadata?.favicon_url ? (
                 /* eslint-disable-next-line @next/next/no-img-element */
@@ -175,9 +175,9 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
                   }}
                 />
               ) : (
-                <Link2 className="w-4 h-4 text-zinc-400" />
+                <Link2 className="w-4 h-4 text-[#9e9b92]" />
               )}
-              {domain && <span className="font-bold text-zinc-700">{domain}</span>}
+              {domain && <span className="font-bold text-[#171711]">{domain}</span>}
               {domain && <span>•</span>}
               <div className="flex items-center gap-1">
                 <Clock className="w-3.5 h-3.5" />
@@ -186,14 +186,14 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
             </div>
 
             {item.metadata?.content_type && (
-              <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-zinc-100 text-zinc-700">
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-[#ebe7dc] text-[#171711]">
                 {item.metadata.content_type}
               </span>
             )}
           </div>
 
           {/* Title */}
-          <h1 className="text-2xl sm:text-3xl font-black text-zinc-900 tracking-tight leading-snug">
+          <h1 className="text-2xl sm:text-3xl font-black text-[#171711] tracking-tight leading-snug">
             {title}
           </h1>
 
@@ -202,7 +202,7 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
 
           {/* Preview Image if not embedded media */}
           {previewImage && !item.url?.includes('youtube.com') && !item.url?.includes('spotify.com') && (
-            <div className="w-full aspect-video rounded-2xl overflow-hidden bg-zinc-100 border border-zinc-200">
+            <div className="w-full aspect-video rounded-2xl overflow-hidden bg-[#ebe7dc]/50 border border-[#e4e0d5]">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={previewImage} alt={title} className="w-full h-full object-cover" />
             </div>
@@ -210,8 +210,8 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
 
           {/* Highlighted Quote Fragment */}
           {item.url && item.text_content && (
-            <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200/80 text-amber-900 space-y-2">
-              <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-amber-700">
+            <div className="p-4 rounded-2xl bg-[#fef3c7]/60 border border-[#fde68a] text-[#b45309] space-y-2">
+              <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#b45309]">
                 <Quote className="w-4 h-4" />
                 <span>Captured Highlight</span>
               </div>
@@ -224,7 +224,7 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
                     href={destinationUrl}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-800 hover:underline"
+                    className="inline-flex items-center gap-1.5 text-xs font-bold text-[#b45309] hover:underline"
                   >
                     <span>View in source context</span>
                     <ExternalLink className="w-3.5 h-3.5" />
@@ -236,20 +236,20 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
 
           {/* Description or Text Content */}
           {description && (!item.url || description !== item.text_content) && (
-            <div className="text-sm sm:text-base text-zinc-600 leading-relaxed space-y-3 font-normal">
+            <div className="text-sm sm:text-base text-[#6c6b63] leading-relaxed space-y-3 font-normal">
               <p>{description}</p>
             </div>
           )}
 
           {/* Source Link Bar */}
           {item.url && (
-            <div className="pt-4 border-t border-zinc-100 flex items-center justify-between">
-              <span className="text-xs text-zinc-400 truncate max-w-sm sm:max-w-md">{item.url}</span>
+            <div className="pt-4 border-t border-[#e4e0d5]/70 flex items-center justify-between">
+              <span className="text-xs text-[#9e9b92] truncate max-w-sm sm:max-w-md">{item.url}</span>
               <a
                 href={destinationUrl || item.url}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-zinc-100 hover:bg-zinc-200 text-xs font-bold text-zinc-800 transition-colors"
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#ebe7dc] hover:bg-[#e0dbc9] text-xs font-bold text-[#171711] transition-colors"
               >
                 <span>Open Source</span>
                 <ExternalLink className="w-3.5 h-3.5" />
