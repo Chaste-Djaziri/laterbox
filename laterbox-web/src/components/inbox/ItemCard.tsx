@@ -37,7 +37,7 @@ function formatBytes(bytes?: number): string {
 }
 
 function getFileIcon(filename: string, mime?: string) {
-  const ext = filename.split('.').lastItem || filename.split('.').pop()?.toLowerCase() || '';
+  const ext = filename.split('.').pop()?.toLowerCase() || '';
   if (mime?.startsWith('image/') || ['jpg', 'jpeg', 'png', 'gif', 'webp', 'heic', 'svg'].includes(ext)) {
     return <ImageIcon className="w-3.5 h-3.5 text-blue-600" />;
   }
