@@ -54,11 +54,11 @@ export function NoteEditor({ itemId, initialContent }: NoteEditorProps) {
   };
 
   return (
-    <div className="rounded-2xl bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200/80 dark:border-zinc-800 p-4 sm:p-5 my-4 transition-all">
+    <div className="rounded-2xl bg-zinc-50 border border-zinc-200/80 p-4 sm:p-5 my-4 transition-all">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <StickyNote className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-          <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-700 dark:text-zinc-300">Personal Note</h3>
+          <StickyNote className="w-4 h-4 text-emerald-600" />
+          <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-700">Personal Note</h3>
         </div>
 
         <div className="flex items-center gap-2">
@@ -69,7 +69,7 @@ export function NoteEditor({ itemId, initialContent }: NoteEditorProps) {
             </span>
           )}
           {saved && !saving && (
-            <span className="inline-flex items-center gap-1 text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold animate-in fade-in">
+            <span className="inline-flex items-center gap-1 text-[11px] text-emerald-600 font-semibold animate-in fade-in">
               <Check className="w-3 h-3" />
               Saved
             </span>
@@ -78,7 +78,7 @@ export function NoteEditor({ itemId, initialContent }: NoteEditorProps) {
             <button
               onClick={handleClear}
               title="Delete Note"
-              className="p-1 text-zinc-400 hover:text-red-500 rounded-lg hover:bg-zinc-200/50 dark:hover:bg-zinc-800 transition-colors"
+              className="p-1 text-zinc-400 hover:text-red-500 rounded-lg hover:bg-zinc-200/50 transition-colors"
             >
               <Trash2 className="w-3.5 h-3.5" />
             </button>
@@ -91,7 +91,7 @@ export function NoteEditor({ itemId, initialContent }: NoteEditorProps) {
         onChange={handleChange}
         placeholder="Add thoughts, key quotes, or action items..."
         rows={4}
-        className="w-full bg-white dark:bg-zinc-950 border border-zinc-200/80 dark:border-zinc-800/80 rounded-xl p-3 text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/80 focus:border-transparent transition-all resize-none leading-relaxed"
+        className="w-full bg-white border border-zinc-200/80 rounded-xl p-3 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/80 focus:border-transparent transition-all resize-none leading-relaxed"
       />
     </div>
   );
