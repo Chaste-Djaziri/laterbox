@@ -1,7 +1,6 @@
 'use client';
 
-import React from 'react';
-import Link from 'next/link';
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { LaterBoxItem } from '@/lib/supabase/types';
 import { useItems } from '@/lib/store/ItemContext';
@@ -9,6 +8,8 @@ import { formatTimeAgo, extractDomain, buildTextFragmentUrl } from '@/lib/utils/
 import {
   Star,
   CheckCircle,
+  Archive,
+  Inbox,
   ExternalLink,
   Trash2,
   FileText,
@@ -17,11 +18,19 @@ import {
   StickyNote,
   Link2,
   Paperclip,
+  FolderPlus,
+  Copy,
+  Check,
+  MoreVertical,
 } from 'lucide-react';
+import { AddToCollectionModal } from '../collections/AddToCollectionModal';
 
 export function ItemListRow({ item }: { item: LaterBoxItem }) {
   const router = useRouter();
-  const { setFavorite, keepItem, deleteItem } = useItems();
+  const { setFavorite, keepItem, archiveItem, markUnseen, deleteItem } = useItems();
+  const [collectionModalOpen, setCollectionModalOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const attachments = item.attachments || [];
   const hasAttachments = attachments.length > 0;
@@ -57,100 +66,274 @@ export function ItemListRow({ item }: { item: LaterBoxItem }) {
     router.push(`/item/${item.id}`);
   };
 
-  return (
-    <div
-      onClick={handleRowClick}
-      className="group flex items-center justify-between gap-4 p-3.5 sm:p-4 rounded-2xl bg-white border border-[#e4e0d5] hover:border-[#cfdb84] hover:shadow-xs transition-all cursor-pointer"
-    >
-      <div className="flex items-center gap-3.5 min-w-0 flex-1">
-        {item.metadata?.favicon_url ? (
-          /* eslint-disable-next-line @next/next/no-img-element */
-          <img
-            src={item.metadata.favicon_url}
-            alt=""
-            className="w-5 h-5 rounded-xs object-contain shrink-0"
-            onError={(e) => {
-              (e.target as HTMLElement).style.display = 'none';
-            }}
-          />
-        ) : (
-          renderIcon()
-        )}
+  const handleCopy = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const textToCopy = item.url || item.text_content || title;
+    navigator.clipboard.writeText(textToCopy);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+    setMenuOpen(false);
+  };
 
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <h4 className="text-sm font-bold text-[#171711] group-hover:text-black truncate tracking-tight">
-              {title}
-            </h4>
-            {hasAttachments && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.2 rounded-full text-[10px] font-bold bg-[#e0f2fe] text-[#0369a1] shrink-0">
-                <Paperclip className="w-2.5 h-2.5" />
-                <span>{attachments.length}</span>
-              </span>
-            )}
+  return (
+    <>
+      <div
+        onClick={handleRowClick}
+        className="group flex items-center justify-between gap-4 p-3.5 sm:p-4 rounded-2xl bg-white border border-[#e4e0d5] hover:border-[#cfdb84] hover:shadow-xs transition-all cursor-pointer"
+      >
+        <div className="flex items-center gap-3.5 min-w-0 flex-1">
+          {item.metadata?.favicon_url ? (
+            /* eslint-disable-next-line @next/next/no-img-element */
+            <img
+              src={item.metadata.favicon_url}
+              alt=""
+              className="w-5 h-5 rounded-xs object-contain shrink-0"
+              onError={(e) => {
+                (e.target as HTMLElement).style.display = 'none';
+              }}
+            />
+          ) : (
+            renderIcon()
+          )}
+
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <h4 className="text-sm font-bold text-[#171711] group-hover:text-black truncate tracking-tight">
+                {title}
+              </h4>
+              {hasAttachments && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.2 rounded-full text-[10px] font-bold bg-[#e0f2fe] text-[#0369a1] shrink-0">
+                  <Paperclip className="w-2.5 h-2.5" />
+                  <span>{attachments.length}</span>
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-2 mt-0.5 text-xs text-[#9e9b92]">
+              {domain && <span className="font-semibold text-[#6c6b63]">{domain}</span>}
+              {domain && <span>•</span>}
+              <span>{timeAgo}</span>
+            </div>
           </div>
-          <div className="flex items-center gap-2 mt-0.5 text-xs text-[#9e9b92]">
-            {domain && <span className="font-semibold text-[#6c6b63]">{domain}</span>}
-            {domain && <span>•</span>}
-            <span>{timeAgo}</span>
+        </div>
+
+        <div
+          className="flex items-center gap-1 shrink-0"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Star Button */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setFavorite(item.id, !item.favorite);
+            }}
+            title={item.favorite ? 'Unstar' : 'Star'}
+            className={`p-1.5 rounded-xl transition-colors cursor-pointer ${
+              item.favorite
+                ? 'text-amber-500 hover:bg-amber-50'
+                : 'text-[#9e9b92] hover:text-[#171711] hover:bg-[#ebe7dc]/60'
+            }`}
+          >
+            <Star className={`w-4 h-4 ${item.favorite ? 'fill-amber-500' : ''}`} />
+          </button>
+
+          {/* Status Actions: Keep / Archive / Inbox */}
+          {item.status === 'inbox' ? (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                keepItem(item.id);
+              }}
+              title="Keep in Library"
+              className="p-1.5 rounded-xl text-[#9e9b92] hover:text-[#171711] hover:bg-[#e6edb0] transition-colors cursor-pointer"
+            >
+              <CheckCircle className="w-4 h-4" />
+            </button>
+          ) : item.status === 'saved' ? (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                archiveItem(item.id);
+              }}
+              title="Archive"
+              className="p-1.5 rounded-xl text-[#9e9b92] hover:text-[#171711] hover:bg-[#ebe7dc]/60 transition-colors cursor-pointer"
+            >
+              <Archive className="w-4 h-4" />
+            </button>
+          ) : (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                markUnseen(item.id);
+              }}
+              title="Move back to Inbox"
+              className="p-1.5 rounded-xl text-[#9e9b92] hover:text-[#171711] hover:bg-[#e6edb0] transition-colors cursor-pointer"
+            >
+              <CheckCircle className="w-4 h-4 text-[#171711]" />
+            </button>
+          )}
+
+          {/* Add to Collection Button */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setCollectionModalOpen(true);
+            }}
+            title="Add to Collection"
+            className="p-1.5 rounded-xl text-[#9e9b92] hover:text-[#171711] hover:bg-[#ebe7dc]/60 transition-colors cursor-pointer"
+          >
+            <FolderPlus className="w-4 h-4" />
+          </button>
+
+          {/* External URL Link */}
+          {item.url && (
+            <a
+              href={destinationUrl}
+              target="_blank"
+              rel="noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              title="Open Link"
+              className="p-1.5 rounded-xl text-[#9e9b92] hover:text-[#171711] hover:bg-[#ebe7dc]/60 transition-colors"
+            >
+              <ExternalLink className="w-4 h-4" />
+            </a>
+          )}
+
+          {/* Dropdown Menu */}
+          <div className="relative">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setMenuOpen(!menuOpen);
+              }}
+              className="p-1.5 rounded-xl text-[#9e9b92] hover:text-[#171711] hover:bg-[#ebe7dc]/60 transition-colors cursor-pointer"
+            >
+              <MoreVertical className="w-4 h-4" />
+            </button>
+
+            {menuOpen && (
+              <>
+                <div
+                  className="fixed inset-0 z-10"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setMenuOpen(false);
+                  }}
+                />
+                <div
+                  className="absolute right-0 bottom-full mb-1 z-20 w-48 rounded-2xl bg-white border border-[#e4e0d5] shadow-xl py-1.5 text-xs font-semibold animate-in fade-in"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {/* Keep / Status action in menu */}
+                  {item.status === 'inbox' ? (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setMenuOpen(false);
+                        keepItem(item.id);
+                      }}
+                      className="w-full flex items-center gap-2.5 px-3.5 py-2 text-[#171711] hover:bg-[#ebe7dc]/50 transition-colors text-left cursor-pointer"
+                    >
+                      <CheckCircle className="w-3.5 h-3.5 text-[#171711]" />
+                      <span>Keep in Library</span>
+                    </button>
+                  ) : item.status === 'saved' ? (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setMenuOpen(false);
+                        archiveItem(item.id);
+                      }}
+                      className="w-full flex items-center gap-2.5 px-3.5 py-2 text-[#171711] hover:bg-[#ebe7dc]/50 transition-colors text-left cursor-pointer"
+                    >
+                      <Archive className="w-3.5 h-3.5 text-[#6c6b63]" />
+                      <span>Archive</span>
+                    </button>
+                  ) : (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setMenuOpen(false);
+                        markUnseen(item.id);
+                      }}
+                      className="w-full flex items-center gap-2.5 px-3.5 py-2 text-[#171711] hover:bg-[#ebe7dc]/50 transition-colors text-left cursor-pointer"
+                    >
+                      <Inbox className="w-3.5 h-3.5 text-[#171711]" />
+                      <span>Move to Inbox</span>
+                    </button>
+                  )}
+
+                  {/* Add to Collection in menu */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setMenuOpen(false);
+                      setCollectionModalOpen(true);
+                    }}
+                    className="w-full flex items-center gap-2.5 px-3.5 py-2 text-[#171711] hover:bg-[#ebe7dc]/50 transition-colors text-left cursor-pointer"
+                  >
+                    <FolderPlus className="w-3.5 h-3.5 text-[#0369a1]" />
+                    <span>Add to Collection…</span>
+                  </button>
+
+                  {/* Copy Link / Content */}
+                  <button
+                    onClick={handleCopy}
+                    className="w-full flex items-center gap-2.5 px-3.5 py-2 text-[#171711] hover:bg-[#ebe7dc]/50 transition-colors text-left cursor-pointer"
+                  >
+                    {copied ? (
+                      <>
+                        <Check className="w-3.5 h-3.5 text-emerald-600" />
+                        <span className="text-emerald-600">Copied!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3.5 h-3.5 text-[#6c6b63]" />
+                        <span>Copy {item.url ? 'Link' : 'Text'}</span>
+                      </>
+                    )}
+                  </button>
+
+                  {/* View Details */}
+                  <button
+                    onClick={() => {
+                      setMenuOpen(false);
+                      router.push(`/item/${item.id}`);
+                    }}
+                    className="w-full flex items-center gap-2.5 px-3.5 py-2 text-[#171711] hover:bg-[#ebe7dc]/50 transition-colors text-left cursor-pointer"
+                  >
+                    <FileText className="w-3.5 h-3.5 text-[#6c6b63]" />
+                    <span>View Details</span>
+                  </button>
+
+                  <div className="my-1 border-t border-[#e4e0d5]" />
+
+                  {/* Delete */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setMenuOpen(false);
+                      if (confirm('Delete this item?')) {
+                        deleteItem(item.id);
+                      }
+                    }}
+                    className="w-full flex items-center gap-2.5 px-3.5 py-2 text-red-600 hover:bg-red-50 transition-colors text-left cursor-pointer"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Delete</span>
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>
 
-      <div
-        className="flex items-center gap-1 shrink-0"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            setFavorite(item.id, !item.favorite);
-          }}
-          title={item.favorite ? 'Unstar' : 'Star'}
-          className={`p-1.5 rounded-xl transition-colors cursor-pointer ${
-            item.favorite
-              ? 'text-amber-500 hover:bg-amber-50'
-              : 'text-[#9e9b92] hover:text-[#171711] hover:bg-[#ebe7dc]/60'
-          }`}
-        >
-          <Star className={`w-4 h-4 ${item.favorite ? 'fill-amber-500' : ''}`} />
-        </button>
-
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            keepItem(item.id);
-          }}
-          title="Mark as Kept"
-          className="p-1.5 rounded-xl text-[#9e9b92] hover:text-[#171711] hover:bg-[#e6edb0] transition-colors cursor-pointer"
-        >
-          <CheckCircle className="w-4 h-4" />
-        </button>
-
-        {item.url && (
-          <a
-            href={destinationUrl}
-            target="_blank"
-            rel="noreferrer"
-            onClick={(e) => e.stopPropagation()}
-            title="Open Link"
-            className="p-1.5 rounded-xl text-[#9e9b92] hover:text-[#171711] hover:bg-[#ebe7dc]/60 transition-colors"
-          >
-            <ExternalLink className="w-4 h-4" />
-          </a>
-        )}
-
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            deleteItem(item.id);
-          }}
-          title="Delete"
-          className="p-1.5 rounded-xl text-[#9e9b92] hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
-        >
-          <Trash2 className="w-4 h-4" />
-        </button>
-      </div>
-    </div>
+      {/* Add To Collection Modal */}
+      <AddToCollectionModal
+        item={item}
+        isOpen={collectionModalOpen}
+        onClose={() => setCollectionModalOpen(false)}
+      />
+    </>
   );
 }
