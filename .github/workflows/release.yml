@@ -197,10 +197,11 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: Setup Android Keystore (Optional Release Signing)
+      - name: Setup Android Keystore
         if: env.ANDROID_KEYSTORE_BASE64 != ''
         shell: bash
         run: |
+          mkdir -p android/app
           echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/upload-keystore.jks
           cat <<EOF > android/key.properties
           storePassword=$ANDROID_STORE_PASSWORD
@@ -249,7 +250,7 @@ jobs:
 
       - name: Submit AAB to Google Play Internal Testing
         if: env.PLAY_STORE_SERVICE_ACCOUNT_JSON != ''
-        uses: r0adkll/upload-google-play@v1
+        uses: r0adkll/upload-google-play@v1.1.5
         with:
           serviceAccountJsonPlainText: ${{ secrets.PLAY_STORE_SERVICE_ACCOUNT_JSON }}
           packageName: pro.micorp.laterbox
@@ -276,7 +277,7 @@ jobs:
       - name: Install Dependencies
         run: flutter pub get
 
-      - name: Install Apple Certificate & Provisioning Profile (if secrets provided)
+      - name: Install Apple Certificate & Provisioning Profiles
         if: env.APPLE_CERTIFICATE_BASE64 != ''
         shell: bash
         run: |
@@ -289,39 +290,79 @@ jobs:
 
           # Decode and import Certificate
           echo "$APPLE_CERTIFICATE_BASE64" | base64 --decode > $RUNNER_TEMP/cert.p12
-          security import $RUNNER_TEMP/cert.p12 -k "$KEYCHAIN_PATH" -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
-          security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security import $RUNNER_TEMP/cert.p12 -k "$KEYCHAIN_PATH" -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign -T /usr/bin/security
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
 
-          # Decode Provisioning Profile
+          # Install Main Provisioning Profile
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-          echo "$APPLE_PROVISIONING_PROFILE_BASE64" | base64 --decode > ~/Library/MobileDevice/Provisioning\ Profiles/profile.mobileprovision
+          echo "$APPLE_PROVISIONING_PROFILE_BASE64" | base64 --decode > /tmp/main.mobileprovision
+          MAIN_UUID=$(security cms -D -i /tmp/main.mobileprovision | grep -A1 '<key>UUID</key>' | grep '<string>' | sed 's/.*<string>\(.*\)<\/string>.*/\1/')
+          if [ -n "$MAIN_UUID" ]; then
+            cp /tmp/main.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/${MAIN_UUID}.mobileprovision
+            echo "Installed main profile UUID: $MAIN_UUID"
+          else
+            cp /tmp/main.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/main.mobileprovision
+          fi
+
+          # Install Share Extension Provisioning Profile
+          if [ -n "$APPLE_SHARE_EXTENSION_PROVISIONING_PROFILE_BASE64" ]; then
+            echo "$APPLE_SHARE_EXTENSION_PROVISIONING_PROFILE_BASE64" | base64 --decode > /tmp/share.mobileprovision
+            SHARE_UUID=$(security cms -D -i /tmp/share.mobileprovision | grep -A1 '<key>UUID</key>' | grep '<string>' | sed 's/.*<string>\(.*\)<\/string>.*/\1/')
+            if [ -n "$SHARE_UUID" ]; then
+              cp /tmp/share.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/${SHARE_UUID}.mobileprovision
+              echo "Installed share extension profile UUID: $SHARE_UUID"
+            else
+              cp /tmp/share.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/share.mobileprovision
+            fi
+          fi
         env:
           APPLE_CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
           APPLE_PROVISIONING_PROFILE_BASE64: ${{ secrets.APPLE_PROVISIONING_PROFILE_BASE64 }}
+          APPLE_SHARE_EXTENSION_PROVISIONING_PROFILE_BASE64: ${{ secrets.APPLE_SHARE_EXTENSION_PROVISIONING_PROFILE_BASE64 }}
 
-      - name: Build iOS Release Bundle
-        run: flutter build ios --release --no-codesign
-
-      - name: Build Signed IPA for App Store (if certs provided)
-        if: env.APPLE_CERTIFICATE_BASE64 != ''
+      - name: Build iOS IPA
+        shell: bash
         run: |
-          flutter build ipa --release --export-options-plist=ios/ExportOptions.plist || flutter build ipa --release
+          if [ -n "${{ secrets.APPLE_CERTIFICATE_BASE64 }}" ]; then
+            flutter build ipa --release --export-options-plist=ios/ExportOptions.plist
+          else
+            flutter build ios --release --no-codesign
+          fi
 
-      - name: Upload to App Store Connect / TestFlight (if API Key provided)
+      - name: Package iOS IPA Artifact
+        shell: bash
+        run: |
+          mkdir -p dist
+          IPA_PATH=$(find build/ios -name "*.ipa" | head -n 1)
+          if [ -f "$IPA_PATH" ]; then
+            cp "$IPA_PATH" dist/laterbox-ios.ipa
+          fi
+
+      - name: Upload iOS Dist Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: laterbox-ios-dist
+          path: dist/laterbox-ios.ipa
+          if-no-files-found: warn
+
+      - name: Upload to App Store Connect / TestFlight
         if: env.APP_STORE_CONNECT_API_KEY_BASE64 != '' && env.APP_STORE_CONNECT_KEY_ID != ''
         shell: bash
         run: |
           mkdir -p ~/.appstoreconnect/private_keys
           echo "$APP_STORE_CONNECT_API_KEY_BASE64" | base64 --decode > ~/.appstoreconnect/private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8
           
-          IPA_PATH=$(find build/ios/ipa -name "*.ipa" | head -n 1)
+          IPA_PATH=$(find build/ios -name "*.ipa" | head -n 1)
           if [ -f "$IPA_PATH" ]; then
+            echo "Uploading $IPA_PATH to App Store Connect..."
             xcrun altool --upload-app \
               -f "$IPA_PATH" \
               -t ios \
               --apiKey "${{ secrets.APP_STORE_CONNECT_KEY_ID }}" \
               --apiIssuer "${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}"
+          else
+            echo "IPA not found, skipping App Store upload."
           fi
         env:
           APP_STORE_CONNECT_API_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_API_KEY_BASE64 }}
@@ -451,6 +492,13 @@ jobs:
         continue-on-error: true
         with:
           name: laterbox-android-dist
+          path: dist
+
+      - name: Download iOS Artifacts
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: laterbox-ios-dist
           path: dist
 
       - name: Download Extension Artifacts
