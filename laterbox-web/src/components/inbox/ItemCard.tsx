@@ -44,31 +44,31 @@ export function ItemCard({ item }: ItemCardProps) {
     switch (contentType) {
       case 'video':
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-red-50 text-red-600 dark:bg-red-950/60 dark:text-red-400">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-red-50 text-red-600">
             <PlayCircle className="w-3 h-3" /> Video
           </span>
         );
       case 'music':
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-600">
             <Music2 className="w-3 h-3" /> Music
           </span>
         );
       case 'article':
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-blue-50 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-blue-50 text-blue-600">
             <FileText className="w-3 h-3" /> Article
           </span>
         );
       case 'note':
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-amber-50 text-amber-600 dark:bg-amber-950/60 dark:text-amber-400">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-amber-50 text-amber-600">
             <StickyNote className="w-3 h-3" /> Note
           </span>
         );
       default:
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-zinc-100 text-zinc-600">
             <Link2 className="w-3 h-3" /> Link
           </span>
         );
@@ -76,10 +76,10 @@ export function ItemCard({ item }: ItemCardProps) {
   };
 
   return (
-    <div className="group relative flex flex-col justify-between rounded-3xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800/80 hover:border-emerald-500/40 dark:hover:border-emerald-500/40 hover:shadow-xl dark:hover:shadow-emerald-950/10 transition-all duration-300 overflow-hidden">
+    <div className="group relative flex flex-col justify-between rounded-3xl bg-white border border-zinc-200/80 hover:border-emerald-500/40 hover:shadow-xl transition-all duration-300 overflow-hidden">
       {/* Top Media Preview */}
       {previewImage && !imgError && (
-        <Link href={`/item/${item.id}`} className="relative w-full aspect-video overflow-hidden bg-zinc-100 dark:bg-zinc-950 block">
+        <Link href={`/item/${item.id}`} className="relative w-full aspect-video overflow-hidden bg-zinc-100 block">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={previewImage}
@@ -109,7 +109,7 @@ export function ItemCard({ item }: ItemCardProps) {
                 />
               ) : null}
               {domain && (
-                <span className="text-xs font-semibold text-zinc-500 dark:text-zinc-400 truncate">
+                <span className="text-xs font-semibold text-zinc-500 truncate">
                   {domain}
                 </span>
               )}
@@ -118,22 +118,22 @@ export function ItemCard({ item }: ItemCardProps) {
           </div>
 
           {/* Title */}
-          <Link href={`/item/${item.id}`} className="block group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
-            <h3 className="text-base font-extrabold text-zinc-900 dark:text-zinc-100 line-clamp-2 leading-snug tracking-tight mb-1.5">
+          <Link href={`/item/${item.id}`} className="block group-hover:text-emerald-600 transition-colors">
+            <h3 className="text-base font-extrabold text-zinc-900 line-clamp-2 leading-snug tracking-tight mb-1.5">
               {title}
             </h3>
           </Link>
 
           {/* Description / Text Content */}
           {description && (
-            <p className="text-xs text-zinc-500 dark:text-zinc-400 line-clamp-2 leading-relaxed mb-3">
+            <p className="text-xs text-zinc-500 line-clamp-2 leading-relaxed mb-3">
               {description}
             </p>
           )}
 
           {/* Highlighted Quote Indicator */}
           {item.url && item.text_content && (
-            <div className="flex items-center gap-1.5 p-2 rounded-xl bg-amber-50/70 dark:bg-amber-950/30 text-amber-800 dark:text-amber-300 text-[11px] font-medium mb-3 border border-amber-200/50 dark:border-amber-900/30">
+            <div className="flex items-center gap-1.5 p-2 rounded-xl bg-amber-50/70 text-amber-800 text-[11px] font-medium mb-3 border border-amber-200/50">
               <Quote className="w-3.5 h-3.5 shrink-0" />
               <span className="truncate italic">"{item.text_content}"</span>
             </div>
@@ -141,8 +141,8 @@ export function ItemCard({ item }: ItemCardProps) {
         </div>
 
         {/* Card Footer Actions */}
-        <div className="pt-3 mt-3 border-t border-zinc-100 dark:border-zinc-800/80 flex items-center justify-between">
-          <span className="text-[11px] font-medium text-zinc-400 dark:text-zinc-500">
+        <div className="pt-3 mt-3 border-t border-zinc-100 flex items-center justify-between">
+          <span className="text-[11px] font-medium text-zinc-400">
             {timeAgo}
           </span>
 
@@ -153,8 +153,8 @@ export function ItemCard({ item }: ItemCardProps) {
               title={item.favorite ? 'Unstar' : 'Star'}
               className={`p-1.5 rounded-xl transition-colors ${
                 item.favorite
-                  ? 'text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-950/50'
-                  : 'text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800'
+                  ? 'text-amber-500 hover:bg-amber-50'
+                  : 'text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100'
               }`}
             >
               <Star className={`w-4 h-4 ${item.favorite ? 'fill-amber-500' : ''}`} />
@@ -165,7 +165,7 @@ export function ItemCard({ item }: ItemCardProps) {
               <button
                 onClick={() => keepItem(item.id)}
                 title="Mark as Kept / Seen"
-                className="p-1.5 rounded-xl text-zinc-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-colors"
+                className="p-1.5 rounded-xl text-zinc-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors"
               >
                 <CheckCircle className="w-4 h-4" />
               </button>
@@ -173,7 +173,7 @@ export function ItemCard({ item }: ItemCardProps) {
               <button
                 onClick={() => archiveItem(item.id)}
                 title="Archive"
-                className="p-1.5 rounded-xl text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                className="p-1.5 rounded-xl text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 transition-colors"
               >
                 <Archive className="w-4 h-4" />
               </button>
@@ -181,7 +181,7 @@ export function ItemCard({ item }: ItemCardProps) {
               <button
                 onClick={() => markUnseen(item.id)}
                 title="Move back to Inbox"
-                className="p-1.5 rounded-xl text-zinc-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-colors"
+                className="p-1.5 rounded-xl text-zinc-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors"
               >
                 <CheckCircle className="w-4 h-4 text-emerald-500" />
               </button>
@@ -194,7 +194,7 @@ export function ItemCard({ item }: ItemCardProps) {
                 target="_blank"
                 rel="noreferrer"
                 title="Open Source Link"
-                className="p-1.5 rounded-xl text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                className="p-1.5 rounded-xl text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 transition-colors"
               >
                 <ExternalLink className="w-4 h-4" />
               </a>
@@ -204,7 +204,7 @@ export function ItemCard({ item }: ItemCardProps) {
             <div className="relative">
               <button
                 onClick={() => setMenuOpen(!menuOpen)}
-                className="p-1.5 rounded-xl text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                className="p-1.5 rounded-xl text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 transition-colors"
               >
                 <MoreVertical className="w-4 h-4" />
               </button>
@@ -212,10 +212,10 @@ export function ItemCard({ item }: ItemCardProps) {
               {menuOpen && (
                 <>
                   <div className="fixed inset-0 z-20" onClick={() => setMenuOpen(false)} />
-                  <div className="absolute right-0 bottom-full mb-2 w-40 rounded-2xl bg-white dark:bg-zinc-900 shadow-xl border border-zinc-200 dark:border-zinc-800 py-1.5 z-30 animate-in fade-in zoom-in-95 duration-150">
+                  <div className="absolute right-0 bottom-full mb-2 w-40 rounded-2xl bg-white shadow-xl border border-zinc-200 py-1.5 z-30 animate-in fade-in zoom-in-95 duration-150">
                     <Link
                       href={`/item/${item.id}`}
-                      className="w-full text-left px-3.5 py-2 text-xs font-semibold text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 block"
+                      className="w-full text-left px-3.5 py-2 text-xs font-semibold text-zinc-700 hover:bg-zinc-100 block"
                       onClick={() => setMenuOpen(false)}
                     >
                       View Details & Notes
@@ -225,7 +225,7 @@ export function ItemCard({ item }: ItemCardProps) {
                         setMenuOpen(false);
                         deleteItem(item.id);
                       }}
-                      className="w-full text-left px-3.5 py-2 text-xs font-semibold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 flex items-center gap-2"
+                      className="w-full text-left px-3.5 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 flex items-center gap-2"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                       Delete Item
