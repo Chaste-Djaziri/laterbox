@@ -54,16 +54,21 @@ class AttachmentCardPreview extends StatelessWidget {
                 child: Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 10,
-                    vertical: 6,
+                    vertical: 5,
                   ),
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.inverseSurface,
+                    color: Colors.black.withValues(alpha: 0.75),
                     borderRadius: BorderRadius.circular(999),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.2),
+                      width: 1,
+                    ),
                   ),
                   child: Text(
-                    '+$additionalCount',
-                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.onInverseSurface,
+                    '+$additionalCount more',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 11,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
@@ -401,9 +406,36 @@ class _LocalImage extends StatelessWidget {
     }
     final path = this.path;
     if (!kIsWeb && path != null) {
-      return Image.file(
-        File(path),
-        key: ValueKey('attachmentImage:${attachment.id}:$path'),
+      final file = File(path);
+      if (file.existsSync()) {
+        return Image.file(
+          file,
+          key: ValueKey('attachmentImage:${attachment.id}:$path'),
+          fit: fit,
+          gaplessPlayback: true,
+          semanticLabel: attachment.originalFileName,
+          errorBuilder: (context, error, stackTrace) {
+            if (remoteUrl != null) {
+              return Image.network(
+                remoteUrl!,
+                key: ValueKey('attachmentImage:${attachment.id}:remoteFallback'),
+                fit: fit,
+                gaplessPlayback: true,
+                semanticLabel: attachment.originalFileName,
+                errorBuilder: (context, error, stackTrace) =>
+                    _FilePreviewSurface(attachment: attachment, unavailable: true),
+              );
+            }
+            return _FilePreviewSurface(attachment: attachment, unavailable: true);
+          },
+        );
+      }
+    }
+    final remoteUrl = this.remoteUrl;
+    if (remoteUrl != null) {
+      return Image.network(
+        remoteUrl,
+        key: ValueKey('attachmentImage:${attachment.id}:remote'),
         fit: fit,
         gaplessPlayback: true,
         semanticLabel: attachment.originalFileName,
@@ -411,19 +443,7 @@ class _LocalImage extends StatelessWidget {
             _FilePreviewSurface(attachment: attachment, unavailable: true),
       );
     }
-    final remoteUrl = this.remoteUrl;
-    if (remoteUrl == null) {
-      return _FilePreviewSurface(attachment: attachment, unavailable: true);
-    }
-    return Image.network(
-      remoteUrl,
-      key: ValueKey('attachmentImage:${attachment.id}:remote'),
-      fit: fit,
-      gaplessPlayback: true,
-      semanticLabel: attachment.originalFileName,
-      errorBuilder: (context, error, stackTrace) =>
-          _FilePreviewSurface(attachment: attachment, unavailable: true),
-    );
+    return _FilePreviewSurface(attachment: attachment, unavailable: true);
   }
 }
 
@@ -445,6 +465,332 @@ class _FilePreviewSurface extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ext = attachment.fileExtension.toLowerCase();
+    final theme = Theme.of(context);
+    final isPdf = ext == 'pdf';
+    final isVideo = ['mp4', 'mov', 'webm', 'mkv', 'avi'].contains(ext) ||
+        attachment.mimeType.startsWith('video/');
+    final isAudio = ['mp3', 'm4a', 'wav', 'aac', 'flac', 'ogg'].contains(ext) ||
+        attachment.mimeType.startsWith('audio/');
+    final isSpreadsheet = ['xls', 'xlsx', 'csv', 'ods'].contains(ext);
+    final isCode = ['dart', 'ts', 'js', 'py', 'json', 'yaml', 'html', 'css', 'sh'].contains(ext);
+
+    if (isPdf) {
+      return Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Colors.red.shade50,
+              Colors.red.shade100,
+            ],
+          ),
+        ),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Container(
+              width: 120,
+              height: 80,
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.red.shade900.withValues(alpha: 0.08),
+                    blurRadius: 8,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+                border: Border.all(
+                  color: Colors.red.shade200,
+                  width: 1,
+                ),
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.picture_as_pdf_rounded,
+                    color: Colors.red.shade700,
+                    size: 28,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    attachment.originalFileName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.black87,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Positioned(
+              bottom: 12,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.9),
+                  borderRadius: BorderRadius.circular(999),
+                  border: Border.all(color: Colors.red.shade200),
+                ),
+                child: Text(
+                  'PDF Document · ${formatAttachmentBytes(attachment.byteSize)}',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.red.shade900,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (isVideo) {
+      return Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Colors.grey.shade900,
+              Colors.black,
+            ],
+          ),
+        ),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.9),
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.3),
+                    blurRadius: 10,
+                  ),
+                ],
+              ),
+              child: Icon(
+                Icons.play_arrow_rounded,
+                size: 36,
+                color: Colors.rose.shade700,
+              ),
+            ),
+            Positioned(
+              bottom: 12,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.6),
+                  borderRadius: BorderRadius.circular(999),
+                  border: Border.all(color: Colors.white24),
+                ),
+                child: Text(
+                  'Video · ${formatAttachmentBytes(attachment.byteSize)}',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (isAudio) {
+      return Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Colors.emerald.shade50,
+              Colors.emerald.shade100,
+            ],
+          ),
+        ),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.emerald.shade900.withValues(alpha: 0.08),
+                    blurRadius: 8,
+                  ),
+                ],
+              ),
+              child: Icon(
+                Icons.music_note_rounded,
+                size: 28,
+                color: Colors.emerald.shade700,
+              ),
+            ),
+            Positioned(
+              bottom: 12,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.9),
+                  borderRadius: BorderRadius.circular(999),
+                  border: Border.all(color: Colors.emerald.shade200),
+                ),
+                child: Text(
+                  'Audio · ${formatAttachmentBytes(attachment.byteSize)}',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.emerald.shade900,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (isSpreadsheet) {
+      return Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Colors.green.shade50,
+              Colors.green.shade100,
+            ],
+          ),
+        ),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Container(
+              width: 120,
+              height: 80,
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.green.shade200),
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.table_chart_rounded, color: Colors.green.shade700, size: 28),
+                  const SizedBox(height: 4),
+                  Text(
+                    attachment.originalFileName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700),
+                  ),
+                ],
+              ),
+            ),
+            Positioned(
+              bottom: 12,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.9),
+                  borderRadius: BorderRadius.circular(999),
+                  border: Border.all(color: Colors.green.shade200),
+                ),
+                child: Text(
+                  'Spreadsheet · ${formatAttachmentBytes(attachment.byteSize)}',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.green.shade900,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (isCode) {
+      return Container(
+        color: const Color(0xFF1E1E1E),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Container(
+              width: 120,
+              height: 80,
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: const Color(0xFF2D2D2D),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.white12),
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.code_rounded, color: Color(0xFFC084FC), size: 28),
+                  const SizedBox(height: 4),
+                  Text(
+                    attachment.originalFileName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                      fontFamily: 'monospace',
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Positioned(
+              bottom: 12,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.75),
+                  borderRadius: BorderRadius.circular(999),
+                  border: Border.all(color: Colors.white24),
+                ),
+                child: Text(
+                  '${attachment.fileExtension.toUpperCase()} Document · ${formatAttachmentBytes(attachment.byteSize)}',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     return ColoredBox(
       color: _fileColor(context, attachment),
       child: Center(
@@ -453,23 +799,22 @@ class _FilePreviewSurface extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(_fileIcon(attachment), size: 44),
-              const SizedBox(height: 12),
+              Icon(_fileIcon(attachment), size: 40),
+              const SizedBox(height: 10),
               Text(
                 attachment.originalFileName,
-                maxLines: 2,
+                maxLines: 1,
                 textAlign: TextAlign.center,
                 overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.titleMedium
-                    ?.copyWith(fontWeight: FontWeight.w800),
+                style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: 4),
               Text(
                 unavailable
                     ? 'Preview unavailable'
                     : '${_typeLabel(attachment)} · ${formatAttachmentBytes(attachment.byteSize)}',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
                 ),
               ),
             ],
