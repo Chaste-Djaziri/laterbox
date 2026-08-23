@@ -15,11 +15,9 @@ import {
   Archive,
   ExternalLink,
   Trash2,
-  Share2,
   Copy,
   Quote,
   Clock,
-  Sparkles,
   Link2,
 } from 'lucide-react';
 
@@ -34,7 +32,7 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
     return (
       <AppShell>
         <div className="max-w-4xl mx-auto px-4 py-16 text-center space-y-4">
-          <h2 className="text-xl font-bold text-zinc-900 dark:text-zinc-100">Item Not Found</h2>
+          <h2 className="text-xl font-bold text-zinc-900">Item Not Found</h2>
           <p className="text-sm text-zinc-500">The item you are looking for does not exist or was deleted.</p>
           <Link
             href="/inbox"
@@ -79,7 +77,7 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
         <div className="flex items-center justify-between gap-4">
           <Link
             href="/inbox"
-            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold text-zinc-600 hover:bg-zinc-100 transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
             <span>Back</span>
@@ -92,8 +90,8 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
               title={item.favorite ? 'Unstar' : 'Star'}
               className={`p-2 rounded-xl transition-colors ${
                 item.favorite
-                  ? 'text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-950/50'
-                  : 'text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800'
+                  ? 'text-amber-500 hover:bg-amber-50'
+                  : 'text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100'
               }`}
             >
               <Star className={`w-5 h-5 ${item.favorite ? 'fill-amber-500' : ''}`} />
@@ -104,7 +102,7 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
               <button
                 onClick={() => keepItem(item.id)}
                 title="Mark as Kept"
-                className="p-2 rounded-xl text-zinc-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/50 transition-colors"
+                className="p-2 rounded-xl text-zinc-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors"
               >
                 <CheckCircle className="w-5 h-5" />
               </button>
@@ -112,7 +110,7 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
               <button
                 onClick={() => archiveItem(item.id)}
                 title="Archive"
-                className="p-2 rounded-xl text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                className="p-2 rounded-xl text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 transition-colors"
               >
                 <Archive className="w-5 h-5" />
               </button>
@@ -120,7 +118,7 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
               <button
                 onClick={() => markUnseen(item.id)}
                 title="Move back to Inbox"
-                className="p-2 rounded-xl text-zinc-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/50 transition-colors"
+                className="p-2 rounded-xl text-zinc-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors"
               >
                 <CheckCircle className="w-5 h-5 text-emerald-500" />
               </button>
@@ -131,7 +129,7 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
               <button
                 onClick={handleCopyLink}
                 title="Copy Link"
-                className="p-2 rounded-xl text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                className="p-2 rounded-xl text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 transition-colors"
               >
                 <Copy className="w-5 h-5" />
               </button>
@@ -144,7 +142,7 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
                 target="_blank"
                 rel="noreferrer"
                 title="Open Source in New Tab"
-                className="p-2 rounded-xl text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                className="p-2 rounded-xl text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 transition-colors"
               >
                 <ExternalLink className="w-5 h-5" />
               </a>
@@ -154,7 +152,7 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
             <button
               onClick={handleDelete}
               title="Delete Item"
-              className="p-2 rounded-xl text-zinc-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/50 transition-colors"
+              className="p-2 rounded-xl text-zinc-400 hover:text-red-600 hover:bg-red-50 transition-colors"
             >
               <Trash2 className="w-5 h-5" />
             </button>
@@ -162,7 +160,7 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
         </div>
 
         {/* Main Item Card */}
-        <article className="p-6 sm:p-8 rounded-3xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 shadow-sm space-y-6">
+        <article className="p-6 sm:p-8 rounded-3xl bg-white border border-zinc-200/80 shadow-sm space-y-6">
           {/* Metadata Top Bar */}
           <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-zinc-400">
             <div className="flex items-center gap-2">
@@ -179,7 +177,7 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
               ) : (
                 <Link2 className="w-4 h-4 text-zinc-400" />
               )}
-              {domain && <span className="font-bold text-zinc-700 dark:text-zinc-300">{domain}</span>}
+              {domain && <span className="font-bold text-zinc-700">{domain}</span>}
               {domain && <span>•</span>}
               <div className="flex items-center gap-1">
                 <Clock className="w-3.5 h-3.5" />
@@ -188,14 +186,14 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
             </div>
 
             {item.metadata?.content_type && (
-              <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300">
+              <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-zinc-100 text-zinc-700">
                 {item.metadata.content_type}
               </span>
             )}
           </div>
 
           {/* Title */}
-          <h1 className="text-2xl sm:text-3xl font-black text-zinc-900 dark:text-white tracking-tight leading-snug">
+          <h1 className="text-2xl sm:text-3xl font-black text-zinc-900 tracking-tight leading-snug">
             {title}
           </h1>
 
@@ -204,7 +202,7 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
 
           {/* Preview Image if not embedded media */}
           {previewImage && !item.url?.includes('youtube.com') && !item.url?.includes('spotify.com') && (
-            <div className="w-full aspect-video rounded-2xl overflow-hidden bg-zinc-100 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800">
+            <div className="w-full aspect-video rounded-2xl overflow-hidden bg-zinc-100 border border-zinc-200">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={previewImage} alt={title} className="w-full h-full object-cover" />
             </div>
@@ -212,8 +210,8 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
 
           {/* Highlighted Quote Fragment */}
           {item.url && item.text_content && (
-            <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200/80 dark:border-amber-900/40 text-amber-900 dark:text-amber-200 space-y-2">
-              <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400">
+            <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200/80 text-amber-900 space-y-2">
+              <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-amber-700">
                 <Quote className="w-4 h-4" />
                 <span>Captured Highlight</span>
               </div>
@@ -226,7 +224,7 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
                     href={destinationUrl}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-800 dark:text-amber-300 hover:underline"
+                    className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-800 hover:underline"
                   >
                     <span>View in source context</span>
                     <ExternalLink className="w-3.5 h-3.5" />
@@ -238,20 +236,20 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
 
           {/* Description or Text Content */}
           {description && (!item.url || description !== item.text_content) && (
-            <div className="text-sm sm:text-base text-zinc-600 dark:text-zinc-300 leading-relaxed space-y-3 font-normal">
+            <div className="text-sm sm:text-base text-zinc-600 leading-relaxed space-y-3 font-normal">
               <p>{description}</p>
             </div>
           )}
 
           {/* Source Link Bar */}
           {item.url && (
-            <div className="pt-4 border-t border-zinc-100 dark:border-zinc-800 flex items-center justify-between">
+            <div className="pt-4 border-t border-zinc-100 flex items-center justify-between">
               <span className="text-xs text-zinc-400 truncate max-w-sm sm:max-w-md">{item.url}</span>
               <a
                 href={destinationUrl || item.url}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-xs font-bold text-zinc-800 dark:text-zinc-200 transition-colors"
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-zinc-100 hover:bg-zinc-200 text-xs font-bold text-zinc-800 transition-colors"
               >
                 <span>Open Source</span>
                 <ExternalLink className="w-3.5 h-3.5" />
