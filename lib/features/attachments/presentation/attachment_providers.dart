@@ -47,7 +47,16 @@ final attachmentPreviewUrlProvider = FutureProvider.autoDispose
     .family<String?, String>((ref, attachmentId) async {
       final client = ref.watch(supabaseClientProvider);
       if (client == null) return null;
-      return AttachmentStorageApi(client).prepareDownloadUrl(attachmentId);
+      try {
+        final session = client.auth.currentSession;
+        if (session == null || session.isExpired) {
+          return null;
+        }
+        return await AttachmentStorageApi(client).prepareDownloadUrl(attachmentId);
+      } catch (error) {
+        debugPrint('[LaterBox Attachment] preview URL provider failed: $error');
+        return null;
+      }
     });
 
 final attachmentImportServiceProvider = FutureProvider<AttachmentImportService>(
