@@ -58,14 +58,25 @@ class ItemRepository {
 
     final uri = Uri.tryParse(normalized);
     final isUrl = uri != null && uri.hasScheme && uri.host.isNotEmpty;
+    final normalizedUrl = isUrl ? normalizeUrl(normalized) : null;
+    final textContent = isUrl ? null : normalized;
     final now = createdAt ?? DateTime.now();
+
+    final existing = await _local.findActiveInboxItem(
+      _userId,
+      url: normalizedUrl,
+      textContent: textContent,
+    );
+    if (existing != null) {
+      return;
+    }
 
     await _local.insert(
       ItemsCompanion.insert(
         id: itemId,
         userId: Value(_userId),
-        url: Value(isUrl ? normalizeUrl(normalized) : null),
-        textContent: Value(isUrl ? null : normalized),
+        url: Value(normalizedUrl),
+        textContent: Value(textContent),
         type: Value(isUrl ? 'link' : 'text'),
         createdAt: now,
         updatedAt: now,
@@ -99,8 +110,25 @@ class ItemRepository {
   }
 
   List<LaterBoxItem> _toItems(List<(Item, ItemMetadataData?)> rows) {
-    return rows
-        .map((row) => LaterBoxItem.fromDriftRows(row.$1, row.$2))
-        .toList();
+    final seenIds = <String>{};
+    final seenKeys = <String>{};
+    final items = <LaterBoxItem>[];
+
+    for (final row in rows) {
+      final item = row.$1;
+      if (!seenIds.add(item.id)) continue;
+
+      final key = item.url != null && item.url!.isNotEmpty
+          ? 'url:${item.url}'
+          : (item.textContent != null && item.textContent!.isNotEmpty
+              ? 'text:${item.textContent}'
+              : null);
+      if (key != null && !seenKeys.add(key)) {
+        continue;
+      }
+
+      items.add(LaterBoxItem.fromDriftRows(item, row.$2));
+    }
+    return items;
   }
 }
