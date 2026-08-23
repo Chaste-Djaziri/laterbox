@@ -241,7 +241,15 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
       scrollBehavior: const LaterBoxScrollBehavior(),
       builder: (context, child) {
         final content = quickCaptureActive
-            ? const Material(child: QuickCaptureScreen())
+            ? Material(
+                child: Overlay(
+                  initialEntries: [
+                    OverlayEntry(
+                      builder: (context) => const QuickCaptureScreen(),
+                    ),
+                  ],
+                ),
+              )
             : (child ?? const SizedBox.shrink());
         return WebUpdateBannerOverlay(child: content);
       },
