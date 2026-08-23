@@ -166,6 +166,7 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet> {
       _error = null;
     });
 
+    var popped = false;
     try {
       if (_selectedFiles.isNotEmpty) {
         final result = kIsWeb
@@ -187,6 +188,7 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet> {
         }
 
         final messenger = ScaffoldMessenger.of(context);
+        popped = true;
         Navigator.of(context).pop();
         if (result.failures.isNotEmpty) {
           messenger.showSnackBar(
@@ -203,13 +205,18 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet> {
               source: CaptureSource.manual,
             ),
           );
-      if (mounted) Navigator.of(context).pop();
+      if (mounted) {
+        popped = true;
+        Navigator.of(context).pop();
+      }
     } on FormatException catch (error) {
       setState(() => _error = error.message);
     } catch (_) {
       setState(() => _error = 'Could not save this item. Try again.');
     } finally {
-      if (mounted) setState(() => _saving = false);
+      if (mounted && !popped) {
+        setState(() => _saving = false);
+      }
     }
   }
 
@@ -272,6 +279,7 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet> {
               TextField(
                 controller: _controller,
                 focusNode: _focusNode,
+                enabled: !_saving,
                 minLines: 3,
                 maxLines: 6,
                 textInputAction: TextInputAction.done,
@@ -281,7 +289,7 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet> {
                   hintText: 'https://...',
                   errorText: _error,
                 ),
-                onSubmitted: (_) => _save(),
+                onSubmitted: _saving ? null : (_) => _save(),
               ),
               const SizedBox(height: 20),
               Row(
