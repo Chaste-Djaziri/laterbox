@@ -67,7 +67,7 @@ graph TD
 - **Window Management**: Seamless window transition between floating capture bar and full inbox window.
 
 ### 4. Browser Extension Authentication (`lib/features/extension/`)
-- **Cross-Platform Auth Flow**: Extensions connect to user accounts via a secure authorization handshake (`https://laterbox.micorp.pro/connect`), storing scoped session tokens in `chrome.storage.local`.
+- **Cross-Platform Auth Flow**: Extensions connect to user accounts via a secure authorization handshake (`https://laterbox.dev/connect`), storing scoped session tokens in `chrome.storage.local`.
 - **Sidepanel & Popup**: Native browser sidepanels and quick-popup windows for instant clipping without tab context switching.
 
 ---
