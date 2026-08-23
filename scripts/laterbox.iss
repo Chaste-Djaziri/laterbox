@@ -4,7 +4,7 @@
 #define AppName "Laterbox"
 #define AppVersion "1.0.6"
 #define AppPublisher "Laterbox"
-#define AppURL "https://laterbox.micorp.pro"
+#define AppURL "https://laterbox.dev"
 #define AppExeName "laterbox.exe"
 #define AppIcon "..\windows\runner\resources\app_icon.ico"
 #define SourceDir "..\build\windows\x64\runner\Release"
