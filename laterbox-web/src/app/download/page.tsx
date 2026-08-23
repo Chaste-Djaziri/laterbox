@@ -61,8 +61,8 @@ export default function DownloadPage() {
       })
       .catch(() => {});
 
-    // 2. Fetch live releases from GitHub API
-    fetch('https://api.github.com/repos/Chaste-Djaziri/laterbox/releases')
+    // 2. Fetch live releases from authenticated internal proxy
+    fetch('/api/releases')
       .then((res) => {
         if (!res.ok) throw new Error('API unavailable');
         return res.json() as Promise<GitHubRelease[]>;
@@ -76,28 +76,28 @@ export default function DownloadPage() {
         }
       })
       .catch(() => {
-        // Fallback release history matching latest live releases
+        // Fallback release history matching latest live releases using direct download proxy
         setReleases([
           {
-            id: 10,
-            tag_name: 'v1.0.10',
-            name: 'LaterBox v1.0.10',
+            id: 20,
+            tag_name: 'v1.0.20',
+            name: 'LaterBox v1.0.20',
             published_at: new Date().toISOString(),
             assets: [
-              { name: 'laterbox-macos-apple-silicon.dmg', browser_download_url: 'https://github.com/Chaste-Djaziri/laterbox/releases/download/v1.0.10/laterbox-macos-apple-silicon.dmg', size: 26633830 },
-              { name: 'laterbox-macos-intel.dmg', browser_download_url: 'https://github.com/Chaste-Djaziri/laterbox/releases/download/v1.0.10/laterbox-macos-intel.dmg', size: 26633830 },
-              { name: 'laterbox-macos-installer.pkg', browser_download_url: 'https://github.com/Chaste-Djaziri/laterbox/releases/download/v1.0.10/laterbox-macos-installer.pkg', size: 27158016 },
-              { name: 'laterbox-macos-universal.zip', browser_download_url: 'https://github.com/Chaste-Djaziri/laterbox/releases/download/v1.0.10/laterbox-macos-universal.zip', size: 27000000 },
-              { name: 'laterbox-ios.ipa', browser_download_url: 'https://github.com/Chaste-Djaziri/laterbox/releases/download/v1.0.10/laterbox-ios.ipa', size: 25375539 },
-              { name: 'laterbox-android-release.apk', browser_download_url: 'https://github.com/Chaste-Djaziri/laterbox/releases/download/v1.0.10/laterbox-android-release.apk', size: 66794291 },
-              { name: 'laterbox-android.apk', browser_download_url: 'https://github.com/Chaste-Djaziri/laterbox/releases/download/v1.0.10/laterbox-android.apk', size: 66794291 },
-              { name: 'laterbox-windows-setup.exe', browser_download_url: 'https://github.com/Chaste-Djaziri/laterbox/releases/download/v1.0.10/laterbox-windows-setup.exe', size: 35000000 },
-              { name: 'laterbox-windows-x64.zip', browser_download_url: 'https://github.com/Chaste-Djaziri/laterbox/releases/download/v1.0.10/laterbox-windows-x64.zip', size: 34000000 },
-              { name: 'laterbox-linux-x64.tar.gz', browser_download_url: 'https://github.com/Chaste-Djaziri/laterbox/releases/download/v1.0.10/laterbox-linux-x64.tar.gz', size: 12687770 },
-              { name: 'laterbox-linux-x64.zip', browser_download_url: 'https://github.com/Chaste-Djaziri/laterbox/releases/download/v1.0.10/laterbox-linux-x64.zip', size: 12687770 },
-              { name: 'laterbox-chrome-extension.zip', browser_download_url: 'https://github.com/Chaste-Djaziri/laterbox/releases/download/v1.0.10/laterbox-chrome-extension.zip', size: 41267 },
-              { name: 'laterbox-firefox-extension.zip', browser_download_url: 'https://github.com/Chaste-Djaziri/laterbox/releases/download/v1.0.10/laterbox-firefox-extension.zip', size: 41267 },
-              { name: 'laterbox-safari-extension.zip', browser_download_url: 'https://github.com/Chaste-Djaziri/laterbox/releases/download/v1.0.10/laterbox-safari-extension.zip', size: 41267 },
+              { name: 'laterbox-macos-apple-silicon.dmg', browser_download_url: '/api/download/laterbox-macos-apple-silicon.dmg', size: 26650283 },
+              { name: 'laterbox-macos-intel.dmg', browser_download_url: '/api/download/laterbox-macos-intel.dmg', size: 26650283 },
+              { name: 'laterbox-macos-installer.pkg', browser_download_url: '/api/download/laterbox-macos-installer.pkg', size: 23386222 },
+              { name: 'laterbox-macos-universal.zip', browser_download_url: '/api/download/laterbox-macos-universal.zip', size: 23408107 },
+              { name: 'laterbox-ios.ipa', browser_download_url: '/api/download/laterbox-ios.ipa', size: 25415861 },
+              { name: 'laterbox-android-release.apk', browser_download_url: '/api/download/laterbox-android-release.apk', size: 66794291 },
+              { name: 'laterbox-android.apk', browser_download_url: '/api/download/laterbox-android.apk', size: 66794291 },
+              { name: 'laterbox-windows-setup.exe', browser_download_url: '/api/download/laterbox-windows-setup.exe', size: 12863119 },
+              { name: 'laterbox-windows-x64.zip', browser_download_url: '/api/download/laterbox-windows-x64.zip', size: 14988560 },
+              { name: 'laterbox-linux-x64.tar.gz', browser_download_url: '/api/download/laterbox-linux-x64.tar.gz', size: 12703419 },
+              { name: 'laterbox-linux-x64.zip', browser_download_url: '/api/download/laterbox-linux-x64.zip', size: 12715443 },
+              { name: 'laterbox-chrome-extension.zip', browser_download_url: '/api/download/laterbox-chrome-extension.zip', size: 41255 },
+              { name: 'laterbox-firefox-extension.zip', browser_download_url: '/api/download/laterbox-firefox-extension.zip', size: 41245 },
+              { name: 'laterbox-safari-extension.zip', browser_download_url: '/api/download/laterbox-safari-extension.zip', size: 41219 },
             ],
           },
         ]);
