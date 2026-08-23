@@ -40,31 +40,31 @@ export default function SearchPage() {
 
   return (
     <AppShell>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
+      <div className="max-w-7xl mx-auto px-6 sm:px-8 py-7 sm:py-9 space-y-6">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-black text-zinc-900 tracking-tight">
+          <h1 className="text-3xl font-black text-[#171711] tracking-tight">
             Deep Search
           </h1>
-          <p className="text-xs sm:text-sm text-zinc-500 font-medium mt-0.5">
+          <p className="text-sm text-[#6c6b63] font-medium mt-0.5">
             Search across your entire saved library, notes, quotes, and web links
           </p>
         </div>
 
         {/* Large Search Input */}
         <div className="relative max-w-2xl">
-          <SearchIcon className="w-5 h-5 text-zinc-400 absolute left-4 top-1/2 -translate-y-1/2" />
+          <SearchIcon className="w-5 h-5 text-[#9e9b92] absolute left-4 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search keywords, domains, titles, personal notes..."
             autoFocus
-            className="w-full pl-12 pr-10 py-3.5 text-sm bg-white border border-zinc-200/80 rounded-2xl text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/80 shadow-sm"
+            className="w-full pl-12 pr-10 py-3.5 text-sm bg-white border border-[#e4e0d5] rounded-2xl text-[#171711] placeholder:text-[#9e9b92] focus:outline-none focus:ring-2 focus:ring-zinc-900/10 focus:border-zinc-400 shadow-xs"
           />
           {query && (
             <button
               onClick={() => setQuery('')}
-              className="absolute right-3.5 top-1/2 -translate-y-1/2 p-1 text-zinc-400 hover:text-zinc-600 rounded-full"
+              className="absolute right-3.5 top-1/2 -translate-y-1/2 p-1 text-[#9e9b92] hover:text-[#171711] rounded-full cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
@@ -79,10 +79,10 @@ export default function SearchPage() {
               <button
                 key={chip.id}
                 onClick={() => setTypeFilter(chip.id)}
-                className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
                   active
-                    ? 'bg-zinc-900 text-white shadow-sm'
-                    : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'
+                    ? 'bg-[#e6edb0] border border-[#d0db84] text-[#171711] font-bold shadow-none'
+                    : 'bg-white border border-[#e4e0d5] text-[#6c6b63] hover:bg-[#ebe7dc]/60 hover:text-[#171711]'
                 }`}
               >
                 {chip.icon}
@@ -93,7 +93,7 @@ export default function SearchPage() {
         </div>
 
         {/* Results Header */}
-        <div className="flex items-center justify-between text-xs font-bold text-zinc-400 uppercase tracking-wider pt-2">
+        <div className="flex items-center justify-between text-xs font-bold text-[#9e9b92] uppercase tracking-wider pt-2">
           <span>
             {filtered.length} {filtered.length === 1 ? 'Result' : 'Results'} Found
           </span>
@@ -101,12 +101,12 @@ export default function SearchPage() {
 
         {/* Results Grid */}
         {filtered.length === 0 ? (
-          <div className="text-center py-20 px-4 rounded-3xl bg-white border border-dashed border-zinc-300 space-y-3">
-            <SearchIcon className="w-8 h-8 text-zinc-300 mx-auto" />
-            <h3 className="text-base font-bold text-zinc-700">
+          <div className="text-center py-20 px-4 rounded-3xl bg-white border border-dashed border-[#e4e0d5] space-y-3">
+            <SearchIcon className="w-8 h-8 text-[#9e9b92] mx-auto" />
+            <h3 className="text-base font-bold text-[#171711]">
               No results found
             </h3>
-            <p className="text-xs text-zinc-500 max-w-sm mx-auto">
+            <p className="text-xs text-[#6c6b63] max-w-sm mx-auto">
               We couldn't find any saved items matching "{query}". Try checking for spelling or searching with fewer keywords.
             </p>
           </div>
