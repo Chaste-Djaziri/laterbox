@@ -19,7 +19,10 @@ class DesktopCaptureContextResolver {
   final SelectionCaptureService _selectionService;
   final ClipboardCaptureService _clipboardService;
 
-  Future<DesktopCaptureContext> resolve({bool useSelection = true}) async {
+  Future<DesktopCaptureContext> resolve({
+    bool useSelection = true,
+    bool useClipboard = false,
+  }) async {
     if (useSelection) {
       final selection = await _selectionService.readSelectedText();
       if (selection != null && selection.trim().isNotEmpty) {
@@ -32,19 +35,22 @@ class DesktopCaptureContextResolver {
       }
     }
 
-    final clipboard = await _clipboardService.readText();
-    final value = clipboard?.trim();
-    if (value == null || value.isEmpty) {
-      return const DesktopCaptureContext(
-        type: DesktopCaptureContextType.empty,
-        value: '',
-      );
+    if (useClipboard) {
+      final clipboard = await _clipboardService.readText();
+      final value = clipboard?.trim();
+      if (value != null && value.isNotEmpty) {
+        return DesktopCaptureContext(
+          type: ClipboardCaptureService.isUrl(value)
+              ? DesktopCaptureContextType.clipboardUrl
+              : DesktopCaptureContextType.clipboardText,
+          value: value,
+        );
+      }
     }
-    return DesktopCaptureContext(
-      type: ClipboardCaptureService.isUrl(value)
-          ? DesktopCaptureContextType.clipboardUrl
-          : DesktopCaptureContextType.clipboardText,
-      value: value,
+
+    return const DesktopCaptureContext(
+      type: DesktopCaptureContextType.empty,
+      value: '',
     );
   }
 }
