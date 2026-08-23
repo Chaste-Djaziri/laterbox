@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { LaterBoxItem } from '@/lib/supabase/types';
 import { useItems } from '@/lib/store/ItemContext';
 import { formatTimeAgo, extractDomain, buildTextFragmentUrl } from '@/lib/utils/url';
@@ -19,6 +20,7 @@ import {
 } from 'lucide-react';
 
 export function ItemListRow({ item }: { item: LaterBoxItem }) {
+  const router = useRouter();
   const { setFavorite, keepItem, deleteItem } = useItems();
 
   const attachments = item.attachments || [];
@@ -51,8 +53,15 @@ export function ItemListRow({ item }: { item: LaterBoxItem }) {
     }
   };
 
+  const handleRowClick = () => {
+    router.push(`/item/${item.id}`);
+  };
+
   return (
-    <div className="group flex items-center justify-between gap-4 p-3.5 sm:p-4 rounded-2xl bg-white border border-[#e4e0d5] hover:border-[#cfdb84] hover:shadow-xs transition-all">
+    <div
+      onClick={handleRowClick}
+      className="group flex items-center justify-between gap-4 p-3.5 sm:p-4 rounded-2xl bg-white border border-[#e4e0d5] hover:border-[#cfdb84] hover:shadow-xs transition-all cursor-pointer"
+    >
       <div className="flex items-center gap-3.5 min-w-0 flex-1">
         {item.metadata?.favicon_url ? (
           /* eslint-disable-next-line @next/next/no-img-element */
@@ -70,12 +79,9 @@ export function ItemListRow({ item }: { item: LaterBoxItem }) {
 
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <Link
-              href={`/item/${item.id}`}
-              className="text-sm font-bold text-[#171711] hover:text-[#000000] truncate tracking-tight"
-            >
+            <h4 className="text-sm font-bold text-[#171711] group-hover:text-black truncate tracking-tight">
               {title}
-            </Link>
+            </h4>
             {hasAttachments && (
               <span className="inline-flex items-center gap-1 px-2 py-0.2 rounded-full text-[10px] font-bold bg-[#e0f2fe] text-[#0369a1] shrink-0">
                 <Paperclip className="w-2.5 h-2.5" />
@@ -91,9 +97,15 @@ export function ItemListRow({ item }: { item: LaterBoxItem }) {
         </div>
       </div>
 
-      <div className="flex items-center gap-1 shrink-0">
+      <div
+        className="flex items-center gap-1 shrink-0"
+        onClick={(e) => e.stopPropagation()}
+      >
         <button
-          onClick={() => setFavorite(item.id, !item.favorite)}
+          onClick={(e) => {
+            e.stopPropagation();
+            setFavorite(item.id, !item.favorite);
+          }}
           title={item.favorite ? 'Unstar' : 'Star'}
           className={`p-1.5 rounded-xl transition-colors cursor-pointer ${
             item.favorite
@@ -105,7 +117,10 @@ export function ItemListRow({ item }: { item: LaterBoxItem }) {
         </button>
 
         <button
-          onClick={() => keepItem(item.id)}
+          onClick={(e) => {
+            e.stopPropagation();
+            keepItem(item.id);
+          }}
           title="Mark as Kept"
           className="p-1.5 rounded-xl text-[#9e9b92] hover:text-[#171711] hover:bg-[#e6edb0] transition-colors cursor-pointer"
         >
@@ -117,6 +132,7 @@ export function ItemListRow({ item }: { item: LaterBoxItem }) {
             href={destinationUrl}
             target="_blank"
             rel="noreferrer"
+            onClick={(e) => e.stopPropagation()}
             title="Open Link"
             className="p-1.5 rounded-xl text-[#9e9b92] hover:text-[#171711] hover:bg-[#ebe7dc]/60 transition-colors"
           >
@@ -125,7 +141,10 @@ export function ItemListRow({ item }: { item: LaterBoxItem }) {
         )}
 
         <button
-          onClick={() => deleteItem(item.id)}
+          onClick={(e) => {
+            e.stopPropagation();
+            deleteItem(item.id);
+          }}
           title="Delete"
           className="p-1.5 rounded-xl text-[#9e9b92] hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
         >
