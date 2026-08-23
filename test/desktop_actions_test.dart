@@ -104,7 +104,7 @@ void main() {
   );
 
   test(
-    'openQuickCapture falls back to the clipboard URL without a selection',
+    'openQuickCapture starts empty without a selection (no auto-clipboard prefill)',
     () async {
       final database = AppDatabase(NativeDatabase.memory());
       addTearDown(database.close);
@@ -123,7 +123,7 @@ void main() {
 
       final controller = container.read(quickCaptureControllerProvider);
       expect(controller.isActive, isTrue);
-      expect(controller.prefillText, 'https://clipboard.example');
+      expect(controller.prefillText, isNull);
       expect(controller.sourceApplication, isNull);
     },
   );
