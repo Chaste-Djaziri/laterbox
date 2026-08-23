@@ -36,8 +36,20 @@ jobs:
       - name: Install Dependencies
         run: flutter pub get
 
-      - name: Build Flutter macOS Release
-        run: flutter build macos --release
+      - name: Configure macOS Project
+        run: flutter build macos --release --config-only
+
+      - name: Build macOS Application with Ad-Hoc Signing
+        run: |
+          xcodebuild -workspace macos/Runner.xcworkspace \
+            -scheme Runner \
+            -configuration Release \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGN_STYLE="Manual" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            -destination 'generic/platform=macOS' \
+            build
 
       - name: Package macOS DMG, PKG & Universal Zip
         shell: bash
@@ -49,6 +61,9 @@ jobs:
           fi
           
           echo "Packaging application from: $APP_PATH"
+          
+          # Ad-hoc sign bundle before packaging
+          codesign --force --deep --sign - "$APP_PATH" || true
           
           # 1. Create Universal DMG
           hdiutil create -volname "LaterBox" -srcfolder "$APP_PATH" -ov -format UDZO dist/laterbox-macos-universal.dmg
@@ -131,7 +146,7 @@ jobs:
       - name: Install Linux Build Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libsecret-1-dev libkeybinder-3.0-dev zip
+          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libsecret-1-dev libkeybinder-3.0-dev libayatana-appindicator3-dev zip
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -162,7 +177,7 @@ jobs:
           if-no-files-found: error
 
   build-android:
-    name: Build Android Release (.apk)
+    name: Build Android Release (.apk, .aab) & Google Play
     runs-on: ubuntu-latest
 
     steps:
@@ -182,20 +197,44 @@ jobs:
           channel: 'stable'
           cache: true
 
+      - name: Setup Android Keystore (Optional Release Signing)
+        if: env.ANDROID_KEYSTORE_BASE64 != ''
+        shell: bash
+        run: |
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/upload-keystore.jks
+          cat <<EOF > android/key.properties
+          storePassword=$ANDROID_STORE_PASSWORD
+          keyPassword=$ANDROID_KEY_PASSWORD
+          keyAlias=$ANDROID_KEY_ALIAS
+          storeFile=upload-keystore.jks
+          EOF
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+
       - name: Install Dependencies
         run: flutter pub get
 
-      - name: Build Flutter Android Release APK
+      - name: Build Android Release APK
         run: flutter build apk --release
+
+      - name: Build Android Release AppBundle (AAB)
+        run: flutter build appbundle --release
 
       - name: Package Android Artifacts
         shell: bash
         run: |
           mkdir -p dist
           APK_PATH="build/app/outputs/flutter-apk/app-release.apk"
+          AAB_PATH="build/app/outputs/bundle/release/app-release.aab"
           if [ -f "$APK_PATH" ]; then
             cp "$APK_PATH" dist/laterbox-android.apk
             cp "$APK_PATH" dist/laterbox-android-release.apk
+          fi
+          if [ -f "$AAB_PATH" ]; then
+            cp "$AAB_PATH" dist/laterbox-android-release.aab
           fi
 
       - name: Upload Android Dist Artifacts
@@ -205,7 +244,89 @@ jobs:
           path: |
             dist/laterbox-android.apk
             dist/laterbox-android-release.apk
+            dist/laterbox-android-release.aab
           if-no-files-found: error
+
+      - name: Submit AAB to Google Play Internal Testing
+        if: env.PLAY_STORE_SERVICE_ACCOUNT_JSON != ''
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_STORE_SERVICE_ACCOUNT_JSON }}
+          packageName: pro.micorp.laterbox
+          releaseFiles: build/app/outputs/bundle/release/app-release.aab
+          track: internal
+          status: completed
+        env:
+          PLAY_STORE_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_STORE_SERVICE_ACCOUNT_JSON }}
+
+  build-ios:
+    name: Build iOS Release & App Store Connect / TestFlight
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Install Apple Certificate & Provisioning Profile (if secrets provided)
+        if: env.APPLE_CERTIFICATE_BASE64 != ''
+        shell: bash
+        run: |
+          KEYCHAIN_PATH=$RUNNER_TEMP/build.keychain
+          KEYCHAIN_PASSWORD=$(openssl rand -base64 12)
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security default-keychain -s "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+
+          # Decode and import Certificate
+          echo "$APPLE_CERTIFICATE_BASE64" | base64 --decode > $RUNNER_TEMP/cert.p12
+          security import $RUNNER_TEMP/cert.p12 -k "$KEYCHAIN_PATH" -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+          # Decode Provisioning Profile
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          echo "$APPLE_PROVISIONING_PROFILE_BASE64" | base64 --decode > ~/Library/MobileDevice/Provisioning\ Profiles/profile.mobileprovision
+        env:
+          APPLE_CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_PROVISIONING_PROFILE_BASE64: ${{ secrets.APPLE_PROVISIONING_PROFILE_BASE64 }}
+
+      - name: Build iOS Release Bundle
+        run: flutter build ios --release --no-codesign
+
+      - name: Build Signed IPA for App Store (if certs provided)
+        if: env.APPLE_CERTIFICATE_BASE64 != ''
+        run: |
+          flutter build ipa --release --export-options-plist=ios/ExportOptions.plist || flutter build ipa --release
+
+      - name: Upload to App Store Connect / TestFlight (if API Key provided)
+        if: env.APP_STORE_CONNECT_API_KEY_BASE64 != '' && env.APP_STORE_CONNECT_KEY_ID != ''
+        shell: bash
+        run: |
+          mkdir -p ~/.appstoreconnect/private_keys
+          echo "$APP_STORE_CONNECT_API_KEY_BASE64" | base64 --decode > ~/.appstoreconnect/private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8
+          
+          IPA_PATH=$(find build/ios/ipa -name "*.ipa" | head -n 1)
+          if [ -f "$IPA_PATH" ]; then
+            xcrun altool --upload-app \
+              -f "$IPA_PATH" \
+              -t ios \
+              --apiKey "${{ secrets.APP_STORE_CONNECT_KEY_ID }}" \
+              --apiIssuer "${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}"
+          fi
+        env:
+          APP_STORE_CONNECT_API_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_API_KEY_BASE64 }}
+          APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
 
   build-extension:
     name: Build Browser Extensions (Chrome, Firefox, Safari)
@@ -218,7 +339,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: 'npm'
           cache-dependency-path: extension/package-lock.json
 
@@ -251,10 +372,10 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Setup Node.js (v22 required by modern Wrangler)
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: 'npm'
           cache-dependency-path: laterbox-web/package-lock.json
 
@@ -296,7 +417,8 @@ jobs:
 
   create-release:
     name: Publish GitHub Release
-    needs: [build-macos, build-windows, build-linux, build-android, build-extension, build-and-deploy-web]
+    if: always() && !cancelled()
+    needs: [build-macos, build-windows, build-linux, build-android, build-ios, build-extension, build-and-deploy-web]
     runs-on: ubuntu-latest
 
     steps:
@@ -305,30 +427,35 @@ jobs:
 
       - name: Download macOS Artifacts
         uses: actions/download-artifact@v4
+        continue-on-error: true
         with:
           name: laterbox-macos-dist
           path: dist
 
       - name: Download Windows Artifacts
         uses: actions/download-artifact@v4
+        continue-on-error: true
         with:
           name: laterbox-windows-dist
           path: dist
 
       - name: Download Linux Artifacts
         uses: actions/download-artifact@v4
+        continue-on-error: true
         with:
           name: laterbox-linux-dist
           path: dist
 
       - name: Download Android Artifacts
         uses: actions/download-artifact@v4
+        continue-on-error: true
         with:
           name: laterbox-android-dist
           path: dist
 
       - name: Download Extension Artifacts
         uses: actions/download-artifact@v4
+        continue-on-error: true
         with:
           name: laterbox-extension-dist
           path: dist
