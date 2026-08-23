@@ -103,6 +103,8 @@ export async function GET(
               const resHeaders = new Headers({
                 'Content-Type': mimeType,
                 'Content-Disposition': `attachment; filename="${filename}"`,
+                'Content-Transfer-Encoding': 'binary',
+                'X-Content-Type-Options': 'nosniff',
                 'Cache-Control': 'public, max-age=3600, s-maxage=3600',
                 'Access-Control-Allow-Origin': '*',
               });
@@ -153,6 +155,8 @@ export async function GET(
       const resHeaders = new Headers({
         'Content-Type': mimeType,
         'Content-Disposition': `attachment; filename="${filename}"`,
+        'Content-Transfer-Encoding': 'binary',
+        'X-Content-Type-Options': 'nosniff',
         'Cache-Control': 'public, max-age=3600, s-maxage=3600',
         'Access-Control-Allow-Origin': '*',
       });
@@ -172,6 +176,8 @@ export async function GET(
     const resHeaders = new Headers({
       'Content-Type': mimeType,
       'Content-Disposition': `attachment; filename="${filename}"`,
+      'Content-Transfer-Encoding': 'binary',
+      'X-Content-Type-Options': 'nosniff',
       'Cache-Control': 'public, max-age=3600, s-maxage=3600',
       'Access-Control-Allow-Origin': '*',
     });
