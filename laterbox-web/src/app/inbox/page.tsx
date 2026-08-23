@@ -6,11 +6,11 @@ import { FilterBar } from '@/components/inbox/FilterBar';
 import { ItemCard } from '@/components/inbox/ItemCard';
 import { ItemListRow } from '@/components/inbox/ItemListRow';
 import { useItems } from '@/lib/store/ItemContext';
-import { LayoutGrid, List, Search, Sparkles, Plus, Inbox as InboxIcon } from 'lucide-react';
+import { LayoutGrid, List, Search, Plus, Inbox as InboxIcon } from 'lucide-react';
 import { QuickCaptureModal } from '@/components/inbox/QuickCaptureModal';
 
 export default function InboxPage() {
-  const { filteredInboxItems, loading, activeFilter, setActiveFilter } = useItems();
+  const { filteredInboxItems, loading, activeFilter } = useItems();
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [searchQuery, setSearchQuery] = useState('');
   const [captureOpen, setCaptureOpen] = useState(false);
@@ -31,10 +31,10 @@ export default function InboxPage() {
         {/* Header & Controls */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-black text-zinc-900 dark:text-white tracking-tight">
+            <h1 className="text-2xl sm:text-3xl font-black text-zinc-900 tracking-tight">
               Inbox
             </h1>
-            <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 font-medium mt-0.5">
+            <p className="text-xs sm:text-sm text-zinc-500 font-medium mt-0.5">
               {filteredInboxItems.length} {filteredInboxItems.length === 1 ? 'item' : 'items'} ready to review
             </p>
           </div>
@@ -49,19 +49,19 @@ export default function InboxPage() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Filter inbox..."
-                className="w-full pl-9 pr-4 py-2 text-xs bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 rounded-xl text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/80"
+                className="w-full pl-9 pr-4 py-2 text-xs bg-white border border-zinc-200/80 rounded-xl text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/80"
               />
             </div>
 
             {/* View Mode Toggle */}
-            <div className="flex items-center p-1 bg-zinc-200/70 dark:bg-zinc-800/80 rounded-xl">
+            <div className="flex items-center p-1 bg-zinc-200/70 rounded-xl">
               <button
                 onClick={() => setViewMode('grid')}
                 title="Grid View"
                 className={`p-1.5 rounded-lg transition-colors ${
                   viewMode === 'grid'
-                    ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm'
-                    : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-white'
+                    ? 'bg-white text-zinc-900 shadow-sm'
+                    : 'text-zinc-500 hover:text-zinc-900'
                 }`}
               >
                 <LayoutGrid className="w-4 h-4" />
@@ -71,8 +71,8 @@ export default function InboxPage() {
                 title="List View"
                 className={`p-1.5 rounded-lg transition-colors ${
                   viewMode === 'list'
-                    ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm'
-                    : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-white'
+                    ? 'bg-white text-zinc-900 shadow-sm'
+                    : 'text-zinc-500 hover:text-zinc-900'
                 }`}
               >
                 <List className="w-4 h-4" />
@@ -99,25 +99,25 @@ export default function InboxPage() {
             {[1, 2, 3, 4, 5, 6].map((i) => (
               <div
                 key={i}
-                className="h-64 rounded-3xl bg-zinc-200/60 dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800"
+                className="h-64 rounded-3xl bg-zinc-200/60 border border-zinc-200"
               />
             ))}
           </div>
         ) : displayedItems.length === 0 ? (
           /* Empty State */
-          <div className="text-center py-20 px-4 rounded-3xl bg-white dark:bg-zinc-900/50 border border-dashed border-zinc-300 dark:border-zinc-800 space-y-4">
-            <div className="w-14 h-14 mx-auto rounded-3xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-200/50 dark:border-emerald-800/40 shadow-sm">
+          <div className="text-center py-20 px-4 rounded-3xl bg-white border border-dashed border-zinc-300 space-y-4">
+            <div className="w-14 h-14 mx-auto rounded-3xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-200/50 shadow-sm">
               <InboxIcon className="w-7 h-7" />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">
+              <h3 className="text-lg font-bold text-zinc-900">
                 {searchQuery
                   ? 'No items match your search'
                   : activeFilter !== 'all'
                   ? `No ${activeFilter} in your inbox`
                   : 'Your inbox is empty'}
               </h3>
-              <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 max-w-sm mx-auto mt-1">
+              <p className="text-xs sm:text-sm text-zinc-500 max-w-sm mx-auto mt-1">
                 {searchQuery
                   ? 'Try a different search query or clear the filter.'
                   : 'Save links, YouTube videos, articles, and quick notes from the web or desktop extension.'}
