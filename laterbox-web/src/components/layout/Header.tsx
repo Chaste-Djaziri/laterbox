@@ -10,11 +10,11 @@ export function Header() {
   const { user, continueAsGuest } = useAuth();
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-[#e4e0d5] bg-[#f7f5ee]/90 backdrop-blur-md transition-all">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+    <div className="sticky top-3 sm:top-5 z-40 w-full px-3.5 sm:px-6 lg:px-8 max-w-6xl mx-auto pointer-events-none transition-all duration-300">
+      <header className="pointer-events-auto bg-white/90 backdrop-blur-xl border border-[#e4e0d5] shadow-lg shadow-black/[0.03] rounded-2xl sm:rounded-3xl px-4 sm:px-6 py-3 sm:py-3.5 flex items-center justify-between transition-all">
         {/* Brand Logo */}
-        <Link href="/" className="flex items-center gap-2.5 group">
-          <div className="w-[34px] h-[34px] relative rounded-[9px] overflow-hidden shadow-sm transition-transform group-hover:scale-105 bg-[#e6edb0] p-1">
+        <Link href="/" className="flex items-center gap-3 group">
+          <div className="w-[40px] h-[40px] relative rounded-xl overflow-hidden shadow-xs transition-transform group-hover:scale-105 bg-[#e6edb0] p-1.5 shrink-0">
             <Image
               src="/branding/laterbox-icon.png"
               alt="laterbox"
@@ -23,13 +23,13 @@ export function Header() {
               priority
             />
           </div>
-          <span className="text-xl font-black tracking-tight text-[#171711]">
+          <span className="text-2xl font-black tracking-tight text-[#171711]">
             laterbox
           </span>
         </Link>
 
         {/* Nav Links */}
-        <nav className="hidden md:flex items-center gap-6 text-sm font-semibold text-[#6c6b63]">
+        <nav className="hidden md:flex items-center gap-8 text-[15px] font-semibold text-[#6c6b63]">
           <Link href="/#features" className="hover:text-[#171711] transition-colors">
             Features
           </Link>
@@ -49,7 +49,7 @@ export function Header() {
           {user ? (
             <Link
               href="/inbox"
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold text-white bg-[#171711] hover:bg-[#282723] active:bg-[#0f0f0e] shadow-sm transition-all"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-xs sm:text-sm font-extrabold text-white bg-[#171711] hover:bg-[#282723] active:bg-[#0f0f0e] shadow-xs transition-all"
             >
               <Bolt className="w-4 h-4" />
               <span>Open Inbox</span>
@@ -58,7 +58,7 @@ export function Header() {
             <>
               <Link
                 href="/login"
-                className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-[#171711] hover:text-black transition-colors"
+                className="hidden sm:inline-flex items-center gap-1.5 px-4 py-2 text-xs sm:text-sm font-bold text-[#171711] hover:bg-[#ebe7dc]/60 rounded-xl transition-colors"
               >
                 <LogIn className="w-4 h-4" />
                 <span>Sign In</span>
@@ -66,7 +66,7 @@ export function Header() {
               <Link
                 href="/inbox"
                 onClick={() => continueAsGuest()}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold text-white bg-[#171711] hover:bg-[#282723] active:bg-[#0f0f0e] shadow-sm transition-all"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-xs sm:text-sm font-extrabold text-white bg-[#171711] hover:bg-[#282723] active:bg-[#0f0f0e] shadow-xs transition-all cursor-pointer"
               >
                 <Bolt className="w-4 h-4" />
                 <span>Launch App</span>
@@ -74,7 +74,7 @@ export function Header() {
             </>
           )}
         </div>
-      </div>
-    </header>
+      </header>
+    </div>
   );
 }
