@@ -44,6 +44,18 @@ class LocalItemDataSource {
 
   Future<bool> exists(String id) async => (await _database.itemById(id)) != null;
 
+  Future<Item?> findActiveInboxItem(
+    String? userId, {
+    String? url,
+    String? textContent,
+  }) {
+    return _database.findActiveInboxItem(
+      userId,
+      url: url,
+      textContent: textContent,
+    );
+  }
+
   Future<List<Item>> itemsNeedingSync(String userId) {
     return _database.itemsNeedingSync(userId);
   }
