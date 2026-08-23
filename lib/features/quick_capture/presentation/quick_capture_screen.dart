@@ -8,7 +8,6 @@ import '../../../core/desktop/desktop_providers.dart';
 import '../../../core/desktop/quick_capture_controller.dart';
 import '../../attachments/data/attachment_file_picker.dart';
 import '../../attachments/presentation/attachment_providers.dart';
-import '../../attachments/domain/web_attachment_import_service.dart';
 import 'quick_capture_field.dart';
 import 'quick_capture_success.dart';
 
