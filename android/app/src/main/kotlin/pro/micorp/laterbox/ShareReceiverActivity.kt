@@ -155,7 +155,7 @@ class ShareReceiverActivity : Activity() {
                     },
                 )
             }
-        }
+        }.start()
     }
 
     @Suppress("DEPRECATION")
