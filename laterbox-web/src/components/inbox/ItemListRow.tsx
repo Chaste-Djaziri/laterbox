@@ -34,18 +34,18 @@ export function ItemListRow({ item }: { item: LaterBoxItem }) {
       case 'video':
         return <PlayCircle className="w-5 h-5 text-red-500 shrink-0" />;
       case 'music':
-        return <Music2 className="w-5 h-5 text-emerald-500 shrink-0" />;
+        return <Music2 className="w-5 h-5 text-emerald-600 shrink-0" />;
       case 'article':
-        return <FileText className="w-5 h-5 text-blue-500 shrink-0" />;
+        return <FileText className="w-5 h-5 text-[#171711] shrink-0" />;
       case 'note':
-        return <StickyNote className="w-5 h-5 text-amber-500 shrink-0" />;
+        return <StickyNote className="w-5 h-5 text-amber-600 shrink-0" />;
       default:
-        return <Link2 className="w-5 h-5 text-zinc-500 shrink-0" />;
+        return <Link2 className="w-5 h-5 text-[#6c6b63] shrink-0" />;
     }
   };
 
   return (
-    <div className="group flex items-center justify-between gap-4 p-3.5 sm:p-4 rounded-2xl bg-white border border-zinc-200/80 hover:border-emerald-500/40 hover:shadow-md transition-all">
+    <div className="group flex items-center justify-between gap-4 p-3.5 sm:p-4 rounded-2xl bg-white border border-[#e4e0d5] hover:border-[#cfdb84] hover:shadow-xs transition-all">
       <div className="flex items-center gap-3.5 min-w-0 flex-1">
         {item.metadata?.favicon_url ? (
           /* eslint-disable-next-line @next/next/no-img-element */
@@ -65,13 +65,13 @@ export function ItemListRow({ item }: { item: LaterBoxItem }) {
           <div className="flex items-center gap-2">
             <Link
               href={`/item/${item.id}`}
-              className="text-sm font-bold text-zinc-900 hover:text-emerald-600 truncate tracking-tight"
+              className="text-sm font-bold text-[#171711] hover:text-[#000000] truncate tracking-tight"
             >
               {title}
             </Link>
           </div>
-          <div className="flex items-center gap-2 mt-0.5 text-xs text-zinc-400">
-            {domain && <span className="font-semibold text-zinc-500">{domain}</span>}
+          <div className="flex items-center gap-2 mt-0.5 text-xs text-[#9e9b92]">
+            {domain && <span className="font-semibold text-[#6c6b63]">{domain}</span>}
             {domain && <span>•</span>}
             <span>{timeAgo}</span>
           </div>
@@ -82,10 +82,10 @@ export function ItemListRow({ item }: { item: LaterBoxItem }) {
         <button
           onClick={() => setFavorite(item.id, !item.favorite)}
           title={item.favorite ? 'Unstar' : 'Star'}
-          className={`p-1.5 rounded-xl transition-colors ${
+          className={`p-1.5 rounded-xl transition-colors cursor-pointer ${
             item.favorite
               ? 'text-amber-500 hover:bg-amber-50'
-              : 'text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100'
+              : 'text-[#9e9b92] hover:text-[#171711] hover:bg-[#ebe7dc]/60'
           }`}
         >
           <Star className={`w-4 h-4 ${item.favorite ? 'fill-amber-500' : ''}`} />
@@ -94,7 +94,7 @@ export function ItemListRow({ item }: { item: LaterBoxItem }) {
         <button
           onClick={() => keepItem(item.id)}
           title="Mark as Kept"
-          className="p-1.5 rounded-xl text-zinc-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors"
+          className="p-1.5 rounded-xl text-[#9e9b92] hover:text-[#171711] hover:bg-[#e6edb0] transition-colors cursor-pointer"
         >
           <CheckCircle className="w-4 h-4" />
         </button>
@@ -105,7 +105,7 @@ export function ItemListRow({ item }: { item: LaterBoxItem }) {
             target="_blank"
             rel="noreferrer"
             title="Open Link"
-            className="p-1.5 rounded-xl text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 transition-colors"
+            className="p-1.5 rounded-xl text-[#9e9b92] hover:text-[#171711] hover:bg-[#ebe7dc]/60 transition-colors"
           >
             <ExternalLink className="w-4 h-4" />
           </a>
@@ -114,7 +114,7 @@ export function ItemListRow({ item }: { item: LaterBoxItem }) {
         <button
           onClick={() => deleteItem(item.id)}
           title="Delete"
-          className="p-1.5 rounded-xl text-zinc-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+          className="p-1.5 rounded-xl text-[#9e9b92] hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
         >
           <Trash2 className="w-4 h-4" />
         </button>
