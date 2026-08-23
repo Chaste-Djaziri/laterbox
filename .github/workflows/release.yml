@@ -17,6 +17,68 @@ permissions:
   contents: write
 
 jobs:
+  build-macos:
+    name: Build macOS Release (.dmg, .pkg, .zip)
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Build Flutter macOS Release
+        run: flutter build macos --release
+
+      - name: Package macOS DMG, PKG & Universal Zip
+        shell: bash
+        run: |
+          mkdir -p dist
+          APP_PATH="build/macos/Build/Products/Release/laterbox.app"
+          if [ ! -d "$APP_PATH" ]; then
+            APP_PATH=$(find build/macos/Build/Products/Release -name "*.app" -type d | head -n 1)
+          fi
+          
+          echo "Packaging application from: $APP_PATH"
+          
+          # 1. Create Universal DMG
+          hdiutil create -volname "LaterBox" -srcfolder "$APP_PATH" -ov -format UDZO dist/laterbox-macos-universal.dmg
+          cp dist/laterbox-macos-universal.dmg dist/laterbox-macos.dmg
+          cp dist/laterbox-macos-universal.dmg dist/laterbox-macos-apple-silicon.dmg
+          cp dist/laterbox-macos-universal.dmg dist/laterbox-macos-intel.dmg
+          
+          # 2. Create PKG Installer
+          pkgbuild --component "$APP_PATH" --install-location "/Applications" dist/laterbox-macos-installer.pkg
+          cp dist/laterbox-macos-installer.pkg dist/laterbox-macos.pkg
+          
+          # 3. Create Universal Zip
+          ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" dist/laterbox-macos-universal.zip
+          cp dist/laterbox-macos-universal.zip dist/laterbox-macos.zip
+
+      - name: Upload macOS Dist Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: laterbox-macos-dist
+          path: |
+            dist/laterbox-macos.dmg
+            dist/laterbox-macos-universal.dmg
+            dist/laterbox-macos-apple-silicon.dmg
+            dist/laterbox-macos-intel.dmg
+            dist/laterbox-macos-installer.pkg
+            dist/laterbox-macos.pkg
+            dist/laterbox-macos-universal.zip
+            dist/laterbox-macos.zip
+          if-no-files-found: error
+
   build-windows:
     name: Build Windows Release & Installer
     runs-on: windows-latest
@@ -58,13 +120,18 @@ jobs:
             dist/laterbox-windows-x64.zip
           if-no-files-found: error
 
-  build-web:
-    name: Build Web App
+  build-linux:
+    name: Build Linux Release (.tar.gz, .zip)
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+
+      - name: Install Linux Build Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libsecret-1-dev libkeybinder-3.0-dev zip
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -75,39 +142,143 @@ jobs:
       - name: Install Dependencies
         run: flutter pub get
 
-      - name: Build Flutter Web
-        run: flutter build web --release
+      - name: Build Flutter Linux Release
+        run: flutter build linux --release
 
-      - name: Upload Web Artifact
+      - name: Package Linux Artifacts
+        shell: bash
+        run: |
+          mkdir -p dist
+          tar -czvf dist/laterbox-linux-x64.tar.gz -C build/linux/x64/release/bundle .
+          (cd build/linux/x64/release/bundle && zip -r ../../../../../dist/laterbox-linux-x64.zip .)
+
+      - name: Upload Linux Dist Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: laterbox-web-build
-          path: build/web/
+          name: laterbox-linux-dist
+          path: |
+            dist/laterbox-linux-x64.tar.gz
+            dist/laterbox-linux-x64.zip
           if-no-files-found: error
 
-      - name: Deploy to Cloudflare Pages
-        if: env.CLOUDFLARE_API_TOKEN != ''
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy build/web --project-name=laterbox
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-
-  create-release:
-    name: Publish GitHub Release
-    needs: [build-windows, build-web]
+  build-extension:
+    name: Build Browser Extensions (Chrome, Firefox, Safari)
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: extension/package-lock.json
+
+      - name: Install Extension Dependencies & Package
+        run: |
+          cd extension
+          npm ci
+          npm run package
+          mkdir -p ../dist
+          cp dist/laterbox-chrome-extension.zip ../dist/
+          cp dist/laterbox-firefox-extension.zip ../dist/
+          if [ -f dist/laterbox-safari-extension.zip ]; then
+            cp dist/laterbox-safari-extension.zip ../dist/
+          fi
+
+      - name: Upload Extension Dist Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: laterbox-extension-dist
+          path: |
+            dist/laterbox-chrome-extension.zip
+            dist/laterbox-firefox-extension.zip
+          if-no-files-found: error
+
+  build-and-deploy-web:
+    name: Build & Deploy Web to Cloudflare
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: laterbox-web/package-lock.json
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Build Flutter Web
+        run: |
+          flutter pub get
+          flutter build web --release
+
+      - name: Build Next.js Web App
+        run: |
+          cd laterbox-web
+          npm ci
+          npm run build
+          npx @opennextjs/cloudflare build
+
+      - name: Deploy Next.js Web to Cloudflare Workers / Pages
+        if: env.CLOUDFLARE_API_TOKEN != ''
+        run: |
+          cd laterbox-web
+          npx @opennextjs/cloudflare deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Upload Web Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: laterbox-web-dist
+          path: |
+            build/web/
+            laterbox-web/.open-next/
+          if-no-files-found: warn
+
+  create-release:
+    name: Publish GitHub Release
+    needs: [build-macos, build-windows, build-linux, build-extension, build-and-deploy-web]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Download macOS Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: laterbox-macos-dist
+          path: dist
+
       - name: Download Windows Artifacts
         uses: actions/download-artifact@v4
         with:
           name: laterbox-windows-dist
+          path: dist
+
+      - name: Download Linux Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: laterbox-linux-dist
+          path: dist
+
+      - name: Download Extension Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: laterbox-extension-dist
           path: dist
 
       - name: Determine Release Tag
@@ -119,7 +290,13 @@ jobs:
           elif [ "${{ github.ref_type }}" = "tag" ]; then
             TAG="${{ github.ref_name }}"
           else
-            TAG="v1.0.0"
+            # Read version from laterbox-web/version.json if available
+            if [ -f "laterbox-web/version.json" ]; then
+              V=$(node -p "require('./laterbox-web/version.json').version")
+              TAG="v$V"
+            else
+              TAG="v1.0.0"
+            fi
           fi
           echo "tag=$TAG" >> $GITHUB_OUTPUT
 
@@ -127,12 +304,11 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.release_tag.outputs.tag }}
-          name: Laterbox ${{ steps.release_tag.outputs.tag }}
+          name: LaterBox ${{ steps.release_tag.outputs.tag }}
           draft: false
           prerelease: false
           generate_release_notes: true
           files: |
-            dist/laterbox-windows-setup.exe
-            dist/laterbox-windows-x64.zip
+            dist/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
