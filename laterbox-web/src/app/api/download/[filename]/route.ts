@@ -42,7 +42,7 @@ export async function GET(
     const cfEnv = getCloudflareContext()?.env as Record<string, any> | undefined;
     cfEnvToken = cfEnv?.GITHUB_TOKEN || cfEnv?.GITHUB_ACCESS_TOKEN || '';
   } catch {
-    // Standard Node / local environment
+    // Node environment fallback
   }
 
   const token =
@@ -63,30 +63,38 @@ export async function GET(
         'User-Agent': 'LaterBox-Direct-Downloader/1.0',
       };
 
-  const downloadUrl = `https://github.com/${GITHUB_REPO}/releases/latest/download/${filename}`;
-
   try {
     // 1. If token is available, resolve asset via GitHub Release API for direct binary access
     if (token) {
       try {
-        const releaseApiUrl = `https://api.github.com/repos/${GITHUB_REPO}/releases/latest`;
-        const relRes = await fetch(releaseApiUrl, {
-          headers: {
-            ...authHeader,
-            'Accept': 'application/vnd.github.v3+json',
-          },
-        });
+        const releasesRes = await fetch(
+          `https://api.github.com/repos/${GITHUB_REPO}/releases?per_page=10`,
+          {
+            headers: {
+              ...authHeader,
+              'Accept': 'application/vnd.github.v3+json',
+            },
+          }
+        );
 
-        if (relRes.ok) {
-          const relData = (await relRes.json()) as {
+        if (releasesRes.ok) {
+          const releases = (await releasesRes.json()) as Array<{
             assets?: Array<{ id: number; name: string; url: string; size: number }>;
-          };
+          }>;
 
-          const matchedAsset = relData.assets?.find(
-            (a) => a.name.toLowerCase() === filename.toLowerCase()
-          );
+          let matchedAsset: { id: number; name: string; url: string; size: number } | undefined;
+          for (const rel of releases) {
+            const found = rel.assets?.find(
+              (a) => a.name.toLowerCase() === filename.toLowerCase()
+            );
+            if (found) {
+              matchedAsset = found;
+              break;
+            }
+          }
 
           if (matchedAsset) {
+            // Request direct signed asset URL from GitHub API with manual redirect
             const assetDownloadRes = await fetch(
               `https://api.github.com/repos/${GITHUB_REPO}/releases/assets/${matchedAsset.id}`,
               {
@@ -94,39 +102,50 @@ export async function GET(
                   ...authHeader,
                   'Accept': 'application/octet-stream',
                 },
-                redirect: 'follow',
+                redirect: 'manual',
               }
             );
 
-            if (assetDownloadRes.ok && assetDownloadRes.body) {
-              const mimeType = getMimeType(filename);
-              const resHeaders = new Headers({
-                'Content-Type': mimeType,
-                'Content-Disposition': `attachment; filename="${filename}"`,
-                'Content-Transfer-Encoding': 'binary',
-                'X-Content-Type-Options': 'nosniff',
-                'Cache-Control': 'public, max-age=3600, s-maxage=3600',
-                'Access-Control-Allow-Origin': '*',
-              });
+            const signedLocation = assetDownloadRes.headers.get('location');
 
-              const contentLength = assetDownloadRes.headers.get('content-length');
-              if (contentLength) {
-                resHeaders.set('Content-Length', contentLength);
+            if (signedLocation) {
+              // Fetch raw pre-signed asset stream without auth headers
+              const rawStreamRes = await fetch(signedLocation);
+
+              if (rawStreamRes.ok && rawStreamRes.body) {
+                const mimeType = getMimeType(filename);
+                const resHeaders = new Headers({
+                  'Content-Type': mimeType,
+                  'Content-Disposition': `attachment; filename="${filename}"`,
+                  'Content-Transfer-Encoding': 'binary',
+                  'X-Content-Type-Options': 'nosniff',
+                  'Cache-Control': 'public, max-age=3600, s-maxage=3600',
+                  'Access-Control-Allow-Origin': '*',
+                });
+
+                const contentLength = rawStreamRes.headers.get('content-length');
+                if (contentLength) {
+                  resHeaders.set('Content-Length', contentLength);
+                }
+
+                return new NextResponse(rawStreamRes.body as any, {
+                  status: 200,
+                  headers: resHeaders,
+                });
               }
 
-              return new NextResponse(assetDownloadRes.body as any, {
-                status: 200,
-                headers: resHeaders,
-              });
+              // Direct redirect to signed storage URL fallback
+              return NextResponse.redirect(signedLocation, { status: 302 });
             }
           }
         }
       } catch (apiErr) {
-        console.warn('GitHub API asset resolution fallback:', apiErr);
+        console.warn('GitHub API release resolution fallback:', apiErr);
       }
     }
 
     // 2. Direct Release Download URL (Public or authenticated fallback)
+    const downloadUrl = `https://github.com/${GITHUB_REPO}/releases/latest/download/${filename}`;
     const upstreamRes = await fetch(downloadUrl, {
       headers: {
         ...authHeader,
@@ -135,22 +154,39 @@ export async function GET(
       redirect: 'follow',
     });
 
-    if (!upstreamRes.ok || !upstreamRes.body) {
-      // Fallback: direct release tag if latest alias resolves slowly
-      const fallbackUrl = `https://github.com/${GITHUB_REPO}/releases/download/v1.0.10/${filename}`;
-      const fallbackRes = await fetch(fallbackUrl, {
-        headers: {
-          ...authHeader,
-          'Accept': 'application/octet-stream',
-        },
-        redirect: 'follow',
+    if (upstreamRes.ok && upstreamRes.body) {
+      const mimeType = getMimeType(filename);
+      const resHeaders = new Headers({
+        'Content-Type': mimeType,
+        'Content-Disposition': `attachment; filename="${filename}"`,
+        'Content-Transfer-Encoding': 'binary',
+        'X-Content-Type-Options': 'nosniff',
+        'Cache-Control': 'public, max-age=3600, s-maxage=3600',
+        'Access-Control-Allow-Origin': '*',
       });
 
-      if (!fallbackRes.ok || !fallbackRes.body) {
-        // Fallback: 302 redirect directly to GitHub URL
-        return NextResponse.redirect(downloadUrl, { status: 302 });
+      const contentLength = upstreamRes.headers.get('content-length');
+      if (contentLength) {
+        resHeaders.set('Content-Length', contentLength);
       }
 
+      return new NextResponse(upstreamRes.body as any, {
+        status: 200,
+        headers: resHeaders,
+      });
+    }
+
+    // Fallback tag check
+    const fallbackUrl = `https://github.com/${GITHUB_REPO}/releases/download/v1.0.17/${filename}`;
+    const fallbackRes = await fetch(fallbackUrl, {
+      headers: {
+        ...authHeader,
+        'Accept': 'application/octet-stream',
+      },
+      redirect: 'follow',
+    });
+
+    if (fallbackRes.ok && fallbackRes.body) {
       const mimeType = getMimeType(filename);
       const resHeaders = new Headers({
         'Content-Type': mimeType,
@@ -172,27 +208,9 @@ export async function GET(
       });
     }
 
-    const mimeType = getMimeType(filename);
-    const resHeaders = new Headers({
-      'Content-Type': mimeType,
-      'Content-Disposition': `attachment; filename="${filename}"`,
-      'Content-Transfer-Encoding': 'binary',
-      'X-Content-Type-Options': 'nosniff',
-      'Cache-Control': 'public, max-age=3600, s-maxage=3600',
-      'Access-Control-Allow-Origin': '*',
-    });
-
-    const contentLength = upstreamRes.headers.get('content-length');
-    if (contentLength) {
-      resHeaders.set('Content-Length', contentLength);
-    }
-
-    return new NextResponse(upstreamRes.body as any, {
-      status: 200,
-      headers: resHeaders,
-    });
+    return new NextResponse(`File not found: ${filename}`, { status: 404 });
   } catch (error) {
     console.error(`Direct stream failed for ${filename}:`, error);
-    return NextResponse.redirect(downloadUrl, { status: 302 });
+    return new NextResponse(`Download failed for ${filename}`, { status: 500 });
   }
 }
