@@ -30,6 +30,9 @@ import {
   Image as ImageIcon,
   PlayCircle,
   Music2,
+  Eye,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 
 function formatBytes(bytes?: number): string {
@@ -41,28 +44,31 @@ function formatBytes(bytes?: number): string {
 
 function AttachmentRow({ attachment }: { attachment: Attachment }) {
   const [downloading, setDownloading] = useState(false);
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [mediaUrl, setMediaUrl] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState(true);
 
   const ext = attachment.file_extension.toLowerCase();
-  const isImage = attachment.mime_type.startsWith('image/') || ['jpg', 'jpeg', 'png', 'gif', 'webp', 'heic', 'svg'].includes(ext);
+  const mime = attachment.mime_type.toLowerCase();
+  const isImage = mime.startsWith('image/') || ['jpg', 'jpeg', 'png', 'gif', 'webp', 'heic', 'svg'].includes(ext);
+  const isPdf = ext === 'pdf' || mime === 'application/pdf';
+  const isVideo = mime.startsWith('video/') || ['mp4', 'mov', 'mkv', 'webm'].includes(ext);
+  const isAudio = mime.startsWith('audio/') || ['mp3', 'm4a', 'wav', 'aac', 'ogg'].includes(ext);
 
   useEffect(() => {
-    if (isImage) {
-      if (attachment.local_path?.startsWith('data:') || attachment.local_path?.startsWith('http')) {
-        setImageUrl(attachment.local_path);
-        return;
-      }
-      fetchAttachmentDownloadUrl(attachment.id).then((url) => {
-        if (url) setImageUrl(url);
-      });
+    if (attachment.local_path?.startsWith('data:') || attachment.local_path?.startsWith('http')) {
+      setMediaUrl(attachment.local_path);
+      return;
     }
-  }, [attachment.id, attachment.local_path, isImage]);
+    fetchAttachmentDownloadUrl(attachment.id).then((url) => {
+      if (url) setMediaUrl(url);
+    });
+  }, [attachment.id, attachment.local_path]);
 
   const handleDownload = async () => {
     if (downloading) return;
     setDownloading(true);
     try {
-      const url = imageUrl || await fetchAttachmentDownloadUrl(attachment.id);
+      const url = mediaUrl || await fetchAttachmentDownloadUrl(attachment.id);
       if (url) {
         window.open(url, '_blank');
       } else {
@@ -74,28 +80,89 @@ function AttachmentRow({ attachment }: { attachment: Attachment }) {
   };
 
   return (
-    <div className="p-3.5 rounded-2xl bg-[#ebe7dc]/50 border border-[#e4e0d5] flex flex-col gap-3">
-      {/* If it's an image, render preview image */}
-      {isImage && imageUrl && (
-        <div className="w-full aspect-video rounded-xl overflow-hidden bg-white border border-[#e4e0d5]">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={imageUrl}
-            alt={attachment.original_file_name}
-            className="w-full h-full object-contain"
-          />
-        </div>
+    <div className="p-4 rounded-3xl bg-[#ebe7dc]/50 border border-[#e4e0d5] flex flex-col gap-3 transition-all">
+      {/* Live Preview Media Area */}
+      {mediaUrl && (
+        <>
+          {/* Image Preview */}
+          {isImage && (
+            <div className="w-full max-h-96 rounded-2xl overflow-hidden bg-white border border-[#e4e0d5] flex items-center justify-center">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={mediaUrl}
+                alt={attachment.original_file_name}
+                className="w-full h-auto max-h-96 object-contain"
+              />
+            </div>
+          )}
+
+          {/* PDF Viewer */}
+          {isPdf && (
+            <div className="w-full rounded-2xl overflow-hidden bg-white border border-[#e4e0d5]">
+              <div className="p-2 bg-[#fef2f2] border-b border-[#fca5a5]/40 flex items-center justify-between">
+                <span className="text-xs font-bold text-[#991b1b] flex items-center gap-1.5">
+                  <FileText className="w-3.5 h-3.5" /> PDF Preview
+                </span>
+                <button
+                  onClick={() => setExpanded(!expanded)}
+                  className="text-xs font-semibold text-[#991b1b] flex items-center gap-1 hover:underline cursor-pointer"
+                >
+                  {expanded ? (
+                    <>
+                      <span>Collapse</span>
+                      <ChevronUp className="w-3.5 h-3.5" />
+                    </>
+                  ) : (
+                    <>
+                      <span>Expand</span>
+                      <ChevronDown className="w-3.5 h-3.5" />
+                    </>
+                  )}
+                </button>
+              </div>
+              {expanded && (
+                <iframe
+                  src={`${mediaUrl}#toolbar=1&navpanes=0`}
+                  title={attachment.original_file_name}
+                  className="w-full h-96 border-0"
+                />
+              )}
+            </div>
+          )}
+
+          {/* Video Player */}
+          {isVideo && (
+            <div className="w-full rounded-2xl overflow-hidden bg-black border border-[#e4e0d5]">
+              <video
+                src={mediaUrl}
+                controls
+                playsInline
+                className="w-full max-h-96 object-contain"
+              />
+            </div>
+          )}
+
+          {/* Audio Player */}
+          {isAudio && (
+            <div className="w-full p-3 rounded-2xl bg-white border border-[#e4e0d5]">
+              <audio src={mediaUrl} controls className="w-full" />
+            </div>
+          )}
+        </>
       )}
 
-      <div className="flex items-center justify-between gap-3">
+      {/* Attachment Details Footer */}
+      <div className="flex items-center justify-between gap-3 pt-1">
         <div className="flex items-center gap-2.5 min-w-0">
           <div className="w-9 h-9 rounded-xl bg-white flex items-center justify-center shrink-0 border border-[#e4e0d5] shadow-2xs">
             {isImage ? (
               <ImageIcon className="w-4 h-4 text-[#0284c7]" />
-            ) : ext === 'pdf' ? (
+            ) : isPdf ? (
               <FileText className="w-4 h-4 text-red-600" />
-            ) : ['mp4', 'mov'].includes(ext) ? (
+            ) : isVideo ? (
               <PlayCircle className="w-4 h-4 text-rose-600" />
+            ) : isAudio ? (
+              <Music2 className="w-4 h-4 text-emerald-600" />
             ) : (
               <Paperclip className="w-4 h-4 text-[#6c6b63]" />
             )}
@@ -116,7 +183,7 @@ function AttachmentRow({ attachment }: { attachment: Attachment }) {
           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-[#ebe7dc] border border-[#e4e0d5] text-xs font-bold text-[#171711] shadow-2xs transition-colors cursor-pointer shrink-0"
         >
           <Download className="w-3.5 h-3.5" />
-          <span>{downloading ? 'Loading…' : 'Open'}</span>
+          <span>{downloading ? 'Loading…' : 'Open / Download'}</span>
         </button>
       </div>
     </div>
@@ -344,12 +411,12 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
 
           {/* Attached Files & Assets */}
           {item.attachments && item.attachments.length > 0 && (
-            <div className="pt-4 border-t border-[#e4e0d5]/70 space-y-3">
+            <div className="pt-4 border-t border-[#e4e0d5]/70 space-y-4">
               <div className="flex items-center gap-2 text-xs font-bold text-[#171711] uppercase tracking-wider">
                 <Paperclip className="w-3.5 h-3.5 text-[#0284c7]" />
                 <span>Attachments ({item.attachments.length})</span>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-4">
                 {item.attachments.map((att) => (
                   <AttachmentRow key={att.id} attachment={att} />
                 ))}
