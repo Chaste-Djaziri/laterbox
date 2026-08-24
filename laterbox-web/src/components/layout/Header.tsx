@@ -36,9 +36,6 @@ export function Header() {
     { href: '/download', label: 'Downloads' },
     { href: '/docs', label: 'Docs' },
     { href: '/guide', label: 'Guide' },
-    { href: '/tutorial', label: 'Tutorial' },
-    { href: '/privacy', label: 'Privacy' },
-    { href: '/terms', label: 'Terms' },
   ];
 
   return (
