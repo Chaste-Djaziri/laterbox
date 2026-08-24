@@ -78,4 +78,30 @@ class LaterBoxItem {
 
   bool get isArchived => status == ItemStatus.archived;
   bool get isInbox => status == ItemStatus.inbox;
+
+  LaterBoxItem copyWith({
+    String? id,
+    String? url,
+    String? title,
+    String? text,
+    TextSelector? selector,
+    String? type,
+    bool? favorite,
+    ItemStatus? status,
+    DateTime? createdAt,
+    EnrichedMetadata? metadata,
+  }) {
+    return LaterBoxItem(
+      id: id ?? this.id,
+      url: url ?? this.url,
+      title: title ?? this.title,
+      text: text ?? this.text,
+      selector: selector ?? this.selector,
+      type: type ?? this.type,
+      favorite: favorite ?? this.favorite,
+      status: status ?? this.status,
+      createdAt: createdAt ?? this.createdAt,
+      metadata: metadata ?? this.metadata,
+    );
+  }
 }
