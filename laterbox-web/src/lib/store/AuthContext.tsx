@@ -144,8 +144,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           },
         });
         if (!res.ok) {
-          const errData = await res.json().catch(() => ({}));
-          throw new Error(errData.error || 'Failed to delete account from server');
+          const errData = (await res.json().catch(() => ({}))) as Record<string, any>;
+          throw new Error(errData?.error || 'Failed to delete account from server');
         }
       }
 
