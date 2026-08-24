@@ -99,17 +99,24 @@ class ShareReceiverActivity : Activity() {
     }
 
     private fun handleShare(intent: Intent?) {
-        if (intent == null || (intent.action != Intent.ACTION_SEND && intent.action != Intent.ACTION_SEND_MULTIPLE)) {
+        val validActions = setOf(
+            Intent.ACTION_SEND,
+            Intent.ACTION_SEND_MULTIPLE,
+            Intent.ACTION_PROCESS_TEXT
+        )
+        if (intent == null || intent.action !in validActions) {
             showFailure("No shareable content found")
             return
         }
 
-        val text = intent.getStringExtra(Intent.EXTRA_TEXT)
+        val rawText = (intent.getStringExtra(Intent.EXTRA_PROCESS_TEXT)
+            ?: intent.getCharSequenceExtra(Intent.EXTRA_PROCESS_TEXT)?.toString()
+            ?: intent.getStringExtra(Intent.EXTRA_TEXT)
+            ?: intent.getStringExtra(Intent.EXTRA_SUBJECT))
             ?.trim()
             ?.takeIf { it.isNotEmpty() }
-            ?: intent.getStringExtra(Intent.EXTRA_SUBJECT)
-                ?.trim()
-                ?.takeIf { it.isNotEmpty() }
+
+        val text = formatSharedText(rawText)
         val uris = sharedUris(intent)
 
         if (text == null && uris.isEmpty()) {
@@ -260,6 +267,33 @@ class ShareReceiverActivity : Activity() {
         subtitle.text = message
         subtitle.visibility = View.VISIBLE
         actions.visibility = View.VISIBLE
+    }
+
+    private fun formatSharedText(raw: String?): String? {
+        if (raw.isNullOrBlank()) return null
+        val trimmed = raw.trim()
+
+        if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+            return trimmed
+        }
+
+        val urlRegex = Regex("(https?://[^\\s]+)")
+        val match = urlRegex.find(trimmed)
+        if (match != null) {
+            val url = match.value
+            val quote = trimmed.replace(url, "").trim().trim('"', '“', '”', '\'', ' ')
+            if (quote.isNotEmpty() && !url.contains(":~:text=")) {
+                val snippet = quote.take(120).trim()
+                val encoded = runCatching { Uri.encode(snippet) }.getOrNull()
+                if (!encoded.isNullOrEmpty()) {
+                    val separator = if (url.contains("#")) ":~:text=" else "#:~:text="
+                    return "$url$separator$encoded"
+                }
+            }
+            return if (quote.isNotEmpty()) "$url\n$quote" else url
+        }
+
+        return trimmed
     }
 
     private fun displaySubtitle(value: String): String? {
