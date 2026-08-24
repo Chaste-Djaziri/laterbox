@@ -47,25 +47,39 @@ class ItemRepository {
     );
   }
 
-  Future<void> save(String value, {String? id, DateTime? createdAt}) async {
+  Future<void> save(
+    String value, {
+    String? id,
+    DateTime? createdAt,
+    String? textContent,
+    String? url,
+  }) async {
     final normalized = value.trim();
-    if (normalized.isEmpty) {
+    if (normalized.isEmpty &&
+        (url == null || url.isEmpty) &&
+        (textContent == null || textContent.isEmpty)) {
       throw const FormatException('Paste a URL or some text to save.');
     }
 
     final itemId = id ?? _uuid.v4();
     if (id != null && await _local.exists(itemId)) return;
 
-    final uri = Uri.tryParse(normalized);
+    final targetUrl = (url != null && url.isNotEmpty)
+        ? url
+        : (Uri.tryParse(normalized)?.hasScheme == true ? normalized : null);
+
+    final uri = targetUrl != null ? Uri.tryParse(targetUrl) : null;
     final isUrl = uri != null && uri.hasScheme && uri.host.isNotEmpty;
-    final normalizedUrl = isUrl ? normalizeUrl(normalized) : null;
-    final textContent = isUrl ? null : normalized;
+    final normalizedUrl = isUrl ? normalizeUrl(targetUrl!) : null;
+    final bodyText = textContent?.trim().isNotEmpty == true
+        ? textContent!.trim()
+        : (isUrl ? null : normalized);
     final now = createdAt ?? DateTime.now();
 
     final existing = await _local.findActiveInboxItem(
       _userId,
       url: normalizedUrl,
-      textContent: textContent,
+      textContent: bodyText,
     );
     if (existing != null) {
       return;
@@ -76,8 +90,8 @@ class ItemRepository {
         id: itemId,
         userId: Value(_userId),
         url: Value(normalizedUrl),
-        textContent: Value(textContent),
-        type: Value(isUrl ? 'link' : 'text'),
+        textContent: Value(bodyText),
+        type: Value(isUrl ? (bodyText != null && bodyText.isNotEmpty ? 'quote' : 'link') : 'text'),
         createdAt: now,
         updatedAt: now,
         syncStatus: Value(SyncStatus.pending.databaseValue),
