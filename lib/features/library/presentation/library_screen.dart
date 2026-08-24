@@ -30,7 +30,6 @@ class LibraryScreen extends ConsumerWidget {
       body: SafeArea(
         top: false,
         child: ListView(
-          cacheExtent: 1000,
           padding: const EdgeInsets.fromLTRB(20, 18, 20, 104),
           children: [
             Text(
