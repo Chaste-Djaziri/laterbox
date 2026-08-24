@@ -20,15 +20,17 @@ export async function GET() {
       });
 
       if (response.ok) {
-        const json = await response.json();
-        const monitors = (json.data || []) as Array<{
-          id: string;
-          attributes?: {
-            pronounceable_name?: string;
-            status?: string;
-            paused?: boolean;
-          };
-        }>;
+        const json = (await response.json()) as {
+          data?: Array<{
+            id: string;
+            attributes?: {
+              pronounceable_name?: string;
+              status?: string;
+              paused?: boolean;
+            };
+          }>;
+        };
+        const monitors = json?.data || [];
 
         const activeMonitors = monitors.filter((m) => !m.attributes?.paused);
         const downMonitors = activeMonitors.filter((m) => m.attributes?.status === "down");
