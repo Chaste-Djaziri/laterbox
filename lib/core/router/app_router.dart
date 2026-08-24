@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -151,7 +152,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             path: '/kept',
             pageBuilder: (context, state) => NoTransitionPage(
               key: state.pageKey,
-              child: const LibrarySectionScreen(
+              child: LibrarySectionScreen(
                 title: 'Kept',
                 provider: keptProvider,
               ),
