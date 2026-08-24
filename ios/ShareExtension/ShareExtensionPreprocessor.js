@@ -1,7 +1,7 @@
 var ShareExtensionPreprocessor = function() {};
 
 ShareExtensionPreprocessor.prototype = {
-    run: function(arguments) {
+    run: function(args) {
         var selection = "";
         try {
             if (window.getSelection) {
@@ -9,13 +9,13 @@ ShareExtensionPreprocessor.prototype = {
             }
         } catch (e) {}
 
-        arguments.completionFunction({
+        args.completionFunction({
             "url": window.location.href,
             "title": document.title || "",
             "selection": selection
         });
     },
-    finalize: function(arguments) {
+    finalize: function(args) {
         // Nothing needed here
     }
 };
