@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState } from 'react';
-import { AppShell } from '@/components/layout/AppShell';
 import { ItemCard } from '@/components/inbox/ItemCard';
 import { useItems } from '@/lib/store/ItemContext';
 import { Search as SearchIcon, X, FileText, PlayCircle, Music2, StickyNote, Layers } from 'lucide-react';
@@ -39,7 +38,7 @@ export default function SearchPage() {
   ];
 
   return (
-    <AppShell>
+    <>
       <div className="max-w-7xl mx-auto px-6 sm:px-8 py-7 sm:py-9 space-y-6">
         <div>
           <h1 className="text-3xl font-black text-[#171711] tracking-tight">
@@ -118,6 +117,6 @@ export default function SearchPage() {
           </div>
         )}
       </div>
-    </AppShell>
+    </>
   );
 }
