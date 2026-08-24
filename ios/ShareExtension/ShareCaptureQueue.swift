@@ -50,35 +50,62 @@ struct PendingShareCapture: Codable {
 }
 
 final class ShareCaptureQueue {
-    private let defaults: UserDefaults
-    private let containerURL: URL
-    private let queueURL: URL
+    private let appGroupId: String
+    private let groupDefaults: UserDefaults?
+    private let standardDefaults: UserDefaults
+    private let groupContainerURL: URL?
+    private let fallbackContainerURL: URL
     private let key = "laterbox.pendingShareCaptures"
 
     init(appGroupId: String = "group.pro.micorp.laterbox") {
-        let groupDefaults = UserDefaults(suiteName: appGroupId)
-        let groupContainer = FileManager.default.containerURL(
+        self.appGroupId = appGroupId
+        self.groupDefaults = UserDefaults(suiteName: appGroupId)
+        self.standardDefaults = UserDefaults.standard
+
+        let container = FileManager.default.containerURL(
             forSecurityApplicationGroupIdentifier: appGroupId
         )
-        self.defaults = groupDefaults ?? UserDefaults.standard
+        self.groupContainerURL = container
 
-        let fallbackURL: URL
+        // Robust fallback directories accessible in app sandbox
         if let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first {
-            fallbackURL = docs.appendingPathComponent("LaterBoxShare", isDirectory: true)
+            self.fallbackContainerURL = docs.appendingPathComponent("LaterBoxShare", isDirectory: true)
+        } else if let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first {
+            self.fallbackContainerURL = appSupport.appendingPathComponent("LaterBoxShare", isDirectory: true)
+        } else if let caches = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first {
+            self.fallbackContainerURL = caches.appendingPathComponent("LaterBoxShare", isDirectory: true)
         } else {
-            fallbackURL = FileManager.default.temporaryDirectory.appendingPathComponent("LaterBoxShare", isDirectory: true)
+            self.fallbackContainerURL = FileManager.default.temporaryDirectory.appendingPathComponent("LaterBoxShare", isDirectory: true)
         }
 
-        self.containerURL = groupContainer ?? fallbackURL
-        self.queueURL = self.containerURL.appendingPathComponent("pending-share-captures.json")
-        try? FileManager.default.createDirectory(at: self.containerURL, withIntermediateDirectories: true)
+        ensureDirectoryExists(at: fallbackContainerURL)
+        if let groupContainerURL {
+            ensureDirectoryExists(at: groupContainerURL)
+        }
+    }
+
+    private func ensureDirectoryExists(at url: URL) {
+        try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true, attributes: nil)
+    }
+
+    private var activeContainerURL: URL {
+        return groupContainerURL ?? fallbackContainerURL
+    }
+
+    private var queueFileURLs: [URL] {
+        var urls: [URL] = []
+        if let group = groupContainerURL {
+            urls.append(group.appendingPathComponent("pending-share-captures.json"))
+        }
+        urls.append(fallbackContainerURL.appendingPathComponent("pending-share-captures.json"))
+        return urls
     }
 
     func stagingDirectory(for captureId: String) -> URL {
-        let directory = containerURL
+        let directory = activeContainerURL
             .appendingPathComponent("PendingAttachments", isDirectory: true)
             .appendingPathComponent(captureId, isDirectory: true)
-        try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        ensureDirectoryExists(at: directory)
         return directory
     }
 
@@ -95,43 +122,75 @@ final class ShareCaptureQueue {
 
         guard let data = try? JSONEncoder().encode(captures) else { return false }
         
-        var fileSuccess = false
-        do {
-            try data.write(to: queueURL, options: .atomic)
-            fileSuccess = true
-        } catch {
-            fileSuccess = false
+        var writeSucceeded = false
+
+        // 1. Write to all available file queue locations
+        for fileURL in queueFileURLs {
+            let parentDir = fileURL.deletingLastPathComponent()
+            ensureDirectoryExists(at: parentDir)
+            do {
+                try data.write(to: fileURL, options: .atomic)
+                writeSucceeded = true
+            } catch {
+                do {
+                    try data.write(to: fileURL)
+                    writeSucceeded = true
+                } catch {
+                    // Continue to fallback channels
+                }
+            }
         }
 
-        // Dual storage: also persist to UserDefaults for cross-sandbox reliability
-        defaults.set(data, forKey: key)
-        defaults.synchronize()
+        // 2. Write to App Group UserDefaults suite
+        if let groupDefaults {
+            groupDefaults.set(data, forKey: key)
+            groupDefaults.synchronize()
+            if groupDefaults.data(forKey: key) != nil {
+                writeSucceeded = true
+            }
+        }
 
-        return fileSuccess || defaults.data(forKey: key) != nil
+        // 3. Write to standard UserDefaults
+        standardDefaults.set(data, forKey: key)
+        standardDefaults.synchronize()
+        if standardDefaults.data(forKey: key) != nil {
+            writeSucceeded = true
+        }
+
+        return writeSucceeded
     }
 
     func readAll() -> [PendingShareCapture] {
         var captures: [PendingShareCapture] = []
         var seenIds = Set<String>()
 
-        // 1. Read from queue file
-        if let fileData = try? Data(contentsOf: queueURL),
-           let decoded = try? JSONDecoder().decode([PendingShareCapture].self, from: fileData) {
-            for item in decoded {
+        func appendUnique(_ items: [PendingShareCapture]) {
+            for item in items {
                 if seenIds.insert(item.id).inserted {
                     captures.append(item)
                 }
             }
         }
 
-        // 2. Read from defaults fallback
-        if let defaultsData = defaults.data(forKey: key),
-           let decoded = try? JSONDecoder().decode([PendingShareCapture].self, from: defaultsData) {
-            for item in decoded {
-                if seenIds.insert(item.id).inserted {
-                    captures.append(item)
-                }
+        // 1. Read from queue files
+        for fileURL in queueFileURLs {
+            if let fileData = try? Data(contentsOf: fileURL),
+               let decoded = try? JSONDecoder().decode([PendingShareCapture].self, from: fileData) {
+                appendUnique(decoded)
             }
+        }
+
+        // 2. Read from App Group UserDefaults
+        if let groupDefaults,
+           let groupData = groupDefaults.data(forKey: key),
+           let decoded = try? JSONDecoder().decode([PendingShareCapture].self, from: groupData) {
+            appendUnique(decoded)
+        }
+
+        // 3. Read from standard UserDefaults
+        if let stdData = standardDefaults.data(forKey: key),
+           let decoded = try? JSONDecoder().decode([PendingShareCapture].self, from: stdData) {
+            appendUnique(decoded)
         }
 
         return captures
@@ -139,9 +198,13 @@ final class ShareCaptureQueue {
 
     func clear() {
         readAll().forEach { deleteStagingDirectory(id: $0.id) }
-        try? FileManager.default.removeItem(at: queueURL)
-        defaults.removeObject(forKey: key)
-        defaults.synchronize()
+        for fileURL in queueFileURLs {
+            try? FileManager.default.removeItem(at: fileURL)
+        }
+        groupDefaults?.removeObject(forKey: key)
+        groupDefaults?.synchronize()
+        standardDefaults.removeObject(forKey: key)
+        standardDefaults.synchronize()
     }
 
     @discardableResult
@@ -152,24 +215,32 @@ final class ShareCaptureQueue {
         ids.forEach { deleteStagingDirectory(id: $0) }
 
         if remaining.isEmpty {
-            try? FileManager.default.removeItem(at: queueURL)
-            defaults.removeObject(forKey: key)
-            defaults.synchronize()
+            clear()
             return true
         }
 
         guard let data = try? JSONEncoder().encode(remaining) else { return false }
-        try? data.write(to: queueURL, options: .atomic)
-        defaults.set(data, forKey: key)
-        defaults.synchronize()
+        
+        for fileURL in queueFileURLs {
+            let parentDir = fileURL.deletingLastPathComponent()
+            ensureDirectoryExists(at: parentDir)
+            try? data.write(to: fileURL, options: .atomic)
+        }
+
+        groupDefaults?.set(data, forKey: key)
+        groupDefaults?.synchronize()
+        standardDefaults.set(data, forKey: key)
+        standardDefaults.synchronize()
         return true
     }
 
     func deleteStagingDirectory(id: String) {
         guard !id.contains("/"), !id.contains("..") else { return }
-        let directory = containerURL
-            .appendingPathComponent("PendingAttachments", isDirectory: true)
-            .appendingPathComponent(id, isDirectory: true)
-        try? FileManager.default.removeItem(at: directory)
+        for container in [groupContainerURL, fallbackContainerURL].compactMap({ $0 }) {
+            let directory = container
+                .appendingPathComponent("PendingAttachments", isDirectory: true)
+                .appendingPathComponent(id, isDirectory: true)
+            try? FileManager.default.removeItem(at: directory)
+        }
     }
 }
