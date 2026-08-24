@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { AppShell } from '@/components/layout/AppShell';
+import { Header } from '@/components/layout/Header';
+import { Footer } from '@/components/layout/Footer';
 import { AndroidTesterModal } from '@/components/download/AndroidTesterModal';
 import {
   Download,
@@ -109,14 +110,13 @@ export default function DownloadPage() {
     const downloadUrl = `/api/download/${encodeURIComponent(filename)}`;
     const link = document.createElement('a');
     link.href = downloadUrl;
+    link.download = filename;
     link.setAttribute('download', filename);
-    link.style.display = 'none';
     document.body.appendChild(link);
     link.click();
+    document.body.removeChild(link);
+
     setTimeout(() => {
-      if (document.body.contains(link)) {
-        document.body.removeChild(link);
-      }
       setDownloadingFile(null);
     }, 3500);
   };
@@ -137,8 +137,9 @@ export default function DownloadPage() {
       : 'curl -fsSL https://laterbox.dev/install.sh | bash';
 
   return (
-    <AppShell>
-      <div className="max-w-5xl mx-auto px-6 sm:px-8 py-8 sm:py-10 space-y-12">
+    <div className="min-h-screen bg-[#f7f5ee] text-[#171711] flex flex-col selection:bg-[#171711] selection:text-white">
+      <Header />
+      <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-12 w-full flex-1">
         {/* Header Title Section */}
         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
           <div>
@@ -776,7 +777,7 @@ export default function DownloadPage() {
             })}
           </div>
         </section>
-      </div>
+      </main>
 
       {/* Android Tester Modal */}
       <AndroidTesterModal
@@ -784,6 +785,8 @@ export default function DownloadPage() {
         onClose={() => setIsAndroidModalOpen(false)}
         onDownloadApk={() => triggerDownload('laterbox-android.apk')}
       />
-    </AppShell>
+
+      <Footer />
+    </div>
   );
 }
