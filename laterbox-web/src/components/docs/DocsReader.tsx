@@ -117,6 +117,91 @@ export function DocsReader({ currentSlug = 'introduction' }: DocsReaderProps) {
     }
   };
 
+  // Helper function to render inline markdown (bold, code, links, italic)
+  const renderInlineMarkdown = (text: string): React.ReactNode => {
+    if (!text) return text;
+
+    const tokens: React.ReactNode[] = [];
+    const pattern = /(`[^`]+`|\*\*[^*]+\*\*|\[[^\]]+\]\([^)]+\)|\*[^*]+\*)/g;
+
+    let lastIndex = 0;
+    let match: RegExpExecArray | null;
+
+    while ((match = pattern.exec(text)) !== null) {
+      if (match.index > lastIndex) {
+        tokens.push(text.slice(lastIndex, match.index));
+      }
+
+      const matchedStr = match[0];
+      const key = `${match.index}-${matchedStr}`;
+
+      if (matchedStr.startsWith('`') && matchedStr.endsWith('`')) {
+        tokens.push(
+          <code
+            key={key}
+            className="px-1.5 py-0.5 mx-0.5 rounded-md bg-[#ebe7dc] text-[#171711] font-mono text-xs font-bold border border-[#d8d4c9]"
+          >
+            {matchedStr.slice(1, -1)}
+          </code>
+        );
+      } else if (matchedStr.startsWith('**') && matchedStr.endsWith('**')) {
+        tokens.push(
+          <strong key={key} className="font-extrabold text-[#171711]">
+            {matchedStr.slice(2, -2)}
+          </strong>
+        );
+      } else if (matchedStr.startsWith('[') && matchedStr.includes('](')) {
+        const linkMatch = matchedStr.match(/^\[(.*?)\]\((.*?)\)$/);
+        if (linkMatch) {
+          const [, label, url] = linkMatch;
+          const isExternal = url.startsWith('http') || url.startsWith('mailto:');
+          if (isExternal) {
+            tokens.push(
+              <a
+                key={key}
+                href={url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[#171711] font-bold underline decoration-[#171711]/40 hover:decoration-[#171711] underline-offset-2 transition-colors inline-flex items-center gap-0.5"
+              >
+                <span>{label}</span>
+                <ExternalLink className="w-3 h-3 inline" />
+              </a>
+            );
+          } else {
+            tokens.push(
+              <Link
+                key={key}
+                href={url}
+                className="text-[#171711] font-bold underline decoration-[#171711]/40 hover:decoration-[#171711] underline-offset-2 transition-colors"
+              >
+                {label}
+              </Link>
+            );
+          }
+        } else {
+          tokens.push(matchedStr);
+        }
+      } else if (matchedStr.startsWith('*') && matchedStr.endsWith('*')) {
+        tokens.push(
+          <em key={key} className="italic text-[#383733]">
+            {matchedStr.slice(1, -1)}
+          </em>
+        );
+      } else {
+        tokens.push(matchedStr);
+      }
+
+      lastIndex = pattern.lastIndex;
+    }
+
+    if (lastIndex < text.length) {
+      tokens.push(text.slice(lastIndex));
+    }
+
+    return tokens.length === 1 ? tokens[0] : <React.Fragment>{tokens}</React.Fragment>;
+  };
+
   return (
     <div className="min-h-screen bg-[#faf8f2] text-[#171711] flex flex-col selection:bg-[#171711] selection:text-white">
       {/* Docs Dedicated Top Navigation Bar */}
@@ -249,7 +334,7 @@ export function DocsReader({ currentSlug = 'introduction' }: DocsReaderProps) {
                 <span>3 min read</span>
               </span>
               <span className="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-bold">
-                v1.0.59
+                v1.0.64
               </span>
             </div>
           </div>
@@ -270,6 +355,11 @@ export function DocsReader({ currentSlug = 'introduction' }: DocsReaderProps) {
               const trimmed = paragraph.trim();
               if (!trimmed) return null;
 
+              // Horizontal Rule
+              if (trimmed === '---') {
+                return <hr key={pIdx} className="border-t border-[#e4e0d5] my-8" />;
+              }
+
               // Headings H2
               if (trimmed.startsWith('## ')) {
                 const headingText = trimmed.replace('## ', '');
@@ -283,10 +373,10 @@ export function DocsReader({ currentSlug = 'introduction' }: DocsReaderProps) {
                     id={headingId}
                     className="text-xl sm:text-2xl font-black text-[#171711] tracking-tight pt-6 border-t border-[#f0ede4] flex items-center gap-2 group"
                   >
-                    <span>{headingText}</span>
+                    <span>{renderInlineMarkdown(headingText)}</span>
                     <a
                       href={`#${headingId}`}
-                      className="opacity-0 group-hover:opacity-100 text-[#9e9b92] hover:text-[#171711] transition-opacity text-base"
+                      className="opacity-0 group-hover:opacity-100 text-[#9e9b92] hover:text-[#171711] transition-opacity text-base font-normal"
                     >
                       #
                     </a>
@@ -299,7 +389,7 @@ export function DocsReader({ currentSlug = 'introduction' }: DocsReaderProps) {
                 const headingText = trimmed.replace('### ', '');
                 return (
                   <h3 key={pIdx} className="text-base font-extrabold text-[#171711] pt-2">
-                    {headingText}
+                    {renderInlineMarkdown(headingText)}
                   </h3>
                 );
               }
@@ -339,6 +429,19 @@ export function DocsReader({ currentSlug = 'introduction' }: DocsReaderProps) {
                 );
               }
 
+              // Blockquotes / Callout notes
+              if (trimmed.startsWith('> ')) {
+                const blockquoteLines = trimmed.split('\n').map((l) => l.replace(/^>\s*/, '')).join(' ');
+                return (
+                  <div key={pIdx} className="p-4 rounded-2xl bg-[#e6edb0]/50 border border-[#d0db84] text-xs leading-relaxed text-[#171711] my-4 flex items-start gap-3">
+                    <Sparkles className="w-4 h-4 text-[#171711] shrink-0 mt-0.5" />
+                    <div className="space-y-1">
+                      {renderInlineMarkdown(blockquoteLines)}
+                    </div>
+                  </div>
+                );
+              }
+
               // Table
               if (trimmed.startsWith('|') && trimmed.includes('|')) {
                 const rows = trimmed.split('\n').filter((r) => r.trim() && !r.includes('---'));
@@ -353,7 +456,7 @@ export function DocsReader({ currentSlug = 'introduction' }: DocsReaderProps) {
                           <tr>
                             {headerCols.map((col, cIdx) => (
                               <th key={cIdx} className="p-3">
-                                {col.trim()}
+                                {renderInlineMarkdown(col.trim())}
                               </th>
                             ))}
                           </tr>
@@ -365,7 +468,7 @@ export function DocsReader({ currentSlug = 'introduction' }: DocsReaderProps) {
                               <tr key={rIdx} className="hover:bg-[#faf8f2]/60 transition-colors">
                                 {cols.map((c, colIdx) => (
                                   <td key={colIdx} className="p-3 text-[#6c6b63]">
-                                    {c.trim()}
+                                    {renderInlineMarkdown(c.trim())}
                                   </td>
                                 ))}
                               </tr>
@@ -378,14 +481,30 @@ export function DocsReader({ currentSlug = 'introduction' }: DocsReaderProps) {
                 }
               }
 
-              // Unordered Bullet List
-              if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
-                const items = trimmed.split('\n').filter((l) => l.trim().startsWith('- ') || l.trim().startsWith('* '));
+              // Ordered Numbered List
+              const numberedLines = trimmed.split('\n').map((l) => l.trim()).filter(Boolean);
+              const isNumberedList = numberedLines.length > 0 && numberedLines.every((l) => /^\d+\.\s/.test(l));
+              if (isNumberedList) {
                 return (
-                  <ul key={pIdx} className="space-y-2 list-disc pl-5 text-[#6c6b63]">
-                    {items.map((item, iIdx) => (
-                      <li key={iIdx} className="leading-relaxed">
-                        {item.replace(/^[-*]\s+/, '')}
+                  <ol key={pIdx} className="space-y-3 list-decimal pl-6 my-4 text-[#383733]">
+                    {numberedLines.map((item, iIdx) => (
+                      <li key={iIdx} className="leading-relaxed pl-1">
+                        {renderInlineMarkdown(item.replace(/^\d+\.\s+/, ''))}
+                      </li>
+                    ))}
+                  </ol>
+                );
+              }
+
+              // Unordered Bullet List
+              const bulletLines = trimmed.split('\n').map((l) => l.trim()).filter(Boolean);
+              const isBulletList = bulletLines.length > 0 && bulletLines.every((l) => l.startsWith('- ') || l.startsWith('* '));
+              if (isBulletList) {
+                return (
+                  <ul key={pIdx} className="space-y-3 list-disc pl-6 my-4 text-[#383733]">
+                    {bulletLines.map((item, iIdx) => (
+                      <li key={iIdx} className="leading-relaxed pl-1">
+                        {renderInlineMarkdown(item.replace(/^[-*]\s+/, ''))}
                       </li>
                     ))}
                   </ul>
@@ -394,8 +513,8 @@ export function DocsReader({ currentSlug = 'introduction' }: DocsReaderProps) {
 
               // Standard Paragraph
               return (
-                <p key={pIdx} className="leading-relaxed text-[#6c6b63]">
-                  {trimmed}
+                <p key={pIdx} className="leading-relaxed text-[#383733]">
+                  {renderInlineMarkdown(trimmed)}
                 </p>
               );
             })}
