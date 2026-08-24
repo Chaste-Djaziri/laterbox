@@ -1,5 +1,5 @@
 import { getAccessToken } from "./auth";
-import { getPageContext } from "./page";
+import { buildScrollToTextFragment, getPageContext } from "./page";
 import {
   enqueueCapture,
   getPendingCaptures,
@@ -23,9 +23,16 @@ export async function saveSelectionFromTab(
   const selectedText = page.selection.trim();
   if (!selectedText) throw new Error("No text selected.");
 
+  const rawUrl = page.url || tab.url || "";
+  const highlightedUrl = buildScrollToTextFragment(
+    rawUrl,
+    selectedText,
+    page.selector,
+  );
+
   return saveCapture({
     text: selectedText,
-    url: page.url || tab.url || undefined,
+    url: highlightedUrl,
     title: page.title || tab.title || undefined,
     selector: page.selector ?? undefined,
     source: "browserExtension",
