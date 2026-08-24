@@ -12,6 +12,7 @@ String normalizeUrl(String raw) {
     port: uri.hasPort ? uri.port : null,
     path: uri.path,
     query: uri.hasQuery ? uri.query : null,
+    fragment: uri.hasFragment ? uri.fragment : null,
   ).toString();
 }
 
