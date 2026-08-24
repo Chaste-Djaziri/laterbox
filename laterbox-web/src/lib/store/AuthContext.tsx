@@ -14,6 +14,8 @@ interface AuthContextType {
   signUpWithPassword: (email: string, password: string) => Promise<{ error: AuthError | null }>;
   signInWithOAuth: (provider: 'google' | 'github') => Promise<{ error: AuthError | null }>;
   signOut: () => Promise<void>;
+  updatePassword: (password: string) => Promise<{ error: AuthError | null }>;
+  deleteAccount: () => Promise<{ error: Error | null }>;
   continueAsGuest: () => void;
   exitGuest: () => void;
 }
@@ -120,6 +122,49 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem(GUEST_KEY, 'true');
   };
 
+  const updatePassword = async (password: string) => {
+    const supabase = getSupabaseClient();
+    const { error } = await supabase.auth.updateUser({ password });
+    return { error };
+  };
+
+  const deleteAccount = async () => {
+    try {
+      const supabase = getSupabaseClient();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (session?.access_token) {
+        // Call the server deletion endpoint
+        const res = await fetch('/api/account/delete', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+          },
+        });
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.error || 'Failed to delete account from server');
+        }
+      }
+
+      // Clear local storage and sign out
+      try {
+        localStorage.clear();
+        sessionStorage.clear();
+      } catch {}
+
+      await supabase.auth.signOut().catch(() => {});
+      setUser(null);
+      setSession(null);
+      setIsGuest(true);
+      return { error: null };
+    } catch (err: any) {
+      return { error: err instanceof Error ? err : new Error(String(err)) };
+    }
+  };
+
   const continueAsGuest = () => {
     setIsGuest(true);
     localStorage.setItem(GUEST_KEY, 'true');
@@ -142,6 +187,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signUpWithPassword,
         signInWithOAuth,
         signOut,
+        updatePassword,
+        deleteAccount,
         continueAsGuest,
         exitGuest,
       }}
