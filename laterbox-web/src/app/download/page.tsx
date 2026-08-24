@@ -20,6 +20,9 @@ import {
   Smartphone,
   Sparkles,
   ArrowRight,
+  Search,
+  Layers,
+  FileCode,
 } from 'lucide-react';
 
 type PlatformId = 'macos' | 'ios' | 'android' | 'windows' | 'linux' | 'extensions';
@@ -66,11 +69,12 @@ interface ReleaseAsset {
 }
 
 interface GitHubRelease {
-  id: number;
+  id?: number;
   tag_name: string;
-  name: string;
+  name?: string;
   published_at: string;
   body?: string;
+  html_url?: string;
   assets: ReleaseAsset[];
 }
 
@@ -81,9 +85,11 @@ export default function DownloadPage() {
   const [isAndroidModalOpen, setIsAndroidModalOpen] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
   const [historyTab, setHistoryTab] = useState<HistoryTab>('all');
-  const [expandedVersion, setExpandedVersion] = useState<string | null>('1.0.10');
-  const [latestVersionTag, setLatestVersionTag] = useState<string>('1.0.10');
+  const [expandedVersions, setExpandedVersions] = useState<Set<string>>(new Set(['1.0.48', '1.0.44', '1.0.12']));
+  const [latestVersionTag, setLatestVersionTag] = useState<string>('1.0.57');
   const [releases, setReleases] = useState<GitHubRelease[]>([]);
+  const [loadingReleases, setLoadingReleases] = useState<boolean>(true);
+  const [releaseSearchQuery, setReleaseSearchQuery] = useState<string>('');
 
   const previousReleasesRef = useRef<HTMLDivElement>(null);
 
@@ -115,7 +121,8 @@ export default function DownloadPage() {
       })
       .catch(() => {});
 
-    // 2. Fetch live releases from authenticated internal proxy
+    // 2. Fetch live releases from authenticated internal proxy with robust fallback
+    setLoadingReleases(true);
     fetch('/api/releases')
       .then((res) => {
         if (!res.ok) throw new Error('API unavailable');
@@ -126,37 +133,135 @@ export default function DownloadPage() {
           setReleases(data);
           const firstTag = data[0].tag_name.replace(/^v/, '');
           setLatestVersionTag(firstTag);
-          setExpandedVersion(firstTag);
+          // Expand first 2 releases by default
+          const initialExpanded = new Set<string>();
+          data.slice(0, 2).forEach((r) => initialExpanded.add(r.tag_name.replace(/^v/, '')));
+          setExpandedVersions(initialExpanded);
         }
       })
-      .catch(() => {
-        // Fallback release history matching latest live releases using direct download proxy
+      .catch(async () => {
+        // Fallback: try fetching directly from public GitHub API
+        try {
+          const directRes = await fetch('https://api.github.com/repos/Chaste-Djaziri/laterbox/releases?per_page=30');
+          if (directRes.ok) {
+            const directData = (await directRes.json()) as GitHubRelease[];
+            if (Array.isArray(directData) && directData.length > 0) {
+              const mapped = directData.map((rel) => ({
+                id: rel.id,
+                tag_name: rel.tag_name,
+                name: rel.name || rel.tag_name,
+                body: rel.body,
+                html_url: rel.html_url || `https://github.com/Chaste-Djaziri/laterbox/releases/tag/${rel.tag_name}`,
+                published_at: rel.published_at,
+                assets: (rel.assets || []).map((a) => ({
+                  name: a.name,
+                  size: a.size,
+                  browser_download_url: `/api/download/${encodeURIComponent(a.name)}`,
+                })),
+              }));
+              setReleases(mapped);
+              const initialExpanded = new Set<string>();
+              mapped.slice(0, 2).forEach((r) => initialExpanded.add(r.tag_name.replace(/^v/, '')));
+              setExpandedVersions(initialExpanded);
+              return;
+            }
+          }
+        } catch {
+          // Both failed, use curated release list
+        }
+
+        const fallbackAssets = [
+          { name: 'laterbox-macos-apple-silicon.dmg', browser_download_url: '/api/download/laterbox-macos-apple-silicon.dmg', size: 26650283 },
+          { name: 'laterbox-macos-intel.dmg', browser_download_url: '/api/download/laterbox-macos-intel.dmg', size: 26650283 },
+          { name: 'laterbox-macos-installer.pkg', browser_download_url: '/api/download/laterbox-macos-installer.pkg', size: 23386222 },
+          { name: 'laterbox-macos-universal.zip', browser_download_url: '/api/download/laterbox-macos-universal.zip', size: 23408107 },
+          { name: 'laterbox-ios.ipa', browser_download_url: '/api/download/laterbox-ios.ipa', size: 25415861 },
+          { name: 'laterbox-android-release.apk', browser_download_url: '/api/download/laterbox-android-release.apk', size: 66794291 },
+          { name: 'laterbox-android.apk', browser_download_url: '/api/download/laterbox-android.apk', size: 66794291 },
+          { name: 'laterbox-windows-setup.exe', browser_download_url: '/api/download/laterbox-windows-setup.exe', size: 12863119 },
+          { name: 'laterbox-windows-x64.zip', browser_download_url: '/api/download/laterbox-windows-x64.zip', size: 14988560 },
+          { name: 'laterbox-linux-x64.tar.gz', browser_download_url: '/api/download/laterbox-linux-x64.tar.gz', size: 12703419 },
+          { name: 'laterbox-linux-x64.zip', browser_download_url: '/api/download/laterbox-linux-x64.zip', size: 12715443 },
+          { name: 'laterbox-chrome-extension.zip', browser_download_url: '/api/download/laterbox-chrome-extension.zip', size: 41255 },
+          { name: 'laterbox-firefox-extension.zip', browser_download_url: '/api/download/laterbox-firefox-extension.zip', size: 41245 },
+          { name: 'laterbox-safari-extension.zip', browser_download_url: '/api/download/laterbox-safari-extension.zip', size: 41219 },
+        ];
+
         setReleases([
           {
-            id: 20,
-            tag_name: 'v1.0.20',
-            name: 'LaterBox v1.0.20',
-            published_at: new Date().toISOString(),
-            assets: [
-              { name: 'laterbox-macos-apple-silicon.dmg', browser_download_url: '/api/download/laterbox-macos-apple-silicon.dmg', size: 26650283 },
-              { name: 'laterbox-macos-intel.dmg', browser_download_url: '/api/download/laterbox-macos-intel.dmg', size: 26650283 },
-              { name: 'laterbox-macos-installer.pkg', browser_download_url: '/api/download/laterbox-macos-installer.pkg', size: 23386222 },
-              { name: 'laterbox-macos-universal.zip', browser_download_url: '/api/download/laterbox-macos-universal.zip', size: 23408107 },
-              { name: 'laterbox-ios.ipa', browser_download_url: '/api/download/laterbox-ios.ipa', size: 25415861 },
-              { name: 'laterbox-android-release.apk', browser_download_url: '/api/download/laterbox-android-release.apk', size: 66794291 },
-              { name: 'laterbox-android.apk', browser_download_url: '/api/download/laterbox-android.apk', size: 66794291 },
-              { name: 'laterbox-windows-setup.exe', browser_download_url: '/api/download/laterbox-windows-setup.exe', size: 12863119 },
-              { name: 'laterbox-windows-x64.zip', browser_download_url: '/api/download/laterbox-windows-x64.zip', size: 14988560 },
-              { name: 'laterbox-linux-x64.tar.gz', browser_download_url: '/api/download/laterbox-linux-x64.tar.gz', size: 12703419 },
-              { name: 'laterbox-linux-x64.zip', browser_download_url: '/api/download/laterbox-linux-x64.zip', size: 12715443 },
-              { name: 'laterbox-chrome-extension.zip', browser_download_url: '/api/download/laterbox-chrome-extension.zip', size: 41255 },
-              { name: 'laterbox-firefox-extension.zip', browser_download_url: '/api/download/laterbox-firefox-extension.zip', size: 41245 },
-              { name: 'laterbox-safari-extension.zip', browser_download_url: '/api/download/laterbox-safari-extension.zip', size: 41219 },
-            ],
+            id: 48,
+            tag_name: 'v1.0.48',
+            name: 'LaterBox v1.0.48',
+            body: 'Pro features upgrade, multi-platform sync speedups, and responsive landing improvements.',
+            html_url: 'https://github.com/Chaste-Djaziri/laterbox/releases/tag/v1.0.48',
+            published_at: new Date(Date.now() - 3600000).toISOString(),
+            assets: fallbackAssets,
+          },
+          {
+            id: 44,
+            tag_name: 'v1.0.44',
+            name: 'LaterBox v1.0.44',
+            body: 'macOS quick capture window layer fixes, YouTube metadata thumbnail resolver.',
+            html_url: 'https://github.com/Chaste-Djaziri/laterbox/releases/tag/v1.0.44',
+            published_at: new Date(Date.now() - 86400000).toISOString(),
+            assets: fallbackAssets,
+          },
+          {
+            id: 12,
+            tag_name: 'v1.0.12',
+            name: 'LaterBox v1.0.12',
+            body: 'Full standalone installer packaging for macOS Apple Silicon and Windows x64.',
+            html_url: 'https://github.com/Chaste-Djaziri/laterbox/releases/tag/v1.0.12',
+            published_at: new Date(Date.now() - 172800000).toISOString(),
+            assets: fallbackAssets,
+          },
+          {
+            id: 11,
+            tag_name: 'v1.0.11',
+            name: 'LaterBox v1.0.11',
+            body: 'Chrome and Firefox extension companion manifests and token exchange.',
+            html_url: 'https://github.com/Chaste-Djaziri/laterbox/releases/tag/v1.0.11',
+            published_at: new Date(Date.now() - 259200000).toISOString(),
+            assets: fallbackAssets,
+          },
+          {
+            id: 10,
+            tag_name: 'v1.0.10',
+            name: 'LaterBox v1.0.10',
+            body: 'Initial multi-platform production bundle release.',
+            html_url: 'https://github.com/Chaste-Djaziri/laterbox/releases/tag/v1.0.10',
+            published_at: new Date(Date.now() - 345600000).toISOString(),
+            assets: fallbackAssets,
           },
         ]);
+        setExpandedVersions(new Set(['1.0.48', '1.0.44']));
+      })
+      .finally(() => {
+        setLoadingReleases(false);
       });
   }, []);
+
+  const toggleVersion = (versionNum: string) => {
+    setExpandedVersions((prev) => {
+      const next = new Set(prev);
+      if (next.has(versionNum)) {
+        next.delete(versionNum);
+      } else {
+        next.add(versionNum);
+      }
+      return next;
+    });
+  };
+
+  const expandAllVersions = () => {
+    const all = new Set<string>();
+    releases.forEach((r) => all.add(r.tag_name.replace(/^v/, '')));
+    setExpandedVersions(all);
+  };
+
+  const collapseAllVersions = () => {
+    setExpandedVersions(new Set());
+  };
 
   const triggerDownload = (filename: string, directUrl?: string) => {
     setDownloadingFile(filename);
@@ -711,149 +816,306 @@ export default function DownloadPage() {
         </section>
 
         {/* Previous Releases History & All Assets Section */}
-        <section ref={previousReleasesRef} className="space-y-6 pt-6">
-          <div className="flex flex-wrap items-center gap-6 border-b border-[#e4e0d5] pb-2">
-            <button
-              onClick={() => setHistoryTab('all')}
-              className={`text-sm font-bold pb-2 transition-colors relative cursor-pointer ${
-                historyTab === 'all' ? 'text-[#171711]' : 'text-[#9e9b92] hover:text-[#171711]'
-              }`}
-            >
-              <span>All Release Assets</span>
-              {historyTab === 'all' && (
-                <div className="absolute bottom-[-9px] left-0 right-0 h-0.5 bg-[#171711]" />
-              )}
-            </button>
+        <section ref={previousReleasesRef} className="space-y-6 pt-8 border-t border-[#e4e0d5]">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h2 className="text-2xl font-black text-[#171711] tracking-tight flex items-center gap-2">
+                <Layers className="w-5 h-5 text-[#171711]" />
+                <span>All Release Assets & History</span>
+              </h2>
+              <p className="text-xs text-[#6c6b63] mt-1">
+                Browse and download all historical builds, package archives, and browser companion extensions.
+              </p>
+            </div>
 
-            <button
-              onClick={() => setHistoryTab('desktop')}
-              className={`text-sm font-bold pb-2 transition-colors relative cursor-pointer ${
-                historyTab === 'desktop' ? 'text-[#171711]' : 'text-[#9e9b92] hover:text-[#171711]'
-              }`}
-            >
-              <span>Desktop (macOS, Windows, Linux)</span>
-              {historyTab === 'desktop' && (
-                <div className="absolute bottom-[-9px] left-0 right-0 h-0.5 bg-[#171711]" />
-              )}
-            </button>
-
-            <button
-              onClick={() => setHistoryTab('mobile')}
-              className={`text-sm font-bold pb-2 transition-colors relative cursor-pointer ${
-                historyTab === 'mobile' ? 'text-[#171711]' : 'text-[#9e9b92] hover:text-[#171711]'
-              }`}
-            >
-              <span>Mobile (iOS IPA & Android APK)</span>
-              {historyTab === 'mobile' && (
-                <div className="absolute bottom-[-9px] left-0 right-0 h-0.5 bg-[#171711]" />
-              )}
-            </button>
-
-            <button
-              onClick={() => setHistoryTab('extensions')}
-              className={`text-sm font-bold pb-2 transition-colors relative cursor-pointer ${
-                historyTab === 'extensions' ? 'text-[#171711]' : 'text-[#9e9b92] hover:text-[#171711]'
-              }`}
-            >
-              <span>Browser Extensions</span>
-              {historyTab === 'extensions' && (
-                <div className="absolute bottom-[-9px] left-0 right-0 h-0.5 bg-[#171711]" />
-              )}
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={expandAllVersions}
+                className="px-3 py-1.5 rounded-lg bg-white hover:bg-[#ebe7dc] border border-[#e4e0d5] text-xs font-bold text-[#171711] transition-all shadow-2xs cursor-pointer"
+              >
+                Expand All
+              </button>
+              <button
+                type="button"
+                onClick={collapseAllVersions}
+                className="px-3 py-1.5 rounded-lg bg-white hover:bg-[#ebe7dc] border border-[#e4e0d5] text-xs font-bold text-[#171711] transition-all shadow-2xs cursor-pointer"
+              >
+                Collapse All
+              </button>
+              <a
+                href="https://github.com/Chaste-Djaziri/laterbox/releases"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#171711] hover:bg-[#282723] text-white text-xs font-bold transition-all shadow-2xs"
+              >
+                <span>GitHub Releases</span>
+                <ExternalLink className="w-3 h-3" />
+              </a>
+            </div>
           </div>
 
-          {/* Versions Table / Accordion */}
-          <div className="divide-y divide-[#e4e0d5]">
-            {releases.map((rel) => {
-              const versionNum = rel.tag_name.replace(/^v/, '');
-              const isExpanded = expandedVersion === versionNum;
+          {/* Filter Toolbar & Category Tabs */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#e4e0d5] pb-3">
+            <div className="flex flex-wrap items-center gap-4 sm:gap-6">
+              <button
+                type="button"
+                onClick={() => setHistoryTab('all')}
+                className={`text-xs sm:text-sm font-bold pb-2 transition-colors relative cursor-pointer ${
+                  historyTab === 'all' ? 'text-[#171711]' : 'text-[#9e9b92] hover:text-[#171711]'
+                }`}
+              >
+                <span>All Assets</span>
+                {historyTab === 'all' && (
+                  <div className="absolute bottom-[-13px] left-0 right-0 h-0.5 bg-[#171711]" />
+                )}
+              </button>
 
-              const filteredAssets = rel.assets.filter((asset) => {
-                if (historyTab === 'all') return true;
-                if (historyTab === 'desktop') {
-                  return (
-                    asset.name.includes('macos') ||
-                    asset.name.includes('windows') ||
-                    asset.name.includes('linux')
-                  );
-                }
-                if (historyTab === 'mobile') {
-                  return asset.name.includes('ios') || asset.name.includes('android');
-                }
-                if (historyTab === 'extensions') {
-                  return asset.name.includes('extension');
-                }
-                return true;
-              });
+              <button
+                type="button"
+                onClick={() => setHistoryTab('desktop')}
+                className={`text-xs sm:text-sm font-bold pb-2 transition-colors relative cursor-pointer ${
+                  historyTab === 'desktop' ? 'text-[#171711]' : 'text-[#9e9b92] hover:text-[#171711]'
+                }`}
+              >
+                <span>Desktop (macOS, Windows, Linux)</span>
+                {historyTab === 'desktop' && (
+                  <div className="absolute bottom-[-13px] left-0 right-0 h-0.5 bg-[#171711]" />
+                )}
+              </button>
 
-              return (
-                <div key={rel.tag_name} className="py-4 space-y-4">
-                  <div
-                    onClick={() => setExpandedVersion(isExpanded ? null : versionNum)}
-                    className="flex items-center justify-between cursor-pointer group py-1"
-                  >
-                    <div className="flex items-center gap-12 sm:gap-20">
-                      <span className="text-xs text-[#9e9b92] font-semibold w-16">Version</span>
-                      <span className="text-sm font-bold text-[#171711] font-mono">{versionNum}</span>
-                    </div>
+              <button
+                type="button"
+                onClick={() => setHistoryTab('mobile')}
+                className={`text-xs sm:text-sm font-bold pb-2 transition-colors relative cursor-pointer ${
+                  historyTab === 'mobile' ? 'text-[#171711]' : 'text-[#9e9b92] hover:text-[#171711]'
+                }`}
+              >
+                <span>Mobile (iOS & Android)</span>
+                {historyTab === 'mobile' && (
+                  <div className="absolute bottom-[-13px] left-0 right-0 h-0.5 bg-[#171711]" />
+                )}
+              </button>
 
-                    <div className="flex items-center gap-3">
-                      <span className="text-[11px] text-[#9e9b92] hidden sm:inline">
-                        {new Date(rel.published_at).toLocaleDateString()}
-                      </span>
-                      <div className="p-1 rounded-lg text-[#6c6b63] group-hover:text-[#171711]">
-                        {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                      </div>
-                    </div>
-                  </div>
+              <button
+                type="button"
+                onClick={() => setHistoryTab('extensions')}
+                className={`text-xs sm:text-sm font-bold pb-2 transition-colors relative cursor-pointer ${
+                  historyTab === 'extensions' ? 'text-[#171711]' : 'text-[#9e9b92] hover:text-[#171711]'
+                }`}
+              >
+                <span>Extensions</span>
+                {historyTab === 'extensions' && (
+                  <div className="absolute bottom-[-13px] left-0 right-0 h-0.5 bg-[#171711]" />
+                )}
+              </button>
+            </div>
 
-                  {/* Expanded Asset List */}
-                  {isExpanded && (
-                    <div className="space-y-2 pt-2 pb-2 pl-4 sm:pl-28 animate-in fade-in">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                        {filteredAssets.map((asset) => {
-                          const sizeFormatted = asset.size
-                            ? asset.size > 1024 * 1024
-                              ? `${(asset.size / (1024 * 1024)).toFixed(1)} MB`
-                              : `${(asset.size / 1024).toFixed(1)} KB`
-                            : undefined;
+            {/* Quick Search Input */}
+            <div className="relative w-full sm:w-64">
+              <Search className="w-3.5 h-3.5 text-[#9e9b92] absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={releaseSearchQuery}
+                onChange={(e) => setReleaseSearchQuery(e.target.value)}
+                placeholder="Filter files or versions..."
+                className="w-full pl-8 pr-3 py-1.5 rounded-xl bg-white border border-[#e4e0d5] text-xs text-[#171711] placeholder:text-[#9e9b92] focus:outline-none focus:border-[#171711] shadow-2xs"
+              />
+            </div>
+          </div>
 
-                          return (
-                            <a
-                              key={asset.name}
-                              href={`/api/download/${encodeURIComponent(asset.name)}`}
-                              download={asset.name}
-                              onClick={() => setDownloadingFile(asset.name)}
-                              className="flex items-center justify-between p-3 rounded-2xl bg-white hover:bg-[#f7f5ee] border border-[#e4e0d5] hover:border-[#171711] transition-all group/item shadow-2xs text-left cursor-pointer w-full"
-                            >
-                              <div className="flex items-center gap-2.5 min-w-0 pr-2">
-                                <div className="p-2 rounded-xl bg-[#ebe7dc] group-hover/item:bg-[#e6edb0] transition-colors shrink-0">
-                                  <Download className="w-3.5 h-3.5 text-[#171711]" />
-                                </div>
-                                <div className="truncate">
-                                  <p className="text-xs font-bold text-[#171711] font-mono truncate">
-                                    {asset.name}
-                                  </p>
-                                  {sizeFormatted && (
-                                    <span className="text-[10px] text-[#9e9b92] font-mono">
-                                      {sizeFormatted}
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                              <span className="text-[10px] font-bold text-[#6c6b63] group-hover/item:text-[#171711] shrink-0 font-mono">
-                                Get
-                              </span>
-                            </a>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
+          {/* Loading Skeleton */}
+          {loadingReleases && (
+            <div className="space-y-4 py-4">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="p-5 rounded-2xl bg-white border border-[#e4e0d5] animate-pulse space-y-3">
+                  <div className="h-4 bg-[#ebe7dc] rounded w-1/3" />
+                  <div className="h-8 bg-[#f7f5ee] rounded w-full" />
                 </div>
-              );
-            })}
-          </div>
+              ))}
+            </div>
+          )}
+
+          {/* Empty State */}
+          {!loadingReleases && releases.length === 0 && (
+            <div className="p-8 rounded-3xl bg-white border border-[#e4e0d5] text-center space-y-3">
+              <p className="text-sm font-bold text-[#171711]">No releases loaded</p>
+              <p className="text-xs text-[#6c6b63]">You can view and download all releases directly on GitHub.</p>
+              <a
+                href="https://github.com/Chaste-Djaziri/laterbox/releases"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#171711] text-white text-xs font-bold"
+              >
+                <span>Open GitHub Releases</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+            </div>
+          )}
+
+          {/* Versions List */}
+          {!loadingReleases && releases.length > 0 && (
+            <div className="space-y-4">
+              {releases.map((rel, idx) => {
+                const versionNum = rel.tag_name.replace(/^v/, '');
+                const isExpanded = expandedVersions.has(versionNum);
+
+                const filteredAssets = rel.assets.filter((asset) => {
+                  // Tab category filter
+                  let matchesTab = true;
+                  if (historyTab === 'desktop') {
+                    matchesTab =
+                      asset.name.includes('macos') ||
+                      asset.name.includes('windows') ||
+                      asset.name.includes('linux');
+                  } else if (historyTab === 'mobile') {
+                    matchesTab = asset.name.includes('ios') || asset.name.includes('android');
+                  } else if (historyTab === 'extensions') {
+                    matchesTab = asset.name.includes('extension');
+                  }
+
+                  // Search query filter
+                  let matchesQuery = true;
+                  if (releaseSearchQuery.trim()) {
+                    const q = releaseSearchQuery.toLowerCase();
+                    matchesQuery =
+                      asset.name.toLowerCase().includes(q) ||
+                      versionNum.toLowerCase().includes(q) ||
+                      Boolean(rel.name && rel.name.toLowerCase().includes(q));
+                  }
+
+                  return matchesTab && matchesQuery;
+                });
+
+                // If search query is active and nothing matches this release, hide it
+                if (releaseSearchQuery.trim() && filteredAssets.length === 0) {
+                  return null;
+                }
+
+                return (
+                  <div
+                    key={rel.tag_name}
+                    className="rounded-2xl sm:rounded-3xl bg-white border border-[#e4e0d5] overflow-hidden shadow-2xs transition-all hover:border-[#cfdb84]"
+                  >
+                    {/* Header Row */}
+                    <div
+                      onClick={() => toggleVersion(versionNum)}
+                      className="p-4 sm:p-5 flex items-center justify-between cursor-pointer group bg-white hover:bg-[#fbf9f4] transition-colors select-none"
+                    >
+                      <div className="flex flex-wrap items-center gap-3 sm:gap-4">
+                        <div className="flex items-center gap-2">
+                          <span className="px-2.5 py-1 rounded-lg bg-[#171711] text-white text-xs font-mono font-bold">
+                            v{versionNum}
+                          </span>
+                          {idx === 0 && (
+                            <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">
+                              Latest Release
+                            </span>
+                          )}
+                        </div>
+
+                        <span className="text-xs text-[#9e9b92] font-semibold hidden sm:inline">
+                          {new Date(rel.published_at).toLocaleDateString(undefined, {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric',
+                          })}
+                        </span>
+
+                        <span className="text-[11px] text-[#6c6b63] font-medium">
+                          {filteredAssets.length} asset{filteredAssets.length === 1 ? '' : 's'}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-3">
+                        <a
+                          href={rel.html_url || `https://github.com/Chaste-Djaziri/laterbox/releases/tag/${rel.tag_name}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="hidden sm:inline-flex items-center gap-1 text-[11px] font-bold text-[#6c6b63] hover:text-[#171711] px-2.5 py-1 rounded-lg hover:bg-[#ebe7dc] transition-all"
+                        >
+                          <span>GitHub Release</span>
+                          <ExternalLink className="w-3 h-3" />
+                        </a>
+
+                        <div className="p-1.5 rounded-xl bg-[#f7f5ee] group-hover:bg-[#ebe7dc] text-[#171711] transition-colors">
+                          {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Expanded Content */}
+                    {isExpanded && (
+                      <div className="p-4 sm:p-5 pt-0 border-t border-[#f0ede4] space-y-4 animate-in fade-in duration-150">
+                        {/* Release Notes Preview */}
+                        {rel.body && (
+                          <div className="p-3.5 rounded-xl bg-[#f7f5ee] border border-[#e4e0d5] text-xs text-[#6c6b63] leading-relaxed">
+                            <span className="font-bold text-[#171711] block mb-1">Release Highlights:</span>
+                            <p className="line-clamp-3">{rel.body}</p>
+                          </div>
+                        )}
+
+                        {/* Assets Grid */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                          {filteredAssets.map((asset) => {
+                            const sizeFormatted = asset.size
+                              ? asset.size > 1024 * 1024
+                                ? `${(asset.size / (1024 * 1024)).toFixed(1)} MB`
+                                : `${(asset.size / 1024).toFixed(1)} KB`
+                              : undefined;
+
+                            // Select matching icon
+                            let AssetIcon = Download;
+                            if (asset.name.includes('macos') || asset.name.includes('apple') || asset.name.includes('.dmg') || asset.name.includes('.pkg')) {
+                              AssetIcon = Apple;
+                            } else if (asset.name.includes('windows') || asset.name.includes('.exe')) {
+                              AssetIcon = Laptop;
+                            } else if (asset.name.includes('linux') || asset.name.includes('.tar.gz')) {
+                              AssetIcon = Terminal;
+                            } else if (asset.name.includes('ios') || asset.name.includes('android') || asset.name.includes('.apk') || asset.name.includes('.ipa') || asset.name.includes('.aab')) {
+                              AssetIcon = Smartphone;
+                            } else if (asset.name.includes('extension')) {
+                              AssetIcon = Puzzle;
+                            }
+
+                            return (
+                              <a
+                                key={asset.name}
+                                href={asset.browser_download_url}
+                                download={asset.name}
+                                onClick={() => setDownloadingFile(asset.name)}
+                                className="flex items-center justify-between p-3 rounded-2xl bg-[#faf8f2] hover:bg-[#f2efe4] border border-[#e4e0d5] hover:border-[#171711] transition-all group/item shadow-2xs text-left cursor-pointer"
+                              >
+                                <div className="flex items-center gap-2.5 min-w-0 pr-2">
+                                  <div className="p-2 rounded-xl bg-white border border-[#e4e0d5] group-hover/item:bg-[#e6edb0] transition-colors shrink-0">
+                                    <AssetIcon className="w-3.5 h-3.5 text-[#171711]" />
+                                  </div>
+                                  <div className="truncate">
+                                    <p className="text-xs font-bold text-[#171711] font-mono truncate">
+                                      {asset.name}
+                                    </p>
+                                    {sizeFormatted && (
+                                      <span className="text-[10px] text-[#9e9b92] font-mono">
+                                        {sizeFormatted}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                                <span className="px-2 py-1 rounded-lg bg-white border border-[#e4e0d5] text-[10px] font-bold text-[#171711] group-hover/item:bg-[#171711] group-hover/item:text-white transition-colors shrink-0 font-mono">
+                                  Download
+                                </span>
+                              </a>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </section>
       </main>
 
