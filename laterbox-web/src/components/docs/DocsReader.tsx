@@ -26,7 +26,6 @@ import {
   X,
   FileText,
   ShieldCheck,
-  Github,
   Command,
   HelpCircle,
   Clock,
