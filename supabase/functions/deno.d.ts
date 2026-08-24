@@ -9,6 +9,29 @@ declare module "npm:*" {
   export = content;
 }
 
+declare module "npm:@aws-sdk/client-s3@3.888.0" {
+  export class S3Client {
+    constructor(config: any);
+    send(command: any): Promise<any>;
+  }
+  export class DeleteObjectCommand {
+    constructor(input: any);
+  }
+  export class GetObjectCommand {
+    constructor(input: any);
+  }
+  export class HeadObjectCommand {
+    constructor(input: any);
+  }
+  export class PutObjectCommand {
+    constructor(input: any);
+  }
+}
+
+declare module "npm:@aws-sdk/s3-request-presigner@3.888.0" {
+  export function getSignedUrl(client: any, command: any, options?: any): Promise<string>;
+}
+
 declare module "jsr:*" {
   export const assert: any;
   export const assertEquals: any;
