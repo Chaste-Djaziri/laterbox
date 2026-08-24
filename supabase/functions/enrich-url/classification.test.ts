@@ -6,6 +6,7 @@ import {
   classifyByOgType,
   extractJsonLd,
   extractOgType,
+  extractYouTubeVideoId,
   handler,
   typeByJsonLdType,
 } from "./index.ts";
@@ -206,4 +207,27 @@ Deno.test("extractOgType reads og:type meta tag", () => {
   const html = '<meta property="og:type" content="article">';
   assertEquals(extractOgType(html), "article");
   assertEquals(extractOgType("<title>nothing</title>"), null);
+});
+
+Deno.test("extractYouTubeVideoId extracts video ID across watch, shorts, embed, and youtu.be", () => {
+  assertEquals(
+    extractYouTubeVideoId(new URL("https://www.youtube.com/watch?v=dQw4w9WgXcQ")),
+    "dQw4w9WgXcQ",
+  );
+  assertEquals(
+    extractYouTubeVideoId(new URL("https://youtu.be/dQw4w9WgXcQ?si=123")),
+    "dQw4w9WgXcQ",
+  );
+  assertEquals(
+    extractYouTubeVideoId(new URL("https://www.youtube.com/shorts/dQw4w9WgXcQ")),
+    "dQw4w9WgXcQ",
+  );
+  assertEquals(
+    extractYouTubeVideoId(new URL("https://www.youtube.com/embed/dQw4w9WgXcQ")),
+    "dQw4w9WgXcQ",
+  );
+  assertEquals(
+    extractYouTubeVideoId(new URL("https://example.com/watch?v=dQw4w9WgXcQ")),
+    null,
+  );
 });
