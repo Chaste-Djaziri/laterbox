@@ -116,7 +116,8 @@ class ShareReceiverActivity : Activity() {
             ?.trim()
             ?.takeIf { it.isNotEmpty() }
 
-        val text = formatSharedText(rawText)
+        val referrerUrl = extractReferrerUrl(intent)
+        val text = formatSharedText(rawText, referrerUrl)
         val uris = sharedUris(intent)
 
         if (text == null && uris.isEmpty()) {
@@ -269,31 +270,60 @@ class ShareReceiverActivity : Activity() {
         actions.visibility = View.VISIBLE
     }
 
-    private fun formatSharedText(raw: String?): String? {
-        if (raw.isNullOrBlank()) return null
-        val trimmed = raw.trim()
+    private fun extractReferrerUrl(intent: Intent): String? {
+        val extraReferrer = runCatching {
+            intent.getParcelableExtra<Uri>(Intent.EXTRA_REFERRER)?.toString()
+        }.getOrNull()
+        if (extraReferrer?.startsWith("http") == true) return extraReferrer
 
-        if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+        val extraReferrerName = intent.getStringExtra(Intent.EXTRA_REFERRER_NAME)
+            ?: intent.getStringExtra("android.intent.extra.REFERRER_NAME")
+            ?: intent.getStringExtra("android.intent.extra.ORIGINATING_URI")
+        if (extraReferrerName?.startsWith("http") == true) return extraReferrerName
+
+        val subject = intent.getStringExtra(Intent.EXTRA_SUBJECT)?.trim()
+        if (subject?.startsWith("http://") == true || subject?.startsWith("https://") == true) {
+            return subject
+        }
+
+        val dataString = intent.dataString?.trim()
+        if (dataString?.startsWith("http://") == true || dataString?.startsWith("https://") == true) {
+            return dataString
+        }
+
+        return null
+    }
+
+    private fun formatSharedText(raw: String?, referrer: String? = null): String? {
+        if (raw.isNullOrBlank() && referrer.isNullOrBlank()) return null
+        val trimmed = raw?.trim() ?: ""
+
+        if ((trimmed.startsWith("http://") || trimmed.startsWith("https://")) && !trimmed.contains(" ") && !trimmed.contains("\n")) {
             return trimmed
         }
 
         val urlRegex = Regex("(https?://[^\\s]+)")
         val match = urlRegex.find(trimmed)
-        if (match != null) {
-            val url = match.value
-            val quote = trimmed.replace(url, "").trim().trim('"', '“', '”', '\'', ' ')
-            if (quote.isNotEmpty() && !url.contains(":~:text=")) {
+        val targetUrl = match?.value ?: referrer?.trim()
+
+        if (targetUrl != null && (targetUrl.startsWith("http://") || targetUrl.startsWith("https://"))) {
+            val quote = trimmed.replace(targetUrl, "").trim().trim('"', '“', '”', '\'', ' ', '\n', '\r')
+            if (quote.isNotEmpty()) {
+                if (targetUrl.contains(":~:text=")) {
+                    return targetUrl
+                }
                 val snippet = quote.take(120).trim()
                 val encoded = runCatching { Uri.encode(snippet) }.getOrNull()
                 if (!encoded.isNullOrEmpty()) {
-                    val separator = if (url.contains("#")) ":~:text=" else "#:~:text="
-                    return "$url$separator$encoded"
+                    val separator = if (targetUrl.contains("#")) ":~:text=" else "#:~:text="
+                    return "$targetUrl$separator$encoded"
                 }
+                return "$targetUrl\n$quote"
             }
-            return if (quote.isNotEmpty()) "$url\n$quote" else url
+            return targetUrl
         }
 
-        return trimmed
+        return trimmed.ifEmpty { referrer }
     }
 
     private fun displaySubtitle(value: String): String? {
