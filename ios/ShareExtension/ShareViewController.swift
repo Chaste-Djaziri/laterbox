@@ -195,59 +195,72 @@ final class ShareViewController: UIViewController {
         fallback: String?,
         completion: @escaping (String?) -> Void
     ) {
+        var sharedUrl: String?
+        var sharedText: String?
+
+        let group = DispatchGroup()
+
+        // 1. Check for URL provider
         if let urlProvider = providers.first(where: {
             $0.hasItemConformingToTypeIdentifier(UTType.url.identifier)
         }) {
+            group.enter()
             urlProvider.loadItem(forTypeIdentifier: UTType.url.identifier, options: nil) { item, _ in
                 if let url = item as? URL, !url.isFileURL {
-                    completion(url.absoluteString)
-                    return
+                    sharedUrl = url.absoluteString
                 } else if let url = item as? NSURL, let abs = url.absoluteString, !abs.hasPrefix("file://") {
-                    completion(abs)
-                    return
+                    sharedUrl = abs
                 } else if let urlString = item as? String, !urlString.hasPrefix("file://") {
-                    completion(urlString)
-                    return
+                    sharedUrl = urlString
                 } else if let data = item as? Data, let urlString = String(data: data, encoding: .utf8), !urlString.hasPrefix("file://") {
-                    completion(urlString)
-                    return
+                    sharedUrl = urlString
                 }
-                self.loadPlainText(from: providers, fallback: fallback, completion: completion)
+                group.leave()
             }
-            return
         }
 
-        loadPlainText(from: providers, fallback: fallback, completion: completion)
+        // 2. Check for plain text provider or fallback
+        let textProvider = providers.first(where: {
+            $0.hasItemConformingToTypeIdentifier(UTType.plainText.identifier)
+        })
+        if let textProvider {
+            group.enter()
+            textProvider.loadItem(forTypeIdentifier: UTType.plainText.identifier, options: nil) { item, _ in
+                if let string = item as? String {
+                    sharedText = string
+                } else if let attr = item as? NSAttributedString {
+                    sharedText = attr.string
+                } else if let data = item as? Data, let string = String(data: data, encoding: .utf8) {
+                    sharedText = string
+                }
+                group.leave()
+            }
+        } else if let fallback = normalizedText(fallback) {
+            sharedText = fallback
+        }
+
+        group.notify(queue: .main) {
+            let combined = self.buildCombinedTextFragment(url: sharedUrl, text: sharedText)
+            completion(combined)
+        }
     }
 
-    private func loadPlainText(
-        from providers: [NSItemProvider],
-        fallback: String?,
-        completion: @escaping (String?) -> Void
-    ) {
-        if let textProvider = providers.first(where: {
-            $0.hasItemConformingToTypeIdentifier(UTType.plainText.identifier)
-        }) {
-            textProvider.loadItem(
-                forTypeIdentifier: UTType.plainText.identifier,
-                options: nil
-            ) { item, _ in
-                if let string = item as? String {
-                    completion(string)
-                    return
-                } else if let attr = item as? NSAttributedString {
-                    completion(attr.string)
-                    return
-                } else if let data = item as? Data, let string = String(data: data, encoding: .utf8) {
-                    completion(string)
-                    return
-                }
-                completion(self.normalizedText(fallback))
-            }
-            return
+    private func buildCombinedTextFragment(url: String?, text: String?) -> String? {
+        let cleanUrl = normalizedText(url)
+        let cleanText = normalizedText(text)
+
+        guard let cleanUrl else { return cleanText }
+        guard let cleanText, cleanText != cleanUrl else { return cleanUrl }
+
+        if cleanUrl.contains(":~:text=") { return cleanUrl }
+
+        let snippet = String(cleanText.prefix(120)).trimmingCharacters(in: .whitespacesAndNewlines)
+        if let encoded = snippet.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) {
+            let separator = cleanUrl.contains("#") ? ":~:text=" : "#:~:text="
+            return "\(cleanUrl)\(separator)\(encoded)"
         }
 
-        completion(normalizedText(fallback))
+        return "\(cleanText)\n\(cleanUrl)"
     }
 
     private func save(
