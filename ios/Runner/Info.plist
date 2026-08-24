@@ -28,6 +28,52 @@
 	<true/>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>pro.micorp.laterbox</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>laterbox</string>
+			</array>
+		</dict>
+	</array>
+	<key>UIApplicationShortcutItems</key>
+	<array>
+		<dict>
+			<key>UIApplicationShortcutItemType</key>
+			<string>pro.micorp.laterbox.capture</string>
+			<key>UIApplicationShortcutItemTitle</key>
+			<string>Quick Save</string>
+			<key>UIApplicationShortcutItemSubtitle</key>
+			<string>Paste and save instantly</string>
+			<key>UIApplicationShortcutItemIconType</key>
+			<string>UIApplicationShortcutIconTypeCompose</string>
+		</dict>
+		<dict>
+			<key>UIApplicationShortcutItemType</key>
+			<string>pro.micorp.laterbox.search</string>
+			<key>UIApplicationShortcutItemTitle</key>
+			<string>Search</string>
+			<key>UIApplicationShortcutItemSubtitle</key>
+			<string>Find saved items</string>
+			<key>UIApplicationShortcutItemIconType</key>
+			<string>UIApplicationShortcutIconTypeSearch</string>
+		</dict>
+		<dict>
+			<key>UIApplicationShortcutItemType</key>
+			<string>pro.micorp.laterbox.kept</string>
+			<key>UIApplicationShortcutItemTitle</key>
+			<string>Kept Items</string>
+			<key>UIApplicationShortcutItemSubtitle</key>
+			<string>View permanent saved library</string>
+			<key>UIApplicationShortcutItemIconType</key>
+			<string>UIApplicationShortcutIconTypeBookmark</string>
+		</dict>
+	</array>
 	<key>NSCameraUsageDescription</key>
 	<string>laterbox uses your camera to capture photos and scan documents to save for later.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
