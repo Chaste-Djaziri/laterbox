@@ -3,8 +3,6 @@
 import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Header } from '@/components/layout/Header';
-import { Footer } from '@/components/layout/Footer';
 import {
   ShieldCheck,
   Lock,
@@ -22,8 +20,7 @@ export default function PrivacyPolicyPage() {
   const lastUpdated = 'August 23, 2026';
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#f7f5ee] text-[#171711] selection:bg-zinc-900 selection:text-white">
-      <Header />
+    <div className="w-full flex-1">
 
       <main className="flex-1 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-16 space-y-12">
         {/* Title Header */}
@@ -185,8 +182,6 @@ export default function PrivacyPolicyPage() {
           </section>
         </div>
       </main>
-
-      <Footer />
     </div>
   );
 }
