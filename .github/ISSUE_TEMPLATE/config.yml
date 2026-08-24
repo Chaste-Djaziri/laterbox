@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 💬 LaterBox Community Discussions
+    url: https://github.com/Chaste-Djaziri/laterbox/discussions
+    about: Ask questions, share ideas, and connect with other users & contributors.
+  - name: 📖 Documentation & Guides
+    url: https://docs.laterbox.dev
+    about: Read full architecture, setup guides, and API reference.
+  - name: 🔒 Security Vulnerability Report
+    url: https://github.com/Chaste-Djaziri/laterbox/security/advisories/new
+    about: Report potential vulnerabilities privately and safely.
