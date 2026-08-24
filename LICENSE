@@ -1,21 +1,44 @@
-MIT License
+PolyForm Noncommercial License 1.0.0
 
-Copyright (c) 2026 Chaste Djaziri & LaterBox Contributors
+Copyright (c) 2026 Chaste Djaziri & LaterBox Authors. All rights reserved.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+https://polyformproject.org/licenses/noncommercial/1.0.0/
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+## 1. Permitted Purpose & Grants
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+Subject to the terms below, the Licensor grants you a copyright license to use,
+run, copy, modify, distribute, and create derivative works of this software for
+**Noncommercial Purposes only**.
+
+Permitted Noncommercial Purposes explicitly include:
+- **Personal Use**: Running, testing, and self-hosting the software for personal, individual productivity.
+- **Educational & Study Use**: Learning, studying the codebase, academic research, teaching, and training.
+- **Open-Source Contribution**: Submitting bug fixes, documentation, and feature contributions back to the project.
+- **Non-Profit Evaluation**: Testing and developing non-profit, non-commercial software extensions.
+
+## 2. Commercial Restrictions
+
+**You may NOT use this software or any part of it for Commercial Purposes.**
+
+Commercial Purposes include, but are not limited to:
+- Selling, renting, sublicensing, or distributing the software (or derivatives) for monetary compensation.
+- Providing the software as a hosted service, Software-as-a-Service (SaaS), cloud service, or managed platform to third parties for commercial gain.
+- Integrating or embedding this software into proprietary or commercial commercial products without explicit written permission.
+
+## 3. Commercial Licensing
+
+If you wish to use LaterBox or any derived code for commercial purposes, please contact the author at:
+**licensing@laterbox.dev** or **chaste@laterbox.dev**.
+
+## 4. Notices & Attribution
+
+You must retain all copyright and license notices on every copy or derivative work you make or distribute.
+
+## 5. Disclaimer
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE
+OR OTHER DEALINGS IN THE SOFTWARE.
