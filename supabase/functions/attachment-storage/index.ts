@@ -6,6 +6,7 @@ import {
   S3Client,
 } from "npm:@aws-sdk/client-s3@3.888.0";
 import { getSignedUrl } from "npm:@aws-sdk/s3-request-presigner@3.888.0";
+import { handleInternalHealthCheck } from "../_shared/health.ts";
 
 const allowedOrigins = new Set([
   "https://laterbox.dev",
@@ -58,6 +59,11 @@ const json = (request: Request, data: unknown, status: number): Response =>
   });
 
 const handler = async (request: Request): Promise<Response> => {
+  const healthResponse = handleInternalHealthCheck(request, "attachment-storage");
+  if (healthResponse) {
+    return healthResponse;
+  }
+
   if (request.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: corsHeaders(request) });
   }
