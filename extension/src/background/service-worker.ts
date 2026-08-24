@@ -5,7 +5,8 @@ import {
 } from "../lib/auth";
 import { flushQueue, saveCapture } from "../lib/capture";
 import { highlightTextInTab } from "../lib/highlight";
-import { getPageContext } from "../lib/page";
+import { buildScrollToTextFragment, getPageContext } from "../lib/page";
+import type { PageContext } from "../lib/page";
 import { browser } from "../platform/api";
 import { browserCapabilities } from "../platform";
 
@@ -324,19 +325,19 @@ function waitForTabLoad(tabId: number): Promise<boolean> {
 async function createContextMenus(): Promise<void> {
   await browser.contextMenus.removeAll();
   browser.contextMenus.create({
-    id: PAGE_MENU,
-    title: "Save page to laterbox",
-    contexts: ["page"],
+    id: SELECTION_MENU,
+    title: "Save Highlight to LaterBox",
+    contexts: ["selection"],
   });
   browser.contextMenus.create({
     id: LINK_MENU,
-    title: "Save link to laterbox",
+    title: "Save Link to LaterBox",
     contexts: ["link"],
   });
   browser.contextMenus.create({
-    id: SELECTION_MENU,
-    title: "Save selection to laterbox",
-    contexts: ["selection"],
+    id: PAGE_MENU,
+    title: "Save Page to LaterBox",
+    contexts: ["page"],
   });
 }
 
@@ -344,29 +345,54 @@ async function handleContextMenu(
   info: chrome.contextMenus.OnClickData,
   tab?: chrome.tabs.Tab,
 ): Promise<void> {
-  const result =
-    info.menuItemId === LINK_MENU && info.linkUrl
-      ? await saveCapture({
-          url: info.linkUrl,
-          source: "browserExtension",
-          createdAt: new Date().toISOString(),
-        })
-      : info.menuItemId === SELECTION_MENU && info.selectionText?.trim()
-        ? await saveCapture({
-            text: info.selectionText.trim(),
-            url: info.pageUrl ?? tab?.url,
-            title: tab?.title,
-            source: "browserExtension",
-            createdAt: new Date().toISOString(),
-          })
-        : info.menuItemId === PAGE_MENU && (info.pageUrl ?? tab?.url)
-          ? await saveCapture({
-              url: info.pageUrl ?? tab?.url,
-              title: tab?.title,
-              source: "browserExtension",
-              createdAt: new Date().toISOString(),
-            })
-          : null;
+  let result: Awaited<ReturnType<typeof saveCapture>> | null = null;
+
+  if (info.menuItemId === SELECTION_MENU) {
+    const selectedText = (info.selectionText || "").trim();
+    if (selectedText) {
+      let pageContext: PageContext = {
+        url: info.pageUrl ?? tab?.url ?? "",
+        title: tab?.title ?? "",
+        selection: selectedText,
+        selector: null,
+      };
+      if (tab?.id !== undefined) {
+        try {
+          pageContext = await getPageContext(tab.id, pageContext);
+        } catch (error) {
+          console.warn("Could not read full selection context", error);
+        }
+      }
+      const rawUrl = pageContext.url || info.pageUrl || tab?.url || "";
+      const highlightedUrl = buildScrollToTextFragment(
+        rawUrl,
+        selectedText,
+        pageContext.selector,
+      );
+      result = await saveCapture({
+        text: selectedText,
+        url: highlightedUrl,
+        title: pageContext.title || tab?.title,
+        selector: pageContext.selector ?? undefined,
+        source: "browserExtension",
+        createdAt: new Date().toISOString(),
+      });
+    }
+  } else if (info.menuItemId === LINK_MENU && info.linkUrl) {
+    result = await saveCapture({
+      url: info.linkUrl,
+      source: "browserExtension",
+      createdAt: new Date().toISOString(),
+    });
+  } else if (info.menuItemId === PAGE_MENU && (info.pageUrl ?? tab?.url)) {
+    result = await saveCapture({
+      url: info.pageUrl ?? tab?.url,
+      title: tab?.title,
+      source: "browserExtension",
+      createdAt: new Date().toISOString(),
+    });
+  }
+
   if (!result) return;
 
   await browser.action.setBadgeText({
