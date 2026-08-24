@@ -36,23 +36,24 @@ export const DOCS_SECTIONS: DocSection[] = [
           { id: 'what-is-laterbox', text: 'What is LaterBox?', level: 2 },
           { id: 'core-philosophy', text: 'The Local-First Philosophy', level: 2 },
           { id: 'key-features', text: 'Core Capabilities', level: 2 },
+          { id: 'ecosystem-matrix', text: 'Supported Ecosystem Matrix', level: 2 },
           { id: 'next-steps', text: 'Next Steps', level: 2 },
         ],
         content: `
 ## What is LaterBox?
 
-**LaterBox** is an open-source, local-first personal knowledge vault and universal save-for-later companion. It replaces cluttered browser tabs and siloed bookmarks with a blazing-fast, unified system that works seamlessly across macOS, Windows, Linux, iOS, Android, and all major web browsers.
+**LaterBox** is an open-source, local-first personal knowledge vault and universal save-for-later companion. It replaces cluttered browser tabs, forgotten reading lists, and siloed bookmark bars with a blazing-fast, unified system that works seamlessly across **macOS, Windows, Linux, iOS, Android, and all major web browsers**.
 
-Traditional bookmark managers store links in remote servers or obscure browser menus where saved items are forgotten. LaterBox treats every captured link as an enriched, offline-available knowledge artifact with automatic metadata extraction, distraction-free reading, and native media playback.
+Traditional bookmark managers store links on remote servers or obscure browser menus where saved items are quickly forgotten. LaterBox treats every captured link as an enriched, offline-available knowledge artifact with automatic metadata extraction, distraction-free reading mode, and native ad-free media playback.
 
 ---
 
 ## The Local-First Philosophy
 
-LaterBox is architected around the **Local-First Software** principles:
+LaterBox is architected from the ground up around **Local-First Software** principles:
 
-1. **Sub-10ms Responsiveness**: All reads and writes hit an embedded local SQLite database (powered by Drift ORM) immediately. No waiting on network roundtrips.
-2. **100% Offline Resilience**: You can search, browse, tag, read cached articles, and capture new links on an airplane or subway without internet.
+1. **Sub-10ms Responsiveness**: All reads and writes hit an embedded local SQLite database (powered by Drift ORM) immediately. No waiting on network roundtrips or spinning loaders.
+2. **100% Offline Resilience**: You can search, browse, tag, read cached articles, and capture new links on an airplane or subway without an internet connection.
 3. **Seamless Cloud Replication**: When connectivity is available, changes automatically synchronize bidirectionally to Supabase PostgreSQL with real-time updates and Row-Level Security.
 4. **Data Ownership & Sovereignty**: Your data stays on your device. You can export your entire vault to JSON or Markdown at any time with a single click.
 
@@ -64,87 +65,329 @@ LaterBox is architected around the **Local-First Software** principles:
 - **🎬 Distraction-Free Media**: Watch YouTube videos and listen to audio without ads, algorithms, or tracking directly inside your vault.
 - **📖 Clean Reader Mode**: Read long-form articles with customizable typography, dark/light themes, and private markdown annotations.
 - **🏷️ Deep Search & Collections**: Instant full-text search across titles, URLs, summaries, and personal notes with custom visual collections.
-- **🛡️ Zero Tracking**: No telemetry, no third-party ad pixels, and strict open-source source-available licensing.
+- **🛡️ Zero Telemetry & Privacy**: No tracking pixels, no third-party ad SDKs, and transparent PolyForm Noncommercial licensing.
+
+---
+
+## Supported Ecosystem Matrix
+
+| Platform | Target Artifacts | Capabilities | Status |
+|---|---|---|---|
+| **macOS** | Universal \`.dmg\`, \`.pkg\` | Spotlight Quick Capture (\`⌥ Space\`), System Tray, Native File Picker | **Production Ready** |
+| **Windows** | Inno Setup \`.exe\`, Portable Zip | Hotkey (\`Ctrl+Alt+Space\`), Tray Minimization, Toast Alerts | **Production Ready** |
+| **Linux** | AppImage, Tarball | Hotkey (\`Alt+Space\`), SQLite FTS5 Local Storage | **Production Ready** |
+| **iOS** | TestFlight Beta / IPA | Native iOS Share Sheet Extension, Biometrics | **Beta** |
+| **Android** | Google Play Beta / APK | Android Share Intent Target, Offline Cache | **Beta** |
+| **Web** | Next.js 16 (Turbopack) | Instant Guest Sandbox, Cloud Sync, Reader Mode | **Production Ready** |
+| **Browser Extension** | Chrome, Firefox, Safari (MV3) | 1-Click Tab Saver, Token Handshake, Sidepanel | **Production Ready** |
 
 ---
 
 ## Next Steps
 
-- Check out the [Quick Start & Installation Guide](/docs/quickstart) to install LaterBox on your devices.
-- Master the [Keyboard Shortcuts & Hotkeys](/docs/shortcuts) for keyboard-driven workflows.
-- Explore the [System Architecture](/docs/architecture) to understand how local SQLite and Supabase sync work together.
+- Review the [Prerequisites & Tooling](/docs/prerequisites) before setting up your local environment.
+- Configure your [Environment Variables](/docs/environment-variables) for Next.js, Supabase, and Flutter.
+- Follow the [Quick Start Guide](/docs/quickstart) to run LaterBox locally in under 5 minutes.
+        `,
+      },
+      {
+        slug: 'prerequisites',
+        title: 'Prerequisites & Tooling',
+        navTitle: 'Prerequisites',
+        description: 'Required runtimes, SDKs, compilers, and development tools for building LaterBox from source.',
+        category: 'Getting Started',
+        headings: [
+          { id: 'required-runtimes', text: 'Required Runtimes & SDKs', level: 2 },
+          { id: 'flutter-setup', text: 'Flutter & Dart Setup', level: 2 },
+          { id: 'node-setup', text: 'Node.js & Package Managers', level: 2 },
+          { id: 'supabase-tools', text: 'Supabase CLI & Docker', level: 2 },
+          { id: 'platform-toolchains', text: 'Platform Native Compilers', level: 2 },
+        ],
+        content: `
+## Required Runtimes & SDKs
+
+Before contributing or building LaterBox locally, verify that your machine has the following tools installed:
+
+| Tool | Minimum Version | Recommended Version | Purpose |
+|---|---|---|---|
+| **Flutter SDK** | \`3.29.0\` | \`3.29.1\` (Stable channel) | Core desktop, mobile, and native app runtime |
+| **Dart SDK** | \`3.7.0\` | \`3.7.1\` | Dart language & Drift code generation |
+| **Node.js** | \`20.0.0\` (LTS) | \`22.x\` | Next.js web application & browser extensions |
+| **npm / pnpm** | \`10.x\` | \`pnpm 9.x\` or \`npm 10.x\` | Package manager for web and extension suites |
+| **Supabase CLI** | \`1.150.0+\` | Latest via Homebrew / Scoop | Local database migrations and Edge Functions |
+| **Docker Desktop** | \`24.0.0+\` | Latest | Local Supabase PostgreSQL & Studio stack |
+| **Deno** | \`1.40.0+\` | \`1.45.0+\` | Supabase Edge Functions development & testing |
+
+---
+
+## Flutter & Dart Setup
+
+Ensure Flutter is installed and accessible in your system \`$PATH\`:
+
+\`\`\`bash
+# Check your Flutter installation
+flutter doctor -v
+
+# Verify you are on the stable channel
+flutter channel stable
+flutter upgrade
+\`\`\`
+
+> **Note**: If developing for macOS or iOS, ensure Xcode command-line tools are installed (\`xcode-select --install\`). For Windows, install Visual Studio 2022 with **Desktop development with C++**.
+
+---
+
+## Node.js & Package Managers
+
+The web dashboard and browser extensions use modern JavaScript/TypeScript tooling:
+
+\`\`\`bash
+# Verify Node.js version
+node -v # Should return v20.x or higher
+
+# Verify npm
+npm -v
+\`\`\`
+
+---
+
+## Supabase CLI & Docker
+
+The Supabase CLI orchestrates local PostgreSQL, GoTrue authentication, Storage, and Deno Edge Functions in Docker containers:
+
+\`\`\`bash
+# macOS (Homebrew)
+brew install supabase/tap/supabase
+
+# Windows (Scoop / Winget)
+scoop bucket add supabase https://github.com/supabase/scoop-bucket.git
+scoop install supabase
+
+# Linux (Debian/Ubuntu)
+curl -fsSL https://github.com/supabase/cli/releases/latest/download/supabase_linux_amd64.deb -o supabase.deb
+sudo dpkg -i supabase.deb
+\`\`\`
+
+---
+
+## Platform Native Compilers
+
+- **macOS Desktop**: Xcode 15 or 16, CocoaPods (\`sudo gem install cocoapods\`).
+- **Windows Desktop**: Visual Studio 2022 (MSVC v143, Windows 10/11 SDK), Inno Setup 6 (for packaging \`.exe\`).
+- **Linux Desktop**: \`clang\`, \`cmake\`, \`ninja-build\`, \`pkg-config\`, \`libgtk-3-dev\`, \`libsecret-1-dev\`.
+- **Android Mobile**: Android Studio Ladybug or newer, Android SDK Platform 34, JDK 17.
+- **iOS Mobile**: Apple Developer certificate / provision profile for physical device deployment.
+        `,
+      },
+      {
+        slug: 'environment-variables',
+        title: 'Environment Variables & Configuration',
+        navTitle: 'Environment Variables',
+        description: 'Comprehensive guide to all required and optional environment keys across Web, Supabase, Flutter, and Extensions.',
+        category: 'Getting Started',
+        headings: [
+          { id: 'web-variables', text: 'Next.js Web Variables (.env.local & .dev.vars)', level: 2 },
+          { id: 'edge-variables', text: 'Supabase Edge Functions Secrets', level: 2 },
+          { id: 'flutter-variables', text: 'Flutter Client Configuration', level: 2 },
+          { id: 'extension-variables', text: 'Browser Extension Configuration', level: 2 },
+          { id: 'security-best-practices', text: 'Security & Key Handling Rules', level: 2 },
+        ],
+        content: `
+## Next.js Web Variables (.env.local & .dev.vars)
+
+Create a \`laterbox-web/.env.local\` file for local development or \`.dev.vars\` for Cloudflare Pages local testing:
+
+\`\`\`bash
+# ==============================================================================
+# Supabase Configuration
+# ==============================================================================
+# Your Supabase Project URL (local: http://127.0.0.1:54321, remote: https://xyz.supabase.co)
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+
+# Public Anonymous API Key (safe for client-side browsers)
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+# Service Role Secret Key (REQUIRED for admin tasks: account deletion cascade RPC)
+# CAUTION: NEVER expose this on client-side!
+SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+# ==============================================================================
+# Public App Settings
+# ==============================================================================
+# Canonical public application URL
+NEXT_PUBLIC_APP_URL=https://laterbox.dev
+
+# ==============================================================================
+# Optional Cloudflare / Proxy Tokens
+# ==============================================================================
+# Cloudflare API token for release caching & purge
+CLOUDFLARE_API_TOKEN=your_cf_api_token_here
+\`\`\`
+
+---
+
+## Supabase Edge Functions Secrets
+
+The \`enrich-url\` edge function retrieves metadata and parses YouTube oEmbed links. Set these in your Supabase project:
+
+\`\`\`bash
+# Set secrets for local testing (supabase/functions/.env)
+supabase secrets set --env-file ./supabase/functions/.env
+
+# Or set individual remote project secrets:
+supabase secrets set SUPABASE_URL=https://your-project.supabase.co
+supabase secrets set SUPABASE_ANON_KEY=eyJhbGci...
+supabase secrets set SUPABASE_SERVICE_ROLE_KEY=eyJhbGci...
+
+# Optional: Google / YouTube Data API Key for fallback high-res metadata
+supabase secrets set YOUTUBE_API_KEY=AIzaSy...
+\`\`\`
+
+---
+
+## Flutter Client Configuration
+
+The Flutter mobile and desktop apps can read credentials at compile time via \`--dart-define\` or from \`lib/core/constants/api_constants.dart\`:
+
+\`\`\`bash
+# Run with compile-time defines:
+flutter run -d macos \\
+  --dart-define=SUPABASE_URL=https://your-project.supabase.co \\
+  --dart-define=SUPABASE_ANON_KEY=eyJhbGciOi...
+\`\`\`
+
+| Variable | Description | Client Exposure |
+|---|---|---|
+| \`SUPABASE_URL\` | Supabase API Gateway endpoint | Safe (Public) |
+| \`SUPABASE_ANON_KEY\` | Row-Level Security enabled anonymous key | Safe (Public) |
+
+---
+
+## Browser Extension Configuration
+
+In \`extension/.env\` (built into \`extension/dist/\`):
+
+\`\`\`bash
+# Base URL for OAuth token handshake and extension connect page
+VITE_LATERBOX_APP_URL=https://laterbox.dev
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=eyJhbGciOi...
+\`\`\`
+
+---
+
+## Security & Key Handling Rules
+
+1. **Never commit secrets**: Ensure \`.env\`, \`.env.local\`, \`.dev.vars\`, and \`*.key\` are in your \`.gitignore\`.
+2. **Anonymous vs Service Role**: The \`NEXT_PUBLIC_SUPABASE_ANON_KEY\` is constrained by PostgreSQL Row Level Security. The \`SUPABASE_SERVICE_ROLE_KEY\` bypasses all RLS and must strictly remain on server-side endpoints (such as \`/api/account/delete\`).
+3. **Rotating Keys**: If a service role key is compromised, regenerate it immediately in the Supabase Dashboard under **Project Settings > API**.
         `,
       },
       {
         slug: 'quickstart',
         title: 'Quick Start & Installation',
         navTitle: 'Quickstart',
-        description: 'Step-by-step instructions to install LaterBox on macOS, Windows, Linux, iOS, Android, and browser extensions.',
+        description: 'Step-by-step instructions to install, build, and run LaterBox across all platforms.',
         category: 'Getting Started',
         headings: [
-          { id: 'web-app', text: 'Web Application', level: 2 },
-          { id: 'desktop-apps', text: 'Desktop Companions (macOS & Windows)', level: 2 },
-          { id: 'mobile-apps', text: 'Mobile Apps (iOS & Android)', level: 2 },
-          { id: 'browser-extensions', text: 'Browser Extensions', level: 2 },
-          { id: 'cli-installers', text: '1-Line CLI Installers', level: 2 },
+          { id: 'clone-repo', text: '1. Clone Repository', level: 2 },
+          { id: 'start-supabase', text: '2. Start Supabase (Local or Cloud)', level: 2 },
+          { id: 'run-web', text: '3. Run Next.js Web App', level: 2 },
+          { id: 'run-flutter', text: '4. Run Flutter Desktop & Mobile', level: 2 },
+          { id: 'build-extensions', text: '5. Build Browser Extensions', level: 2 },
         ],
         content: `
-## Web Application
+## 1. Clone Repository
 
-The easiest way to use LaterBox is directly in your modern web browser:
-
-1. Navigate to **[laterbox.dev/inbox](https://laterbox.dev/inbox)**.
-2. Click **Launch App** to try the Guest Sandbox, or **Sign In** with your email or OAuth provider.
-3. Start capturing and organizing links immediately.
-
----
-
-## Desktop Companions (macOS & Windows)
-
-Desktop companions provide global system hotkeys, system tray integration, and native file attachment capabilities.
-
-### macOS (Apple Silicon & Intel)
-- Download the universal \`.dmg\` or \`.pkg\` installer from the **[Download Hub](/download?platform=macos)**.
-- Drag LaterBox to your \`/Applications\` folder.
-- Press \`⌥ Space\` anywhere to open the Quick Capture bar.
-
-### Windows 10 & 11
-- Download \`laterbox-windows-setup.exe\` (Inno Setup) or standalone zip from the **[Download Hub](/download?platform=windows)**.
-- Run the setup executable.
-- Press \`Ctrl+Alt+Space\` anywhere to open Quick Capture.
-
----
-
-## Mobile Apps (iOS & Android)
-
-- **iOS**: Available via Apple TestFlight beta program.
-- **Android**: Available via Google Play Closed Beta or direct APK download (\`laterbox-android.apk\`).
-- Both apps integrate directly with the native OS **Share Sheet**, allowing you to save links from Safari, Chrome, YouTube, or Twitter with a single tap.
-
----
-
-## Browser Extensions
-
-Capture active tabs and selected text with 1 click:
-- **Chrome / Brave / Edge**: Download \`laterbox-chrome-extension.zip\` (Manifest V3).
-- **Firefox**: Download \`laterbox-firefox-extension.zip\` (Gecko Add-on).
-- **Safari**: Safari Web Extension bundle included with the macOS native companion.
-
----
-
-## 1-Line CLI Installers
-
-Install LaterBox directly from your terminal:
+Clone the LaterBox monorepo to your local machine:
 
 \`\`\`bash
-# macOS & Linux
-curl -fsSL https://laterbox.dev/install.sh | bash
+git clone https://github.com/Chaste-Djaziri/laterbox.git
+cd laterbox
 \`\`\`
 
-\`\`\`powershell
-# Windows PowerShell
-irm https://laterbox.dev/install.ps1 | iex
+---
+
+## 2. Start Supabase (Local or Cloud)
+
+### Option A: Local Docker Stack (Recommended for offline development)
+\`\`\`bash
+# Start local PostgreSQL, GoTrue, Realtime, and Storage in Docker
+supabase start
+
+# Apply SQL migrations and RLS policies
+supabase db reset
 \`\`\`
+
+### Option B: Cloud Supabase Project
+1. Create a free project on **[supabase.com](https://supabase.com)**.
+2. Link your local CLI:
+   \`\`\`bash
+   supabase link --project-ref your-project-id
+   supabase db push
+   \`\`\`
+
+---
+
+## 3. Run Next.js Web App
+
+Navigate to \`laterbox-web/\`, install dependencies, and start the Turbopack dev server:
+
+\`\`\`bash
+cd laterbox-web
+npm install
+
+# Copy sample environment variables
+cp .env.example .env.local
+
+# Start development server on port 3000
+npm run dev
+\`\`\`
+
+Open **[http://localhost:3000](http://localhost:3000)** in your browser. You can test the app in **Guest Sandbox Mode** immediately or sign in with your Supabase credentials.
+
+---
+
+## 4. Run Flutter Desktop & Mobile
+
+In the root repository directory, fetch Flutter dependencies and start the app:
+
+\`\`\`bash
+# Fetch Dart & Flutter dependencies
+flutter pub get
+
+# Run on macOS Desktop
+flutter run -d macos
+
+# Run on Windows Desktop
+flutter run -d windows
+
+# Run on Linux Desktop
+flutter run -d linux
+
+# Run on iOS Simulator or Android Emulator
+flutter run -d ios
+flutter run -d android
+\`\`\`
+
+---
+
+## 5. Build Browser Extensions
+
+Navigate to \`extension/\` to compile the Manifest V3 extension bundle:
+
+\`\`\`bash
+cd extension
+npm install
+
+# Build extension packages
+npm run package
+\`\`\`
+
+To load the extension into your browser:
+1. Open **Chrome** and navigate to \`chrome://extensions/\`.
+2. Toggle on **Developer mode** in the top right.
+3. Click **Load unpacked** and select the \`extension/dist/chromium/\` folder.
         `,
       },
       {
@@ -395,6 +638,40 @@ Generated packages in \`extension/dist/\`:
 - \`laterbox-safari-extension.zip\`
         `,
       },
+      {
+        slug: 'mobile-apps',
+        title: 'Mobile Applications (iOS & Android)',
+        navTitle: 'Mobile Apps',
+        description: 'Native mobile companion features, OS Share Sheet integrations, and offline SQLite synchronization.',
+        category: 'Platforms',
+        headings: [
+          { id: 'share-sheet', text: 'OS Share Sheet Receiver', level: 2 },
+          { id: 'biometric-security', text: 'Biometric Security & Vault Locks', level: 2 },
+          { id: 'offline-caching', text: 'Mobile Offline Caching', level: 2 },
+        ],
+        content: `
+## OS Share Sheet Receiver
+
+LaterBox integrates directly into iOS and Android system share sheets:
+
+- **iOS Share Extension**: Native Swift extension that captures URLs from Safari, YouTube, Twitter/X, and Reddit without opening the full application.
+- **Android Intent Receiver**: Listens for \`android.intent.action.SEND\` with MIME type \`text/plain\`, performing immediate background SQLite writes.
+
+---
+
+## Biometric Security & Vault Locks
+
+- Supports **Face ID / Touch ID** on iOS and **BiometricPrompt** on Android.
+- Allows users to lock private collections or the entire vault behind biometric authentication.
+
+---
+
+## Mobile Offline Caching
+
+- Articles and metadata are cached in local SQLite.
+- Extracted hero images are stored locally using \`flutter_cache_manager\` with automatic LRU cache eviction.
+        `,
+      },
     ],
   },
   {
@@ -500,6 +777,176 @@ For YouTube links (including \`watch\`, \`shorts\`, \`embed\`, \`live\`, and \`y
 
 - Fully configured with permissive CORS headers (\`Access-Control-Allow-Origin: *\`) to support calls from mobile apps, desktop clients, and browser extensions.
 - Responses include \`Cache-Control: public, max-age=86400\` to reduce redundant scraping on viral links.
+        `,
+      },
+    ],
+  },
+  {
+    id: 'deployment',
+    title: 'Deployment & Self-Hosting',
+    items: [
+      {
+        slug: 'deployment-options',
+        title: 'Deployment Options & Cloud Hosting',
+        navTitle: 'Deployment Options',
+        description: 'Deploying LaterBox Web and Supabase backend to Cloudflare Pages, Vercel, Docker, or AWS.',
+        category: 'Deployment',
+        headings: [
+          { id: 'cloudflare-pages', text: 'Deploying to Cloudflare Pages', level: 2 },
+          { id: 'vercel-deployment', text: 'Deploying to Vercel', level: 2 },
+          { id: 'docker-container', text: 'Deploying with Docker', level: 2 },
+          { id: 'edge-functions-deploy', text: 'Deploying Edge Functions', level: 2 },
+        ],
+        content: `
+## Deploying to Cloudflare Pages
+
+LaterBox Web is optimized for **Cloudflare Pages** and Next.js OpenNext:
+
+1. **Connect GitHub Repository** in Cloudflare Pages dashboard.
+2. **Build Settings**:
+   - **Framework Preset**: \`Next.js\`
+   - **Root directory**: \`laterbox-web\`
+   - **Build command**: \`npm run build\`
+   - **Build output directory**: \`.next\` or \`.open-next/assets\`
+3. **Environment Variables**: Add \`NEXT_PUBLIC_SUPABASE_URL\`, \`NEXT_PUBLIC_SUPABASE_ANON_KEY\`, and \`SUPABASE_SERVICE_ROLE_KEY\`.
+4. **Custom Domain**: Bind \`laterbox.dev\` and \`docs.laterbox.dev\` in the Cloudflare Pages custom domains settings.
+
+---
+
+## Deploying to Vercel
+
+1. Import the \`laterbox\` repository in **[Vercel Dashboard](https://vercel.com)**.
+2. Set **Root Directory** to \`laterbox-web\`.
+3. Add your environment variables in the Project Settings.
+4. Click **Deploy**. Vercel will build and prerender all 35+ routes automatically.
+
+---
+
+## Deploying with Docker
+
+To run the web app in a containerized environment (e.g. Kubernetes, AWS ECS, DigitalOcean App Platform):
+
+\`\`\`dockerfile
+# Dockerfile for laterbox-web
+FROM node:20-alpine AS builder
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+COPY . .
+ENV NEXT_TELEMETRY_DISABLED=1
+RUN npm run build
+
+FROM node:20-alpine AS runner
+WORKDIR /app
+ENV NODE_ENV=production
+ENV PORT=3000
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/.next/static ./.next/static
+EXPOSE 3000
+CMD ["node", "server.js"]
+\`\`\`
+
+\`\`\`bash
+# Build and run Docker image
+docker build -t laterbox-web ./laterbox-web
+docker run -p 3000:3000 --env-file .env.local laterbox-web
+\`\`\`
+
+---
+
+## Deploying Edge Functions
+
+Deploy your Supabase Edge Functions globally:
+
+\`\`\`bash
+# Login to Supabase CLI
+supabase login
+
+# Deploy enrich-url function
+supabase functions deploy enrich-url --project-ref your-project-id
+\`\`\`
+        `,
+      },
+      {
+        slug: 'self-hosting',
+        title: 'Self-Hosting LaterBox (100% Private)',
+        navTitle: 'Self-Hosting Guide',
+        description: 'Complete guide to hosting your own private LaterBox vault with Docker Compose and custom PostgreSQL.',
+        category: 'Deployment',
+        headings: [
+          { id: 'self-hosting-overview', text: 'Self-Hosting Philosophy', level: 2 },
+          { id: 'docker-compose-setup', text: 'Docker Compose Architecture', level: 2 },
+          { id: 'applying-migrations', text: 'Initializing Database Schema', level: 2 },
+          { id: 'connecting-apps', text: 'Connecting Desktop & Mobile Apps', level: 2 },
+          { id: 'vault-backups', text: 'Backup & Vault Exports', level: 2 },
+        ],
+        content: `
+## Self-Hosting Philosophy
+
+LaterBox is designed to give you **100% data sovereignty**. You do not need to rely on any hosted cloud service. You can run your own private Supabase instance on a VPS, Raspberry Pi, or home server.
+
+---
+
+## Docker Compose Architecture
+
+Run the official Supabase self-hosted Docker stack:
+
+\`\`\`bash
+# Clone official self-hosted Supabase Docker configuration
+git clone --depth 1 https://github.com/supabase/supabase
+cd supabase/docker
+
+# Copy environment template
+cp .env.example .env
+
+# Generate secure secrets
+# (Set POSTGRES_PASSWORD, JWT_SECRET, ANON_KEY, SERVICE_ROLE_KEY in .env)
+
+# Launch the entire backend stack
+docker compose up -d
+\`\`\`
+
+Services started:
+- **PostgreSQL Database** (Port \`5432\`)
+- **Supabase Studio UI** (Port \`8000\` or \`3000\`)
+- **GoTrue Auth Service** (Port \`9999\`)
+- **Realtime Server** (Port \`4000\`)
+- **Storage Server** (Port \`5000\`)
+- **Kong API Gateway** (Port \`8000\`)
+
+---
+
+## Initializing Database Schema
+
+Apply the LaterBox database migrations to your self-hosted PostgreSQL:
+
+\`\`\`bash
+cd /path/to/laterbox
+supabase db push --db-url "postgresql://postgres:your_password@localhost:5432/postgres"
+\`\`\`
+
+This creates the \`items\`, \`collections\`, \`tags\`, and \`item_collections\` tables, along with all security policies and indexes.
+
+---
+
+## Connecting Desktop & Mobile Apps
+
+In your self-hosted setup, configure your client apps:
+
+1. **Web Dashboard**: Set \`NEXT_PUBLIC_SUPABASE_URL=https://supabase.yourdomain.com\` and your self-hosted \`NEXT_PUBLIC_SUPABASE_ANON_KEY\`.
+2. **Desktop & Mobile Apps**: Pass your self-hosted URL and Anon Key via \`--dart-define\` during build or update settings in the app.
+3. **Browser Extensions**: Set your custom domain in \`extension/.env\`.
+
+---
+
+## Backup & Vault Exports
+
+- **Database Dumps**:
+  \`\`\`bash
+  docker exec -t supabase-db pg_dump -U postgres postgres > laterbox_backup.sql
+  \`\`\`
+- **1-Click Vault Export**: Inside the LaterBox Web or Desktop App, go to **Settings > Export Vault** to download your complete data as a single JSON or Markdown archive.
         `,
       },
     ],
