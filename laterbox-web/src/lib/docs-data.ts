@@ -13,6 +13,7 @@ export interface DocHeading {
 export interface DocItem {
   slug: string;
   title: string;
+  navTitle?: string;
   description: string;
   category: string;
   badge?: string;
@@ -28,9 +29,9 @@ export const DOCS_SECTIONS: DocSection[] = [
       {
         slug: 'introduction',
         title: 'Introduction & Overview',
+        navTitle: 'Introduction',
         description: 'Learn what LaterBox is, the local-first philosophy, and how it differs from traditional bookmarks.',
         category: 'Getting Started',
-        badge: 'Start Here',
         headings: [
           { id: 'what-is-laterbox', text: 'What is LaterBox?', level: 2 },
           { id: 'core-philosophy', text: 'The Local-First Philosophy', level: 2 },
@@ -77,9 +78,9 @@ LaterBox is architected around the **Local-First Software** principles:
       {
         slug: 'quickstart',
         title: 'Quick Start & Installation',
+        navTitle: 'Quickstart',
         description: 'Step-by-step instructions to install LaterBox on macOS, Windows, Linux, iOS, Android, and browser extensions.',
         category: 'Getting Started',
-        badge: 'Setup',
         headings: [
           { id: 'web-app', text: 'Web Application', level: 2 },
           { id: 'desktop-apps', text: 'Desktop Companions (macOS & Windows)', level: 2 },
@@ -149,6 +150,7 @@ irm https://laterbox.dev/install.ps1 | iex
       {
         slug: 'shortcuts',
         title: 'Keyboard Shortcuts & Hotkeys',
+        navTitle: 'Shortcuts & Hotkeys',
         description: 'Comprehensive cheat sheet of desktop hotkeys, web navigation shortcuts, and capture triggers.',
         category: 'Getting Started',
         headings: [
@@ -198,14 +200,14 @@ When navigating the LaterBox web dashboard or desktop main window:
   },
   {
     id: 'architecture',
-    title: 'Architecture & Core Design',
+    title: 'Architecture',
     items: [
       {
         slug: 'system-architecture',
         title: 'System Architecture & Data Flow',
+        navTitle: 'System Architecture',
         description: 'Deep dive into the monorepo architecture, Flutter core, Drift SQLite database, and Supabase integration.',
         category: 'Architecture',
-        badge: 'Core Design',
         headings: [
           { id: 'monorepo-structure', text: 'Monorepo Structure', level: 2 },
           { id: 'data-flow', text: 'Data Flow & Synchronization', level: 2 },
@@ -260,6 +262,7 @@ The mobile and desktop applications utilize **[Drift](https://drift.simonbinder.
       {
         slug: 'offline-sync',
         title: 'Offline-First & Data Sync Engine',
+        navTitle: 'Offline & Sync Engine',
         description: 'How LaterBox handles conflict resolution, optimistic local state, and bidirectional cloud synchronization.',
         category: 'Architecture',
         headings: [
@@ -300,11 +303,12 @@ LaterBox utilizes **Last-Write-Wins (LWW)** with field-level merging based on UT
   },
   {
     id: 'platforms',
-    title: 'Platforms & Companions',
+    title: 'Platforms',
     items: [
       {
         slug: 'desktop-companions',
         title: 'Desktop Companions (macOS & Windows)',
+        navTitle: 'Desktop Apps',
         description: 'Window management, Spotlight Quick Capture bar, native file attachments picker, and system tray integration.',
         category: 'Platforms',
         headings: [
@@ -343,6 +347,7 @@ To support attaching local screenshots, PDFs, and files from desktop:
       {
         slug: 'browser-extensions',
         title: 'Manifest V3 Browser Extensions',
+        navTitle: 'Browser Extensions',
         description: 'Architecture of the Chrome, Firefox, and Safari extensions, token authentication, and clipping pipelines.',
         category: 'Platforms',
         headings: [
@@ -394,14 +399,14 @@ Generated packages in \`extension/dist/\`:
   },
   {
     id: 'backend',
-    title: 'Backend & Edge Functions',
+    title: 'Backend & API',
     items: [
       {
         slug: 'supabase-backend',
         title: 'Supabase Database & Security Model',
+        navTitle: 'Database & Security',
         description: 'PostgreSQL database schema, Row Level Security (RLS) policies, storage buckets, and account deletion cascades.',
         category: 'Backend',
-        badge: 'Security',
         headings: [
           { id: 'database-schema', text: 'PostgreSQL Schema', level: 2 },
           { id: 'row-level-security', text: 'Row Level Security (RLS) Policies', level: 2 },
@@ -460,6 +465,7 @@ When a user deletes their account via **Settings > Danger Zone**:
       {
         slug: 'enrich-url-function',
         title: 'Edge Function: enrich-url',
+        navTitle: 'Enrich URL Function',
         description: 'Deno Edge Function extracting OpenGraph metadata, YouTube oEmbed previews, and fallback thumbnails.',
         category: 'Backend',
         headings: [
@@ -500,14 +506,14 @@ For YouTube links (including \`watch\`, \`shorts\`, \`embed\`, \`live\`, and \`y
   },
   {
     id: 'developer',
-    title: 'Developer & Open Source',
+    title: 'Community & Legal',
     items: [
       {
         slug: 'contributing',
         title: 'Contributing Guide',
+        navTitle: 'Contributing',
         description: 'How to set up your local development environment, run test suites, and submit pull requests.',
         category: 'Developer',
-        badge: 'Community',
         headings: [
           { id: 'dev-setup', text: 'Development Setup', level: 2 },
           { id: 'testing-guidelines', text: 'Testing Guidelines', level: 2 },
@@ -553,9 +559,9 @@ For YouTube links (including \`watch\`, \`shorts\`, \`embed\`, \`live\`, and \`y
       {
         slug: 'license',
         title: 'License & Noncommercial Terms',
+        navTitle: 'License & Terms',
         description: 'Understanding the PolyForm Noncommercial 1.0.0 license terms and commercial licensing inquiries.',
         category: 'Developer',
-        badge: 'Legal',
         headings: [
           { id: 'license-summary', text: 'License Summary', level: 2 },
           { id: 'permitted-uses', text: 'Permitted Uses', level: 2 },
