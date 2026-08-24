@@ -46,6 +46,7 @@ export function Header() {
               src="/branding/laterbox-icon.png"
               alt="laterbox"
               fill
+              sizes="42px"
               className="object-contain p-0.5"
               priority
             />
