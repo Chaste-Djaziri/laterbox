@@ -188,9 +188,40 @@ export function ItemProvider({ children }: { children: ReactNode }) {
       throw new Error('Enter a URL, some text, or upload an attachment.');
     }
 
-    const isLink = files.length === 0 && isUrl(trimmed);
-    const normalizedUrl = isLink ? normalizeUrl(trimmed) : null;
-    const textContent = isLink ? null : trimmed || null;
+    let normalizedUrl: string | null = null;
+    let textContent: string | null = null;
+
+    if (files.length === 0) {
+      if (isUrl(trimmed)) {
+        normalizedUrl = normalizeUrl(trimmed);
+      } else {
+        const urlMatch = trimmed.match(/(https?:\/\/[^\s]+)/);
+        if (urlMatch) {
+          const matchedUrl = urlMatch[0];
+          const remainingText = trimmed
+            .replace(matchedUrl, '')
+            .trim()
+            .replace(/^["“”\s]+|["“”\s]+$/g, '');
+          if (remainingText.length > 0) {
+            const snippet = remainingText.slice(0, 120);
+            const encoded = encodeURIComponent(snippet);
+            if (matchedUrl.includes(':~:text=')) {
+              normalizedUrl = matchedUrl;
+            } else if (matchedUrl.includes('#')) {
+              normalizedUrl = `${matchedUrl}:~:text=${encoded}`;
+            } else {
+              normalizedUrl = `${matchedUrl}#:~:text=${encoded}`;
+            }
+            textContent = remainingText;
+          } else {
+            normalizedUrl = normalizeUrl(matchedUrl);
+          }
+        } else {
+          textContent = trimmed || null;
+        }
+      }
+    }
+
     const now = new Date().toISOString();
     const itemId = options?.id || crypto.randomUUID();
 
@@ -213,7 +244,13 @@ export function ItemProvider({ children }: { children: ReactNode }) {
       ? files[0].name
       : domain || textContent?.slice(0, 60) || 'New Capture';
 
-    const itemType = files.length > 0 ? 'file' : isLink ? 'link' : 'text';
+    const itemType = files.length > 0
+      ? 'file'
+      : normalizedUrl
+        ? textContent
+          ? 'note'
+          : 'link'
+        : 'text';
 
     const newItem: LaterBoxItem = {
       id: itemId,
@@ -228,7 +265,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
       created_at: now,
       updated_at: now,
       attachments: [],
-      metadata: isLink
+      metadata: normalizedUrl
         ? {
             item_id: itemId,
             user_id: user?.id || null,
@@ -280,7 +317,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
         });
 
         // Trigger enrichment via Edge function if it's a URL
-        if (isLink && normalizedUrl) {
+        if (normalizedUrl) {
           supabase.functions
             .invoke('enrich-url', { body: { url: normalizedUrl } })
             .then(async ({ data: enrichData }) => {
