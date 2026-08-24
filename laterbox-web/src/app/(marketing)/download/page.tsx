@@ -1113,7 +1113,6 @@ export default function DownloadPage() {
             </div>
           )}
         </section>
-      </main>
 
       {/* Android Tester Modal */}
       <AndroidTesterModal
