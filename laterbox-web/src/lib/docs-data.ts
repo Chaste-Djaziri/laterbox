@@ -973,45 +973,45 @@ Follow these steps to set up your local development environment:
 
 ### 1. Fork and Clone Repository
 
-```bash
+\`\`\`bash
 git clone https://github.com/Chaste-Djaziri/laterbox.git
 cd laterbox
-```
+\`\`\`
 
 ### 2. Install Flutter & Web Dependencies
 
-```bash
+\`\`\`bash
 # Install Flutter dependencies
 flutter pub get
 
 # Install Next.js web dependencies
 cd laterbox-web && npm install
-```
+\`\`\`
 
 ### 3. Run Static Analysis & Tests
 
-```bash
+\`\`\`bash
 # Run Flutter analysis and unit tests
 flutter analyze
 flutter test
 
 # Verify Next.js production build
 cd laterbox-web && npm run build
-```
+\`\`\`
 
 ---
 
 ## Testing Guidelines
 
-- **Flutter Unit & Widget Tests**: Located in `test/`. Run with `flutter test`.
-- **Edge Function Tests**: Located in `supabase/functions/enrich-url/classification.test.ts`. Run with `deno test`.
-- **Next.js Production Build**: Run `npm run build` inside `laterbox-web/`.
+- **Flutter Unit & Widget Tests**: Located in \`test/\`. Run with \`flutter test\`.
+- **Edge Function Tests**: Located in \`supabase/functions/enrich-url/classification.test.ts\`. Run with \`deno test\`.
+- **Next.js Production Build**: Run \`npm run build\` inside \`laterbox-web/\`.
 
 ---
 
 ## Submitting Pull Requests
 
-- Use **Conventional Commits** (`feat:`, `fix:`, `docs:`, `chore:`).
+- Use **Conventional Commits** (\`feat:\`, \`fix:\`, \`docs:\`, \`chore:\`).
 - Commit each modified file independently whenever making architectural changes.
 - Ensure all tests and static analysis checks pass before opening your PR.
         `,
