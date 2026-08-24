@@ -196,7 +196,8 @@ final class ShareViewController: UIViewController {
         completion: @escaping (String?) -> Void
     ) {
         var sharedUrl: String?
-        var sharedText: String?
+        var selectedQuote: String?
+        var plainText: String?
 
         let group = DispatchGroup()
 
@@ -218,19 +219,19 @@ final class ShareViewController: UIViewController {
                 }
             }
 
-            // 2. Check for PropertyList (Safari web page metadata)
+            // 2. Check for PropertyList (Safari JS Preprocessing results)
             if provider.hasItemConformingToTypeIdentifier(UTType.propertyList.identifier) {
                 group.enter()
                 provider.loadItem(forTypeIdentifier: UTType.propertyList.identifier, options: nil) { item, _ in
                     if let dict = item as? NSDictionary {
                         let results = (dict[NSExtensionJavaScriptPreprocessingResultsKey] as? NSDictionary) ?? dict
-                        if let urlStr = results["URL"] as? String, (urlStr.hasPrefix("http://") || urlStr.hasPrefix("https://")) {
+                        if let urlStr = results["url"] as? String, (urlStr.hasPrefix("http://") || urlStr.hasPrefix("https://")) {
                             sharedUrl = urlStr
-                        } else if let urlStr = results["url"] as? String, (urlStr.hasPrefix("http://") || urlStr.hasPrefix("https://")) {
+                        } else if let urlStr = results["URL"] as? String, (urlStr.hasPrefix("http://") || urlStr.hasPrefix("https://")) {
                             sharedUrl = urlStr
                         }
-                        if let selectionStr = results["selection"] as? String, !selectionStr.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                            sharedText = selectionStr
+                        if let sel = results["selection"] as? String, !sel.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                            selectedQuote = sel.trimmingCharacters(in: .whitespacesAndNewlines)
                         }
                     }
                     group.leave()
@@ -242,48 +243,68 @@ final class ShareViewController: UIViewController {
                 group.enter()
                 provider.loadItem(forTypeIdentifier: UTType.plainText.identifier, options: nil) { item, _ in
                     if let string = item as? String {
-                        sharedText = string
+                        plainText = string
                     } else if let attr = item as? NSAttributedString {
-                        sharedText = attr.string
+                        plainText = attr.string
                     } else if let data = item as? Data, let string = String(data: data, encoding: .utf8) {
-                        sharedText = string
+                        plainText = string
                     }
                     group.leave()
                 }
             }
         }
 
-        if sharedText == nil, let fallback = normalizedText(fallback) {
-            sharedText = fallback
-        }
-
         group.notify(queue: .main) {
-            let combined = self.buildCombinedTextFragment(url: sharedUrl, text: sharedText)
+            let combined = self.buildCombinedTextFragment(
+                url: sharedUrl,
+                selectedQuote: selectedQuote,
+                plainText: plainText ?? fallback
+            )
             completion(combined)
         }
     }
 
-    private func buildCombinedTextFragment(url: String?, text: String?) -> String? {
+    private func buildCombinedTextFragment(
+        url: String?,
+        selectedQuote: String?,
+        plainText: String?
+    ) -> String? {
         let cleanUrl = normalizedText(url)
-        let cleanText = normalizedText(text)
+        let cleanQuote = normalizedText(selectedQuote)
+        let cleanText = normalizedText(plainText)
 
-        // If cleanText contains an embedded URL
-        if cleanUrl == nil, let cleanText {
+        // Case 1: If URL is present and user selected a quote (from Safari JS preprocessor)
+        if let cleanUrl {
+            if let cleanQuote, !cleanQuote.isEmpty {
+                return formatTextFragmentUrl(baseUrl: cleanUrl, quote: cleanQuote)
+            }
+            // If cleanUrl already has a fragment or no quote was selected, return the clean web URL!
+            return cleanUrl
+        }
+
+        // Case 2: If no direct URL, check if plainText contains an embedded URL
+        if let cleanText {
             if let detector = try? NSDataDetector(types: NSTextCheckingResult.CheckingType.link.rawValue) {
                 let matches = detector.matches(in: cleanText, options: [], range: NSRange(location: 0, length: cleanText.utf16.count))
                 if let firstMatch = matches.first, let range = Range(firstMatch.range, in: cleanText), let matchUrl = firstMatch.url?.absoluteString {
                     let quote = cleanText.replacingCharacters(in: range, with: "").trimmingCharacters(in: .whitespacesAndNewlines).trimmingCharacters(in: CharacterSet(charactersIn: "\"“”'"))
-                    return buildCombinedTextFragment(url: matchUrl, text: quote.isEmpty ? nil : quote)
+                    if !quote.isEmpty {
+                        return formatTextFragmentUrl(baseUrl: matchUrl, quote: quote)
+                    }
+                    return matchUrl
                 }
             }
+            return cleanText
         }
 
-        guard let cleanUrl else { return cleanText }
-        guard let cleanText, cleanText != cleanUrl else { return cleanUrl }
+        return nil
+    }
 
-        if cleanUrl.contains(":~:text=") { return cleanUrl }
+    private func formatTextFragmentUrl(baseUrl: String, quote: String) -> String {
+        let cleanUrl = baseUrl.components(separatedBy: "#").first ?? baseUrl
+        if baseUrl.contains(":~:text=") { return baseUrl }
 
-        let cleanSnippet = cleanText.trimmingCharacters(in: .whitespacesAndNewlines).trimmingCharacters(in: CharacterSet(charactersIn: "\"“”'"))
+        let cleanSnippet = quote.trimmingCharacters(in: .whitespacesAndNewlines).trimmingCharacters(in: CharacterSet(charactersIn: "\"“”'"))
         let words = cleanSnippet.components(separatedBy: .whitespacesAndNewlines).filter { !$0.isEmpty }
         let encodedDirective: String
         if words.count > 12 {
@@ -299,8 +320,7 @@ final class ShareViewController: UIViewController {
             encodedDirective = cleanSnippet.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? cleanSnippet
         }
 
-        let separator = cleanUrl.contains("#") ? ":~:text=" : "#:~:text="
-        return "\(cleanUrl)\(separator)\(encodedDirective)"
+        return "\(cleanUrl)#:~:text=\(encodedDirective)"
     }
 
     private func save(
