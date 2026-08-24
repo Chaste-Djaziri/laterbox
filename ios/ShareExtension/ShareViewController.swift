@@ -326,14 +326,14 @@ final class ShareViewController: UIViewController {
 
     private func showSuccess(subtitle: String?) {
         triggerSuccessFeedback()
-        statusView.setState(.saved(subtitle: subtitle))
+        statusView.setState(.success(subtitle))
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.1) { [weak self] in
             self?.finish()
         }
     }
 
     private func showFailure(_ message: String) {
-        statusView.setState(.failed(message: message))
+        statusView.setState(.failure(message))
         actionStack.isHidden = false
     }
 
