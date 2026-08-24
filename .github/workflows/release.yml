@@ -94,8 +94,8 @@ jobs:
           cp dist/laterbox-macos-universal.dmg dist/laterbox-macos-apple-silicon.dmg
           cp dist/laterbox-macos-universal.dmg dist/laterbox-macos-intel.dmg
           
-          # 2. Create PKG Installer
-          pkgbuild --component "$APP_PATH" --install-location "/Applications" dist/laterbox-macos-installer.pkg
+          # 2. Create PKG Installer (Product Archive format for macOS & App Store Connect)
+          productbuild --component "$APP_PATH" /Applications dist/laterbox-macos-installer.pkg
           cp dist/laterbox-macos-installer.pkg dist/laterbox-macos.pkg
           
           # 3. Create Universal Zip
