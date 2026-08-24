@@ -3,8 +3,6 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Header } from '@/components/layout/Header';
-import { Footer } from '@/components/layout/Footer';
 import {
   Compass,
   ArrowRight,
@@ -163,9 +161,7 @@ export default function GuidePage() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#f7f5ee] text-[#171711] flex flex-col selection:bg-[#171711] selection:text-white">
-      <Header />
-
+    <div className="w-full flex-1">
       {/* Hero Header */}
       <section className="relative pt-12 sm:pt-16 pb-12 sm:pb-16 overflow-hidden border-b border-[#e4e0d5]/60 bg-gradient-to-b from-[#f7f5ee] to-[#ece7dc]/40">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 text-center">
@@ -438,8 +434,6 @@ export default function GuidePage() {
           </div>
         )}
       </main>
-
-      <Footer />
     </div>
   );
 }
