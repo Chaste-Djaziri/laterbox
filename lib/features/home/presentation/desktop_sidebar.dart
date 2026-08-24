@@ -223,67 +223,80 @@ class _DesktopSidebarState extends ConsumerState<DesktopSidebar> {
                 const SizedBox(height: 8),
                 isCompact
                     ? Tooltip(
-                        message: userEmail,
-                        child: CircleAvatar(
-                          radius: 18,
-                          backgroundColor: theme.colorScheme.primaryContainer,
-                          child: Text(
-                            userEmail.isNotEmpty ? userEmail[0].toUpperCase() : 'U',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                              color: theme.colorScheme.onPrimaryContainer,
+                        message: '$userEmail • Settings',
+                        child: InkWell(
+                          onTap: () => context.push('/settings'),
+                          borderRadius: BorderRadius.circular(18),
+                          child: CircleAvatar(
+                            radius: 18,
+                            backgroundColor: theme.colorScheme.primaryContainer,
+                            child: Text(
+                              userEmail.isNotEmpty ? userEmail[0].toUpperCase() : 'U',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: theme.colorScheme.onPrimaryContainer,
+                              ),
                             ),
                           ),
                         ),
                       )
-                    : Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.surfaceContainerHighest
-                              .withValues(alpha: 0.4),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          children: [
-                            CircleAvatar(
-                              radius: 16,
-                              backgroundColor: theme.colorScheme.primaryContainer,
-                              child: Text(
-                                userEmail.isNotEmpty ? userEmail[0].toUpperCase() : 'U',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.bold,
-                                  color: theme.colorScheme.onPrimaryContainer,
+                    : InkWell(
+                        onTap: () => context.push('/settings'),
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.surfaceContainerHighest
+                                .withValues(alpha: 0.4),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            children: [
+                              CircleAvatar(
+                                radius: 16,
+                                backgroundColor: theme.colorScheme.primaryContainer,
+                                child: Text(
+                                  userEmail.isNotEmpty ? userEmail[0].toUpperCase() : 'U',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.bold,
+                                    color: theme.colorScheme.onPrimaryContainer,
+                                  ),
                                 ),
                               ),
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    userEmail,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: theme.textTheme.bodyMedium?.copyWith(
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 13,
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      userEmail,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: theme.textTheme.bodyMedium?.copyWith(
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 13,
+                                      ),
                                     ),
-                                  ),
-                                  Text(
-                                    isGuest ? 'Local storage' : 'Synced',
-                                    style: theme.textTheme.labelSmall?.copyWith(
-                                      color: theme.colorScheme.onSurfaceVariant,
-                                      fontSize: 11,
+                                    Text(
+                                      isGuest ? 'Local storage' : 'Synced',
+                                      style: theme.textTheme.labelSmall?.copyWith(
+                                        color: theme.colorScheme.onSurfaceVariant,
+                                        fontSize: 11,
+                                      ),
                                     ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
-                            ),
-                          ],
+                              Icon(
+                                Icons.settings_outlined,
+                                size: 18,
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
+                            ],
+                          ),
                         ),
                       ),
               ],
