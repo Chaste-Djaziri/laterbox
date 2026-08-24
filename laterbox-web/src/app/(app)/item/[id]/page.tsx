@@ -3,7 +3,6 @@
 import React, { use, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { AppShell } from '@/components/layout/AppShell';
 import { MediaEmbed } from '@/components/item/MediaEmbed';
 import { NoteEditor } from '@/components/item/NoteEditor';
 import { AddToCollectionModal } from '@/components/collections/AddToCollectionModal';
@@ -262,7 +261,7 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
   };
 
   return (
-    <AppShell>
+    <>
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6">
         {/* Top Header & Actions Navigation */}
         <div className="flex flex-wrap items-center justify-between gap-3 pb-2 border-b border-[#e4e0d5]">
@@ -529,6 +528,6 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
         isOpen={collectionModalOpen}
         onClose={() => setCollectionModalOpen(false)}
       />
-    </AppShell>
+    </>
   );
 }
