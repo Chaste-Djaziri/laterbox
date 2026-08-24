@@ -4,7 +4,6 @@ import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { DOCS_SECTIONS, ALL_DOCS, DocItem, getDocBySlug } from '@/lib/docs-data';
 import {
@@ -120,9 +119,7 @@ export function DocsReader({ currentSlug = 'introduction' }: DocsReaderProps) {
 
   return (
     <div className="min-h-screen bg-[#faf8f2] text-[#171711] flex flex-col selection:bg-[#171711] selection:text-white">
-      <Header />
-
-      {/* Docs Subheader / Quick Bar */}
+      {/* Docs Dedicated Top Navigation Bar */}
       <div className="border-b border-[#e4e0d5] bg-white sticky top-0 z-30 shadow-2xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
@@ -135,11 +132,15 @@ export function DocsReader({ currentSlug = 'introduction' }: DocsReaderProps) {
               <Menu className="w-5 h-5" />
             </button>
 
-            <Link href="/docs" className="flex items-center gap-2 font-black text-sm text-[#171711]">
-              <div className="w-6 h-6 rounded-lg bg-[#e6edb0] flex items-center justify-center p-1">
-                <BookOpen className="w-3.5 h-3.5 text-[#171711]" />
+            <Link href="/" className="flex items-center gap-2 font-black text-sm text-[#171711] group">
+              <div className="w-7 h-7 relative rounded-lg overflow-hidden bg-[#e6edb0] p-1 flex items-center justify-center transition-transform group-hover:scale-105">
+                <Image src="/branding/laterbox-icon.png" alt="laterbox logo" width={22} height={22} className="object-contain" />
               </div>
-              <span className="tracking-tight">Docs Reader</span>
+              <div className="flex items-center gap-1.5">
+                <span className="tracking-tight">laterbox</span>
+                <span className="text-[#9e9b92] font-semibold">/</span>
+                <span className="font-bold text-[#6c6b63]">docs</span>
+              </div>
               <span className="px-2 py-0.5 rounded-full bg-[#ebe7dc] text-[10px] font-mono font-bold text-[#6c6b63] hidden sm:inline">
                 docs.laterbox.dev
               </span>
