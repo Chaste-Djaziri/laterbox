@@ -42,7 +42,7 @@ export function Footer() {
     let isMounted = true;
     fetch('/api/system-status')
       .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
+      .then((data: { label?: string; status?: 'operational' | 'degraded' | 'outage'; indicator?: 'emerald' | 'amber' | 'rose'; statusPageUrl?: string } | null) => {
         if (isMounted && data?.label) {
           setSystemStatus({
             status: data.status || 'operational',
