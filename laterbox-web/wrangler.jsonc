@@ -36,19 +36,19 @@
 	},
 	"routes": [
 		{
-			"pattern": "laterbox.dev/*",
+			"pattern": "laterbox.dev",
 			"custom_domain": true
 		},
 		{
-			"pattern": "www.laterbox.dev/*",
+			"pattern": "www.laterbox.dev",
 			"custom_domain": true
 		},
 		{
-			"pattern": "docs.laterbox.dev/*",
+			"pattern": "docs.laterbox.dev",
 			"custom_domain": true
 		},
 		{
-			"pattern": "app.laterbox.dev/*",
+			"pattern": "app.laterbox.dev",
 			"custom_domain": true
 		}
 	],
