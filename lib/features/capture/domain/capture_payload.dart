@@ -27,10 +27,20 @@ class CapturePayload {
     final uri = Uri.tryParse(trimmed);
     final isDirectUrl = uri != null && uri.hasScheme && uri.host.isNotEmpty;
     if (isDirectUrl) {
+      String? quoteText;
+      if (trimmed.contains(':~:text=')) {
+        try {
+          final raw = trimmed.split(':~:text=').last.split('&').first;
+          final decoded = Uri.decodeComponent(raw);
+          quoteText = decoded
+              .replaceAll(RegExp(r'^[^\-,]+-,'), '')
+              .replaceAll(RegExp(r',-[^\-,]+$'), '');
+        } catch (_) {}
+      }
       return CapturePayload(
         id: id,
         url: trimmed,
-        text: null,
+        text: quoteText,
         createdAt: createdAt,
         source: source,
       );
