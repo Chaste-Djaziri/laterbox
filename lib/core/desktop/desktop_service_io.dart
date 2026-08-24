@@ -167,6 +167,14 @@ class DesktopService {
     debugPrint('[LaterBox Desktop] DEBUG window shown');
   }
 
+  Future<void> setAlwaysOnTop(bool alwaysOnTop) async {
+    await windowManager.setAlwaysOnTop(alwaysOnTop);
+  }
+
+  Future<void> focus() async {
+    await windowManager.focus();
+  }
+
   Future<void> quit() async {
     windowManager.removeListener(_listener);
     await windowManager.destroy();
