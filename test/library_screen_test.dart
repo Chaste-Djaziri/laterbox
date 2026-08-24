@@ -63,13 +63,19 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('All Items'), findsOneWidget);
+    expect(find.text('Kept'), findsOneWidget);
     expect(find.text('Favorites'), findsOneWidget);
     expect(find.text('Archived'), findsOneWidget);
+
+    await tester.scrollUntilVisible(
+      find.text('Development'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
     expect(find.text('Development'), findsOneWidget);
     expect(find.text('1 item'), findsOneWidget);
 
-    await tester.ensureVisible(find.text('Development'));
-    await tester.pumpAndSettle();
     await tester.tap(find.text('Development'));
     await tester.pumpAndSettle();
 
