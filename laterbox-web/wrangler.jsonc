@@ -34,6 +34,24 @@
 	"observability": {
 		"enabled": true
 	},
+	"routes": [
+		{
+			"pattern": "laterbox.dev/*",
+			"custom_domain": true
+		},
+		{
+			"pattern": "www.laterbox.dev/*",
+			"custom_domain": true
+		},
+		{
+			"pattern": "docs.laterbox.dev/*",
+			"custom_domain": true
+		},
+		{
+			"pattern": "app.laterbox.dev/*",
+			"custom_domain": true
+		}
+	],
 	"upload_source_maps": true
 	/**
 	 * Smart Placement
