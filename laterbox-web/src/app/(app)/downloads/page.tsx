@@ -57,12 +57,15 @@ export default function InAppDownloadsPage() {
     setSelectedPlatform(detected);
 
     fetch('/api/releases')
-      .then((res) => (res.ok ? res.json() : null))
+      .then(async (res) => {
+        if (!res.ok) return null;
+        return (await res.json()) as GitHubRelease | GitHubRelease[] | null;
+      })
       .then((data) => {
         if (data) {
           if (Array.isArray(data) && data.length > 0) {
             setRelease(data[0]);
-          } else if (data.tag_name) {
+          } else if ('tag_name' in data && data.tag_name) {
             setRelease(data);
           }
         }
