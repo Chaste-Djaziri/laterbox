@@ -27,6 +27,7 @@ import {
   HelpCircle,
   Clock,
   Download,
+  Server,
 } from 'lucide-react';
 
 interface DocsReaderProps {
@@ -40,13 +41,12 @@ export function DocsReader({ currentSlug = 'introduction' }: DocsReaderProps) {
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState<boolean>(false);
   const [copiedCodeIndex, setCopiedCodeIndex] = useState<number | null>(null);
 
+  // Sync state if currentSlug prop changes
   useEffect(() => {
-    if (currentSlug) {
-      setActiveSlug(currentSlug);
-    }
+    setActiveSlug(currentSlug);
   }, [currentSlug]);
 
-  // Global Keyboard Shortcuts (⌘K / Ctrl+K for search)
+  // Global Keyboard Shortcut (⌘K / Ctrl+K)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
@@ -61,22 +61,27 @@ export function DocsReader({ currentSlug = 'introduction' }: DocsReaderProps) {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isSearchOpen]);
 
+  // Active doc lookup
   const activeDoc: DocItem = useMemo(() => {
     return getDocBySlug(activeSlug) || ALL_DOCS[0];
   }, [activeSlug]);
 
-  // Find previous & next docs
-  const currentIndex = ALL_DOCS.findIndex((d) => d.slug === activeDoc.slug);
-  const prevDoc = currentIndex > 0 ? ALL_DOCS[currentIndex - 1] : null;
-  const nextDoc = currentIndex < ALL_DOCS.length - 1 ? ALL_DOCS[currentIndex + 1] : null;
+  // Prev / Next Docs
+  const activeIndex = useMemo(() => {
+    return ALL_DOCS.findIndex((d) => d.slug === activeDoc.slug);
+  }, [activeDoc.slug]);
 
-  // Search Results
+  const prevDoc = activeIndex > 0 ? ALL_DOCS[activeIndex - 1] : null;
+  const nextDoc = activeIndex < ALL_DOCS.length - 1 ? ALL_DOCS[activeIndex + 1] : null;
+
+  // Search filtering
   const searchResults = useMemo(() => {
     if (!searchQuery.trim()) return [];
-    const q = searchQuery.toLowerCase();
+    const q = searchQuery.toLowerCase().trim();
     return ALL_DOCS.filter(
       (d) =>
         d.title.toLowerCase().includes(q) ||
+        (d.navTitle && d.navTitle.toLowerCase().includes(q)) ||
         d.description.toLowerCase().includes(q) ||
         d.category.toLowerCase().includes(q) ||
         d.content.toLowerCase().includes(q)
@@ -107,6 +112,8 @@ export function DocsReader({ currentSlug = 'introduction' }: DocsReaderProps) {
         return <Laptop className="w-3.5 h-3.5 text-[#6c6b63]" />;
       case 'backend':
         return <Database className="w-3.5 h-3.5 text-[#6c6b63]" />;
+      case 'deployment':
+        return <Server className="w-3.5 h-3.5 text-[#6c6b63]" />;
       case 'developer':
         return <Code2 className="w-3.5 h-3.5 text-[#6c6b63]" />;
       default:
