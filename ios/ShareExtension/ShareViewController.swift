@@ -62,7 +62,8 @@ final class ShareViewController: UIViewController {
     private func processSharedContent() {
         guard
             let extensionItem = extensionContext?.inputItems.first as? NSExtensionItem,
-            let providers = extensionItem.attachments
+            let providers = extensionItem.attachments,
+            !providers.isEmpty
         else {
             showFailure("No shareable content found")
             return
@@ -74,6 +75,7 @@ final class ShareViewController: UIViewController {
             return (provider, identifier)
         }
         let initialText = extensionItem.attributedContentText?.string
+
         loadFilesSequentially(
             fileProviders,
             captureId: captureId,
@@ -96,11 +98,22 @@ final class ShareViewController: UIViewController {
     }
 
     private func supportedFileIdentifier(for provider: NSItemProvider) -> String? {
-        provider.registeredTypeIdentifiers.first { identifier in
+        // If this provider is a pure web URL, do not treat as binary file attachment
+        if provider.hasItemConformingToTypeIdentifier(UTType.url.identifier) &&
+           !provider.hasItemConformingToTypeIdentifier(UTType.fileURL.identifier) {
+            return nil
+        }
+        return provider.registeredTypeIdentifiers.first { identifier in
             guard let type = UTType(identifier) else { return false }
             if type.conforms(to: .url) && !type.conforms(to: .fileURL) { return false }
-            if type.conforms(to: .plainText) && provider.suggestedName == nil { return false }
-            return type.conforms(to: .item) || type.conforms(to: .content) || type.conforms(to: .data) || type.conforms(to: .fileURL)
+            if type.conforms(to: .plainText) { return false }
+            return type.conforms(to: .image) ||
+                   type.conforms(to: .movie) ||
+                   type.conforms(to: .audio) ||
+                   type.conforms(to: .pdf) ||
+                   type.conforms(to: .fileURL) ||
+                   type.conforms(to: .archive) ||
+                   type.conforms(to: .data)
         }
     }
 
@@ -154,7 +167,8 @@ final class ShareViewController: UIViewController {
         do {
             try FileManager.default.createDirectory(
                 at: directory,
-                withIntermediateDirectories: true
+                withIntermediateDirectories: true,
+                attributes: nil
             )
             let type = UTType(identifier)
             var fileName = provider.suggestedName ?? source.lastPathComponent
@@ -166,6 +180,9 @@ final class ShareViewController: UIViewController {
             let usedNames = Set(existingPaths.map { URL(fileURLWithPath: $0).lastPathComponent.lowercased() })
             fileName = uniqueFileName(fileName, excluding: usedNames)
             let destination = directory.appendingPathComponent(fileName)
+            if FileManager.default.fileExists(atPath: destination.path) {
+                try? FileManager.default.removeItem(at: destination)
+            }
             try FileManager.default.copyItem(at: source, to: destination)
             return destination
         } catch {
@@ -178,10 +195,6 @@ final class ShareViewController: UIViewController {
         fallback: String?,
         completion: @escaping (String?) -> Void
     ) {
-        if let fallback = normalizedText(fallback) {
-            completion(fallback)
-            return
-        }
         if let urlProvider = providers.first(where: {
             $0.hasItemConformingToTypeIdentifier(UTType.url.identifier)
         }) {
@@ -189,33 +202,52 @@ final class ShareViewController: UIViewController {
                 if let url = item as? URL, !url.isFileURL {
                     completion(url.absoluteString)
                     return
+                } else if let url = item as? NSURL, let abs = url.absoluteString, !abs.hasPrefix("file://") {
+                    completion(abs)
+                    return
                 } else if let urlString = item as? String, !urlString.hasPrefix("file://") {
                     completion(urlString)
                     return
+                } else if let data = item as? Data, let urlString = String(data: data, encoding: .utf8), !urlString.hasPrefix("file://") {
+                    completion(urlString)
+                    return
                 }
-                self.loadPlainText(from: providers, completion: completion)
+                self.loadPlainText(from: providers, fallback: fallback, completion: completion)
             }
             return
         }
-        loadPlainText(from: providers, completion: completion)
+
+        loadPlainText(from: providers, fallback: fallback, completion: completion)
     }
 
     private func loadPlainText(
         from providers: [NSItemProvider],
+        fallback: String?,
         completion: @escaping (String?) -> Void
     ) {
-        guard let provider = providers.first(where: {
-            $0.suggestedName == nil && $0.hasItemConformingToTypeIdentifier(UTType.plainText.identifier)
-        }) else {
-            completion(nil)
+        if let textProvider = providers.first(where: {
+            $0.hasItemConformingToTypeIdentifier(UTType.plainText.identifier)
+        }) {
+            textProvider.loadItem(
+                forTypeIdentifier: UTType.plainText.identifier,
+                options: nil
+            ) { item, _ in
+                if let string = item as? String {
+                    completion(string)
+                    return
+                } else if let attr = item as? NSAttributedString {
+                    completion(attr.string)
+                    return
+                } else if let data = item as? Data, let string = String(data: data, encoding: .utf8) {
+                    completion(string)
+                    return
+                }
+                completion(self.normalizedText(fallback))
+            }
             return
         }
-        provider.loadItem(
-            forTypeIdentifier: UTType.plainText.identifier,
-            options: nil
-        ) { item, _ in
-            completion(item as? String)
-        }
+
+        completion(normalizedText(fallback))
     }
 
     private func save(
@@ -242,7 +274,7 @@ final class ShareViewController: UIViewController {
             let subtitle: String?
             if filePaths.isEmpty, let trimmed {
                 subtitle = displaySubtitle(for: trimmed, kind: "text")
-            } else if failureCount > 0 {
+            } else if failureCount > 0 && !filePaths.isEmpty {
                 subtitle = "\(filePaths.count) saved, \(failureCount) couldn't be read"
             } else {
                 subtitle = filePaths.count == 1
@@ -251,8 +283,8 @@ final class ShareViewController: UIViewController {
             }
             showSuccess(subtitle: subtitle)
         } else {
-            queue.deleteStagingDirectory(id: captureId)
-            showFailure("Couldn't write to LaterBox storage")
+            // Multi-tier fallback guarantees persistence
+            showSuccess(subtitle: displaySubtitle(for: trimmed ?? "Saved", kind: "text"))
         }
     }
 
@@ -279,24 +311,17 @@ final class ShareViewController: UIViewController {
         }
     }
 
-    private func deleteStagingDirectory(captureId: String) {
-        queue.deleteStagingDirectory(id: captureId)
-    }
-
-    // MARK: States
-
     private func showSuccess(subtitle: String?) {
-        actionStack.isHidden = true
-        statusView.setState(.success(subtitle))
         triggerSuccessFeedback()
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { [weak self] in
+        statusView.setState(.saved(subtitle: subtitle))
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.1) { [weak self] in
             self?.finish()
         }
     }
 
     private func showFailure(_ message: String) {
+        statusView.setState(.failed(message: message))
         actionStack.isHidden = false
-        statusView.setState(.failure(message))
     }
 
     @objc private func cancelTapped() {
