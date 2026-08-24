@@ -1,44 +1,57 @@
 PolyForm Noncommercial License 1.0.0
 
+<https://polyformproject.org/licenses/noncommercial/1.0.0>
+
 Copyright (c) 2026 Chaste Djaziri & LaterBox Authors. All rights reserved.
 
-https://polyformproject.org/licenses/noncommercial/1.0.0/
+## Acceptance
 
-## 1. Permitted Purpose & Grants
+In order to get any license under these terms, you must agree to them as both strict obligations and conditions to all your licenses.
 
-Subject to the terms below, the Licensor grants you a copyright license to use,
-run, copy, modify, distribute, and create derivative works of this software for
-**Noncommercial Purposes only**.
+## Copyright License
 
-Permitted Noncommercial Purposes explicitly include:
-- **Personal Use**: Running, testing, and self-hosting the software for personal, individual productivity.
-- **Educational & Study Use**: Learning, studying the codebase, academic research, teaching, and training.
-- **Open-Source Contribution**: Submitting bug fixes, documentation, and feature contributions back to the project.
-- **Non-Profit Evaluation**: Testing and developing non-profit, non-commercial software extensions.
+The licensor grants you a copyright license for the software to do everything you might do with the software that would otherwise infringe the licensor's copyright in it, for any permitted purpose. However, you may only distribute the software according to [Distribution License](#distribution-license) and make changes or new works based on the software according to [Changes and New Works License](#changes-and-new-works-license).
 
-## 2. Commercial Restrictions
+## Distribution License
 
-**You may NOT use this software or any part of it for Commercial Purposes.**
+The licensor grants you additional copyright license to distribute copies of the software. Your license to distribute covers copies you make, as well as copies you decide to distribute that were supplied to you.
 
-Commercial Purposes include, but are not limited to:
-- Selling, renting, sublicensing, or distributing the software (or derivatives) for monetary compensation.
-- Providing the software as a hosted service, Software-as-a-Service (SaaS), cloud service, or managed platform to third parties for commercial gain.
-- Integrating or embedding this software into proprietary or commercial commercial products without explicit written permission.
+## Changes and New Works License
 
-## 3. Commercial Licensing
+The licensor grants you additional copyright license to make changes and new works based on the software, and to distribute them under these terms.
 
-If you wish to use LaterBox or any derived code for commercial purposes, please contact the author at:
-**licensing@laterbox.dev** or **chaste@laterbox.dev**.
+## Patent License
 
-## 4. Notices & Attribution
+The licensor grants you a patent license for the software that covers patent claims the licensor can license, or becomes able to license, that you would infringe by using the software.
 
-You must retain all copyright and license notices on every copy or derivative work you make or distribute.
+## Noncommercial Purposes
 
-## 5. Disclaimer
+Any noncommercial purpose is a permitted purpose. For example, personal use, research, experimentation, personal study, private entertainment, hobby projects, amateur pursuits, and religious observance are all permitted purposes.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
-INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
-PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
-LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE
-OR OTHER DEALINGS IN THE SOFTWARE.
+## Commercial Purposes
+
+Commercial purposes are not permitted purposes. For example, using the software to provide a service for which you charge, using the software in your business, or using the software in the course of your employment are all commercial purposes.
+
+## Fair Use
+
+You may have "fair use" rights for the software under the law. These terms do not limit them.
+
+## No Other Rights
+
+These terms do not allow you to sublicense or transfer any of your licenses to anyone else, or to prevent the licensor from granting licenses to anyone else. These terms do not give you any other rights.
+
+## Notices
+
+You must ensure that everyone who gets a copy of any part of this software from you, with or without changes, also gets the text of these terms or the link to them, and any required notice provided with the software.
+
+## Anti-Patent Litigation
+
+If you bring a patent infringement claim against any contributor or licensee of the software based on the software, all your licenses under these terms end immediately.
+
+## Automatic Remediation
+
+If you violate these terms in any way, all your licenses under these terms end immediately. However, if you clear the violation within 30 days of when you first find out about it, your licenses are reinstated.
+
+## No Liability
+
+**_As far as the law allows, the software comes as is, without any warranty or condition, and no contributor will be liable to anyone for any damages related to the software or these terms, under any kind of legal claim._**
