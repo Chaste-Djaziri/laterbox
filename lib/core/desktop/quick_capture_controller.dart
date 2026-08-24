@@ -51,6 +51,10 @@ class QuickCaptureController extends ChangeNotifier {
   /// Desktop Settings screen; disabled by default.
   bool enableBlurClose = false;
 
+  /// Whether an OS modal dialog or file picker is active. When true, blur events
+  /// are ignored to prevent the quick capture window from prematurely dismissing.
+  bool isModalOpen = false;
+
   QuickCaptureStatus _status = QuickCaptureStatus.idle;
   String? _prefillText;
   String? _sourceApplication;
@@ -170,12 +174,14 @@ class QuickCaptureController extends ChangeNotifier {
   }
 
   void _onWindowBlur() {
-    debugPrint('[LaterBox Desktop] window blur (blur-close: $enableBlurClose)');
-    if (!enableBlurClose) return;
+    debugPrint(
+      '[LaterBox Desktop] window blur (blur-close: $enableBlurClose, modal: $isModalOpen)',
+    );
+    if (!enableBlurClose || isModalOpen) return;
     if (_status != QuickCaptureStatus.active) return;
     _blurTimer?.cancel();
     _blurTimer = Timer(blurCloseDelay, () {
-      if (_status == QuickCaptureStatus.active) {
+      if (_status == QuickCaptureStatus.active && !isModalOpen) {
         close();
       }
     });
