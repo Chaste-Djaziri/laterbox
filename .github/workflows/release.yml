@@ -117,27 +117,6 @@ jobs:
             dist/laterbox-macos.zip
           if-no-files-found: error
 
-      - name: Upload macOS Build to App Store Connect / TestFlight
-        if: env.APP_STORE_CONNECT_API_KEY_BASE64 != '' && env.APP_STORE_CONNECT_KEY_ID != ''
-        shell: bash
-        run: |
-          mkdir -p ~/.appstoreconnect/private_keys
-          echo "$APP_STORE_CONNECT_API_KEY_BASE64" | base64 --decode > ~/.appstoreconnect/private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8
-          
-          PKG_PATH="dist/laterbox-macos-installer.pkg"
-          if [ -f "$PKG_PATH" ]; then
-            echo "Uploading $PKG_PATH to App Store Connect for macOS TestFlight..."
-            xcrun altool --upload-app \
-              -f "$PKG_PATH" \
-              -t osx \
-              --apiKey "${{ secrets.APP_STORE_CONNECT_KEY_ID }}" \
-              --apiIssuer "${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}" || true
-          fi
-        env:
-          APP_STORE_CONNECT_API_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_API_KEY_BASE64 }}
-          APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
-          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
-
   build-windows:
     name: Build Windows Release & Installer
     runs-on: windows-latest
