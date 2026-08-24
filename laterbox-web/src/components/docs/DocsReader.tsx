@@ -3,8 +3,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
-import { Footer } from '@/components/layout/Footer';
 import { DOCS_SECTIONS, ALL_DOCS, DocItem, getDocBySlug } from '@/lib/docs-data';
 import {
   Search,
@@ -103,17 +101,17 @@ export function DocsReader({ currentSlug = 'introduction' }: DocsReaderProps) {
   const getSectionIcon = (id: string) => {
     switch (id) {
       case 'getting-started':
-        return <Sparkles className="w-4 h-4 text-[#171711]" />;
+        return <Sparkles className="w-3.5 h-3.5 text-[#6c6b63]" />;
       case 'architecture':
-        return <Layers className="w-4 h-4 text-[#171711]" />;
+        return <Layers className="w-3.5 h-3.5 text-[#6c6b63]" />;
       case 'platforms':
-        return <Laptop className="w-4 h-4 text-[#171711]" />;
+        return <Laptop className="w-3.5 h-3.5 text-[#6c6b63]" />;
       case 'backend':
-        return <Database className="w-4 h-4 text-[#171711]" />;
+        return <Database className="w-3.5 h-3.5 text-[#6c6b63]" />;
       case 'developer':
-        return <Code2 className="w-4 h-4 text-[#171711]" />;
+        return <Code2 className="w-3.5 h-3.5 text-[#6c6b63]" />;
       default:
-        return <FileText className="w-4 h-4 text-[#171711]" />;
+        return <FileText className="w-3.5 h-3.5 text-[#6c6b63]" />;
     }
   };
 
@@ -274,38 +272,31 @@ export function DocsReader({ currentSlug = 'introduction' }: DocsReaderProps) {
       {/* Main Docs Reader Container */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full flex-1 flex gap-8 relative">
         {/* Left Sidebar Navigation (Desktop) */}
-        <aside className="hidden lg:block w-64 shrink-0 space-y-8 sticky top-20 self-start max-h-[calc(100vh-6rem)] overflow-y-auto pr-2">
+        <aside className="hidden lg:block w-60 shrink-0 space-y-6 sticky top-20 self-start max-h-[calc(100vh-6rem)] overflow-y-auto pr-2">
           {DOCS_SECTIONS.map((section) => (
-            <div key={section.id} className="space-y-2">
-              <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-[#171711] px-3">
+            <div key={section.id} className="space-y-1">
+              <div className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-wider text-[#9e9b92] px-2.5 py-1">
                 {getSectionIcon(section.id)}
                 <span>{section.title}</span>
               </div>
-              <ul className="space-y-1">
+              <ul className="space-y-0.5">
                 {section.items.map((item) => {
                   const isActive = item.slug === activeDoc.slug;
+                  const displayTitle = item.navTitle || item.title;
                   return (
                     <li key={item.slug}>
                       <button
                         type="button"
                         onClick={() => selectDoc(item.slug)}
-                        className={`w-full text-left px-3 py-2 rounded-xl text-xs font-semibold transition-all flex items-center justify-between ${
+                        className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs transition-all flex items-center justify-between cursor-pointer ${
                           isActive
-                            ? 'bg-[#171711] text-white shadow-2xs'
-                            : 'text-[#6c6b63] hover:text-[#171711] hover:bg-[#f0ede4]'
+                            ? 'bg-[#e6edb0] text-[#171711] font-bold shadow-2xs'
+                            : 'text-[#6c6b63] font-medium hover:text-[#171711] hover:bg-[#ebe7dc]/60'
                         }`}
                       >
-                        <span className="truncate">{item.title}</span>
-                        {item.badge && (
-                          <span
-                            className={`text-[9px] font-bold px-1.5 py-0.2 rounded-md ${
-                              isActive
-                                ? 'bg-[#E7FF57] text-[#171711]'
-                                : 'bg-[#e6edb0] text-[#171711]'
-                            }`}
-                          >
-                            {item.badge}
-                          </span>
+                        <span className="truncate">{displayTitle}</span>
+                        {isActive && (
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#171711] shrink-0 ml-1.5" />
                         )}
                       </button>
                     </li>
@@ -585,17 +576,17 @@ export function DocsReader({ currentSlug = 'introduction' }: DocsReaderProps) {
         </main>
 
         {/* Right Sidebar: On This Page Table of Contents (Desktop) */}
-        <aside className="hidden xl:block w-56 shrink-0 space-y-6 sticky top-20 self-start max-h-[calc(100vh-6rem)] overflow-y-auto">
-          <div className="space-y-3">
-            <p className="text-xs font-bold uppercase tracking-wider text-[#171711]">
+        <aside className="hidden xl:block w-52 shrink-0 space-y-6 sticky top-20 self-start max-h-[calc(100vh-6rem)] overflow-y-auto">
+          <div className="space-y-2">
+            <p className="text-[11px] font-black uppercase tracking-wider text-[#9e9b92] px-1">
               On This Page
             </p>
-            <ul className="space-y-2 text-xs">
+            <ul className="space-y-1 text-xs">
               {activeDoc.headings.map((heading) => (
                 <li key={heading.id} className={heading.level === 3 ? 'pl-2' : ''}>
                   <a
                     href={`#${heading.id}`}
-                    className="text-[#6c6b63] hover:text-[#171711] transition-colors block py-0.5 line-clamp-1"
+                    className="text-[#6c6b63] hover:text-[#171711] transition-colors block py-1 px-1 rounded hover:bg-[#ebe7dc]/50 line-clamp-1"
                   >
                     {heading.text}
                   </a>
@@ -604,27 +595,27 @@ export function DocsReader({ currentSlug = 'introduction' }: DocsReaderProps) {
             </ul>
           </div>
 
-          <div className="pt-4 border-t border-[#e4e0d5] space-y-3">
-            <p className="text-xs font-bold uppercase tracking-wider text-[#171711]">
-              Quick Resources
+          <div className="pt-4 border-t border-[#e4e0d5] space-y-2">
+            <p className="text-[11px] font-black uppercase tracking-wider text-[#9e9b92] px-1">
+              Resources
             </p>
-            <div className="space-y-2 text-xs">
-              <Link href="/download" className="flex items-center gap-1.5 text-[#6c6b63] hover:text-[#171711]">
+            <div className="space-y-1 text-xs font-medium">
+              <Link href="/download" className="flex items-center gap-1.5 px-1 py-1 text-[#6c6b63] hover:text-[#171711] transition-colors">
                 <Download className="w-3.5 h-3.5" />
-                <span>All Platform Downloads</span>
+                <span>Download Hub</span>
               </Link>
-              <Link href="/inbox" className="flex items-center gap-1.5 text-[#6c6b63] hover:text-[#171711]">
+              <Link href="/inbox" className="flex items-center gap-1.5 px-1 py-1 text-[#6c6b63] hover:text-[#171711] transition-colors">
                 <Sparkles className="w-3.5 h-3.5" />
                 <span>Web App Sandbox</span>
               </Link>
               <a
-                href="https://github.com/Chaste-Djaziri/laterbox/releases"
+                href="https://github.com/Chaste-Djaziri/laterbox"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-1.5 text-[#6c6b63] hover:text-[#171711]"
+                className="flex items-center gap-1.5 px-1 py-1 text-[#6c6b63] hover:text-[#171711] transition-colors"
               >
                 <ExternalLink className="w-3.5 h-3.5" />
-                <span>GitHub Releases</span>
+                <span>GitHub Repository</span>
               </a>
             </div>
           </div>
@@ -638,42 +629,46 @@ export function DocsReader({ currentSlug = 'introduction' }: DocsReaderProps) {
             className="fixed inset-0 bg-black/40 backdrop-blur-xs"
             onClick={() => setIsMobileSidebarOpen(false)}
           />
-          <div className="relative w-72 max-w-full bg-[#faf8f2] border-r border-[#e4e0d5] p-6 space-y-6 overflow-y-auto z-10 animate-in slide-in-from-left duration-200">
-            <div className="flex items-center justify-between pb-4 border-b border-[#e4e0d5]">
-              <div className="flex items-center gap-2 font-bold text-sm text-[#171711]">
+          <div className="relative w-72 max-w-full bg-[#faf8f2] border-r border-[#e4e0d5] p-5 space-y-6 overflow-y-auto z-10 animate-in slide-in-from-left duration-200">
+            <div className="flex items-center justify-between pb-3 border-b border-[#e4e0d5]">
+              <div className="flex items-center gap-2 font-black text-sm text-[#171711]">
                 <BookOpen className="w-4 h-4" />
                 <span>Documentation</span>
               </div>
               <button
                 type="button"
                 onClick={() => setIsMobileSidebarOpen(false)}
-                className="p-1 rounded-lg hover:bg-[#ebe7dc]"
+                className="p-1 rounded-lg hover:bg-[#ebe7dc] text-[#6c6b63] hover:text-[#171711]"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {DOCS_SECTIONS.map((section) => (
-              <div key={section.id} className="space-y-2">
-                <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-[#171711]">
+              <div key={section.id} className="space-y-1">
+                <div className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-wider text-[#9e9b92] px-2.5 py-1">
                   {getSectionIcon(section.id)}
                   <span>{section.title}</span>
                 </div>
-                <ul className="space-y-1">
+                <ul className="space-y-0.5">
                   {section.items.map((item) => {
                     const isActive = item.slug === activeDoc.slug;
+                    const displayTitle = item.navTitle || item.title;
                     return (
                       <li key={item.slug}>
                         <button
                           type="button"
                           onClick={() => selectDoc(item.slug)}
-                          className={`w-full text-left px-3 py-2 rounded-xl text-xs font-semibold transition-all flex items-center justify-between ${
+                          className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs transition-all flex items-center justify-between cursor-pointer ${
                             isActive
-                              ? 'bg-[#171711] text-white'
-                              : 'text-[#6c6b63] hover:text-[#171711]'
+                              ? 'bg-[#e6edb0] text-[#171711] font-bold shadow-2xs'
+                              : 'text-[#6c6b63] font-medium hover:text-[#171711] hover:bg-[#ebe7dc]/60'
                           }`}
                         >
-                          <span className="truncate">{item.title}</span>
+                          <span className="truncate">{displayTitle}</span>
+                          {isActive && (
+                            <span className="w-1.5 h-1.5 rounded-full bg-[#171711] shrink-0 ml-1.5" />
+                          )}
                         </button>
                       </li>
                     );
@@ -719,34 +714,30 @@ export function DocsReader({ currentSlug = 'introduction' }: DocsReaderProps) {
                 </div>
               ) : (
                 <div className="space-y-1">
-                  {(searchQuery.trim() ? searchResults : ALL_DOCS).map((item) => (
-                    <button
-                      key={item.slug}
-                      type="button"
-                      onClick={() => selectDoc(item.slug)}
-                      className="w-full p-3 rounded-2xl hover:bg-[#f7f5ee] text-left transition-colors flex items-start justify-between group"
-                    >
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
+                  {(searchQuery.trim() ? searchResults : ALL_DOCS).map((item) => {
+                    const displayTitle = item.navTitle || item.title;
+                    return (
+                      <button
+                        key={item.slug}
+                        type="button"
+                        onClick={() => selectDoc(item.slug)}
+                        className="w-full p-3 rounded-2xl hover:bg-[#f7f5ee] text-left transition-colors flex items-start justify-between group"
+                      >
+                        <div className="space-y-1">
                           <span className="text-[10px] font-bold uppercase tracking-wider text-[#9e9b92]">
                             {item.category}
                           </span>
-                          {item.badge && (
-                            <span className="px-1.5 py-0.2 rounded bg-[#e6edb0] text-[9px] font-bold text-[#171711]">
-                              {item.badge}
-                            </span>
-                          )}
+                          <h4 className="text-xs font-bold text-[#171711] group-hover:underline">
+                            {displayTitle}
+                          </h4>
+                          <p className="text-[11px] text-[#6c6b63] line-clamp-1">
+                            {item.description}
+                          </p>
                         </div>
-                        <h4 className="text-xs font-bold text-[#171711] group-hover:underline">
-                          {item.title}
-                        </h4>
-                        <p className="text-[11px] text-[#6c6b63] line-clamp-1">
-                          {item.description}
-                        </p>
-                      </div>
-                      <ChevronRight className="w-4 h-4 text-[#9e9b92] group-hover:text-[#171711] shrink-0 mt-2" />
-                    </button>
-                  ))}
+                        <ChevronRight className="w-4 h-4 text-[#9e9b92] group-hover:text-[#171711] shrink-0 mt-2" />
+                      </button>
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -759,7 +750,35 @@ export function DocsReader({ currentSlug = 'introduction' }: DocsReaderProps) {
         </div>
       )}
 
-      <Footer />
+      {/* Minimal Docs Reader Footer */}
+      <footer className="border-t border-[#e4e0d5] bg-white py-6 mt-16 text-xs text-[#9e9b92]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <span className="font-bold text-[#171711]">LaterBox Documentation</span>
+            <span>•</span>
+            <span>PolyForm Noncommercial 1.0.0</span>
+          </div>
+          <div className="flex items-center gap-4 text-xs font-semibold text-[#6c6b63]">
+            <a
+              href="https://github.com/Chaste-Djaziri/laterbox"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-[#171711] transition-colors"
+            >
+              GitHub
+            </a>
+            <Link href="/download" className="hover:text-[#171711] transition-colors">
+              Downloads
+            </Link>
+            <Link href="/privacy" className="hover:text-[#171711] transition-colors">
+              Privacy
+            </Link>
+            <Link href="/terms" className="hover:text-[#171711] transition-colors">
+              Terms
+            </Link>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
