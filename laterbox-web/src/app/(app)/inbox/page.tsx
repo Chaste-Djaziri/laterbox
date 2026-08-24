@@ -2,7 +2,6 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { AppShell } from '@/components/layout/AppShell';
 import { FilterBar } from '@/components/inbox/FilterBar';
 import { ItemCard } from '@/components/inbox/ItemCard';
 import { ItemListRow } from '@/components/inbox/ItemListRow';
@@ -39,7 +38,7 @@ export default function InboxPage() {
   });
 
   return (
-    <AppShell>
+    <>
       <div className="max-w-7xl mx-auto px-6 sm:px-8 py-7 sm:py-9 space-y-6">
         {/* Header & Controls Top Bar */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -186,6 +185,6 @@ export default function InboxPage() {
       </div>
 
       <QuickCaptureModal isOpen={captureOpen} onClose={() => setCaptureOpen(false)} />
-    </AppShell>
+    </>
   );
 }
