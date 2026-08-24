@@ -427,13 +427,23 @@ export default function DownloadPage() {
           {selectedPlatform === 'android' && (
             <div className="space-y-4">
               <div className="flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsAndroidModalOpen(true)}
+                  className="inline-flex items-center gap-2.5 px-6 py-3 rounded-full bg-[#171711] hover:bg-[#282723] text-white text-xs font-extrabold shadow-sm hover:shadow-md transition-all cursor-pointer group"
+                >
+                  <Smartphone className="w-4 h-4 text-[#E7FF57]" />
+                  <span>Google Play Closed Beta (Recommended)</span>
+                  <ArrowRight className="w-3.5 h-3.5 text-white/70 group-hover:translate-x-0.5 transition-transform" />
+                </button>
+
                 <a
                   href="/api/download/laterbox-android-release.apk"
                   download="laterbox-android-release.apk"
                   onClick={() => setDownloadingFile('laterbox-android-release.apk')}
-                  className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-[#171711] hover:bg-[#282723] text-white text-xs font-bold shadow-xs transition-all cursor-pointer"
+                  className="inline-flex items-center gap-2 px-5 py-3 rounded-full bg-white hover:bg-[#ebe7dc] border border-[#e4e0d5] text-[#171711] text-xs font-bold transition-all cursor-pointer"
                 >
-                  <Smartphone className="w-4 h-4 text-[#E7FF57]" />
+                  <Download className="w-4 h-4 text-[#6c6b63]" />
                   <span>Download Release APK (.apk)</span>
                 </a>
 
@@ -441,25 +451,15 @@ export default function DownloadPage() {
                   href="/api/download/laterbox-android.apk"
                   download="laterbox-android.apk"
                   onClick={() => setDownloadingFile('laterbox-android.apk')}
-                  className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-white hover:bg-[#ebe7dc] border border-[#e4e0d5] text-[#171711] text-xs font-bold transition-all cursor-pointer"
+                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-transparent hover:bg-[#ebe7dc] text-[#6c6b63] text-xs font-medium transition-all cursor-pointer"
                 >
-                  <Smartphone className="w-4 h-4" />
-                  <span>Standard APK (.apk)</span>
+                  <span>Standard APK</span>
                 </a>
-
-                <button
-                  type="button"
-                  onClick={() => setIsAndroidModalOpen(true)}
-                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-[#ebe7dc] hover:bg-[#e0dbc9] text-[#171711] text-xs font-bold transition-all cursor-pointer"
-                >
-                  <Users className="w-4 h-4" />
-                  <span>Google Play Beta</span>
-                </button>
               </div>
 
               <div className="text-[11px] text-[#6c6b63]">
                 <p className="font-semibold text-[#171711]">Minimum Requirements</p>
-                <p>Android 8.0 (Oreo) or later with system share sheet support</p>
+                <p>Android 8.0 (Oreo) or later • Google Play Closed Beta testing group or direct APK sideload</p>
               </div>
             </div>
           )}
