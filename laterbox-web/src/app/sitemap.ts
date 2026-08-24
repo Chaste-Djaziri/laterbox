@@ -3,13 +3,14 @@ import { ALL_DOCS } from '@/lib/docs-data';
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const baseUrl = 'https://laterbox.dev';
+  const docsBaseUrl = 'https://docs.laterbox.dev';
   const lastModified = new Date();
 
   const docUrls: MetadataRoute.Sitemap = ALL_DOCS.map((doc) => ({
-    url: `${baseUrl}/docs/${doc.slug}`,
+    url: `${docsBaseUrl}/${doc.slug}`,
     lastModified,
     changeFrequency: 'weekly',
-    priority: 0.8,
+    priority: 0.85,
   }));
 
   return [
@@ -20,10 +21,10 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 1.0,
     },
     {
-      url: `${baseUrl}/docs`,
+      url: docsBaseUrl,
       lastModified,
-      changeFrequency: 'weekly',
-      priority: 0.9,
+      changeFrequency: 'daily',
+      priority: 0.95,
     },
     {
       url: `${baseUrl}/download`,
@@ -35,12 +36,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
       url: `${baseUrl}/guide`,
       lastModified,
       changeFrequency: 'weekly',
-      priority: 0.8,
-    },
-    {
-      url: `${baseUrl}/tutorial`,
-      lastModified,
-      changeFrequency: 'monthly',
       priority: 0.8,
     },
     ...docUrls,
