@@ -15,6 +15,7 @@ export function Footer() {
               src="/branding/laterbox-icon.png"
               alt="laterbox"
               fill
+              sizes="24px"
               className="object-contain p-0.5"
             />
           </div>
