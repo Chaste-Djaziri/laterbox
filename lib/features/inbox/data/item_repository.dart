@@ -73,7 +73,20 @@ class ItemRepository {
     final normalizedUrl = isUrl ? normalizeUrl(targetUrl!) : null;
     final bodyText = textContent?.trim().isNotEmpty == true
         ? textContent!.trim()
-        : (isUrl ? null : normalized);
+        : (normalizedUrl != null && normalizedUrl.contains(':~:text=')
+            ? () {
+                try {
+                  final raw =
+                      normalizedUrl.split(':~:text=').last.split('&').first;
+                  final decoded = Uri.decodeComponent(raw);
+                  return decoded
+                      .replaceAll(RegExp(r'^[^\-,]+-,'), '')
+                      .replaceAll(RegExp(r',-[^\-,]+$'), '');
+                } catch (_) {
+                  return null;
+                }
+              }()
+            : (isUrl ? null : normalized));
     final now = createdAt ?? DateTime.now();
 
     final existing = await _local.findActiveInboxItem(
