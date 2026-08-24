@@ -25,6 +25,7 @@ export async function POST(req: NextRequest) {
 
     // Authenticate user with token
     const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      global: { headers: { Authorization: `Bearer ${token}` } },
       auth: { persistSession: false },
     });
 
@@ -42,43 +43,59 @@ export async function POST(req: NextRequest) {
 
     const userId = user.id;
 
-    // Use admin client if service role key is available, or user client with user's JWT
-    const client = SUPABASE_SERVICE_ROLE_KEY
-      ? createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-          auth: { persistSession: false, autoRefreshToken: false },
-        })
-      : createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-          global: { headers: { Authorization: `Bearer ${token}` } },
-          auth: { persistSession: false },
+    // 1. Try atomic PostgreSQL RPC deletion (Security Definer)
+    try {
+      const { error: rpcError } = await userClient.rpc('delete_user_account');
+      if (!rpcError) {
+        return NextResponse.json({
+          success: true,
+          message: 'Account and all associated data permanently deleted via RPC',
         });
+      }
+    } catch (_) {}
 
-    // 1. Delete all user data from tables
-    try {
-      await client.from('item_collections').delete().match({ user_id: userId });
-    } catch {}
-
-    try {
-      await client.from('item_metadata').delete().match({ user_id: userId });
-    } catch {}
-
-    try {
-      await client.from('items').delete().match({ user_id: userId });
-    } catch {}
-
-    try {
-      await client.from('collections').delete().match({ user_id: userId });
-    } catch {}
-
-    try {
-      await client.from('tags').delete().match({ user_id: userId });
-    } catch {}
-
-    // 2. If admin client is available, delete the user from Supabase auth
+    // 2. Use admin client if service role key is available
     if (SUPABASE_SERVICE_ROLE_KEY) {
       const adminClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
         auth: { persistSession: false, autoRefreshToken: false },
       });
-      await adminClient.auth.admin.deleteUser(userId);
+
+      // Delete user rows across tables
+      const tables = [
+        'collection_items',
+        'item_notes',
+        'item_metadata',
+        'attachments',
+        'items',
+        'collections',
+        'extension_sessions',
+        'extension_connection_requests',
+      ];
+
+      for (const table of tables) {
+        try {
+          await adminClient.from(table).delete().match({ user_id: userId });
+        } catch (_) {}
+      }
+
+      // Delete user from Supabase auth
+      try {
+        await adminClient.auth.admin.deleteUser(userId);
+      } catch (_) {}
+    } else {
+      // Direct user-scoped deletions fallback
+      try {
+        await userClient.from('collection_items').delete();
+      } catch (_) {}
+      try {
+        await userClient.from('item_notes').delete().match({ user_id: userId });
+      } catch (_) {}
+      try {
+        await userClient.from('items').delete().match({ user_id: userId });
+      } catch (_) {}
+      try {
+        await userClient.from('collections').delete().match({ user_id: userId });
+      } catch (_) {}
     }
 
     return NextResponse.json({
