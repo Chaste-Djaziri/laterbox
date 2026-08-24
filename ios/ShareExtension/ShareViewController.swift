@@ -200,42 +200,60 @@ final class ShareViewController: UIViewController {
 
         let group = DispatchGroup()
 
-        // 1. Check for URL provider
-        if let urlProvider = providers.first(where: {
-            $0.hasItemConformingToTypeIdentifier(UTType.url.identifier)
-        }) {
-            group.enter()
-            urlProvider.loadItem(forTypeIdentifier: UTType.url.identifier, options: nil) { item, _ in
-                if let url = item as? URL, !url.isFileURL {
-                    sharedUrl = url.absoluteString
-                } else if let url = item as? NSURL, let abs = url.absoluteString, !abs.hasPrefix("file://") {
-                    sharedUrl = abs
-                } else if let urlString = item as? String, !urlString.hasPrefix("file://") {
-                    sharedUrl = urlString
-                } else if let data = item as? Data, let urlString = String(data: data, encoding: .utf8), !urlString.hasPrefix("file://") {
-                    sharedUrl = urlString
+        for provider in providers {
+            // 1. Check for URL
+            if provider.hasItemConformingToTypeIdentifier(UTType.url.identifier) {
+                group.enter()
+                provider.loadItem(forTypeIdentifier: UTType.url.identifier, options: nil) { item, _ in
+                    if let url = item as? URL, !url.isFileURL {
+                        sharedUrl = url.absoluteString
+                    } else if let url = item as? NSURL, let abs = url.absoluteString, !abs.hasPrefix("file://") {
+                        sharedUrl = abs
+                    } else if let urlString = item as? String, (urlString.hasPrefix("http://") || urlString.hasPrefix("https://")) {
+                        sharedUrl = urlString
+                    } else if let data = item as? Data, let urlString = String(data: data, encoding: .utf8), (urlString.hasPrefix("http://") || urlString.hasPrefix("https://")) {
+                        sharedUrl = urlString
+                    }
+                    group.leave()
                 }
-                group.leave()
+            }
+
+            // 2. Check for PropertyList (Safari web page metadata)
+            if provider.hasItemConformingToTypeIdentifier(UTType.propertyList.identifier) {
+                group.enter()
+                provider.loadItem(forTypeIdentifier: UTType.propertyList.identifier, options: nil) { item, _ in
+                    if let dict = item as? NSDictionary {
+                        let results = (dict[NSExtensionJavaScriptPreprocessingResultsKey] as? NSDictionary) ?? dict
+                        if let urlStr = results["URL"] as? String, (urlStr.hasPrefix("http://") || urlStr.hasPrefix("https://")) {
+                            sharedUrl = urlStr
+                        } else if let urlStr = results["url"] as? String, (urlStr.hasPrefix("http://") || urlStr.hasPrefix("https://")) {
+                            sharedUrl = urlStr
+                        }
+                        if let selectionStr = results["selection"] as? String, !selectionStr.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                            sharedText = selectionStr
+                        }
+                    }
+                    group.leave()
+                }
+            }
+
+            // 3. Check for Plain Text
+            if provider.hasItemConformingToTypeIdentifier(UTType.plainText.identifier) {
+                group.enter()
+                provider.loadItem(forTypeIdentifier: UTType.plainText.identifier, options: nil) { item, _ in
+                    if let string = item as? String {
+                        sharedText = string
+                    } else if let attr = item as? NSAttributedString {
+                        sharedText = attr.string
+                    } else if let data = item as? Data, let string = String(data: data, encoding: .utf8) {
+                        sharedText = string
+                    }
+                    group.leave()
+                }
             }
         }
 
-        // 2. Check for plain text provider or fallback
-        let textProvider = providers.first(where: {
-            $0.hasItemConformingToTypeIdentifier(UTType.plainText.identifier)
-        })
-        if let textProvider {
-            group.enter()
-            textProvider.loadItem(forTypeIdentifier: UTType.plainText.identifier, options: nil) { item, _ in
-                if let string = item as? String {
-                    sharedText = string
-                } else if let attr = item as? NSAttributedString {
-                    sharedText = attr.string
-                } else if let data = item as? Data, let string = String(data: data, encoding: .utf8) {
-                    sharedText = string
-                }
-                group.leave()
-            }
-        } else if let fallback = normalizedText(fallback) {
+        if sharedText == nil, let fallback = normalizedText(fallback) {
             sharedText = fallback
         }
 
@@ -249,18 +267,40 @@ final class ShareViewController: UIViewController {
         let cleanUrl = normalizedText(url)
         let cleanText = normalizedText(text)
 
+        // If cleanText contains an embedded URL
+        if cleanUrl == nil, let cleanText {
+            if let detector = try? NSDataDetector(types: NSTextCheckingResult.CheckingType.link.rawValue) {
+                let matches = detector.matches(in: cleanText, options: [], range: NSRange(location: 0, length: cleanText.utf16.count))
+                if let firstMatch = matches.first, let range = Range(firstMatch.range, in: cleanText), let matchUrl = firstMatch.url?.absoluteString {
+                    let quote = cleanText.replacingCharacters(in: range, with: "").trimmingCharacters(in: .whitespacesAndNewlines).trimmingCharacters(in: CharacterSet(charactersIn: "\"“”'"))
+                    return buildCombinedTextFragment(url: matchUrl, text: quote.isEmpty ? nil : quote)
+                }
+            }
+        }
+
         guard let cleanUrl else { return cleanText }
         guard let cleanText, cleanText != cleanUrl else { return cleanUrl }
 
         if cleanUrl.contains(":~:text=") { return cleanUrl }
 
-        let snippet = String(cleanText.prefix(120)).trimmingCharacters(in: .whitespacesAndNewlines)
-        if let encoded = snippet.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) {
-            let separator = cleanUrl.contains("#") ? ":~:text=" : "#:~:text="
-            return "\(cleanUrl)\(separator)\(encoded)"
+        let cleanSnippet = cleanText.trimmingCharacters(in: .whitespacesAndNewlines).trimmingCharacters(in: CharacterSet(charactersIn: "\"“”'"))
+        let words = cleanSnippet.components(separatedBy: .whitespacesAndNewlines).filter { !$0.isEmpty }
+        let encodedDirective: String
+        if words.count > 12 {
+            let start = words.prefix(4).joined(separator: " ")
+            let end = words.suffix(4).joined(separator: " ")
+            if let startEnc = start.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
+               let endEnc = end.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) {
+                encodedDirective = "\(startEnc),\(endEnc)"
+            } else {
+                encodedDirective = cleanSnippet.prefix(120).addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? cleanSnippet
+            }
+        } else {
+            encodedDirective = cleanSnippet.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? cleanSnippet
         }
 
-        return "\(cleanText)\n\(cleanUrl)"
+        let separator = cleanUrl.contains("#") ? ":~:text=" : "#:~:text="
+        return "\(cleanUrl)\(separator)\(encodedDirective)"
     }
 
     private func save(
