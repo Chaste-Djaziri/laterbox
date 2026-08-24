@@ -29,6 +29,10 @@ class DesktopService {
 
   Future<void> debugShowWindow() async {}
 
+  Future<void> setAlwaysOnTop(bool alwaysOnTop) async {}
+
+  Future<void> focus() async {}
+
   Future<void> quit() async {}
 
   void addWindowBlurListener(void Function() onBlur) {}
