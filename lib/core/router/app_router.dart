@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../auth/auth_provider.dart';
 import '../../features/auth/presentation/auth_gate.dart';
 import '../../features/auth/presentation/auth_screen.dart';
+import '../../features/capture/presentation/capture_sheet.dart';
 import '../../features/detail/presentation/item_detail_screen.dart';
 import '../../features/download/presentation/download_screen.dart';
 import '../../features/extension/presentation/extension_connect_screen.dart';
@@ -12,7 +13,9 @@ import '../../features/extension/presentation/extension_connected_screen.dart';
 import '../../features/home/presentation/home_shell.dart';
 import '../../features/inbox/presentation/inbox_screen.dart';
 import '../../features/landing/presentation/landing_screen.dart';
+import '../../features/library/presentation/library_providers.dart';
 import '../../features/library/presentation/library_screen.dart';
+import '../../features/library/presentation/library_section_screen.dart';
 import '../../features/search/presentation/search_screen.dart';
 import '../../features/settings/presentation/settings_screen.dart';
 
@@ -94,6 +97,17 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             NoTransitionPage(key: state.pageKey, child: const TutorialScreen()),
       ),
       GoRoute(
+        path: '/capture',
+        pageBuilder: (context, state) => NoTransitionPage(
+          key: state.pageKey,
+          child: const Scaffold(
+            body: SafeArea(
+              child: CaptureSheet(),
+            ),
+          ),
+        ),
+      ),
+      GoRoute(
         path: '/settings',
         pageBuilder: (context, state) =>
             NoTransitionPage(key: state.pageKey, child: const SettingsScreen()),
@@ -104,7 +118,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           int selectedIndex = 0;
           if (location.startsWith('/search')) {
             selectedIndex = 1;
-          } else if (location.startsWith('/library')) {
+          } else if (location.startsWith('/library') || location.startsWith('/kept')) {
             selectedIndex = 2;
           }
           return AuthGate(
@@ -131,6 +145,16 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             pageBuilder: (context, state) => NoTransitionPage(
               key: state.pageKey,
               child: const LibraryScreen(),
+            ),
+          ),
+          GoRoute(
+            path: '/kept',
+            pageBuilder: (context, state) => NoTransitionPage(
+              key: state.pageKey,
+              child: const LibrarySectionScreen(
+                title: 'Kept',
+                provider: keptProvider,
+              ),
             ),
           ),
           GoRoute(
