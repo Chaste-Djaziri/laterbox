@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { AppShell } from '@/components/layout/AppShell';
 import { useAuth } from '@/lib/store/AuthContext';
 import { useItems } from '@/lib/store/ItemContext';
 import { CloudSyncIndicator } from '@/components/ui/CloudSyncIndicator';
@@ -193,7 +192,7 @@ export default function SettingsPage() {
   };
 
   return (
-    <AppShell>
+    <>
       <div className="max-w-4xl mx-auto px-6 sm:px-8 py-7 sm:py-9 space-y-8">
         <div>
           <h1 className="text-3xl font-black text-[#171711] tracking-tight">
@@ -652,6 +651,6 @@ export default function SettingsPage() {
           </div>
         </div>
       )}
-    </AppShell>
+    </>
   );
 }
