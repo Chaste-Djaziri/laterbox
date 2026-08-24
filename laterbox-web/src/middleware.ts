@@ -39,6 +39,14 @@ export function middleware(request: NextRequest) {
     if (url.pathname === '/') {
       return NextResponse.rewrite(new URL('/inbox', request.url));
     }
+    // In-app downloads aliases (/download or /apps -> /downloads)
+    if (url.pathname === '/download' || url.pathname === '/apps') {
+      return NextResponse.rewrite(new URL('/downloads', request.url));
+    }
+    // In-app guide alias (/guide -> /tutorial)
+    if (url.pathname === '/guide') {
+      return NextResponse.rewrite(new URL('/tutorial', request.url));
+    }
     // Redirect docs path on app to docs subdomain
     if (url.pathname === '/docs' || url.pathname === '/docs/') {
       return NextResponse.redirect(new URL('https://docs.laterbox.dev/', request.url), 308);
@@ -47,7 +55,7 @@ export function middleware(request: NextRequest) {
       const cleanPath = url.pathname.replace('/docs', '');
       return NextResponse.redirect(new URL(`https://docs.laterbox.dev${cleanPath}`, request.url), 308);
     }
-    // All other app routes (/inbox, /library, /search, /settings, /item, /login, /extension) pass through
+    // All other app routes (/inbox, /library, /search, /settings, /item, /login, /extension, /downloads, /tutorial) pass through
     return NextResponse.next();
   }
 
