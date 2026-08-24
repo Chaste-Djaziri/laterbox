@@ -41,8 +41,17 @@ export function Footer() {
   useEffect(() => {
     let isMounted = true;
     fetch('/api/system-status')
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data: { label?: string; status?: 'operational' | 'degraded' | 'outage'; indicator?: 'emerald' | 'amber' | 'rose'; statusPageUrl?: string } | null) => {
+      .then(async (res) => {
+        if (!res.ok) return null;
+        const data = (await res.json()) as {
+          status?: 'operational' | 'degraded' | 'outage';
+          label?: string;
+          indicator?: 'emerald' | 'amber' | 'rose';
+          statusPageUrl?: string;
+        };
+        return data;
+      })
+      .then((data) => {
         if (isMounted && data?.label) {
           setSystemStatus({
             status: data.status || 'operational',
