@@ -51,7 +51,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <header className="md:hidden flex items-center justify-between px-4 h-14 bg-[#f7f5ee] border-b border-[#e4e0d5] shrink-0 z-20">
           <Link href="/inbox" className="flex items-center gap-2">
             <div className="w-7 h-7 relative rounded-lg overflow-hidden bg-[#e6edb0] p-1">
-              <Image src="/branding/laterbox-icon.png" alt="laterbox" fill className="object-contain p-0.5" />
+              <Image src="/branding/laterbox-icon.png" alt="laterbox" fill sizes="28px" className="object-contain p-0.5" />
             </div>
             <span className="text-lg font-black tracking-tight text-[#171711]">laterbox</span>
           </Link>
