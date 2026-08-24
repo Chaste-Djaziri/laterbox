@@ -28,7 +28,7 @@ export async function handleDeleteAccount(req: Request): Promise<Response> {
   const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 
-  // 1. Get user info
+  // 1. Verify and get user identity
   const userRes = await fetch(`${supabaseUrl}/auth/v1/user`, {
     headers: {
       Authorization: authHeader,
@@ -46,6 +46,22 @@ export async function handleDeleteAccount(req: Request): Promise<Response> {
     return json({ error: "User not found" }, 404);
   }
 
+  // 2. First attempt atomic PostgreSQL RPC deletion
+  try {
+    const rpcRes = await fetch(`${supabaseUrl}/rest/v1/rpc/delete_user_account`, {
+      method: "POST",
+      headers: {
+        Authorization: authHeader,
+        apikey: anonKey,
+        "Content-Type": "application/json",
+      },
+    });
+    if (rpcRes.ok) {
+      return json({ success: true, message: "Account and all data deleted via RPC" }, 200);
+    }
+  } catch (_) {}
+
+  // 3. Fallback table-by-table deletion
   const adminHeaders = {
     Authorization: `Bearer ${serviceRoleKey || authHeader.replace("Bearer ", "")}`,
     apikey: serviceRoleKey || anonKey,
@@ -53,8 +69,17 @@ export async function handleDeleteAccount(req: Request): Promise<Response> {
     Prefer: "return=minimal",
   };
 
-  // 2. Delete user's records across tables
-  const tables = ["item_collections", "item_metadata", "items", "collections", "tags"];
+  const tables = [
+    "collection_items",
+    "item_notes",
+    "item_metadata",
+    "attachments",
+    "items",
+    "collections",
+    "extension_sessions",
+    "extension_connection_requests",
+  ];
+
   for (const table of tables) {
     try {
       await fetch(`${supabaseUrl}/rest/v1/${table}?user_id=eq.${userId}`, {
@@ -64,7 +89,7 @@ export async function handleDeleteAccount(req: Request): Promise<Response> {
     } catch (_) {}
   }
 
-  // 3. Delete auth user if serviceRoleKey is available
+  // 4. Fallback Admin Auth User deletion
   if (serviceRoleKey) {
     try {
       await fetch(`${supabaseUrl}/auth/v1/admin/users/${userId}`, {
