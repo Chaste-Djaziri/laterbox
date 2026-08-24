@@ -93,7 +93,7 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
                 IconButton(
                   onPressed: () => context.go('/search'),
                   tooltip: 'Search',
-                  icon: const Icon(Icons.search_rounded),
+                  icon: const Icon(Icons.search),
                 ),
                 PopupMenuButton<String>(
                   icon: const Icon(Icons.more_vert_rounded),
