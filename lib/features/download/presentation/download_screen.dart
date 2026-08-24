@@ -1093,7 +1093,7 @@ class _AndroidDownloadSection extends StatelessWidget {
                       actionLabel: '1. Join Testers Group',
                       icon: Icons.group_rounded,
                       onTap: () => launchUrl(
-                        Uri.parse('https://groups.google.com/my-groups'),
+                        Uri.parse('https://groups.google.com/g/laterbox-testers'),
                         mode: LaunchMode.externalApplication,
                       ),
                     ),
