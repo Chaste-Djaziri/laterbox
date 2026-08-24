@@ -15,6 +15,7 @@
 		3B3967161E833CAA004F5970 /* AppFrameworkInfo.plist in Resources */ = {isa = PBXBuildFile; fileRef = 3B3967151E833CAA004F5970 /* AppFrameworkInfo.plist */; };
 		4DC50F87D831B2AEB957B839 /* ShareStatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 551ABECA0339AF3E97A1FDA3 /* ShareStatusView.swift */; };
 		7187DB268F53DB878D8B00AD /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82AB8CCEE15B115AFD59E637 /* ShareViewController.swift */; };
+		A1B2C3D4E5F60718293A4B5C /* ShareExtensionPreprocessor.js in Resources */ = {isa = PBXBuildFile; fileRef = B2C3D4E5F6A10718293A4B5C /* ShareExtensionPreprocessor.js */; };
 		74858FAF1ED2DC5600515810 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74858FAE1ED2DC5600515810 /* AppDelegate.swift */; };
 		7884E8682EC3CC0700C636F2 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7884E8672EC3CC0400C636F2 /* SceneDelegate.swift */; };
 		78A318202AECB46A00862997 /* FlutterGeneratedPluginSwiftPackage in Frameworks */ = {isa = PBXBuildFile; productRef = 78A3181F2AECB46A00862997 /* FlutterGeneratedPluginSwiftPackage */; };
@@ -83,6 +84,7 @@
 		7AFA3C8E1D35360C0083082E /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Release.xcconfig; path = Flutter/Release.xcconfig; sourceTree = "<group>"; };
 		81D2063F0085FE390536FB10 /* ShareExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = ShareExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		82AB8CCEE15B115AFD59E637 /* ShareViewController.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
+		B2C3D4E5F6A10718293A4B5C /* ShareExtensionPreprocessor.js */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.javascript; path = ShareExtensionPreprocessor.js; sourceTree = "<group>"; };
 		9740EEB21CF90195004384FC /* Debug.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; name = Debug.xcconfig; path = Flutter/Debug.xcconfig; sourceTree = "<group>"; };
 		9740EEB31CF90195004384FC /* Generated.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; name = Generated.xcconfig; path = Flutter/Generated.xcconfig; sourceTree = "<group>"; };
 		97C146EE1CF9000F007C117D /* Runner.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Runner.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -196,6 +198,7 @@
 			isa = PBXGroup;
 			children = (
 				82AB8CCEE15B115AFD59E637 /* ShareViewController.swift */,
+				B2C3D4E5F6A10718293A4B5C /* ShareExtensionPreprocessor.js */,
 				2DA375F1BEA43B31C44401EE /* ShareCaptureQueue.swift */,
 				5B1C6724B393DC5F8E64A4EF /* Info.plist */,
 				DF0BD1CC0F5F06A5B822E62A /* ShareExtension.entitlements */,
@@ -314,6 +317,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A1B2C3D4E5F60718293A4B5C /* ShareExtensionPreprocessor.js in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
