@@ -39,13 +39,15 @@ export function buildTextFragmentUrl(
   before?: string | null,
   after?: string | null
 ): string {
+  if (url.includes(':~:text=')) return url;
   if (!text || text.trim().length === 0) return url;
   const baseUrl = url.split('#')[0];
   const parts: string[] = [];
   if (before && before.trim().length > 0) {
     parts.push(`${encodeURIComponent(before.trim())}-,`);
   }
-  parts.push(encodeURIComponent(text.trim()));
+  const cleanSnippet = text.trim().slice(0, 120);
+  parts.push(encodeURIComponent(cleanSnippet));
   if (after && after.trim().length > 0) {
     parts.push(`,-${encodeURIComponent(after.trim())}`);
   }
