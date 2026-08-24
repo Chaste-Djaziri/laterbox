@@ -136,16 +136,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } = await supabase.auth.getSession();
 
       if (session?.access_token) {
-        // Call the server deletion endpoint
-        const res = await fetch('/api/account/delete', {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${session.access_token}`,
-          },
-        });
-        if (!res.ok) {
-          const errData = (await res.json().catch(() => ({}))) as Record<string, any>;
-          throw new Error(errData?.error || 'Failed to delete account from server');
+        // 1. Try atomic PostgreSQL RPC deletion directly
+        try {
+          const { error: rpcError } = await supabase.rpc('delete_user_account');
+          if (rpcError) {
+            // Fallback to server endpoint
+            await fetch('/api/account/delete', {
+              method: 'POST',
+              headers: {
+                Authorization: `Bearer ${session.access_token}`,
+              },
+            });
+          }
+        } catch {
+          // Fallback to server endpoint
+          await fetch('/api/account/delete', {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${session.access_token}`,
+            },
+          });
         }
       }
 
