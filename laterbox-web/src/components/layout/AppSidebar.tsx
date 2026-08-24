@@ -82,6 +82,7 @@ export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
                 src="/branding/laterbox-icon.png"
                 alt="laterbox"
                 fill
+                sizes="34px"
                 className="object-contain p-0.5"
                 priority
               />
