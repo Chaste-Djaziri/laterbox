@@ -59,22 +59,35 @@ class _QuickCaptureScreenState extends ConsumerState<QuickCaptureScreen> {
 
   Future<void> _pickAttachments() async {
     try {
-      final files = await ref
-          .read(attachmentFilePickerProvider)
-          .pickFiles(source: AttachmentPickerSource.files);
-      if (!mounted || files.isEmpty) return;
+      final controller = ref.read(quickCaptureControllerProvider);
+      final desktop = ref.read(desktopServiceProvider);
+      controller.isModalOpen = true;
+      await desktop.setAlwaysOnTop(false);
 
-      setState(() {
-        for (final file in files) {
-          final isDuplicate = _selectedFiles.any(
-            (existing) =>
-                existing.name == file.name && existing.size == file.size,
-          );
-          if (!isDuplicate) {
-            _selectedFiles.add(file);
+      try {
+        final files = await ref
+            .read(attachmentFilePickerProvider)
+            .pickFiles(source: AttachmentPickerSource.files);
+        if (!mounted || files.isEmpty) return;
+
+        setState(() {
+          for (final file in files) {
+            final isDuplicate = _selectedFiles.any(
+              (existing) =>
+                  existing.name == file.name && existing.size == file.size,
+            );
+            if (!isDuplicate) {
+              _selectedFiles.add(file);
+            }
           }
+        });
+      } finally {
+        controller.isModalOpen = false;
+        if (mounted && desktop.isCaptureMode) {
+          await desktop.setAlwaysOnTop(true);
+          await desktop.focus();
         }
-      });
+      }
     } catch (error, stackTrace) {
       debugPrint('[LaterBox QuickCapture] pick attachments failed: $error');
       debugPrintStack(stackTrace: stackTrace);
