@@ -37,6 +37,10 @@ class ItemRepository {
     return _local.watchFavoriteItemsWithMetadata(_userId).map(_toItems);
   }
 
+  Stream<List<LaterBoxItem>> watchKeptItems() {
+    return _local.watchItemsWithStatus(_userId, 'saved').map(_toItems);
+  }
+
   Stream<List<LaterBoxItem>> watchArchived() {
     return _local.watchItemsWithStatus(_userId, 'archived').map(_toItems);
   }
