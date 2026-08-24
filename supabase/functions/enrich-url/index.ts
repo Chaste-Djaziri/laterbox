@@ -13,7 +13,7 @@ const MAX_HTML_BYTES = 2_000_000;
 const MAX_REDIRECTS = 5;
 const FETCH_TIMEOUT_MS = 10_000;
 const USER_AGENT =
-  "Mozilla/5.0 (compatible; LaterBox/1.0; metadata-enricher)";
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36";
 
 class UnsupportedError extends Error {}
 class FetchError extends Error {
@@ -74,27 +74,117 @@ if (import.meta.main) {
   Deno.serve(handler);
 }
 
+export function extractYouTubeVideoId(url: URL): string | null {
+  const host = stripWww(url.hostname).toLowerCase();
+  if (host === "youtube.com" || host === "m.youtube.com") {
+    // 1. /watch?v=ID
+    const v = url.searchParams.get("v");
+    if (v && /^[a-zA-Z0-9_-]{11}$/.test(v)) return v;
+
+    // 2. /shorts/ID, /embed/ID, /live/ID, /v/ID
+    const match = url.pathname.match(/\/(?:shorts|embed|live|v)\/([a-zA-Z0-9_-]{11})/i);
+    if (match?.[1]) return match[1];
+  } else if (host === "youtu.be") {
+    // youtu.be/ID
+    const id = url.pathname.slice(1).split("/")[0]?.split("?")[0];
+    if (id && /^[a-zA-Z0-9_-]{11}$/.test(id)) return id;
+  }
+  return null;
+}
+
+async function fetchYouTubeOEmbed(urlStr: string): Promise<{
+  title?: string;
+  authorName?: string;
+  thumbnailUrl?: string;
+} | null> {
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 4000);
+    const oembedUrl = `https://www.youtube.com/oembed?url=${encodeURIComponent(urlStr)}&format=json`;
+    const res = await fetch(oembedUrl, {
+      signal: controller.signal,
+      headers: { "user-agent": USER_AGENT },
+    });
+    clearTimeout(timer);
+    if (!res.ok) return null;
+    const data = await res.json();
+    return {
+      title: typeof data?.title === "string" ? data.title : undefined,
+      authorName: typeof data?.author_name === "string" ? data.author_name : undefined,
+      thumbnailUrl: typeof data?.thumbnail_url === "string" ? data.thumbnail_url : undefined,
+    };
+  } catch {
+    return null;
+  }
+}
+
 async function enrich(raw: string) {
   const target = parseAndValidateUrl(raw);
-  const { html, finalUrl } = await fetchHtml(target);
+  const ytVideoId = extractYouTubeVideoId(target);
+
+  // If it's a YouTube video, attempt fast oEmbed + guaranteed fallback
+  let ytOEmbed: { title?: string; authorName?: string; thumbnailUrl?: string } | null = null;
+  if (ytVideoId) {
+    ytOEmbed = await fetchYouTubeOEmbed(target.toString());
+  }
+
+  let html = "";
+  let finalUrl = target.toString();
+  try {
+    const fetched = await fetchHtml(target);
+    html = fetched.html;
+    finalUrl = fetched.finalUrl;
+  } catch (error) {
+    // If HTML fetch failed (e.g. YouTube bot wall) but we have YouTube video ID, construct response
+    if (ytVideoId) {
+      return {
+        domain: "youtube.com",
+        siteName: ytOEmbed?.authorName ? `${ytOEmbed.authorName} • YouTube` : "YouTube",
+        title: ytOEmbed?.title ?? "YouTube Video",
+        description: null,
+        faviconUrl: "https://www.youtube.com/s/desktop/f1725893/img/favicon_144x144.png",
+        previewImageUrl: ytOEmbed?.thumbnailUrl ?? `https://i.ytimg.com/vi/${ytVideoId}/hqdefault.jpg`,
+        classification: {
+          contentType: "video",
+          confidence: 0.98,
+          source: "domainRule",
+          structuredData: { videoId: ytVideoId, author: ytOEmbed?.authorName ?? null },
+        },
+      };
+    }
+    throw error;
+  }
+
   const parsed = parseHtml(html, finalUrl);
   const finalUri = new URL(finalUrl);
 
   const jsonLd = extractJsonLd(html);
   const classification = classify(finalUri, parsed.ogType, jsonLd);
 
+  // Final resolution for previewImageUrl
+  let previewImage = parsed.previewImage;
+  if (ytVideoId) {
+    previewImage = ytOEmbed?.thumbnailUrl ?? previewImage ?? `https://i.ytimg.com/vi/${ytVideoId}/hqdefault.jpg`;
+  }
+
+  // Final resolution for title and siteName
+  const title = (ytOEmbed?.title && ytOEmbed.title.trim().length > 0) ? ytOEmbed.title : parsed.title;
+  const siteName = ytOEmbed?.authorName
+    ? `${ytOEmbed.authorName} • YouTube`
+    : parsed.siteName ?? (ytVideoId ? "YouTube" : null);
+
   return {
     domain: stripWww(finalUri.hostname),
-    siteName: parsed.siteName,
-    title: parsed.title,
+    siteName,
+    title,
     description: parsed.description,
-    faviconUrl: parsed.favicon,
-    previewImageUrl: parsed.previewImage,
+    faviconUrl: parsed.favicon ?? (ytVideoId ? "https://www.youtube.com/s/desktop/f1725893/img/favicon_144x144.png" : null),
+    previewImageUrl: previewImage,
     classification: {
       contentType: classification.type,
       confidence: classification.confidence,
       source: classification.source,
-      structuredData: classification.structuredData,
+      structuredData: classification.structuredData ?? (ytVideoId ? { videoId: ytVideoId, author: ytOEmbed?.authorName ?? null } : null),
     },
   };
 }
@@ -515,7 +605,8 @@ async function fetchHtml(url: URL): Promise<{ html: string; finalUrl: string }> 
         signal: controller.signal,
         headers: {
           "user-agent": USER_AGENT,
-          accept: "text/html,application/xhtml+xml",
+          accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+          "accept-language": "en-US,en;q=0.9",
         },
       });
     } catch (error) {
@@ -598,10 +689,12 @@ function parseHtml(html: string, finalUrl: string): {
     previewImage: resolveAbsoluteUrl(
       firstMeta(html, [
         "og:image",
+        "og:image:url",
         "og:image:secure_url",
         "twitter:image",
         "twitter:image:src",
-      ]),
+        "itemprop:image",
+      ]) ?? extractLinkRel(html, "image_src"),
       base,
     ),
     ogType: extractOgType(html),
@@ -625,15 +718,46 @@ function extractTitle(html: string): string | null {
 
 function extractMeta(html: string, key: string): string | null {
   const escaped = key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  
+  // 1. Match <meta property="key" content="..."> or <meta name="key" content="...">
   const pattern = new RegExp(
-    `<meta[^>]+(?:name|property)=["']${escaped}["'][^>]*>`,
+    `<meta[^>]+(?:name|property|itemprop)=["']${escaped}["'][^>]*>`,
+    "gi",
+  );
+  let match: RegExpExecArray | null;
+  while ((match = pattern.exec(html)) !== null) {
+    const content = match[0].match(/content=["']([\s\S]*?)["']/i);
+    if (content?.[1]) {
+      const value = decodeEntities(content[1]).replace(/\s+/g, " ").trim();
+      if (value.length > 0) return value;
+    }
+  }
+
+  // 2. Match reversed attribute order: <meta content="..." property="key">
+  const revPattern = new RegExp(
+    `<meta[^>]+content=["']([^"']+)["'][^>]+(?:name|property|itemprop)=["']${escaped}["'][^>]*>`,
+    "i",
+  );
+  const revMatch = html.match(revPattern);
+  if (revMatch?.[1]) {
+    const value = decodeEntities(revMatch[1]).replace(/\s+/g, " ").trim();
+    if (value.length > 0) return value;
+  }
+
+  return null;
+}
+
+function extractLinkRel(html: string, relValue: string): string | null {
+  const escaped = relValue.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const pattern = new RegExp(
+    `<link[^>]+rel=["'][^"']*${escaped}[^"']*["'][^>]*>`,
     "i",
   );
   const match = html.match(pattern);
   if (!match) return null;
-  const content = match[0].match(/content=["']([\s\S]*?)["']/i);
-  if (!content) return null;
-  const value = decodeEntities(content[1]).replace(/\s+/g, " ").trim();
+  const href = match[0].match(/href=["']([\s\S]*?)["']/i);
+  if (!href) return null;
+  const value = decodeEntities(href[1]).trim();
   return value.length === 0 ? null : value;
 }
 
