@@ -8,6 +8,7 @@ import '../../../core/sync/sync_providers.dart';
 import '../../../shared/widgets/cloud_sync_indicator.dart';
 import '../../../shared/widgets/filter_chip_bar.dart';
 import '../../../shared/widgets/item_card.dart';
+import '../../capture/presentation/capture_sheet.dart';
 import 'inbox_providers.dart';
 
 class InboxScreen extends ConsumerStatefulWidget {
@@ -29,6 +30,19 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
   Future<void> _handleRefresh() async {
     await ref.read(syncCoordinatorProvider).syncNow();
     ref.invalidate(inboxItemsProvider);
+  }
+
+  Future<void> _openCapture(BuildContext context) {
+    return showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (context) => const CaptureSheet(),
+    );
   }
 
   @override
@@ -72,27 +86,122 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
               actions: [
                 const CloudSyncIndicator(compact: true),
                 IconButton(
-                  onPressed: () => context.push('/tutorial'),
-                  tooltip: 'App Tutorial & Guide',
-                  icon: const Icon(Icons.help_outline_rounded),
+                  onPressed: () => _openCapture(context),
+                  tooltip: 'Quick Save',
+                  icon: const Icon(Icons.add_circle_outline_rounded),
                 ),
-                if (auth?.isAuthenticated ?? false)
-                  IconButton(
-                    onPressed: () async {
-                      await ref.read(authRepositoryProvider).signOut();
-                      ref.read(guestModeProvider.notifier).state = true;
-                    },
-                    tooltip: 'Sign out',
-                    icon: const Icon(Icons.logout_rounded),
-                  )
-                else
-                  IconButton(
-                    onPressed: () =>
-                        ref.read(guestModeProvider.notifier).state = false,
-                    tooltip: 'Sign in',
-                    icon: const Icon(Icons.person_outline_rounded),
-                  ),
-                const SizedBox(width: 8),
+                IconButton(
+                  onPressed: () => context.go('/search'),
+                  tooltip: 'Search',
+                  icon: const Icon(Icons.search_rounded),
+                ),
+                PopupMenuButton<String>(
+                  icon: const Icon(Icons.more_vert_rounded),
+                  tooltip: 'Shortcuts & Menu',
+                  onSelected: (value) async {
+                    switch (value) {
+                      case 'capture':
+                        _openCapture(context);
+                        break;
+                      case 'kept':
+                        context.go('/kept');
+                        break;
+                      case 'library':
+                        context.go('/library');
+                        break;
+                      case 'tutorial':
+                        context.push('/tutorial');
+                        break;
+                      case 'settings':
+                        context.push('/settings');
+                        break;
+                      case 'signout':
+                        await ref.read(authRepositoryProvider).signOut();
+                        ref.read(guestModeProvider.notifier).state = true;
+                        break;
+                      case 'signin':
+                        ref.read(guestModeProvider.notifier).state = false;
+                        break;
+                    }
+                  },
+                  itemBuilder: (context) => [
+                    const PopupMenuItem(
+                      value: 'capture',
+                      child: Row(
+                        children: [
+                          Icon(Icons.add_rounded, size: 20),
+                          SizedBox(width: 12),
+                          Text('Quick Save / Paste'),
+                        ],
+                      ),
+                    ),
+                    const PopupMenuItem(
+                      value: 'kept',
+                      child: Row(
+                        children: [
+                          Icon(Icons.check_circle_outline_rounded, size: 20),
+                          SizedBox(width: 12),
+                          Text('Kept Items'),
+                        ],
+                      ),
+                    ),
+                    const PopupMenuItem(
+                      value: 'library',
+                      child: Row(
+                        children: [
+                          Icon(Icons.auto_stories_outlined, size: 20),
+                          SizedBox(width: 12),
+                          Text('Library'),
+                        ],
+                      ),
+                    ),
+                    const PopupMenuDivider(),
+                    const PopupMenuItem(
+                      value: 'tutorial',
+                      child: Row(
+                        children: [
+                          Icon(Icons.help_outline_rounded, size: 20),
+                          SizedBox(width: 12),
+                          Text('Guide & Shortcuts'),
+                        ],
+                      ),
+                    ),
+                    const PopupMenuItem(
+                      value: 'settings',
+                      child: Row(
+                        children: [
+                          Icon(Icons.settings_outlined, size: 20),
+                          SizedBox(width: 12),
+                          Text('Settings'),
+                        ],
+                      ),
+                    ),
+                    const PopupMenuDivider(),
+                    if (auth?.isAuthenticated ?? false)
+                      const PopupMenuItem(
+                        value: 'signout',
+                        child: Row(
+                          children: [
+                            Icon(Icons.logout_rounded, size: 20),
+                            SizedBox(width: 12),
+                            Text('Sign out'),
+                          ],
+                        ),
+                      )
+                    else
+                      const PopupMenuItem(
+                        value: 'signin',
+                        child: Row(
+                          children: [
+                            Icon(Icons.person_outline_rounded, size: 20),
+                            SizedBox(width: 12),
+                            Text('Sign in'),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(width: 4),
               ],
             ),
       body: SafeArea(
