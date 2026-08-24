@@ -1,98 +1,85 @@
-import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { createClient } from "jsr:@supabase/supabase-js@2";
+declare const Deno: {
+  env: { get(key: string): string | undefined };
+  serve: (handler: (req: Request) => Promise<Response>) => void;
+};
 
-Deno.serve(async (req: Request) => {
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+const json = (data: unknown, status: number): Response =>
+  new Response(JSON.stringify(data), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+
+export async function handleDeleteAccount(req: Request): Promise<Response> {
   if (req.method === "OPTIONS") {
-    return new Response("ok", {
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-      },
-    });
+    return new Response("ok", { headers: corsHeaders });
   }
 
-  try {
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: "Missing authorization header" }), {
-        status: 401,
-        headers: { "Content-Type": "application/json" },
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader) {
+    return json({ error: "Missing authorization header" }, 401);
+  }
+
+  const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+  const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+
+  // 1. Get user info
+  const userRes = await fetch(`${supabaseUrl}/auth/v1/user`, {
+    headers: {
+      Authorization: authHeader,
+      apikey: anonKey,
+    },
+  });
+
+  if (!userRes.ok) {
+    return json({ error: "Unauthorized" }, 401);
+  }
+
+  const user = (await userRes.json()) as { id?: string };
+  const userId = user?.id;
+  if (!userId) {
+    return json({ error: "User not found" }, 404);
+  }
+
+  const adminHeaders = {
+    Authorization: `Bearer ${serviceRoleKey || authHeader.replace("Bearer ", "")}`,
+    apikey: serviceRoleKey || anonKey,
+    "Content-Type": "application/json",
+    Prefer: "return=minimal",
+  };
+
+  // 2. Delete user's records across tables
+  const tables = ["item_collections", "item_metadata", "items", "collections", "tags"];
+  for (const table of tables) {
+    try {
+      await fetch(`${supabaseUrl}/rest/v1/${table}?user_id=eq.${userId}`, {
+        method: "DELETE",
+        headers: adminHeaders,
       });
-    }
+    } catch (_) {}
+  }
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
-    const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
-    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-
-    const userClient = createClient(supabaseUrl, anonKey, {
-      global: { headers: { Authorization: authHeader } },
-      auth: { persistSession: false },
-    });
-
-    const {
-      data: { user },
-      error: userError,
-    } = await userClient.auth.getUser();
-
-    if (userError || !user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    const userId = user.id;
-    const adminClient = serviceRoleKey
-      ? createClient(supabaseUrl, serviceRoleKey, {
-          auth: { persistSession: false, autoRefreshToken: false },
-        })
-      : userClient;
-
-    // Delete records
+  // 3. Delete auth user if serviceRoleKey is available
+  if (serviceRoleKey) {
     try {
-      await adminClient.from("item_collections").delete().match({ user_id: userId });
-    } catch {}
-
-    try {
-      await adminClient.from("item_metadata").delete().match({ user_id: userId });
-    } catch {}
-
-    try {
-      await adminClient.from("items").delete().match({ user_id: userId });
-    } catch {}
-
-    try {
-      await adminClient.from("collections").delete().match({ user_id: userId });
-    } catch {}
-
-    try {
-      await adminClient.from("tags").delete().match({ user_id: userId });
-    } catch {}
-
-    if (serviceRoleKey) {
-      const adminAuth = createClient(supabaseUrl, serviceRoleKey, {
-        auth: { persistSession: false, autoRefreshToken: false },
-      });
-      await adminAuth.auth.admin.deleteUser(userId);
-    }
-
-    return new Response(
-      JSON.stringify({ success: true, message: "Account and data deleted" }),
-      {
-        status: 200,
+      await fetch(`${supabaseUrl}/auth/v1/admin/users/${userId}`, {
+        method: "DELETE",
         headers: {
-          "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": "*",
+          Authorization: `Bearer ${serviceRoleKey}`,
+          apikey: serviceRoleKey,
         },
-      }
-    );
-  } catch (err: any) {
-    return new Response(
-      JSON.stringify({ error: err?.message || "Internal server error" }),
-      {
-        status: 500,
-        headers: { "Content-Type": "application/json" },
-      }
-    );
+      });
+    } catch (_) {}
   }
-});
+
+  return json({ success: true, message: "Account and all data deleted" }, 200);
+}
+
+if (import.meta.main) {
+  Deno.serve(handleDeleteAccount);
+}
