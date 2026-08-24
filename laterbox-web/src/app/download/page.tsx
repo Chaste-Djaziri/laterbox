@@ -19,6 +19,7 @@ import {
   ExternalLink,
   Smartphone,
   Sparkles,
+  ArrowRight,
 } from 'lucide-react';
 
 type PlatformId = 'macos' | 'ios' | 'android' | 'windows' | 'linux' | 'extensions';
