@@ -252,15 +252,21 @@ export function Footer() {
                 </a>
               </li>
               <li>
-                <a
-                  href="https://github.com/Chaste-Djaziri/laterbox/blob/main/README.md"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hover:text-[#171711] transition-colors flex items-center gap-1"
+                <Link
+                  href="/docs"
+                  className="hover:text-[#171711] transition-colors flex items-center gap-1.5"
                 >
-                  <span>Architecture Docs</span>
-                  <ArrowUpRight className="w-3 h-3 text-[#9e9b92]" />
-                </a>
+                  <BookOpen className="w-3.5 h-3.5 text-[#171711]" />
+                  <span>Docs (docs.laterbox.dev)</span>
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/docs/system-architecture"
+                  className="hover:text-[#171711] transition-colors"
+                >
+                  System Architecture
+                </Link>
               </li>
             </ul>
           </div>
@@ -334,7 +340,7 @@ export function Footer() {
             <Link href="/terms" className="hover:text-[#171711] transition-colors">
               Terms
             </Link>
-            <Link href="/guide" className="hover:text-[#171711] transition-colors">
+            <Link href="/docs" className="hover:text-[#171711] transition-colors">
               Documentation
             </Link>
             <Link href="/download" className="hover:text-[#171711] transition-colors">
