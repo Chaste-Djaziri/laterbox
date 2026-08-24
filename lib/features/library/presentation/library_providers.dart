@@ -16,6 +16,11 @@ final favoritesProvider = StreamProvider<List<LaterBoxItem>>((ref) {
   return ref.watch(itemRepositoryProvider).watchFavorites();
 });
 
+/// Non-deleted kept items (status == 'saved'), newest first.
+final keptProvider = StreamProvider<List<LaterBoxItem>>((ref) {
+  return ref.watch(itemRepositoryProvider).watchKeptItems();
+});
+
 /// Non-deleted archived items, newest first.
 final archivedProvider = StreamProvider<List<LaterBoxItem>>((ref) {
   return ref.watch(itemRepositoryProvider).watchArchived();
