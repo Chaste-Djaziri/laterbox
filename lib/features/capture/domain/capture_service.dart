@@ -8,9 +8,11 @@ class CaptureService {
 
   Future<void> save(CapturePayload payload) {
     return _repository.save(
-      payload.value,
+      payload.url ?? payload.value,
       id: payload.id,
       createdAt: payload.createdAt,
+      textContent: payload.text,
+      url: payload.url,
     );
   }
 }
