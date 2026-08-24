@@ -4,7 +4,7 @@ export function middleware(request: NextRequest) {
   const url = request.nextUrl;
   const hostname = request.headers.get('host') || '';
 
-  // Check if request is accessing the docs subdomain (e.g. docs.laterbox.dev or docs.localhost:3000)
+  // 1. Docs Subdomain (e.g. docs.laterbox.dev or docs.localhost:3000)
   const isDocsSubdomain = hostname.startsWith('docs.');
 
   if (isDocsSubdomain) {
@@ -13,6 +13,7 @@ export function middleware(request: NextRequest) {
       !url.pathname.startsWith('/_next') &&
       !url.pathname.startsWith('/api') &&
       !url.pathname.startsWith('/branding') &&
+      !url.pathname.startsWith('/downloads') &&
       !url.pathname.includes('.')
     ) {
       if (url.pathname === '/') {
@@ -20,6 +21,21 @@ export function middleware(request: NextRequest) {
       }
       if (!url.pathname.startsWith('/docs')) {
         return NextResponse.rewrite(new URL(`/docs${url.pathname}`, request.url));
+      }
+    }
+  }
+
+  // 2. App Subdomain (e.g. app.laterbox.dev or app.localhost:3000)
+  const isAppSubdomain = hostname.startsWith('app.');
+  if (isAppSubdomain) {
+    if (
+      !url.pathname.startsWith('/_next') &&
+      !url.pathname.startsWith('/api') &&
+      !url.pathname.startsWith('/branding') &&
+      !url.pathname.includes('.')
+    ) {
+      if (url.pathname === '/') {
+        return NextResponse.rewrite(new URL('/inbox', request.url));
       }
     }
   }
