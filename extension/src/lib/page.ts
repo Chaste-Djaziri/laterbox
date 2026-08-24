@@ -69,3 +69,45 @@ function selectionContext(range: Range, limit = 200): TextSelector | null {
   }
   return null;
 }
+
+export function buildScrollToTextFragment(
+  baseUrl: string,
+  exact: string,
+  selector?: TextSelector | null
+): string {
+  const cleanUrl = baseUrl.split('#')[0];
+  const exactClean = exact.trim();
+  if (!exactClean) return baseUrl;
+
+  const parts: string[] = [];
+
+  // Prefix: grab the last few words before selection to anchor it accurately
+  if (selector?.before) {
+    const beforeWords = selector.before.trim().split(/\s+/);
+    const prefix = beforeWords.slice(-4).join(' ').trim();
+    if (prefix.length > 0) {
+      parts.push(`${encodeURIComponent(prefix)}-,`);
+    }
+  }
+
+  // Exact text or start,end range if long
+  if (exactClean.length > 150) {
+    const words = exactClean.split(/\s+/);
+    const start = words.slice(0, 4).join(' ');
+    const end = words.slice(-4).join(' ');
+    parts.push(`${encodeURIComponent(start)},${encodeURIComponent(end)}`);
+  } else {
+    parts.push(encodeURIComponent(exactClean));
+  }
+
+  // Suffix: grab the first few words after selection to anchor it accurately
+  if (selector?.after) {
+    const afterWords = selector.after.trim().split(/\s+/);
+    const suffix = afterWords.slice(0, 4).join(' ').trim();
+    if (suffix.length > 0) {
+      parts.push(`,-${encodeURIComponent(suffix)}`);
+    }
+  }
+
+  return `${cleanUrl}#:~:text=${parts.join('')}`;
+}
