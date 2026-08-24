@@ -1,3 +1,5 @@
+import { handleInternalHealthCheck } from "../_shared/health.ts";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -38,6 +40,11 @@ export const createConnectionHandler = (
   const dependencies = { ...defaultDependencies(), ...overrides };
 
   return async (request: Request): Promise<Response> => {
+    const healthResponse = handleInternalHealthCheck(request, "extension-connect");
+    if (healthResponse) {
+      return healthResponse;
+    }
+
     if (request.method === "OPTIONS") {
       return new Response(null, { status: 204, headers: corsHeaders });
     }
