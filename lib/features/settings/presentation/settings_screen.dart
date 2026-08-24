@@ -16,6 +16,7 @@ import '../../../core/settings/desktop_shortcut.dart';
 import '../../../core/settings/settings_providers.dart';
 import '../../../core/sync/sync_providers.dart';
 import '../../../shared/widgets/cloud_sync_indicator.dart';
+import '../../collections/presentation/collection_providers.dart';
 import '../../inbox/presentation/inbox_providers.dart';
 import '../../library/presentation/library_providers.dart';
 
@@ -39,7 +40,8 @@ class SettingsScreen extends ConsumerWidget {
 
     final auth = ref.watch(authStateProvider).asData?.value;
     final isGuest = ref.watch(guestModeProvider) || !(auth?.isAuthenticated ?? false);
-    final user = auth?.user;
+    final email = auth?.email;
+    final userId = auth?.userId;
 
     return Scaffold(
       appBar: AppBar(
@@ -68,8 +70,8 @@ class SettingsScreen extends ConsumerWidget {
           children: [
             // 1. Account Section
             _SectionHeader('Account & Security'),
-            if (!isGuest && user != null)
-              _AuthenticatedAccountCard(user: user)
+            if (!isGuest && email != null)
+              _AuthenticatedAccountCard(email: email, userId: userId ?? '')
             else
               const _GuestAccountCard(),
 
@@ -124,9 +126,13 @@ class _SectionHeader extends StatelessWidget {
 // ---------------------------------------------------------------------------
 
 class _AuthenticatedAccountCard extends ConsumerWidget {
-  const _AuthenticatedAccountCard({required this.user});
+  const _AuthenticatedAccountCard({
+    required this.email,
+    required this.userId,
+  });
 
-  final dynamic user;
+  final String email;
+  final String userId;
 
   void _openChangePassword(BuildContext context) {
     showDialog<void>(
@@ -145,8 +151,6 @@ class _AuthenticatedAccountCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final email = user.email as String? ?? 'Signed in user';
-    final userId = user.id as String? ?? '';
 
     return Container(
       decoration: BoxDecoration(
@@ -652,7 +656,7 @@ class _SyncAndStorageCard extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.between,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
                 'Sync Status',
