@@ -9,6 +9,8 @@
 //
 // It never writes to the `items` table and never exposes a service key.
 
+import { handleInternalHealthCheck } from "../_shared/health.ts";
+
 const MAX_HTML_BYTES = 2_000_000;
 const MAX_REDIRECTS = 5;
 const FETCH_TIMEOUT_MS = 10_000;
@@ -35,6 +37,11 @@ const json = (data: unknown, status: number) =>
   });
 
 export const handler = async (req: Request): Promise<Response> => {
+  const healthResponse = handleInternalHealthCheck(req, "enrich-url");
+  if (healthResponse) {
+    return healthResponse;
+  }
+
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: corsHeaders });
   }
