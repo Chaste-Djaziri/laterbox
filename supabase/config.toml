@@ -388,6 +388,9 @@ verify_jwt = false
 [functions.extension-connect]
 verify_jwt = false
 
+[functions.health]
+verify_jwt = false
+
 # [edge_runtime.secrets]
 # secret_key = "env(SECRET_VALUE)"
 
