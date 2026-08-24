@@ -1,7 +1,7 @@
 {
   "name": "laterbox-extension",
   "private": true,
-  "version": "1.0.68",
+  "version": "1.0.70",
   "type": "module",
   "scripts": {
     "build": "npm run build:hosted",
