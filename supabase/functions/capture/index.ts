@@ -205,13 +205,36 @@ function validateCaptureBody(body: CaptureBody): {
   selector: { before: string; after: string } | null;
   source: string;
 } | null {
-  const url = typeof body.url === "string" ? body.url.trim() : "";
-  const text = typeof body.text === "string" ? body.text.trim() : "";
+  let url = typeof body.url === "string" ? body.url.trim() : "";
+  let text = typeof body.text === "string" ? body.text.trim() : "";
   const title = typeof body.title === "string" ? body.title.trim() : "";
   const source = typeof body.source === "string" ? body.source : "api";
   const selector = parseSelector(body.selector);
 
   if (url.length === 0 && text.length === 0) return null;
+
+  // Extract embedded URL if url is not explicitly provided
+  if (url.length === 0 && text.length > 0) {
+    const urlMatch = text.match(/(https?:\/\/[^\s]+)/);
+    if (urlMatch) {
+      const matchedUrl = urlMatch[0];
+      const remainingText = text
+        .replace(matchedUrl, "")
+        .trim()
+        .replace(/^["“”\s]+|["“”\s]+$/g, "");
+      url = matchedUrl;
+      text = remainingText;
+    }
+  }
+
+  // Construct W3C scroll-to-text fragment if both url and text are present
+  if (url.length > 0 && text.length > 0 && isHttpUrl(url) && !url.includes(":~:text=")) {
+    const snippet = text.slice(0, 120);
+    const encoded = encodeURIComponent(snippet);
+    const separator = url.includes("#") ? ":~:text=" : "#:~:text=";
+    url = `${url}${separator}${encoded}`;
+  }
+
   if (url.length > 0 && !isHttpUrl(url)) return null;
   if (url.length > 2048 || text.length > 10000 || title.length > 500) return null;
   if (!CAPTURE_SOURCES.has(source)) return null;
