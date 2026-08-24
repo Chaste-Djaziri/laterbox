@@ -3,8 +3,6 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Header } from '@/components/layout/Header';
-import { Footer } from '@/components/layout/Footer';
 import { useAuth } from '@/lib/store/AuthContext';
 import {
   Sparkles,
@@ -170,9 +168,7 @@ export default function LandingPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#f7f5ee] text-[#171711] selection:bg-[#171711] selection:text-white">
-      <Header />
-
+    <div className="selection:bg-[#171711] selection:text-white">
       {/* Hero Section */}
       <section className="relative pt-12 sm:pt-20 pb-16 sm:pb-24 overflow-hidden">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 text-center relative z-10">
@@ -734,9 +730,6 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
-
-      {/* Global Footer */}
-      <Footer />
     </div>
   );
 }
