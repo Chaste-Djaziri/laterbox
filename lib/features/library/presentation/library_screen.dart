@@ -15,6 +15,7 @@ class LibraryScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final all = ref.watch(allItemsProvider);
+    final kept = ref.watch(keptProvider);
     final favorites = ref.watch(favoritesProvider);
     final archived = ref.watch(archivedProvider);
     final collections = ref.watch(collectionCountsProvider);
@@ -47,6 +48,16 @@ class LibraryScreen extends ConsumerWidget {
                 context,
                 title: 'All Items',
                 provider: allItemsProvider,
+              ),
+            ),
+            _SectionTile(
+              icon: Icons.check_circle_outline_rounded,
+              title: 'Kept',
+              count: kept.value?.length ?? 0,
+              onTap: () => _openSection(
+                context,
+                title: 'Kept',
+                provider: keptProvider,
               ),
             ),
             _SectionTile(
