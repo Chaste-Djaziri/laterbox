@@ -24,6 +24,40 @@ import {
 type PlatformId = 'macos' | 'ios' | 'android' | 'windows' | 'linux' | 'extensions';
 type HistoryTab = 'all' | 'desktop' | 'mobile' | 'extensions';
 
+function detectUserPlatform(): PlatformId {
+  if (typeof window === 'undefined') return 'macos';
+  const ua = window.navigator.userAgent || '';
+  const platform = (window.navigator as any).userAgentData?.platform || window.navigator.platform || '';
+  const maxTouchPoints = window.navigator.maxTouchPoints || 0;
+
+  // iOS check (iPhone, iPod, iPad, iPad on iOS 13+ desktop UA)
+  if (/iPad|iPhone|iPod/.test(ua) || (platform === 'MacIntel' && maxTouchPoints > 1)) {
+    return 'ios';
+  }
+
+  // Android check
+  if (/Android/i.test(ua)) {
+    return 'android';
+  }
+
+  // Windows check
+  if (/Win/i.test(ua) || /Win/i.test(platform)) {
+    return 'windows';
+  }
+
+  // Linux check (not android)
+  if (/Linux/i.test(ua) || /Linux/i.test(platform)) {
+    return 'linux';
+  }
+
+  // macOS check
+  if (/Mac/i.test(ua) || /Mac/i.test(platform)) {
+    return 'macos';
+  }
+
+  return 'macos';
+}
+
 interface ReleaseAsset {
   name: string;
   browser_download_url: string;
@@ -41,6 +75,7 @@ interface GitHubRelease {
 
 export default function DownloadPage() {
   const [selectedPlatform, setSelectedPlatform] = useState<PlatformId>('macos');
+  const [detectedPlatform, setDetectedPlatform] = useState<PlatformId | null>(null);
   const [downloadingFile, setDownloadingFile] = useState<string | null>(null);
   const [isAndroidModalOpen, setIsAndroidModalOpen] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
@@ -52,6 +87,23 @@ export default function DownloadPage() {
   const previousReleasesRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    // 0. Auto-detect user device and select matching platform tab
+    const detected = detectUserPlatform();
+    setDetectedPlatform(detected);
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const paramPlatform = urlParams.get('platform') as PlatformId | null;
+    const hashPlatform = window.location.hash.replace('#', '') as PlatformId;
+
+    const validPlatforms: PlatformId[] = ['macos', 'ios', 'android', 'windows', 'linux', 'extensions'];
+    if (paramPlatform && validPlatforms.includes(paramPlatform)) {
+      setSelectedPlatform(paramPlatform);
+    } else if (hashPlatform && validPlatforms.includes(hashPlatform)) {
+      setSelectedPlatform(hashPlatform);
+    } else {
+      setSelectedPlatform(detected);
+    }
+
     // 1. Fetch current local build version info
     fetch(`/api/version?_t=${Date.now()}`)
       .then((res) => res.json() as Promise<{ version?: string }>)
@@ -173,6 +225,11 @@ export default function DownloadPage() {
           >
             <Apple className="w-4 h-4" />
             <span>macOS</span>
+            {detectedPlatform === 'macos' && (
+              <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-full ${selectedPlatform === 'macos' ? 'bg-[#E7FF57] text-[#171711]' : 'bg-[#e6edb0] text-[#171711]'}`}>
+                Detected
+              </span>
+            )}
           </button>
 
           <button
@@ -184,7 +241,12 @@ export default function DownloadPage() {
             }`}
           >
             <Apple className="w-4 h-4" />
-            <span>iOS (iPhone & iPad)</span>
+            <span>iOS</span>
+            {detectedPlatform === 'ios' && (
+              <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-full ${selectedPlatform === 'ios' ? 'bg-[#E7FF57] text-[#171711]' : 'bg-[#e6edb0] text-[#171711]'}`}>
+                Detected
+              </span>
+            )}
           </button>
 
           <button
@@ -197,6 +259,11 @@ export default function DownloadPage() {
           >
             <Smartphone className="w-4 h-4" />
             <span>Android</span>
+            {detectedPlatform === 'android' && (
+              <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-full ${selectedPlatform === 'android' ? 'bg-[#E7FF57] text-[#171711]' : 'bg-[#e6edb0] text-[#171711]'}`}>
+                Detected
+              </span>
+            )}
           </button>
 
           <button
@@ -209,6 +276,11 @@ export default function DownloadPage() {
           >
             <Laptop className="w-4 h-4" />
             <span>Windows</span>
+            {detectedPlatform === 'windows' && (
+              <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-full ${selectedPlatform === 'windows' ? 'bg-[#E7FF57] text-[#171711]' : 'bg-[#e6edb0] text-[#171711]'}`}>
+                Detected
+              </span>
+            )}
           </button>
 
           <button
@@ -221,6 +293,11 @@ export default function DownloadPage() {
           >
             <Terminal className="w-4 h-4" />
             <span>Linux</span>
+            {detectedPlatform === 'linux' && (
+              <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-full ${selectedPlatform === 'linux' ? 'bg-[#E7FF57] text-[#171711]' : 'bg-[#e6edb0] text-[#171711]'}`}>
+                Detected
+              </span>
+            )}
           </button>
 
           <button
