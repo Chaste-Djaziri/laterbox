@@ -34,7 +34,6 @@ interface DocsReaderProps {
 }
 
 export function DocsReader({ currentSlug = 'introduction' }: DocsReaderProps) {
-  const router = useRouter();
   const [activeSlug, setActiveSlug] = useState<string>(currentSlug);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
