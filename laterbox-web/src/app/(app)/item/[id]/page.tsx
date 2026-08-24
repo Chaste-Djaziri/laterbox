@@ -219,18 +219,16 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
 
   if (!item) {
     return (
-      <AppShell>
-        <div className="max-w-4xl mx-auto px-4 py-16 text-center space-y-4">
-          <h2 className="text-xl font-bold text-[#171711]">Item Not Found</h2>
-          <p className="text-sm text-[#6c6b63]">The item you are looking for does not exist or was deleted.</p>
-          <Link
-            href="/inbox"
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#171711] text-white text-xs font-bold"
-          >
-            <span>Back to Inbox</span>
-          </Link>
-        </div>
-      </AppShell>
+      <div className="max-w-4xl mx-auto px-4 py-16 text-center space-y-4">
+        <h2 className="text-xl font-bold text-[#171711]">Item Not Found</h2>
+        <p className="text-sm text-[#6c6b63]">The item you are looking for does not exist or was deleted.</p>
+        <Link
+          href="/inbox"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#171711] text-white text-xs font-bold"
+        >
+          <span>Back to Inbox</span>
+        </Link>
+      </div>
     );
   }
 
