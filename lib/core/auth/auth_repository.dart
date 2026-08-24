@@ -30,27 +30,39 @@ class AuthRepository {
   Future<void> deleteAccount({Future<void> Function()? onClearLocalData}) async {
     final session = _requiredClient.auth.currentSession;
     if (session != null) {
+      // 1. Try atomic PostgreSQL RPC deletion (Security Definer)
       try {
-        await _requiredClient.functions.invoke(
-          'delete-account',
-          headers: {'Authorization': 'Bearer ${session.accessToken}'},
-        );
+        await _requiredClient.rpc('delete_user_account');
       } catch (_) {
-        // Fallback to table deletions via RLS
-        final userId = _requiredClient.auth.currentUser?.id;
-        if (userId != null) {
-          try {
-            await _requiredClient.from('item_collections').delete().match({'user_id': userId});
-          } catch (_) {}
-          try {
-            await _requiredClient.from('item_metadata').delete().match({'user_id': userId});
-          } catch (_) {}
-          try {
-            await _requiredClient.from('items').delete().match({'user_id': userId});
-          } catch (_) {}
-          try {
-            await _requiredClient.from('collections').delete().match({'user_id': userId});
-          } catch (_) {}
+        // 2. Try Edge Function deletion
+        try {
+          await _requiredClient.functions.invoke(
+            'delete-account',
+            headers: {'Authorization': 'Bearer ${session.accessToken}'},
+          );
+        } catch (_) {
+          // 3. Fallback table-by-table deletions via RLS
+          final userId = _requiredClient.auth.currentUser?.id;
+          if (userId != null) {
+            try {
+              await _requiredClient.from('collection_items').delete();
+            } catch (_) {}
+            try {
+              await _requiredClient.from('item_notes').delete().match({'user_id': userId});
+            } catch (_) {}
+            try {
+              await _requiredClient.from('item_metadata').delete().match({'user_id': userId});
+            } catch (_) {}
+            try {
+              await _requiredClient.from('attachments').delete().match({'user_id': userId});
+            } catch (_) {}
+            try {
+              await _requiredClient.from('items').delete().match({'user_id': userId});
+            } catch (_) {}
+            try {
+              await _requiredClient.from('collections').delete().match({'user_id': userId});
+            } catch (_) {}
+          }
         }
       }
     }
