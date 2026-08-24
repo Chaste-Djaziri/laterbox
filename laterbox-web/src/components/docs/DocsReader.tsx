@@ -206,6 +206,159 @@ export function DocsReader({ currentSlug = 'introduction' }: DocsReaderProps) {
     return tokens.length === 1 ? tokens[0] : <React.Fragment>{tokens}</React.Fragment>;
   };
 
+  // Helper function to tokenize markdown into structured blocks (fenced code, headings, lists, tables, quotes, hr, paragraphs)
+  interface MarkdownBlock {
+    type: 'h2' | 'h3' | 'code' | 'table' | 'quote' | 'ol' | 'ul' | 'hr' | 'p';
+    content: string;
+    lang?: string;
+    items?: string[];
+  }
+
+  const parseMarkdownBlocks = (content: string): MarkdownBlock[] => {
+    const lines = content.split('\n');
+    const blocks: MarkdownBlock[] = [];
+
+    let i = 0;
+    while (i < lines.length) {
+      const line = lines[i];
+      const trimmed = line.trim();
+
+      // 1. Skip empty lines
+      if (!trimmed) {
+        i++;
+        continue;
+      }
+
+      // 2. Fenced Code Blocks (```lang ... ```)
+      if (trimmed.startsWith('```')) {
+        const lang = trimmed.replace('```', '').trim() || 'code';
+        const codeLines: string[] = [];
+        i++;
+        while (i < lines.length && !lines[i].trim().startsWith('```')) {
+          codeLines.push(lines[i]);
+          i++;
+        }
+        if (i < lines.length && lines[i].trim().startsWith('```')) {
+          i++; // skip closing ```
+        }
+        blocks.push({
+          type: 'code',
+          lang,
+          content: codeLines.join('\n'),
+        });
+        continue;
+      }
+
+      // 3. Horizontal Rule
+      if (trimmed === '---') {
+        blocks.push({ type: 'hr', content: '' });
+        i++;
+        continue;
+      }
+
+      // 4. Headings H2
+      if (trimmed.startsWith('## ')) {
+        blocks.push({ type: 'h2', content: trimmed.replace('## ', '').trim() });
+        i++;
+        continue;
+      }
+
+      // 5. Headings H3
+      if (trimmed.startsWith('### ')) {
+        blocks.push({ type: 'h3', content: trimmed.replace('### ', '').trim() });
+        i++;
+        continue;
+      }
+
+      // 6. Blockquote (> ...)
+      if (trimmed.startsWith('>')) {
+        const quoteLines: string[] = [];
+        while (i < lines.length && lines[i].trim().startsWith('>')) {
+          quoteLines.push(lines[i].trim().replace(/^>\s*/, ''));
+          i++;
+        }
+        blocks.push({
+          type: 'quote',
+          content: quoteLines.join(' '),
+        });
+        continue;
+      }
+
+      // 7. Markdown Table (| ... |)
+      if (trimmed.startsWith('|') && trimmed.includes('|')) {
+        const tableLines: string[] = [];
+        while (i < lines.length && lines[i].trim().startsWith('|') && lines[i].trim().includes('|')) {
+          tableLines.push(lines[i].trim());
+          i++;
+        }
+        blocks.push({
+          type: 'table',
+          content: tableLines.join('\n'),
+        });
+        continue;
+      }
+
+      // 8. Ordered list (1. item)
+      if (/^\d+\.\s/.test(trimmed)) {
+        const listItems: string[] = [];
+        while (i < lines.length && /^\d+\.\s/.test(lines[i].trim())) {
+          listItems.push(lines[i].trim().replace(/^\d+\.\s+/, ''));
+          i++;
+        }
+        blocks.push({
+          type: 'ol',
+          content: '',
+          items: listItems,
+        });
+        continue;
+      }
+
+      // 9. Unordered bullet list (- item or * item)
+      if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
+        const bulletItems: string[] = [];
+        while (i < lines.length && (lines[i].trim().startsWith('- ') || lines[i].trim().startsWith('* '))) {
+          bulletItems.push(lines[i].trim().replace(/^[-*]\s+/, ''));
+          i++;
+        }
+        blocks.push({
+          type: 'ul',
+          content: '',
+          items: bulletItems,
+        });
+        continue;
+      }
+
+      // 10. Standard Paragraph (consume consecutive plain text lines)
+      const paraLines: string[] = [];
+      while (
+        i < lines.length &&
+        lines[i].trim() &&
+        !lines[i].trim().startsWith('```') &&
+        !lines[i].trim().startsWith('## ') &&
+        !lines[i].trim().startsWith('### ') &&
+        lines[i].trim() !== '---' &&
+        !lines[i].trim().startsWith('>') &&
+        !(lines[i].trim().startsWith('|') && lines[i].trim().includes('|')) &&
+        !/^\d+\.\s/.test(lines[i].trim()) &&
+        !lines[i].trim().startsWith('- ') &&
+        !lines[i].trim().startsWith('* ')
+      ) {
+        paraLines.push(lines[i].trim());
+        i++;
+      }
+      if (paraLines.length > 0) {
+        blocks.push({
+          type: 'p',
+          content: paraLines.join(' '),
+        });
+      }
+    }
+
+    return blocks;
+  };
+
+  const contentBlocks = useMemo(() => parseMarkdownBlocks(activeDoc.content), [activeDoc.content]);
+
   return (
     <div className="min-h-screen bg-[#faf8f2] text-[#171711] flex flex-col selection:bg-[#171711] selection:text-white">
       {/* Docs Dedicated Top Navigation Bar */}
@@ -215,7 +368,7 @@ export function DocsReader({ currentSlug = 'introduction' }: DocsReaderProps) {
             <button
               type="button"
               onClick={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}
-              className="lg:hidden p-2 rounded-xl text-[#171711] hover:bg-[#ebe7dc] transition-colors"
+              className="lg:hidden p-2 rounded-xl text-[#171711] hover:bg-[#ebe7dc] transition-colors cursor-pointer"
               aria-label="Toggle Docs Sidebar"
             >
               <Menu className="w-5 h-5" />
@@ -331,7 +484,7 @@ export function DocsReader({ currentSlug = 'introduction' }: DocsReaderProps) {
                 <span>3 min read</span>
               </span>
               <span className="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-bold">
-                v1.0.64
+                v1.0.68
               </span>
             </div>
           </div>
@@ -348,29 +501,23 @@ export function DocsReader({ currentSlug = 'introduction' }: DocsReaderProps) {
 
           {/* Markdown / Content Body */}
           <div className="prose prose-neutral max-w-none space-y-6 text-sm text-[#383733] leading-relaxed">
-            {activeDoc.content.split('\n\n').map((paragraph, pIdx) => {
-              const trimmed = paragraph.trim();
-              if (!trimmed) return null;
-
-              // Horizontal Rule
-              if (trimmed === '---') {
-                return <hr key={pIdx} className="border-t border-[#e4e0d5] my-8" />;
+            {contentBlocks.map((block, bIdx) => {
+              if (block.type === 'hr') {
+                return <hr key={bIdx} className="border-t border-[#e4e0d5] my-8" />;
               }
 
-              // Headings H2
-              if (trimmed.startsWith('## ')) {
-                const headingText = trimmed.replace('## ', '');
-                const headingId = headingText
+              if (block.type === 'h2') {
+                const headingId = block.content
                   .toLowerCase()
                   .replace(/[^a-z0-9]+/g, '-')
                   .replace(/(^-|-$)/g, '');
                 return (
                   <h2
-                    key={pIdx}
+                    key={bIdx}
                     id={headingId}
                     className="text-xl sm:text-2xl font-black text-[#171711] tracking-tight pt-6 border-t border-[#f0ede4] flex items-center gap-2 group"
                   >
-                    <span>{renderInlineMarkdown(headingText)}</span>
+                    <span>{renderInlineMarkdown(block.content)}</span>
                     <a
                       href={`#${headingId}`}
                       className="opacity-0 group-hover:opacity-100 text-[#9e9b92] hover:text-[#171711] transition-opacity text-base font-normal"
@@ -381,35 +528,28 @@ export function DocsReader({ currentSlug = 'introduction' }: DocsReaderProps) {
                 );
               }
 
-              // Headings H3
-              if (trimmed.startsWith('### ')) {
-                const headingText = trimmed.replace('### ', '');
+              if (block.type === 'h3') {
                 return (
-                  <h3 key={pIdx} className="text-base font-extrabold text-[#171711] pt-2">
-                    {renderInlineMarkdown(headingText)}
+                  <h3 key={bIdx} className="text-base font-extrabold text-[#171711] pt-3">
+                    {renderInlineMarkdown(block.content)}
                   </h3>
                 );
               }
 
-              // Code Blocks
-              if (trimmed.startsWith('```')) {
-                const lines = trimmed.split('\n');
-                const lang = lines[0].replace('```', '') || 'code';
-                const codeBody = lines.slice(1, -1).join('\n');
-
+              if (block.type === 'code') {
                 return (
-                  <div key={pIdx} className="rounded-2xl bg-[#171711] text-[#fbf9f4] border border-[#282723] overflow-hidden shadow-md my-4">
+                  <div key={bIdx} className="rounded-2xl bg-[#171711] text-[#fbf9f4] border border-[#282723] overflow-hidden shadow-md my-4">
                     <div className="flex items-center justify-between px-4 py-2 bg-[#21201b] border-b border-[#2e2d27] text-xs font-mono text-[#9e9b92]">
-                      <span className="uppercase font-bold tracking-wider">{lang}</span>
+                      <span className="uppercase font-bold tracking-wider">{block.lang}</span>
                       <button
                         type="button"
-                        onClick={() => handleCopy(codeBody, pIdx)}
+                        onClick={() => handleCopy(block.content, bIdx)}
                         className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-[#2e2d27] hover:bg-[#3d3b34] text-[#fbf9f4] text-[11px] transition-colors cursor-pointer"
                       >
-                        {copiedCodeIndex === pIdx ? (
+                        {copiedCodeIndex === bIdx ? (
                           <>
                             <Check className="w-3 h-3 text-[#E7FF57]" />
-                            <span className="text-[#E7FF57]">Copied!</span>
+                            <span className="text-[#E7FF57] font-bold">Copied!</span>
                           </>
                         ) : (
                           <>
@@ -420,34 +560,31 @@ export function DocsReader({ currentSlug = 'introduction' }: DocsReaderProps) {
                       </button>
                     </div>
                     <pre className="p-4 text-xs font-mono overflow-x-auto leading-relaxed text-[#e5e2d9]">
-                      <code>{codeBody}</code>
+                      <code>{block.content}</code>
                     </pre>
                   </div>
                 );
               }
 
-              // Blockquotes / Callout notes
-              if (trimmed.startsWith('> ')) {
-                const blockquoteLines = trimmed.split('\n').map((l) => l.replace(/^>\s*/, '')).join(' ');
+              if (block.type === 'quote') {
                 return (
-                  <div key={pIdx} className="p-4 rounded-2xl bg-[#e6edb0]/50 border border-[#d0db84] text-xs leading-relaxed text-[#171711] my-4 flex items-start gap-3">
+                  <div key={bIdx} className="p-4 rounded-2xl bg-[#e6edb0]/50 border border-[#d0db84] text-xs leading-relaxed text-[#171711] my-4 flex items-start gap-3">
                     <Sparkles className="w-4 h-4 text-[#171711] shrink-0 mt-0.5" />
                     <div className="space-y-1">
-                      {renderInlineMarkdown(blockquoteLines)}
+                      {renderInlineMarkdown(block.content)}
                     </div>
                   </div>
                 );
               }
 
-              // Table
-              if (trimmed.startsWith('|') && trimmed.includes('|')) {
-                const rows = trimmed.split('\n').filter((r) => r.trim() && !r.includes('---'));
+              if (block.type === 'table') {
+                const rows = block.content.split('\n').filter((r) => r.trim() && !r.includes('---'));
                 if (rows.length > 0) {
                   const headerCols = rows[0].split('|').filter((c) => c.trim());
                   const bodyRows = rows.slice(1);
 
                   return (
-                    <div key={pIdx} className="overflow-x-auto my-4 rounded-2xl border border-[#e4e0d5] bg-white shadow-2xs">
+                    <div key={bIdx} className="overflow-x-auto my-4 rounded-2xl border border-[#e4e0d5] bg-white shadow-2xs">
                       <table className="w-full text-left text-xs border-collapse">
                         <thead className="bg-[#f7f5ee] border-b border-[#e4e0d5] font-bold text-[#171711]">
                           <tr>
@@ -478,40 +615,33 @@ export function DocsReader({ currentSlug = 'introduction' }: DocsReaderProps) {
                 }
               }
 
-              // Ordered Numbered List
-              const numberedLines = trimmed.split('\n').map((l) => l.trim()).filter(Boolean);
-              const isNumberedList = numberedLines.length > 0 && numberedLines.every((l) => /^\d+\.\s/.test(l));
-              if (isNumberedList) {
+              if (block.type === 'ol' && block.items) {
                 return (
-                  <ol key={pIdx} className="space-y-3 list-decimal pl-6 my-4 text-[#383733]">
-                    {numberedLines.map((item, iIdx) => (
+                  <ol key={bIdx} className="space-y-3 list-decimal pl-6 my-4 text-[#383733]">
+                    {block.items.map((item, iIdx) => (
                       <li key={iIdx} className="leading-relaxed pl-1">
-                        {renderInlineMarkdown(item.replace(/^\d+\.\s+/, ''))}
+                        {renderInlineMarkdown(item)}
                       </li>
                     ))}
                   </ol>
                 );
               }
 
-              // Unordered Bullet List
-              const bulletLines = trimmed.split('\n').map((l) => l.trim()).filter(Boolean);
-              const isBulletList = bulletLines.length > 0 && bulletLines.every((l) => l.startsWith('- ') || l.startsWith('* '));
-              if (isBulletList) {
+              if (block.type === 'ul' && block.items) {
                 return (
-                  <ul key={pIdx} className="space-y-3 list-disc pl-6 my-4 text-[#383733]">
-                    {bulletLines.map((item, iIdx) => (
+                  <ul key={bIdx} className="space-y-3 list-disc pl-6 my-4 text-[#383733]">
+                    {block.items.map((item, iIdx) => (
                       <li key={iIdx} className="leading-relaxed pl-1">
-                        {renderInlineMarkdown(item.replace(/^[-*]\s+/, ''))}
+                        {renderInlineMarkdown(item)}
                       </li>
                     ))}
                   </ul>
                 );
               }
 
-              // Standard Paragraph
               return (
-                <p key={pIdx} className="leading-relaxed text-[#383733]">
-                  {renderInlineMarkdown(trimmed)}
+                <p key={bIdx} className="leading-relaxed text-[#383733]">
+                  {renderInlineMarkdown(block.content)}
                 </p>
               );
             })}
