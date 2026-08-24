@@ -1344,6 +1344,20 @@ class AppDatabase extends _$AppDatabase {
       );
     });
   }
+
+  /// Wipes all local records when an account is deleted.
+  Future<void> clearAllData() async {
+    await transaction(() async {
+      await delete(attachments).go();
+      await delete(itemNotes).go();
+      await delete(itemTags).go();
+      await delete(tags).go();
+      await delete(collectionItems).go();
+      await delete(collections).go();
+      await delete(itemMetadata).go();
+      await delete(items).go();
+    });
+  }
 }
 
 class SyncStatsData {
