@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import {
@@ -20,10 +20,46 @@ import {
   Layers,
   FileText,
   Lock,
+  Activity,
 } from 'lucide-react';
+import { APP_VERSION } from '@/lib/version';
 
 export function Footer() {
   const currentYear = new Date().getFullYear();
+  const [systemStatus, setSystemStatus] = useState<{
+    status: 'operational' | 'degraded' | 'outage';
+    label: string;
+    indicator: 'emerald' | 'amber' | 'rose';
+    statusPageUrl: string;
+  }>({
+    status: 'operational',
+    label: 'All Systems Operational',
+    indicator: 'emerald',
+    statusPageUrl: 'https://status.laterbox.dev',
+  });
+
+  useEffect(() => {
+    let isMounted = true;
+    fetch('/api/system-status')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (isMounted && data?.label) {
+          setSystemStatus({
+            status: data.status || 'operational',
+            label: data.label || 'All Systems Operational',
+            indicator: data.indicator || 'emerald',
+            statusPageUrl: data.statusPageUrl || 'https://status.laterbox.dev',
+          });
+        }
+      })
+      .catch(() => {
+        // Fallback default remains operational
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   return (
     <footer className="border-t border-[#e4e0d5] bg-[#faf8f2] text-xs text-[#6c6b63] mt-auto">
@@ -53,12 +89,27 @@ export function Footer() {
 
             {/* System Status & Version Pill */}
             <div className="flex flex-wrap items-center gap-3 pt-2">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white border border-[#e4e0d5] text-[11px] font-semibold text-[#171711] shadow-2xs">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                <span>All Systems Operational</span>
-              </div>
+              <a
+                href={systemStatus.statusPageUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white border border-[#e4e0d5] text-[11px] font-semibold text-[#171711] shadow-2xs hover:border-[#171711] transition-all group cursor-pointer"
+                title="View Live Status on Better Stack (status.laterbox.dev)"
+              >
+                <span
+                  className={`w-2 h-2 rounded-full animate-pulse ${
+                    systemStatus.indicator === 'rose'
+                      ? 'bg-rose-500'
+                      : systemStatus.indicator === 'amber'
+                      ? 'bg-amber-500'
+                      : 'bg-emerald-500'
+                  }`}
+                />
+                <span>{systemStatus.label}</span>
+                <ArrowUpRight className="w-3 h-3 text-[#9e9b92] group-hover:text-[#171711] transition-colors" />
+              </a>
               <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#ebe7dc] text-[11px] font-mono font-bold text-[#171711]">
-                <span>v1.0.54</span>
+                <span>v{APP_VERSION}</span>
               </div>
             </div>
 
@@ -252,6 +303,18 @@ export function Footer() {
                 </a>
               </li>
               <li>
+                <a
+                  href="https://status.laterbox.dev"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-[#171711] transition-colors flex items-center gap-1.5"
+                >
+                  <Activity className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Status (status.laterbox.dev)</span>
+                  <ArrowUpRight className="w-3 h-3 text-[#9e9b92]" />
+                </a>
+              </li>
+              <li>
                 <Link
                   href="/docs"
                   className="hover:text-[#171711] transition-colors flex items-center gap-1.5"
@@ -334,6 +397,16 @@ export function Footer() {
           </div>
 
           <div className="flex items-center gap-6 text-[11px] font-semibold text-[#6c6b63]">
+            <a
+              href="https://status.laterbox.dev"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-[#171711] transition-colors flex items-center gap-1 font-bold text-emerald-700"
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span>Status</span>
+              <ArrowUpRight className="w-2.5 h-2.5 text-[#9e9b92]" />
+            </a>
             <Link href="/privacy" className="hover:text-[#171711] transition-colors">
               Privacy
             </Link>
