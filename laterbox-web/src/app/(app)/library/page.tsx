@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState } from 'react';
-import { AppShell } from '@/components/layout/AppShell';
 import { ItemCard } from '@/components/inbox/ItemCard';
 import { useItems } from '@/lib/store/ItemContext';
 import {
@@ -38,7 +37,7 @@ export default function LibraryPage() {
   ];
 
   return (
-    <AppShell>
+    <>
       <div className="max-w-7xl mx-auto px-6 sm:px-8 py-7 sm:py-9 space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
@@ -248,6 +247,6 @@ export default function LibraryPage() {
           </div>
         </div>
       )}
-    </AppShell>
+    </>
   );
 }
