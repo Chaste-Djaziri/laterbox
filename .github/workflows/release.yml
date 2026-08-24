@@ -18,7 +18,7 @@ permissions:
 
 jobs:
   build-macos:
-    name: Build macOS Release (.dmg, .pkg, .zip)
+    name: Build macOS Release & App Store Connect / TestFlight
     runs-on: macos-latest
 
     steps:
@@ -36,10 +36,29 @@ jobs:
       - name: Install Dependencies
         run: flutter pub get
 
+      - name: Install Apple Certificate & Keychains
+        if: env.APPLE_CERTIFICATE_BASE64 != ''
+        shell: bash
+        run: |
+          KEYCHAIN_PATH=$RUNNER_TEMP/build.keychain
+          KEYCHAIN_PASSWORD=$(openssl rand -base64 12)
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security default-keychain -s "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+
+          # Decode and import Certificate
+          echo "$APPLE_CERTIFICATE_BASE64" | base64 --decode > $RUNNER_TEMP/cert.p12
+          security import $RUNNER_TEMP/cert.p12 -k "$KEYCHAIN_PATH" -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign -T /usr/bin/security
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+        env:
+          APPLE_CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+
       - name: Configure macOS Project
         run: flutter build macos --release --config-only
 
-      - name: Build macOS Application with Ad-Hoc Signing
+      - name: Build macOS Application
         run: |
           xcodebuild -workspace macos/Runner.xcworkspace \
             -scheme Runner \
@@ -97,6 +116,27 @@ jobs:
             dist/laterbox-macos-universal.zip
             dist/laterbox-macos.zip
           if-no-files-found: error
+
+      - name: Upload macOS Build to App Store Connect / TestFlight
+        if: env.APP_STORE_CONNECT_API_KEY_BASE64 != '' && env.APP_STORE_CONNECT_KEY_ID != ''
+        shell: bash
+        run: |
+          mkdir -p ~/.appstoreconnect/private_keys
+          echo "$APP_STORE_CONNECT_API_KEY_BASE64" | base64 --decode > ~/.appstoreconnect/private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8
+          
+          PKG_PATH="dist/laterbox-macos-installer.pkg"
+          if [ -f "$PKG_PATH" ]; then
+            echo "Uploading $PKG_PATH to App Store Connect for macOS TestFlight..."
+            xcrun altool --upload-app \
+              -f "$PKG_PATH" \
+              -t osx \
+              --apiKey "${{ secrets.APP_STORE_CONNECT_KEY_ID }}" \
+              --apiIssuer "${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}" || true
+          fi
+        env:
+          APP_STORE_CONNECT_API_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_API_KEY_BASE64 }}
+          APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
 
   build-windows:
     name: Build Windows Release & Installer
