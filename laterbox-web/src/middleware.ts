@@ -19,13 +19,30 @@ export function middleware(request: NextRequest) {
       if (url.pathname === '/') {
         return NextResponse.rewrite(new URL('/docs', request.url));
       }
-      if (!url.pathname.startsWith('/docs')) {
-        return NextResponse.rewrite(new URL(`/docs${url.pathname}`, request.url));
+      // If accessed as docs.laterbox.dev/docs/slug, redirect cleanly to docs.laterbox.dev/slug
+      if (url.pathname === '/docs' || url.pathname === '/docs/') {
+        return NextResponse.redirect(new URL('/', request.url), 308);
       }
+      if (url.pathname.startsWith('/docs/')) {
+        const cleanPath = url.pathname.replace('/docs', '');
+        return NextResponse.redirect(new URL(cleanPath, request.url), 308);
+      }
+      return NextResponse.rewrite(new URL(`/docs${url.pathname}`, request.url));
     }
   }
 
-  // 2. App Subdomain (e.g. app.laterbox.dev or app.localhost:3000)
+  // 2. Canonical SEO Redirect from laterbox.dev/docs to docs.laterbox.dev
+  if (!isDocsSubdomain && (hostname === 'laterbox.dev' || hostname === 'www.laterbox.dev')) {
+    if (url.pathname === '/docs' || url.pathname === '/docs/') {
+      return NextResponse.redirect(new URL('https://docs.laterbox.dev/', request.url), 308);
+    }
+    if (url.pathname.startsWith('/docs/')) {
+      const slugPath = url.pathname.replace('/docs', '');
+      return NextResponse.redirect(new URL(`https://docs.laterbox.dev${slugPath}`, request.url), 308);
+    }
+  }
+
+  // 3. App Subdomain (e.g. app.laterbox.dev or app.localhost:3000)
   const isAppSubdomain = hostname.startsWith('app.');
   if (isAppSubdomain) {
     if (
