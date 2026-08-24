@@ -94,11 +94,39 @@ export function DocsReader({ currentSlug = 'introduction' }: DocsReaderProps) {
     setTimeout(() => setCopiedCodeIndex(null), 2000);
   };
 
+  // Browser Back/Forward history navigation
+  useEffect(() => {
+    const handlePopState = () => {
+      if (typeof window !== 'undefined') {
+        const path = window.location.pathname;
+        const isDocsSubdomain = window.location.hostname.startsWith('docs.');
+        const slug = isDocsSubdomain
+          ? path.replace(/^\//, '').split('/')[0]
+          : path.replace(/^\/docs\/?/, '').split('/')[0];
+        if (slug) {
+          setActiveSlug(slug);
+        } else {
+          setActiveSlug('introduction');
+        }
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
   const selectDoc = (slug: string) => {
     setActiveSlug(slug);
     setIsMobileSidebarOpen(false);
     setIsSearchOpen(false);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (typeof window !== 'undefined') {
+      const isDocsSubdomain = window.location.hostname.startsWith('docs.');
+      const newPath = isDocsSubdomain ? `/${slug}` : `/docs/${slug}`;
+      if (window.location.pathname !== newPath) {
+        window.history.pushState({ slug }, '', newPath);
+      }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   };
 
   // Section icons
