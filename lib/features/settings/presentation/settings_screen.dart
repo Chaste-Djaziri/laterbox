@@ -35,7 +35,8 @@ class SettingsScreen extends ConsumerWidget {
     final isDesktop = !kIsWeb
         ? (defaultTargetPlatform == TargetPlatform.macOS ||
             defaultTargetPlatform == TargetPlatform.linux ||
-            defaultTargetPlatform == TargetPlatform.windows)
+            defaultTargetPlatform == TargetPlatform.windows ||
+            width >= 700)
         : width >= 900;
 
     final auth = ref.watch(authStateProvider).asData?.value;
@@ -78,7 +79,7 @@ class SettingsScreen extends ConsumerWidget {
             // 2. Desktop Controls (macOS / Windows / Linux)
             if (isDesktop) ...[
               const SizedBox(height: 12),
-              _SectionHeader('Quick Capture & Shortcuts'),
+              _SectionHeader('Quick Capture'),
               const _DesktopShortcutSettings(),
             ],
 
@@ -761,61 +762,64 @@ class _DesktopShortcutSettings extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
     final settings =
         ref.watch(desktopSettingsProvider).value ?? DesktopSettings.defaults();
     final actions = ref.watch(desktopActionsProvider);
 
-    return Container(
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
+    return Material(
+      color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
+      shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.6),
+        side: BorderSide(
+          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.6),
         ),
       ),
-      padding: const EdgeInsets.all(14),
-      child: Column(
-        children: [
-          _ShortcutTile(shortcut: settings.quickCaptureShortcut),
-          const Divider(height: 1),
-          SwitchListTile(
-            title: const Text('Use selected text when available'),
-            subtitle: const Text('Falls back to the clipboard otherwise'),
-            secondary: const Icon(Icons.text_fields_rounded),
-            value: settings.useSelectedText,
-            onChanged: (value) => unawaited(actions.setUseSelectedText(value)),
-          ),
-          const _AccessibilityTile(),
-          const Divider(height: 1),
-          SwitchListTile(
-            title: const Text('Close Quick Capture when focus is lost'),
-            subtitle: const Text('Only while capture is active'),
-            secondary: const Icon(Icons.center_focus_weak_rounded),
-            value: settings.closeOnFocusLoss,
-            onChanged: (value) => unawaited(actions.setCloseOnFocusLoss(value)),
-          ),
-          SwitchListTile(
-            title: const Text('Keep LaterBox running when window closes'),
-            subtitle: const Text('Stays in the menu bar instead of quitting'),
-            secondary: const Icon(Icons.power_settings_new_rounded),
-            value: settings.keepRunningOnWindowClose,
-            onChanged: (value) =>
-                unawaited(actions.setKeepRunningOnWindowClose(value)),
-          ),
-          SwitchListTile(
-            title: const Text('Launch LaterBox at login'),
-            subtitle: const Text('Starts quietly in the menu bar'),
-            secondary: const Icon(Icons.login_rounded),
-            value: settings.launchAtLogin,
-            onChanged: (value) => unawaited(actions.setLaunchAtLogin(value)),
-          ),
-          SwitchListTile(
-            title: const Text('Show LaterBox in menu bar'),
-            secondary: const Icon(Icons.menu_rounded),
-            value: settings.showInMenuBar,
-            onChanged: (value) => unawaited(actions.setShowInMenuBar(value)),
-          ),
-        ],
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          children: [
+            _ShortcutTile(shortcut: settings.quickCaptureShortcut),
+            const Divider(height: 1),
+            SwitchListTile(
+              title: const Text('Use selected text when available'),
+              subtitle: const Text('Falls back to the clipboard otherwise'),
+              secondary: const Icon(Icons.text_fields_rounded),
+              value: settings.useSelectedText,
+              onChanged: (value) => unawaited(actions.setUseSelectedText(value)),
+            ),
+            const _AccessibilityTile(),
+            const Divider(height: 1),
+            SwitchListTile(
+              title: const Text('Close Quick Capture when focus is lost'),
+              subtitle: const Text('Only while capture is active'),
+              secondary: const Icon(Icons.center_focus_weak_rounded),
+              value: settings.closeOnFocusLoss,
+              onChanged: (value) => unawaited(actions.setCloseOnFocusLoss(value)),
+            ),
+            SwitchListTile(
+              title: const Text('Keep LaterBox running when window closes'),
+              subtitle: const Text('Stays in the menu bar instead of quitting'),
+              secondary: const Icon(Icons.power_settings_new_rounded),
+              value: settings.keepRunningOnWindowClose,
+              onChanged: (value) =>
+                  unawaited(actions.setKeepRunningOnWindowClose(value)),
+            ),
+            SwitchListTile(
+              title: const Text('Launch LaterBox at login'),
+              subtitle: const Text('Starts quietly in the menu bar'),
+              secondary: const Icon(Icons.login_rounded),
+              value: settings.launchAtLogin,
+              onChanged: (value) => unawaited(actions.setLaunchAtLogin(value)),
+            ),
+            SwitchListTile(
+              title: const Text('Show LaterBox in menu bar'),
+              secondary: const Icon(Icons.menu_rounded),
+              value: settings.showInMenuBar,
+              onChanged: (value) => unawaited(actions.setShowInMenuBar(value)),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -838,7 +842,7 @@ class _ShortcutTile extends StatelessWidget {
     final theme = Theme.of(context);
     return ListTile(
       leading: const Icon(Icons.keyboard_rounded),
-      title: const Text('Global Quick Capture Shortcut'),
+      title: const Text('Shortcut'),
       subtitle: Text(
         shortcut.displayLabel,
         style: theme.textTheme.titleMedium?.copyWith(
@@ -848,7 +852,7 @@ class _ShortcutTile extends StatelessWidget {
       ),
       trailing: FilledButton.tonal(
         onPressed: () => _pick(context),
-        child: const Text('Change'),
+        child: const Text('Change shortcut'),
       ),
     );
   }
@@ -1048,13 +1052,13 @@ class _AccessibilityTile extends ConsumerWidget {
             : FilledButton.tonal(
                 onPressed: () =>
                     unawaited(launchUrl(Uri.parse(_accessibilitySettingsUrl))),
-                child: const Text('Open Settings'),
+                child: const Text('Open System Settings'),
               ),
         loading: () => const SizedBox.shrink(),
         error: (_, _) => FilledButton.tonal(
           onPressed: () =>
               unawaited(launchUrl(Uri.parse(_accessibilitySettingsUrl))),
-          child: const Text('Open Settings'),
+          child: const Text('Open System Settings'),
         ),
       ),
     );
@@ -1114,29 +1118,35 @@ class _AboutAndLegalCard extends StatelessWidget {
           const SizedBox(height: 16),
           const Divider(height: 1),
           const SizedBox(height: 8),
-          ListTile(
-            dense: true,
-            contentPadding: EdgeInsets.zero,
-            leading: const Icon(Icons.privacy_tip_outlined, size: 20),
-            title: const Text('Privacy Policy'),
-            trailing: const Icon(Icons.open_in_new_rounded, size: 16),
-            onTap: () => unawaited(
-              launchUrl(
-                Uri.parse(_privacyPolicyUrl),
-                mode: LaunchMode.externalApplication,
+          Material(
+            type: MaterialType.transparency,
+            child: ListTile(
+              dense: true,
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.privacy_tip_outlined, size: 20),
+              title: const Text('Privacy Policy'),
+              trailing: const Icon(Icons.open_in_new_rounded, size: 16),
+              onTap: () => unawaited(
+                launchUrl(
+                  Uri.parse(_privacyPolicyUrl),
+                  mode: LaunchMode.externalApplication,
+                ),
               ),
             ),
           ),
-          ListTile(
-            dense: true,
-            contentPadding: EdgeInsets.zero,
-            leading: const Icon(Icons.description_outlined, size: 20),
-            title: const Text('Terms of Service'),
-            trailing: const Icon(Icons.open_in_new_rounded, size: 16),
-            onTap: () => unawaited(
-              launchUrl(
-                Uri.parse(_termsOfServiceUrl),
-                mode: LaunchMode.externalApplication,
+          Material(
+            type: MaterialType.transparency,
+            child: ListTile(
+              dense: true,
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.description_outlined, size: 20),
+              title: const Text('Terms of Service'),
+              trailing: const Icon(Icons.open_in_new_rounded, size: 16),
+              onTap: () => unawaited(
+                launchUrl(
+                  Uri.parse(_termsOfServiceUrl),
+                  mode: LaunchMode.externalApplication,
+                ),
               ),
             ),
           ),
