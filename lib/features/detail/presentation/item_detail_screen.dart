@@ -116,24 +116,34 @@ class _ItemDetailBody extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final uri = item.url == null ? null : Uri.tryParse(item.url!);
+    final rawText = item.text?.trim();
+    final embeddedUrlMatch = rawText != null ? RegExp(r'(https?://[^\s]+)').firstMatch(rawText) : null;
+    final effectiveUrl = item.url ?? embeddedUrlMatch?.group(0);
+    final uri = effectiveUrl == null ? null : Uri.tryParse(effectiveUrl);
     final isFile = item.type == 'file';
     final eyebrow =
         item.metadata?.domain ??
         uri?.host.replaceFirst('www.', '') ??
         (isFile ? 'File' : 'Note');
-    final capturedText = item.text?.trim();
-    final isCaptured = capturedText != null && capturedText.isNotEmpty;
+    final cleanCapturedText = (rawText != null && effectiveUrl != null && rawText.contains(effectiveUrl))
+        ? rawText.replaceFirst(effectiveUrl, '').trim().replaceAll(RegExp(r'^["“”\s]+|["“”\s]+$'), '')
+        : rawText;
+    final isCaptured = cleanCapturedText != null && cleanCapturedText.isNotEmpty;
+    final effectiveItem = (item.url == null && effectiveUrl != null)
+        ? item.copyWith(url: effectiveUrl, text: cleanCapturedText)
+        : (cleanCapturedText != null && cleanCapturedText != item.text
+            ? item.copyWith(text: cleanCapturedText)
+            : item);
     final sourceTitle = item.metadata?.title ?? item.title;
     final title =
         item.metadata?.title ??
         item.title ??
-        item.url ??
-        item.text ??
+        effectiveUrl ??
+        cleanCapturedText ??
         'Untitled';
     final description = item.metadata?.description;
     final collections = ref.watch(collectionsForItemProvider(item.id)).value;
-    final embedInfo = MediaEmbedHelper.parse(item.url);
+    final embedInfo = MediaEmbedHelper.parse(effectiveUrl);
     final attachmentsState = isFile
         ? ref.watch(attachmentsForItemProvider(item.id))
         : null;
@@ -217,7 +227,7 @@ class _ItemDetailBody extends ConsumerWidget {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  '“$capturedText”',
+                  '“$cleanCapturedText”',
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.w700,
                     letterSpacing: -0.4,
@@ -241,16 +251,23 @@ class _ItemDetailBody extends ConsumerWidget {
                         ?.copyWith(fontWeight: FontWeight.w700),
                   ),
                 ],
-                if (item.url != null) ...[
+                if (effectiveUrl != null) ...[
                   const SizedBox(height: 4),
-                  Text(
-                    item.url!,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  InkWell(
+                    onTap: () => openOriginalForItem(context, effectiveItem),
+                    borderRadius: BorderRadius.circular(6),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 2),
+                      child: Text(
+                        effectiveUrl,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Theme.of(context).colorScheme.primary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ),
                   ),
-                ],
-                if (sourceTitle == null && item.url == null) ...[
+                ] else if (sourceTitle == null) ...[
                   const SizedBox(height: 6),
                   Text(
                     'laterbox note',
@@ -278,10 +295,10 @@ class _ItemDetailBody extends ConsumerWidget {
                   ),
                 ],
               ],
-              if (item.url != null) ...[
+              if (effectiveUrl != null) ...[
                 const SizedBox(height: 20),
                 FilledButton.icon(
-                  onPressed: () => openOriginalForItem(context, item),
+                  onPressed: () => openOriginalForItem(context, effectiveItem),
                   icon: const Icon(Icons.open_in_new_rounded, size: 18),
                   label: const Text('Open original'),
                 ),
@@ -341,12 +358,13 @@ class _ItemDetailBody extends ConsumerWidget {
                   '${_formatDate(item.createdAt)}',
                 ),
               ),
-              if (item.url != null)
+              if (effectiveUrl != null)
                 ListTile(
                   leading: const Icon(Icons.link_rounded),
                   title: const Text('URL'),
-                  subtitle: Text(item.url!, maxLines: 1),
-                  onTap: () => openOriginalForItem(context, item),
+                  subtitle: Text(effectiveUrl, maxLines: 1, overflow: TextOverflow.ellipsis),
+                  trailing: const Icon(Icons.open_in_new_rounded, size: 20),
+                  onTap: () => openOriginalForItem(context, effectiveItem),
                 ),
             ],
           ),
