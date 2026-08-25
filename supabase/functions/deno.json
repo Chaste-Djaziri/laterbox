@@ -1,4 +1,7 @@
 {
+  "compilerOptions": {
+    "lib": ["deno.ns", "deno.window", "dom"]
+  },
   "imports": {
     "@std/assert": "jsr:@std/assert@^1.0.12",
     "@std/assert/": "jsr:@std/assert@^1.0.12/"
