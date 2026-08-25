@@ -10,6 +10,11 @@ export type PageContext = {
   title: string;
   selection: string;
   selector?: TextSelector | null;
+  description?: string;
+  previewImageUrl?: string;
+  faviconUrl?: string;
+  siteName?: string;
+  os?: string;
 };
 
 export async function getPageContext(
@@ -40,7 +45,64 @@ function readPageContext(): PageContext {
   if (selection && !selection.isCollapsed && selection.rangeCount > 0) {
     selector = selectionContext(selection.getRangeAt(0));
   }
-  return { url, title: document.title, selection: selectedText, selector };
+
+  // Extract high-fidelity Open Graph / Twitter / Meta info from active DOM
+  const ogTitle = document.querySelector<HTMLMetaElement>(
+    'meta[property="og:title"], meta[name="twitter:title"]'
+  )?.content?.trim();
+  const title = ogTitle || document.title || "";
+
+  const description = (
+    document.querySelector<HTMLMetaElement>(
+      'meta[property="og:description"], meta[name="description"], meta[name="twitter:description"]'
+    )?.content || ""
+  ).trim();
+
+  const previewImageUrl = (
+    document.querySelector<HTMLMetaElement>(
+      'meta[property="og:image"], meta[property="og:image:url"], meta[name="twitter:image"], meta[name="twitter:image:src"], meta[itemprop="image"]'
+    )?.content || ""
+  ).trim();
+
+  const siteName = (
+    document.querySelector<HTMLMetaElement>(
+      'meta[property="og:site_name"], meta[name="application-name"]'
+    )?.content || ""
+  ).trim();
+
+  let faviconUrl = "";
+  const iconLink = document.querySelector<HTMLLinkElement>(
+    'link[rel="apple-touch-icon"], link[rel="icon"], link[rel="shortcut icon"]'
+  );
+  if (iconLink?.href) {
+    faviconUrl = iconLink.href;
+  } else {
+    try {
+      faviconUrl = new URL("/favicon.ico", window.location.origin).href;
+    } catch {
+      faviconUrl = "";
+    }
+  }
+
+  const platform = (window.navigator as any).userAgentData?.platform || window.navigator.platform || "";
+  let os = "Desktop";
+  if (/Mac/i.test(platform) || /Macintosh/i.test(navigator.userAgent)) os = "macOS";
+  else if (/Win/i.test(platform) || /Windows/i.test(navigator.userAgent)) os = "Windows";
+  else if (/Linux/i.test(platform) || /Linux/i.test(navigator.userAgent)) os = "Linux";
+  else if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) os = "iOS";
+  else if (/Android/i.test(navigator.userAgent)) os = "Android";
+
+  return {
+    url,
+    title,
+    selection: selectedText,
+    selector,
+    description: description || undefined,
+    previewImageUrl: previewImageUrl || undefined,
+    faviconUrl: faviconUrl || undefined,
+    siteName: siteName || undefined,
+    os,
+  };
 }
 
 // Surrounding text before and after the selection, used as the context anchor
