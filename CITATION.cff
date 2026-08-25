@@ -1,9 +1,8 @@
 cff-version: 1.2.0
 message: "If you use LaterBox in your research, study, or project, please cite it as below."
 authors:
-  - family-names: "Habimanahirwa"
-    given-names: "Chaste Djaziri"
-    orcid: "https://orcid.org/0009-0000-0000-0000"
+  - name: "Chaste Djaziri"
+    orcid: "https://orcid.org/0009-0004-6993-1660"
 title: "LaterBox: A Local-First, Cross-Platform Personal Knowledge Vault & Universal Bookmarking Toolkit"
 version: "1.0.81"
 date-released: 2026-08-25
