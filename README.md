@@ -104,10 +104,32 @@ Complete guides, architectural specifications, and API documentation are availab
 
 ---
 
-## 🤝 Contributing
+## 🤝 Contributing & Community
 
-We welcome community contributions for personal use, learning, bug fixes, and documentation improvements!
-Please read our [Contributing Guide](CONTRIBUTING.md) and [Code of Conduct](CODE_OF_CONDUCT.md) before submitting pull requests.
+We welcome community contributions for personal use, learning, bug fixes, translations, and documentation improvements!
+
+- 📖 **[Contributing Guide](CONTRIBUTING.md)**: Monorepo setup, branch naming, and PR checklist.
+- 🏷️ **[Good First Issues](https://github.com/Chaste-Djaziri/laterbox/labels/good%20first%20issue)**: Great starting points for new contributors.
+- 💬 **[Community Discussions](https://github.com/Chaste-Djaziri/laterbox/discussions)**: Q&A, ideas, and feature discussions.
+- 🆘 **[Support Policy](SUPPORT.md)**: Where to get help and troubleshoot issues.
+- 🛡️ **[Code of Conduct](CODE_OF_CONDUCT.md)**: Contributor Covenant standards.
+- 🔒 **[Security Policy](SECURITY.md)**: Confidential vulnerability reporting.
+
+---
+
+## 📜 Citation
+
+If you use LaterBox or its local-first SQLite sync architecture in academic research, studies, or educational publications, please cite it using our [`CITATION.cff`](CITATION.cff) file or:
+
+```bibtex
+@software{LaterBox2026,
+  author = {Habimanahirwa, Chaste Djaziri},
+  title = {LaterBox: A Local-First, Cross-Platform Personal Knowledge Vault & Universal Bookmarking Toolkit},
+  url = {https://laterbox.dev},
+  year = {2026},
+  publisher = {GitHub}
+}
+```
 
 ---
 
