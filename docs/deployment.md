@@ -43,6 +43,14 @@ DEVELOPER_DIR=/Applications/Xcode-26.6.0.app/Contents/Developer flutter build ip
 3. Click **Deliver**.
 4. Check build processing under **App Store Connect → TestFlight → iOS**.
 
+### App Store Review Information
+For the **App Review Information** section in App Store Connect:
+- **Sign-in Required**: Checked
+- **User Name**: `apple.review@laterbox.micorp.pro`
+- **Password**: `LaterboxReview2026!`
+- **Contact Information**: Chaste Djaziri (`security@laterbox.dev` / `chaste@laterbox.dev`)
+- **Review Notes**: See below for copy-paste review instructions.
+
 ---
 
 ## 3. macOS Desktop (App Store & Direct Distribution)
