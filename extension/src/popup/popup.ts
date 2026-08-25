@@ -175,6 +175,11 @@ async function saveCurrentPage(): Promise<void> {
   const result = await saveCapture({
     url,
     title: pageContext.title,
+    description: pageContext.description,
+    previewImageUrl: pageContext.previewImageUrl,
+    faviconUrl: pageContext.faviconUrl,
+    siteName: pageContext.siteName,
+    os: pageContext.os,
     source: "browserExtension",
     createdAt: new Date().toISOString(),
   });
