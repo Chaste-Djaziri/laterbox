@@ -123,7 +123,7 @@ If you use LaterBox or its local-first SQLite sync architecture in academic rese
 
 ```bibtex
 @software{LaterBox2026,
-  author = {Habimanahirwa, Chaste Djaziri},
+  author = {Chaste Djaziri},
   title = {LaterBox: A Local-First, Cross-Platform Personal Knowledge Vault & Universal Bookmarking Toolkit},
   url = {https://laterbox.dev},
   year = {2026},
