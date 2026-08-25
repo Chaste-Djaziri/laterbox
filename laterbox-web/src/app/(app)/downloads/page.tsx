@@ -634,6 +634,17 @@ export default function InAppDownloadsPage() {
 
               <div className="space-y-2 pt-2">
                 <button
+                  onClick={() => setIsAndroidModalOpen(true)}
+                  className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-[#171711] hover:bg-[#282723] text-white font-bold text-sm transition-all cursor-pointer shadow-xs"
+                >
+                  <span className="flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-emerald-400" />
+                    <span>Join Android Testers on Google Play</span>
+                  </span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+
+                <button
                   onClick={() =>
                     handleDownload(
                       findAsset(/android.*\.apk/i)?.browser_download_url || '/api/download/laterbox-android.apk',
@@ -644,27 +655,17 @@ export default function InAppDownloadsPage() {
                 >
                   <span className="flex items-center gap-2">
                     {downloadingFile === 'laterbox-android.apk' ? (
-                      <RefreshCw className="w-4 h-4 animate-spin text-emerald-400" />
+                      <RefreshCw className="w-4 h-4 animate-spin text-amber-600" />
                     ) : (
-                      <Download className="w-4 h-4 text-emerald-400" />
+                      <Download className="w-4 h-4 text-amber-600" />
                     )}
                     <span>Download Standalone APK</span>
                   </span>
-                  <span className="text-xs text-white/70 font-mono">
+                  <span className="text-xs text-[#6c6b63] dark:text-[#a09e94] font-mono">
                     {formatBytes(findAsset(/android.*\.apk/i)?.size || 66794291)}
                   </span>
                 </button>
 
-                <button
-                  onClick={() => setIsAndroidModalOpen(true)}
-                  className="w-full flex items-center justify-between px-4 py-2.5 rounded-xl bg-[#ebe7dc] dark:bg-[#282723] hover:bg-[#e0dbcd] dark:hover:bg-[#33322d] text-[#171711] dark:text-[#f4f2ea] font-semibold text-xs transition-all cursor-pointer"
-                >
-                  <span className="flex items-center gap-2">
-                    <Sparkles className="w-3.5 h-3.5 text-amber-600" />
-                    <span>Join Google Play Tester Track</span>
-                  </span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </button>
               </div>
 
               <div className="pt-2 text-xs text-[#6c6b63] dark:text-[#a09e94] space-y-1.5">
@@ -684,25 +685,16 @@ export default function InAppDownloadsPage() {
                 Google Play Closed Testing Track
               </h4>
               <p className="text-xs text-[#6c6b63] dark:text-[#a09e94] leading-relaxed">
-                Join our official Google Play tester community to receive automatic background updates directly from the Play Store without manual APK installs.
+                Join the official Google Play testing track to receive automatic updates directly from the Play Store without manual APK installs.
               </p>
               <div className="space-y-2">
                 <a
-                  href="https://groups.google.com/g/laterbox-testers"
+                  href="https://play.google.com/apps/testing/pro.micorp.laterbox"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#171711] dark:bg-[#383731] text-white font-bold text-xs hover:bg-[#282723] transition-colors"
                 >
-                  <span>1. Join Google Group</span>
-                  <ExternalLink className="w-3.5 h-3.5" />
-                </a>
-                <a
-                  href="https://play.google.com/apps/testing/com.laterbox.app"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#ebe7dc] dark:bg-[#282723] text-[#171711] dark:text-[#f4f2ea] font-bold text-xs hover:bg-[#e0dbcd] transition-colors ml-2"
-                >
-                  <span>2. Opt-in on Play Store</span>
+                  <span>Join Android Testers on Google Play</span>
                   <ExternalLink className="w-3.5 h-3.5" />
                 </a>
               </div>
