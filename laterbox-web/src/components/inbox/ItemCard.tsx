@@ -28,6 +28,12 @@ import {
   FileCode,
   File,
   Image as ImageIcon,
+  Apple,
+  Laptop,
+  Terminal,
+  Smartphone,
+  Puzzle,
+  Globe,
 } from 'lucide-react';
 import { AddToCollectionModal } from '../collections/AddToCollectionModal';
 
@@ -406,6 +412,49 @@ export function ItemCard({ item }: ItemCardProps) {
     }
   };
 
+  const renderPlatformBadge = () => {
+    let osLabel: string | null = null;
+    if (item.metadata?.structured_data) {
+      try {
+        const parsed =
+          typeof item.metadata.structured_data === 'string'
+            ? JSON.parse(item.metadata.structured_data)
+            : item.metadata.structured_data;
+        if (parsed?.os) osLabel = parsed.os;
+        else if (parsed?.source === 'browserExtension') osLabel = 'Extension';
+      } catch (_) {}
+    }
+    if (!osLabel && item.metadata?.classification_source) {
+      const src = item.metadata.classification_source;
+      if (src === 'browserExtension' || src === 'extension') osLabel = 'Extension';
+      else if (src === 'macosShare' || src === 'desktopQuickCapture') osLabel = 'macOS';
+      else if (src === 'iosShare') osLabel = 'iOS';
+      else if (src === 'androidShare') osLabel = 'Android';
+      else if (src === 'web') osLabel = 'Web';
+    }
+
+    if (!osLabel) return null;
+
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-[#ebe7dc]/70 text-[#6c6b63] border border-[#e4e0d5]/60">
+        {osLabel === 'macOS' || osLabel === 'iOS' ? (
+          <Apple className="w-2.5 h-2.5" />
+        ) : osLabel === 'Windows' ? (
+          <Laptop className="w-2.5 h-2.5" />
+        ) : osLabel === 'Linux' ? (
+          <Terminal className="w-2.5 h-2.5" />
+        ) : osLabel === 'Android' ? (
+          <Smartphone className="w-2.5 h-2.5" />
+        ) : osLabel === 'Extension' ? (
+          <Puzzle className="w-2.5 h-2.5" />
+        ) : (
+          <Globe className="w-2.5 h-2.5" />
+        )}
+        <span>{osLabel}</span>
+      </span>
+    );
+  };
+
   const handleCardClick = () => {
     router.push(`/item/${item.id}`);
   };
@@ -494,9 +543,12 @@ export function ItemCard({ item }: ItemCardProps) {
 
           {/* Card Footer Actions */}
           <div className="pt-3 mt-3 border-t border-[#e4e0d5]/70 flex items-center justify-between">
-            <span className="text-[11px] font-medium text-[#9e9b92]">
-              {timeAgo}
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-medium text-[#9e9b92]">
+                {timeAgo}
+              </span>
+              {renderPlatformBadge()}
+            </div>
 
             <div
               className="flex items-center gap-1"
