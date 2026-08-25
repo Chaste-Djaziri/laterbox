@@ -44,7 +44,7 @@ class _CaptureApp extends StatelessWidget {
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
         title: 'LaterBox App Store Capture',
-        theme: AppTheme.light.copyWith(platform: TargetPlatform.iOS),
+        theme: AppTheme.light,
         home: const _CaptureSequence(),
       ),
     );
@@ -59,12 +59,22 @@ class _CaptureSequence extends StatefulWidget {
 }
 
 class _CaptureSequenceState extends State<_CaptureSequence> {
+  static const _lockedScreen = String.fromEnvironment('CAPTURE_SCREEN');
   Timer? _timer;
   int _screen = 0;
 
   @override
   void initState() {
     super.initState();
+    if (_lockedScreen.isNotEmpty) {
+      _screen = switch (_lockedScreen) {
+        'capture' => 1,
+        'reader' => 2,
+        _ => 0,
+      };
+      debugPrint('APP_STORE_CAPTURE_READY:$_lockedScreen');
+      return;
+    }
     debugPrint('APP_STORE_CAPTURE_READY:inbox');
     _timer = Timer.periodic(const Duration(seconds: 30), (_) {
       if (!mounted) return;
@@ -100,10 +110,10 @@ Future<void> _seedDatabase(AppDatabase database) async {
   final entries = [
     (
       id: 'spatial-design',
-      url: 'https://developer.apple.com/design/human-interface-guidelines/',
-      title: 'Designing focused experiences for every Apple device',
-      description: 'A practical guide to hierarchy, clarity, accessibility, and thoughtful interactions across Apple platforms.',
-      domain: 'developer.apple.com',
+      url: 'https://www.nngroup.com/articles/information-overload/',
+      title: 'A calmer way to manage information overload',
+      description: 'Practical ideas for reducing digital clutter, protecting attention, and returning to what matters.',
+      domain: 'nngroup.com',
       type: 'article',
       favorite: true,
     ),
