@@ -252,6 +252,22 @@ export function ItemProvider({ children }: { children: ReactNode }) {
           : 'link'
         : 'text';
 
+    const userOs = typeof window !== 'undefined'
+      ? (() => {
+          const ua = window.navigator.userAgent || '';
+          const platform = (window.navigator as any).userAgentData?.platform || window.navigator.platform || '';
+          const maxTouchPoints = window.navigator.maxTouchPoints || 0;
+          if (/iPad|iPhone|iPod/.test(ua) || (platform === 'MacIntel' && maxTouchPoints > 1)) return 'iOS';
+          if (/Android/i.test(ua)) return 'Android';
+          if (/Win/i.test(ua) || /Win/i.test(platform)) return 'Windows';
+          if (/Linux/i.test(ua) || /Linux/i.test(platform)) return 'Linux';
+          if (/Mac/i.test(ua) || /Mac/i.test(platform)) return 'macOS';
+          return 'Web';
+        })()
+      : 'Web';
+
+    const initialFavicon = domain ? `https://www.google.com/s2/favicons?domain=${domain}&sz=128` : null;
+
     const newItem: LaterBoxItem = {
       id: itemId,
       user_id: user?.id || null,
@@ -272,9 +288,12 @@ export function ItemProvider({ children }: { children: ReactNode }) {
             domain: domain,
             site_name: domain,
             title: domain,
+            favicon_url: initialFavicon,
             status: 'pending',
             attempt_count: 0,
             content_type: 'link',
+            classification_source: 'web',
+            structured_data: JSON.stringify({ source: 'web', os: userOs }),
             created_at: now,
             updated_at: now,
           }
@@ -316,38 +335,92 @@ export function ItemProvider({ children }: { children: ReactNode }) {
           updated_at: newItem.updated_at,
         });
 
-        // Trigger enrichment via Edge function if it's a URL
+        // Trigger enrichment via fast API & Edge function if it's a URL
         if (normalizedUrl) {
-          supabase.functions
-            .invoke('enrich-url', { body: { url: normalizedUrl } })
-            .then(async ({ data: enrichData }) => {
-              if (enrichData && typeof enrichData === 'object') {
-                const metaUpdate: Partial<LaterBoxItem['metadata']> = {
-                  domain: enrichData.domain || domain,
-                  site_name: enrichData.site_name,
-                  title: enrichData.title,
-                  description: enrichData.description,
-                  favicon_url: enrichData.favicon_url,
-                  preview_image_url: enrichData.preview_image_url,
-                  content_type: enrichData.classification?.type || 'link',
-                  status: 'enriched',
-                  enriched_at: new Date().toISOString(),
-                };
+          const enrichUrl = async () => {
+            let enrichData: any = null;
 
-                await supabase.from('item_metadata').upsert({
-                  item_id: newItem.id,
-                  user_id: user.id,
-                  ...metaUpdate,
-                  created_at: now,
-                  updated_at: new Date().toISOString(),
-                });
-
-                setItems((prev) =>
-                  prev.map((it) => (it.id === newItem.id ? { ...it, metadata: { ...it.metadata!, ...metaUpdate } } : it))
-                );
+            // 1. Try local Next.js /api/enrich first (instant & reliable)
+            try {
+              const res = await fetch('/api/enrich', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url: normalizedUrl }),
+              });
+              if (res.ok) {
+                enrichData = await res.json();
               }
-            })
-            .catch(() => null);
+            } catch {}
+
+            // 2. Fallback to Supabase Edge Function
+            if (!enrichData || !enrichData.title) {
+              try {
+                const { data } = await supabase.functions.invoke('enrich-url', {
+                  body: { url: normalizedUrl },
+                });
+                if (data && typeof data === 'object') {
+                  enrichData = data;
+                }
+              } catch {}
+            }
+
+            if (enrichData && typeof enrichData === 'object') {
+              const title = enrichData.title || defaultTitle;
+              const description = enrichData.description || null;
+              const siteName = enrichData.siteName || enrichData.site_name || domain;
+              const faviconUrl = enrichData.faviconUrl || enrichData.favicon_url || initialFavicon;
+              const previewImageUrl = enrichData.previewImageUrl || enrichData.preview_image_url || null;
+              const contentType =
+                enrichData.classification?.contentType ||
+                enrichData.classification?.type ||
+                enrichData.content_type ||
+                'link';
+
+              const metaUpdate: Partial<LaterBoxItem['metadata']> = {
+                domain: enrichData.domain || domain,
+                site_name: siteName,
+                title: title,
+                description: description,
+                favicon_url: faviconUrl,
+                preview_image_url: previewImageUrl,
+                content_type: contentType,
+                classification_source: 'web',
+                structured_data: JSON.stringify({ source: 'web', os: userOs }),
+                status: 'enriched',
+                enriched_at: new Date().toISOString(),
+              };
+
+              // Update item title in items table if previous was generic
+              if (title && (newItem.title === domain || newItem.title === 'New Capture')) {
+                await supabase
+                  .from('items')
+                  .update({ title, updated_at: new Date().toISOString() })
+                  .eq('id', newItem.id);
+              }
+
+              await supabase.from('item_metadata').upsert({
+                item_id: newItem.id,
+                user_id: user.id,
+                ...metaUpdate,
+                created_at: now,
+                updated_at: new Date().toISOString(),
+              });
+
+              setItems((prev) =>
+                prev.map((it) =>
+                  it.id === newItem.id
+                    ? {
+                        ...it,
+                        title: title || it.title,
+                        metadata: { ...it.metadata!, ...metaUpdate },
+                      }
+                    : it
+                )
+              );
+            }
+          };
+
+          enrichUrl().catch(() => null);
         }
       } catch {
         setSyncStatus('error');
