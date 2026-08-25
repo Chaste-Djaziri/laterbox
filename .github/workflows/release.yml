@@ -27,32 +27,62 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 2
+          fetch-depth: 0
 
       - name: Check If Version Was Bumped
         id: check
         shell: bash
         run: |
+          VERSION=$(node -p "require('./version.json').version")
+
           if [ "${{ github.event_name }}" = "workflow_dispatch" ] || [ "${{ startsWith(github.ref, 'refs/tags/v') }}" = "true" ]; then
-            VERSION=$(node -p "require('./version.json').version")
             echo "should_release=true" >> $GITHUB_OUTPUT
             echo "version=$VERSION" >> $GITHUB_OUTPUT
             echo "Manual dispatch or tag trigger for v$VERSION. Proceeding with release build."
             exit 0
           fi
 
-          CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD 2>/dev/null || git log -m -1 --name-only --pretty="" 2>/dev/null || echo "")
-          echo "Changed files in commit:"
+          BEFORE="${{ github.event.before }}"
+          AFTER="${{ github.event.after }}"
+
+          # If before commit is a valid commit hash on this repo, check diff across the entire push range
+          if [ -n "$BEFORE" ] && [ "$BEFORE" != "0000000000000000000000000000000000000000" ] && git rev-parse --verify "$BEFORE" >/dev/null 2>&1; then
+            CHANGED_FILES=$(git diff --name-only "$BEFORE" "$AFTER" 2>/dev/null || echo "")
+          else
+            # Check against latest tag if available, or last commit
+            LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+            if [ -n "$LAST_TAG" ]; then
+              CHANGED_FILES=$(git diff --name-only "$LAST_TAG" HEAD 2>/dev/null || echo "")
+            else
+              CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD 2>/dev/null || echo "")
+            fi
+          fi
+
+          echo "Pushed range: $BEFORE .. $AFTER"
+          echo "Changed files in pushed range:"
           echo "$CHANGED_FILES"
 
-          if echo "$CHANGED_FILES" | grep -qE '^version\.json$|^pubspec\.yaml$'; then
-            VERSION=$(node -p "require('./version.json').version")
+          # 1. Did any version file change in the pushed commits?
+          VERSION_CHANGED="false"
+          if echo "$CHANGED_FILES" | grep -qE 'version\.json|pubspec\.yaml'; then
+            VERSION_CHANGED="true"
+          fi
+
+          # 2. Does the git tag for this current version (v$VERSION) already exist?
+          TAG_EXISTS="false"
+          if git rev-parse "refs/tags/v$VERSION" >/dev/null 2>&1 || git rev-parse "v$VERSION" >/dev/null 2>&1; then
+            TAG_EXISTS="true"
+          fi
+
+          # If version files were touched in the push OR the tag for this version doesn't exist yet, proceed with release
+          if [ "$VERSION_CHANGED" = "true" ] || [ "$TAG_EXISTS" = "false" ]; then
             echo "should_release=true" >> $GITHUB_OUTPUT
             echo "version=$VERSION" >> $GITHUB_OUTPUT
-            echo "Version bump detected (v$VERSION). Starting multi-platform release builds."
+            echo "Release build triggered for v$VERSION (version changed: $VERSION_CHANGED, tag exists: $TAG_EXISTS)."
           else
             echo "should_release=false" >> $GITHUB_OUTPUT
-            echo "No version.json / pubspec.yaml change detected in this push. Skipping release builds."
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+            echo "No version bump in pushed range and release tag v$VERSION already exists. Skipping release builds."
           fi
 
   build-macos:
