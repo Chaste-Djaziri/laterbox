@@ -177,7 +177,7 @@ export default function PrivacyPolicyPage() {
             <div className="p-4 rounded-2xl bg-[#e6edb0]/40 border border-[#d0db84] space-y-1">
               <p className="font-bold text-xs text-[#171711]">MICORP PRO — LaterBox Privacy Team</p>
               <p className="text-xs text-[#6c6b63]">Email: <a href="mailto:support@micorp.pro" className="font-semibold text-[#171711] underline">support@micorp.pro</a></p>
-              <p className="text-xs text-[#6c6b63]">Tester Community: <a href="https://groups.google.com/g/laterbox-testers" target="_blank" rel="noreferrer" className="font-semibold text-[#171711] underline">Google Group laterbox-testers</a></p>
+              <p className="text-xs text-[#6c6b63]">Android testing: <a href="https://play.google.com/apps/testing/pro.micorp.laterbox" target="_blank" rel="noreferrer" className="font-semibold text-[#171711] underline">Join on Google Play</a></p>
             </div>
           </section>
         </div>
