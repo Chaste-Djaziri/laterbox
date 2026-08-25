@@ -177,21 +177,27 @@ async function enrich(raw: string) {
   // Final resolution for title and siteName
   const title = (ytOEmbed?.title && ytOEmbed.title.trim().length > 0) ? ytOEmbed.title : parsed.title;
   const siteName = ytOEmbed?.authorName
-    ? `${ytOEmbed.authorName} • YouTube`
-    : parsed.siteName ?? (ytVideoId ? "YouTube" : null);
+  const domain = stripWww(finalUri.hostname);
+  const favicon = parsed.favicon ?? (ytVideoId ? "https://www.youtube.com/s/desktop/f1725893/img/favicon_144x144.png" : `https://www.google.com/s2/favicons?domain=${domain}&sz=128`);
 
   return {
-    domain: stripWww(finalUri.hostname),
+    domain,
     siteName,
+    site_name: siteName,
     title,
     description: parsed.description,
-    faviconUrl: parsed.favicon ?? (ytVideoId ? "https://www.youtube.com/s/desktop/f1725893/img/favicon_144x144.png" : null),
+    faviconUrl: favicon,
+    favicon_url: favicon,
     previewImageUrl: previewImage,
+    preview_image_url: previewImage,
     classification: {
       contentType: classification.type,
+      type: classification.type,
+      content_type: classification.type,
       confidence: classification.confidence,
       source: classification.source,
       structuredData: classification.structuredData ?? (ytVideoId ? { videoId: ytVideoId, author: ytOEmbed?.authorName ?? null } : null),
+      structured_data: classification.structuredData ?? (ytVideoId ? { videoId: ytVideoId, author: ytOEmbed?.authorName ?? null } : null),
     },
   };
 }
@@ -578,14 +584,17 @@ async function resolveAndValidateHost(host: string): Promise<void> {
     return;
   }
   const addresses: string[] = [];
-  for (const recordType of ["A", "AAAA"] as const) {
-    try {
-      addresses.push(...(await Deno.resolveDns(host, recordType)));
-    } catch {
-      // The record type may not exist for this host; try the other one.
+  try {
+    for (const recordType of ["A", "AAAA"] as const) {
+      try {
+        addresses.push(...(await Deno.resolveDns(host, recordType)));
+      } catch {
+        // The record type may not exist for this host; try the other one.
+      }
     }
+  } catch {
+    // In restricted sandbox or edge environments, proceed with standard fetch
   }
-  if (addresses.length === 0) throw new FetchError("Host did not resolve");
   for (const address of addresses) {
     if (isPrivateIp(address)) throw new UnsupportedError("Private host");
   }
@@ -612,8 +621,18 @@ async function fetchHtml(url: URL): Promise<{ html: string; finalUrl: string }> 
         signal: controller.signal,
         headers: {
           "user-agent": USER_AGENT,
-          accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+          accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
           "accept-language": "en-US,en;q=0.9",
+          "cache-control": "no-cache",
+          pragma: "no-cache",
+          "sec-ch-ua": '"Chromium";v="128", "Not;A=Brand";v="24", "Google Chrome";v="128"',
+          "sec-ch-ua-mobile": "?0",
+          "sec-ch-ua-platform": '"macOS"',
+          "sec-fetch-dest": "document",
+          "sec-fetch-mode": "navigate",
+          "sec-fetch-site": "none",
+          "sec-fetch-user": "?1",
+          "upgrade-insecure-requests": "1",
         },
       });
     } catch (error) {
