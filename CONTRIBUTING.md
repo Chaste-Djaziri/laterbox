@@ -140,8 +140,18 @@ We follow the [Conventional Commits](https://www.conventionalcommits.org/) speci
 
 ---
 
+## Finding Something to Work On
+
+- 🏷️ **[Good First Issues](https://github.com/Chaste-Djaziri/laterbox/labels/good%20first%20issue)**: Beginner-friendly issues ideal for first-time contributors.
+- 🤝 **[Help Wanted](https://github.com/Chaste-Djaziri/laterbox/labels/help%20wanted)**: Features or enhancements where community assistance is actively sought.
+- 📖 **[Documentation Improvements](https://github.com/Chaste-Djaziri/laterbox/labels/documentation)**: Typos, clarification, code samples, or translation improvements.
+
+---
+
 ## Need Help?
 
-- 💬 Join our community discussions on [GitHub Discussions](https://github.com/Chaste-Djaziri/laterbox/discussions).
+- 🆘 Check our [Support Guide](SUPPORT.md) for all official communication channels.
+- 💬 Join community conversations on [GitHub Discussions](https://github.com/Chaste-Djaziri/laterbox/discussions).
 - 🐛 Report bugs via [GitHub Issues](https://github.com/Chaste-Djaziri/laterbox/issues).
 - 📖 Read the full documentation at [docs.laterbox.dev](https://docs.laterbox.dev).
+- 📜 Cite this project using [CITATION.cff](CITATION.cff).
