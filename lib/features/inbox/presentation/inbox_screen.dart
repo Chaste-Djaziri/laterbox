@@ -48,41 +48,49 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.sizeOf(context).width;
+    final platform = Theme.of(context).platform;
     final isDesktop = !kIsWeb
-        ? (defaultTargetPlatform == TargetPlatform.macOS ||
-            defaultTargetPlatform == TargetPlatform.linux ||
-            defaultTargetPlatform == TargetPlatform.windows)
+        ? (platform == TargetPlatform.macOS ||
+              platform == TargetPlatform.linux ||
+              platform == TargetPlatform.windows)
         : width >= 900;
 
     final rawItems = ref.watch(inboxItemsProvider);
     final filteredItems = ref.watch(filteredInboxItemsProvider);
     final auth = ref.watch(authStateProvider).asData?.value;
     final theme = Theme.of(context);
-    final isMac = !kIsWeb && defaultTargetPlatform == TargetPlatform.macOS;
+    final isMac = !kIsWeb && platform == TargetPlatform.macOS;
 
     return Scaffold(
       appBar: isDesktop
           ? null
           : AppBar(
-              title: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Image.asset(
-                    'assets/branding/laterbox-icon.png',
-                    width: 26,
-                    height: 26,
-                    fit: BoxFit.contain,
-                  ),
-                  const SizedBox(width: 8),
-                  const Text(
-                    'laterbox',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: -0.6,
+              title: width < 480
+                  ? Image.asset(
+                      'assets/branding/laterbox-icon.png',
+                      width: 28,
+                      height: 28,
+                      fit: BoxFit.contain,
+                    )
+                  : Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Image.asset(
+                          'assets/branding/laterbox-icon.png',
+                          width: 26,
+                          height: 26,
+                          fit: BoxFit.contain,
+                        ),
+                        const SizedBox(width: 8),
+                        const Text(
+                          'laterbox',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -0.6,
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                ],
-              ),
               actions: [
                 const CloudSyncIndicator(compact: true),
                 IconButton(
@@ -214,135 +222,150 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
             child: CustomScrollView(
               controller: _scrollController,
               physics: const AlwaysScrollableScrollPhysics(),
-            slivers: [
-              SliverPadding(
-                padding: EdgeInsets.fromLTRB(
-                  isDesktop ? 32 : 20,
-                  isDesktop ? (isMac ? 44 : 28) : 18,
-                  isDesktop ? 32 : 20,
-                  16,
-                ),
-                sliver: SliverToBoxAdapter(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Inbox',
-                                style: theme.textTheme.headlineLarge?.copyWith(
-                                  fontWeight: FontWeight.w800,
-                                  letterSpacing: -1.1,
-                                ),
-                              ),
-                              if (rawItems.asData?.value case final list?) ...[
-                                const SizedBox(height: 4),
-                                Text(
-                                  '${list.length} ${list.length == 1 ? 'item' : 'items'} saved',
-                                  style: theme.textTheme.bodyMedium?.copyWith(
-                                    color: theme.colorScheme.onSurfaceVariant,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ],
-                            ],
-                          ),
-                          if (isDesktop)
-                            Row(
+              slivers: [
+                SliverPadding(
+                  padding: EdgeInsets.fromLTRB(
+                    isDesktop ? 32 : 20,
+                    isDesktop ? (isMac ? 44 : 28) : 18,
+                    isDesktop ? 32 : 20,
+                    16,
+                  ),
+                  sliver: SliverToBoxAdapter(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const CloudSyncIndicator(),
-                                const SizedBox(width: 12),
-                                TextButton.icon(
-                                  onPressed: () => context.push('/tutorial'),
-                                  icon: const Icon(Icons.help_outline_rounded, size: 18),
-                                  label: const Text('Tutorial'),
+                                Text(
+                                  'Inbox',
+                                  style: theme.textTheme.headlineLarge
+                                      ?.copyWith(
+                                        fontWeight: FontWeight.w800,
+                                        letterSpacing: -1.1,
+                                      ),
                                 ),
-                                const SizedBox(width: 8),
-                                if (auth?.isAuthenticated ?? false)
-                                  TextButton.icon(
-                                    onPressed: () async {
-                                      await ref.read(authRepositoryProvider).signOut();
-                                      ref.read(guestModeProvider.notifier).state = true;
-                                    },
-                                    icon: const Icon(Icons.logout_rounded, size: 18),
-                                    label: const Text('Sign out'),
-                                  )
-                                else
-                                  TextButton.icon(
-                                    onPressed: () => ref
-                                        .read(guestModeProvider.notifier)
-                                        .state = false,
-                                    icon: const Icon(Icons.person_outline_rounded, size: 18),
-                                    label: const Text('Sign in'),
+                                if (rawItems.asData?.value
+                                    case final list?) ...[
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    '${list.length} ${list.length == 1 ? 'item' : 'items'} saved',
+                                    style: theme.textTheme.bodyMedium?.copyWith(
+                                      color: theme.colorScheme.onSurfaceVariant,
+                                      fontWeight: FontWeight.w500,
+                                    ),
                                   ),
+                                ],
                               ],
                             ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      const FilterChipBar(),
-                    ],
+                            if (isDesktop)
+                              Row(
+                                children: [
+                                  const CloudSyncIndicator(),
+                                  const SizedBox(width: 12),
+                                  TextButton.icon(
+                                    onPressed: () => context.push('/tutorial'),
+                                    icon: const Icon(
+                                      Icons.help_outline_rounded,
+                                      size: 18,
+                                    ),
+                                    label: const Text('Tutorial'),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  if (auth?.isAuthenticated ?? false)
+                                    TextButton.icon(
+                                      onPressed: () async {
+                                        await ref
+                                            .read(authRepositoryProvider)
+                                            .signOut();
+                                        ref
+                                                .read(
+                                                  guestModeProvider.notifier,
+                                                )
+                                                .state =
+                                            true;
+                                      },
+                                      icon: const Icon(
+                                        Icons.logout_rounded,
+                                        size: 18,
+                                      ),
+                                      label: const Text('Sign out'),
+                                    )
+                                  else
+                                    TextButton.icon(
+                                      onPressed: () =>
+                                          ref
+                                                  .read(
+                                                    guestModeProvider.notifier,
+                                                  )
+                                                  .state =
+                                              false,
+                                      icon: const Icon(
+                                        Icons.person_outline_rounded,
+                                        size: 18,
+                                      ),
+                                      label: const Text('Sign in'),
+                                    ),
+                                ],
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        const FilterChipBar(),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-              filteredItems.when(
-                loading: () => const SliverFillRemaining(
-                  child: Center(child: CircularProgressIndicator.adaptive()),
-                ),
-                error: (error, stackTrace) => SliverFillRemaining(
-                  child: _ErrorState(
-                    onRetry: () => ref.invalidate(inboxItemsProvider),
+                filteredItems.when(
+                  loading: () => const SliverFillRemaining(
+                    child: Center(child: CircularProgressIndicator.adaptive()),
                   ),
-                ),
-                data: (itemList) => itemList.isEmpty
-                    ? const SliverFillRemaining(child: _EmptyInbox())
-                    : isDesktop
-                        ? SliverPadding(
-                            padding: const EdgeInsets.fromLTRB(
-                              32,
-                              0,
-                              32,
-                              104,
+                  error: (error, stackTrace) => SliverFillRemaining(
+                    child: _ErrorState(
+                      onRetry: () => ref.invalidate(inboxItemsProvider),
+                    ),
+                  ),
+                  data: (itemList) => itemList.isEmpty
+                      ? const SliverFillRemaining(child: _EmptyInbox())
+                      : isDesktop
+                      ? SliverPadding(
+                          padding: const EdgeInsets.fromLTRB(32, 0, 32, 104),
+                          sliver: SliverGrid(
+                            delegate: SliverChildBuilderDelegate(
+                              (context, index) =>
+                                  ItemCard(item: itemList[index], isGrid: true),
+                              childCount: itemList.length,
                             ),
-                            sliver: SliverGrid(
-                              delegate: SliverChildBuilderDelegate(
-                                (context, index) => ItemCard(
-                                  item: itemList[index],
-                                  isGrid: true,
+                            gridDelegate:
+                                const SliverGridDelegateWithMaxCrossAxisExtent(
+                                  maxCrossAxisExtent: 320,
+                                  mainAxisSpacing: 16,
+                                  crossAxisSpacing: 16,
+                                  childAspectRatio: 0.72,
                                 ),
-                                childCount: itemList.length,
-                              ),
-                              gridDelegate:
-                                  const SliverGridDelegateWithMaxCrossAxisExtent(
-                                maxCrossAxisExtent: 320,
-                                mainAxisSpacing: 16,
-                                crossAxisSpacing: 16,
-                                childAspectRatio: 0.72,
-                              ),
-                            ),
-                          )
-                        : SliverPadding(
-                            padding: const EdgeInsets.fromLTRB(20, 0, 20, 104),
-                            sliver: SliverList.separated(
-                              itemCount: itemList.length,
-                              separatorBuilder: (context, index) =>
-                                  const SizedBox(height: 14),
-                              itemBuilder: (context, index) =>
-                                  ItemCard(item: itemList[index]),
-                            ),
                           ),
-              ),
-            ],
+                        )
+                      : SliverPadding(
+                          padding: const EdgeInsets.fromLTRB(20, 0, 20, 104),
+                          sliver: SliverList.separated(
+                            itemCount: itemList.length,
+                            separatorBuilder: (context, index) =>
+                                const SizedBox(height: 14),
+                            itemBuilder: (context, index) =>
+                                ItemCard(item: itemList[index]),
+                          ),
+                        ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
-    ),
-  );
-}
+    );
+  }
 }
 
 class _EmptyInbox extends StatelessWidget {
