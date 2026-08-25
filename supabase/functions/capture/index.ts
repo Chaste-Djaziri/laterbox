@@ -15,6 +15,15 @@ type CaptureBody = {
   url?: unknown;
   text?: unknown;
   title?: unknown;
+  description?: unknown;
+  previewImageUrl?: unknown;
+  preview_image_url?: unknown;
+  faviconUrl?: unknown;
+  favicon_url?: unknown;
+  siteName?: unknown;
+  site_name?: unknown;
+  os?: unknown;
+  platform?: unknown;
   selector?: unknown;
   source?: unknown;
 };
@@ -119,6 +128,48 @@ export const createCaptureHandler = (
       return json({ error: "Could not save capture" }, 502);
     }
 
+    // Insert metadata row if a URL was captured
+    if (capture.url) {
+      try {
+        const domain = new URL(capture.url).hostname.replace(/^www\./i, "");
+        const metaRow = {
+          item_id: itemId,
+          user_id: userId,
+          domain: domain,
+          site_name: capture.siteName ?? domain,
+          title: capture.title ?? domain,
+          description: capture.description ?? null,
+          favicon_url: capture.faviconUrl ?? `https://www.google.com/s2/favicons?domain=${domain}&sz=128`,
+          preview_image_url: capture.previewImageUrl ?? null,
+          status: capture.previewImageUrl ? "enriched" : "pending",
+          content_type: "link",
+          classification_source: capture.source,
+          structured_data: JSON.stringify({
+            source: capture.source,
+            os: capture.os ?? "Desktop",
+          }),
+          created_at: timestamp,
+          updated_at: timestamp,
+        };
+
+        await dependencies.fetch(
+          `${dependencies.supabaseUrl}/rest/v1/item_metadata`,
+          {
+            method: "POST",
+            headers: {
+              apikey: databaseKey,
+              authorization: `Bearer ${databaseToken}`,
+              "content-type": "application/json",
+              prefer: "resolution=merge-duplicates",
+            },
+            body: JSON.stringify(metaRow),
+          },
+        );
+      } catch (err) {
+        console.warn("Could not insert initial item_metadata", err);
+      }
+    }
+
     return json(
       {
         id: itemId,
@@ -209,12 +260,30 @@ function validateCaptureBody(body: CaptureBody): {
   url: string | null;
   text: string | null;
   title: string | null;
+  description: string | null;
+  previewImageUrl: string | null;
+  faviconUrl: string | null;
+  siteName: string | null;
+  os: string | null;
   selector: { before: string; after: string } | null;
   source: string;
 } | null {
   let url = typeof body.url === "string" ? body.url.trim() : "";
   let text = typeof body.text === "string" ? body.text.trim() : "";
   const title = typeof body.title === "string" ? body.title.trim() : "";
+  const description = typeof body.description === "string" ? body.description.trim() : "";
+  const previewImageUrl = typeof (body.previewImageUrl ?? body.preview_image_url) === "string"
+    ? String(body.previewImageUrl ?? body.preview_image_url).trim()
+    : "";
+  const faviconUrl = typeof (body.faviconUrl ?? body.favicon_url) === "string"
+    ? String(body.faviconUrl ?? body.favicon_url).trim()
+    : "";
+  const siteName = typeof (body.siteName ?? body.site_name) === "string"
+    ? String(body.siteName ?? body.site_name).trim()
+    : "";
+  const os = typeof (body.os ?? body.platform) === "string"
+    ? String(body.os ?? body.platform).trim()
+    : "";
   const source = typeof body.source === "string" ? body.source : "api";
   const selector = parseSelector(body.selector);
 
@@ -250,6 +319,11 @@ function validateCaptureBody(body: CaptureBody): {
     url: url.length > 0 ? url : null,
     text: text.length > 0 ? text : null,
     title: title.length > 0 ? title : null,
+    description: description.length > 0 ? description : null,
+    previewImageUrl: previewImageUrl.length > 0 ? previewImageUrl : null,
+    faviconUrl: faviconUrl.length > 0 ? faviconUrl : null,
+    siteName: siteName.length > 0 ? siteName : null,
+    os: os.length > 0 ? os : null,
     selector,
     source,
   };
