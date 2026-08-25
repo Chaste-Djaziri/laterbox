@@ -112,7 +112,7 @@ function classifyUrl(url: URL, ogType: string | null): string {
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json().catch(() => ({}));
+    const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
     const rawUrl = typeof body?.url === 'string' ? body.url.trim() : '';
 
     if (!rawUrl || !/^https?:\/\//i.test(rawUrl)) {
