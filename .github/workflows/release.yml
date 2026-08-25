@@ -17,8 +17,48 @@ permissions:
   contents: write
 
 jobs:
+  check-version:
+    name: Detect Version Bump
+    runs-on: ubuntu-latest
+    outputs:
+      should_release: ${{ steps.check.outputs.should_release }}
+      version: ${{ steps.check.outputs.version }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Check If Version Was Bumped
+        id: check
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] || [ "${{ startsWith(github.ref, 'refs/tags/v') }}" = "true" ]; then
+            VERSION=$(node -p "require('./version.json').version")
+            echo "should_release=true" >> $GITHUB_OUTPUT
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+            echo "Manual dispatch or tag trigger for v$VERSION. Proceeding with release build."
+            exit 0
+          fi
+
+          CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD 2>/dev/null || git log -m -1 --name-only --pretty="" 2>/dev/null || echo "")
+          echo "Changed files in commit:"
+          echo "$CHANGED_FILES"
+
+          if echo "$CHANGED_FILES" | grep -qE '^version\.json$|^pubspec\.yaml$'; then
+            VERSION=$(node -p "require('./version.json').version")
+            echo "should_release=true" >> $GITHUB_OUTPUT
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+            echo "Version bump detected (v$VERSION). Starting multi-platform release builds."
+          else
+            echo "should_release=false" >> $GITHUB_OUTPUT
+            echo "No version.json / pubspec.yaml change detected in this push. Skipping release builds."
+          fi
+
   build-macos:
     name: Build macOS Release & App Store Connect / TestFlight
+    needs: check-version
+    if: needs.check-version.outputs.should_release == 'true'
     runs-on: macos-latest
 
     steps:
@@ -119,6 +159,8 @@ jobs:
 
   build-windows:
     name: Build Windows Release & Installer
+    needs: check-version
+    if: needs.check-version.outputs.should_release == 'true'
     runs-on: windows-latest
 
     steps:
@@ -160,6 +202,8 @@ jobs:
 
   build-linux:
     name: Build Linux Release (.tar.gz, .zip)
+    needs: check-version
+    if: needs.check-version.outputs.should_release == 'true'
     runs-on: ubuntu-latest
 
     steps:
@@ -201,6 +245,8 @@ jobs:
 
   build-android:
     name: Build Android Release (.apk, .aab) & Google Play
+    needs: check-version
+    if: needs.check-version.outputs.should_release == 'true'
     runs-on: ubuntu-latest
 
     steps:
@@ -285,6 +331,8 @@ jobs:
 
   build-ios:
     name: Build iOS Release & App Store Connect / TestFlight
+    needs: check-version
+    if: needs.check-version.outputs.should_release == 'true'
     runs-on: macos-latest
 
     steps:
@@ -448,6 +496,8 @@ jobs:
 
   build-extension:
     name: Build Browser Extensions (Chrome, Firefox, Safari)
+    needs: check-version
+    if: needs.check-version.outputs.should_release == 'true'
     runs-on: ubuntu-latest
 
     steps:
@@ -483,6 +533,8 @@ jobs:
 
   build-and-deploy-web:
     name: Build & Deploy Web to Cloudflare
+    needs: check-version
+    if: needs.check-version.outputs.should_release == 'true'
     runs-on: ubuntu-latest
 
     steps:
@@ -540,8 +592,8 @@ jobs:
 
   create-release:
     name: Publish GitHub Release
-    if: always() && !cancelled()
-    needs: [build-macos, build-windows, build-linux, build-android, build-ios, build-extension, build-and-deploy-web]
+    needs: [check-version, build-macos, build-windows, build-linux, build-android, build-ios, build-extension, build-and-deploy-web]
+    if: always() && !cancelled() && needs.check-version.outputs.should_release == 'true'
     runs-on: ubuntu-latest
 
     steps:
