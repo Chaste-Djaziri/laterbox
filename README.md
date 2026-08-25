@@ -127,7 +127,7 @@ If you use LaterBox or its local-first SQLite sync architecture in academic rese
   title = {LaterBox: A Local-First, Cross-Platform Personal Knowledge Vault & Universal Bookmarking Toolkit},
   url = {https://laterbox.dev},
   year = {2026},
-  publisher = {GitHub}
+  publisher = {LaterBox}
 }
 ```
 
