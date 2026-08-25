@@ -164,6 +164,11 @@ async function savePage(): Promise<void> {
   await showResult(await saveCapture({
     url: page.url,
     title: page.title,
+    description: page.description,
+    previewImageUrl: page.previewImageUrl,
+    faviconUrl: page.faviconUrl,
+    siteName: page.siteName,
+    os: page.os,
     source: "browserExtension",
     createdAt: new Date().toISOString(),
   }), saveButton);
