@@ -8,6 +8,8 @@ version: "1.0.81"
 date-released: 2026-08-25
 url: "https://laterbox.dev"
 repository-code: "https://github.com/Chaste-Djaziri/laterbox"
+publisher:
+  name: "LaterBox"
 license: "PolyForm-Noncommercial-1.0.0"
 keywords:
   - "local-first"
