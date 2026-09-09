@@ -20,6 +20,7 @@ import 'features/attachments/domain/attachment_import_result.dart';
 import 'features/capture/domain/capture_providers.dart';
 import 'features/capture/domain/capture_payload.dart';
 import 'features/capture/domain/native_share_payload.dart';
+import 'features/desktop_notch/presentation/desktop_notch_island.dart';
 import 'features/quick_capture/presentation/quick_capture_screen.dart';
 
 class LaterBoxApp extends ConsumerStatefulWidget {
@@ -236,6 +237,12 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
         (controller) => controller.isActive,
       ),
     );
+    final isDockedToNotch = ref.watch(
+      desktopNotchServiceProvider.select(
+        (service) => service.isDockedToNotch,
+      ),
+    );
+
     return MaterialApp.router(
       title: 'laterbox',
       debugShowCheckedModeBanner: false,
@@ -243,17 +250,22 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
       routerConfig: ref.watch(appRouterProvider),
       scrollBehavior: const LaterBoxScrollBehavior(),
       builder: (context, child) {
-        final content = quickCaptureActive
-            ? Material(
-                child: Overlay(
-                  initialEntries: [
-                    OverlayEntry(
-                      builder: (context) => const QuickCaptureScreen(),
-                    ),
-                  ],
+        final Widget content;
+        if (quickCaptureActive) {
+          content = Material(
+            child: Overlay(
+              initialEntries: [
+                OverlayEntry(
+                  builder: (context) => const QuickCaptureScreen(),
                 ),
-              )
-            : (child ?? const SizedBox.shrink());
+              ],
+            ),
+          );
+        } else if (isDockedToNotch) {
+          content = const DesktopNotchIsland();
+        } else {
+          content = child ?? const SizedBox.shrink();
+        }
         return WebUpdateBannerOverlay(child: content);
       },
     );
