@@ -52,7 +52,6 @@ struct PendingShareCapture: Codable {
 final class ShareCaptureQueue {
     private let appGroupId: String
     private let groupDefaults: UserDefaults?
-    private let standardDefaults: UserDefaults
     private let groupContainerURL: URL?
     private let fallbackContainerURL: URL
     private let key = "laterbox.pendingShareCaptures"
@@ -60,14 +59,17 @@ final class ShareCaptureQueue {
     init(appGroupId: String = "group.pro.micorp.laterbox") {
         self.appGroupId = appGroupId
         self.groupDefaults = UserDefaults(suiteName: appGroupId)
-        self.standardDefaults = UserDefaults.standard
 
         let container = FileManager.default.containerURL(
             forSecurityApplicationGroupIdentifier: appGroupId
         )
         self.groupContainerURL = container
 
-        // Robust fallback directories accessible in app sandbox
+        if container == nil {
+            NSLog("[LaterBox WARNING] App Group container for '\(appGroupId)' is nil. Verify entitlements and provisioning.")
+        }
+
+        // Fallback directory accessible in app sandbox
         if let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first {
             self.fallbackContainerURL = docs.appendingPathComponent("LaterBoxShare", isDirectory: true)
         } else if let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first {
@@ -112,12 +114,9 @@ final class ShareCaptureQueue {
     @discardableResult
     func enqueue(_ capture: PendingShareCapture) -> Bool {
         var captures = readAll()
-        let isDuplicate = captures.contains { existing in
-            existing.id == capture.id ||
-                (capture.value != nil && !capture.value!.isEmpty && existing.value?.trimmingCharacters(in: .whitespacesAndNewlines) == capture.value?.trimmingCharacters(in: .whitespacesAndNewlines)) ||
-                (!capture.filePaths.isEmpty && existing.filePaths == capture.filePaths)
+        if captures.contains(where: { $0.id == capture.id }) {
+            return true
         }
-        if isDuplicate { return true }
         captures.append(capture)
 
         guard let data = try? JSONEncoder().encode(captures) else { return false }
@@ -136,7 +135,7 @@ final class ShareCaptureQueue {
                     try data.write(to: fileURL)
                     writeSucceeded = true
                 } catch {
-                    // Continue to fallback channels
+                    NSLog("[LaterBox] Could not write to queue file at \(fileURL.path): \(error)")
                 }
             }
         }
@@ -148,13 +147,6 @@ final class ShareCaptureQueue {
             if groupDefaults.data(forKey: key) != nil {
                 writeSucceeded = true
             }
-        }
-
-        // 3. Write to standard UserDefaults
-        standardDefaults.set(data, forKey: key)
-        standardDefaults.synchronize()
-        if standardDefaults.data(forKey: key) != nil {
-            writeSucceeded = true
         }
 
         return writeSucceeded
@@ -180,17 +172,13 @@ final class ShareCaptureQueue {
             }
         }
 
-        // 2. Read from App Group UserDefaults
-        if let groupDefaults,
-           let groupData = groupDefaults.data(forKey: key),
-           let decoded = try? JSONDecoder().decode([PendingShareCapture].self, from: groupData) {
-            appendUnique(decoded)
-        }
-
-        // 3. Read from standard UserDefaults
-        if let stdData = standardDefaults.data(forKey: key),
-           let decoded = try? JSONDecoder().decode([PendingShareCapture].self, from: stdData) {
-            appendUnique(decoded)
+        // 2. Read from App Group UserDefaults (sync first for cross-process updates)
+        if let groupDefaults {
+            groupDefaults.synchronize()
+            if let groupData = groupDefaults.data(forKey: key),
+               let decoded = try? JSONDecoder().decode([PendingShareCapture].self, from: groupData) {
+                appendUnique(decoded)
+            }
         }
 
         return captures
@@ -203,8 +191,6 @@ final class ShareCaptureQueue {
         }
         groupDefaults?.removeObject(forKey: key)
         groupDefaults?.synchronize()
-        standardDefaults.removeObject(forKey: key)
-        standardDefaults.synchronize()
     }
 
     @discardableResult
@@ -229,8 +215,6 @@ final class ShareCaptureQueue {
 
         groupDefaults?.set(data, forKey: key)
         groupDefaults?.synchronize()
-        standardDefaults.set(data, forKey: key)
-        standardDefaults.synchronize()
         return true
     }
 
