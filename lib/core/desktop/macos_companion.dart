@@ -152,4 +152,30 @@ class MacOSCompanion {
       return false;
     }
   }
+
+  static Future<void> reportCaptureCompleted({
+    required String id,
+    required String title,
+    required String value,
+    required String kind,
+  }) async {
+    if (kIsWeb || !Platform.isMacOS) return;
+    await _channel.invokeMethod<void>('captureCompleted', {
+      'id': id,
+      'title': title,
+      'value': value,
+      'kind': kind,
+    });
+  }
+
+  static Future<void> reportCaptureFailed({
+    required String id,
+    required String message,
+  }) async {
+    if (kIsWeb || !Platform.isMacOS) return;
+    await _channel.invokeMethod<void>('captureFailed', {
+      'id': id,
+      'message': message,
+    });
+  }
 }
