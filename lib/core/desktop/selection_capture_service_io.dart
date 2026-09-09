@@ -42,6 +42,65 @@ class SelectionCaptureService {
     }
   }
 
+  /// Queries the active browser tab URL and title if the frontmost app is a browser.
+  Future<Map<String, String>?> readActiveBrowserTab({String? appName}) async {
+    try {
+      final raw = await _channel.invokeMethod<Map<dynamic, dynamic>>(
+        'readActiveBrowserTab',
+        appName != null ? {'appName': appName} : null,
+      );
+      if (raw == null) return null;
+      return raw.map((k, v) => MapEntry(k.toString(), v.toString()));
+    } on Object catch (error) {
+      debugPrint('[LaterBox] active browser lookup failed: $error');
+      return null;
+    }
+  }
+
+  /// Gathers active screen context: frontmost app, active URL, title, selected text, and highlight URL.
+  Future<ScreenCaptureContext?> readScreenContext() async {
+    try {
+      final raw = await _channel.invokeMethod<Map<dynamic, dynamic>>(
+        'readScreenContext',
+      );
+      if (raw == null) return null;
+      return ScreenCaptureContext.fromMap(raw);
+    } on Object catch (error) {
+      debugPrint('[LaterBox] screen context lookup failed: $error');
+      return null;
+    }
+  }
+
+  /// Builds a W3C Scroll-to-Text Fragment URL for direct word highlight navigation.
+  static String formatTextFragmentUrl(String baseUrl, String selectedText) {
+    final cleanUrl = baseUrl.split('#').first;
+    if (baseUrl.contains(':~:text=')) return baseUrl;
+
+    final cleanSnippet = selectedText.trim().replaceAll(RegExp(r'^["“”\s]+|["“”\s]+$'), '');
+    final words = cleanSnippet.split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
+    if (words.isEmpty) return cleanUrl;
+
+    final String encodedDirective;
+    if (words.length > 10) {
+      final start = words.take(3).join(' ');
+      final end = words.skip(words.length - 3).join(' ');
+      encodedDirective = '${Uri.encodeComponent(start)},${Uri.encodeComponent(end)}';
+    } else {
+      encodedDirective = Uri.encodeComponent(cleanSnippet);
+    }
+
+    return '$cleanUrl#:~:text=$encodedDirective';
+  }
+
+  /// Requests the macOS accessibility prompt if not yet granted.
+  Future<bool> requestAccessibilityPermission() async {
+    try {
+      return await _channel.invokeMethod<bool>('requestAccessibilityPermission') ?? false;
+    } on Object {
+      return false;
+    }
+  }
+
   /// Whether the host app holds Accessibility permission (`AXIsProcessTrusted`).
   Future<bool> isAccessibilityTrusted() async {
     try {
