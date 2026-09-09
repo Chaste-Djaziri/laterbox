@@ -40,7 +40,7 @@ final class ShareViewController: NSViewController {
         loadFilesSequentially(fileProviders, captureId: captureId, index: 0, paths: []) {
             [weak self] paths, failures in
             guard let self else { return }
-            self.loadOptionalText(from: providers, fallback: initialText) { text in
+            self.loadOptionalContent(from: providers, fallback: initialText) { text in
                 DispatchQueue.main.async {
                     self.save(captureId: captureId, text: text, filePaths: paths, failureCount: failures)
                 }
@@ -125,23 +125,49 @@ final class ShareViewController: NSViewController {
         }
     }
 
-    private func loadOptionalText(
+    private func loadOptionalContent(
         from providers: [NSItemProvider],
         fallback: String?,
         completion: @escaping (String?) -> Void
     ) {
-        if let fallback = normalizedText(fallback) {
-            completion(fallback)
-            return
+        loadSharedURL(from: providers) { [weak self] url in
+            guard let self else { return }
+            if let selectedText = self.normalizedText(fallback) {
+                completion(url.map { "\(selectedText)\n\($0)" } ?? selectedText)
+                return
+            }
+            guard let provider = providers.first(where: {
+                $0.suggestedName == nil && $0.hasItemConformingToTypeIdentifier(UTType.plainText.identifier)
+            }) else {
+                completion(url)
+                return
+            }
+            provider.loadItem(forTypeIdentifier: UTType.plainText.identifier, options: nil) { item, _ in
+                let text = self.normalizedText(item as? String)
+                if let text, let url {
+                    completion("\(text)\n\(url)")
+                } else {
+                    completion(text ?? url)
+                }
+            }
         }
+    }
+
+    private func loadSharedURL(from providers: [NSItemProvider], completion: @escaping (String?) -> Void) {
         guard let provider = providers.first(where: {
-            $0.suggestedName == nil && $0.hasItemConformingToTypeIdentifier(UTType.plainText.identifier)
+            $0.hasItemConformingToTypeIdentifier(UTType.url.identifier)
         }) else {
             completion(nil)
             return
         }
-        provider.loadItem(forTypeIdentifier: UTType.plainText.identifier, options: nil) { item, _ in
-            completion(item as? String)
+        provider.loadItem(forTypeIdentifier: UTType.url.identifier, options: nil) { item, _ in
+            if let url = item as? URL {
+                completion(url.absoluteString)
+            } else if let value = item as? String {
+                completion(value)
+            } else {
+                completion(nil)
+            }
         }
     }
 
