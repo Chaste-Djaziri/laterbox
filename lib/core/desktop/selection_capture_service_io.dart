@@ -106,6 +106,17 @@ class SelectionCaptureService {
     }
   }
 
+  /// Sets native macOS window attributes (frameless, transparent, statusBar level)
+  /// when docked to the hardware notch.
+  Future<bool> setNotchWindowStyle(bool isNotch) async {
+    try {
+      return await _channel.invokeMethod<bool>('setNotchWindowStyle', {'isNotch': isNotch}) ?? false;
+    } on Object catch (error) {
+      debugPrint('[LaterBox] setNotchWindowStyle failed: $error');
+      return false;
+    }
+  }
+
   /// Requests the macOS accessibility prompt if not yet granted.
   Future<bool> requestAccessibilityPermission() async {
     try {
