@@ -1,5 +1,6 @@
-import 'dart:ui';
 import 'package:flutter/foundation.dart';
+
+import 'selection_capture_service.dart';
 
 enum NotchDisplayMode {
   fullWindow,
@@ -8,6 +9,8 @@ enum NotchDisplayMode {
 }
 
 class DesktopNotchService extends ChangeNotifier {
+  DesktopNotchService([SelectionCaptureService? captureService]);
+
   NotchDisplayMode get mode => NotchDisplayMode.fullWindow;
   bool get isDockedToNotch => false;
   bool get isIslandExpanded => false;
