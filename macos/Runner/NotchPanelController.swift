@@ -1,451 +1,221 @@
 import AppKit
 import Foundation
 
-/// Custom NSView for the macOS camera notch floating Dynamic Island.
-/// Supports hover expansion, live candidate prompts, and direct drag-and-drop captures.
-final class NotchPanelView: NSView {
-  weak var controller: NotchPanelController?
-  private var trackingArea: NSTrackingArea?
+enum NotchCaptureSource: String { case clipboard, watchMode, dragDrop, macosService, macosShare }
+enum NotchContentKind: String { case link, highlight, note, image, pdf, document }
 
-  var isHovered: Bool = false {
-    didSet { needsDisplay = true }
-  }
-  var isDragTarget: Bool = false {
-    didSet { needsDisplay = true }
-  }
+struct NotchCaptureCandidate {
+  let id: String
+  let title: String
+  let url: String?
+  let text: String?
+  let source: NotchCaptureSource
+  let kind: NotchContentKind
+}
 
-  // Active candidate detected by Watch Mode
-  var currentCandidate: ScreenCandidate? {
-    didSet { needsDisplay = true }
-  }
+struct NotchSaveReceipt {
+  let id: String
+  let title: String
+  let value: String
+  let kind: NotchContentKind
+  let savedAt: Date
+}
 
-  var isWatching: Bool = false {
-    didSet { needsDisplay = true }
-  }
+enum NotchPanelState {
+  case idle, dragTarget
+  case clipboardPrompt(NotchCaptureCandidate)
+  case watchCandidate(NotchCaptureCandidate)
+  case saving(NotchCaptureCandidate)
+  case saved(NotchSaveReceipt)
+  case failed(NotchCaptureCandidate, String)
 
-  override init(frame frameRect: NSRect) {
-    super.init(frame: frameRect)
-    registerForDraggedTypes([.URL, .fileURL, .string, .tiff])
-  }
-
-  required init?(coder: NSCoder) {
-    super.init(coder: coder)
-    registerForDraggedTypes([.URL, .fileURL, .string, .tiff])
-  }
-
-  override func updateTrackingAreas() {
-    super.updateTrackingAreas()
-    if let trackingArea = trackingArea {
-      removeTrackingArea(trackingArea)
-    }
-    let area = NSTrackingArea(
-      rect: bounds,
-      options: [.mouseEnteredAndExited, .activeAlways, .inVisibleRect],
-      owner: self,
-      userInfo: nil
-    )
-    addTrackingArea(area)
-    self.trackingArea = area
-  }
-
-  override func mouseEntered(with event: NSEvent) {
-    super.mouseEntered(with: event)
-    controller?.onMouseEntered()
-  }
-
-  override func mouseExited(with event: NSEvent) {
-    super.mouseExited(with: event)
-    controller?.onMouseExited()
-  }
-
-  override func mouseDown(with event: NSEvent) {
-    let location = convert(event.locationInWindow, from: nil)
-
-    if controller?.isExpanded == true {
-      // Check for button clicks inside expanded island
-      if let candidate = currentCandidate {
-        let saveRect = NSRect(x: bounds.width - 130, y: 14, width: 116, height: 30)
-        let ignoreRect = NSRect(x: bounds.width - 220, y: 14, width: 80, height: 30)
-
-        if NSPointInRect(location, saveRect) {
-          controller?.saveCandidate(candidate)
-          currentCandidate = nil
-          needsDisplay = true
-          return
-        } else if NSPointInRect(location, ignoreRect) {
-          currentCandidate = nil
-          needsDisplay = true
-          return
-        }
-      }
-
-      // Open LaterBox button
-      let openAppRect = NSRect(x: 14, y: 14, width: 120, height: 30)
-      if NSPointInRect(location, openAppRect) {
-        controller?.openLaterBox()
-        return
-      }
-
-      // Toggle Watch Mode button
-      let watchRect = NSRect(x: 142, y: 14, width: 110, height: 30)
-      if NSPointInRect(location, watchRect) {
-        controller?.toggleWatchMode()
-        return
-      }
-    } else {
-      // Clicking collapsed pill expands it immediately
-      controller?.expand()
-    }
-  }
-
-  // MARK: - Drag & Drop
-
-  override func draggingEntered(_ sender: NSDraggingInfo) -> NSDragOperation {
-    isDragTarget = true
-    if controller?.isExpanded == false {
-      controller?.expand()
-    }
-    return .copy
-  }
-
-  override func draggingExited(_ sender: NSDraggingInfo?) {
-    isDragTarget = false
-  }
-
-  override func performDragOperation(_ sender: NSDraggingInfo) -> Bool {
-    isDragTarget = false
-    let pasteboard = sender.draggingPasteboard
-    var droppedItems: [String] = []
-
-    if let urls = pasteboard.readObjects(forClasses: [NSURL.self], options: nil) as? [URL] {
-      for url in urls {
-        droppedItems.append(url.isFileURL ? url.path : url.absoluteString)
-      }
-    } else if let strings = pasteboard.readObjects(forClasses: [NSString.self], options: nil) as? [String] {
-      for str in strings {
-        droppedItems.append(str)
-      }
-    }
-
-    guard !droppedItems.isEmpty else { return false }
-    controller?.handleDroppedItems(droppedItems)
-    return true
-  }
-
-  // MARK: - Drawing
-
-  override func draw(_ dirtyRect: NSRect) {
-    super.draw(dirtyRect)
-
-    let isExpanded = controller?.isExpanded ?? false
-    let cornerRadius: CGFloat = isExpanded ? 20.0 : 14.0
-
-    // Draw Notch Pill / Island Body
-    NSColor.black.withAlphaComponent(0.98).setFill()
-    let path = NSBezierPath(
-      roundedRect: bounds,
-      xRadius: cornerRadius,
-      yRadius: cornerRadius
-    )
-    path.fill()
-
-    // Border highlight
-    let borderColor = isDragTarget
-      ? NSColor(red: 0.85, green: 0.95, blue: 0.3, alpha: 0.9)
-      : (isHovered
-          ? NSColor(red: 0.85, green: 0.95, blue: 0.3, alpha: 0.4)
-          : NSColor.white.withAlphaComponent(0.12))
-    borderColor.setStroke()
-    path.lineWidth = isDragTarget ? 2.0 : 1.0
-    path.stroke()
-
-    if isExpanded {
-      drawExpandedContent()
-    } else {
-      drawCollapsedContent()
-    }
-  }
-
-  private func drawCollapsedContent() {
-    // Glowing accent dot
-    let dotRect = NSRect(x: 14, y: (bounds.height - 8) / 2, width: 8, height: 8)
-    let dotColor = isWatching
-      ? NSColor(red: 0.85, green: 0.95, blue: 0.3, alpha: 1.0)
-      : NSColor.white.withAlphaComponent(0.6)
-    dotColor.setFill()
-    NSBezierPath(ovalIn: dotRect).fill()
-
-    // Text label
-    let text = currentCandidate != nil ? "1 Suggestion Ready" : "laterbox"
-    let attrs: [NSAttributedString.Key: Any] = [
-      .foregroundColor: NSColor.white,
-      .font: NSFont.systemFont(ofSize: 11.5, weight: .semibold)
-    ]
-    let stringRect = NSRect(x: 28, y: (bounds.height - 14) / 2, width: bounds.width - 40, height: 16)
-    text.draw(in: stringRect, withAttributes: attrs)
-  }
-
-  private func drawExpandedContent() {
-    // Header Bar: "LATERBOX"
-    let titleAttrs: [NSAttributedString.Key: Any] = [
-      .foregroundColor: NSColor(red: 0.85, green: 0.95, blue: 0.3, alpha: 1.0),
-      .font: NSFont.systemFont(ofSize: 10, weight: .heavy),
-      .kern: 0.8
-    ]
-    "LATERBOX DYNAMIC NOTCH".draw(at: NSPoint(x: 16, y: bounds.height - 24), withAttributes: titleAttrs)
-
-    // Center Card: Candidate or Dropzone
-    if let candidate = currentCandidate {
-      let cardRect = NSRect(x: 14, y: 52, width: bounds.width - 28, height: 96)
-      NSColor.white.withAlphaComponent(0.06).setFill()
-      let cardPath = NSBezierPath(roundedRect: cardRect, xRadius: 10, yRadius: 10)
-      cardPath.fill()
-
-      let candidateTitleAttrs: [NSAttributedString.Key: Any] = [
-        .foregroundColor: NSColor.white,
-        .font: NSFont.systemFont(ofSize: 13, weight: .semibold)
-      ]
-      let candidateTitleRect = NSRect(x: 24, y: cardRect.maxY - 28, width: cardRect.width - 20, height: 20)
-      candidate.title.draw(in: candidateTitleRect, withAttributes: candidateTitleAttrs)
-
-      if let url = candidate.url {
-        let urlAttrs: [NSAttributedString.Key: Any] = [
-          .foregroundColor: NSColor(red: 0.85, green: 0.95, blue: 0.3, alpha: 0.8),
-          .font: NSFont.systemFont(ofSize: 11, weight: .regular)
-        ]
-        let urlRect = NSRect(x: 24, y: cardRect.maxY - 46, width: cardRect.width - 20, height: 16)
-        url.draw(in: urlRect, withAttributes: urlAttrs)
-      }
-
-      // Buttons
-      drawButton(title: "Save to Box", rect: NSRect(x: bounds.width - 130, y: 14, width: 116, height: 30), isAccent: true)
-      drawButton(title: "Ignore", rect: NSRect(x: bounds.width - 220, y: 14, width: 80, height: 30), isAccent: false)
-    } else {
-      // Drop zone prompt
-      let dropRect = NSRect(x: 14, y: 52, width: bounds.width - 28, height: 96)
-      NSColor.white.withAlphaComponent(0.04).setFill()
-      let dropPath = NSBezierPath(roundedRect: dropRect, xRadius: 10, yRadius: 10)
-      dropPath.fill()
-      NSColor.white.withAlphaComponent(0.1).setStroke()
-      dropPath.lineWidth = 1.0
-      dropPath.stroke()
-
-      let promptAttrs: [NSAttributedString.Key: Any] = [
-        .foregroundColor: NSColor.white.withAlphaComponent(0.7),
-        .font: NSFont.systemFont(ofSize: 12, weight: .medium)
-      ]
-      let promptText = isDragTarget ? "Release to save in LaterBox" : "Drop URLs, images, PDFs or text here to save"
-      promptText.draw(at: NSPoint(x: 24, y: dropRect.midY + 4), withAttributes: promptAttrs)
-
-      let subAttrs: [NSAttributedString.Key: Any] = [
-        .foregroundColor: NSColor.white.withAlphaComponent(0.4),
-        .font: NSFont.systemFont(ofSize: 10.5, weight: .regular)
-      ]
-      "Or let Watch Mode automatically capture articles and tabs".draw(at: NSPoint(x: 24, y: dropRect.midY - 16), withAttributes: subAttrs)
-
-      // Footer Actions
-      drawButton(title: "Open App", rect: NSRect(x: 14, y: 14, width: 120, height: 30), isAccent: false)
-      let watchLabel = isWatching ? "Watch: ON" : "Watch: OFF"
-      drawButton(title: watchLabel, rect: NSRect(x: 142, y: 14, width: 110, height: 30), isAccent: isWatching)
-    }
-  }
-
-  private func drawButton(title: String, rect: NSRect, isAccent: Bool) {
-    let path = NSBezierPath(roundedRect: rect, xRadius: 8, yRadius: 8)
-    if isAccent {
-      NSColor(red: 0.85, green: 0.95, blue: 0.3, alpha: 1.0).setFill()
-      path.fill()
-      let attrs: [NSAttributedString.Key: Any] = [
-        .foregroundColor: NSColor.black,
-        .font: NSFont.systemFont(ofSize: 11.5, weight: .bold)
-      ]
-      let size = title.size(withAttributes: attrs)
-      title.draw(at: NSPoint(x: rect.midX - size.width / 2, y: rect.midY - size.height / 2), withAttributes: attrs)
-    } else {
-      NSColor.white.withAlphaComponent(0.12).setFill()
-      path.fill()
-      let attrs: [NSAttributedString.Key: Any] = [
-        .foregroundColor: NSColor.white,
-        .font: NSFont.systemFont(ofSize: 11.5, weight: .semibold)
-      ]
-      let size = title.size(withAttributes: attrs)
-      title.draw(at: NSPoint(x: rect.midX - size.width / 2, y: rect.midY - size.height / 2), withAttributes: attrs)
+  var preventsCollapse: Bool {
+    switch self {
+    case .clipboardPrompt, .watchCandidate, .saving, .failed, .dragTarget: return true
+    case .idle, .saved: return false
     }
   }
 }
 
-/// Manages the floating NSPanel attached to the native macOS camera notch.
+final class NotchPanelView: NSView {
+  weak var controller: NotchPanelController?
+  private var tracking: NSTrackingArea?
+
+  override init(frame: NSRect) {
+    super.init(frame: frame)
+    registerForDraggedTypes([.URL, .fileURL, .string, .tiff, .pdf])
+    setAccessibilityRole(.group)
+    setAccessibilityLabel("LaterBox notch")
+  }
+  required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+  override var acceptsFirstResponder: Bool { true }
+
+  override func updateTrackingAreas() {
+    super.updateTrackingAreas()
+    if let tracking { removeTrackingArea(tracking) }
+    tracking = NSTrackingArea(rect: bounds, options: [.mouseEnteredAndExited, .activeAlways, .inVisibleRect], owner: self)
+    addTrackingArea(tracking!)
+  }
+  override func mouseEntered(with event: NSEvent) { controller?.onMouseEntered() }
+  override func mouseExited(with event: NSEvent) { controller?.onMouseExited() }
+  override func keyDown(with event: NSEvent) {
+    if event.keyCode == 36 || event.keyCode == 49 { controller?.performPrimaryAction() }
+    else if event.keyCode == 53 { controller?.dismissCurrentState() }
+    else { super.keyDown(with: event) }
+  }
+  override func mouseDown(with event: NSEvent) {
+    guard let controller else { return }
+    if !controller.isExpanded { controller.expand(); return }
+    let point = convert(event.locationInWindow, from: nil)
+    if primary.contains(point) { controller.performPrimaryAction() }
+    else if secondary.contains(point) { controller.dismissCurrentState() }
+    else if copy.contains(point) { controller.copyLatestReceipt() }
+    else if remove.contains(point) { controller.removeLatestReceipt() }
+    else if open.contains(point) { controller.openLaterBox() }
+  }
+
+  override func draggingEntered(_ sender: NSDraggingInfo) -> NSDragOperation { controller?.beginDragTarget(); return .copy }
+  override func draggingExited(_ sender: NSDraggingInfo?) { controller?.endDragTarget() }
+  override func performDragOperation(_ sender: NSDraggingInfo) -> Bool {
+    let board = sender.draggingPasteboard
+    var items = (board.readObjects(forClasses: [NSURL.self]) as? [URL])?.map { $0.isFileURL ? $0.path : $0.absoluteString } ?? []
+    if items.isEmpty { items = board.readObjects(forClasses: [NSString.self]) as? [String] ?? [] }
+    guard !items.isEmpty else { controller?.endDragTarget(); return false }
+    controller?.handleDroppedItems(items); return true
+  }
+
+  override func draw(_ dirtyRect: NSRect) {
+    super.draw(dirtyRect)
+    guard let controller else { return }
+    NSColor.black.setFill()
+    NSBezierPath(roundedRect: bounds, xRadius: controller.isExpanded ? 22 : controller.compactRadius, yRadius: controller.isExpanded ? 22 : controller.compactRadius).fill()
+    guard controller.isExpanded else { return }
+    let card = NSRect(x: 14, y: 54, width: bounds.width - 28, height: bounds.height - 70)
+    NSColor.white.withAlphaComponent(0.07).setFill()
+    NSBezierPath(roundedRect: card, xRadius: 14, yRadius: 14).fill()
+    drawContent(controller, card: card)
+  }
+
+  private func drawContent(_ controller: NotchPanelController, card: NSRect) {
+    var eyebrow = "LATERBOX", title = "Ready to save", detail = "Copy a link or meaningful text, or drop content here."
+    switch controller.state {
+    case .idle:
+      if !controller.receipts.isEmpty { title = "Recent saves"; detail = controller.receiptSummary }
+      if controller.isWatching { eyebrow = "WATCH MODE ON" }
+    case .clipboardPrompt(let item): eyebrow = "COPIED \(item.kind.rawValue.uppercased())"; title = item.title; detail = "Save this to LaterBox?"
+    case .watchCandidate(let item): eyebrow = "WATCH MODE FOUND \(item.kind.rawValue.uppercased())"; title = item.title; detail = "Review before saving."
+    case .saving(let item): eyebrow = "SAVING"; title = item.title; detail = "Adding this to your local LaterBox library…"
+    case .saved(let item): eyebrow = "SAVED \(item.kind.rawValue.uppercased())"; title = item.title; detail = "Available in LaterBox now."
+    case .failed(let item, let message): eyebrow = "COULD NOT SAVE"; title = item.title; detail = message
+    case .dragTarget: eyebrow = "DROP TO SAVE"; title = "Release your content"; detail = "Links, text, images, PDFs, and documents are supported."
+    }
+    let accent = NSColor(red: 0.82, green: 0.98, blue: 0.18, alpha: 1)
+    eyebrow.draw(at: NSPoint(x: 26, y: bounds.height - 31), withAttributes: [.foregroundColor: accent, .font: NSFont.systemFont(ofSize: 10, weight: .bold), .kern: 0.8])
+    drawLine(title, in: NSRect(x: 30, y: card.maxY - 38, width: card.width - 32, height: 22), color: .white, font: .systemFont(ofSize: 15, weight: .semibold))
+    drawLine(detail, in: NSRect(x: 30, y: card.maxY - 64, width: card.width - 32, height: 18), color: NSColor.white.withAlphaComponent(0.62), font: .systemFont(ofSize: 12))
+    drawButton(controller.primaryTitle, primary, true)
+    if controller.hasSecondary { drawButton("Dismiss", secondary, false) }
+    if controller.showsReceiptActions { drawButton("Copy", copy, false); drawButton("Remove", remove, false) }
+    drawButton("Open", open, false)
+  }
+  private func drawLine(_ value: String, in rect: NSRect, color: NSColor, font: NSFont) {
+    let style = NSMutableParagraphStyle(); style.lineBreakMode = .byTruncatingTail
+    value.draw(in: rect, withAttributes: [.foregroundColor: color, .font: font, .paragraphStyle: style])
+  }
+  private func drawButton(_ title: String, _ rect: NSRect, _ accent: Bool) {
+    let path = NSBezierPath(roundedRect: rect, xRadius: 9, yRadius: 9)
+    (accent ? NSColor(red: 0.82, green: 0.98, blue: 0.18, alpha: 1) : NSColor.white.withAlphaComponent(0.12)).setFill(); path.fill()
+    let attrs: [NSAttributedString.Key: Any] = [.foregroundColor: accent ? NSColor.black : NSColor.white, .font: NSFont.systemFont(ofSize: 11.5, weight: .semibold)]
+    let size = title.size(withAttributes: attrs); title.draw(at: NSPoint(x: rect.midX - size.width / 2, y: rect.midY - size.height / 2), withAttributes: attrs)
+  }
+  private var primary: NSRect { NSRect(x: 14, y: 14, width: 110, height: 30) }
+  private var secondary: NSRect { NSRect(x: 132, y: 14, width: 82, height: 30) }
+  private var copy: NSRect { NSRect(x: 222, y: 14, width: 58, height: 30) }
+  private var remove: NSRect { NSRect(x: 288, y: 14, width: 68, height: 30) }
+  private var open: NSRect { NSRect(x: bounds.width - 76, y: 14, width: 62, height: 30) }
+}
+
 final class NotchPanelController {
   private(set) var panel: NSPanel?
   private(set) var notchView: NotchPanelView?
-  private(set) var isExpanded: Bool = false
-
-  private var collapseTimer: Timer?
-
-  var onSaveCandidate: ((String, String?, String?) -> Void)?
+  private(set) var isExpanded = false
+  private(set) var state: NotchPanelState = .idle { didSet { notchView?.needsDisplay = true } }
+  private(set) var receipts: [NotchSaveReceipt] = [] { didSet { notchView?.needsDisplay = true } }
+  private(set) var isWatching = false
+  private(set) var compactRadius: CGFloat = 12
+  private var hoverTimer: Timer?, collapseTimer: Timer?, promptTimer: Timer?, clipboardTimer: Timer?
+  private var clipboardChangeCount = NSPasteboard.general.changeCount
+  private var recentClipboard: [String: Date] = [:]
+  private var stateBeforeDrag: NotchPanelState = .idle
+  var onCaptureRequested: ((NotchCaptureCandidate) -> Void)?
   var onOpenLaterBox: (() -> Void)?
   var onToggleWatchMode: ((Bool) -> Void)?
   var onDroppedItems: (([String]) -> Void)?
 
+  var primaryTitle: String {
+    switch state { case .clipboardPrompt, .watchCandidate: return "Save"; case .saving: return "Saving…"; case .failed: return "Retry"; case .idle: return isWatching ? "Watch On" : "Watch Off"; case .saved: return "Recent"; case .dragTarget: return "Drop Here" }
+  }
+  var hasSecondary: Bool { if case .clipboardPrompt = state { return true }; if case .watchCandidate = state { return true }; if case .failed = state { return true }; return false }
+  var showsReceiptActions: Bool { if case .saved = state { return true }; return false }
+  var receiptSummary: String { receipts.prefix(3).map { "\($0.kind.rawValue.capitalized): \($0.title)" }.joined(separator: "   •   ") }
+
   func show() {
-    if let panel = panel {
-      panel.orderFrontRegardless()
-      return
-    }
-
+    if let panel { panel.orderFrontRegardless(); startClipboardMonitoring(); return }
     guard let screen = targetScreen() else { return }
-
-    let frame = calculateCollapsedFrame(for: screen)
-    let panel = NSPanel(
-      contentRect: frame,
-      styleMask: [.borderless, .nonactivatingPanel],
-      backing: .buffered,
-      defer: false
-    )
-
-    panel.level = .statusBar
-    panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
-    panel.isOpaque = false
-    panel.backgroundColor = .clear
-    panel.hasShadow = false
-    panel.hidesOnDeactivate = false
-    panel.isMovable = false
-    panel.isReleasedWhenClosed = false
-
-    let view = NotchPanelView(frame: NSRect(origin: .zero, size: frame.size))
-    view.controller = self
-    panel.contentView = view
-    panel.orderFrontRegardless()
-
-    self.panel = panel
-    self.notchView = view
+    let frame = collapsedFrame(screen)
+    let panel = NSPanel(contentRect: frame, styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
+    panel.level = .statusBar; panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
+    panel.isOpaque = false; panel.backgroundColor = .clear; panel.hasShadow = false; panel.hidesOnDeactivate = false; panel.isMovable = false; panel.isReleasedWhenClosed = false
+    let view = NotchPanelView(frame: NSRect(origin: .zero, size: frame.size)); view.controller = self; panel.contentView = view; panel.orderFrontRegardless()
+    self.panel = panel; notchView = view; startClipboardMonitoring()
   }
-
-  func hide() {
-    panel?.orderOut(nil)
-    panel = nil
-    notchView = nil
+  func hide() { stopClipboardMonitoring(); invalidateTimers(); panel?.orderOut(nil); panel = nil; notchView = nil; isExpanded = false }
+  func setWatchingState(_ value: Bool) { isWatching = value; notchView?.needsDisplay = true }
+  func presentCandidate(_ item: ScreenCandidate) {
+    let candidate = NotchCaptureCandidate(id: UUID().uuidString, title: item.title, url: item.url, text: item.snippet, source: .watchMode, kind: item.url != nil && item.snippet != nil ? .highlight : item.url != nil ? .link : .note)
+    setPrompt(.watchCandidate(candidate))
   }
-
-  func setWatchingState(_ isWatching: Bool) {
-    notchView?.isWatching = isWatching
+  func presentExternalCandidate(_ candidate: NotchCaptureCandidate) { setPrompt(candidate.source == .clipboard ? .clipboardPrompt(candidate) : .watchCandidate(candidate)) }
+  func captureCompleted(id: String, title: String, value: String, kind: NotchContentKind) {
+    guard case .saving(let candidate) = state, candidate.id == id else { return }
+    let receipt = NotchSaveReceipt(id: id, title: title, value: value, kind: kind, savedAt: Date()); receipts.insert(receipt, at: 0); receipts = Array(receipts.prefix(3)); state = .saved(receipt); expand(); scheduleCollapse(2.4)
   }
-
-  func presentCandidate(_ candidate: ScreenCandidate) {
-    notchView?.currentCandidate = candidate
-    // If a candidate is found, expand automatically so the user can quickly accept or ignore.
-    expand()
+  func captureFailed(id: String, message: String) { guard case .saving(let item) = state, item.id == id else { return }; state = .failed(item, message); expand() }
+  func performPrimaryAction() {
+    switch state { case .clipboardPrompt(let item), .watchCandidate(let item), .failed(let item, _): promptTimer?.invalidate(); state = .saving(item); onCaptureRequested?(item); case .idle: toggleWatchMode(); case .saved: state = .idle; default: break }
   }
-
-  func expand() {
-    collapseTimer?.invalidate()
-    collapseTimer = nil
-    guard !isExpanded, let panel = panel, let screen = panel.screen ?? targetScreen() else { return }
-
-    isExpanded = true
-    let expandedFrame = calculateExpandedFrame(for: screen)
-
-    NSAnimationContext.runAnimationGroup { context in
-      context.duration = 0.22
-      context.timingFunction = CAMediaTimingFunction(name: .easeOut)
-      panel.animator().setFrame(expandedFrame, display: true)
-    } completionHandler: { [weak self] in
-      self?.notchView?.needsDisplay = true
-    }
+  func dismissCurrentState() { promptTimer?.invalidate(); state = .idle; scheduleCollapse(0.15) }
+  func copyLatestReceipt() { guard let item = receipts.first else { return }; let board = NSPasteboard.general; board.clearContents(); board.setString(item.value, forType: .string); recentClipboard[item.value] = Date(); clipboardChangeCount = board.changeCount }
+  func removeLatestReceipt() { guard !receipts.isEmpty else { return }; receipts.removeFirst(); state = .idle }
+  func openLaterBox() { onOpenLaterBox?() }
+  func toggleWatchMode() { isWatching.toggle(); onToggleWatchMode?(isWatching); notchView?.needsDisplay = true }
+  func handleDroppedItems(_ items: [String]) { state = .idle; onDroppedItems?(items) }
+  func beginDragTarget() { stateBeforeDrag = state; state = .dragTarget; expand() }
+  func endDragTarget() { if case .dragTarget = state { state = stateBeforeDrag } }
+  func onMouseEntered() { collapseTimer?.invalidate(); guard !isExpanded else { return }; hoverTimer?.invalidate(); hoverTimer = Timer.scheduledTimer(withTimeInterval: 0.12, repeats: false) { [weak self] _ in NSHapticFeedbackManager.defaultPerformer.perform(.alignment, performanceTime: .now); self?.expand() } }
+  func onMouseExited() { hoverTimer?.invalidate(); guard !state.preventsCollapse else { return }; scheduleCollapse(0.6) }
+  func expand() { hoverTimer?.invalidate(); collapseTimer?.invalidate(); guard !isExpanded, let panel, let screen = panel.screen ?? targetScreen() else { return }; isExpanded = true; animate(panel, expandedFrame(screen)) }
+  func collapse() { guard !state.preventsCollapse, isExpanded, let panel, let screen = panel.screen ?? targetScreen() else { return }; isExpanded = false; animate(panel, collapsedFrame(screen)) }
+  private func setPrompt(_ value: NotchPanelState) { promptTimer?.invalidate(); state = value; expand(); promptTimer = Timer.scheduledTimer(withTimeInterval: 8, repeats: false) { [weak self] _ in if let self, case .clipboardPrompt = self.state { self.dismissCurrentState() } else if let self, case .watchCandidate = self.state { self.dismissCurrentState() } } }
+  private func scheduleCollapse(_ delay: TimeInterval) { collapseTimer?.invalidate(); collapseTimer = Timer.scheduledTimer(withTimeInterval: delay, repeats: false) { [weak self] _ in self?.collapse() } }
+  private func animate(_ panel: NSPanel, _ frame: NSRect) { NSAnimationContext.runAnimationGroup { context in context.duration = 0.22; context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut); panel.animator().setFrame(frame, display: true) } completionHandler: { [weak self] in self?.notchView?.needsDisplay = true } }
+  private func startClipboardMonitoring() { guard clipboardTimer == nil else { return }; clipboardChangeCount = NSPasteboard.general.changeCount; clipboardTimer = Timer.scheduledTimer(withTimeInterval: 0.45, repeats: true) { [weak self] _ in self?.checkClipboard() } }
+  private func stopClipboardMonitoring() { clipboardTimer?.invalidate(); clipboardTimer = nil }
+  private func checkClipboard() {
+    let board = NSPasteboard.general; guard board.changeCount != clipboardChangeCount else { return }; clipboardChangeCount = board.changeCount
+    guard let value = board.string(forType: .string)?.trimmingCharacters(in: .whitespacesAndNewlines), eligible(value) else { return }
+    let isURL = webURL(value); let item = NotchCaptureCandidate(id: UUID().uuidString, title: isURL ? URL(string: value)?.host ?? value : value.replacingOccurrences(of: "\n", with: " "), url: isURL ? value : nil, text: isURL ? nil : value, source: .clipboard, kind: isURL ? .link : .note)
+    recentClipboard[value] = Date(); setPrompt(.clipboardPrompt(item))
   }
-
-  func collapse() {
-    collapseTimer?.invalidate()
-    collapseTimer = nil
-    guard isExpanded, let panel = panel, let screen = panel.screen ?? targetScreen() else { return }
-
-    isExpanded = false
-    let collapsedFrame = calculateCollapsedFrame(for: screen)
-
-    NSAnimationContext.runAnimationGroup { context in
-      context.duration = 0.22
-      context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
-      panel.animator().setFrame(collapsedFrame, display: true)
-    } completionHandler: { [weak self] in
-      self?.notchView?.needsDisplay = true
-    }
+  func eligible(_ value: String) -> Bool {
+    recentClipboard = recentClipboard.filter { Date().timeIntervalSince($0.value) < 30 }; guard recentClipboard[value] == nil else { return false }; if webURL(value) { return true }
+    guard value.count >= 20 && value.count <= 20_000 else { return false }; let compact = value.replacingOccurrences(of: " ", with: ""); if compact.range(of: "^[0-9]{4,8}$", options: .regularExpression) != nil { return false }
+    return !["password:", "passcode:", "one-time code", "verification code", "security code"].contains { value.lowercased().contains($0) }
   }
-
-  func onMouseEntered() {
-    collapseTimer?.invalidate()
-    collapseTimer = nil
-    expand()
-  }
-
-  func onMouseExited() {
-    collapseTimer?.invalidate()
-    // 500ms delay so quick cursor moves don't flicker
-    collapseTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: false) { [weak self] _ in
-      self?.collapse()
-    }
-  }
-
-  func saveCandidate(_ candidate: ScreenCandidate) {
-    onSaveCandidate?(candidate.title, candidate.url, candidate.snippet)
-    collapse()
-  }
-
-  func openLaterBox() {
-    onOpenLaterBox?()
-  }
-
-  func toggleWatchMode() {
-    let nextState = !(notchView?.isWatching ?? false)
-    notchView?.isWatching = nextState
-    onToggleWatchMode?(nextState)
-  }
-
-  func handleDroppedItems(_ items: [String]) {
-    onDroppedItems?(items)
-  }
-
-  // MARK: - Geometry & Notch Sizing
-
-  private func calculateCollapsedFrame(for screen: NSScreen) -> NSRect {
-    let notchWidth = calculateNotchWidth(screen)
-    let hasNotch: Bool
-    let notchHeight: CGFloat
-    if #available(macOS 12.0, *) {
-      notchHeight = screen.safeAreaInsets.top
-      hasNotch = notchHeight > 0
-    } else {
-      notchHeight = 0
-      hasNotch = false
-    }
-
-    let width: CGFloat = hasNotch ? max(notchWidth + 24, 220) : 220
-    let height: CGFloat = hasNotch ? max(notchHeight, 36) : 34
-
-    let x = screen.frame.midX - width / 2
-    let y = screen.frame.maxY - height
-    return NSRect(x: x, y: y, width: width, height: height)
-  }
-
-  private func calculateExpandedFrame(for screen: NSScreen) -> NSRect {
-    let width: CGFloat = 460
-    let height: CGFloat = 176
-
-    let x = screen.frame.midX - width / 2
-    let y = screen.frame.maxY - height
-    return NSRect(x: x, y: y, width: width, height: height)
-  }
-
-  private func calculateNotchWidth(_ screen: NSScreen) -> CGFloat {
-    if #available(macOS 12.0, *) {
-      if let left = screen.auxiliaryTopLeftArea, let right = screen.auxiliaryTopRightArea {
-        return max(0, right.minX - left.maxX)
-      }
-    }
-    return 180
-  }
-
-  private func targetScreen() -> NSScreen? {
-    let mouse = NSEvent.mouseLocation
-    return NSScreen.screens.first { NSMouseInRect(mouse, $0.frame, false) } ?? NSScreen.main
-  }
+  private func webURL(_ value: String) -> Bool { guard let parts = URLComponents(string: value), let scheme = parts.scheme?.lowercased() else { return false }; return (scheme == "http" || scheme == "https") && parts.host?.isEmpty == false }
+  private func invalidateTimers() { [hoverTimer, collapseTimer, promptTimer, clipboardTimer].forEach { $0?.invalidate() }; hoverTimer = nil; collapseTimer = nil; promptTimer = nil; clipboardTimer = nil }
+  private func collapsedFrame(_ screen: NSScreen) -> NSRect { let shape = geometry(screen); compactRadius = shape.notched ? min(12, shape.height / 2) : shape.height / 2; return NSRect(x: screen.frame.midX - shape.width / 2, y: screen.frame.maxY - shape.height, width: shape.width, height: shape.height) }
+  private func expandedFrame(_ screen: NSScreen) -> NSRect { let width = min(460, screen.visibleFrame.width - 32); return NSRect(x: screen.frame.midX - width / 2, y: screen.frame.maxY - 178, width: width, height: 178) }
+  private func geometry(_ screen: NSScreen) -> (width: CGFloat, height: CGFloat, notched: Bool) { if #available(macOS 12.0, *), screen.safeAreaInsets.top > 0, let left = screen.auxiliaryTopLeftArea, let right = screen.auxiliaryTopRightArea { return (max(1, right.minX - left.maxX), screen.safeAreaInsets.top, true) }; return (180, 30, false) }
+  private func targetScreen() -> NSScreen? { let mouse = NSEvent.mouseLocation; return NSScreen.screens.first { NSMouseInRect(mouse, $0.frame, false) } ?? NSScreen.main }
 }
