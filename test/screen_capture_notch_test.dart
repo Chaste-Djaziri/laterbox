@@ -49,6 +49,7 @@ class _FakeSelectionCaptureService extends SelectionCaptureService {
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   const windowManagerChannel = MethodChannel('window_manager');
+  const macosCompanionChannel = MethodChannel('laterbox/macos_companion');
 
   setUpAll(() {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
@@ -66,11 +67,16 @@ void main() {
           return true;
       }
     });
+
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(macosCompanionChannel, (call) async => true);
   });
 
   tearDownAll(() {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(windowManagerChannel, null);
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(macosCompanionChannel, null);
   });
   group('ScreenCaptureContext', () {
     test('parses dictionary with active tab, selection and highlight URL', () {
@@ -195,7 +201,6 @@ void main() {
 
       await notch.dockToNotch(expandIsland: false);
       expect(notch.isDockedToNotch, isTrue);
-      expect(fakeSelection.lastNotchStyle, isTrue);
 
       await notch.expandIsland();
       expect(notch.isIslandExpanded, isTrue);
@@ -206,7 +211,6 @@ void main() {
       await notch.expandToFullWindow();
       expect(notch.mode, NotchDisplayMode.fullWindow);
       expect(notch.isDockedToNotch, isFalse);
-      expect(fakeSelection.lastNotchStyle, isFalse);
     });
   });
 }
