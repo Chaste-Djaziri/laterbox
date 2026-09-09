@@ -40,7 +40,10 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) ref.read(enrichmentCoordinatorProvider);
+      if (mounted) {
+        ref.read(enrichmentCoordinatorProvider);
+        _drainPendingShares();
+      }
     });
     unawaited(_cleanAttachmentOrphans());
     _drainPendingShares();
@@ -111,8 +114,15 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
 
   Future<void> _drainNativeShares() async {
     try {
-      await _captureAndroidShares();
-      await _importAppleShares();
+      if (!kIsWeb && Platform.isAndroid) {
+        await _captureAndroidShares();
+      } else if (!kIsWeb && (Platform.isIOS || Platform.isMacOS)) {
+        await _importAppleShares();
+      } else {
+        // Fallback for tests or other environments
+        await _captureAndroidShares();
+        await _importAppleShares();
+      }
     } finally {
       _drainingShares = false;
     }
@@ -170,7 +180,7 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
         }
       }
     } on MissingPluginException {
-      // Not running on iOS; there is nothing to consume.
+      // Share method channel not registered on this platform.
     } on Object catch (error, stackTrace) {
       debugPrint('Failed to import Apple shares: $error\n$stackTrace');
     }
