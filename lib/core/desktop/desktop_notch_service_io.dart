@@ -56,6 +56,8 @@ class DesktopNotchService extends ChangeNotifier {
         await windowManager.restore();
       }
 
+      await _captureService.setNotchWindowStyle(true);
+
       final targetPos = await _calculateNotchPosition(targetSize.width);
 
       await windowManager.setMinimumSize(targetSize);
@@ -125,6 +127,8 @@ class DesktopNotchService extends ChangeNotifier {
     try {
       _mode = NotchDisplayMode.fullWindow;
       notifyListeners();
+
+      await _captureService.setNotchWindowStyle(false);
 
       await windowManager.setAlwaysOnTop(false);
       await windowManager.setMinimumSize(defaultMainWindowMinimumSize);
