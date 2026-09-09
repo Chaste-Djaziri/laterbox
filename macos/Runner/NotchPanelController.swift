@@ -78,8 +78,8 @@ final class NotchPanelView: NSView {
   override func draggingExited(_ sender: NSDraggingInfo?) { controller?.endDragTarget() }
   override func performDragOperation(_ sender: NSDraggingInfo) -> Bool {
     let board = sender.draggingPasteboard
-    var items = (board.readObjects(forClasses: [NSURL.self]) as? [URL])?.map { $0.isFileURL ? $0.path : $0.absoluteString } ?? []
-    if items.isEmpty { items = board.readObjects(forClasses: [NSString.self]) as? [String] ?? [] }
+    var items = (board.readObjects(forClasses: [NSURL.self], options: nil) as? [URL])?.map { $0.isFileURL ? $0.path : $0.absoluteString } ?? []
+    if items.isEmpty { items = board.readObjects(forClasses: [NSString.self], options: nil) as? [String] ?? [] }
     guard !items.isEmpty else { controller?.endDragTarget(); return false }
     controller?.handleDroppedItems(items); return true
   }
