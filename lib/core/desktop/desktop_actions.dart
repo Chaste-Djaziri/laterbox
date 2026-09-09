@@ -65,6 +65,12 @@ class DesktopActions {
     // The window only needs to appear when the user explicitly opens LaterBox.
     if (await ref.read(desktopAppLaunchServiceProvider).wasLaunchedAtLogin()) {
       await desktop.hideMainWindow();
+    } else if (defaultTargetPlatform == TargetPlatform.macOS && _settings.enableNotchMode) {
+      await dockToNotch();
+    }
+
+    if (defaultTargetPlatform == TargetPlatform.macOS && _settings.watchActiveScreen) {
+      ref.read(screenWatcherServiceProvider).startWatching();
     }
 
     desktop.addWindowCloseListener(_onMainWindowClose);
