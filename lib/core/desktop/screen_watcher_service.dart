@@ -73,12 +73,11 @@ class ScreenWatcherService extends ChangeNotifier {
       final title = _currentContext?.activeTitle ?? '';
       final value = note != null && note.trim().isNotEmpty
           ? '$url\n\n$note'
-          : url;
+          : (title.isNotEmpty ? '$title\n$url' : url);
 
       final payload = CapturePayload.fromValue(
         value,
-        title: title.isNotEmpty ? title : null,
-        source: CaptureSource.quickCapture,
+        source: CaptureSource.desktopQuickCapture,
       );
 
       await _captureService.save(payload);
@@ -126,14 +125,9 @@ class ScreenWatcherService extends ChangeNotifier {
         buffer.writeln(note);
       }
 
-      final title = _currentContext?.activeTitle != null
-          ? 'Ref: ${_currentContext!.activeTitle}'
-          : 'Reference snippet';
-
       final payload = CapturePayload.fromValue(
         buffer.toString().trim(),
-        title: title,
-        source: CaptureSource.quickCapture,
+        source: CaptureSource.desktopQuickCapture,
       );
 
       await _captureService.save(payload);
@@ -161,10 +155,13 @@ class ScreenWatcherService extends ChangeNotifier {
     if (content.trim().isEmpty) return false;
 
     try {
+      final value = title != null && title.isNotEmpty
+          ? '$title\n\n${content.trim()}'
+          : content.trim();
+
       final payload = CapturePayload.fromValue(
-        content.trim(),
-        title: title,
-        source: CaptureSource.quickCapture,
+        value,
+        source: CaptureSource.desktopQuickCapture,
       );
 
       await _captureService.save(payload);
