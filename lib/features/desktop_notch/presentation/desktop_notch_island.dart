@@ -6,7 +6,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/desktop/desktop_notch_service.dart';
 import '../../../core/desktop/desktop_providers.dart';
 import '../../../core/desktop/screen_watcher_service.dart';
-import '../../../core/router/app_router.dart';
 import '../../../core/theme/app_theme.dart';
 
 /// Floating Dynamic Island / Notch component for macOS.
@@ -63,24 +62,24 @@ class _DesktopNotchIslandState extends ConsumerState<DesktopNotchIsland>
             width: isExpanded ? 520 : 280,
             height: isExpanded ? 240 : 44,
             decoration: BoxDecoration(
-              color: const Color(0xFF0C0C0E).withOpacity(0.96),
+              color: const Color(0xFF0C0C0E).withValues(alpha: 0.96),
               borderRadius: BorderRadius.circular(isExpanded ? 26 : 22),
               border: Border.all(
                 color: _isHovered
-                    ? AppTheme.accent.withOpacity(0.35)
-                    : Colors.white.withOpacity(0.12),
+                    ? AppTheme.accent.withValues(alpha: 0.35)
+                    : Colors.white.withValues(alpha: 0.12),
                 width: 1.2,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.55),
+                  color: Colors.black.withValues(alpha: 0.55),
                   blurRadius: isExpanded ? 28 : 14,
                   offset: const Offset(0, 8),
                   spreadRadius: 2,
                 ),
                 if (_isHovered)
                   BoxShadow(
-                    color: AppTheme.accent.withOpacity(0.12),
+                    color: AppTheme.accent.withValues(alpha: 0.12),
                     blurRadius: 18,
                     spreadRadius: 1,
                   ),
@@ -128,7 +127,7 @@ class _DesktopNotchIslandState extends ConsumerState<DesktopNotchIsland>
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: AppTheme.accent.withOpacity(0.8),
+                    color: AppTheme.accent.withValues(alpha: 0.8),
                     blurRadius: 8,
                     spreadRadius: 1,
                   ),
@@ -179,7 +178,7 @@ class _DesktopNotchIslandState extends ConsumerState<DesktopNotchIsland>
             const SizedBox(width: 4),
             Icon(
               Icons.keyboard_arrow_down_rounded,
-              color: Colors.white.withOpacity(0.6),
+              color: Colors.white.withValues(alpha: 0.6),
               size: 18,
             ),
           ],
@@ -210,10 +209,10 @@ class _DesktopNotchIslandState extends ConsumerState<DesktopNotchIsland>
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: AppTheme.accent.withOpacity(0.18),
+                  color: AppTheme.accent.withValues(alpha: 0.18),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: AppTheme.accent.withOpacity(0.4),
+                    color: AppTheme.accent.withValues(alpha: 0.4),
                     width: 0.8,
                   ),
                 ),
@@ -263,7 +262,7 @@ class _DesktopNotchIslandState extends ConsumerState<DesktopNotchIsland>
                 iconSize: 16,
                 padding: EdgeInsets.zero,
                 tooltip: 'Refresh screen context',
-                icon: Icon(Icons.refresh_rounded, color: Colors.white.withOpacity(0.6)),
+                icon: Icon(Icons.refresh_rounded, color: Colors.white.withValues(alpha: 0.6)),
                 onPressed: () => watcher.pollNow(),
               ),
 
@@ -273,7 +272,7 @@ class _DesktopNotchIslandState extends ConsumerState<DesktopNotchIsland>
                 iconSize: 16,
                 padding: EdgeInsets.zero,
                 tooltip: 'Open full LaterBox',
-                icon: Icon(Icons.open_in_full_rounded, color: Colors.white.withOpacity(0.6)),
+                icon: Icon(Icons.open_in_full_rounded, color: Colors.white.withValues(alpha: 0.6)),
                 onPressed: () => notchService.expandToFullWindow(),
               ),
 
@@ -283,7 +282,7 @@ class _DesktopNotchIslandState extends ConsumerState<DesktopNotchIsland>
                 iconSize: 16,
                 padding: EdgeInsets.zero,
                 tooltip: 'Collapse to notch pill',
-                icon: Icon(Icons.keyboard_arrow_up_rounded, color: Colors.white.withOpacity(0.6)),
+                icon: Icon(Icons.keyboard_arrow_up_rounded, color: Colors.white.withValues(alpha: 0.6)),
                 onPressed: () => notchService.collapseToPill(),
               ),
             ],
@@ -357,10 +356,10 @@ class _DesktopNotchIslandState extends ConsumerState<DesktopNotchIsland>
                 child: Container(
                   height: 36,
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.06),
+                    color: Colors.white.withValues(alpha: 0.06),
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(
-                      color: Colors.white.withOpacity(0.1),
+                      color: Colors.white.withValues(alpha: 0.1),
                     ),
                   ),
                   child: TextField(
@@ -370,7 +369,7 @@ class _DesktopNotchIslandState extends ConsumerState<DesktopNotchIsland>
                     decoration: InputDecoration(
                       hintText: 'Add note or paste reference... (Press Enter)',
                       hintStyle: TextStyle(
-                        color: Colors.white.withOpacity(0.35),
+                        color: Colors.white.withValues(alpha: 0.35),
                         fontSize: 12,
                       ),
                       contentPadding: const EdgeInsets.symmetric(
@@ -439,12 +438,12 @@ class _DesktopNotchIslandState extends ConsumerState<DesktopNotchIsland>
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.04),
+        color: Colors.white.withValues(alpha: 0.04),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: isEnabled
-              ? (accentColor ?? Colors.white).withOpacity(0.25)
-              : Colors.white.withOpacity(0.06),
+              ? (accentColor ?? Colors.white).withValues(alpha: 0.25)
+              : Colors.white.withValues(alpha: 0.06),
         ),
       ),
       child: Column(
@@ -503,7 +502,7 @@ class _DesktopNotchIslandState extends ConsumerState<DesktopNotchIsland>
                 foregroundColor: isEnabled ? Colors.white : Colors.white24,
                 side: BorderSide(
                   color: isEnabled
-                      ? (accentColor ?? AppTheme.accent).withOpacity(0.6)
+                      ? (accentColor ?? AppTheme.accent).withValues(alpha: 0.6)
                       : Colors.white12,
                 ),
                 shape: RoundedRectangleBorder(
