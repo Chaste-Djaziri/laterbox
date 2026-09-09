@@ -237,12 +237,6 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
         (controller) => controller.isActive,
       ),
     );
-    final isDockedToNotch = ref.watch(
-      desktopNotchServiceProvider.select(
-        (service) => service.isDockedToNotch,
-      ),
-    );
-
     return MaterialApp.router(
       title: 'laterbox',
       debugShowCheckedModeBanner: false,
@@ -257,17 +251,6 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
               initialEntries: [
                 OverlayEntry(
                   builder: (context) => const QuickCaptureScreen(),
-                ),
-              ],
-            ),
-          );
-        } else if (isDockedToNotch) {
-          content = Material(
-            color: Colors.transparent,
-            child: Overlay(
-              initialEntries: [
-                OverlayEntry(
-                  builder: (context) => const DesktopNotchIsland(),
                 ),
               ],
             ),
