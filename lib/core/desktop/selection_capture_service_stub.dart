@@ -15,6 +15,8 @@ class SelectionCaptureService {
 
   Future<ScreenCaptureContext?> readScreenContext() async => null;
 
+  Future<Map<String, dynamic>?> getScreenGeometry() async => null;
+
   static String formatTextFragmentUrl(String baseUrl, String selectedText) => baseUrl;
 
   Future<bool> requestAccessibilityPermission() async => false;
