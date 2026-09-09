@@ -9,7 +9,9 @@ import '../../core/router/app_router.dart';
 import '../../core/settings/desktop_settings.dart';
 import '../../core/settings/desktop_shortcut.dart';
 import '../../core/settings/settings_providers.dart';
+import '../../features/capture/domain/capture_providers.dart';
 import 'desktop_providers.dart';
+import 'macos_companion.dart';
 import 'tray_menu_state.dart';
 
 /// Single owner of every desktop action.
@@ -62,10 +64,20 @@ class DesktopActions {
     });
     unawaited(_watchConnectivity());
 
-    // The window only needs to appear when the user explicitly opens LaterBox.
+    if (defaultTargetPlatform == TargetPlatform.macOS) {
+      final captureService = ref.read(captureServiceProvider);
+      MacOSCompanion.initialize(
+        captureService: captureService,
+        onOpenLaterBox: () => unawaited(openLaterBox()),
+      );
+    }
+
+    // The window only needs to hide when the user was started by the login item.
     if (await ref.read(desktopAppLaunchServiceProvider).wasLaunchedAtLogin()) {
       await desktop.hideMainWindow();
-    } else if (defaultTargetPlatform == TargetPlatform.macOS && _settings.enableNotchMode) {
+    }
+
+    if (defaultTargetPlatform == TargetPlatform.macOS && _settings.enableNotchMode) {
       await dockToNotch();
     }
 
