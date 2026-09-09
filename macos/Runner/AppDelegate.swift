@@ -259,6 +259,24 @@ class AppDelegate: FlutterAppDelegate {
       case "requestAccessibilityPermission":
         let options: NSDictionary = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true]
         result(AXIsProcessTrustedWithOptions(options))
+      case "getScreenGeometry":
+        let screen = NSScreen.main
+        let frame = screen?.frame ?? .zero
+        let visibleFrame = screen?.visibleFrame ?? .zero
+        var notchHeight: CGFloat = 0.0
+        var hasNotch = false
+        if #available(macOS 12.0, *) {
+          notchHeight = screen?.safeAreaInsets.top ?? 0.0
+          hasNotch = notchHeight > 0
+        }
+        result([
+          "screenWidth": Double(frame.width),
+          "screenHeight": Double(frame.height),
+          "visibleWidth": Double(visibleFrame.width),
+          "visibleHeight": Double(visibleFrame.height),
+          "notchHeight": Double(notchHeight),
+          "hasNotch": hasNotch
+        ])
       default:
         result(FlutterMethodNotImplemented)
       }
