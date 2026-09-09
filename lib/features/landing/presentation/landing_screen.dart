@@ -4,6 +4,13 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/auth/auth_provider.dart';
 
+const _ink = Color(0xFF17211B);
+const _muted = Color(0xFF5E6B63);
+const _green = Color(0xFF2E6B4F);
+const _mint = Color(0xFFE7F2EB);
+const _paper = Color(0xFFFAFBF8);
+const _line = Color(0xFFDDE4DD);
+
 class LandingScreen extends ConsumerStatefulWidget {
   const LandingScreen({super.key});
 
@@ -12,10 +19,9 @@ class LandingScreen extends ConsumerStatefulWidget {
 }
 
 class _LandingScreenState extends ConsumerState<LandingScreen> {
-  final ScrollController _scrollController = ScrollController();
-  final GlobalKey _featuresKey = GlobalKey();
-  final GlobalKey _howItWorksKey = GlobalKey();
-  final GlobalKey _aboutKey = GlobalKey();
+  final _scrollController = ScrollController();
+  final _featuresKey = GlobalKey();
+  final _workflowKey = GlobalKey();
 
   @override
   void dispose() {
@@ -23,56 +29,36 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
     super.dispose();
   }
 
-  void _scrollToSection(GlobalKey key) {
-    final context = key.currentContext;
-    if (context != null) {
-      Scrollable.ensureVisible(
-        context,
-        duration: const Duration(milliseconds: 500),
-        curve: Curves.easeInOutCubic,
-      );
-    }
+  void _scrollTo(GlobalKey key) {
+    final target = key.currentContext;
+    if (target == null) return;
+    Scrollable.ensureVisible(
+      target,
+      duration: const Duration(milliseconds: 450),
+      curve: Curves.easeOutCubic,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final width = MediaQuery.sizeOf(context).width;
-    final isDesktop = width >= 800;
-
     return Scaffold(
+      backgroundColor: _paper,
       body: SafeArea(
         child: Scrollbar(
           controller: _scrollController,
           child: ListView(
             controller: _scrollController,
             children: [
-              _LandingHeader(
-                isDesktop: isDesktop,
-                onFeaturesTap: () => _scrollToSection(_featuresKey),
-                onHowItWorksTap: () => _scrollToSection(_howItWorksKey),
-                onAboutTap: () => _scrollToSection(_aboutKey),
+              _Header(
+                onFeatures: () => _scrollTo(_featuresKey),
+                onWorkflow: () => _scrollTo(_workflowKey),
               ),
-              _HeroSection(isDesktop: isDesktop),
-              _FeaturesSection(
-                key: _featuresKey,
-                isDesktop: isDesktop,
-              ),
-              _HowItWorksSection(
-                key: _howItWorksKey,
-                isDesktop: isDesktop,
-              ),
-              _AboutSection(
-                key: _aboutKey,
-                isDesktop: isDesktop,
-              ),
-              _DownloadTeaserSection(isDesktop: isDesktop),
-              _CtaBannerSection(isDesktop: isDesktop),
-              _LandingFooter(
-                isDesktop: isDesktop,
-                onFeaturesTap: () => _scrollToSection(_featuresKey),
-                onHowItWorksTap: () => _scrollToSection(_howItWorksKey),
-                onAboutTap: () => _scrollToSection(_aboutKey),
-              ),
+              const _Hero(),
+              _Features(key: _featuresKey),
+              _Workflow(key: _workflowKey),
+              const _About(),
+              const _FinalCta(),
+              const _Footer(),
             ],
           ),
         ),
@@ -81,1703 +67,587 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
   }
 }
 
-class _LandingHeader extends ConsumerWidget {
-  const _LandingHeader({
-    required this.isDesktop,
-    required this.onFeaturesTap,
-    required this.onHowItWorksTap,
-    required this.onAboutTap,
-  });
+class _PageWidth extends StatelessWidget {
+  const _PageWidth({required this.child});
 
-  final bool isDesktop;
-  final VoidCallback onFeaturesTap;
-  final VoidCallback onHowItWorksTap;
-  final VoidCallback onAboutTap;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1180),
+          child: child,
+        ),
+      );
+}
+
+class _Header extends ConsumerWidget {
+  const _Header({required this.onFeatures, required this.onWorkflow});
+
+  final VoidCallback onFeatures;
+  final VoidCallback onWorkflow;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
-    final auth = ref.watch(authStateProvider).asData?.value;
     final width = MediaQuery.sizeOf(context).width;
-
-    final isMobile = width < 600;
-    final isDesktopHeader = width >= 860;
+    final compact = width < 760;
+    final authenticated =
+        ref.watch(authStateProvider).asData?.value.isAuthenticated ?? false;
 
     return Container(
-      width: double.infinity,
+      decoration: const BoxDecoration(
+        color: Color(0xF7FAFBF8),
+        border: Border(bottom: BorderSide(color: _line)),
+      ),
       padding: EdgeInsets.symmetric(
-        horizontal: isMobile ? 16 : 32,
-        vertical: isMobile ? 12 : 16,
+        horizontal: compact ? 20 : 40,
+        vertical: 16,
       ),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface.withValues(alpha: 0.94),
-        border: Border(
-          bottom: BorderSide(
-            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
-            width: 1,
-          ),
-        ),
-      ),
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 1200),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              MouseRegion(
-                cursor: SystemMouseCursors.click,
-                child: GestureDetector(
-                  onTap: () => context.go('/'),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: isMobile ? 32 : 36,
-                        height: isMobile ? 32 : 36,
-                        padding: const EdgeInsets.all(2),
-                        child: Image.asset(
-                          'assets/branding/laterbox-icon.png',
-                          fit: BoxFit.contain,
-                          errorBuilder: (context, error, stackTrace) => Icon(
-                            Icons.bookmark_rounded,
-                            color: theme.colorScheme.primary,
-                            size: isMobile ? 22 : 26,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'laterbox',
-                        style: theme.textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: -0.6,
-                          fontSize: isMobile ? 18 : 22,
-                          color: theme.colorScheme.onSurface,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              if (isDesktopHeader)
-                Row(
-                  mainAxisSize: MainAxisSize.min,
+      child: _PageWidth(
+        child: Row(
+          children: [
+            InkWell(
+              onTap: () => context.go('/'),
+              borderRadius: BorderRadius.circular(10),
+              child: const Padding(
+                padding: EdgeInsets.symmetric(vertical: 4),
+                child: Row(
                   children: [
-                    _HeaderNavLink(label: 'Features', onTap: onFeaturesTap),
-                    const SizedBox(width: 20),
-                    _HeaderNavLink(label: 'How It Works', onTap: onHowItWorksTap),
-                    const SizedBox(width: 20),
-                    _HeaderNavLink(label: 'About', onTap: onAboutTap),
-                    const SizedBox(width: 20),
-                    _HeaderNavLink(label: 'Download', onTap: () => context.go('/download')),
+                    _BrandMark(),
+                    SizedBox(width: 10),
+                    Text(
+                      'laterbox',
+                      style: TextStyle(
+                        color: _ink,
+                        fontSize: 21,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.7,
+                      ),
+                    ),
                   ],
                 ),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  if (!(auth?.isAuthenticated ?? false)) ...[
-                    TextButton(
-                      onPressed: () => context.go('/login'),
-                      style: TextButton.styleFrom(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: isMobile ? 10 : 16,
-                          vertical: isMobile ? 8 : 12,
-                        ),
-                        minimumSize: const Size(0, 36),
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      ),
-                      child: Text(
-                        'Sign In',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w700,
-                          fontSize: isMobile ? 13 : 14,
-                          color: theme.colorScheme.primary,
-                        ),
-                      ),
-                    ),
-                    SizedBox(width: isMobile ? 6 : 10),
-                  ],
-                  FilledButton(
-                    onPressed: () => context.go('/inbox'),
-                    style: FilledButton.styleFrom(
-                      elevation: 0,
-                      backgroundColor: theme.colorScheme.primary,
-                      foregroundColor: theme.colorScheme.onPrimary,
-                      padding: EdgeInsets.symmetric(
-                        horizontal: isMobile ? 14 : 20,
-                        vertical: isMobile ? 8 : 12,
-                      ),
-                      minimumSize: Size(0, isMobile ? 36 : 42),
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(100),
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.bolt_rounded,
-                          size: isMobile ? 16 : 18,
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          auth?.isAuthenticated ?? false
-                              ? 'Open Inbox'
-                              : 'Launch App',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w800,
-                            fontSize: isMobile ? 13 : 14,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
               ),
+            ),
+            const Spacer(),
+            if (!compact) ...[
+              _NavLink(label: 'Features', onTap: onFeatures),
+              _NavLink(label: 'How it works', onTap: onWorkflow),
+              _NavLink(
+                label: 'Download',
+                onTap: () => context.go('/download'),
+              ),
+              const SizedBox(width: 12),
             ],
-          ),
+            if (!authenticated && !compact)
+              TextButton(
+                onPressed: () => context.go('/login'),
+                child: const Text('Sign in'),
+              ),
+            const SizedBox(width: 6),
+            FilledButton(
+              onPressed: () => context.go('/inbox'),
+              style: FilledButton.styleFrom(
+                backgroundColor: _green,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 18,
+                  vertical: 14,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              child: Text(authenticated ? 'Open inbox' : 'Get started'),
+            ),
+          ],
         ),
       ),
     );
   }
 }
 
-class _HeaderNavLink extends StatefulWidget {
-  const _HeaderNavLink({required this.label, required this.onTap});
+class _BrandMark extends StatelessWidget {
+  const _BrandMark();
+
+  @override
+  Widget build(BuildContext context) => Container(
+        width: 34,
+        height: 34,
+        decoration: BoxDecoration(
+          color: _green,
+          borderRadius: BorderRadius.circular(9),
+        ),
+        child: const Icon(Icons.bookmark_rounded, color: Colors.white, size: 20),
+      );
+}
+
+class _NavLink extends StatelessWidget {
+  const _NavLink({required this.label, required this.onTap});
 
   final String label;
   final VoidCallback onTap;
 
   @override
-  State<_HeaderNavLink> createState() => _HeaderNavLinkState();
+  Widget build(BuildContext context) => TextButton(
+        onPressed: onTap,
+        style: TextButton.styleFrom(foregroundColor: _muted),
+        child: Text(label),
+      );
 }
 
-class _HeaderNavLinkState extends State<_HeaderNavLink> {
-  bool _isHovered = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return MouseRegion(
-      onEnter: (_) => setState(() => _isHovered = true),
-      onExit: (_) => setState(() => _isHovered = false),
-      cursor: SystemMouseCursors.click,
-      child: GestureDetector(
-        onTap: widget.onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(
-            color: _isHovered
-                ? theme.colorScheme.primaryContainer.withValues(alpha: 0.5)
-                : Colors.transparent,
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Text(
-            widget.label,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              fontWeight: FontWeight.w600,
-              color: _isHovered
-                  ? theme.colorScheme.primary
-                  : theme.colorScheme.onSurfaceVariant,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _HeroSection extends ConsumerWidget {
-  const _HeroSection({required this.isDesktop});
-
-  final bool isDesktop;
+class _Hero extends ConsumerWidget {
+  const _Hero();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
     final width = MediaQuery.sizeOf(context).width;
-    final isMobile = width < 600;
+    final desktop = width >= 900;
+
+    final copy = Column(
+      crossAxisAlignment:
+          desktop ? CrossAxisAlignment.start : CrossAxisAlignment.center,
+      children: [
+        const _Eyebrow(icon: Icons.auto_awesome_outlined, text: 'YOUR SPACE TO REMEMBER'),
+        const SizedBox(height: 22),
+        Text(
+          'Save anything now.\nRead, watch & organize later.',
+          textAlign: desktop ? TextAlign.left : TextAlign.center,
+          style: TextStyle(
+            color: _ink,
+            fontSize: desktop ? 58 : (width < 500 ? 38 : 48),
+            height: 1.04,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -2.3,
+          ),
+        ),
+        const SizedBox(height: 24),
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 560),
+          child: Text(
+            'Keep articles, videos, notes, and useful links in one calm place. laterbox adds the context, so everything is easy to find when you need it.',
+            textAlign: desktop ? TextAlign.left : TextAlign.center,
+            style: const TextStyle(
+              color: _muted,
+              fontSize: 18,
+              height: 1.6,
+            ),
+          ),
+        ),
+        const SizedBox(height: 32),
+        Wrap(
+          alignment: desktop ? WrapAlignment.start : WrapAlignment.center,
+          spacing: 12,
+          runSpacing: 12,
+          children: [
+            FilledButton.icon(
+              onPressed: () => context.go('/inbox'),
+              style: _primaryButtonStyle(),
+              icon: const Icon(Icons.arrow_forward_rounded, size: 19),
+              label: const Text('Get Started Free'),
+            ),
+            OutlinedButton.icon(
+              onPressed: () {
+                ref.read(guestModeProvider.notifier).state = true;
+                context.go('/inbox');
+              },
+              style: _secondaryButtonStyle(),
+              icon: const Icon(Icons.play_circle_outline_rounded, size: 19),
+              label: const Text('Try Guest Mode'),
+            ),
+          ],
+        ),
+        const SizedBox(height: 22),
+        const Wrap(
+          spacing: 18,
+          runSpacing: 8,
+          children: [
+            _TrustPoint(text: 'Free to start'),
+            _TrustPoint(text: 'No credit card'),
+            _TrustPoint(text: 'Works everywhere'),
+          ],
+        ),
+      ],
+    );
 
     return Container(
-      width: double.infinity,
-      padding: EdgeInsets.fromLTRB(
-        isMobile ? 16 : (isDesktop ? 64 : 32),
-        isMobile ? 28 : (isDesktop ? 64 : 40),
-        isMobile ? 16 : (isDesktop ? 64 : 32),
-        isMobile ? 36 : 48,
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [_paper, Color(0xFFF1F6F1)],
+        ),
       ),
-      child: Column(
-        children: [
-          Container(
-            padding: EdgeInsets.symmetric(
-              horizontal: isMobile ? 12 : 16,
-              vertical: isMobile ? 6 : 8,
-            ),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.primaryContainer.withValues(alpha: 0.5),
-              borderRadius: BorderRadius.circular(100),
-              border: Border.all(
-                color: theme.colorScheme.primary.withValues(alpha: 0.25),
-              ),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.auto_awesome_rounded,
-                  size: isMobile ? 14 : 16,
-                  color: theme.colorScheme.primary,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  'Your Universal Save-For-Later Memory',
-                  style: theme.textTheme.labelMedium?.copyWith(
-                    color: theme.colorScheme.primary,
-                    fontWeight: FontWeight.w700,
-                    fontSize: isMobile ? 11 : 13,
-                    letterSpacing: 0.2,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 20),
-          Text(
-            'Save anything now.\nRead, watch & organize later.',
-            textAlign: TextAlign.center,
-            style: theme.textTheme.displayMedium?.copyWith(
-              fontWeight: FontWeight.w900,
-              letterSpacing: isMobile ? -0.5 : -1.5,
-              height: 1.12,
-              fontSize: isMobile ? 28 : (isDesktop ? 52 : 38),
-            ),
-          ),
-          const SizedBox(height: 16),
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 640),
-            child: Text(
-              'laterbox automatically enriches your saved links, articles, videos, and notes with key AI summaries, preview cards, favicons, and embedded media players.',
-              textAlign: TextAlign.center,
-              style: theme.textTheme.bodyLarge?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-                height: 1.5,
-                fontSize: isMobile ? 14 : (isDesktop ? 18 : 16),
-              ),
-            ),
-          ),
-          const SizedBox(height: 28),
-          ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: isMobile ? 360 : 560),
-            child: Wrap(
-              spacing: 12,
-              runSpacing: 10,
-              alignment: WrapAlignment.center,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                FilledButton.icon(
-                  onPressed: () => context.go('/inbox'),
-                  icon: const Icon(Icons.arrow_forward_rounded, size: 18),
-                  label: const Text('Get Started Free'),
-                  style: FilledButton.styleFrom(
-                    elevation: 0,
-                    backgroundColor: theme.colorScheme.primary,
-                    foregroundColor: theme.colorScheme.onPrimary,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 24,
-                      vertical: 14,
-                    ),
-                    minimumSize: Size(isMobile ? double.infinity : 0, 46),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(100),
-                    ),
-                    textStyle: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ),
-                FilledButton.tonalIcon(
-                  onPressed: () => context.go('/download'),
-                  icon: const Icon(Icons.download_rounded, size: 18),
-                  label: const Text('Download App'),
-                  style: FilledButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 14,
-                    ),
-                    minimumSize: Size(isMobile ? double.infinity : 0, 46),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(100),
-                    ),
-                    textStyle: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-                OutlinedButton.icon(
-                  onPressed: () {
-                    ref.read(guestModeProvider.notifier).state = true;
-                    context.go('/inbox');
-                  },
-                  icon: const Icon(Icons.explore_rounded, size: 18),
-                  label: const Text('Try Guest Mode'),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 14,
-                    ),
-                    minimumSize: Size(isMobile ? double.infinity : 0, 46),
-                    side: BorderSide(
-                      color: theme.colorScheme.outlineVariant,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(100),
-                    ),
-                    textStyle: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 40),
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 860),
-            child: Container(
-              padding: EdgeInsets.all(isMobile ? 14 : 20),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.surfaceContainerLowest,
-                borderRadius: BorderRadius.circular(isMobile ? 18 : 24),
-                border: Border.all(
-                  color: theme.colorScheme.outlineVariant.withValues(alpha: 0.6),
-                  width: 1,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: theme.colorScheme.shadow.withValues(alpha: 0.06),
-                    blurRadius: 28,
-                    offset: const Offset(0, 14),
-                  ),
-                ],
-              ),
-              child: Column(
+      padding: EdgeInsets.symmetric(
+        horizontal: width < 600 ? 20 : 40,
+        vertical: desktop ? 88 : 60,
+      ),
+      child: _PageWidth(
+        child: desktop
+            ? Row(
                 children: [
-                  Row(
-                    children: [
-                      Container(
-                        width: 10,
-                        height: 10,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFFFF5F56),
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Container(
-                        width: 10,
-                        height: 10,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFFFFBD2E),
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Container(
-                        width: 10,
-                        height: 10,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFF27C93F),
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.surfaceContainerHighest
-                                .withValues(alpha: 0.4),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(
-                            'https://laterbox.dev/inbox',
-                            overflow: TextOverflow.ellipsis,
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
-                              fontSize: 11,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  if (isMobile)
-                    const Column(
-                      children: [
-                        _DemoCardMockup(
-                          icon: Icons.play_circle_fill_rounded,
-                          iconColor: Colors.red,
-                          domain: 'youtube.com',
-                          title: 'Flutter Desktop 3.29 Complete Guide',
-                          tag: 'Video',
-                        ),
-                        SizedBox(height: 10),
-                        _DemoCardMockup(
-                          icon: Icons.article_rounded,
-                          iconColor: Colors.blue,
-                          domain: 'github.com',
-                          title: 'Building Universal Extensions with MV3',
-                          tag: 'Article',
-                        ),
-                      ],
-                    )
-                  else
-                    const Row(
-                      children: [
-                        Expanded(
-                          child: _DemoCardMockup(
-                            icon: Icons.play_circle_fill_rounded,
-                            iconColor: Colors.red,
-                            domain: 'youtube.com',
-                            title: 'Flutter Desktop 3.29 Complete Guide',
-                            tag: 'Video',
-                          ),
-                        ),
-                        SizedBox(width: 12),
-                        Expanded(
-                          child: _DemoCardMockup(
-                            icon: Icons.article_rounded,
-                            iconColor: Colors.blue,
-                            domain: 'github.com',
-                            title: 'Building Universal Extensions with MV3',
-                            tag: 'Article',
-                          ),
-                        ),
-                      ],
-                    ),
+                  Expanded(flex: 11, child: copy),
+                  const SizedBox(width: 64),
+                  const Expanded(flex: 9, child: _ProductPreview()),
                 ],
+              )
+            : Column(
+                children: [copy, const SizedBox(height: 52), const _ProductPreview()],
               ),
-            ),
-          ),
-        ],
       ),
     );
   }
 }
 
-class _DemoCardMockup extends StatelessWidget {
-  const _DemoCardMockup({
-    required this.icon,
-    required this.iconColor,
-    required this.domain,
-    required this.title,
-    required this.tag,
-  });
+ButtonStyle _primaryButtonStyle() => FilledButton.styleFrom(
+      backgroundColor: _green,
+      foregroundColor: Colors.white,
+      elevation: 0,
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+    );
+
+ButtonStyle _secondaryButtonStyle() => OutlinedButton.styleFrom(
+      foregroundColor: _ink,
+      backgroundColor: Colors.white,
+      side: const BorderSide(color: _line),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+    );
+
+class _TrustPoint extends StatelessWidget {
+  const _TrustPoint({required this.text});
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.check_circle, size: 16, color: _green),
+          const SizedBox(width: 6),
+          Text(text, style: const TextStyle(color: _muted, fontSize: 13)),
+        ],
+      );
+}
+
+class _ProductPreview extends StatelessWidget {
+  const _ProductPreview();
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border.all(color: _line),
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x1A254B35),
+              blurRadius: 48,
+              offset: Offset(0, 24),
+            ),
+          ],
+        ),
+        child: Container(
+          padding: const EdgeInsets.all(22),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF5F7F4),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const _BrandMark(),
+                  const SizedBox(width: 12),
+                  const Text('My inbox', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+                  const Spacer(),
+                  Container(
+                    width: 34,
+                    height: 34,
+                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(9)),
+                    child: const Icon(Icons.search_rounded, size: 19, color: _muted),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 22),
+              const _SavedCard(
+                icon: Icons.article_outlined,
+                color: Color(0xFFE8EFEA),
+                domain: 'designbetter.co',
+                title: 'The essential guide to thoughtful product design',
+                tag: 'Design',
+              ),
+              const SizedBox(height: 12),
+              const _SavedCard(
+                icon: Icons.play_arrow_rounded,
+                color: Color(0xFFF0EDE5),
+                domain: 'youtube.com',
+                title: 'A practical system for learning anything',
+                tag: 'Watch later',
+              ),
+              const SizedBox(height: 12),
+              const _SavedCard(
+                icon: Icons.lightbulb_outline_rounded,
+                color: Color(0xFFE9EDF3),
+                domain: 'Personal note',
+                title: 'Ideas for the next weekend project',
+                tag: 'Ideas',
+              ),
+            ],
+          ),
+        ),
+      );
+}
+
+class _SavedCard extends StatelessWidget {
+  const _SavedCard({required this.icon, required this.color, required this.domain, required this.title, required this.tag});
 
   final IconData icon;
-  final Color iconColor;
+  final Color color;
   final String domain;
   final String title;
   final String tag;
 
   @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            children: [
-              Icon(icon, size: 16, color: iconColor),
-              const SizedBox(width: 6),
-              Text(
-                domain,
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const Spacer(),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.primaryContainer,
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  tag,
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: theme.colorScheme.onPrimaryContainer,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 9,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            title,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.w700,
-              fontSize: 13,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _FeaturesSection extends StatelessWidget {
-  const _FeaturesSection({super.key, required this.isDesktop});
-
-  final bool isDesktop;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final width = MediaQuery.sizeOf(context).width;
-
-    final isTablet = width >= 600 && width < 960;
-    final isDesktopGrid = width >= 960;
-
-    final features = [
-      (
-        icon: Icons.extension_rounded,
-        title: 'Universal 1-Tap Save',
-        description:
-            'Save articles, YouTube videos, tweets, and notes instantly via Browser Extensions, iOS, Android, or Desktop.'
-      ),
-      (
-        icon: Icons.psychology_rounded,
-        title: 'Smart AI Enrichment',
-        description:
-            'Extract key summaries, high-res preview covers, structured metadata, and automatically categorize content.'
-      ),
-      (
-        icon: Icons.play_circle_outline_rounded,
-        title: 'Native Media Embeds',
-        description:
-            'Watch YouTube videos, Vimeo streams, and listen to Spotify or SoundCloud audio directly inside laterbox.'
-      ),
-      (
-        icon: Icons.offline_bolt_rounded,
-        title: 'Offline-First Storage',
-        description:
-            'Powered by SQLite local storage. Instant response times with background Supabase cloud sync.'
-      ),
-      (
-        icon: Icons.filter_alt_rounded,
-        title: 'Category & Starred Filters',
-        description:
-            'Filter by Articles, Videos, Music, Notes, or Starred items with live category counts.'
-      ),
-      (
-        icon: Icons.search_rounded,
-        title: 'Instant Deep Search',
-        description:
-            'Find any saved link, quote, domain, or personal note in milliseconds with full-text search.'
-      ),
-    ];
-
-    Widget buildCard(
-      BuildContext context, {
-      required IconData icon,
-      required String title,
-      required String description,
-    }) {
-      return Container(
-        padding: const EdgeInsets.all(24),
-        constraints: const BoxConstraints(minHeight: 190),
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: theme.colorScheme.surface,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
-            width: 1,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: theme.colorScheme.shadow.withValues(alpha: 0.02),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
+          color: Colors.white,
+          border: Border.all(color: const Color(0xFFE8ECE7)),
+          borderRadius: BorderRadius.circular(13),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.start,
+        child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.primaryContainer,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(
-                icon,
-                color: theme.colorScheme.primary,
-                size: 24,
-              ),
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(11)),
+              child: Icon(icon, color: _green, size: 23),
             ),
-            const SizedBox(height: 16),
-            Text(
-              title,
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-            const SizedBox(height: 8),
+            const SizedBox(width: 13),
             Expanded(
-              child: Text(
-                description,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                  height: 1.45,
-                ),
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    Widget content;
-    if (isDesktopGrid) {
-      content = Column(
-        children: [
-          IntrinsicHeight(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Expanded(
-                  child: buildCard(
-                    context,
-                    icon: features[0].icon,
-                    title: features[0].title,
-                    description: features[0].description,
-                  ),
-                ),
-                const SizedBox(width: 20),
-                Expanded(
-                  child: buildCard(
-                    context,
-                    icon: features[1].icon,
-                    title: features[1].title,
-                    description: features[1].description,
-                  ),
-                ),
-                const SizedBox(width: 20),
-                Expanded(
-                  child: buildCard(
-                    context,
-                    icon: features[2].icon,
-                    title: features[2].title,
-                    description: features[2].description,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 20),
-          IntrinsicHeight(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Expanded(
-                  child: buildCard(
-                    context,
-                    icon: features[3].icon,
-                    title: features[3].title,
-                    description: features[3].description,
-                  ),
-                ),
-                const SizedBox(width: 20),
-                Expanded(
-                  child: buildCard(
-                    context,
-                    icon: features[4].icon,
-                    title: features[4].title,
-                    description: features[4].description,
-                  ),
-                ),
-                const SizedBox(width: 20),
-                Expanded(
-                  child: buildCard(
-                    context,
-                    icon: features[5].icon,
-                    title: features[5].title,
-                    description: features[5].description,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      );
-    } else if (isTablet) {
-      content = Column(
-        children: [
-          for (var i = 0; i < features.length; i += 2) ...[
-            if (i > 0) const SizedBox(height: 20),
-            IntrinsicHeight(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: buildCard(
-                      context,
-                      icon: features[i].icon,
-                      title: features[i].title,
-                      description: features[i].description,
-                    ),
-                  ),
-                  const SizedBox(width: 20),
-                  Expanded(
-                    child: buildCard(
-                      context,
-                      icon: features[i + 1].icon,
-                      title: features[i + 1].title,
-                      description: features[i + 1].description,
-                    ),
-                  ),
+                  Text(domain, style: const TextStyle(color: _muted, fontSize: 11)),
+                  const SizedBox(height: 3),
+                  Text(title, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: _ink, fontSize: 13, fontWeight: FontWeight.w600, height: 1.25)),
                 ],
-              ),
-            ),
-          ],
-        ],
-      );
-    } else {
-      content = Column(
-        children: [
-          for (var i = 0; i < features.length; i++) ...[
-            if (i > 0) const SizedBox(height: 16),
-            buildCard(
-              context,
-              icon: features[i].icon,
-              title: features[i].title,
-              description: features[i].description,
-            ),
-          ],
-        ],
-      );
-    }
-
-    return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: isDesktopGrid ? 64 : 24,
-        vertical: 60,
-      ),
-      color: theme.colorScheme.surfaceContainerLowest,
-      child: Column(
-        children: [
-          Text(
-            'Everything you need to capture & remember',
-            textAlign: TextAlign.center,
-            style: theme.textTheme.headlineLarge?.copyWith(
-              fontWeight: FontWeight.w900,
-              letterSpacing: -1,
-              fontSize: isDesktopGrid ? 36 : 26,
-            ),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            'Designed for speed, clarity, and focus across all your devices.',
-            textAlign: TextAlign.center,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-          ),
-          const SizedBox(height: 48),
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 1080),
-            child: content,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _HowItWorksSection extends StatelessWidget {
-  const _HowItWorksSection({super.key, required this.isDesktop});
-
-  final bool isDesktop;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    final steps = [
-      (
-        step: '01',
-        title: 'Capture Anywhere',
-        desc: 'Save any link or note with 1 click from your browser or phone.'
-      ),
-      (
-        step: '02',
-        title: 'Auto AI Enrichment',
-        desc: 'laterbox fetches preview covers, summaries, and categorizes media.'
-      ),
-      (
-        step: '03',
-        title: 'Enjoy & Organize',
-        desc: 'Read, watch inline embeds, add notes, and search anytime.'
-      ),
-    ];
-
-    return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: isDesktop ? 64 : 24,
-        vertical: 60,
-      ),
-      child: Column(
-        children: [
-          Text(
-            'How laterbox Works',
-            textAlign: TextAlign.center,
-            style: theme.textTheme.headlineLarge?.copyWith(
-              fontWeight: FontWeight.w900,
-              letterSpacing: -1,
-              fontSize: isDesktop ? 36 : 26,
-            ),
-          ),
-          const SizedBox(height: 48),
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 960),
-            child: Flex(
-              direction: isDesktop ? Axis.horizontal : Axis.vertical,
-              children: steps.map((item) {
-                final card = Container(
-                  margin: EdgeInsets.symmetric(
-                    horizontal: isDesktop ? 8 : 0,
-                    vertical: isDesktop ? 0 : 8,
-                  ),
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.surfaceContainerLowest,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color:
-                          theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
-                    ),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        item.step,
-                        style: theme.textTheme.headlineMedium?.copyWith(
-                          fontWeight: FontWeight.w900,
-                          color: theme.colorScheme.primary,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        item.title,
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        item.desc,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-                return isDesktop ? Expanded(child: card) : card;
-              }).toList(),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _AboutSection extends StatelessWidget {
-  const _AboutSection({super.key, required this.isDesktop});
-
-  final bool isDesktop;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final width = MediaQuery.sizeOf(context).width;
-    final isMobile = width < 600;
-
-    final highlights = [
-      (
-        icon: Icons.shield_outlined,
-        title: '100% Offline-First Privacy',
-        desc:
-            'Your saved articles, links, and personal notes are stored locally on your device in SQLite. No tracking or mandatory cloud dependence.'
-      ),
-      (
-        icon: Icons.devices_rounded,
-        title: 'Universal Cross-Platform',
-        desc:
-            'Works seamlessly across Web, macOS, iOS, Android, Linux, and Windows with background Supabase cloud synchronization.'
-      ),
-      (
-        icon: Icons.bolt_rounded,
-        title: 'Instant Performance',
-        desc:
-            'Zero latency search, instant page loads, and native inline media players for YouTube, Vimeo, and Spotify.'
-      ),
-    ];
-
-    return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: isMobile ? 20 : (isDesktop ? 64 : 32),
-        vertical: isMobile ? 48 : 72,
-      ),
-      color: theme.colorScheme.surfaceContainerLowest,
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 1080),
-          child: Column(
-            children: [
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.primaryContainer.withValues(alpha: 0.5),
-                  borderRadius: BorderRadius.circular(100),
-                ),
-                child: Text(
-                  'WHY LATERBOX',
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: theme.colorScheme.primary,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 1.2,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'About laterbox',
-                textAlign: TextAlign.center,
-                style: theme.textTheme.headlineLarge?.copyWith(
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: isMobile ? -0.5 : -1,
-                  fontSize: isMobile ? 26 : (isDesktop ? 38 : 30),
-                ),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                'Built for Focus. Designed for Privacy.',
-                textAlign: TextAlign.center,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  color: theme.colorScheme.primary,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: 16),
-              ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 720),
-                child: Text(
-                  'laterbox was created for readers, researchers, and creators who save valuable information online but get overwhelmed by chaotic browser tabs and lost bookmarks.',
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.bodyLarge?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                    height: 1.55,
-                    fontSize: isMobile ? 15 : 17,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 48),
-              if (isMobile)
-                Column(
-                  children: highlights
-                      .map(
-                        (h) => Container(
-                          margin: const EdgeInsets.only(bottom: 16),
-                          padding: const EdgeInsets.all(22),
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.surface,
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                              color: theme.colorScheme.outlineVariant
-                                  .withValues(alpha: 0.5),
-                            ),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(10),
-                                decoration: BoxDecoration(
-                                  color: theme.colorScheme.primaryContainer,
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Icon(
-                                  h.icon,
-                                  color: theme.colorScheme.primary,
-                                  size: 22,
-                                ),
-                              ),
-                              const SizedBox(height: 14),
-                              Text(
-                                h.title,
-                                style: theme.textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                h.desc,
-                                style: theme.textTheme.bodyMedium?.copyWith(
-                                  color: theme.colorScheme.onSurfaceVariant,
-                                  height: 1.45,
-                                  fontSize: 13,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      )
-                      .toList(),
-                )
-              else
-                IntrinsicHeight(
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: highlights.map((h) {
-                      return Expanded(
-                        child: Container(
-                          margin: const EdgeInsets.symmetric(horizontal: 8),
-                          padding: const EdgeInsets.all(24),
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.surface,
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                              color: theme.colorScheme.outlineVariant
-                                  .withValues(alpha: 0.5),
-                            ),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(10),
-                                decoration: BoxDecoration(
-                                  color: theme.colorScheme.primaryContainer,
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Icon(
-                                  h.icon,
-                                  color: theme.colorScheme.primary,
-                                  size: 24,
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-                              Text(
-                                h.title,
-                                style: theme.textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Expanded(
-                                child: Text(
-                                  h.desc,
-                                  style: theme.textTheme.bodyMedium?.copyWith(
-                                    color: theme.colorScheme.onSurfaceVariant,
-                                    height: 1.45,
-                                    fontSize: 14,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _DownloadTeaserSection extends StatelessWidget {
-  const _DownloadTeaserSection({required this.isDesktop});
-
-  final bool isDesktop;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final width = MediaQuery.sizeOf(context).width;
-    final isMobile = width < 600;
-
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.symmetric(
-        horizontal: isMobile ? 20 : (isDesktop ? 64 : 32),
-        vertical: isMobile ? 36 : 48,
-      ),
-      color: theme.colorScheme.surface,
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 1080),
-          child: Container(
-            padding: EdgeInsets.all(isMobile ? 22 : 32),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surfaceContainerLowest,
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(
-                color: theme.colorScheme.primary.withValues(alpha: 0.25),
-                width: 1.2,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: theme.colorScheme.shadow.withValues(alpha: 0.03),
-                  blurRadius: 20,
-                  offset: const Offset(0, 8),
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.primaryContainer,
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Icon(
-                        Icons.download_rounded,
-                        color: theme.colorScheme.primary,
-                        size: 30,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Text(
-                                'Download laterbox',
-                                style: theme.textTheme.headlineSmall?.copyWith(
-                                  fontWeight: FontWeight.w900,
-                                  fontSize: isMobile ? 20 : 24,
-                                ),
-                              ),
-                              const SizedBox(width: 10),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 3,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: theme.colorScheme.primary.withValues(alpha: 0.12),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Text(
-                                  'Windows v1.0 Ready',
-                                  style: TextStyle(
-                                    color: theme.colorScheme.primary,
-                                    fontWeight: FontWeight.w800,
-                                    fontSize: 11,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            'Standalone Windows installer with offline SQLite and global capture shortcuts (Ctrl+Shift+S). Roadmap bundles for macOS, Linux, iOS & Android coming soon!',
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
-                              height: 1.45,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 22),
-                Wrap(
-                  spacing: 12,
-                  runSpacing: 10,
-                  children: [
-                    FilledButton.icon(
-                      onPressed: () => context.go('/download'),
-                      icon: const Icon(Icons.download_rounded, size: 18),
-                      label: const Text('Download Installer & View Roadmap'),
-                      style: FilledButton.styleFrom(
-                        backgroundColor: theme.colorScheme.primary,
-                        foregroundColor: theme.colorScheme.onPrimary,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 22,
-                          vertical: 14,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(100),
-                        ),
-                        textStyle: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                    ),
-                    OutlinedButton.icon(
-                      onPressed: () => context.go('/extension/connect'),
-                      icon: const Icon(Icons.extension_rounded, size: 18),
-                      label: const Text('Get Browser Extension'),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 14,
-                        ),
-                        side: BorderSide(color: theme.colorScheme.outlineVariant),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(100),
-                        ),
-                        textStyle: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _CtaBannerSection extends StatelessWidget {
-  const _CtaBannerSection({required this.isDesktop});
-
-  final bool isDesktop;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Container(
-      margin: EdgeInsets.all(isDesktop ? 64 : 20),
-      padding: EdgeInsets.symmetric(
-        horizontal: isDesktop ? 48 : 24,
-        vertical: isDesktop ? 48 : 32,
-      ),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            theme.colorScheme.primary,
-            theme.colorScheme.primaryContainer,
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(28),
-      ),
-      child: Column(
-        children: [
-          Text(
-            'Ready to declutter your bookmarks?',
-            textAlign: TextAlign.center,
-            style: theme.textTheme.headlineMedium?.copyWith(
-              fontWeight: FontWeight.w900,
-              color: theme.colorScheme.onPrimary,
-              fontSize: isDesktop ? 32 : 22,
-            ),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            'Start saving your favorite links, articles, and notes today.',
-            textAlign: TextAlign.center,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onPrimary.withValues(alpha: 0.9),
-            ),
-          ),
-          const SizedBox(height: 28),
-          FilledButton.icon(
-            onPressed: () => context.go('/inbox'),
-            icon: const Icon(Icons.rocket_launch_rounded, size: 20),
-            label: const Text('Open laterbox Now'),
-            style: FilledButton.styleFrom(
-              backgroundColor: theme.colorScheme.onPrimary,
-              foregroundColor: theme.colorScheme.primary,
-              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
-              textStyle: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _LandingFooter extends StatelessWidget {
-  const _LandingFooter({
-    required this.isDesktop,
-    required this.onFeaturesTap,
-    required this.onHowItWorksTap,
-    required this.onAboutTap,
-  });
-
-  final bool isDesktop;
-  final VoidCallback onFeaturesTap;
-  final VoidCallback onHowItWorksTap;
-  final VoidCallback onAboutTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final width = MediaQuery.sizeOf(context).width;
-    final isMobile = width < 600;
-
-    return Container(
-      padding: EdgeInsets.fromLTRB(
-        isMobile ? 20 : 48,
-        isMobile ? 40 : 64,
-        isMobile ? 20 : 48,
-        24,
-      ),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        border: Border(
-          top: BorderSide(
-            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
-          ),
-        ),
-      ),
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 1100),
-          child: Column(
-            children: [
-              if (isMobile)
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _FooterBrandColumn(theme: theme),
-                    const SizedBox(height: 32),
-                    _FooterLinksColumn(
-                      title: 'Product',
-                      links: [
-                        ('Open App', () => context.go('/inbox')),
-                        ('Download App', () => context.go('/download')),
-                        ('Sign In', () => context.go('/login')),
-                        ('Chrome Extension', () => context.go('/extension/connect')),
-                      ],
-                    ),
-                    const SizedBox(height: 24),
-                    _FooterLinksColumn(
-                      title: 'Explore',
-                      links: [
-                        ('Features', onFeaturesTap),
-                        ('How It Works', onHowItWorksTap),
-                        ('About', onAboutTap),
-                      ],
-                    ),
-                  ],
-                )
-              else
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      flex: 4,
-                      child: _FooterBrandColumn(theme: theme),
-                    ),
-                    const Spacer(),
-                    Expanded(
-                      flex: 2,
-                      child: _FooterLinksColumn(
-                        title: 'Product',
-                        links: [
-                          ('Open App', () => context.go('/inbox')),
-                          ('Download App', () => context.go('/download')),
-                          ('Sign In', () => context.go('/login')),
-                          ('Chrome Extension', () => context.go('/extension/connect')),
-                        ],
-                      ),
-                    ),
-                    Expanded(
-                      flex: 2,
-                      child: _FooterLinksColumn(
-                        title: 'Explore',
-                        links: [
-                          ('Features', onFeaturesTap),
-                          ('How It Works', onHowItWorksTap),
-                          ('About', onAboutTap),
-                        ],
-                      ),
-                    ),
-                    Expanded(
-                      flex: 3,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Supported Platforms',
-                            style: theme.textTheme.titleSmall?.copyWith(
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: const [
-                              _PlatformChip(label: 'Web', icon: Icons.web_rounded),
-                              _PlatformChip(label: 'macOS', icon: Icons.desktop_mac_rounded),
-                              _PlatformChip(label: 'iOS', icon: Icons.phone_iphone_rounded),
-                              _PlatformChip(label: 'Android', icon: Icons.android_rounded),
-                              _PlatformChip(label: 'Linux', icon: Icons.terminal_rounded),
-                              _PlatformChip(label: 'Windows', icon: Icons.desktop_windows_rounded),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-
-              const SizedBox(height: 48),
-              Divider(
-                color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
-              ),
-              const SizedBox(height: 20),
-              Flex(
-                direction: isMobile ? Axis.vertical : Axis.horizontal,
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    '© ${DateTime.now().year} laterbox. All rights reserved.',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                  SizedBox(height: isMobile ? 12 : 0),
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: 8,
-                        height: 8,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFF27C93F),
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        'Offline Storage Active',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _FooterBrandColumn extends StatelessWidget {
-  const _FooterBrandColumn({required this.theme});
-
-  final ThemeData theme;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 32,
-              height: 32,
-              padding: const EdgeInsets.all(2),
-              child: Image.asset(
-                'assets/branding/laterbox-icon.png',
-                fit: BoxFit.contain,
-                errorBuilder: (context, error, stackTrace) => Icon(
-                  Icons.bookmark_rounded,
-                  color: theme.colorScheme.primary,
-                  size: 24,
-                ),
               ),
             ),
             const SizedBox(width: 8),
-            Text(
-              'laterbox',
-              style: theme.textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w900,
-                letterSpacing: -0.6,
-                fontSize: 20,
-              ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+              decoration: BoxDecoration(color: _mint, borderRadius: BorderRadius.circular(20)),
+              child: Text(tag, style: const TextStyle(color: _green, fontSize: 9, fontWeight: FontWeight.w700)),
             ),
           ],
         ),
-        const SizedBox(height: 10),
-        Text(
-          'Your universal save-for-later memory.\nArticles, videos, links, and personal notes.',
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
-            height: 1.45,
-          ),
-        ),
-      ],
-    );
-  }
+      );
 }
 
-class _FooterLinksColumn extends StatelessWidget {
-  const _FooterLinksColumn({required this.title, required this.links});
-
-  final String title;
-  final List<(String, VoidCallback)> links;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: theme.textTheme.titleSmall?.copyWith(
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-        const SizedBox(height: 12),
-        ...links.map(
-          (item) => Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: InkWell(
-              onTap: item.$2,
-              borderRadius: BorderRadius.circular(4),
-              child: Text(
-                item.$1,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _PlatformChip extends StatefulWidget {
-  const _PlatformChip({required this.label, required this.icon});
-
-  final String label;
+class _Eyebrow extends StatelessWidget {
+  const _Eyebrow({required this.icon, required this.text});
   final IconData icon;
+  final String text;
 
   @override
-  State<_PlatformChip> createState() => _PlatformChipState();
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+        decoration: BoxDecoration(color: _mint, borderRadius: BorderRadius.circular(30)),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 15, color: _green),
+            const SizedBox(width: 7),
+            Text(text, style: const TextStyle(color: _green, fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 0.8)),
+          ],
+        ),
+      );
 }
 
-class _PlatformChipState extends State<_PlatformChip> {
-  bool _hovered = false;
+class _Features extends StatelessWidget {
+  const _Features({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      onEnter: (_) => setState(() => _hovered = true),
-      onExit: (_) => setState(() => _hovered = false),
-      child: GestureDetector(
-        onTap: () => context.go('/download'),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-          decoration: BoxDecoration(
-            color: _hovered
-                ? theme.colorScheme.primaryContainer.withValues(alpha: 0.8)
-                : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: _hovered
-                  ? theme.colorScheme.primary.withValues(alpha: 0.5)
-                  : theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
+    final width = MediaQuery.sizeOf(context).width;
+    return Container(
+      color: Colors.white,
+      padding: EdgeInsets.symmetric(horizontal: width < 600 ? 20 : 40, vertical: 88),
+      child: _PageWidth(
+        child: Column(
+          children: [
+            const _SectionHeading(
+              eyebrow: 'ONE HOME FOR EVERYTHING',
+              title: 'Everything you need to capture & remember',
+              description: 'A focused toolkit that keeps your digital finds useful—not forgotten.',
             ),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
+            const SizedBox(height: 48),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final cards = const [
+                  _FeatureCard(icon: Icons.bolt_outlined, title: 'Capture in a click', body: 'Save from the web, your share sheet, or any device without breaking your flow.'),
+                  _FeatureCard(icon: Icons.auto_awesome_outlined, title: 'Enriched automatically', body: 'Clean previews, useful metadata, and summaries arrive without extra work.'),
+                  _FeatureCard(icon: Icons.search_rounded, title: 'Find it fast', body: 'Search and collections make the right thing easy to rediscover at the right time.'),
+                ];
+                if (constraints.maxWidth < 760) {
+                  return Column(children: [for (var i = 0; i < cards.length; i++) ...[cards[i], if (i < cards.length - 1) const SizedBox(height: 16)]]);
+                }
+                return const Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [Expanded(child: _FeatureCard(icon: Icons.bolt_outlined, title: 'Capture in a click', body: 'Save from the web, your share sheet, or any device without breaking your flow.')), SizedBox(width: 18), Expanded(child: _FeatureCard(icon: Icons.auto_awesome_outlined, title: 'Enriched automatically', body: 'Clean previews, useful metadata, and summaries arrive without extra work.')), SizedBox(width: 18), Expanded(child: _FeatureCard(icon: Icons.search_rounded, title: 'Find it fast', body: 'Search and collections make the right thing easy to rediscover at the right time.'))]);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _FeatureCard extends StatelessWidget {
+  const _FeatureCard({required this.icon, required this.title, required this.body});
+  final IconData icon;
+  final String title;
+  final String body;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.all(28),
+        decoration: BoxDecoration(color: _paper, border: Border.all(color: _line), borderRadius: BorderRadius.circular(18)),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(width: 46, height: 46, decoration: BoxDecoration(color: _mint, borderRadius: BorderRadius.circular(12)), child: Icon(icon, color: _green, size: 23)),
+            const SizedBox(height: 22),
+            Text(title, style: const TextStyle(color: _ink, fontSize: 20, fontWeight: FontWeight.w700, letterSpacing: -0.4)),
+            const SizedBox(height: 10),
+            Text(body, style: const TextStyle(color: _muted, height: 1.55, fontSize: 15)),
+          ],
+        ),
+      );
+}
+
+class _SectionHeading extends StatelessWidget {
+  const _SectionHeading({required this.eyebrow, required this.title, required this.description});
+  final String eyebrow;
+  final String title;
+  final String description;
+
+  @override
+  Widget build(BuildContext context) => Column(
+        children: [
+          Text(eyebrow, textAlign: TextAlign.center, style: const TextStyle(color: _green, fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 1.2)),
+          const SizedBox(height: 14),
+          Text(title, textAlign: TextAlign.center, style: const TextStyle(color: _ink, fontSize: 36, height: 1.15, fontWeight: FontWeight.w800, letterSpacing: -1.2)),
+          const SizedBox(height: 14),
+          ConstrainedBox(constraints: const BoxConstraints(maxWidth: 610), child: Text(description, textAlign: TextAlign.center, style: const TextStyle(color: _muted, fontSize: 17, height: 1.55))),
+        ],
+      );
+}
+
+class _Workflow extends StatelessWidget {
+  const _Workflow({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final width = MediaQuery.sizeOf(context).width;
+    final narrow = width < 760;
+    const steps = [
+      _Step(number: '01', title: 'Save it', body: 'Send any link, thought, or file to laterbox.'),
+      _Step(number: '02', title: 'We tidy it', body: 'The details and preview are organized for you.'),
+      _Step(number: '03', title: 'Come back anytime', body: 'Search, browse, and pick up exactly where you left off.'),
+    ];
+    return Container(
+      color: _ink,
+      padding: EdgeInsets.symmetric(horizontal: width < 600 ? 20 : 40, vertical: 88),
+      child: _PageWidth(
+        child: Column(
+          children: [
+            const Text('A SIMPLE FLOW', style: TextStyle(color: Color(0xFF9FC9B0), fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 1.2)),
+            const SizedBox(height: 14),
+            const Text('How laterbox Works', textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 36, fontWeight: FontWeight.w800, letterSpacing: -1.1)),
+            const SizedBox(height: 46),
+            if (narrow)
+              const Column(children: [_Step(number: '01', title: 'Save it', body: 'Send any link, thought, or file to laterbox.'), SizedBox(height: 28), _Step(number: '02', title: 'We tidy it', body: 'The details and preview are organized for you.'), SizedBox(height: 28), _Step(number: '03', title: 'Come back anytime', body: 'Search, browse, and pick up exactly where you left off.')])
+            else
+              Row(crossAxisAlignment: CrossAxisAlignment.start, children: [for (var i = 0; i < steps.length; i++) ...[Expanded(child: steps[i]), if (i < steps.length - 1) const Padding(padding: EdgeInsets.only(top: 24), child: Icon(Icons.arrow_forward_rounded, color: Color(0xFF53635A)))]]),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _Step extends StatelessWidget {
+  const _Step({required this.number, required this.title, required this.body});
+  final String number;
+  final String title;
+  final String body;
+
+  @override
+  Widget build(BuildContext context) => Column(
+        children: [
+          Container(width: 52, height: 52, alignment: Alignment.center, decoration: BoxDecoration(color: const Color(0xFF25362D), borderRadius: BorderRadius.circular(14), border: Border.all(color: const Color(0xFF3E5749))), child: Text(number, style: const TextStyle(color: Color(0xFFA9D2B9), fontWeight: FontWeight.w800))),
+          const SizedBox(height: 20),
+          Text(title, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontSize: 19, fontWeight: FontWeight.w700)),
+          const SizedBox(height: 9),
+          Text(body, textAlign: TextAlign.center, style: const TextStyle(color: Color(0xFFB8C1BB), fontSize: 14, height: 1.5)),
+        ],
+      );
+}
+
+class _About extends StatelessWidget {
+  const _About();
+
+  @override
+  Widget build(BuildContext context) {
+    final width = MediaQuery.sizeOf(context).width;
+    return Container(
+      color: const Color(0xFFF2F6F1),
+      padding: EdgeInsets.symmetric(horizontal: width < 600 ? 20 : 40, vertical: 76),
+      child: const _PageWidth(
+        child: Column(
+          children: [
+            Icon(Icons.format_quote_rounded, color: _green, size: 35),
+            SizedBox(height: 16),
+            Text('About laterbox', style: TextStyle(color: _ink, fontSize: 13, fontWeight: FontWeight.w800, letterSpacing: 1)),
+            SizedBox(height: 18),
+            SizedBox(width: 760, child: Text('The internet is full of things worth keeping. laterbox gives them a quiet, dependable home—without turning organization into another job.', textAlign: TextAlign.center, style: TextStyle(color: _ink, fontSize: 27, height: 1.4, fontWeight: FontWeight.w600, letterSpacing: -0.6))),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _FinalCta extends StatelessWidget {
+  const _FinalCta();
+
+  @override
+  Widget build(BuildContext context) {
+    final width = MediaQuery.sizeOf(context).width;
+    return Container(
+      color: Colors.white,
+      padding: EdgeInsets.symmetric(horizontal: width < 600 ? 20 : 40, vertical: 88),
+      child: _PageWidth(
+        child: Container(
+          padding: EdgeInsets.symmetric(horizontal: width < 600 ? 24 : 64, vertical: 58),
+          decoration: BoxDecoration(color: _green, borderRadius: BorderRadius.circular(24)),
+          child: Column(
             children: [
-              Icon(
-                widget.icon,
-                size: 14,
-                color: _hovered
-                    ? theme.colorScheme.primary
-                    : theme.colorScheme.onSurfaceVariant,
-              ),
-              const SizedBox(width: 6),
-              Text(
-                widget.label,
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: _hovered
-                      ? theme.colorScheme.primary
-                      : theme.colorScheme.onSurfaceVariant,
-                  fontWeight: FontWeight.w600,
-                ),
+              const Text('Make space for what matters.', textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 36, height: 1.15, fontWeight: FontWeight.w800, letterSpacing: -1.1)),
+              const SizedBox(height: 14),
+              const Text('Start saving in seconds. Your future self will thank you.', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFFD5E9DC), fontSize: 17)),
+              const SizedBox(height: 28),
+              FilledButton.icon(
+                onPressed: () => context.go('/inbox'),
+                style: FilledButton.styleFrom(backgroundColor: Colors.white, foregroundColor: _green, padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 18), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                icon: const Icon(Icons.arrow_forward_rounded, size: 19),
+                label: const Text('Create your laterbox', style: TextStyle(fontWeight: FontWeight.w700)),
               ),
             ],
           ),
@@ -1787,3 +657,32 @@ class _PlatformChipState extends State<_PlatformChip> {
   }
 }
 
+class _Footer extends StatelessWidget {
+  const _Footer();
+
+  @override
+  Widget build(BuildContext context) {
+    final width = MediaQuery.sizeOf(context).width;
+    return Container(
+      color: Colors.white,
+      padding: EdgeInsets.fromLTRB(width < 600 ? 20 : 40, 0, width < 600 ? 20 : 40, 32),
+      child: const _PageWidth(
+        child: Column(
+          children: [
+            Divider(color: _line),
+            SizedBox(height: 24),
+            Row(
+              children: [
+                _BrandMark(),
+                SizedBox(width: 10),
+                Text('laterbox', style: TextStyle(color: _ink, fontWeight: FontWeight.w800, fontSize: 18)),
+                Spacer(),
+                Flexible(child: Text('Save now. Enjoy later.', textAlign: TextAlign.right, style: TextStyle(color: _muted, fontSize: 13))),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
