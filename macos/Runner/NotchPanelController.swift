@@ -89,46 +89,45 @@ final class NotchPanelView: NSView {
     guard let controller else { return }
     NSColor.black.setFill()
     let body = controller.isExpanded
-      ? expandedBodyPath(notchWidth: controller.compactWidth, notchHeight: controller.compactHeight)
+      ? expandedBodyPath(notchHeight: controller.compactHeight)
       : NSBezierPath(roundedRect: bounds, xRadius: controller.compactRadius, yRadius: controller.compactRadius)
     body.fill()
     guard controller.isExpanded else { return }
-    let card = NSRect(x: 14, y: 54, width: bounds.width - 28, height: bounds.height - controller.compactHeight - 48)
+    let card = NSRect(x: 48, y: 54, width: bounds.width - 96, height: bounds.height - controller.compactHeight - 48)
     drawContent(controller, card: card)
   }
 
-  private func expandedBodyPath(notchWidth: CGFloat, notchHeight: CGFloat) -> NSBezierPath {
+  private func expandedBodyPath(notchHeight: CGFloat) -> NSBezierPath {
     let path = NSBezierPath()
     let bottomRadius: CGFloat = 22
-    let shoulderY = bounds.height - notchHeight
-    let notchLeft = (bounds.width - notchWidth) / 2
-    let notchRight = notchLeft + notchWidth
+    let bodyInset: CGFloat = 34
+    let shoulderDepth = max(notchHeight + 30, 68)
+    let shoulderBottom = bounds.height - shoulderDepth
 
-    path.move(to: NSPoint(x: notchLeft, y: bounds.height))
-    path.line(to: NSPoint(x: notchRight, y: bounds.height))
-    path.line(to: NSPoint(x: notchRight, y: shoulderY + 10))
+    path.move(to: NSPoint(x: 0, y: bounds.height))
+    path.line(to: NSPoint(x: bounds.width, y: bounds.height))
     path.curve(
-      to: NSPoint(x: bounds.width, y: shoulderY - 22),
-      controlPoint1: NSPoint(x: notchRight, y: shoulderY - 4),
-      controlPoint2: NSPoint(x: bounds.width - 12, y: shoulderY)
+      to: NSPoint(x: bounds.width - bodyInset, y: shoulderBottom),
+      controlPoint1: NSPoint(x: bounds.width - 20, y: bounds.height - 4),
+      controlPoint2: NSPoint(x: bounds.width - bodyInset, y: bounds.height - 34)
     )
-    path.line(to: NSPoint(x: bounds.width, y: bottomRadius))
+    path.line(to: NSPoint(x: bounds.width - bodyInset, y: bottomRadius))
     path.curve(
-      to: NSPoint(x: bounds.width - bottomRadius, y: 0),
-      controlPoint1: NSPoint(x: bounds.width, y: 8),
-      controlPoint2: NSPoint(x: bounds.width - 8, y: 0)
+      to: NSPoint(x: bounds.width - bodyInset - bottomRadius, y: 0),
+      controlPoint1: NSPoint(x: bounds.width - bodyInset, y: 8),
+      controlPoint2: NSPoint(x: bounds.width - bodyInset - 8, y: 0)
     )
-    path.line(to: NSPoint(x: bottomRadius, y: 0))
+    path.line(to: NSPoint(x: bodyInset + bottomRadius, y: 0))
     path.curve(
-      to: NSPoint(x: 0, y: bottomRadius),
-      controlPoint1: NSPoint(x: 8, y: 0),
-      controlPoint2: NSPoint(x: 0, y: 8)
+      to: NSPoint(x: bodyInset, y: bottomRadius),
+      controlPoint1: NSPoint(x: bodyInset + 8, y: 0),
+      controlPoint2: NSPoint(x: bodyInset, y: 8)
     )
-    path.line(to: NSPoint(x: 0, y: shoulderY - 22))
+    path.line(to: NSPoint(x: bodyInset, y: shoulderBottom))
     path.curve(
-      to: NSPoint(x: notchLeft, y: shoulderY + 10),
-      controlPoint1: NSPoint(x: 12, y: shoulderY),
-      controlPoint2: NSPoint(x: notchLeft, y: shoulderY - 4)
+      to: NSPoint(x: 0, y: bounds.height),
+      controlPoint1: NSPoint(x: bodyInset, y: bounds.height - 34),
+      controlPoint2: NSPoint(x: 20, y: bounds.height - 4)
     )
     path.close()
     return path
@@ -148,9 +147,9 @@ final class NotchPanelView: NSView {
     case .dragTarget: eyebrow = "DROP TO SAVE"; title = "Release your content"; detail = "Links, text, images, PDFs, and documents are supported."
     }
     let accent = NSColor(red: 0.82, green: 0.98, blue: 0.18, alpha: 1)
-    eyebrow.draw(at: NSPoint(x: 28, y: card.maxY - 18), withAttributes: [.foregroundColor: accent, .font: NSFont.systemFont(ofSize: 10, weight: .bold), .kern: 0.8])
-    drawLine(title, in: NSRect(x: 28, y: card.maxY - 48, width: card.width - 28, height: 22), color: .white, font: .systemFont(ofSize: 15, weight: .semibold))
-    drawLine(detail, in: NSRect(x: 28, y: card.maxY - 75, width: card.width - 28, height: 18), color: NSColor.white.withAlphaComponent(0.62), font: .systemFont(ofSize: 12))
+    eyebrow.draw(at: NSPoint(x: card.minX, y: card.maxY - 18), withAttributes: [.foregroundColor: accent, .font: NSFont.systemFont(ofSize: 10, weight: .bold), .kern: 0.8])
+    drawLine(title, in: NSRect(x: card.minX, y: card.maxY - 48, width: card.width, height: 22), color: .white, font: .systemFont(ofSize: 15, weight: .semibold))
+    drawLine(detail, in: NSRect(x: card.minX, y: card.maxY - 75, width: card.width, height: 18), color: NSColor.white.withAlphaComponent(0.62), font: .systemFont(ofSize: 12))
     drawButton(controller.primaryTitle, primary, true)
     if controller.hasSecondary { drawButton("Dismiss", secondary, false) }
     if controller.showsReceiptActions { drawButton("Copy", copy, false); drawButton("Remove", remove, false) }
@@ -166,11 +165,11 @@ final class NotchPanelView: NSView {
     let attrs: [NSAttributedString.Key: Any] = [.foregroundColor: accent ? NSColor.black : NSColor.white, .font: NSFont.systemFont(ofSize: 11.5, weight: .semibold)]
     let size = title.size(withAttributes: attrs); title.draw(at: NSPoint(x: rect.midX - size.width / 2, y: rect.midY - size.height / 2), withAttributes: attrs)
   }
-  private var primary: NSRect { NSRect(x: 14, y: 14, width: 110, height: 30) }
-  private var secondary: NSRect { NSRect(x: 132, y: 14, width: 82, height: 30) }
-  private var copy: NSRect { NSRect(x: 222, y: 14, width: 58, height: 30) }
-  private var remove: NSRect { NSRect(x: 288, y: 14, width: 68, height: 30) }
-  private var open: NSRect { NSRect(x: bounds.width - 76, y: 14, width: 62, height: 30) }
+  private var primary: NSRect { NSRect(x: 48, y: 14, width: 110, height: 30) }
+  private var secondary: NSRect { NSRect(x: 166, y: 14, width: 82, height: 30) }
+  private var copy: NSRect { NSRect(x: 166, y: 14, width: 58, height: 30) }
+  private var remove: NSRect { NSRect(x: 232, y: 14, width: 68, height: 30) }
+  private var open: NSRect { NSRect(x: bounds.width - 110, y: 14, width: 62, height: 30) }
 }
 
 final class NotchPanelController {
