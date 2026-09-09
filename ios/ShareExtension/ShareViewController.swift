@@ -356,8 +356,7 @@ final class ShareViewController: UIViewController {
             }
             showSuccess(subtitle: subtitle)
         } else {
-            // Multi-tier fallback guarantees persistence
-            showSuccess(subtitle: displaySubtitle(for: trimmed ?? "Saved", kind: "text"))
+            showFailure("Could not save to LaterBox queue")
         }
     }
 
