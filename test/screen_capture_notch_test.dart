@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:laterbox/core/desktop/desktop_notch_service.dart';
+import 'package:laterbox/core/desktop/macos_companion.dart';
 import 'package:laterbox/core/desktop/screen_capture_context.dart';
 import 'package:laterbox/core/desktop/screen_watcher_service.dart';
 import 'package:laterbox/core/desktop/selection_capture_service.dart';
@@ -211,6 +212,52 @@ void main() {
       await notch.expandToFullWindow();
       expect(notch.mode, NotchDisplayMode.fullWindow);
       expect(notch.isDockedToNotch, isFalse);
+    });
+  });
+
+  group('MacOSCompanion capture receipts', () {
+    test('sends a typed successful capture receipt to the native notch', () async {
+      MethodCall? received;
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(macosCompanionChannel, (call) async {
+        received = call;
+        return true;
+      });
+
+      await MacOSCompanion.reportCaptureCompleted(
+        id: 'capture-1',
+        title: 'Example',
+        value: 'https://example.com',
+        kind: 'link',
+      );
+
+      expect(received?.method, 'captureCompleted');
+      expect(received?.arguments, {
+        'id': 'capture-1',
+        'title': 'Example',
+        'value': 'https://example.com',
+        'kind': 'link',
+      });
+    });
+
+    test('sends a stable failure message to the native notch', () async {
+      MethodCall? received;
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(macosCompanionChannel, (call) async {
+        received = call;
+        return true;
+      });
+
+      await MacOSCompanion.reportCaptureFailed(
+        id: 'capture-2',
+        message: 'Could not import this shared item.',
+      );
+
+      expect(received?.method, 'captureFailed');
+      expect(received?.arguments, {
+        'id': 'capture-2',
+        'message': 'Could not import this shared item.',
+      });
     });
   });
 }
