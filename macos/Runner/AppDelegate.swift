@@ -277,6 +277,14 @@ class AppDelegate: FlutterAppDelegate {
           "notchHeight": Double(notchHeight),
           "hasNotch": hasNotch
         ])
+      case "setNotchWindowStyle":
+        if let args = call.arguments as? [String: Any],
+           let isNotch = args["isNotch"] as? Bool {
+          Self.setNotchWindowStyle(isNotch: isNotch)
+          result(true)
+        } else {
+          result(false)
+        }
       default:
         result(FlutterMethodNotImplemented)
       }
@@ -549,5 +557,34 @@ class AppDelegate: FlutterAppDelegate {
     }
 
     return "\(cleanUrl)#:~:text=\(encodedDirective)"
+  }
+
+  /// Sets native window attributes for floating directly in the macOS screen notch.
+  static func setNotchWindowStyle(isNotch: Bool) {
+    DispatchQueue.main.async {
+      guard let window = NSApp.windows.first else { return }
+      if isNotch {
+        window.isOpaque = false
+        window.backgroundColor = .clear
+        window.hasShadow = false
+        window.styleMask.insert(.fullSizeContentView)
+        window.titleVisibility = .hidden
+        window.titlebarAppearsTransparent = true
+        window.standardWindowButton(.closeButton)?.isHidden = true
+        window.standardWindowButton(.miniaturizeButton)?.isHidden = true
+        window.standardWindowButton(.zoomButton)?.isHidden = true
+        window.level = .statusBar
+      } else {
+        window.isOpaque = true
+        window.backgroundColor = .windowBackgroundColor
+        window.hasShadow = true
+        window.titleVisibility = .visible
+        window.titlebarAppearsTransparent = false
+        window.standardWindowButton(.closeButton)?.isHidden = false
+        window.standardWindowButton(.miniaturizeButton)?.isHidden = false
+        window.standardWindowButton(.zoomButton)?.isHidden = false
+        window.level = .normal
+      }
+    }
   }
 }
