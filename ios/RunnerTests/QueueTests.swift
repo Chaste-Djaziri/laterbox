@@ -70,6 +70,13 @@ final class QueueTests: XCTestCase {
         XCTAssertEqual(queue.readAll().map(\.id), ["2"])
     }
 
+    func testReSharingSameValueWithNewIdIsEnqueued() throws {
+        let queue = try XCTUnwrap(queue)
+        queue.enqueue(makeCapture(id: "first-share", value: "https://example.com/same", kind: "url"))
+        queue.enqueue(makeCapture(id: "second-share", value: "https://example.com/same", kind: "url"))
+        XCTAssertEqual(queue.readAll().count, 2)
+    }
+
     private func makeCapture(id: String, value: String, kind: String) -> PendingShareCapture {
         PendingShareCapture(
             id: id,
