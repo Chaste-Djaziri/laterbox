@@ -34,15 +34,38 @@ class AppDelegate: FlutterAppDelegate {
     launchedAtLogin = Self.detectLoginItemLaunch()
     super.applicationDidFinishLaunching(notification)
     configureAppIcon()
+    registerAppearanceObserver()
+    registerChannels()
     DispatchQueue.main.async { [weak self] in
       self?.configureAppIcon()
+      self?.registerChannels()
     }
-    registerAppearanceObserver()
-    registerIconChannel()
-    registerSelectionCaptureChannel()
-    registerAppLaunchChannel()
-    registerShareCaptureChannel()
-    registerMacCompanionChannel()
+  }
+
+  private var channelsRegistered = false
+
+  func registerChannels(controller: FlutterViewController? = nil) {
+    guard !channelsRegistered else { return }
+    guard let ctrl = controller ?? getFlutterViewController() else { return }
+    channelsRegistered = true
+
+    registerIconChannel(controller: ctrl)
+    registerSelectionCaptureChannel(controller: ctrl)
+    registerAppLaunchChannel(controller: ctrl)
+    registerShareCaptureChannel(controller: ctrl)
+    registerMacCompanionChannel(controller: ctrl)
+  }
+
+  private func getFlutterViewController() -> FlutterViewController? {
+    if let controller = mainFlutterWindow?.contentViewController as? FlutterViewController {
+      return controller
+    }
+    for window in NSApp.windows {
+      if let controller = window.contentViewController as? FlutterViewController {
+        return controller
+      }
+    }
+    return nil
   }
 
   private func registerAppearanceObserver() {
@@ -63,10 +86,7 @@ class AppDelegate: FlutterAppDelegate {
     }
   }
 
-  private func registerIconChannel() {
-    guard let controller = mainFlutterWindow?.contentViewController as? FlutterViewController else {
-      return
-    }
+  private func registerIconChannel(controller: FlutterViewController) {
     let channel = FlutterMethodChannel(
       name: "pro.micorp.laterbox/desktop_icon",
       binaryMessenger: controller.engine.binaryMessenger
@@ -197,12 +217,7 @@ class AppDelegate: FlutterAppDelegate {
     return NSImage(named: "AppIcon") ?? NSApp.applicationIconImage
   }
 
-  private func registerShareCaptureChannel() {
-    guard
-      let controller = mainFlutterWindow?.contentViewController as? FlutterViewController
-    else {
-      return
-    }
+  private func registerShareCaptureChannel(controller: FlutterViewController) {
     let channel = FlutterMethodChannel(
       name: "laterbox/apple_share",
       binaryMessenger: controller.engine.binaryMessenger
@@ -226,12 +241,7 @@ class AppDelegate: FlutterAppDelegate {
 
   private static var lastExternalAppName: String?
 
-  private func registerSelectionCaptureChannel() {
-    guard
-      let controller = mainFlutterWindow?.contentViewController as? FlutterViewController
-    else {
-      return
-    }
+  private func registerSelectionCaptureChannel(controller: FlutterViewController) {
     let channel = FlutterMethodChannel(
       name: "laterbox/selection_capture",
       binaryMessenger: controller.engine.binaryMessenger
@@ -305,12 +315,7 @@ class AppDelegate: FlutterAppDelegate {
     }
   }
 
-  private func registerAppLaunchChannel() {
-    guard
-      let controller = mainFlutterWindow?.contentViewController as? FlutterViewController
-    else {
-      return
-    }
+  private func registerAppLaunchChannel(controller: FlutterViewController) {
     let channel = FlutterMethodChannel(
       name: "laterbox/app_launch",
       binaryMessenger: controller.engine.binaryMessenger
@@ -592,12 +597,7 @@ class AppDelegate: FlutterAppDelegate {
   private let notchController = NotchPanelController()
   private var screenWatcher: Any?
 
-  private func registerMacCompanionChannel() {
-    guard
-      let controller = mainFlutterWindow?.contentViewController as? FlutterViewController
-    else {
-      return
-    }
+  private func registerMacCompanionChannel(controller: FlutterViewController) {
     let channel = FlutterMethodChannel(
       name: "laterbox/macos_companion",
       binaryMessenger: controller.engine.binaryMessenger
