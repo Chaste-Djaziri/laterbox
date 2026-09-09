@@ -70,6 +70,18 @@ class DesktopSettingsStore {
     return _db.writeSetting(DesktopSettingsKeys.closeOnFocusLoss, enabled.toString());
   }
 
+  Future<void> setEnableNotchMode(bool enabled) {
+    return _db.writeSetting(DesktopSettingsKeys.enableNotchMode, enabled.toString());
+  }
+
+  Future<void> setWatchActiveScreen(bool enabled) {
+    return _db.writeSetting(DesktopSettingsKeys.watchActiveScreen, enabled.toString());
+  }
+
+  Future<void> setAutoCopyWordReferences(bool enabled) {
+    return _db.writeSetting(DesktopSettingsKeys.autoCopyWordReferences, enabled.toString());
+  }
+
   Future<Map<String, String?>> _readAll() async {
     final rows = await _db.watchAllSettings().first;
     return {for (final row in rows) row.key: row.value};
