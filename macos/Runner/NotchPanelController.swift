@@ -88,12 +88,50 @@ final class NotchPanelView: NSView {
     super.draw(dirtyRect)
     guard let controller else { return }
     NSColor.black.setFill()
-    NSBezierPath(roundedRect: bounds, xRadius: controller.isExpanded ? 22 : controller.compactRadius, yRadius: controller.isExpanded ? 22 : controller.compactRadius).fill()
+    let body = controller.isExpanded
+      ? expandedBodyPath(notchWidth: controller.compactWidth, notchHeight: controller.compactHeight)
+      : NSBezierPath(roundedRect: bounds, xRadius: controller.compactRadius, yRadius: controller.compactRadius)
+    body.fill()
     guard controller.isExpanded else { return }
-    let card = NSRect(x: 14, y: 54, width: bounds.width - 28, height: bounds.height - 70)
-    NSColor.white.withAlphaComponent(0.07).setFill()
-    NSBezierPath(roundedRect: card, xRadius: 14, yRadius: 14).fill()
+    let card = NSRect(x: 14, y: 54, width: bounds.width - 28, height: bounds.height - controller.compactHeight - 48)
     drawContent(controller, card: card)
+  }
+
+  private func expandedBodyPath(notchWidth: CGFloat, notchHeight: CGFloat) -> NSBezierPath {
+    let path = NSBezierPath()
+    let bottomRadius: CGFloat = 22
+    let shoulderY = bounds.height - notchHeight
+    let notchLeft = (bounds.width - notchWidth) / 2
+    let notchRight = notchLeft + notchWidth
+
+    path.move(to: NSPoint(x: notchLeft, y: bounds.height))
+    path.line(to: NSPoint(x: notchRight, y: bounds.height))
+    path.line(to: NSPoint(x: notchRight, y: shoulderY + 10))
+    path.curve(
+      to: NSPoint(x: bounds.width, y: shoulderY - 22),
+      controlPoint1: NSPoint(x: notchRight, y: shoulderY - 4),
+      controlPoint2: NSPoint(x: bounds.width - 12, y: shoulderY)
+    )
+    path.line(to: NSPoint(x: bounds.width, y: bottomRadius))
+    path.curve(
+      to: NSPoint(x: bounds.width - bottomRadius, y: 0),
+      controlPoint1: NSPoint(x: bounds.width, y: 8),
+      controlPoint2: NSPoint(x: bounds.width - 8, y: 0)
+    )
+    path.line(to: NSPoint(x: bottomRadius, y: 0))
+    path.curve(
+      to: NSPoint(x: 0, y: bottomRadius),
+      controlPoint1: NSPoint(x: 8, y: 0),
+      controlPoint2: NSPoint(x: 0, y: 8)
+    )
+    path.line(to: NSPoint(x: 0, y: shoulderY - 22))
+    path.curve(
+      to: NSPoint(x: notchLeft, y: shoulderY + 10),
+      controlPoint1: NSPoint(x: 12, y: shoulderY),
+      controlPoint2: NSPoint(x: notchLeft, y: shoulderY - 4)
+    )
+    path.close()
+    return path
   }
 
   private func drawContent(_ controller: NotchPanelController, card: NSRect) {
@@ -110,9 +148,9 @@ final class NotchPanelView: NSView {
     case .dragTarget: eyebrow = "DROP TO SAVE"; title = "Release your content"; detail = "Links, text, images, PDFs, and documents are supported."
     }
     let accent = NSColor(red: 0.82, green: 0.98, blue: 0.18, alpha: 1)
-    eyebrow.draw(at: NSPoint(x: 26, y: bounds.height - 31), withAttributes: [.foregroundColor: accent, .font: NSFont.systemFont(ofSize: 10, weight: .bold), .kern: 0.8])
-    drawLine(title, in: NSRect(x: 30, y: card.maxY - 38, width: card.width - 32, height: 22), color: .white, font: .systemFont(ofSize: 15, weight: .semibold))
-    drawLine(detail, in: NSRect(x: 30, y: card.maxY - 64, width: card.width - 32, height: 18), color: NSColor.white.withAlphaComponent(0.62), font: .systemFont(ofSize: 12))
+    eyebrow.draw(at: NSPoint(x: 28, y: card.maxY - 18), withAttributes: [.foregroundColor: accent, .font: NSFont.systemFont(ofSize: 10, weight: .bold), .kern: 0.8])
+    drawLine(title, in: NSRect(x: 28, y: card.maxY - 48, width: card.width - 28, height: 22), color: .white, font: .systemFont(ofSize: 15, weight: .semibold))
+    drawLine(detail, in: NSRect(x: 28, y: card.maxY - 75, width: card.width - 28, height: 18), color: NSColor.white.withAlphaComponent(0.62), font: .systemFont(ofSize: 12))
     drawButton(controller.primaryTitle, primary, true)
     if controller.hasSecondary { drawButton("Dismiss", secondary, false) }
     if controller.showsReceiptActions { drawButton("Copy", copy, false); drawButton("Remove", remove, false) }
@@ -143,6 +181,8 @@ final class NotchPanelController {
   private(set) var receipts: [NotchSaveReceipt] = [] { didSet { notchView?.needsDisplay = true } }
   private(set) var isWatching = false
   private(set) var compactRadius: CGFloat = 12
+  private(set) var compactWidth: CGFloat = 180
+  private(set) var compactHeight: CGFloat = 30
   private var hoverTimer: Timer?, collapseTimer: Timer?, promptTimer: Timer?, clipboardTimer: Timer?
   private var clipboardChangeCount = NSPasteboard.general.changeCount
   private var recentClipboard: [String: Date] = [:]
@@ -214,8 +254,8 @@ final class NotchPanelController {
   }
   private func webURL(_ value: String) -> Bool { guard let parts = URLComponents(string: value), let scheme = parts.scheme?.lowercased() else { return false }; return (scheme == "http" || scheme == "https") && parts.host?.isEmpty == false }
   private func invalidateTimers() { [hoverTimer, collapseTimer, promptTimer, clipboardTimer].forEach { $0?.invalidate() }; hoverTimer = nil; collapseTimer = nil; promptTimer = nil; clipboardTimer = nil }
-  private func collapsedFrame(_ screen: NSScreen) -> NSRect { let shape = geometry(screen); compactRadius = shape.notched ? min(12, shape.height / 2) : shape.height / 2; return NSRect(x: screen.frame.midX - shape.width / 2, y: screen.frame.maxY - shape.height, width: shape.width, height: shape.height) }
-  private func expandedFrame(_ screen: NSScreen) -> NSRect { let width = min(460, screen.visibleFrame.width - 32); return NSRect(x: screen.frame.midX - width / 2, y: screen.frame.maxY - 178, width: width, height: 178) }
+  private func collapsedFrame(_ screen: NSScreen) -> NSRect { let shape = geometry(screen); compactWidth = shape.width; compactHeight = shape.height; compactRadius = shape.notched ? min(12, shape.height / 2) : shape.height / 2; return NSRect(x: screen.frame.midX - shape.width / 2, y: screen.frame.maxY - shape.height, width: shape.width, height: shape.height) }
+  private func expandedFrame(_ screen: NSScreen) -> NSRect { let width = min(460, screen.visibleFrame.width - 32); return NSRect(x: screen.frame.midX - width / 2, y: screen.frame.maxY - 210, width: width, height: 210) }
   private func geometry(_ screen: NSScreen) -> (width: CGFloat, height: CGFloat, notched: Bool) { if #available(macOS 12.0, *), screen.safeAreaInsets.top > 0, let left = screen.auxiliaryTopLeftArea, let right = screen.auxiliaryTopRightArea { return (max(1, right.minX - left.maxX), screen.safeAreaInsets.top, true) }; return (180, 30, false) }
   private func targetScreen() -> NSScreen? { let mouse = NSEvent.mouseLocation; return NSScreen.screens.first { NSMouseInRect(mouse, $0.frame, false) } ?? NSScreen.main }
 }
