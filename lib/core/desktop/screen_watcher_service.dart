@@ -8,21 +8,18 @@ import 'selection_capture_service.dart';
 
 class ScreenWatcherService extends ChangeNotifier {
   ScreenWatcherService({
-    required SelectionCaptureService selectionService,
-    required CaptureService captureService,
-    Duration pollInterval = const Duration(milliseconds: 1600),
-  })  : _selectionService = selectionService,
-        _captureService = captureService,
-        _pollInterval = pollInterval;
+    required this.selectionService,
+    required this.captureService,
+    this.pollInterval = const Duration(milliseconds: 1600),
+  });
 
-  final SelectionCaptureService _selectionService;
-  final CaptureService _captureService;
-  final Duration _pollInterval;
+  final SelectionCaptureService selectionService;
+  final CaptureService captureService;
+  final Duration pollInterval;
 
   Timer? _timer;
   ScreenCaptureContext? _currentContext;
   bool _isWatching = false;
-  String? _lastSavedId;
   String? _statusMessage;
 
   ScreenCaptureContext? get currentContext => _currentContext;
@@ -41,7 +38,7 @@ class ScreenWatcherService extends ChangeNotifier {
     if (_isWatching) return;
     _isWatching = true;
     _poll();
-    _timer = Timer.periodic(_pollInterval, (_) => _poll());
+    _timer = Timer.periodic(pollInterval, (_) => _poll());
   }
 
   void stopWatching() {
@@ -54,7 +51,7 @@ class ScreenWatcherService extends ChangeNotifier {
 
   Future<void> _poll() async {
     try {
-      final context = await _selectionService.readScreenContext();
+      final context = await selectionService.readScreenContext();
       if (context != null && context != _currentContext) {
         _currentContext = context;
         notifyListeners();
@@ -80,8 +77,7 @@ class ScreenWatcherService extends ChangeNotifier {
         source: CaptureSource.desktopQuickCapture,
       );
 
-      await _captureService.save(payload);
-      _lastSavedId = payload.id;
+      await captureService.save(payload);
       _statusMessage = 'Saved link!';
       notifyListeners();
 
@@ -130,8 +126,7 @@ class ScreenWatcherService extends ChangeNotifier {
         source: CaptureSource.desktopQuickCapture,
       );
 
-      await _captureService.save(payload);
-      _lastSavedId = payload.id;
+      await captureService.save(payload);
       _statusMessage = 'Saved word reference!';
       notifyListeners();
 
@@ -164,8 +159,7 @@ class ScreenWatcherService extends ChangeNotifier {
         source: CaptureSource.desktopQuickCapture,
       );
 
-      await _captureService.save(payload);
-      _lastSavedId = payload.id;
+      await captureService.save(payload);
       _statusMessage = 'Saved to LaterBox!';
       notifyListeners();
 
