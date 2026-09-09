@@ -30,6 +30,10 @@
 				<integer>20</integer>
 				<key>NSExtensionActivationSupportsText</key>
 				<true/>
+				<key>NSExtensionActivationSupportsWebURLWithMaxCount</key>
+				<integer>10</integer>
+				<key>NSExtensionActivationSupportsWebPageWithMaxCount</key>
+				<integer>10</integer>
 			</dict>
 		</dict>
 		<key>NSExtensionPointIdentifier</key>
