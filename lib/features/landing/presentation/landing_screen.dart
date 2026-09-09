@@ -44,26 +44,25 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
     return Scaffold(
       backgroundColor: _paper,
       body: SafeArea(
-        child: Scrollbar(
+        child: SingleChildScrollView(
           controller: _scrollController,
-          child: ListView(
-            controller: _scrollController,
-            children: [
-              _Header(
-                onFeatures: () => _scrollTo(_featuresKey),
-                onWorkflow: () => _scrollTo(_workflowKey),
-              ),
-              const _Hero(),
-              _Features(key: _featuresKey),
-              _Workflow(key: _workflowKey),
-              const _About(),
-              const _FinalCta(),
-              const _Footer(),
-            ],
+            child: Column(
+              children: [
+                _Header(
+                  onFeatures: () => _scrollTo(_featuresKey),
+                  onWorkflow: () => _scrollTo(_workflowKey),
+                ),
+                const _Hero(),
+                _Features(key: _featuresKey),
+                _Workflow(key: _workflowKey),
+                const _About(),
+                const _FinalCta(),
+                const _Footer(),
+              ],
+            ),
           ),
         ),
-      ),
-    );
+      );
   }
 }
 
@@ -498,7 +497,39 @@ class _Features extends StatelessWidget {
                 if (constraints.maxWidth < 760) {
                   return Column(children: [for (var i = 0; i < cards.length; i++) ...[cards[i], if (i < cards.length - 1) const SizedBox(height: 16)]]);
                 }
-                return const Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [Expanded(child: _FeatureCard(icon: Icons.bolt_outlined, title: 'Capture in a click', body: 'Save from the web, your share sheet, or any device without breaking your flow.')), SizedBox(width: 18), Expanded(child: _FeatureCard(icon: Icons.auto_awesome_outlined, title: 'Enriched automatically', body: 'Clean previews, useful metadata, and summaries arrive without extra work.')), SizedBox(width: 18), Expanded(child: _FeatureCard(icon: Icons.search_rounded, title: 'Find it fast', body: 'Search and collections make the right thing easy to rediscover at the right time.'))]);
+                return const IntrinsicHeight(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Expanded(
+                        child: _FeatureCard(
+                          icon: Icons.bolt_outlined,
+                          title: 'Capture in a click',
+                          body:
+                              'Save from the web, your share sheet, or any device without breaking your flow.',
+                        ),
+                      ),
+                      SizedBox(width: 18),
+                      Expanded(
+                        child: _FeatureCard(
+                          icon: Icons.auto_awesome_outlined,
+                          title: 'Enriched automatically',
+                          body:
+                              'Clean previews, useful metadata, and summaries arrive without extra work.',
+                        ),
+                      ),
+                      SizedBox(width: 18),
+                      Expanded(
+                        child: _FeatureCard(
+                          icon: Icons.search_rounded,
+                          title: 'Find it fast',
+                          body:
+                              'Search and collections make the right thing easy to rediscover at the right time.',
+                        ),
+                      ),
+                    ],
+                  ),
+                );
               },
             ),
           ],
