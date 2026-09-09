@@ -16,7 +16,6 @@ class _FakeCaptureService implements CaptureService {
     saved.add(payload);
   }
 
-  @override
   Future<List<CapturePayload>> getPending() async => saved;
 
   @override
@@ -27,6 +26,13 @@ class _FakeSelectionCaptureService extends SelectionCaptureService {
   _FakeSelectionCaptureService({this.contextToReturn});
 
   ScreenCaptureContext? contextToReturn;
+  bool lastNotchStyle = false;
+
+  @override
+  Future<bool> setNotchWindowStyle(bool isNotch) async {
+    lastNotchStyle = isNotch;
+    return true;
+  }
 
   @override
   Future<ScreenCaptureContext?> readScreenContext() async => contextToReturn;
@@ -182,12 +188,14 @@ void main() {
     });
 
     test('initializes in fullWindow mode and toggles island/pill states', () async {
-      final notch = DesktopNotchService();
+      final fakeSelection = _FakeSelectionCaptureService();
+      final notch = DesktopNotchService(fakeSelection);
       expect(notch.mode, NotchDisplayMode.fullWindow);
       expect(notch.isDockedToNotch, isFalse);
 
       await notch.dockToNotch(expandIsland: false);
       expect(notch.isDockedToNotch, isTrue);
+      expect(fakeSelection.lastNotchStyle, isTrue);
 
       await notch.expandIsland();
       expect(notch.isIslandExpanded, isTrue);
@@ -198,6 +206,7 @@ void main() {
       await notch.expandToFullWindow();
       expect(notch.mode, NotchDisplayMode.fullWindow);
       expect(notch.isDockedToNotch, isFalse);
+      expect(fakeSelection.lastNotchStyle, isFalse);
     });
   });
 }
