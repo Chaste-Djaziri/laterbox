@@ -114,15 +114,8 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
 
   Future<void> _drainNativeShares() async {
     try {
-      if (!kIsWeb && Platform.isAndroid) {
-        await _captureAndroidShares();
-      } else if (!kIsWeb && (Platform.isIOS || Platform.isMacOS)) {
-        await _importAppleShares();
-      } else {
-        // Fallback for tests or other environments
-        await _captureAndroidShares();
-        await _importAppleShares();
-      }
+      await _captureAndroidShares();
+      await _importAppleShares();
     } finally {
       _drainingShares = false;
     }
