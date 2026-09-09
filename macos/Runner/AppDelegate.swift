@@ -42,6 +42,7 @@ class AppDelegate: FlutterAppDelegate {
     registerSelectionCaptureChannel()
     registerAppLaunchChannel()
     registerShareCaptureChannel()
+    registerMacCompanionChannel()
   }
 
   private func registerAppearanceObserver() {
@@ -584,6 +585,122 @@ class AppDelegate: FlutterAppDelegate {
         window.standardWindowButton(.miniaturizeButton)?.isHidden = false
         window.standardWindowButton(.zoomButton)?.isHidden = false
         window.level = .normal
+      }
+    }
+  }
+
+  private let notchController = NotchPanelController()
+  private var screenWatcher: Any?
+
+  private func registerMacCompanionChannel() {
+    guard
+      let controller = mainFlutterWindow?.contentViewController as? FlutterViewController
+    else {
+      return
+    }
+    let channel = FlutterMethodChannel(
+      name: "laterbox/macos_companion",
+      binaryMessenger: controller.engine.binaryMessenger
+    )
+
+    if #available(macOS 12.3, *) {
+      let watcher = ScreenWatcher()
+      watcher.onCandidateDetected = { [weak self] candidate in
+        self?.notchController.presentCandidate(candidate)
+        channel.invokeMethod("screenCandidateDetected", arguments: [
+          "title": candidate.title,
+          "url": candidate.url as Any,
+          "snippet": candidate.snippet as Any
+        ])
+      }
+      self.screenWatcher = watcher
+    }
+
+    notchController.onSaveCandidate = { title, url, snippet in
+      channel.invokeMethod("saveCandidate", arguments: [
+        "title": title,
+        "url": url as Any,
+        "snippet": snippet as Any
+      ])
+    }
+
+    notchController.onOpenLaterBox = { [weak self] in
+      if let window = self?.mainFlutterWindow {
+        window.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+      }
+      channel.invokeMethod("openLaterBox", arguments: nil)
+    }
+
+    notchController.onToggleWatchMode = { [weak self] isWatching in
+      if #available(macOS 12.3, *) {
+        if let watcher = self?.screenWatcher as? ScreenWatcher {
+          Task { @MainActor in
+            if isWatching {
+              try? await watcher.start()
+            } else {
+              await watcher.stop()
+            }
+          }
+        }
+      }
+      channel.invokeMethod("watchModeChanged", arguments: ["isWatching": isWatching])
+    }
+
+    notchController.onDroppedItems = { items in
+      channel.invokeMethod("itemsDropped", arguments: ["items": items])
+    }
+
+    channel.setMethodCallHandler { [weak self] call, result in
+      guard let self = self else { return }
+      switch call.method {
+      case "showNotch":
+        self.notchController.show()
+        result(true)
+      case "hideNotch":
+        self.notchController.hide()
+        result(true)
+      case "startWatching":
+        if #available(macOS 12.3, *) {
+          if let watcher = self.screenWatcher as? ScreenWatcher {
+            Task { @MainActor in
+              do {
+                try await watcher.start()
+                self.notchController.setWatchingState(true)
+                result(true)
+              } catch {
+                result(FlutterError(code: "SCREEN_CAPTURE_FAILED", message: error.localizedDescription, details: nil))
+              }
+            }
+          } else {
+            result(false)
+          }
+        } else {
+          result(false)
+        }
+      case "stopWatching":
+        if #available(macOS 12.3, *) {
+          if let watcher = self.screenWatcher as? ScreenWatcher {
+            Task { @MainActor in
+              await watcher.stop()
+              self.notchController.setWatchingState(false)
+              result(true)
+            }
+          } else {
+            result(true)
+          }
+        } else {
+          result(true)
+        }
+      case "setWatchingState":
+        if let args = call.arguments as? [String: Any], let isWatching = args["isWatching"] as? Bool {
+          self.notchController.setWatchingState(isWatching)
+          result(true)
+        } else {
+          result(false)
+        }
+      default:
+        result(FlutterMethodNotImplemented)
       }
     }
   }
