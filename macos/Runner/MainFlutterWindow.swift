@@ -12,5 +12,7 @@ class MainFlutterWindow: NSWindow {
     RegisterGeneratedPlugins(registry: flutterViewController)
 
     super.awakeFromNib()
+
+    (NSApp.delegate as? AppDelegate)?.registerChannels(controller: flutterViewController)
   }
 }
