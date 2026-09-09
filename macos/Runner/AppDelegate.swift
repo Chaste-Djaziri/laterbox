@@ -5,8 +5,15 @@ import ServiceManagement
 
 @main
 class AppDelegate: FlutterAppDelegate {
+  static weak var shared: AppDelegate?
   private var launchedAtLogin = false
   private let shareQueue = ShareCaptureQueue(appGroupId: "group.pro.micorp.laterbox")
+  private var companionChannel: FlutterMethodChannel?
+
+  override init() {
+    super.init()
+    Self.shared = self
+  }
 
   override func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
     return false
@@ -33,6 +40,7 @@ class AppDelegate: FlutterAppDelegate {
   override func applicationDidFinishLaunching(_ notification: Notification) {
     launchedAtLogin = Self.detectLoginItemLaunch()
     super.applicationDidFinishLaunching(notification)
+    NSApp.servicesProvider = self
     configureAppIcon()
     registerAppearanceObserver()
     registerChannels()
@@ -602,6 +610,7 @@ class AppDelegate: FlutterAppDelegate {
       name: "laterbox/macos_companion",
       binaryMessenger: controller.engine.binaryMessenger
     )
+    self.companionChannel = channel
 
     if #available(macOS 12.3, *) {
       let watcher = ScreenWatcher()
@@ -702,6 +711,61 @@ class AppDelegate: FlutterAppDelegate {
       default:
         result(FlutterMethodNotImplemented)
       }
+    }
+  }
+
+  // MARK: - macOS Right-Click Context Menu / Services Handler
+
+  @objc func saveToLaterBoxService(
+    _ pboard: NSPasteboard,
+    userData: String,
+    error: AutoreleasingUnsafeMutablePointer<NSString>
+  ) {
+    var capturedUrl: String?
+    var capturedText: String?
+
+    if let urls = pboard.readObjects(forClasses: [NSURL.self], options: nil) as? [URL], let firstUrl = urls.first {
+      capturedUrl = firstUrl.absoluteString
+    }
+
+    if let strings = pboard.readObjects(forClasses: [NSString.self], options: nil) as? [String], let firstString = strings.first {
+      if capturedUrl == nil, firstString.hasPrefix("http://") || firstString.hasPrefix("https://") {
+        capturedUrl = firstString
+      } else {
+        capturedText = firstString
+      }
+    }
+
+    if capturedUrl == nil && capturedText == nil {
+      if let string = pboard.string(forType: .string) {
+        if string.hasPrefix("http://") || string.hasPrefix("https://") {
+          capturedUrl = string
+        } else {
+          capturedText = string
+        }
+      }
+    }
+
+    guard capturedUrl != nil || capturedText != nil else { return }
+
+    let title = capturedText ?? capturedUrl ?? "Quick Save"
+    let item = ShareCaptureItem(
+      id: UUID().uuidString,
+      title: title,
+      url: capturedUrl,
+      text: capturedText,
+      filePaths: [],
+      createdAt: Date(),
+      source: "macosContextMenu"
+    )
+    shareQueue.enqueue(item)
+
+    if let companion = companionChannel {
+      companion.invokeMethod("saveCandidate", arguments: [
+        "title": item.title,
+        "url": item.url as Any,
+        "snippet": item.text as Any
+      ])
     }
   }
 }
