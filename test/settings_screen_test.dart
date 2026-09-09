@@ -91,12 +91,15 @@ void main() {
     expect(find.text('⌥ Space'), findsOneWidget);
     expect(find.text('Use selected text when available'), findsOneWidget);
     expect(find.text('Close Quick Capture when focus is lost'), findsOneWidget);
-    expect(
-      find.text('Keep LaterBox running when window closes'),
-      findsOneWidget,
-    );
+    expect(find.text('Keep LaterBox running when window closes'), findsOneWidget);
     expect(find.text('Launch LaterBox at login'), findsOneWidget);
     expect(find.text('Show LaterBox in menu bar'), findsOneWidget);
+    expect(find.text('Live in Top Screen Notch (macOS)'), findsOneWidget);
+    expect(find.text('Watch active screen & browser tabs'), findsOneWidget);
+    expect(
+      find.text('Capture word references with highlight URLs'),
+      findsOneWidget,
+    );
 
     final switches = tester
         .widgetList<SwitchListTile>(find.byType(SwitchListTile))
@@ -108,6 +111,9 @@ void main() {
       true, // keepRunningOnWindowClose
       false, // launchAtLogin
       true, // showInMenuBar
+      true, // enableNotchMode
+      true, // watchActiveScreen
+      true, // autoCopyWordReferences
     ]);
   });
 
