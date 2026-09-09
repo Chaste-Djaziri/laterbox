@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -25,6 +26,7 @@ class _DesktopNotchIslandState extends ConsumerState<DesktopNotchIsland>
     with SingleTickerProviderStateMixin {
   final TextEditingController _noteController = TextEditingController();
   final FocusNode _focusNode = FocusNode();
+  Timer? _collapseTimer;
   bool _isHovered = false;
   bool _isSaving = false;
 
@@ -39,9 +41,32 @@ class _DesktopNotchIslandState extends ConsumerState<DesktopNotchIsland>
 
   @override
   void dispose() {
+    _collapseTimer?.cancel();
     _noteController.dispose();
     _focusNode.dispose();
     super.dispose();
+  }
+
+  void _onHoverEnter() {
+    _collapseTimer?.cancel();
+    setState(() => _isHovered = true);
+    final notchService = ref.read(desktopNotchServiceProvider);
+    if (!notchService.isIslandExpanded) {
+      notchService.expandIsland();
+    }
+  }
+
+  void _onHoverExit() {
+    setState(() => _isHovered = false);
+    _collapseTimer?.cancel();
+    _collapseTimer = Timer(const Duration(milliseconds: 400), () {
+      if (!mounted) return;
+      if (_focusNode.hasFocus || _isSaving) return;
+      final notchService = ref.read(desktopNotchServiceProvider);
+      if (notchService.isIslandExpanded) {
+        notchService.collapseToPill();
+      }
+    });
   }
 
   @override
@@ -50,45 +75,50 @@ class _DesktopNotchIslandState extends ConsumerState<DesktopNotchIsland>
     final watcher = ref.watch(screenWatcherServiceProvider);
     final isExpanded = notchService.isIslandExpanded;
 
+    final borderRadius = isExpanded
+        ? const BorderRadius.vertical(bottom: Radius.circular(22))
+        : const BorderRadius.vertical(bottom: Radius.circular(18));
+
     return Material(
       color: Colors.transparent,
-      child: Center(
+      child: Align(
+        alignment: Alignment.topCenter,
         child: MouseRegion(
-          onEnter: (_) => setState(() => _isHovered = true),
-          onExit: (_) => setState(() => _isHovered = false),
+          onEnter: (_) => _onHoverEnter(),
+          onExit: (_) => _onHoverExit(),
           child: AnimatedContainer(
-            duration: const Duration(milliseconds: 280),
+            duration: const Duration(milliseconds: 260),
             curve: Curves.easeOutCubic,
-            width: isExpanded ? 520 : 280,
-            height: isExpanded ? 240 : 44,
+            width: isExpanded ? 540 : 280,
+            height: isExpanded ? 250 : 40,
             decoration: BoxDecoration(
-              color: const Color(0xFF0C0C0E).withValues(alpha: 0.96),
-              borderRadius: BorderRadius.circular(isExpanded ? 26 : 22),
+              color: const Color(0xFF000000).withValues(alpha: 0.98),
+              borderRadius: borderRadius,
               border: Border.all(
                 color: _isHovered
                     ? AppTheme.accent.withValues(alpha: 0.35)
-                    : Colors.white.withValues(alpha: 0.12),
-                width: 1.2,
+                    : Colors.white.withValues(alpha: 0.14),
+                width: 1.0,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.55),
-                  blurRadius: isExpanded ? 28 : 14,
-                  offset: const Offset(0, 8),
-                  spreadRadius: 2,
+                  color: Colors.black.withValues(alpha: 0.65),
+                  blurRadius: isExpanded ? 28 : 12,
+                  offset: const Offset(0, 6),
+                  spreadRadius: 1,
                 ),
                 if (_isHovered)
                   BoxShadow(
                     color: AppTheme.accent.withValues(alpha: 0.12),
-                    blurRadius: 18,
+                    blurRadius: 16,
                     spreadRadius: 1,
                   ),
               ],
             ),
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(isExpanded ? 26 : 22),
+              borderRadius: borderRadius,
               child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
                 child: isExpanded
                     ? _buildExpandedIsland(context, notchService, watcher)
                     : _buildCollapsedPill(context, notchService, watcher),
