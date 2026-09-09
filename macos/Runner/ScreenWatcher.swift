@@ -57,7 +57,9 @@ final class ScreenWatcher: NSObject, SCStreamOutput, SCStreamDelegate {
     configuration.minimumFrameInterval = CMTime(value: 1, timescale: 1)
     configuration.queueDepth = 2
     configuration.showsCursor = false
-    configuration.capturesAudio = false
+    if #available(macOS 13.0, *) {
+      configuration.capturesAudio = false
+    }
 
     let stream = SCStream(
       filter: filter,
