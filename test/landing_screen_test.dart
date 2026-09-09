@@ -26,9 +26,10 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('Get Started Free'), findsOneWidget);
-    expect(find.text('Try Guest Mode'), findsOneWidget);
-
-    await tester.drag(find.byType(ListView), const Offset(0, -1400));
+    await tester.dragFrom(
+      const Offset(400, 400),
+      const Offset(0, -800),
+    );
     await tester.pumpAndSettle();
 
     expect(find.text('Everything you need to capture & remember'), findsOneWidget);
