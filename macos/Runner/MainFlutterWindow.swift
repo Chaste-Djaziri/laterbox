@@ -13,6 +13,6 @@ class MainFlutterWindow: NSWindow {
 
     super.awakeFromNib()
 
-    (NSApp.delegate as? AppDelegate)?.registerChannels(controller: flutterViewController)
+    (AppDelegate.shared ?? NSApp.delegate as? AppDelegate)?.registerChannels(controller: flutterViewController)
   }
 }
