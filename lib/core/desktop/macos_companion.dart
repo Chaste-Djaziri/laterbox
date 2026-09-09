@@ -50,16 +50,16 @@ class MacOSCompanion {
         final snippet = args['snippet'] as String?;
 
         if (url != null && url.isNotEmpty) {
-          final payload = CapturePayload.url(
-            url: Uri.parse(url),
-            title: title,
-            note: snippet,
+          final payload = CapturePayload(
+            url: url,
+            text: snippet ?? title,
+            source: CaptureSource.desktopQuickCapture,
           );
           await _captureService?.save(payload);
         } else {
-          final payload = CapturePayload.note(
-            title: title,
-            body: snippet ?? title,
+          final payload = CapturePayload(
+            text: snippet ?? title,
+            source: CaptureSource.desktopQuickCapture,
           );
           await _captureService?.save(payload);
         }
@@ -69,16 +69,11 @@ class MacOSCompanion {
         final args = Map<String, dynamic>.from(call.arguments as Map);
         final items = (args['items'] as List<dynamic>?)?.cast<String>() ?? [];
         for (final item in items) {
-          final uri = Uri.tryParse(item);
-          if (uri != null && (uri.scheme == 'http' || uri.scheme == 'https')) {
-            await _captureService?.save(CapturePayload.url(url: uri));
-          } else {
-            // Text or local file path
-            await _captureService?.save(CapturePayload.note(
-              title: item.length > 30 ? '${item.substring(0, 30)}…' : item,
-              body: item,
-            ));
-          }
+          final payload = CapturePayload.fromValue(
+            item,
+            source: CaptureSource.desktopQuickCapture,
+          );
+          await _captureService?.save(payload);
         }
         break;
 
