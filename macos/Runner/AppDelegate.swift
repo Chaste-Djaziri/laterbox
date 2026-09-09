@@ -788,32 +788,41 @@ class AppDelegate: FlutterAppDelegate {
 
     guard capturedUrl != nil || capturedText != nil else { return }
 
+    let captureId = UUID().uuidString
     let title = capturedText ?? capturedUrl ?? "Quick Save"
-    let item = ShareCaptureItem(
-      id: UUID().uuidString,
-      title: title,
-      url: capturedUrl,
-      text: capturedText,
-      filePaths: [],
-      createdAt: Date(),
-      source: "macosContextMenu"
-    )
     if companionChannel != nil {
       let kind: NotchContentKind = capturedUrl != nil && capturedText != nil
         ? .highlight
         : capturedUrl != nil ? .link : .note
       let candidate = NotchCaptureCandidate(
-        id: item.id,
-        title: item.title,
-        url: item.url,
-        text: item.text,
+        id: captureId,
+        title: title,
+        url: capturedUrl,
+        text: capturedText,
         source: .macosService,
         kind: kind
       )
       notchController.show()
       notchController.presentExternalCandidate(candidate)
     } else {
-      shareQueue.enqueue(item)
+      let value: String?
+      if let text = capturedText, let url = capturedUrl {
+        value = "\(text)\n\(url)"
+      } else {
+        value = capturedText ?? capturedUrl
+      }
+      let queuedCapture = PendingShareCapture(
+        id: captureId,
+        value: value,
+        kind: capturedUrl != nil && capturedText != nil
+          ? "highlight"
+          : capturedUrl != nil ? "link" : "note",
+        source: "macosService",
+        createdAt: ISO8601DateFormatter().string(from: Date())
+      )
+      if !shareQueue.enqueue(queuedCapture) {
+        error.pointee = "LaterBox could not queue this item." as NSString
+      }
     }
   }
 }
