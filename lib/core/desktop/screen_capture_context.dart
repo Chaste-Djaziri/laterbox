@@ -17,6 +17,10 @@ class ScreenCaptureContext {
   bool get hasSelection => selectedText != null && selectedText!.trim().isNotEmpty;
   bool get hasHighlightUrl => highlightUrl != null && highlightUrl!.isNotEmpty;
 
+  String? get frontmostApp => application;
+  String? get activeUrl => url;
+  String? get activeTitle => title;
+
   /// Prefer highlight URL if text is selected from a web page, otherwise page URL, otherwise null.
   String? get targetUrl => highlightUrl ?? url;
 
