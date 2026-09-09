@@ -7,9 +7,11 @@ import '../settings/settings_providers.dart';
 import 'clipboard_capture_service.dart';
 import 'desktop_app_launch_service.dart';
 import 'desktop_capture_context_resolver.dart';
+import 'desktop_notch_service.dart';
 import 'desktop_service.dart';
 import 'global_hotkey_service.dart';
 import 'quick_capture_controller.dart';
+import 'screen_watcher_service.dart';
 import 'selection_capture_service.dart';
 import 'tray_menu_state.dart';
 import 'tray_service.dart';
@@ -18,6 +20,20 @@ final desktopServiceProvider = Provider<DesktopService>((ref) {
   final service = DesktopService();
   ref.onDispose(service.dispose);
   return service;
+});
+
+final desktopNotchServiceProvider =
+    ChangeNotifierProvider<DesktopNotchService>((ref) {
+  return DesktopNotchService(ref.watch(selectionCaptureServiceProvider));
+});
+
+final screenWatcherServiceProvider =
+    ChangeNotifierProvider<ScreenWatcherService>((ref) {
+  final watcher = ScreenWatcherService(
+    selectionService: ref.watch(selectionCaptureServiceProvider),
+    captureService: ref.watch(captureServiceProvider),
+  );
+  return watcher;
 });
 
 final globalHotkeyServiceProvider = Provider<GlobalHotkeyService>((ref) {
