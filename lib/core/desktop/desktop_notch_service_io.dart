@@ -13,9 +13,9 @@ enum NotchDisplayMode {
 
 class DesktopNotchService extends ChangeNotifier {
   DesktopNotchService([SelectionCaptureService? captureService])
-      : _captureService = captureService ?? const SelectionCaptureService();
+      : captureService = captureService ?? const SelectionCaptureService();
 
-  final SelectionCaptureService _captureService;
+  final SelectionCaptureService captureService;
 
   NotchDisplayMode _mode = NotchDisplayMode.fullWindow;
 
