@@ -262,7 +262,16 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
             ),
           );
         } else if (isDockedToNotch) {
-          content = const DesktopNotchIsland();
+          content = Material(
+            color: Colors.transparent,
+            child: Overlay(
+              initialEntries: [
+                OverlayEntry(
+                  builder: (context) => const DesktopNotchIsland(),
+                ),
+              ],
+            ),
+          );
         } else {
           content = child ?? const SizedBox.shrink();
         }
