@@ -92,6 +92,18 @@ class SelectionCaptureService {
     return '$cleanUrl#:~:text=$encodedDirective';
   }
 
+  /// Queries current macOS screen geometry, including notch height if present.
+  Future<Map<String, dynamic>?> getScreenGeometry() async {
+    try {
+      final raw = await _channel.invokeMethod<Map<dynamic, dynamic>>('getScreenGeometry');
+      if (raw == null) return null;
+      return raw.map((k, v) => MapEntry(k.toString(), v));
+    } on Object catch (error) {
+      debugPrint('[LaterBox] screen geometry lookup failed: $error');
+      return null;
+    }
+  }
+
   /// Requests the macOS accessibility prompt if not yet granted.
   Future<bool> requestAccessibilityPermission() async {
     try {
