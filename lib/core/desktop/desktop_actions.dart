@@ -283,6 +283,54 @@ class DesktopActions {
     await ref.read(desktopSettingsStoreProvider).setCloseOnFocusLoss(enabled);
     ref.read(quickCaptureControllerProvider).enableBlurClose = enabled;
   }
+
+  Future<void> dockToNotch({bool expandIsland = false}) async {
+    final notch = ref.read(desktopNotchServiceProvider);
+    await notch.dockToNotch(expandIsland: expandIsland);
+    if (_settings.watchActiveScreen) {
+      ref.read(screenWatcherServiceProvider).startWatching();
+    }
+  }
+
+  Future<void> restoreFromNotch() async {
+    final notch = ref.read(desktopNotchServiceProvider);
+    await notch.expandToFullWindow();
+  }
+
+  Future<void> toggleNotchMode() async {
+    final notch = ref.read(desktopNotchServiceProvider);
+    if (notch.isDockedToNotch) {
+      await restoreFromNotch();
+    } else {
+      await dockToNotch();
+    }
+  }
+
+  Future<void> setEnableNotchMode(bool enabled) async {
+    _settings = _settings.copyWith(enableNotchMode: enabled);
+    await ref.read(desktopSettingsStoreProvider).setEnableNotchMode(enabled);
+    if (enabled) {
+      await dockToNotch();
+    } else {
+      await restoreFromNotch();
+    }
+  }
+
+  Future<void> setWatchActiveScreen(bool enabled) async {
+    _settings = _settings.copyWith(watchActiveScreen: enabled);
+    await ref.read(desktopSettingsStoreProvider).setWatchActiveScreen(enabled);
+    final watcher = ref.read(screenWatcherServiceProvider);
+    if (enabled) {
+      watcher.startWatching();
+    } else {
+      watcher.stopWatching();
+    }
+  }
+
+  Future<void> setAutoCopyWordReferences(bool enabled) async {
+    _settings = _settings.copyWith(autoCopyWordReferences: enabled);
+    await ref.read(desktopSettingsStoreProvider).setAutoCopyWordReferences(enabled);
+  }
 }
 
 final desktopActionsProvider = Provider<DesktopActions>((ref) {
