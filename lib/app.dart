@@ -20,7 +20,6 @@ import 'features/attachments/domain/attachment_import_result.dart';
 import 'features/capture/domain/capture_providers.dart';
 import 'features/capture/domain/capture_payload.dart';
 import 'features/capture/domain/native_share_payload.dart';
-import 'features/desktop_notch/presentation/desktop_notch_island.dart';
 import 'features/quick_capture/presentation/quick_capture_screen.dart';
 
 class LaterBoxApp extends ConsumerStatefulWidget {
