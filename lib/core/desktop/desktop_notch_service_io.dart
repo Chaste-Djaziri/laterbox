@@ -13,8 +13,8 @@ enum NotchDisplayMode {
   notchIsland,
 }
 
-const notchPillSize = Size(280, 44);
-const notchIslandSize = Size(520, 240);
+const notchPillSize = Size(280, 40);
+const notchIslandSize = Size(540, 250);
 const defaultMainWindowSize = Size(1100, 720);
 const defaultMainWindowMinimumSize = Size(480, 400);
 
