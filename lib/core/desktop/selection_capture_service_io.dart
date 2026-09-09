@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
+import 'screen_capture_context.dart';
+
 /// Reads the selected text of the foreground macOS application through the
 /// Accessibility APIs via the `laterbox/selection_capture` method channel.
 ///
