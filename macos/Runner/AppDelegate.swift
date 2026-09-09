@@ -223,6 +223,8 @@ class AppDelegate: FlutterAppDelegate {
     }
   }
 
+  private static var lastExternalAppName: String?
+
   private func registerSelectionCaptureChannel() {
     guard
       let controller = mainFlutterWindow?.contentViewController as? FlutterViewController
@@ -238,11 +240,40 @@ class AppDelegate: FlutterAppDelegate {
       case "readSelectedText":
         result(Self.readSelectedText())
       case "readFrontmostApplication":
-        result(Self.readFrontmostApplication())
+        result(Self.lastExternalAppName ?? Self.readFrontmostApplication())
+      case "readActiveBrowserTab":
+        let app = (call.arguments as? [String: Any])?["appName"] as? String ?? Self.lastExternalAppName ?? Self.readFrontmostApplication()
+        result(Self.readActiveBrowserTab(appName: app))
+      case "readScreenContext":
+        result(Self.readScreenContext())
+      case "formatHighlightUrl":
+        if let args = call.arguments as? [String: Any],
+           let url = args["url"] as? String,
+           let text = args["text"] as? String {
+          result(Self.formatTextFragmentUrl(baseUrl: url, quote: text))
+        } else {
+          result(nil)
+        }
       case "isAccessibilityTrusted":
         result(AXIsProcessTrusted())
+      case "requestAccessibilityPermission":
+        let options: NSDictionary = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true]
+        result(AXIsProcessTrustedWithOptions(options))
       default:
         result(FlutterMethodNotImplemented)
+      }
+    }
+
+    NSWorkspace.shared.notificationCenter.addObserver(
+      forName: NSWorkspace.didActivateApplicationNotification,
+      object: nil,
+      queue: .main
+    ) { notification in
+      if let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication,
+         let bundleId = app.bundleIdentifier,
+         bundleId != Bundle.main.bundleIdentifier,
+         let name = app.localizedName {
+        Self.lastExternalAppName = name
       }
     }
   }
@@ -384,5 +415,121 @@ class AppDelegate: FlutterAppDelegate {
       return nil
     }
     return title
+  }
+
+  /// Queries active browser tab URL and title for known browsers (Safari, Chrome, Arc, Brave, Edge).
+  private static func readActiveBrowserTab(appName: String?) -> [String: String]? {
+    guard let rawName = appName?.lowercased() else { return nil }
+    var scriptSource: String?
+
+    if rawName.contains("safari") && !rawName.contains("technology preview") {
+      scriptSource = """
+      tell application "Safari"
+        if (count of windows) > 0 then
+          set currentTab to current tab of front window
+          return (URL of currentTab) & "|||" & (name of currentTab)
+        end if
+      end tell
+      """
+    } else if rawName.contains("chrome") {
+      scriptSource = """
+      tell application "Google Chrome"
+        if (count of windows) > 0 then
+          set currentTab to active tab of front window
+          return (URL of currentTab) & "|||" & (title of currentTab)
+        end if
+      end tell
+      """
+    } else if rawName.contains("arc") {
+      scriptSource = """
+      tell application "Arc"
+        if (count of windows) > 0 then
+          set currentTab to active tab of front window
+          return (URL of currentTab) & "|||" & (title of currentTab)
+        end if
+      end tell
+      """
+    } else if rawName.contains("brave") {
+      scriptSource = """
+      tell application "Brave Browser"
+        if (count of windows) > 0 then
+          set currentTab to active tab of front window
+          return (URL of currentTab) & "|||" & (title of currentTab)
+        end if
+      end tell
+      """
+    } else if rawName.contains("edge") {
+      scriptSource = """
+      tell application "Microsoft Edge"
+        if (count of windows) > 0 then
+          set currentTab to active tab of front window
+          return (URL of currentTab) & "|||" & (title of currentTab)
+        end if
+      end tell
+      """
+    }
+
+    guard let script = scriptSource else { return nil }
+    guard let appleScript = NSAppleScript(source: script) else { return nil }
+    var errorInfo: NSDictionary?
+    let descriptor = appleScript.executeAndReturnError(&errorInfo)
+    if let resultString = descriptor.stringValue, resultString.contains("|||") {
+      let parts = resultString.components(separatedBy: "|||")
+      let url = parts.first?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+      let title = parts.count > 1 ? parts[1].trimmingCharacters(in: .whitespacesAndNewlines) : ""
+      if !url.isEmpty && (url.hasPrefix("http://") || url.hasPrefix("https://")) {
+        return ["url": url, "title": title]
+      }
+    }
+    return nil
+  }
+
+  /// Comprehensive active screen context: frontmost app, active browser URL, page title,
+  /// selected text, and a formatted Text Fragment highlight URL.
+  private static func readScreenContext() -> [String: Any]? {
+    let appName = lastExternalAppName ?? readFrontmostApplication()
+    let activeBrowser = readActiveBrowserTab(appName: appName)
+    let selectedText = readSelectedText()
+    let activeUrl = activeBrowser?["url"]
+    let pageTitle = activeBrowser?["title"]
+
+    var highlightUrl: String? = nil
+    if let activeUrl = activeUrl, let selected = selectedText, !selected.isEmpty {
+      highlightUrl = formatTextFragmentUrl(baseUrl: activeUrl, quote: selected)
+    }
+
+    var result: [String: Any] = [:]
+    if let appName = appName { result["application"] = appName }
+    if let activeUrl = activeUrl { result["url"] = activeUrl }
+    if let pageTitle = pageTitle { result["title"] = pageTitle }
+    if let selectedText = selectedText { result["selectedText"] = selectedText }
+    if let highlightUrl = highlightUrl { result["highlightUrl"] = highlightUrl }
+
+    return result.isEmpty ? nil : result
+  }
+
+  /// Builds a W3C Scroll-to-Text Fragment URL for direct word highlight navigation.
+  private static func formatTextFragmentUrl(baseUrl: String, quote: String) -> String {
+    let cleanUrl = baseUrl.components(separatedBy: "#").first ?? baseUrl
+    if baseUrl.contains(":~:text=") { return baseUrl }
+
+    let cleanSnippet = quote.trimmingCharacters(in: .whitespacesAndNewlines)
+      .trimmingCharacters(in: CharacterSet(charactersIn: "\"“”'"))
+    let words = cleanSnippet.components(separatedBy: .whitespacesAndNewlines).filter { !$0.isEmpty }
+    let encodedDirective: String
+    if words.count > 10 {
+      let start = words.prefix(3).joined(separator: " ")
+      let end = words.suffix(3).joined(separator: " ")
+      if let startEnc = start.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
+         let endEnc = end.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) {
+        encodedDirective = "\(startEnc),\(endEnc)"
+      } else {
+        encodedDirective = cleanSnippet.prefix(120).addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? cleanSnippet
+      }
+    } else {
+      encodedDirective = cleanSnippet.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? cleanSnippet
+    }
+
+    return "\(cleanUrl)#:~:text=\(encodedDirective)"
   }
 }
