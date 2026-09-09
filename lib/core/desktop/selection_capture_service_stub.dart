@@ -19,6 +19,8 @@ class SelectionCaptureService {
 
   static String formatTextFragmentUrl(String baseUrl, String selectedText) => baseUrl;
 
+  Future<bool> setNotchWindowStyle(bool isNotch) async => false;
+
   Future<bool> requestAccessibilityPermission() async => false;
 
   Future<bool> isAccessibilityTrusted() async => false;
