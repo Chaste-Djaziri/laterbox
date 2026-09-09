@@ -45,25 +45,41 @@ class MacOSCompanion {
 
       case 'saveCandidate':
         final args = Map<String, dynamic>.from(call.arguments as Map);
+        final id = args['id'] as String? ?? DateTime.now().microsecondsSinceEpoch.toString();
         final title = args['title'] as String? ?? 'Screen Note';
         final url = args['url'] as String?;
         final snippet = args['snippet'] as String?;
-
-        if (url != null && url.isNotEmpty) {
+        final source = _captureSource(args['source'] as String?);
+        try {
           final payload = CapturePayload(
-            url: url,
-            text: snippet ?? title,
-            source: CaptureSource.desktopQuickCapture,
+            id: id,
+            url: url?.isNotEmpty == true ? url : null,
+            text: snippet?.isNotEmpty == true ? snippet : (url == null ? title : null),
+            source: source,
           );
-          await _captureService?.save(payload);
-        } else {
-          final payload = CapturePayload(
-            text: snippet ?? title,
-            source: CaptureSource.desktopQuickCapture,
-          );
-          await _captureService?.save(payload);
+          final service = _captureService;
+          if (service == null) {
+            return <String, dynamic>{
+              'ok': false,
+              'id': id,
+              'message': 'LaterBox is still starting. Please try again.',
+            };
+          }
+          await service.save(payload);
+          return <String, dynamic>{
+            'ok': true,
+            'id': id,
+            'title': title,
+            'kind': args['kind'] as String? ?? (url == null ? 'note' : 'link'),
+          };
+        } catch (error, stackTrace) {
+          debugPrint('[MacOSCompanion] capture failed: $error\n$stackTrace');
+          return <String, dynamic>{
+            'ok': false,
+            'id': id,
+            'message': 'Could not save this item. Check LaterBox and retry.',
+          };
         }
-        break;
 
       case 'itemsDropped':
         final args = Map<String, dynamic>.from(call.arguments as Map);
@@ -84,6 +100,13 @@ class MacOSCompanion {
       default:
         break;
     }
+  }
+
+  static CaptureSource _captureSource(String? value) {
+    return switch (value) {
+      'macosShare' => CaptureSource.macosShare,
+      _ => CaptureSource.desktopQuickCapture,
+    };
   }
 
   /// Displays the native floating notch panel on macOS.
