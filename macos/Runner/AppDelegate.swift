@@ -625,12 +625,26 @@ class AppDelegate: FlutterAppDelegate {
       self.screenWatcher = watcher
     }
 
-    notchController.onSaveCandidate = { title, url, snippet in
+    notchController.onCaptureRequested = { [weak self] candidate in
       channel.invokeMethod("saveCandidate", arguments: [
-        "title": title,
-        "url": url as Any,
-        "snippet": snippet as Any
-      ])
+        "id": candidate.id,
+        "title": candidate.title,
+        "url": candidate.url as Any,
+        "snippet": candidate.text as Any,
+        "source": candidate.source.rawValue,
+        "kind": candidate.kind.rawValue
+      ]) { response in
+        DispatchQueue.main.async {
+          guard let result = response as? [String: Any], result["ok"] as? Bool == true else {
+            let message = (response as? [String: Any])?["message"] as? String ?? "LaterBox could not save this item."
+            self?.notchController.captureFailed(id: candidate.id, message: message)
+            return
+          }
+          let title = result["title"] as? String ?? candidate.title
+          let value = candidate.url ?? candidate.text ?? candidate.title
+          self?.notchController.captureCompleted(id: candidate.id, title: title, value: value, kind: candidate.kind)
+        }
+      }
     }
 
     notchController.onOpenLaterBox = { [weak self] in
@@ -708,6 +722,32 @@ class AppDelegate: FlutterAppDelegate {
         } else {
           result(false)
         }
+      case "captureCompleted":
+        guard let args = call.arguments as? [String: Any],
+              let id = args["id"] as? String,
+              let title = args["title"] as? String,
+              let value = args["value"] as? String,
+              let kindValue = args["kind"] as? String,
+              let kind = NotchContentKind(rawValue: kindValue) else {
+          result(false)
+          return
+        }
+        self.notchController.captureCompleted(id: id, title: title, value: value, kind: kind)
+        result(true)
+      case "captureFailed":
+        guard let args = call.arguments as? [String: Any],
+              let id = args["id"] as? String else {
+          result(false)
+          return
+        }
+        self.notchController.captureFailed(
+          id: id,
+          message: args["message"] as? String ?? "LaterBox could not save this item."
+        )
+        result(true)
+      case "dismissCandidate":
+        self.notchController.dismissCurrentState()
+        result(true)
       default:
         result(FlutterMethodNotImplemented)
       }
@@ -758,14 +798,22 @@ class AppDelegate: FlutterAppDelegate {
       createdAt: Date(),
       source: "macosContextMenu"
     )
-    shareQueue.enqueue(item)
-
-    if let companion = companionChannel {
-      companion.invokeMethod("saveCandidate", arguments: [
-        "title": item.title,
-        "url": item.url as Any,
-        "snippet": item.text as Any
-      ])
+    if companionChannel != nil {
+      let kind: NotchContentKind = capturedUrl != nil && capturedText != nil
+        ? .highlight
+        : capturedUrl != nil ? .link : .note
+      let candidate = NotchCaptureCandidate(
+        id: item.id,
+        title: item.title,
+        url: item.url,
+        text: item.text,
+        source: .macosService,
+        kind: kind
+      )
+      notchController.show()
+      notchController.presentExternalCandidate(candidate)
+    } else {
+      shareQueue.enqueue(item)
     }
   }
 }
