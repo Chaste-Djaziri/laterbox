@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/auth/auth_provider.dart';
+import '../../../core/desktop/desktop_actions.dart';
 import '../../../core/sync/sync_providers.dart';
 import '../../../shared/widgets/cloud_sync_indicator.dart';
 import '../../../shared/widgets/filter_chip_bar.dart';
@@ -264,6 +265,17 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
                             if (isDesktop)
                               Row(
                                 children: [
+                                  if (isMac)
+                                    IconButton(
+                                      onPressed: () => ref
+                                          .read(desktopActionsProvider)
+                                          .dockToNotch(),
+                                      tooltip: 'Dock to Screen Notch',
+                                      icon: const Icon(
+                                        Icons.laptop_mac_rounded,
+                                        size: 20,
+                                      ),
+                                    ),
                                   const CloudSyncIndicator(),
                                   const SizedBox(width: 12),
                                   TextButton.icon(
