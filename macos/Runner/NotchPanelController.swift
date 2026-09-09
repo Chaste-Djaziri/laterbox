@@ -177,7 +177,7 @@ final class NotchPanelController {
   }
   func presentExternalCandidate(_ candidate: NotchCaptureCandidate) { setPrompt(candidate.source == .clipboard ? .clipboardPrompt(candidate) : .watchCandidate(candidate)) }
   func captureCompleted(id: String, title: String, value: String, kind: NotchContentKind) {
-    guard case .saving(let candidate) = state, candidate.id == id else { return }
+    if case .saving(let candidate) = state, candidate.id != id { return }
     let receipt = NotchSaveReceipt(id: id, title: title, value: value, kind: kind, savedAt: Date()); receipts.insert(receipt, at: 0); receipts = Array(receipts.prefix(3)); state = .saved(receipt); expand(); scheduleCollapse(2.4)
   }
   func captureFailed(id: String, message: String) { guard case .saving(let item) = state, item.id == id else { return }; state = .failed(item, message); expand() }
