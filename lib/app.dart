@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/desktop/desktop_actions.dart';
 import 'core/desktop/desktop_capabilities.dart';
 import 'core/desktop/desktop_providers.dart';
+import 'core/desktop/macos_companion.dart';
 import 'core/enrichment/enrichment_providers.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
@@ -167,6 +168,21 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
           if (await _importNativeShare(payload, source)) {
             _processedShareIds.add(payload.id);
             await receiver.acknowledge([payload.id]);
+            if (Platform.isMacOS) {
+              final value = payload.text ??
+                  (payload.filePaths.isEmpty ? 'Shared item' : payload.filePaths.first);
+              await MacOSCompanion.reportCaptureCompleted(
+                id: payload.id,
+                title: _shareReceiptTitle(payload),
+                value: value,
+                kind: _shareReceiptKind(payload),
+              );
+            }
+          } else if (Platform.isMacOS) {
+            await MacOSCompanion.reportCaptureFailed(
+              id: payload.id,
+              message: 'Could not import this shared item. Open LaterBox to retry.',
+            );
           }
         } finally {
           _inFlightShareIds.remove(payload.id);
@@ -177,6 +193,36 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
     } on Object catch (error, stackTrace) {
       debugPrint('Failed to import Apple shares: $error\n$stackTrace');
     }
+  }
+
+  String _shareReceiptTitle(NativeSharePayload payload) {
+    final text = payload.text?.trim();
+    if (text != null && text.isNotEmpty) {
+      final uri = Uri.tryParse(text.split(RegExp(r'\s+')).last);
+      return uri?.host.isNotEmpty == true ? uri!.host : text.replaceAll('\n', ' ');
+    }
+    if (payload.filePaths.isNotEmpty) {
+      return File(payload.filePaths.first).uri.pathSegments.last;
+    }
+    return 'Shared item';
+  }
+
+  String _shareReceiptKind(NativeSharePayload payload) {
+    if (payload.filePaths.isNotEmpty) {
+      final extension = payload.filePaths.first.split('.').last.toLowerCase();
+      if (extension == 'pdf') return 'pdf';
+      if (const {'jpg', 'jpeg', 'png', 'webp', 'heic'}.contains(extension)) {
+        return 'image';
+      }
+      return 'document';
+    }
+    final text = payload.text ?? '';
+    final hasUrl = RegExp(r'https?://').hasMatch(text);
+    return hasUrl && text.split(RegExp(r'\s+')).length > 1
+        ? 'highlight'
+        : hasUrl
+            ? 'link'
+            : 'note';
   }
 
   Future<bool> _importNativeShare(
