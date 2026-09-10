@@ -11,17 +11,19 @@ if (isProduction && process.env.PADDLE_CONFIRM_PRODUCTION !== 'CREATE_LIVE_CATAL
   );
 }
 
-const apiKey =
+const rawApiKey =
   process.env.PADDLE_CATALOG_API_KEY ||
   (isProduction
     ? process.env.PADDLE_API_KEY
     : process.env.PADDLE_SANDBOX_API_KEY);
 
-if (!apiKey) {
+if (!rawApiKey) {
   throw new Error(
-    `Export PADDLE_CATALOG_API_KEY with Products Write and Prices Write permissions before seeding ${environment}.`,
+    `Export PADDLE_CATALOG_API_KEY with Products Read/Write and Prices Read/Write permissions before seeding ${environment}.`,
   );
 }
+
+const apiKey = rawApiKey.trim();
 
 const expectedPrefix = isProduction ? 'pdl_live_apikey_' : 'pdl_sdbx_apikey_';
 if (!apiKey.startsWith(expectedPrefix)) {
@@ -45,7 +47,18 @@ async function request(path, init = {}) {
   });
   const payload = await response.json();
   if (!response.ok) {
-    throw new Error(payload?.error?.detail || `Paddle returned ${response.status}`);
+    const detail = payload?.error?.detail || `Paddle returned ${response.status}`;
+    if (response.status === 403) {
+      throw new Error(
+        `${detail} The catalog key needs Products Read/Write and Prices Read/Write permissions.`,
+      );
+    }
+    if (response.status === 401) {
+      throw new Error(
+        `${detail} Copy only the complete pdl_live_apikey_... value, without a variable name or quotes.`,
+      );
+    }
+    throw new Error(detail);
   }
   return payload;
 }
