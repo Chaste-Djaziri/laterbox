@@ -367,6 +367,14 @@ export function Footer() {
                 </Link>
               </li>
               <li>
+                <Link
+                  href="/refund"
+                  className="hover:text-[#171711] transition-colors"
+                >
+                  Refund Policy
+                </Link>
+              </li>
+              <li>
                 <span className="text-[#6c6b63] flex items-center gap-1">
                   <Lock className="w-3 h-3 text-[#171711]" />
                   <span>Zero Data Tracking</span>
@@ -421,6 +429,9 @@ export function Footer() {
             </Link>
             <Link href="/terms" className="hover:text-[#171711] transition-colors">
               Terms
+            </Link>
+            <Link href="/refund" className="hover:text-[#171711] transition-colors">
+              Refunds
             </Link>
             <Link href="/docs" className="hover:text-[#171711] transition-colors">
               Documentation
