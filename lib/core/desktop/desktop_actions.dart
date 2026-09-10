@@ -70,6 +70,7 @@ class DesktopActions {
       MacOSCompanion.initialize(
         captureService: captureService,
         onOpenLaterBox: () => unawaited(openLaterBox()),
+        onOpenPlans: () => unawaited(openPlans()),
         onFilesDropped: (filePaths, text) async {
           // Route file drops through the attachment import pipeline so images/PDFs
           // are verified, copied to the app support store, and linked to a new item.
@@ -235,6 +236,20 @@ class DesktopActions {
       debugPrint('[LaterBox Desktop] openSettings complete');
     } catch (error, stackTrace) {
       debugPrint('[LaterBox Desktop] openSettings FAILED: $error');
+      debugPrintStack(stackTrace: stackTrace);
+    }
+  }
+
+  /// Opens the app directly to the Pro plans from a locked premium surface.
+  Future<void> openPlans() async {
+    try {
+      final controller = ref.read(quickCaptureControllerProvider);
+      final desktop = ref.read(desktopServiceProvider);
+      await controller.close();
+      await desktop.showMainWindow();
+      await ref.read(appRouterProvider).push('/plans');
+    } catch (error, stackTrace) {
+      debugPrint('[LaterBox Desktop] openPlans FAILED: $error');
       debugPrintStack(stackTrace: stackTrace);
     }
   }
