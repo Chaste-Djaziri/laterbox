@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:laterbox/core/billing/billing_providers.dart';
 import 'package:laterbox/core/database/app_database.dart';
 import 'package:laterbox/core/sync/sync_stats_provider.dart';
 import 'package:laterbox/shared/widgets/cloud_sync_indicator.dart';
@@ -12,6 +13,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          hasProAccessProvider.overrideWithValue(true),
           syncStatsProvider.overrideWith(
             (ref) => Stream.value(
               const SyncStatsData(
