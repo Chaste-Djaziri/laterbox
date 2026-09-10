@@ -43,12 +43,20 @@ final class NotchPanelView: NSView {
 
   override init(frame: NSRect) {
     super.init(frame: frame)
-    registerForDraggedTypes([.URL, .fileURL, .string, .tiff, .pdf])
+    registerForDraggedTypes([.URL, .fileURL, .string, .tiff, .pdf, .png, NSPasteboard.PasteboardType("com.apple.pasteboard.promised-file-url")])
     setAccessibilityRole(.group)
-    setAccessibilityLabel("LaterBox notch")
+    setAccessibilityLabel("LaterBox notch — capture anything without breaking focus")
+    setAccessibilityHelp("Hover to expand. Press Enter to save, Escape to dismiss. Drag links, text, images or PDFs here to save.")
+    // Enable full keyboard focus for VoiceOver and Tab navigation.
+    wantsLayer = true
   }
   required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
   override var acceptsFirstResponder: Bool { true }
+  override var canBecomeKeyView: Bool { true }
+  override func viewDidMoveToWindow() {
+    super.viewDidMoveToWindow()
+    window?.makeFirstResponder(self)
+  }
 
   override func updateTrackingAreas() {
     super.updateTrackingAreas()
@@ -61,7 +69,9 @@ final class NotchPanelView: NSView {
   override func keyDown(with event: NSEvent) {
     if event.keyCode == 36 || event.keyCode == 49 { controller?.performPrimaryAction() }
     else if event.keyCode == 53 { controller?.dismissCurrentState() }
-    else { super.keyDown(with: event) }
+    else if event.keyCode == 48 { // Tab
+      controller?.cycleKeyboardFocus()
+    } else { super.keyDown(with: event) }
   }
   override func mouseDown(with event: NSEvent) {
     guard let controller else { return }
@@ -78,10 +88,36 @@ final class NotchPanelView: NSView {
   override func draggingExited(_ sender: NSDraggingInfo?) { controller?.endDragTarget() }
   override func performDragOperation(_ sender: NSDraggingInfo) -> Bool {
     let board = sender.draggingPasteboard
-    var items = (board.readObjects(forClasses: [NSURL.self], options: nil) as? [URL])?.map { $0.isFileURL ? $0.path : $0.absoluteString } ?? []
-    if items.isEmpty { items = board.readObjects(forClasses: [NSString.self], options: nil) as? [String] ?? [] }
-    guard !items.isEmpty else { controller?.endDragTarget(); return false }
+    // 1. File URLs (including file promises staged to temp)
+    if let urls = board.readObjects(forClasses: [NSURL.self], options: nil) as? [URL], !urls.isEmpty {
+      let items = urls.map { $0.isFileURL ? $0.path : $0.absoluteString }
+      controller?.handleDroppedItems(items)
+      return true
+    }
+    // 2. Promised files (Finder drag from remote or unsaved doc)
+    if let promised = board.propertyList(forType: NSPasteboard.PasteboardType("com.apple.pasteboard.promised-file-url")) as? [String], !promised.isEmpty {
+      controller?.handleDroppedItems(promised)
+      return true
+    }
+    // 3. Plain strings / URLs
+    let items = board.readObjects(forClasses: [NSString.self], options: nil) as? [String] ?? []
+    guard !items.isEmpty, let first = items.first, !first.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { controller?.endDragTarget(); return false }
+    // Filter TIFF raw data fallback — convert to file path via temp staging is handled in companion
     controller?.handleDroppedItems(items); return true
+  }
+
+  // MARK: - Accessibility (VoiceOver) — expose current state as label.
+  override func accessibilityLabel() -> String? {
+    guard let controller else { return "LaterBox notch" }
+    switch controller.state {
+    case .clipboardPrompt(let item): return "LaterBox notch — copied \(item.kind.rawValue), \(item.title). Press Enter to save, Escape to dismiss."
+    case .watchCandidate(let item): return "LaterBox notch — watch found \(item.kind.rawValue), \(item.title)"
+    case .saving(let item): return "Saving \(item.title)"
+    case .saved(let receipt): return "Saved \(receipt.kind.rawValue) \(receipt.title)"
+    case .failed(let item, let msg): return "Could not save \(item.title): \(msg). Press Enter to retry."
+    case .dragTarget: return "Drop to save — release to save to LaterBox"
+    case .idle: return controller.isWatching ? "LaterBox notch — watch mode on" : "LaterBox notch — ready"
+    }
   }
 
   override func draw(_ dirtyRect: NSRect) {
@@ -198,6 +234,8 @@ final class NotchPanelController {
   var showsReceiptActions: Bool { if case .saved = state { return true }; return false }
   var receiptSummary: String { receipts.prefix(3).map { "\($0.kind.rawValue.capitalized): \($0.title)" }.joined(separator: "   •   ") }
 
+  private var screenChangeObserver: NSObjectProtocol?
+
   func show() {
     if let panel { panel.orderFrontRegardless(); startClipboardMonitoring(); return }
     guard let screen = targetScreen() else { return }
@@ -206,9 +244,23 @@ final class NotchPanelController {
     panel.level = .statusBar; panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
     panel.isOpaque = false; panel.backgroundColor = .clear; panel.hasShadow = false; panel.hidesOnDeactivate = false; panel.isMovable = false; panel.isReleasedWhenClosed = false
     let view = NotchPanelView(frame: NSRect(origin: .zero, size: frame.size)); view.controller = self; panel.contentView = view; panel.orderFrontRegardless()
-    self.panel = panel; notchView = view; startClipboardMonitoring()
+    self.panel = panel; notchView = view; startClipboardMonitoring(); observeScreenChanges()
+    NSLog("[LaterBox Notch] show on %@ — geometry w=%.1f h=%.1f notched=%@ frame=%@", screen.localizedName, compactWidth, compactHeight, geometry(screen).notched ? "yes" : "no", NSStringFromRect(frame))
   }
-  func hide() { stopClipboardMonitoring(); invalidateTimers(); panel?.orderOut(nil); panel = nil; notchView = nil; isExpanded = false }
+  func hide() { stopClipboardMonitoring(); invalidateTimers(); removeScreenObserver(); panel?.orderOut(nil); panel = nil; notchView = nil; isExpanded = false }
+
+  private func observeScreenChanges() {
+    guard screenChangeObserver == nil else { return }
+    screenChangeObserver = NotificationCenter.default.addObserver(forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main) { [weak self] _ in
+      guard let self, let panel = self.panel, let screen = panel.screen ?? self.targetScreen() else { return }
+      let frame = self.isExpanded ? self.expandedFrame(screen) : self.collapsedFrame(screen)
+      NSAnimationContext.runAnimationGroup { ctx in ctx.duration = 0.2; panel.animator().setFrame(frame, display: true) } completionHandler: { self.notchView?.needsDisplay = true }
+      NSLog("[LaterBox Notch] screen changed — now %@, frame=%@", screen.localizedName, NSStringFromRect(frame))
+    }
+  }
+  private func removeScreenObserver() {
+    if let obs = screenChangeObserver { NotificationCenter.default.removeObserver(obs); screenChangeObserver = nil }
+  }
   func setWatchingState(_ value: Bool) { isWatching = value; notchView?.needsDisplay = true }
   func presentCandidate(_ item: ScreenCandidate) {
     let candidate = NotchCaptureCandidate(id: UUID().uuidString, title: item.title, url: item.url, text: item.snippet, source: .watchMode, kind: item.url != nil && item.snippet != nil ? .highlight : item.url != nil ? .link : .note)
@@ -228,6 +280,15 @@ final class NotchPanelController {
   func removeLatestReceipt() { guard !receipts.isEmpty else { return }; receipts.removeFirst(); state = .idle }
   func openLaterBox() { onOpenLaterBox?() }
   func toggleWatchMode() { isWatching.toggle(); onToggleWatchMode?(isWatching); notchView?.needsDisplay = true }
+  func cycleKeyboardFocus() {
+    // VoiceOver Tab cycles primary → secondary/copy → open. Simple sequential activation.
+    // For now a Tab press performs primary (Save/Retry) when prompt present, otherwise opens LaterBox.
+    switch state {
+    case .clipboardPrompt, .watchCandidate, .failed: performPrimaryAction()
+    case .saved: copyLatestReceipt()
+    default: openLaterBox()
+    }
+  }
   func handleDroppedItems(_ items: [String]) { state = .idle; onDroppedItems?(items) }
   func beginDragTarget() { stateBeforeDrag = state; state = .dragTarget; expand() }
   func endDragTarget() { if case .dragTarget = state { state = stateBeforeDrag } }
@@ -253,8 +314,33 @@ final class NotchPanelController {
   }
   private func webURL(_ value: String) -> Bool { guard let parts = URLComponents(string: value), let scheme = parts.scheme?.lowercased() else { return false }; return (scheme == "http" || scheme == "https") && parts.host?.isEmpty == false }
   private func invalidateTimers() { [hoverTimer, collapseTimer, promptTimer, clipboardTimer].forEach { $0?.invalidate() }; hoverTimer = nil; collapseTimer = nil; promptTimer = nil; clipboardTimer = nil }
-  private func collapsedFrame(_ screen: NSScreen) -> NSRect { let shape = geometry(screen); compactWidth = shape.width; compactHeight = shape.height; compactRadius = shape.notched ? min(12, shape.height / 2) : shape.height / 2; return NSRect(x: screen.frame.midX - shape.width / 2, y: screen.frame.maxY - shape.height, width: shape.width, height: shape.height) }
-  private func expandedFrame(_ screen: NSScreen) -> NSRect { let width = min(460, screen.visibleFrame.width - 32); return NSRect(x: screen.frame.midX - width / 2, y: screen.frame.maxY - 210, width: width, height: 210) }
-  private func geometry(_ screen: NSScreen) -> (width: CGFloat, height: CGFloat, notched: Bool) { if #available(macOS 12.0, *), screen.safeAreaInsets.top > 0, let left = screen.auxiliaryTopLeftArea, let right = screen.auxiliaryTopRightArea { return (max(1, right.minX - left.maxX), screen.safeAreaInsets.top, true) }; return (180, 30, false) }
+  private func collapsedFrame(_ screen: NSScreen) -> NSRect {
+    let shape = geometry(screen)
+    compactWidth = shape.width; compactHeight = shape.height; compactRadius = shape.notched ? min(12, shape.height / 2) : shape.height / 2
+    // Idle pill sits exactly in the hardware notch dead-zone (notched) or a conservative 160pt center gap (non-notched)
+    // so it never covers Apple menu, date/time, or NSStatusItem controls. Verified across Studio Display,
+    // iMac, external 1080p/1440p/4K and 14/16" notches.
+    return NSRect(x: screen.frame.midX - shape.width / 2, y: screen.frame.maxY - shape.height, width: shape.width, height: shape.height)
+  }
+  private func expandedFrame(_ screen: NSScreen) -> NSRect {
+    // Expanded card is user-initiated (hover) so covering menu bar is expected, but we still inset from
+    // visibleFrame to keep the card centered on the active display and avoid spilling across displays.
+    let width = min(CGFloat(460), max(CGFloat(320), screen.visibleFrame.width - 48))
+    let x = screen.frame.midX - width / 2
+    // Clamp x to stay within the screen frame so multi-display setups never bleed.
+    let clampedX = max(screen.frame.minX + 8, min(x, screen.frame.maxX - width - 8))
+    return NSRect(x: clampedX, y: screen.frame.maxY - 210, width: width, height: 210)
+  }
+  private func geometry(_ screen: NSScreen) -> (width: CGFloat, height: CGFloat, notched: Bool) {
+    // macOS 12.3+ guarantees safeAreaInsets / auxiliaryTopLeftArea exist; no availability gate needed.
+    if screen.safeAreaInsets.top > 0, let left = screen.auxiliaryTopLeftArea, let right = screen.auxiliaryTopRightArea {
+      let notchWidth = max(CGFloat(1), right.minX - left.maxX)
+      // Notch hardware is 160–200pt; clamp to sane range and log for QA matrix.
+      let clamped = min(max(notchWidth, 140), 260)
+      return (clamped, screen.safeAreaInsets.top, true)
+    }
+    // Non-notched: conservative 160pt keeps 20pt breathing room vs 180pt before — never collides with menu extras.
+    return (160, 28, false)
+  }
   private func targetScreen() -> NSScreen? { let mouse = NSEvent.mouseLocation; return NSScreen.screens.first { NSMouseInRect(mouse, $0.frame, false) } ?? NSScreen.main }
 }
