@@ -51,6 +51,7 @@ class ProPlans extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Wrap(
+          alignment: WrapAlignment.center,
           spacing: 16,
           runSpacing: 16,
           children: [
