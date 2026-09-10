@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:app_links/app_links.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -33,6 +34,9 @@ class LaterBoxApp extends ConsumerStatefulWidget {
 
 class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
     with WidgetsBindingObserver {
+  final AppLinks _appLinks = AppLinks();
+  StreamSubscription<Uri>? _appLinkSubscription;
+  Timer? _billingRefreshTimer;
   bool _drainingShares = false;
   final Set<String> _inFlightShareIds = {};
   final Set<String> _processedShareIds = {};
@@ -41,12 +45,21 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _appLinkSubscription = _appLinks.uriLinkStream.listen(
+      _handleAppLink,
+      onError: (Object error, StackTrace stackTrace) {
+        debugPrint('[LaterBox] app link failed: $error');
+      },
+    );
     ref.listenManual(entitlementProvider, (_, next) {
       next.whenData((entitlement) {
         unawaited(
           MacOSCompanion.setProAutomationEnabled(entitlement.hasProAccess),
         );
-        if (entitlement.hasProAccess) _drainPendingShares();
+        if (entitlement.hasProAccess) {
+          _billingRefreshTimer?.cancel();
+          _drainPendingShares();
+        }
       });
     }, fireImmediately: true);
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -63,8 +76,44 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
 
   @override
   void dispose() {
+    _appLinkSubscription?.cancel();
+    _billingRefreshTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
+  }
+
+  void _handleAppLink(Uri uri) {
+    if (laterBoxDistribution != 'direct' ||
+        uri.scheme != 'laterbox' ||
+        uri.host != 'billing' ||
+        uri.path != '/complete' ||
+        !{'success', 'processing'}.contains(uri.queryParameters['status'])) {
+      return;
+    }
+    final interval = uri.queryParameters['interval'] == 'month'
+        ? 'monthly'
+        : 'annual';
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref.invalidate(entitlementProvider);
+      ref
+          .read(appRouterProvider)
+          .go('/plans?checkout=success&interval=$interval');
+      _pollBillingEntitlement();
+    });
+  }
+
+  void _pollBillingEntitlement() {
+    _billingRefreshTimer?.cancel();
+    var attempts = 0;
+    _billingRefreshTimer = Timer.periodic(const Duration(seconds: 2), (timer) {
+      attempts += 1;
+      if (!mounted || attempts >= 10) {
+        timer.cancel();
+        return;
+      }
+      ref.invalidate(entitlementProvider);
+    });
   }
 
   @override
@@ -86,11 +135,13 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
 
   void _syncDesktopIconTheme() {
     if (!kIsWeb && defaultTargetPlatform == TargetPlatform.macOS) {
-      final brightness = WidgetsBinding.instance.platformDispatcher.platformBrightness;
-      const MethodChannel('pro.micorp.laterbox/desktop_icon').invokeMethod<void>(
-        'updateIcon',
-        {'isDark': brightness == Brightness.dark},
-      ).catchError((_) => null);
+      final brightness =
+          WidgetsBinding.instance.platformDispatcher.platformBrightness;
+      const MethodChannel('pro.micorp.laterbox/desktop_icon')
+          .invokeMethod<void>('updateIcon', {
+            'isDark': brightness == Brightness.dark,
+          })
+          .catchError((_) => null);
     }
   }
 
@@ -182,8 +233,11 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
             _processedShareIds.add(payload.id);
             await receiver.acknowledge([payload.id]);
             if (Platform.isMacOS) {
-              final value = payload.text ??
-                  (payload.filePaths.isEmpty ? 'Shared item' : payload.filePaths.first);
+              final value =
+                  payload.text ??
+                  (payload.filePaths.isEmpty
+                      ? 'Shared item'
+                      : payload.filePaths.first);
               await MacOSCompanion.reportCaptureCompleted(
                 id: payload.id,
                 title: _shareReceiptTitle(payload),
@@ -194,7 +248,8 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
           } else if (Platform.isMacOS) {
             await MacOSCompanion.reportCaptureFailed(
               id: payload.id,
-              message: 'Could not import this shared item. Open LaterBox to retry.',
+              message:
+                  'Could not import this shared item. Open LaterBox to retry.',
             );
           }
         } finally {
@@ -212,7 +267,9 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
     final text = payload.text?.trim();
     if (text != null && text.isNotEmpty) {
       final uri = Uri.tryParse(text.split(RegExp(r'\s+')).last);
-      return uri?.host.isNotEmpty == true ? uri!.host : text.replaceAll('\n', ' ');
+      return uri?.host.isNotEmpty == true
+          ? uri!.host
+          : text.replaceAll('\n', ' ');
     }
     if (payload.filePaths.isNotEmpty) {
       return File(payload.filePaths.first).uri.pathSegments.last;
@@ -234,8 +291,8 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
     return hasUrl && text.split(RegExp(r'\s+')).length > 1
         ? 'highlight'
         : hasUrl
-            ? 'link'
-            : 'note';
+        ? 'link'
+        : 'note';
   }
 
   Future<bool> _importNativeShare(
@@ -307,9 +364,7 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
           content = Material(
             child: Overlay(
               initialEntries: [
-                OverlayEntry(
-                  builder: (context) => const QuickCaptureScreen(),
-                ),
+                OverlayEntry(builder: (context) => const QuickCaptureScreen()),
               ],
             ),
           );
