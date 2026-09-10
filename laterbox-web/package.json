@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@opennextjs/cloudflare": "^1.19.9",
+    "@paddle/paddle-js": "^1.4.2",
     "@supabase/supabase-js": "^2.112.3",
     "clsx": "^2.1.1",
     "date-fns": "^4.4.0",
