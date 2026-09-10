@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useAuth } from '@/lib/store/AuthContext';
 import { useItems } from '@/lib/store/ItemContext';
 import { useBilling } from '@/lib/store/BillingContext';
+import { presentEntitlement } from '@/lib/billing/types';
 import { CloudSyncIndicator } from '@/components/ui/CloudSyncIndicator';
 import {
   User,
@@ -42,6 +43,7 @@ export default function SettingsPage() {
   const { items, collections, syncNow } = useItems();
   const { entitlement, isPro, loading: billingLoading, manage } = useBilling();
   const [billingMessage, setBillingMessage] = useState<string | null>(null);
+  const plan = presentEntitlement(entitlement);
 
   const [currentVersion, setCurrentVersion] = useState<VersionInfo | null>(null);
   const [checkingUpdate, setCheckingUpdate] = useState(false);
@@ -212,15 +214,12 @@ export default function SettingsPage() {
             <div>
               <div className="flex items-center gap-2">
                 <Crown className="size-5 text-[#d7ff27]" />
-                <h2 className="font-extrabold">LaterBox {isPro ? 'Pro' : 'Free'}</h2>
+                <h2 className="font-extrabold">{plan.label}</h2>
               </div>
               <p className="mt-2 max-w-xl text-xs leading-5 text-zinc-300">
-                {isPro
-                  ? entitlement.status === 'granted'
-                    ? 'Your launch access includes cloud sync and premium capture features.'
-                    : 'Cloud sync, attachments, integrations, and premium capture features are active.'
-                  : 'Local saving stays free. Upgrade for sync, cloud attachments, integrations, and automatic capture.'}
+                {plan.description}
               </p>
+              {plan.progress !== null && <div className="mt-3 h-1.5 max-w-md overflow-hidden rounded-full bg-white/15"><div className={`h-full ${plan.tone === 'warning' ? 'bg-amber-300' : 'bg-[#d7ff27]'}`} style={{ width: `${Math.round(plan.progress * 100)}%` }} /></div>}
               {entitlement.billingWarning && <p className="mt-2 text-xs font-bold text-amber-300">Payment needs attention. Update it in the billing portal to keep Pro active.</p>}
               {billingMessage && <p className="mt-2 text-xs font-bold text-red-300">{billingMessage}</p>}
             </div>
