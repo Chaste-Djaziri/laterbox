@@ -810,7 +810,27 @@ class _DesktopShortcutSettings extends ConsumerWidget {
               subtitle: const Text('Starts quietly in the menu bar'),
               secondary: const Icon(Icons.login_rounded),
               value: settings.launchAtLogin,
-              onChanged: (value) => unawaited(actions.setLaunchAtLogin(value)),
+              onChanged: (value) async {
+                if (value) {
+                  final ok = await showDialog<bool>(
+                    context: context,
+                    builder: (ctx) => AlertDialog(
+                      title: const Text('Launch at login?'),
+                      content: const Text(
+                        'LaterBox will start quietly in the menu bar after you log in — no window, no interruption. '
+                        'Capture anything without breaking focus from the notch or ⌥Space. '
+                        'You can disable this anytime in Settings → Quick Capture.',
+                      ),
+                      actions: [
+                        TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel')),
+                        FilledButton(onPressed: () => Navigator.of(ctx).pop(true), child: const Text('Enable')),
+                      ],
+                    ),
+                  );
+                  if (ok != true) return;
+                }
+                unawaited(actions.setLaunchAtLogin(value));
+              },
             ),
             SwitchListTile(
               title: const Text('Show LaterBox in menu bar'),
@@ -831,8 +851,53 @@ class _DesktopShortcutSettings extends ConsumerWidget {
               subtitle: const Text('Detects active links, references, and frontmost apps'),
               secondary: const Icon(Icons.visibility_rounded),
               value: settings.watchActiveScreen,
-              onChanged: (value) => unawaited(actions.setWatchActiveScreen(value)),
+              onChanged: (value) async {
+                if (value) {
+                  final proceed = await showDialog<bool>(
+                    context: context,
+                    builder: (ctx) => AlertDialog(
+                      title: const Text('Enable Watch Mode?'),
+                      content: const Text(
+                        'Watch Mode uses on-device Vision OCR (ScreenCaptureKit) to detect links and quotes on your screen. '
+                        'Screen content never leaves your Mac — it is not persisted or uploaded until you tap Save. '
+                        'You’ll be asked for Screen Recording permission next; grant it in System Settings → Privacy & Security → Screen Recording for the notch to see the screen.',
+                      ),
+                      actions: [
+                        TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel')),
+                        FilledButton(onPressed: () => Navigator.of(ctx).pop(true), child: const Text('Continue')),
+                      ],
+                    ),
+                  );
+                  if (proceed != true) return;
+                  // Trigger system prompt; if still denied we still persist the preference
+                  // but surface guidance — the native watcher will surface a permission error.
+                  try {
+                    final trusted = await ref.read(desktopActionsProvider).ensureWatchModePermission();
+                    if (!trusted && context.mounted) {
+                      final open = await showDialog<bool>(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          title: const Text('Screen Recording required'),
+                          content: const Text(
+                            'LaterBox needs Screen Recording permission to watch the screen. '
+                            'Open System Settings → Privacy & Security → Screen Recording and enable LaterBox, then return and try again.',
+                          ),
+                          actions: [
+                            TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Later')),
+                            FilledButton(onPressed: () => Navigator.of(ctx).pop(true), child: const Text('Open Settings')),
+                          ],
+                        ),
+                      );
+                      if (open == true) {
+                        await ref.read(desktopActionsProvider).openScreenRecordingSettings();
+                      }
+                    }
+                  } catch (_) {}
+                }
+                unawaited(actions.setWatchActiveScreen(value));
+              },
             ),
+            const _ScreenRecordingTile(),
             SwitchListTile(
               title: const Text('Capture word references with highlight URLs'),
               subtitle: const Text('Generates W3C #:~:text= scroll-to-text links'),
@@ -1083,6 +1148,34 @@ class _AccessibilityTile extends ConsumerWidget {
               unawaited(launchUrl(Uri.parse(_accessibilitySettingsUrl))),
           child: const Text('Open System Settings'),
         ),
+      ),
+    );
+  }
+}
+
+class _ScreenRecordingTile extends ConsumerWidget {
+  const _ScreenRecordingTile();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Only show on macOS; on other platforms render nothing.
+    if (defaultTargetPlatform != TargetPlatform.macOS) return const SizedBox.shrink();
+    // We query trust lazily via MacOSCompanion; show a static tile that checks on tap.
+    return ListTile(
+      leading: const Icon(Icons.screen_search_desktop_rounded),
+      title: const Text('Screen Recording for Watch Mode'),
+      subtitle: const Text('Required for notch Watch Mode — on-device only, never uploaded'),
+      trailing: FilledButton.tonal(
+        onPressed: () async {
+          final trusted = await ref.read(desktopActionsProvider).ensureWatchModePermission();
+          if (!trusted && context.mounted) {
+            unawaited(launchUrl(Uri.parse('x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture')));
+          } else if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Screen Recording permission granted')));
+            ref.invalidate(accessibilityTrustedProvider);
+          }
+        },
+        child: const Text('Check Permission'),
       ),
     );
   }
