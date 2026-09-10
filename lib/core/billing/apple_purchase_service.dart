@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:in_app_purchase_storekit/in_app_purchase_storekit.dart';
+import 'package:in_app_purchase_storekit/store_kit_2_wrappers.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -106,10 +107,9 @@ class ApplePurchaseService extends ChangeNotifier {
       ));
       return;
     }
-    final addition = _store.getPlatformAddition<InAppPurchaseStoreKitPlatformAddition>();
     final eligibility = <String, bool>{};
     for (final product in response.productDetails) {
-      eligibility[product.id] = await addition.isIntroductoryOfferEligible(product.id);
+      eligibility[product.id] = await SK2Product.isIntroductoryOfferEligible(product.id);
     }
     final sorted = [...response.productDetails]
       ..sort((a, b) => a.rawPrice.compareTo(b.rawPrice));
