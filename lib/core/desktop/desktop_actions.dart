@@ -9,6 +9,7 @@ import '../../core/router/app_router.dart';
 import '../../core/settings/desktop_settings.dart';
 import '../../core/settings/desktop_shortcut.dart';
 import '../../core/settings/settings_providers.dart';
+import '../../features/attachments/presentation/attachment_providers.dart';
 import '../../features/capture/domain/capture_providers.dart';
 import 'desktop_providers.dart';
 import 'macos_companion.dart';
@@ -69,6 +70,18 @@ class DesktopActions {
       MacOSCompanion.initialize(
         captureService: captureService,
         onOpenLaterBox: () => unawaited(openLaterBox()),
+        onFilesDropped: (filePaths, text) async {
+          // Route file drops through the attachment import pipeline so images/PDFs
+          // are verified, copied to the app support store, and linked to a new item.
+          // This mirrors ShareExtension / _importNativeShare logic in app.dart.
+          try {
+            final service = await ref.read(attachmentImportServiceProvider.future);
+            final result = await service.importFiles(sourcePaths: filePaths, text: text);
+            debugPrint('[LaterBox Desktop] notch drop imported ${result.attachmentIds.length} files, ${result.failures.length} failures');
+          } catch (e, st) {
+            debugPrint('[LaterBox Desktop] notch drop import failed: $e\n$st');
+          }
+        },
       );
     }
 
@@ -340,9 +353,33 @@ class DesktopActions {
     final watcher = ref.read(screenWatcherServiceProvider);
     if (enabled) {
       watcher.startWatching();
+      // Also attempt native ScreenCaptureKit watcher if on macOS and trusted.
+      if (defaultTargetPlatform == TargetPlatform.macOS) {
+        final trusted = await MacOSCompanion.isScreenCaptureTrusted();
+        if (!trusted) {
+          await MacOSCompanion.requestScreenCapturePermission();
+        }
+        if (await MacOSCompanion.isScreenCaptureTrusted()) {
+          await MacOSCompanion.startWatching();
+        }
+      }
     } else {
       watcher.stopWatching();
+      if (defaultTargetPlatform == TargetPlatform.macOS) {
+        await MacOSCompanion.stopWatching();
+      }
     }
+  }
+
+  Future<bool> ensureWatchModePermission() async {
+    if (defaultTargetPlatform != TargetPlatform.macOS) return true;
+    if (await MacOSCompanion.isScreenCaptureTrusted()) return true;
+    await MacOSCompanion.requestScreenCapturePermission();
+    return MacOSCompanion.isScreenCaptureTrusted();
+  }
+
+  Future<void> openScreenRecordingSettings() async {
+    await MacOSCompanion.openScreenRecordingSettings();
   }
 
   Future<void> setAutoCopyWordReferences(bool enabled) async {
