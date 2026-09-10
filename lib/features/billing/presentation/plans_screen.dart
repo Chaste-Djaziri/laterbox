@@ -8,6 +8,10 @@ class PlansScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final interval = GoRouterState.of(context).uri.queryParameters['interval'];
+    final preferredInterval = interval == PlanInterval.monthly.name
+        ? PlanInterval.monthly
+        : PlanInterval.annual;
     return Scaffold(
       appBar: AppBar(
         title: const Text('LaterBox plans'),
@@ -39,7 +43,10 @@ class PlansScreen extends StatelessWidget {
                     style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
                   ),
                   const SizedBox(height: 28),
-                  ProPlans(onContinueFree: () => context.go('/inbox')),
+                  ProPlans(
+                    preferredInterval: preferredInterval,
+                    onContinueFree: () => context.go('/inbox'),
+                  ),
                 ],
               ),
             ),
