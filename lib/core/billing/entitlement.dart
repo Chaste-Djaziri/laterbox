@@ -19,6 +19,8 @@ class Entitlement {
     this.accessEndsAt,
     this.willCancel = false,
     this.billingWarning,
+    this.phaseStartsAt,
+    this.phaseEndsAt,
   });
 
   const Entitlement.free()
@@ -28,7 +30,9 @@ class Entitlement {
       trialEndsAt = null,
       accessEndsAt = null,
       willCancel = false,
-      billingWarning = null;
+      billingWarning = null,
+      phaseStartsAt = null,
+      phaseEndsAt = null;
 
   final EntitlementTier tier;
   final EntitlementStatus status;
@@ -37,6 +41,8 @@ class Entitlement {
   final DateTime? accessEndsAt;
   final bool willCancel;
   final String? billingWarning;
+  final DateTime? phaseStartsAt;
+  final DateTime? phaseEndsAt;
 
   bool get hasProAccess =>
       tier == EntitlementTier.pro &&
@@ -61,6 +67,8 @@ class Entitlement {
       accessEndsAt: date('accessEndsAt'),
       willCancel: json['willCancel'] as bool? ?? false,
       billingWarning: json['billingWarning'] as String?,
+      phaseStartsAt: date('phaseStartsAt'),
+      phaseEndsAt: date('phaseEndsAt'),
     );
   }
 
@@ -72,5 +80,7 @@ class Entitlement {
     'accessEndsAt': accessEndsAt?.toIso8601String(),
     'willCancel': willCancel,
     'billingWarning': billingWarning,
+    'phaseStartsAt': phaseStartsAt?.toIso8601String(),
+    'phaseEndsAt': phaseEndsAt?.toIso8601String(),
   };
 }
