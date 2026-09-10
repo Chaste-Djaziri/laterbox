@@ -63,12 +63,15 @@ alter table public.billing_subscriptions enable row level security;
 alter table public.billing_webhook_events enable row level security;
 alter table public.billing_entitlement_grants enable row level security;
 
+drop policy if exists "Users read own billing customer" on public.billing_customers;
 create policy "Users read own billing customer"
   on public.billing_customers for select
   using (auth.uid() = user_id);
+drop policy if exists "Users read own subscriptions" on public.billing_subscriptions;
 create policy "Users read own subscriptions"
   on public.billing_subscriptions for select
   using (auth.uid() = user_id);
+drop policy if exists "Users read own entitlement grants" on public.billing_entitlement_grants;
 create policy "Users read own entitlement grants"
   on public.billing_entitlement_grants for select
   using (auth.uid() = user_id);
