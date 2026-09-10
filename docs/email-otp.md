@@ -1,6 +1,6 @@
 # Email verification codes
 
-LaterBox supports six digit email codes on web, macOS, iOS, Android, and Windows. The same authentication screens support account confirmation after password sign up and passwordless sign in for existing accounts.
+LaterBox supports eight digit email codes on web, macOS, iOS, Android, and Windows. The same authentication screens support account confirmation after password sign up and passwordless sign in for existing accounts.
 
 ## Supabase configuration
 
@@ -15,18 +15,18 @@ Then open **Authentication > Email Templates** and make both templates display t
   - Subject: `{{ .Token }} is your LaterBox sign-in code`
   - Body: copy `supabase/templates/magic-link.html`.
 
-`{{ .Token }}` is the six-digit code itself, not a URL. Do not place it in an anchor `href`. These templates intentionally omit `{{ .ConfirmationURL }}` because LaterBox verifies the code inside the app.
+`{{ .Token }}` is the eight-digit code itself, not a URL. Do not place it in an anchor `href`. These templates intentionally omit `{{ .ConfirmationURL }}` because LaterBox verifies the code inside the app.
 
 For example:
 
 ```html
 <h2>Your LaterBox verification code</h2>
-<p>Enter this six digit code in LaterBox:</p>
+<p>Enter this eight digit code in LaterBox:</p>
 <p style="font-size: 32px; font-weight: 800; letter-spacing: 8px;">{{ .Token }}</p>
 <p>This code expires soon. If you did not request it, you can ignore this email.</p>
 ```
 
-Set the email OTP length to `6`. Choose an expiry that balances usability and security. The repository's local Supabase configuration uses six digits and a one hour expiry.
+Set the email OTP length to `8`. Choose an expiry that balances usability and security. The repository's local Supabase configuration uses eight digits and a one hour expiry.
 
 Passwordless sign in is restricted to existing accounts. LaterBox sends `shouldCreateUser: false`, so requesting a sign in code never creates an account silently.
 
