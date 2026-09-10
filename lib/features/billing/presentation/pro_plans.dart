@@ -101,7 +101,10 @@ class ProPlans extends ConsumerWidget {
                 child: const Text('Restore Purchases'),
               ),
               TextButton(
-                onPressed: apple.loadProducts,
+                onPressed: () async {
+                  await apple.loadProducts();
+                  ref.invalidate(entitlementProvider);
+                },
                 child: const Text('Refresh Status'),
               ),
             ],
@@ -205,7 +208,9 @@ class ProPlans extends ConsumerWidget {
       return;
     }
     await launchUrl(
-      Uri.parse('https://laterbox.dev/pricing?interval=${interval.name}'),
+      Uri.parse(
+        'https://laterbox.dev/pricing?plan=${interval == PlanInterval.monthly ? 'month' : 'year'}',
+      ),
       mode: LaunchMode.externalApplication,
     );
   }
