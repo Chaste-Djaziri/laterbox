@@ -1,6 +1,8 @@
 alter table public.billing_subscriptions
   add column if not exists current_period_starts_at timestamptz;
 
+drop function if exists public.get_my_entitlement();
+
 create or replace function public.get_my_entitlement()
 returns table (
   tier text,
