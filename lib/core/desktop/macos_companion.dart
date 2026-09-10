@@ -156,6 +156,19 @@ class MacOSCompanion {
     }
   }
 
+  static Future<bool> setProAutomationEnabled(bool enabled) async {
+    if (kIsWeb || !Platform.isMacOS) return false;
+    try {
+      return await _channel.invokeMethod<bool>('setProAutomationEnabled', {
+            'enabled': enabled,
+          }) ??
+          false;
+    } catch (e) {
+      debugPrint('[MacOSCompanion] entitlement sync failed: $e');
+      return false;
+    }
+  }
+
   /// Starts the continuous ScreenCaptureKit + Vision OCR screen watcher.
   static Future<bool> startWatching() async {
     if (kIsWeb || !Platform.isMacOS) return false;
