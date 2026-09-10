@@ -4,6 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../capture/presentation/capture_sheet.dart';
+import '../../../core/billing/billing_providers.dart';
+import '../../../core/billing/entitlement.dart';
+import '../../../core/billing/entitlement_presentation.dart';
 import '../../inbox/presentation/inbox_screen.dart';
 import '../../library/presentation/library_screen.dart';
 import '../../search/presentation/search_screen.dart';
@@ -74,7 +77,11 @@ class HomeShell extends ConsumerWidget {
           : bodyContent,
       bottomNavigationBar: isDesktop
           ? null
-          : NavigationBar(
+          : Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const _MobilePlanStatus(),
+                NavigationBar(
               selectedIndex: effectiveIndex,
               onDestinationSelected: handleDestinationSelected,
               destinations: const [
@@ -94,6 +101,8 @@ class HomeShell extends ConsumerWidget {
                 ),
               ],
             ),
+              ],
+            ),
       floatingActionButton: (!isDesktop && effectiveIndex == 0)
           ? FloatingActionButton.large(
               onPressed: () => _openCapture(context),
@@ -101,6 +110,40 @@ class HomeShell extends ConsumerWidget {
               child: const Icon(Icons.add_rounded, size: 32),
             )
           : null,
+    );
+  }
+}
+
+class _MobilePlanStatus extends ConsumerWidget {
+  const _MobilePlanStatus();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final entitlement = ref.watch(entitlementProvider).valueOrNull ?? const Entitlement.free();
+    final plan = EntitlementPresentation.from(entitlement);
+    final warning = plan.severity == EntitlementSeverity.warning;
+    return Material(
+      color: warning ? Colors.amber.shade50 : Theme.of(context).colorScheme.surface,
+      child: InkWell(
+        onTap: () => context.push(entitlement.hasProAccess ? '/settings' : '/plans'),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
+          child: Row(
+            children: [
+              Icon(
+                Icons.workspace_premium_rounded,
+                size: 17,
+                color: warning ? Colors.amber.shade900 : Theme.of(context).colorScheme.primary,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(plan.label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800)),
+              ),
+              Text(plan.actionLabel, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: warning ? Colors.amber.shade900 : Theme.of(context).colorScheme.primary)),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
