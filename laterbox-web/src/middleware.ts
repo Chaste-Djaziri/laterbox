@@ -47,6 +47,10 @@ export function middleware(request: NextRequest) {
     if (url.pathname === '/guide') {
       return NextResponse.rewrite(new URL('/tutorial', request.url));
     }
+    // In-app plans alias (/pricing -> /plans)
+    if (url.pathname === '/pricing') {
+      return NextResponse.rewrite(new URL('/plans', request.url));
+    }
     // Redirect docs path on app to docs subdomain
     if (url.pathname === '/docs' || url.pathname === '/docs/') {
       return NextResponse.redirect(new URL('https://docs.laterbox.dev/', request.url), 308);
@@ -55,13 +59,17 @@ export function middleware(request: NextRequest) {
       const cleanPath = url.pathname.replace('/docs', '');
       return NextResponse.redirect(new URL(`https://docs.laterbox.dev${cleanPath}`, request.url), 308);
     }
-    // All other app routes (/inbox, /library, /search, /settings, /item, /login, /extension, /downloads, /tutorial) pass through
+    // All other app routes (/inbox, /library, /search, /settings, /plans, /item, /login, /extension, /downloads, /tutorial) pass through
     return NextResponse.next();
   }
 
   // 3. Marketing / Apex Domain (laterbox.dev or www.laterbox.dev)
   const isApexDomain = hostname === 'laterbox.dev' || hostname === 'www.laterbox.dev';
   if (isApexDomain) {
+    // Marketing plans alias on apex domain (laterbox.dev/plans -> /pricing)
+    if (url.pathname === '/plans') {
+      return NextResponse.rewrite(new URL('/pricing', request.url));
+    }
     // Canonical SEO Redirect for Docs: laterbox.dev/docs -> docs.laterbox.dev
     if (url.pathname === '/docs' || url.pathname === '/docs/') {
       return NextResponse.redirect(new URL('https://docs.laterbox.dev/', request.url), 308);
