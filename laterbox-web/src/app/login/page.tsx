@@ -2,12 +2,13 @@
 
 import React, { useState } from 'react';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/store/AuthContext';
 import { Loader2, AlertCircle, CheckCircle2, Eye, EyeOff } from 'lucide-react';
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { signInWithPassword, signUpWithPassword, continueAsGuest } = useAuth();
 
   const [email, setEmail] = useState('');
@@ -16,6 +17,10 @@ export default function LoginPage() {
   const [loadingAction, setLoadingAction] = useState<'signin' | 'create' | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const requestedNext = searchParams.get('next');
+  const nextPath = requestedNext?.startsWith('/') && !requestedNext.startsWith('//')
+    ? requestedNext
+    : '/inbox';
 
   const handleSignIn = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -33,7 +38,7 @@ export default function LoginPage() {
       if (err) {
         throw err;
       }
-      router.push('/inbox');
+      router.push(nextPath);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Invalid login credentials.');
     } finally {
@@ -65,7 +70,7 @@ export default function LoginPage() {
         ) {
           const { error: signInErr } = await signInWithPassword(email.trim(), password);
           if (!signInErr) {
-            router.push('/inbox');
+            router.push(nextPath);
             return;
           }
         }
@@ -74,7 +79,7 @@ export default function LoginPage() {
 
       // Check if session was established directly or confirmation is pending
       setMessage('Account created! Please check your email to confirm, or sign in.');
-      router.push('/inbox');
+      router.push(nextPath);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Could not create account. Please try again.');
     } finally {
