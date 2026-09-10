@@ -22,14 +22,17 @@ class MacOSCompanion {
 
   static CaptureService? _captureService;
   static VoidCallback? _onOpenLaterBox;
+  static Future<void> Function(List<String> filePaths, String? text)? _onFilesDropped;
 
   /// Initializes the companion channel handler with callbacks into LaterBox.
   static void initialize({
     required CaptureService captureService,
     required VoidCallback onOpenLaterBox,
+    Future<void> Function(List<String> filePaths, String? text)? onFilesDropped,
   }) {
     _captureService = captureService;
     _onOpenLaterBox = onOpenLaterBox;
+    _onFilesDropped = onFilesDropped;
 
     if (!kIsWeb && Platform.isMacOS) {
       _channel.setMethodCallHandler(_handleMethodCall);
@@ -84,7 +87,29 @@ class MacOSCompanion {
       case 'itemsDropped':
         final args = Map<String, dynamic>.from(call.arguments as Map);
         final items = (args['items'] as List<dynamic>?)?.cast<String>() ?? [];
+        // Separate file drops (image/pdf/doc) from text/url drops.
+        final filePaths = <String>[];
+        final textItems = <String>[];
         for (final item in items) {
+          final trimmed = item.trim();
+          if (trimmed.isEmpty) continue;
+          final looksLikeFile = trimmed.startsWith('/') || trimmed.startsWith('file://') || File(trimmed).existsSync();
+          // Heuristic: paths with known attachment extensions are files.
+          final ext = trimmed.split('.').last.toLowerCase();
+          final isAttachmentExt = {'jpg', 'jpeg', 'png', 'webp', 'heic', 'pdf', 'txt', 'md', 'doc', 'docx'}.contains(ext);
+          if ((looksLikeFile || isAttachmentExt) && (trimmed.contains('/') || trimmed.startsWith('file'))) {
+            final path = trimmed.startsWith('file://') ? Uri.parse(trimmed).toFilePath() : trimmed;
+            if (path.isNotEmpty) filePaths.add(path);
+            else textItems.add(trimmed);
+          } else {
+            textItems.add(trimmed);
+          }
+        }
+        if (filePaths.isNotEmpty && _onFilesDropped != null) {
+          final combinedText = textItems.isEmpty ? null : textItems.join('\n');
+          await _onFilesDropped!(filePaths, combinedText);
+        }
+        for (final item in textItems) {
           final payload = CapturePayload.fromValue(
             item,
             source: CaptureSource.desktopQuickCapture,
@@ -149,6 +174,36 @@ class MacOSCompanion {
       return await _channel.invokeMethod<bool>('stopWatching') ?? false;
     } catch (e) {
       debugPrint('[MacOSCompanion] stopWatching failed: $e');
+      return false;
+    }
+  }
+
+  /// Whether Screen Recording permission is already granted (CGPreflight).
+  static Future<bool> isScreenCaptureTrusted() async {
+    if (kIsWeb || !Platform.isMacOS) return false;
+    try {
+      return await _channel.invokeMethod<bool>('isScreenCaptureTrusted') ?? false;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Prompts the system Screen Recording dialog if not yet trusted.
+  static Future<bool> requestScreenCapturePermission() async {
+    if (kIsWeb || !Platform.isMacOS) return false;
+    try {
+      return await _channel.invokeMethod<bool>('requestScreenCapturePermission') ?? false;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Opens System Settings → Privacy & Security → Screen Recording.
+  static Future<bool> openScreenRecordingSettings() async {
+    if (kIsWeb || !Platform.isMacOS) return false;
+    try {
+      return await _channel.invokeMethod<bool>('openScreenRecordingSettings') ?? false;
+    } catch (_) {
       return false;
     }
   }
