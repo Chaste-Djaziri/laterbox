@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
@@ -263,7 +264,7 @@ class ProPlans extends ConsumerWidget {
       'plan': plan,
       'source': 'direct-app',
       'platform': platform,
-      if (accountId != null) 'account': accountId,
+      'account': ?accountId,
       'return_to': returnUri.toString(),
     });
   }
