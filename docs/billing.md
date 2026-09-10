@@ -35,7 +35,7 @@ Copy the printed price IDs into the deployment environment. In Paddle sandbox, s
 
 ## Production Paddle catalog
 
-Use a separate, short-lived production API key with only **Products Write** and **Prices Write** permissions. Do not add these catalog-management permissions to the runtime key. After the catalog is created and its IDs are stored, revoke the temporary key.
+Use a separate, short-lived production API key with only **Products Read/Write** and **Prices Read/Write** permissions. Read access lets the idempotent script reuse an existing catalog instead of creating duplicates. Do not add these catalog-management permissions to the runtime key. After the catalog is created and its IDs are stored, revoke the temporary key.
 
 The seed script is safe to rerun: it reuses the active `LaterBox Pro` product and matching USD prices when they already exist. Production seeding also requires an explicit confirmation value:
 
