@@ -14,7 +14,6 @@ struct ScreenCandidate {
 
 /// Continuous screen watcher using ScreenCaptureKit and on-device Vision OCR.
 /// Excludes LaterBox from capture to prevent feedback loops.
-@available(macOS 12.3, *)
 final class ScreenWatcher: NSObject, SCStreamOutput, SCStreamDelegate {
   private var stream: SCStream?
   private let processingQueue = DispatchQueue(
@@ -27,8 +26,27 @@ final class ScreenWatcher: NSObject, SCStreamOutput, SCStreamDelegate {
   var onCandidateDetected: ((ScreenCandidate) -> Void)?
   private(set) var isWatching: Bool = false
 
+  /// Whether Screen Recording permission is already granted.
+  static func isScreenCaptureTrusted() -> Bool {
+    return CGPreflightScreenCaptureAccess()
+  }
+
+  /// Prompts the system Screen Recording permission dialog if needed.
+  /// Returns true when trusted after the prompt.
+  @discardableResult
+  static func requestScreenCaptureAccess() -> Bool {
+    return CGRequestScreenCaptureAccess()
+  }
+
   func start() async throws {
     guard !isWatching else { return }
+
+    guard Self.isScreenCaptureTrusted() else {
+      // Trigger the system prompt once before throwing – the user will be
+      // guided to System Settings → Privacy & Security → Screen Recording.
+      _ = Self.requestScreenCaptureAccess()
+      throw WatchError.permissionDenied
+    }
 
     let content = try await SCShareableContent.excludingDesktopWindows(
       false,
@@ -181,7 +199,16 @@ final class ScreenWatcher: NSObject, SCStreamOutput, SCStreamDelegate {
   }
 }
 
-enum WatchError: Error {
+enum WatchError: LocalizedError {
   case noDisplay
   case unsupportedMacOSVersion
+  case permissionDenied
+
+  var errorDescription: String? {
+    switch self {
+    case .noDisplay: return "No display found for screen capture."
+    case .unsupportedMacOSVersion: return "Watch Mode requires macOS 12.3 or later."
+    case .permissionDenied: return "Screen Recording permission is required. Enable it in System Settings → Privacy & Security → Screen Recording."
+    }
+  }
 }

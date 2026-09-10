@@ -613,18 +613,16 @@ class AppDelegate: FlutterAppDelegate {
     )
     self.companionChannel = channel
 
-    if #available(macOS 12.3, *) {
-      let watcher = ScreenWatcher()
-      watcher.onCandidateDetected = { [weak self] candidate in
-        self?.notchController.presentCandidate(candidate)
-        channel.invokeMethod("screenCandidateDetected", arguments: [
-          "title": candidate.title,
-          "url": candidate.url as Any,
-          "snippet": candidate.snippet as Any
-        ])
-      }
-      self.screenWatcher = watcher
+    let watcher = ScreenWatcher()
+    watcher.onCandidateDetected = { [weak self] candidate in
+      self?.notchController.presentCandidate(candidate)
+      channel.invokeMethod("screenCandidateDetected", arguments: [
+        "title": candidate.title,
+        "url": candidate.url as Any,
+        "snippet": candidate.snippet as Any
+      ])
     }
+    self.screenWatcher = watcher
 
     notchController.onCaptureRequested = { [weak self] candidate in
       channel.invokeMethod("saveCandidate", arguments: [
@@ -657,14 +655,12 @@ class AppDelegate: FlutterAppDelegate {
     }
 
     notchController.onToggleWatchMode = { [weak self] isWatching in
-      if #available(macOS 12.3, *) {
-        if let watcher = self?.screenWatcher as? ScreenWatcher {
-          Task { @MainActor in
-            if isWatching {
-              try? await watcher.start()
-            } else {
-              await watcher.stop()
-            }
+      if let watcher = self?.screenWatcher as? ScreenWatcher {
+        Task { @MainActor in
+          if isWatching {
+            do { try await watcher.start() } catch { NSLog("[LaterBox] toggleWatchMode start failed: %@", error.localizedDescription) }
+          } else {
+            await watcher.stop()
           }
         }
       }
@@ -685,36 +681,43 @@ class AppDelegate: FlutterAppDelegate {
         self.notchController.hide()
         result(true)
       case "startWatching":
-        if #available(macOS 12.3, *) {
-          if let watcher = self.screenWatcher as? ScreenWatcher {
-            Task { @MainActor in
-              do {
-                try await watcher.start()
-                self.notchController.setWatchingState(true)
-                result(true)
-              } catch {
-                result(FlutterError(code: "SCREEN_CAPTURE_FAILED", message: error.localizedDescription, details: nil))
-              }
+        if let watcher = self.screenWatcher as? ScreenWatcher {
+          Task { @MainActor in
+            do {
+              try await watcher.start()
+              self.notchController.setWatchingState(true)
+              result(true)
+            } catch {
+              // Map permissionDenied to distinct code so Dart can show onboarding.
+              let code = (error as? WatchError) == .permissionDenied ? "SCREEN_CAPTURE_PERMISSION_DENIED" : "SCREEN_CAPTURE_FAILED"
+              result(FlutterError(code: code, message: error.localizedDescription, details: nil))
             }
-          } else {
-            result(false)
           }
         } else {
           result(false)
         }
       case "stopWatching":
-        if #available(macOS 12.3, *) {
-          if let watcher = self.screenWatcher as? ScreenWatcher {
-            Task { @MainActor in
-              await watcher.stop()
-              self.notchController.setWatchingState(false)
-              result(true)
-            }
-          } else {
+        if let watcher = self.screenWatcher as? ScreenWatcher {
+          Task { @MainActor in
+            await watcher.stop()
+            self.notchController.setWatchingState(false)
             result(true)
           }
         } else {
           result(true)
+        }
+      case "isScreenCaptureTrusted":
+        result(ScreenWatcher.isScreenCaptureTrusted())
+      case "requestScreenCapturePermission":
+        // Triggers the system prompt if not yet trusted; returns new trust state.
+        _ = ScreenWatcher.requestScreenCaptureAccess()
+        result(ScreenWatcher.isScreenCaptureTrusted())
+      case "openScreenRecordingSettings":
+        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture") {
+          NSWorkspace.shared.open(url)
+          result(true)
+        } else {
+          result(false)
         }
       case "setWatchingState":
         if let args = call.arguments as? [String: Any], let isWatching = args["isWatching"] as? Bool {
