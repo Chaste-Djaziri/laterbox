@@ -17,7 +17,14 @@ export default function LoginPage() {
 function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { signInWithPassword, signUpWithPassword, continueAsGuest } = useAuth();
+  const {
+    signInWithOtp,
+    verifyEmailOtp,
+    resendSignupOtp,
+    signInWithPassword,
+    signUpWithPassword,
+    continueAsGuest,
+  } = useAuth();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -25,6 +32,8 @@ function LoginContent() {
   const [loadingAction, setLoadingAction] = useState<'signin' | 'create' | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [otp, setOtp] = useState('');
+  const [otpPurpose, setOtpPurpose] = useState<'signin' | 'signup' | null>(null);
   const requestedNext = searchParams.get('next');
   const nextPath = requestedNext?.startsWith('/') && !requestedNext.startsWith('//')
     ? requestedNext
@@ -69,7 +78,7 @@ function LoginContent() {
     setMessage(null);
 
     try {
-      const { error: err } = await signUpWithPassword(email.trim(), password);
+      const { error: err, requiresConfirmation } = await signUpWithPassword(email.trim(), password);
       if (err) {
         // If user already registered, automatically attempt sign in
         if (
@@ -85,9 +94,12 @@ function LoginContent() {
         throw err;
       }
 
-      // Check if session was established directly or confirmation is pending
-      setMessage('Account created! Please check your email to confirm, or sign in.');
-      router.push(nextPath);
+      if (requiresConfirmation) {
+        setOtpPurpose('signup');
+        setMessage(null);
+      } else {
+        router.push(nextPath);
+      }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Could not create account. Please try again.');
     } finally {
@@ -95,10 +107,72 @@ function LoginContent() {
     }
   };
 
+  const handleRequestOtp = async () => {
+    if (!email.trim() || !email.includes('@')) {
+      setError('Enter a valid email address first.');
+      return;
+    }
+    setLoadingAction('signin');
+    setError(null);
+    setMessage(null);
+    const { error: err } = await signInWithOtp(email.trim());
+    if (err) setError(err.message);
+    else setOtpPurpose('signin');
+    setLoadingAction(null);
+  };
+
+  const handleVerifyOtp = async () => {
+    if (!/^\d{6}$/.test(otp)) {
+      setError('Enter the six digit code from your email.');
+      return;
+    }
+    setLoadingAction('signin');
+    setError(null);
+    setMessage(null);
+    const { error: err } = await verifyEmailOtp(email.trim(), otp);
+    if (err) setError(err.message);
+    else router.push(nextPath);
+    setLoadingAction(null);
+  };
+
+  const handleResendOtp = async () => {
+    setLoadingAction('signin');
+    setError(null);
+    setMessage(null);
+    const { error: err } = otpPurpose === 'signup'
+      ? await resendSignupOtp(email.trim())
+      : await signInWithOtp(email.trim());
+    if (err) setError(err.message);
+    else setMessage('A new code was sent.');
+    setLoadingAction(null);
+  };
+
   const handleContinueWithoutAccount = () => {
     continueAsGuest();
     router.push('/inbox');
   };
+
+  if (otpPurpose) {
+    return (
+      <OtpVerification
+        email={email.trim()}
+        otp={otp}
+        busy={loadingAction !== null}
+        error={error}
+        message={message}
+        signup={otpPurpose === 'signup'}
+        onOtpChange={setOtp}
+        onVerify={() => void handleVerifyOtp()}
+        onResend={() => void handleResendOtp()}
+        onBack={() => {
+          setOtpPurpose(null);
+          setOtp('');
+          setError(null);
+          setMessage(null);
+        }}
+      />
+    );
+  }
 
   return (
     <main className="min-h-screen bg-[#f7f5ee] flex flex-col items-center justify-center p-6 text-[#181816] selection:bg-zinc-900 selection:text-white">
@@ -187,6 +261,15 @@ function LoginContent() {
               )}
             </button>
 
+            <button
+              type="button"
+              onClick={() => void handleRequestOtp()}
+              disabled={loadingAction !== null}
+              className="w-full h-14 bg-white hover:bg-[#f7f5ee] border border-[#e5e1d7] text-[#181816] font-semibold text-[15px] rounded-[18px] transition-all duration-150 disabled:opacity-60 cursor-pointer"
+            >
+              Email me a sign in code
+            </button>
+
             {/* Create Account Button */}
             <button
               type="button"
@@ -214,6 +297,86 @@ function LoginContent() {
           </div>
         </form>
       </div>
+    </main>
+  );
+}
+
+function OtpVerification({
+  email,
+  otp,
+  busy,
+  error,
+  message,
+  signup,
+  onOtpChange,
+  onVerify,
+  onResend,
+  onBack,
+}: {
+  email: string;
+  otp: string;
+  busy: boolean;
+  error: string | null;
+  message: string | null;
+  signup: boolean;
+  onOtpChange: (value: string) => void;
+  onVerify: () => void;
+  onResend: () => void;
+  onBack: () => void;
+}) {
+  return (
+    <main className="min-h-screen bg-[#f7f5ee] flex items-center justify-center p-6 text-[#181816]">
+      <section className="w-full max-w-[420px] text-center" aria-labelledby="otp-title">
+        <Image
+          src="/branding/laterbox-logo.png"
+          alt="LaterBox"
+          width={280}
+          height={75}
+          className="mx-auto h-auto w-56"
+          priority
+        />
+        <h1 id="otp-title" className="mt-8 text-3xl font-black tracking-tight">
+          {signup ? 'Verify your account' : 'Check your email'}
+        </h1>
+        <p className="mt-3 text-sm leading-6 text-[#6b6961]">
+          Enter the six digit code sent to <strong>{email}</strong>.
+        </p>
+
+        {error && <p role="alert" className="mt-5 rounded-2xl border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-700">{error}</p>}
+        {message && <p role="status" className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 p-3 text-sm font-semibold text-emerald-800">{message}</p>}
+
+        <form
+          className="mt-6 space-y-3"
+          onSubmit={(event) => {
+            event.preventDefault();
+            onVerify();
+          }}
+        >
+          <label htmlFor="email-otp" className="sr-only">Six digit verification code</label>
+          <input
+            id="email-otp"
+            type="text"
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            autoFocus
+            maxLength={6}
+            pattern="[0-9]{6}"
+            value={otp}
+            onChange={(event) => onOtpChange(event.target.value.replace(/\D/g, '').slice(0, 6))}
+            placeholder="000000"
+            className="h-16 w-full rounded-[18px] border border-[#d8d3c7] bg-white px-5 text-center text-2xl font-black tracking-[0.45em] focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-900/10"
+          />
+          <button type="submit" disabled={busy || otp.length !== 6} className="flex h-14 w-full items-center justify-center rounded-[18px] bg-[#181816] text-[15px] font-bold text-white disabled:opacity-50">
+            {busy ? <Loader2 className="size-5 animate-spin" /> : 'Verify code'}
+          </button>
+          <button type="button" disabled={busy} onClick={onResend} className="h-12 w-full text-sm font-semibold disabled:opacity-50">
+            Send a new code
+          </button>
+          <button type="button" disabled={busy} onClick={onBack} className="h-12 w-full text-sm text-[#6b6961] disabled:opacity-50">
+            Use a different email
+          </button>
+        </form>
+      </section>
     </main>
   );
 }
