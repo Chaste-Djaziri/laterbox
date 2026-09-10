@@ -16,6 +16,7 @@ import '../../features/inbox/data/remote_item_data_source.dart';
 import '../../features/notes/data/local_item_note_data_source.dart';
 import '../../features/notes/data/remote_item_note_data_source.dart';
 import '../database/database_providers.dart';
+import '../billing/billing_providers.dart';
 import '../supabase/supabase_provider.dart';
 import 'sync_coordinator.dart';
 import 'sync_service.dart';
@@ -42,7 +43,10 @@ final attachmentSyncServiceProvider = FutureProvider<AttachmentSyncService?>((
   ref,
 ) async {
   final client = ref.watch(supabaseClientProvider);
-  if (client == null) return null;
+  final allowed = ref.watch(
+    proFeatureAccessProvider(ProFeature.cloudAttachments),
+  );
+  if (client == null || !allowed) return null;
   final storage = kIsWeb
       ? null
       : AttachmentStorage(await getApplicationSupportDirectory());
@@ -69,6 +73,9 @@ final syncServiceProvider = Provider<SyncService>((ref) {
     localNotes: LocalItemNoteDataSource(ref.watch(appDatabaseProvider)),
     remoteNotes: ref.watch(remoteItemNoteDataSourceProvider),
     attachmentSync: () => ref.read(attachmentSyncServiceProvider.future),
+    canSync: () => ref.read(
+      proFeatureAccessProvider(ProFeature.cloudSync),
+    ),
   );
 });
 
