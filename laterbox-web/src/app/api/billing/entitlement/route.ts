@@ -36,6 +36,7 @@ export async function GET(request: Request) {
         : 0;
       if (row.status === 'canceled') return periodEnd > now;
       if (row.status !== 'past_due') return false;
+      if (row.provider === 'apple') return periodEnd > now;
       const pastDueStart = new Date(row.past_due_at || row.updated_at).getTime();
       return now < pastDueStart + 7 * 24 * 60 * 60 * 1000;
     });
@@ -46,6 +47,9 @@ export async function GET(request: Request) {
         new Date(eligible.past_due_at || eligible.updated_at).getTime() +
           7 * 24 * 60 * 60 * 1000
       ).toISOString();
+      const graceEndsAt = eligible.provider === 'apple'
+        ? eligible.current_period_ends_at
+        : [eligible.current_period_ends_at, pastDueLimit].filter(Boolean).sort()[0] ?? pastDueLimit;
       entitlement = {
         tier: 'pro',
         status: eligible.status,
@@ -53,7 +57,7 @@ export async function GET(request: Request) {
         trialEndsAt: eligible.trial_ends_at,
         accessEndsAt:
           eligible.status === 'past_due'
-            ? [eligible.current_period_ends_at, pastDueLimit].filter(Boolean).sort()[0] ?? pastDueLimit
+            ? graceEndsAt
             : eligible.current_period_ends_at,
         willCancel: eligible.scheduled_change_action === 'cancel',
         billingWarning: eligible.status === 'past_due' ? 'payment_past_due' : null,
@@ -65,7 +69,7 @@ export async function GET(request: Request) {
           eligible.status === 'trialing'
             ? eligible.trial_ends_at || eligible.current_period_ends_at
             : eligible.status === 'past_due'
-              ? [eligible.current_period_ends_at, pastDueLimit].filter(Boolean).sort()[0] ?? pastDueLimit
+              ? graceEndsAt
               : eligible.current_period_ends_at,
       };
     } else if (grants?.[0]) {
