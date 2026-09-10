@@ -71,6 +71,7 @@ async function upsertSubscription(data: Record<string, any>, occurredAt: string)
       product_id: firstItem?.price?.product_id ?? null,
       price_id: firstItem?.price?.id ?? null,
       trial_ends_at: data.status === 'trialing' ? data.next_billed_at ?? period?.ends_at ?? null : null,
+      current_period_starts_at: period?.starts_at ?? null,
       current_period_ends_at: period?.ends_at ?? data.next_billed_at ?? null,
       scheduled_change_action: scheduled?.action ?? null,
       scheduled_change_at: scheduled?.effective_at ?? null,
