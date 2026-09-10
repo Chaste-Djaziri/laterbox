@@ -66,7 +66,10 @@ export function presentEntitlement(
     ? Math.min(1, Math.max(0, (now.getTime() - start!.getTime()) / duration))
     : null;
 
-  if (!hasProAccess(entitlement)) {
+  const hasAccess = entitlement.tier === 'pro'
+    && (!entitlement.accessEndsAt
+      || new Date(entitlement.accessEndsAt).getTime() > now.getTime());
+  if (!hasAccess) {
     return {
       label: 'Free',
       description: 'Local saving, reading, search, organization, and export.',
