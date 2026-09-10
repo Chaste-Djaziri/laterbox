@@ -32,10 +32,14 @@ bool get isAppleAppStoreBuild =>
         defaultTargetPlatform == TargetPlatform.macOS);
 
 bool get canOpenWebCheckout {
-  if (kIsWeb || laterBoxDistribution == 'play' || laterBoxDistribution == 'app-store') {
+  if (kIsWeb ||
+      laterBoxDistribution == 'play' ||
+      laterBoxDistribution == 'app-store') {
     return false;
   }
-  return defaultTargetPlatform == TargetPlatform.macOS ||
+  return defaultTargetPlatform == TargetPlatform.iOS ||
+      defaultTargetPlatform == TargetPlatform.android ||
+      defaultTargetPlatform == TargetPlatform.macOS ||
       defaultTargetPlatform == TargetPlatform.windows ||
       defaultTargetPlatform == TargetPlatform.linux;
 }
@@ -44,14 +48,15 @@ final entitlementRepositoryProvider = Provider<EntitlementRepository>((ref) {
   return EntitlementRepository(ref.watch(supabaseClientProvider));
 });
 
-final applePurchaseServiceProvider = ChangeNotifierProvider<ApplePurchaseService>((ref) {
-  final service = ApplePurchaseService(
-    ref.watch(supabaseClientProvider),
-    onVerified: () => ref.invalidate(entitlementProvider),
-  );
-  service.initialize();
-  return service;
-});
+final applePurchaseServiceProvider =
+    ChangeNotifierProvider<ApplePurchaseService>((ref) {
+      final service = ApplePurchaseService(
+        ref.watch(supabaseClientProvider),
+        onVerified: () => ref.invalidate(entitlementProvider),
+      );
+      service.initialize();
+      return service;
+    });
 
 final entitlementProvider = FutureProvider<Entitlement>((ref) async {
   ref.watch(authStateProvider);
@@ -63,7 +68,10 @@ final hasProAccessProvider = Provider<bool>((ref) {
   return ref.watch(entitlementProvider).valueOrNull?.hasProAccess ?? false;
 });
 
-final proFeatureAccessProvider = Provider.family<bool, ProFeature>((ref, feature) {
+final proFeatureAccessProvider = Provider.family<bool, ProFeature>((
+  ref,
+  feature,
+) {
   return ref.watch(hasProAccessProvider);
 });
 
