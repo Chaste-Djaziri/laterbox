@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -238,7 +240,7 @@ void main() {
         'value': 'https://example.com',
         'kind': 'link',
       });
-    });
+    }, skip: !Platform.isMacOS);
 
     test('sends a stable failure message to the native notch', () async {
       MethodCall? received;
@@ -258,6 +260,6 @@ void main() {
         'id': 'capture-2',
         'message': 'Could not import this shared item.',
       });
-    });
+    }, skip: !Platform.isMacOS);
   });
 }
