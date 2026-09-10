@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { Check, Cloud, Database, Loader2, LockKeyhole, Sparkles } from 'lucide-react';
 import { presentEntitlement } from '@/lib/billing/types';
 import { useAuth } from '@/lib/store/AuthContext';
@@ -19,8 +20,9 @@ const faqs = [
 
 export default function PricingPage() {
   const { user } = useAuth();
+  const searchParams = useSearchParams();
   const { entitlement, isPro, subscribe, manage, checkoutState, previewPrices } = useBilling();
-  const [interval, setInterval] = useState<Interval>('year');
+  const [interval, setInterval] = useState<Interval>(() => searchParams.get('plan') === 'month' ? 'month' : 'year');
   const [busy, setBusy] = useState<Interval | 'manage' | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [prices, setPrices] = useState<Record<string, string>>({});
