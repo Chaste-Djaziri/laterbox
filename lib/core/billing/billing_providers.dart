@@ -45,7 +45,10 @@ final entitlementRepositoryProvider = Provider<EntitlementRepository>((ref) {
 });
 
 final applePurchaseServiceProvider = ChangeNotifierProvider<ApplePurchaseService>((ref) {
-  final service = ApplePurchaseService(ref.watch(supabaseClientProvider));
+  final service = ApplePurchaseService(
+    ref.watch(supabaseClientProvider),
+    onVerified: () => ref.invalidate(entitlementProvider),
+  );
   service.initialize();
   return service;
 });
