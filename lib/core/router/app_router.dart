@@ -14,6 +14,7 @@ import '../../features/extension/presentation/extension_connected_screen.dart';
 import '../../features/home/presentation/home_shell.dart';
 import '../../features/inbox/presentation/inbox_screen.dart';
 import '../../features/landing/presentation/landing_screen.dart';
+import '../../features/onboarding/presentation/welcome_screen.dart';
 import '../../features/library/presentation/library_providers.dart';
 import '../../features/library/presentation/library_screen.dart';
 import '../../features/library/presentation/library_section_screen.dart';
@@ -31,7 +32,7 @@ final initialLocationProvider = Provider<String>((ref) {
   if (guestMode || authState.isAuthenticated) {
     return '/inbox';
   }
-  return '/login';
+  return '/welcome';
 });
 
 final appRouterProvider = Provider<GoRouter>((ref) {
@@ -65,6 +66,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/downloads',
         pageBuilder: (context, state) =>
             NoTransitionPage(key: state.pageKey, child: const DownloadScreen()),
+      ),
+      GoRoute(
+        path: '/welcome',
+        pageBuilder: (context, state) =>
+            NoTransitionPage(key: state.pageKey, child: const WelcomeScreen()),
       ),
       GoRoute(
         path: '/login',
