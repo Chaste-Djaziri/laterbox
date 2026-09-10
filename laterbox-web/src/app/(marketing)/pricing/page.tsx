@@ -34,8 +34,15 @@ function PricingContent() {
   const [busy, setBusy] = useState<Interval | 'manage' | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [prices, setPrices] = useState<Record<string, string>>({});
-  const monthlyId = process.env.NEXT_PUBLIC_PADDLE_PRO_MONTHLY_PRICE_ID || '';
-  const annualId = process.env.NEXT_PUBLIC_PADDLE_PRO_YEARLY_PRICE_ID || '';
+  const isProduction = process.env.NEXT_PUBLIC_PADDLE_ENV === 'production';
+  const monthlyId = isProduction
+    ? process.env.NEXT_PUBLIC_PADDLE_PRO_MONTHLY_PRICE_ID_PROD ||
+      process.env.NEXT_PUBLIC_PADDLE_PRO_MONTHLY_PRICE_ID || ''
+    : process.env.NEXT_PUBLIC_PADDLE_PRO_MONTHLY_PRICE_ID || '';
+  const annualId = isProduction
+    ? process.env.NEXT_PUBLIC_PADDLE_PRO_YEARLY_PRICE_ID_PROD ||
+      process.env.NEXT_PUBLIC_PADDLE_PRO_YEARLY_PRICE_ID || ''
+    : process.env.NEXT_PUBLIC_PADDLE_PRO_YEARLY_PRICE_ID || '';
   const presentation = useMemo(() => presentEntitlement(entitlement), [entitlement]);
 
   useEffect(() => {
