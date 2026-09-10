@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../features/capture/domain/capture_providers.dart';
 import '../auth/auth_provider.dart';
+import '../billing/billing_providers.dart';
 import '../settings/desktop_settings.dart';
 import '../settings/settings_providers.dart';
 import 'clipboard_capture_service.dart';
@@ -32,6 +33,7 @@ final screenWatcherServiceProvider =
   final watcher = ScreenWatcherService(
     selectionService: ref.watch(selectionCaptureServiceProvider),
     captureService: ref.watch(captureServiceProvider),
+    enabled: ref.watch(proFeatureAccessProvider(ProFeature.watchMode)),
   );
   return watcher;
 });
