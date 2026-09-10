@@ -37,14 +37,34 @@ class ScreenWatcherService extends ChangeNotifier {
   void startWatching() {
     if (_isWatching) return;
     _isWatching = true;
+    _statusMessage = null;
     _poll();
     _timer = Timer.periodic(pollInterval, (_) => _poll());
+    notifyListeners();
   }
 
   void stopWatching() {
     _timer?.cancel();
     _timer = null;
     _isWatching = false;
+    notifyListeners();
+  }
+
+  /// Dart-side preflight for the native ScreenCaptureKit watcher.
+  /// Returns true when permission is trusted; otherwise leaves isWatching false
+  /// and sets a helpful statusMessage for the UI to surface.
+  Future<bool> ensureScreenCapturePermission({
+    required Future<bool> Function() isTrusted,
+    required Future<bool> Function() request,
+  }) async {
+    if (await isTrusted()) return true;
+    await request(); // triggers system prompt
+    final trusted = await isTrusted();
+    if (!trusted) {
+      _statusMessage = 'Screen Recording permission required — open System Settings to enable Watch Mode.';
+      notifyListeners();
+    }
+    return trusted;
   }
 
   Future<void> pollNow() => _poll();
