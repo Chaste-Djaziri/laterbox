@@ -10,11 +10,13 @@ class ScreenWatcherService extends ChangeNotifier {
   ScreenWatcherService({
     required this.selectionService,
     required this.captureService,
+    this.enabled = true,
     this.pollInterval = const Duration(milliseconds: 1600),
   });
 
   final SelectionCaptureService selectionService;
   final CaptureService captureService;
+  final bool enabled;
   final Duration pollInterval;
 
   Timer? _timer;
@@ -35,6 +37,11 @@ class ScreenWatcherService extends ChangeNotifier {
       _currentContext!.selectedText!.trim().isNotEmpty;
 
   void startWatching() {
+    if (!enabled) {
+      _statusMessage = 'Watch Mode is available with LaterBox Pro.';
+      notifyListeners();
+      return;
+    }
     if (_isWatching) return;
     _isWatching = true;
     _statusMessage = null;
