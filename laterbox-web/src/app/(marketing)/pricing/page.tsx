@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { Suspense, useEffect, useMemo, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Check, Cloud, Database, Loader2, LockKeyhole, Sparkles } from 'lucide-react';
@@ -19,6 +19,14 @@ const faqs = [
 ];
 
 export default function PricingPage() {
+  return (
+    <Suspense fallback={<main className="min-h-screen bg-[#f7f5ee]" aria-busy="true" />}>
+      <PricingContent />
+    </Suspense>
+  );
+}
+
+function PricingContent() {
   const { user } = useAuth();
   const searchParams = useSearchParams();
   const { entitlement, isPro, subscribe, manage, checkoutState, previewPrices } = useBilling();
