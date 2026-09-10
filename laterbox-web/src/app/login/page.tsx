@@ -122,8 +122,8 @@ function LoginContent() {
   };
 
   const handleVerifyOtp = async () => {
-    if (!/^\d{6}$/.test(otp)) {
-      setError('Enter the six digit code from your email.');
+    if (!/^\d{8}$/.test(otp)) {
+      setError('Enter the eight digit code from your email.');
       return;
     }
     setLoadingAction('signin');
@@ -339,7 +339,7 @@ function OtpVerification({
           {signup ? 'Verify your account' : 'Check your email'}
         </h1>
         <p className="mt-3 text-sm leading-6 text-[#6b6961]">
-          Enter the six digit code sent to <strong>{email}</strong>.
+          Enter the eight digit code sent to <strong>{email}</strong>.
         </p>
 
         {error && <p role="alert" className="mt-5 rounded-2xl border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-700">{error}</p>}
@@ -352,21 +352,21 @@ function OtpVerification({
             onVerify();
           }}
         >
-          <label htmlFor="email-otp" className="sr-only">Six digit verification code</label>
+          <label htmlFor="email-otp" className="sr-only">Eight digit verification code</label>
           <input
             id="email-otp"
             type="text"
             inputMode="numeric"
             autoComplete="one-time-code"
             autoFocus
-            maxLength={6}
-            pattern="[0-9]{6}"
+            maxLength={8}
+            pattern="[0-9]{8}"
             value={otp}
-            onChange={(event) => onOtpChange(event.target.value.replace(/\D/g, '').slice(0, 6))}
-            placeholder="000000"
+            onChange={(event) => onOtpChange(event.target.value.replace(/\D/g, '').slice(0, 8))}
+            placeholder="00000000"
             className="h-16 w-full rounded-[18px] border border-[#d8d3c7] bg-white px-5 text-center text-2xl font-black tracking-[0.45em] focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-900/10"
           />
-          <button type="submit" disabled={busy || otp.length !== 6} className="flex h-14 w-full items-center justify-center rounded-[18px] bg-[#181816] text-[15px] font-bold text-white disabled:opacity-50">
+          <button type="submit" disabled={busy || otp.length !== 8} className="flex h-14 w-full items-center justify-center rounded-[18px] bg-[#181816] text-[15px] font-bold text-white disabled:opacity-50">
             {busy ? <Loader2 className="size-5 animate-spin" /> : 'Verify code'}
           </button>
           <button type="button" disabled={busy} onClick={onResend} className="h-12 w-full text-sm font-semibold disabled:opacity-50">
