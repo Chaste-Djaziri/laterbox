@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/auth/auth_provider.dart';
 import '../../home/presentation/home_shell.dart';
-import 'auth_screen.dart';
+import '../../onboarding/presentation/welcome_screen.dart';
 
 class AuthGate extends ConsumerWidget {
   const AuthGate({
@@ -33,14 +33,14 @@ class AuthGate extends ConsumerWidget {
                 selectedIndex: navigationShell?.currentIndex ?? initialIndex,
                 navigationShell: navigationShell,
               ))
-          : const AuthScreen(),
+          : const WelcomeScreen(),
       data: (state) => state.isAuthenticated || guestMode
           ? (child ??
               HomeShell(
                 selectedIndex: navigationShell?.currentIndex ?? initialIndex,
                 navigationShell: navigationShell,
               ))
-          : const AuthScreen(),
+          : const WelcomeScreen(),
     );
   }
 }
