@@ -33,6 +33,7 @@ export function Header() {
   }, [pathname]);
 
   const navLinks = [
+    { href: '/pricing', label: 'Plans' },
     { href: '/download', label: 'Downloads' },
     { href: '/docs', label: 'Docs' },
     { href: '/guide', label: 'Guide' },
