@@ -16,7 +16,15 @@ function ExtensionConnectContent() {
   const [requestSecret, setRequestSecret] = useState('');
   const [redirectUri, setRedirectUri] = useState('/extension/connected');
 
-  const { user, loading: authLoading, signInWithPassword, signUpWithPassword } = useAuth();
+  const {
+    user,
+    loading: authLoading,
+    signInWithOtp,
+    verifyEmailOtp,
+    resendSignupOtp,
+    signInWithPassword,
+    signUpWithPassword,
+  } = useAuth();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -26,6 +34,8 @@ function ExtensionConnectContent() {
   const [showPassword, setShowPassword] = useState(false);
   const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
   const [authActionLoading, setAuthActionLoading] = useState(false);
+  const [otp, setOtp] = useState('');
+  const [otpPurpose, setOtpPurpose] = useState<'signin' | 'signup' | null>(null);
 
   useEffect(() => {
     // 1. Try searchParams
@@ -114,7 +124,7 @@ function ExtensionConnectContent() {
         const { error: err } = await signInWithPassword(authEmail.trim(), authPassword);
         if (err) throw err;
       } else {
-        const { error: err } = await signUpWithPassword(authEmail.trim(), authPassword);
+        const { error: err, requiresConfirmation } = await signUpWithPassword(authEmail.trim(), authPassword);
         if (err) {
           // If already registered, attempt sign-in
           if (err.message.toLowerCase().includes('already registered') || err.message.toLowerCase().includes('already exists')) {
@@ -124,12 +134,48 @@ function ExtensionConnectContent() {
             throw err;
           }
         }
+        if (requiresConfirmation) setOtpPurpose('signup');
       }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Authentication failed.');
     } finally {
       setAuthActionLoading(false);
     }
+  };
+
+  const requestInlineOtp = async () => {
+    if (!authEmail.trim() || !authEmail.includes('@')) {
+      setError('Enter a valid email address first.');
+      return;
+    }
+    setAuthActionLoading(true);
+    setError(null);
+    const { error: err } = await signInWithOtp(authEmail.trim());
+    if (err) setError(err.message);
+    else setOtpPurpose('signin');
+    setAuthActionLoading(false);
+  };
+
+  const verifyInlineOtp = async () => {
+    if (!/^\d{6}$/.test(otp)) {
+      setError('Enter the six digit code from your email.');
+      return;
+    }
+    setAuthActionLoading(true);
+    setError(null);
+    const { error: err } = await verifyEmailOtp(authEmail.trim(), otp);
+    if (err) setError(err.message);
+    setAuthActionLoading(false);
+  };
+
+  const resendInlineOtp = async () => {
+    setAuthActionLoading(true);
+    setError(null);
+    const { error: err } = otpPurpose === 'signup'
+      ? await resendSignupOtp(authEmail.trim())
+      : await signInWithOtp(authEmail.trim());
+    if (err) setError(err.message);
+    setAuthActionLoading(false);
   };
 
   if (authLoading) {
@@ -142,6 +188,25 @@ function ExtensionConnectContent() {
 
   // Not signed in: show inline sign-in card so user doesn't lose request parameters
   if (!user) {
+    if (otpPurpose) {
+      return (
+        <div className="min-h-screen flex items-center justify-center p-4 sm:p-6 bg-[#f7f5ee] text-[#171711]">
+          <div className="w-full max-w-md rounded-3xl border border-[#e4e0d5] bg-white p-6 text-center shadow-xl sm:p-8">
+            <KeyRound className="mx-auto size-10" />
+            <h1 className="mt-5 text-2xl font-black">Verify your email</h1>
+            <p className="mt-2 text-sm text-[#6c6b63]">Enter the six digit code sent to {authEmail.trim()}.</p>
+            {error && <p role="alert" className="mt-4 rounded-2xl bg-red-50 p-3 text-xs font-semibold text-red-700">{error}</p>}
+            <form className="mt-6 space-y-3" onSubmit={(event) => { event.preventDefault(); void verifyInlineOtp(); }}>
+              <label htmlFor="extension-email-otp" className="sr-only">Six digit verification code</label>
+              <input id="extension-email-otp" inputMode="numeric" autoComplete="one-time-code" autoFocus maxLength={6} pattern="[0-9]{6}" value={otp} onChange={(event) => setOtp(event.target.value.replace(/\D/g, '').slice(0, 6))} className="h-16 w-full rounded-2xl border border-[#e4e0d5] bg-[#f7f5ee] px-4 text-center text-2xl font-black tracking-[0.4em] focus:border-[#171711] focus:outline-hidden" />
+              <button type="submit" disabled={authActionLoading || otp.length !== 6} className="flex h-12 w-full items-center justify-center rounded-xl bg-[#171711] text-sm font-bold text-white disabled:opacity-50">{authActionLoading ? <Loader2 className="size-4 animate-spin" /> : 'Verify and continue'}</button>
+              <button type="button" disabled={authActionLoading} onClick={() => void resendInlineOtp()} className="h-10 w-full text-xs font-bold disabled:opacity-50">Send a new code</button>
+              <button type="button" disabled={authActionLoading} onClick={() => { setOtpPurpose(null); setOtp(''); setError(null); }} className="h-10 w-full text-xs text-[#6c6b63] disabled:opacity-50">Use a different email</button>
+            </form>
+          </div>
+        </div>
+      );
+    }
     return (
       <div className="min-h-screen flex items-center justify-center p-4 sm:p-6 bg-[#f7f5ee] text-[#171711]">
         <div className="w-full max-w-md bg-white rounded-3xl p-6 sm:p-8 border border-[#e4e0d5] shadow-xl space-y-6">
@@ -207,6 +272,11 @@ function ExtensionConnectContent() {
                 <span>{authMode === 'signin' ? 'Sign In & Continue' : 'Create Account & Continue'}</span>
               )}
             </button>
+            {authMode === 'signin' && (
+              <button type="button" disabled={authActionLoading} onClick={() => void requestInlineOtp()} className="w-full rounded-xl border border-[#e4e0d5] bg-white px-4 py-3 text-xs font-bold text-[#171711] disabled:opacity-50">
+                Email me a sign in code
+              </button>
+            )}
           </form>
 
           <div className="pt-2 border-t border-[#e4e0d5] text-center">
