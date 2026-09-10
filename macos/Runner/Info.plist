@@ -64,6 +64,8 @@
 				<string>NSStringPboardType</string>
 				<string>public.url</string>
 				<string>NSURLPboardType</string>
+				<string>public.file-url</string>
+				<string>NSFilenamesPboardType</string>
 			</array>
 		</dict>
 	</array>
