@@ -41,6 +41,13 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    ref.listenManual(entitlementProvider, (_, next) {
+      next.whenData((entitlement) {
+        unawaited(
+          MacOSCompanion.setProAutomationEnabled(entitlement.hasProAccess),
+        );
+      });
+    }, fireImmediately: true);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         ref.read(enrichmentCoordinatorProvider);
