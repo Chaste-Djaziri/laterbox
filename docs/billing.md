@@ -33,6 +33,28 @@ Copy the printed price IDs into the deployment environment. In Paddle sandbox, s
 - `subscription.created`, `subscription.updated`, `subscription.activated`, `subscription.canceled`
 - `transaction.completed`
 
+## Production Paddle catalog
+
+Use a separate, short-lived production API key with only **Products Write** and **Prices Write** permissions. Do not add these catalog-management permissions to the runtime key. After the catalog is created and its IDs are stored, revoke the temporary key.
+
+The seed script is safe to rerun: it reuses the active `LaterBox Pro` product and matching USD prices when they already exist. Production seeding also requires an explicit confirmation value:
+
+```bash
+cd laterbox-web
+PADDLE_CATALOG_ENV=production \
+PADDLE_CONFIRM_PRODUCTION=CREATE_LIVE_CATALOG \
+PADDLE_CATALOG_API_KEY='pdl_live_apikey_...' \
+node scripts/seed-paddle-catalog.mjs
+```
+
+The production catalog contains:
+
+- `LaterBox Pro`, tax category `saas`
+- `$3.99 USD` monthly with a 14-day trial
+- `$39.99 USD` yearly with a 14-day trial
+
+Copy the printed production price IDs into `NEXT_PUBLIC_PADDLE_PRO_MONTHLY_PRICE_ID_PROD` and `NEXT_PUBLIC_PADDLE_PRO_YEARLY_PRICE_ID_PROD`. The temporary catalog key is not a deployment secret and should be revoked after use.
+
 Apply the Supabase migrations before enabling checkout. The billing launch migration grants accounts that already exist at migration time 30 days of Pro access.
 
 ## Distribution flags
