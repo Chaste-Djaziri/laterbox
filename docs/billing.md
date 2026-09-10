@@ -61,6 +61,10 @@ Apply the Supabase migrations before enabling checkout. The billing launch migra
 
 Flutter builds accept `--dart-define=LATERBOX_DISTRIBUTION=direct|play|app-store`. Direct desktop builds open web billing. Google Play builds are consumption-only and show instructions without a checkout link. Apple App Store builds use StoreKit and enforce the normalized entitlement. `LATERBOX_WEB_URL` controls the entitlement API origin and defaults to `https://app.laterbox.dev`.
 
+Direct iOS, Android, macOS, Windows, and Linux builds open web pricing with the selected plan, source platform, and an allowlisted `laterbox://billing/complete` return URI. Web authentication preserves those parameters through sign-in. After Paddle confirms checkout and the verified webhook grants access, the browser reopens LaterBox; the app then refreshes entitlement for up to 20 seconds and displays the resulting Pro status. No session token or billing credential is placed in the return URI.
+
+The `laterbox` URL scheme is registered in the Apple and Android application metadata and by the Windows installer. Store-distributed Apple and Google Play builds do not use this web checkout return flow.
+
 ## Apple configuration
 
 App Store Connect must contain these auto-renewable subscriptions in the same `LaterBox Pro` group:
