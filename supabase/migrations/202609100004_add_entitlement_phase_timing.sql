@@ -26,6 +26,7 @@ as $$
       s.provider,
       s.trial_ends_at,
       case
+        when s.status = 'past_due' and s.provider = 'apple' then s.current_period_ends_at
         when s.status = 'past_due' then least(
           coalesce(s.current_period_ends_at, 'infinity'::timestamptz),
           coalesce(s.past_due_at, s.updated_at) + interval '7 days'
@@ -40,6 +41,7 @@ as $$
       end as phase_starts_at,
       case
         when s.status = 'trialing' then coalesce(s.trial_ends_at, s.current_period_ends_at)
+        when s.status = 'past_due' and s.provider = 'apple' then s.current_period_ends_at
         when s.status = 'past_due' then least(
           coalesce(s.current_period_ends_at, 'infinity'::timestamptz),
           coalesce(s.past_due_at, s.updated_at) + interval '7 days'
@@ -51,7 +53,13 @@ as $$
     where s.user_id = auth.uid()
       and (
         s.status in ('active', 'trialing')
-        or (s.status = 'past_due' and now() < coalesce(s.past_due_at, s.updated_at) + interval '7 days')
+        or (
+          s.status = 'past_due'
+          and now() < case
+            when s.provider = 'apple' then s.current_period_ends_at
+            else coalesce(s.past_due_at, s.updated_at) + interval '7 days'
+          end
+        )
         or (s.status = 'canceled' and now() < s.current_period_ends_at)
       )
     order by coalesce(s.current_period_ends_at, 'infinity'::timestamptz) desc
