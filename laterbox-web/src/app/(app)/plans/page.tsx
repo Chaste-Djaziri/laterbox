@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useState, type ReactNode } from 'react';
+import React, { Suspense, useEffect, useMemo, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import {
@@ -45,6 +45,20 @@ const proFeatures = [
 ];
 
 export default function AppPlansPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex h-64 items-center justify-center">
+          <Loader2 className="w-6 h-6 animate-spin text-[#171711]" />
+        </div>
+      }
+    >
+      <AppPlansContent />
+    </Suspense>
+  );
+}
+
+function AppPlansContent() {
   const { user } = useAuth();
   const searchParams = useSearchParams();
   const {
