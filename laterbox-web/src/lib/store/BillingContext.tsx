@@ -103,11 +103,14 @@ export function BillingProvider({ children }: { children: React.ReactNode }) {
   }, [refresh]);
 
   useEffect(() => {
-    const token = process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN;
+    const environment = (process.env.NEXT_PUBLIC_PADDLE_ENV || 'sandbox') as Environments;
+    const token = environment === 'production'
+      ? process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN_PROD || process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN
+      : process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN;
     if (!token) return;
     initializePaddle({
       token,
-      environment: (process.env.NEXT_PUBLIC_PADDLE_ENV || 'sandbox') as Environments,
+      environment,
       eventCallback: (event) => {
         if (event.name === 'checkout.completed') void pollForPro();
       },
