@@ -17,8 +17,40 @@ class AuthRepository {
     );
   }
 
-  Future<void> signUp({required String email, required String password}) async {
-    await _requiredClient.auth.signUp(email: email.trim(), password: password);
+  Future<bool> signUp({required String email, required String password}) async {
+    final response = await _requiredClient.auth.signUp(
+      email: email.trim(),
+      password: password,
+    );
+    return response.session == null;
+  }
+
+  Future<void> requestSignInOtp(String email) async {
+    await _requiredClient.auth.signInWithOtp(
+      email: email.trim(),
+      shouldCreateUser: false,
+    );
+  }
+
+  Future<void> verifyEmailOtp({
+    required String email,
+    required String token,
+  }) async {
+    final response = await _requiredClient.auth.verifyOTP(
+      email: email.trim(),
+      token: token,
+      type: OtpType.email,
+    );
+    if (response.session == null) {
+      throw const AuthException('The verification code could not be confirmed.');
+    }
+  }
+
+  Future<void> resendSignupOtp(String email) async {
+    await _requiredClient.auth.resend(
+      type: OtpType.signup,
+      email: email.trim(),
+    );
   }
 
   Future<void> updatePassword(String newPassword) async {
