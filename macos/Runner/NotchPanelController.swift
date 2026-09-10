@@ -215,6 +215,7 @@ final class NotchPanelController {
   private(set) var state: NotchPanelState = .idle { didSet { notchView?.needsDisplay = true } }
   private(set) var receipts: [NotchSaveReceipt] = [] { didSet { notchView?.needsDisplay = true } }
   private(set) var isWatching = false
+  private(set) var proAutomationEnabled = false
   private(set) var compactRadius: CGFloat = 12
   private(set) var compactWidth: CGFloat = 180
   private(set) var compactHeight: CGFloat = 30
@@ -262,7 +263,12 @@ final class NotchPanelController {
     if let obs = screenChangeObserver { NotificationCenter.default.removeObserver(obs); screenChangeObserver = nil }
   }
   func setWatchingState(_ value: Bool) { isWatching = value; notchView?.needsDisplay = true }
+  func setProAutomationEnabled(_ value: Bool) {
+    proAutomationEnabled = value
+    if value { startClipboardMonitoring() } else { stopClipboardMonitoring(); if isWatching { toggleWatchMode() } }
+  }
   func presentCandidate(_ item: ScreenCandidate) {
+    guard proAutomationEnabled else { return }
     let candidate = NotchCaptureCandidate(id: UUID().uuidString, title: item.title, url: item.url, text: item.snippet, source: .watchMode, kind: item.url != nil && item.snippet != nil ? .highlight : item.url != nil ? .link : .note)
     setPrompt(.watchCandidate(candidate))
   }
@@ -279,7 +285,7 @@ final class NotchPanelController {
   func copyLatestReceipt() { guard let item = receipts.first else { return }; let board = NSPasteboard.general; board.clearContents(); board.setString(item.value, forType: .string); recentClipboard[item.value] = Date(); clipboardChangeCount = board.changeCount }
   func removeLatestReceipt() { guard !receipts.isEmpty else { return }; receipts.removeFirst(); state = .idle }
   func openLaterBox() { onOpenLaterBox?() }
-  func toggleWatchMode() { isWatching.toggle(); onToggleWatchMode?(isWatching); notchView?.needsDisplay = true }
+  func toggleWatchMode() { guard proAutomationEnabled || isWatching else { return }; isWatching.toggle(); onToggleWatchMode?(isWatching); notchView?.needsDisplay = true }
   func cycleKeyboardFocus() {
     // VoiceOver Tab cycles primary → secondary/copy → open. Simple sequential activation.
     // For now a Tab press performs primary (Save/Retry) when prompt present, otherwise opens LaterBox.
@@ -299,7 +305,7 @@ final class NotchPanelController {
   private func setPrompt(_ value: NotchPanelState) { promptTimer?.invalidate(); state = value; expand(); promptTimer = Timer.scheduledTimer(withTimeInterval: 8, repeats: false) { [weak self] _ in if let self, case .clipboardPrompt = self.state { self.dismissCurrentState() } else if let self, case .watchCandidate = self.state { self.dismissCurrentState() } } }
   private func scheduleCollapse(_ delay: TimeInterval) { collapseTimer?.invalidate(); collapseTimer = Timer.scheduledTimer(withTimeInterval: delay, repeats: false) { [weak self] _ in self?.collapse() } }
   private func animate(_ panel: NSPanel, _ frame: NSRect) { NSAnimationContext.runAnimationGroup { context in context.duration = 0.22; context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut); panel.animator().setFrame(frame, display: true) } completionHandler: { [weak self] in self?.notchView?.needsDisplay = true } }
-  private func startClipboardMonitoring() { guard clipboardTimer == nil else { return }; clipboardChangeCount = NSPasteboard.general.changeCount; clipboardTimer = Timer.scheduledTimer(withTimeInterval: 0.45, repeats: true) { [weak self] _ in self?.checkClipboard() } }
+  private func startClipboardMonitoring() { guard proAutomationEnabled, clipboardTimer == nil else { return }; clipboardChangeCount = NSPasteboard.general.changeCount; clipboardTimer = Timer.scheduledTimer(withTimeInterval: 0.45, repeats: true) { [weak self] _ in self?.checkClipboard() } }
   private func stopClipboardMonitoring() { clipboardTimer?.invalidate(); clipboardTimer = nil }
   private func checkClipboard() {
     let board = NSPasteboard.general; guard board.changeCount != clipboardChangeCount else { return }; clipboardChangeCount = board.changeCount
