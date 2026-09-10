@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { AuthProvider } from '@/lib/store/AuthContext';
 import { ItemProvider } from '@/lib/store/ItemContext';
+import { BillingProvider } from '@/lib/store/BillingContext';
 import { WebUpdateBanner } from '@/components/ui/WebUpdateBanner';
 
 export const metadata: Metadata = {
@@ -150,10 +151,12 @@ export default function RootLayout({
       </head>
       <body className="min-h-screen bg-[#f7f5ee] text-[#171711] antialiased selection:bg-[#e6edb0] selection:text-[#171711]">
         <AuthProvider>
-          <ItemProvider>
-            {children}
-            <WebUpdateBanner />
-          </ItemProvider>
+          <BillingProvider>
+            <ItemProvider>
+              {children}
+              <WebUpdateBanner />
+            </ItemProvider>
+          </BillingProvider>
         </AuthProvider>
       </body>
     </html>
