@@ -33,7 +33,10 @@ async function sign(secret: string, payload: string) {
 }
 
 async function verify(rawBody: string, signatureHeader: string) {
-  const secret = process.env.PADDLE_NOTIFICATION_WEBHOOK_SECRET;
+  const secret = process.env.NEXT_PUBLIC_PADDLE_ENV === 'production'
+    ? process.env.PADDLE_NOTIFICATION_WEBHOOK_SECRET_PROD ||
+      process.env.PADDLE_NOTIFICATION_WEBHOOK_SECRET
+    : process.env.PADDLE_NOTIFICATION_WEBHOOK_SECRET;
   if (!secret) throw new Error('Paddle webhook secret is not configured.');
   const { timestamp, signatures } = parseSignature(signatureHeader);
   const timestampSeconds = Number(timestamp);
