@@ -235,6 +235,10 @@ export default function SettingsPage() {
               >
                 Manage subscription
               </button>
+            ) : isPro && entitlement.provider === 'apple' ? (
+              <div className="rounded-xl border border-white/20 px-4 py-2.5 text-center text-xs font-bold text-zinc-200">
+                Manage in the App Store
+              </div>
             ) : (
               <Link href="/pricing" className="rounded-xl bg-[#d7ff27] px-4 py-2.5 text-center text-xs font-black text-black">View Pro plans</Link>
             )}
