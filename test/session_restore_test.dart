@@ -22,7 +22,7 @@ void main() {
     expect(container.read(initialLocationProvider), '/inbox');
   });
 
-  test('a reload without a session opens sign in', () {
+  test('a reload without a session opens welcome', () {
     final container = ProviderContainer(
       overrides: [
         guestModeProvider.overrideWith((ref) => false),
@@ -33,6 +33,6 @@ void main() {
     );
     addTearDown(container.dispose);
 
-    expect(container.read(initialLocationProvider), '/login');
+    expect(container.read(initialLocationProvider), '/welcome');
   });
 }
