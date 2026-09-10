@@ -8,8 +8,14 @@ In the Supabase dashboard, open **Authentication > Providers > Email** and enabl
 
 Then open **Authentication > Email Templates** and make both templates display the token rather than only a confirmation link:
 
-- **Confirm signup** must include `{{ .Token }}`.
-- **Magic Link** must include `{{ .Token }}`.
+- **Confirm signup**
+  - Subject: `{{ .Token }} is your LaterBox verification code`
+  - Body: copy `supabase/templates/confirm-signup.html`.
+- **Magic Link**
+  - Subject: `{{ .Token }} is your LaterBox sign-in code`
+  - Body: copy `supabase/templates/magic-link.html`.
+
+`{{ .Token }}` is the six-digit code itself, not a URL. Do not place it in an anchor `href`. These templates intentionally omit `{{ .ConfirmationURL }}` because LaterBox verifies the code inside the app.
 
 For example:
 
@@ -31,4 +37,3 @@ Passwordless sign in is restricted to existing accounts. LaterBox sends `shouldC
 - **Email me a sign in code** sends a code to an existing account.
 - **Send a new code** resends the correct sign up or sign in email.
 - Successful verification returns to the requested destination, including a selected subscription plan or extension connection.
-
