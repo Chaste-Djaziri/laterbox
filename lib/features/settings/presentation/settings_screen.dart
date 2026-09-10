@@ -38,13 +38,14 @@ class SettingsScreen extends ConsumerWidget {
     final width = MediaQuery.sizeOf(context).width;
     final isDesktop = !kIsWeb
         ? (defaultTargetPlatform == TargetPlatform.macOS ||
-            defaultTargetPlatform == TargetPlatform.linux ||
-            defaultTargetPlatform == TargetPlatform.windows ||
-            width >= 700)
+              defaultTargetPlatform == TargetPlatform.linux ||
+              defaultTargetPlatform == TargetPlatform.windows ||
+              width >= 700)
         : width >= 900;
 
     final auth = ref.watch(authStateProvider).asData?.value;
-    final isGuest = ref.watch(guestModeProvider) || !(auth?.isAuthenticated ?? false);
+    final isGuest =
+        ref.watch(guestModeProvider) || !(auth?.isAuthenticated ?? false);
     final email = auth?.email;
     final userId = auth?.userId;
 
@@ -134,11 +135,13 @@ class _ProSubscriptionCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final entitlement = ref.watch(entitlementProvider).valueOrNull ?? const Entitlement.free();
+    final entitlement =
+        ref.watch(entitlementProvider).valueOrNull ?? const Entitlement.free();
     final presentation = EntitlementPresentation.from(entitlement);
     final isPro = entitlement.hasProAccess;
     final theme = Theme.of(context);
-    final isStoreBuild = laterBoxDistribution == 'play' || laterBoxDistribution == 'app-store';
+    final isStoreBuild =
+        laterBoxDistribution == 'play' || laterBoxDistribution == 'app-store';
 
     return Container(
       padding: const EdgeInsets.all(18),
@@ -167,7 +170,9 @@ class _ProSubscriptionCard extends ConsumerWidget {
                   !isPro && isStoreBuild
                       ? 'Local saving stays free. Existing Pro subscribers can sign in to unlock connected features.'
                       : presentation.description,
-                  style: theme.textTheme.bodySmall?.copyWith(color: Colors.white70),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: Colors.white70,
+                  ),
                 ),
                 if (entitlement.billingWarning != null) ...[
                   const SizedBox(height: 5),
@@ -194,15 +199,14 @@ class _ProSubscriptionCard extends ConsumerWidget {
           if (canOpenWebCheckout || isStoreBuild)
             FilledButton(
               onPressed: () async {
-                if (isAppleAppStoreBuild && isPro && entitlement.provider == 'apple') {
+                if (isAppleAppStoreBuild &&
+                    isPro &&
+                    entitlement.provider == 'apple') {
                   await ref.read(applePurchaseServiceProvider).openManagement();
                 } else if (isStoreBuild) {
                   if (context.mounted) context.push('/plans');
                 } else {
-                  await launchUrl(
-                    Uri.parse('https://laterbox.dev/pricing'),
-                    mode: LaunchMode.externalApplication,
-                  );
+                  if (context.mounted) context.push('/plans');
                 }
               },
               style: FilledButton.styleFrom(
@@ -222,10 +226,7 @@ class _ProSubscriptionCard extends ConsumerWidget {
 // ---------------------------------------------------------------------------
 
 class _AuthenticatedAccountCard extends ConsumerWidget {
-  const _AuthenticatedAccountCard({
-    required this.email,
-    required this.userId,
-  });
+  const _AuthenticatedAccountCard({required this.email, required this.userId});
 
   final String email;
   final String userId;
@@ -250,7 +251,9 @@ class _AuthenticatedAccountCard extends ConsumerWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
+        color: theme.colorScheme.surfaceContainerHighest.withValues(
+          alpha: 0.35,
+        ),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: theme.colorScheme.outlineVariant.withValues(alpha: 0.6),
@@ -428,7 +431,9 @@ class _GuestAccountCard extends ConsumerWidget {
     final theme = Theme.of(context);
     return Container(
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
+        color: theme.colorScheme.surfaceContainerHighest.withValues(
+          alpha: 0.35,
+        ),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: theme.colorScheme.outlineVariant.withValues(alpha: 0.6),
@@ -482,7 +487,8 @@ class _ChangePasswordDialog extends ConsumerStatefulWidget {
   const _ChangePasswordDialog();
 
   @override
-  ConsumerState<_ChangePasswordDialog> createState() => _ChangePasswordDialogState();
+  ConsumerState<_ChangePasswordDialog> createState() =>
+      _ChangePasswordDialogState();
 }
 
 class _ChangePasswordDialogState extends ConsumerState<_ChangePasswordDialog> {
@@ -508,7 +514,9 @@ class _ChangePasswordDialogState extends ConsumerState<_ChangePasswordDialog> {
     });
 
     try {
-      await ref.read(authRepositoryProvider).updatePassword(_passwordController.text);
+      await ref
+          .read(authRepositoryProvider)
+          .updatePassword(_passwordController.text);
       if (!mounted) return;
       Navigator.of(context).pop();
       ScaffoldMessenger.of(context).showSnackBar(
@@ -537,7 +545,10 @@ class _ChangePasswordDialogState extends ConsumerState<_ChangePasswordDialog> {
               if (_error != null) ...[
                 Text(
                   _error!,
-                  style: TextStyle(color: Theme.of(context).colorScheme.error, fontSize: 12),
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.error,
+                    fontSize: 12,
+                  ),
                 ),
                 const SizedBox(height: 12),
               ],
@@ -548,7 +559,9 @@ class _ChangePasswordDialogState extends ConsumerState<_ChangePasswordDialog> {
                   labelText: 'New Password',
                   hintText: 'Min. 6 characters',
                   suffixIcon: IconButton(
-                    icon: Icon(_obscure ? Icons.visibility_off : Icons.visibility),
+                    icon: Icon(
+                      _obscure ? Icons.visibility_off : Icons.visibility,
+                    ),
                     onPressed: () => setState(() => _obscure = !_obscure),
                   ),
                 ),
@@ -603,7 +616,8 @@ class _DeleteAccountDialog extends ConsumerStatefulWidget {
   const _DeleteAccountDialog();
 
   @override
-  ConsumerState<_DeleteAccountDialog> createState() => _DeleteAccountDialogState();
+  ConsumerState<_DeleteAccountDialog> createState() =>
+      _DeleteAccountDialogState();
 }
 
 class _DeleteAccountDialogState extends ConsumerState<_DeleteAccountDialog> {
@@ -625,18 +639,22 @@ class _DeleteAccountDialogState extends ConsumerState<_DeleteAccountDialog> {
     });
 
     try {
-      await ref.read(authRepositoryProvider).deleteAccount(
-        onClearLocalData: () async {
-          await ref.read(appDatabaseProvider).clearAllData();
-        },
-      );
+      await ref
+          .read(authRepositoryProvider)
+          .deleteAccount(
+            onClearLocalData: () async {
+              await ref.read(appDatabaseProvider).clearAllData();
+            },
+          );
       ref.read(guestModeProvider.notifier).state = true;
       if (!mounted) return;
       Navigator.of(context).pop();
       context.go('/login');
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Your account and all associated data have been permanently deleted.'),
+          content: Text(
+            'Your account and all associated data have been permanently deleted.',
+          ),
         ),
       );
     } catch (e) {
@@ -741,7 +759,9 @@ class _SyncAndStorageCard extends ConsumerWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
+        color: theme.colorScheme.surfaceContainerHighest.withValues(
+          alpha: 0.35,
+        ),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: theme.colorScheme.outlineVariant.withValues(alpha: 0.6),
@@ -881,7 +901,8 @@ class _DesktopShortcutSettings extends ConsumerWidget {
               subtitle: const Text('Falls back to the clipboard otherwise'),
               secondary: const Icon(Icons.text_fields_rounded),
               value: settings.useSelectedText,
-              onChanged: (value) => unawaited(actions.setUseSelectedText(value)),
+              onChanged: (value) =>
+                  unawaited(actions.setUseSelectedText(value)),
             ),
             const _AccessibilityTile(),
             const Divider(height: 1),
@@ -890,7 +911,8 @@ class _DesktopShortcutSettings extends ConsumerWidget {
               subtitle: const Text('Only while capture is active'),
               secondary: const Icon(Icons.center_focus_weak_rounded),
               value: settings.closeOnFocusLoss,
-              onChanged: (value) => unawaited(actions.setCloseOnFocusLoss(value)),
+              onChanged: (value) =>
+                  unawaited(actions.setCloseOnFocusLoss(value)),
             ),
             SwitchListTile(
               title: const Text('Keep LaterBox running when window closes'),
@@ -917,8 +939,14 @@ class _DesktopShortcutSettings extends ConsumerWidget {
                         'You can disable this anytime in Settings → Quick Capture.',
                       ),
                       actions: [
-                        TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel')),
-                        FilledButton(onPressed: () => Navigator.of(ctx).pop(true), child: const Text('Enable')),
+                        TextButton(
+                          onPressed: () => Navigator.of(ctx).pop(false),
+                          child: const Text('Cancel'),
+                        ),
+                        FilledButton(
+                          onPressed: () => Navigator.of(ctx).pop(true),
+                          child: const Text('Enable'),
+                        ),
                       ],
                     ),
                   );
@@ -936,14 +964,19 @@ class _DesktopShortcutSettings extends ConsumerWidget {
             const Divider(height: 1),
             SwitchListTile(
               title: const Text('Live in Top Screen Notch (macOS)'),
-              subtitle: const Text('Floats at top-center screen with live Dynamic Island'),
+              subtitle: const Text(
+                'Floats at top-center screen with live Dynamic Island',
+              ),
               secondary: const Icon(Icons.laptop_mac_rounded),
               value: settings.enableNotchMode,
-              onChanged: (value) => unawaited(actions.setEnableNotchMode(value)),
+              onChanged: (value) =>
+                  unawaited(actions.setEnableNotchMode(value)),
             ),
             SwitchListTile(
               title: const Text('Watch active screen & browser tabs'),
-              subtitle: const Text('Detects active links, references, and frontmost apps'),
+              subtitle: const Text(
+                'Detects active links, references, and frontmost apps',
+              ),
               secondary: const Icon(Icons.visibility_rounded),
               value: settings.watchActiveScreen,
               onChanged: (value) async {
@@ -958,8 +991,14 @@ class _DesktopShortcutSettings extends ConsumerWidget {
                         'You’ll be asked for Screen Recording permission next; grant it in System Settings → Privacy & Security → Screen Recording for the notch to see the screen.',
                       ),
                       actions: [
-                        TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel')),
-                        FilledButton(onPressed: () => Navigator.of(ctx).pop(true), child: const Text('Continue')),
+                        TextButton(
+                          onPressed: () => Navigator.of(ctx).pop(false),
+                          child: const Text('Cancel'),
+                        ),
+                        FilledButton(
+                          onPressed: () => Navigator.of(ctx).pop(true),
+                          child: const Text('Continue'),
+                        ),
                       ],
                     ),
                   );
@@ -967,7 +1006,9 @@ class _DesktopShortcutSettings extends ConsumerWidget {
                   // Trigger system prompt; if still denied we still persist the preference
                   // but surface guidance — the native watcher will surface a permission error.
                   try {
-                    final trusted = await ref.read(desktopActionsProvider).ensureWatchModePermission();
+                    final trusted = await ref
+                        .read(desktopActionsProvider)
+                        .ensureWatchModePermission();
                     if (!trusted && context.mounted) {
                       final open = await showDialog<bool>(
                         context: context,
@@ -978,13 +1019,21 @@ class _DesktopShortcutSettings extends ConsumerWidget {
                             'Open System Settings → Privacy & Security → Screen Recording and enable LaterBox, then return and try again.',
                           ),
                           actions: [
-                            TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Later')),
-                            FilledButton(onPressed: () => Navigator.of(ctx).pop(true), child: const Text('Open Settings')),
+                            TextButton(
+                              onPressed: () => Navigator.of(ctx).pop(false),
+                              child: const Text('Later'),
+                            ),
+                            FilledButton(
+                              onPressed: () => Navigator.of(ctx).pop(true),
+                              child: const Text('Open Settings'),
+                            ),
                           ],
                         ),
                       );
                       if (open == true) {
-                        await ref.read(desktopActionsProvider).openScreenRecordingSettings();
+                        await ref
+                            .read(desktopActionsProvider)
+                            .openScreenRecordingSettings();
                       }
                     }
                   } catch (_) {}
@@ -995,7 +1044,9 @@ class _DesktopShortcutSettings extends ConsumerWidget {
             const _ScreenRecordingTile(),
             SwitchListTile(
               title: const Text('Capture word references with highlight URLs'),
-              subtitle: const Text('Generates W3C #:~:text= scroll-to-text links'),
+              subtitle: const Text(
+                'Generates W3C #:~:text= scroll-to-text links',
+              ),
               secondary: const Icon(Icons.format_quote_rounded),
               value: settings.autoCopyWordReferences,
               onChanged: (value) =>
@@ -1254,19 +1305,34 @@ class _ScreenRecordingTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     // Only show on macOS; on other platforms render nothing.
-    if (defaultTargetPlatform != TargetPlatform.macOS) return const SizedBox.shrink();
+    if (defaultTargetPlatform != TargetPlatform.macOS)
+      return const SizedBox.shrink();
     // We query trust lazily via MacOSCompanion; show a static tile that checks on tap.
     return ListTile(
       leading: const Icon(Icons.screen_search_desktop_rounded),
       title: const Text('Screen Recording for Watch Mode'),
-      subtitle: const Text('Required for notch Watch Mode — on-device only, never uploaded'),
+      subtitle: const Text(
+        'Required for notch Watch Mode — on-device only, never uploaded',
+      ),
       trailing: FilledButton.tonal(
         onPressed: () async {
-          final trusted = await ref.read(desktopActionsProvider).ensureWatchModePermission();
+          final trusted = await ref
+              .read(desktopActionsProvider)
+              .ensureWatchModePermission();
           if (!trusted && context.mounted) {
-            unawaited(launchUrl(Uri.parse('x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture')));
+            unawaited(
+              launchUrl(
+                Uri.parse(
+                  'x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture',
+                ),
+              ),
+            );
           } else if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Screen Recording permission granted')));
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Screen Recording permission granted'),
+              ),
+            );
             ref.invalidate(accessibilityTrustedProvider);
           }
         },
@@ -1289,7 +1355,9 @@ class _AboutAndLegalCard extends ConsumerWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
+        color: theme.colorScheme.surfaceContainerHighest.withValues(
+          alpha: 0.35,
+        ),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: theme.colorScheme.outlineVariant.withValues(alpha: 0.6),
@@ -1402,7 +1470,11 @@ class _UpdateButton extends ConsumerWidget {
         final ok = await svc.checkForUpdates();
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(ok ? 'Checking for updates…' : 'Updater not available — add Sparkle via Xcode SPM to enable')),
+            SnackBar(
+              content: Text(
+                ok ? 'Checking for updates…' : 'Updater not available — add Sparkle via Xcode SPM to enable',
+              ),
+            ),
           );
         }
       },
