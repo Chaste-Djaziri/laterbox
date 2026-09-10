@@ -5,6 +5,7 @@ import '../auth/auth_provider.dart';
 import '../supabase/supabase_provider.dart';
 import 'entitlement.dart';
 import 'entitlement_repository.dart';
+import 'apple_purchase_service.dart';
 
 enum ProFeature {
   cloudSync,
@@ -21,12 +22,14 @@ const laterBoxDistribution = String.fromEnvironment(
 );
 
 bool get billingEnforcementEnabled {
-  final applePlatform =
-      !kIsWeb &&
-      (defaultTargetPlatform == TargetPlatform.iOS ||
-          defaultTargetPlatform == TargetPlatform.macOS);
-  return !(applePlatform && laterBoxDistribution == 'app-store');
+  return true;
 }
+
+bool get isAppleAppStoreBuild =>
+    !kIsWeb &&
+    laterBoxDistribution == 'app-store' &&
+    (defaultTargetPlatform == TargetPlatform.iOS ||
+        defaultTargetPlatform == TargetPlatform.macOS);
 
 bool get canOpenWebCheckout {
   if (kIsWeb || laterBoxDistribution == 'play' || laterBoxDistribution == 'app-store') {
@@ -39,6 +42,12 @@ bool get canOpenWebCheckout {
 
 final entitlementRepositoryProvider = Provider<EntitlementRepository>((ref) {
   return EntitlementRepository(ref.watch(supabaseClientProvider));
+});
+
+final applePurchaseServiceProvider = ChangeNotifierProvider<ApplePurchaseService>((ref) {
+  final service = ApplePurchaseService(ref.watch(supabaseClientProvider));
+  service.initialize();
+  return service;
 });
 
 final entitlementProvider = FutureProvider<Entitlement>((ref) async {
