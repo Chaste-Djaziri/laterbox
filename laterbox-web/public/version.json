@@ -1,9 +1,9 @@
 {
   "app": "laterbox-web",
-  "version": "1.0.92",
+  "version": "1.0.93",
   "major": 1,
   "minor": 0,
-  "patch": 92,
-  "buildNumber": 93,
-  "buildTime": "2026-09-10T23:07:05.869Z"
+  "patch": 93,
+  "buildNumber": 94,
+  "buildTime": "2026-09-10T23:41:42.937Z"
 }
