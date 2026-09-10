@@ -57,6 +57,16 @@ export async function GET(request: Request) {
             : eligible.current_period_ends_at,
         willCancel: eligible.scheduled_change_action === 'cancel',
         billingWarning: eligible.status === 'past_due' ? 'payment_past_due' : null,
+        phaseStartsAt:
+          eligible.status === 'past_due'
+            ? eligible.past_due_at || eligible.updated_at
+            : eligible.current_period_starts_at || eligible.created_at,
+        phaseEndsAt:
+          eligible.status === 'trialing'
+            ? eligible.trial_ends_at || eligible.current_period_ends_at
+            : eligible.status === 'past_due'
+              ? [eligible.current_period_ends_at, pastDueLimit].filter(Boolean).sort()[0] ?? pastDueLimit
+              : eligible.current_period_ends_at,
       };
     } else if (grants?.[0]) {
       entitlement = {
@@ -67,6 +77,8 @@ export async function GET(request: Request) {
         accessEndsAt: grants[0].expires_at,
         willCancel: false,
         billingWarning: null,
+        phaseStartsAt: grants[0].starts_at,
+        phaseEndsAt: grants[0].expires_at,
       };
     }
 
