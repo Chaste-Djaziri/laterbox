@@ -6,6 +6,7 @@ import { FREE_ENTITLEMENT, hasProAccess, type Entitlement } from '@/lib/billing/
 import { useAuth } from './AuthContext';
 
 type Interval = 'month' | 'year';
+type CheckoutState = 'idle' | 'processing' | 'confirmed' | 'delayed';
 type BillingContextValue = {
   entitlement: Entitlement;
   isPro: boolean;
@@ -14,6 +15,8 @@ type BillingContextValue = {
   refresh: () => Promise<void>;
   subscribe: (interval: Interval) => Promise<void>;
   manage: () => Promise<void>;
+  checkoutState: CheckoutState;
+  previewPrices: (priceIds: string[]) => Promise<Record<string, string>>;
 };
 
 const BillingContext = createContext<BillingContextValue | null>(null);
@@ -24,6 +27,7 @@ export function BillingProvider({ children }: { children: React.ReactNode }) {
   const [paddle, setPaddle] = useState<Paddle>();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [checkoutState, setCheckoutState] = useState<CheckoutState>('idle');
   const cacheKey = user ? `laterbox_entitlement_${user.id}` : null;
 
   const refresh = useCallback(async () => {
@@ -63,6 +67,31 @@ export function BillingProvider({ children }: { children: React.ReactNode }) {
     void refresh();
   }, [cacheKey, refresh]);
 
+  const pollForPro = useCallback(async () => {
+    if (!session?.access_token || !user) return;
+    setCheckoutState('processing');
+    for (let attempt = 0; attempt < 8; attempt += 1) {
+      await new Promise((resolve) => window.setTimeout(resolve, attempt === 0 ? 800 : 1500));
+      try {
+        const response = await fetch('/api/billing/entitlement', {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+          cache: 'no-store',
+        });
+        if (!response.ok) continue;
+        const value = (await response.json()) as Entitlement;
+        setEntitlement(value);
+        localStorage.setItem(`laterbox_entitlement_${user.id}`, JSON.stringify(value));
+        if (hasProAccess(value)) {
+          setCheckoutState('confirmed');
+          return;
+        }
+      } catch {
+        // Paddle webhooks are retried; keep polling without changing access.
+      }
+    }
+    setCheckoutState('delayed');
+  }, [session?.access_token, user]);
+
   useEffect(() => {
     const onFocus = () => void refresh();
     window.addEventListener('focus', onFocus);
@@ -80,10 +109,10 @@ export function BillingProvider({ children }: { children: React.ReactNode }) {
       token,
       environment: (process.env.NEXT_PUBLIC_PADDLE_ENV || 'sandbox') as Environments,
       eventCallback: (event) => {
-        if (event.name === 'checkout.completed') window.setTimeout(() => void refresh(), 1200);
+        if (event.name === 'checkout.completed') void pollForPro();
       },
     }).then((instance) => instance && setPaddle(instance));
-  }, [refresh]);
+  }, [pollForPro]);
 
   const authenticatedRequest = useCallback(
     async (path: string, init?: RequestInit) => {
@@ -126,9 +155,20 @@ export function BillingProvider({ children }: { children: React.ReactNode }) {
     window.location.assign(result.url);
   }, [authenticatedRequest]);
 
+  const previewPrices = useCallback(async (priceIds: string[]) => {
+    if (!paddle || priceIds.length === 0) return {};
+    const response = await paddle.PricePreview({
+      items: priceIds.map((priceId) => ({ priceId, quantity: 1 })),
+    });
+    return response.data.details.lineItems.reduce<Record<string, string>>((values, item) => {
+      values[item.price.id] = item.formattedTotals.total;
+      return values;
+    }, {});
+  }, [paddle]);
+
   const value = useMemo(
-    () => ({ entitlement, isPro: hasProAccess(entitlement), loading, error, refresh, subscribe, manage }),
-    [entitlement, loading, error, refresh, subscribe, manage]
+    () => ({ entitlement, isPro: hasProAccess(entitlement), loading, error, refresh, subscribe, manage, checkoutState, previewPrices }),
+    [entitlement, loading, error, refresh, subscribe, manage, checkoutState, previewPrices]
   );
   return <BillingContext.Provider value={value}>{children}</BillingContext.Provider>;
 }
