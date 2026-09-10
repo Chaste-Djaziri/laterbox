@@ -13,7 +13,7 @@ type BillingContextValue = {
   loading: boolean;
   error: string | null;
   refresh: () => Promise<void>;
-  subscribe: (interval: Interval) => Promise<void>;
+  subscribe: (interval: Interval, returnTo?: string) => Promise<void>;
   manage: () => Promise<void>;
   checkoutState: CheckoutState;
   previewPrices: (priceIds: string[]) => Promise<Record<string, string>>;
@@ -93,6 +93,12 @@ export function BillingProvider({ children }: { children: React.ReactNode }) {
   }, [session?.access_token, user]);
 
   useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('checkout') === 'success') {
+      void pollForPro();
+    }
+  }, [pollForPro]);
+
+  useEffect(() => {
     const onFocus = () => void refresh();
     window.addEventListener('focus', onFocus);
     document.addEventListener('visibilitychange', onFocus);
@@ -136,7 +142,7 @@ export function BillingProvider({ children }: { children: React.ReactNode }) {
   );
 
   const subscribe = useCallback(
-    async (interval: Interval) => {
+    async (interval: Interval, returnTo?: string) => {
       setError(null);
       if (!paddle) throw new Error('Checkout is not configured yet.');
       const result = await authenticatedRequest('/api/billing/checkout', {
@@ -144,9 +150,13 @@ export function BillingProvider({ children }: { children: React.ReactNode }) {
         body: JSON.stringify({ interval }),
       });
       if (!result.transactionId) throw new Error('Checkout transaction was not created.');
+      const successUrl = new URL('/pricing', window.location.origin);
+      successUrl.searchParams.set('checkout', 'success');
+      successUrl.searchParams.set('plan', interval);
+      if (returnTo) successUrl.searchParams.set('return_to', returnTo);
       paddle.Checkout.open({
         transactionId: result.transactionId,
-        settings: { variant: 'one-page', successUrl: `${window.location.origin}/pricing?checkout=success` },
+        settings: { variant: 'one-page', successUrl: successUrl.toString() },
       });
     },
     [authenticatedRequest, paddle]
