@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/desktop/desktop_actions.dart';
+import 'core/billing/billing_providers.dart';
 import 'core/desktop/desktop_capabilities.dart';
 import 'core/desktop/desktop_providers.dart';
 import 'core/desktop/macos_companion.dart';
@@ -61,6 +62,7 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
+      ref.invalidate(entitlementProvider);
       _drainPendingShares();
       if (kIsWeb) {
         ref.read(webUpdateProvider.notifier).checkForUpdate();
