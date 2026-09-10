@@ -3,11 +3,13 @@
 import React from 'react';
 import { useItems } from '@/lib/store/ItemContext';
 import { useAuth } from '@/lib/store/AuthContext';
+import { useBilling } from '@/lib/store/BillingContext';
 import { Cloud, CloudOff, RefreshCw, AlertCircle } from 'lucide-react';
 
 export function CloudSyncIndicator({ compact = false }: { compact?: boolean }) {
   const { syncStatus, syncNow } = useItems();
   const { user, isGuest } = useAuth();
+  const { isPro } = useBilling();
 
   const getStatusDetails = () => {
     if (isGuest || !user) {
@@ -15,6 +17,14 @@ export function CloudSyncIndicator({ compact = false }: { compact?: boolean }) {
         icon: <CloudOff className="w-3.5 h-3.5 text-[#6c6b63]" />,
         label: 'Local Mode',
         tooltip: 'Changes saved locally. Sign in to enable cloud sync.',
+        color: 'bg-[#ebe7dc]/80 border border-[#e4e0d5] text-[#171711]',
+      };
+    }
+    if (!isPro) {
+      return {
+        icon: <CloudOff className="w-3.5 h-3.5 text-[#6c6b63]" />,
+        label: 'Pro Sync',
+        tooltip: 'Cloud sync is available with LaterBox Pro.',
         color: 'bg-[#ebe7dc]/80 border border-[#e4e0d5] text-[#171711]',
       };
     }
@@ -50,7 +60,7 @@ export function CloudSyncIndicator({ compact = false }: { compact?: boolean }) {
   if (compact) {
     return (
       <button
-        onClick={() => syncNow()}
+        onClick={() => isPro ? syncNow() : window.location.assign('/pricing')}
         title={status.tooltip}
         className="p-1.5 rounded-lg hover:bg-[#ebe7dc]/70 transition-colors focus:outline-none cursor-pointer"
       >
@@ -61,7 +71,7 @@ export function CloudSyncIndicator({ compact = false }: { compact?: boolean }) {
 
   return (
     <button
-      onClick={() => syncNow()}
+      onClick={() => isPro ? syncNow() : window.location.assign('/pricing')}
       title={status.tooltip}
       className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold tracking-tight transition-all duration-150 hover:opacity-85 cursor-pointer shadow-xs ${status.color}`}
     >
