@@ -42,8 +42,11 @@ class ApplePurchaseCatalog {
 }
 
 class ApplePurchaseService extends ChangeNotifier {
-  ApplePurchaseService(this._supabase, {http.Client? client})
-    : _http = client ?? http.Client();
+  ApplePurchaseService(
+    this._supabase, {
+    http.Client? client,
+    this.onVerified,
+  }) : _http = client ?? http.Client();
 
   static const _apiBase = String.fromEnvironment(
     'LATERBOX_WEB_URL',
@@ -52,6 +55,7 @@ class ApplePurchaseService extends ChangeNotifier {
 
   final SupabaseClient? _supabase;
   final http.Client _http;
+  final VoidCallback? onVerified;
   final InAppPurchase _store = InAppPurchase.instance;
   StreamSubscription<List<PurchaseDetails>>? _subscription;
   ApplePurchaseCatalog _catalog = const ApplePurchaseCatalog();
@@ -164,6 +168,7 @@ class ApplePurchaseService extends ChangeNotifier {
         _set(_catalog.copyWith(state: ApplePurchaseState.verifying));
         try {
           await _verify(purchase);
+          onVerified?.call();
           if (purchase.pendingCompletePurchase) {
             await _store.completePurchase(purchase);
           }
