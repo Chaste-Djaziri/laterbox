@@ -74,6 +74,14 @@
 				<string>NSURLPboardType</string>
 				<string>public.file-url</string>
 				<string>NSFilenamesPboardType</string>
+				<string>com.adobe.pdf</string>
+				<string>public.pdf</string>
+				<string>public.image</string>
+			</array>
+			<key>NSReturnTypes</key>
+			<array>
+				<string>public.utf8-plain-text</string>
+				<string>public.url</string>
 			</array>
 		</dict>
 	</array>

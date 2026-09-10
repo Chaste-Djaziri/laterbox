@@ -90,11 +90,31 @@ final class ShareCaptureQueue {
         return directory
     }
 
+    private let maxQueueSize = 20 // matches NSExtensionActivationSupportsFileWithMaxCount
+    private let maxAgeDays = 7
+
+    private func pruneExpired(_ captures: [PendingShareCapture]) -> [PendingShareCapture] {
+        let cutoff = Date().addingTimeInterval(Double(-maxAgeDays * 24 * 3600))
+        let fmt = ISO8601DateFormatter()
+        return captures.filter { cap in
+            guard let d = fmt.date(from: cap.createdAt) else { return true }
+            return d >= cutoff
+        }
+    }
+
     @discardableResult
     func enqueue(_ capture: PendingShareCapture) -> Bool {
-        var captures = readAll()
+        var captures = pruneExpired(readAll())
         if !captures.contains(where: { $0.id == capture.id }) {
             captures.append(capture)
+        }
+        // Cap queue — drop oldest when exceeding maxQueueSize so Share Extension
+        // delivery while app is closed never grows unbounded.
+        if captures.count > maxQueueSize {
+            let overflow = captures.count - maxQueueSize
+            let dropped = Array(captures.prefix(overflow))
+            dropped.forEach { deleteStagingDirectory(id: $0.id) }
+            captures = Array(captures.suffix(maxQueueSize))
         }
         guard let data = try? JSONEncoder().encode(captures) else { return false }
         
