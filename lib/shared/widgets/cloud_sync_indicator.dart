@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/auth/auth_provider.dart';
+import '../../core/billing/billing_providers.dart';
 import '../../core/database/app_database.dart';
 import '../../core/sync/sync_providers.dart';
 import '../../core/sync/sync_stats_provider.dart';
@@ -18,6 +19,7 @@ class CloudSyncIndicator extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final auth = ref.watch(authStateProvider).asData?.value;
     final isAuthenticated = auth?.isAuthenticated ?? false;
+    final isPro = ref.watch(hasProAccessProvider);
     final statsAsync = ref.watch(syncStatsProvider);
 
     final stats = statsAsync.asData?.value ??
@@ -43,6 +45,11 @@ class CloudSyncIndicator extends ConsumerWidget {
       backgroundColor = colors.surfaceContainerHighest;
       foregroundColor = colors.onSurfaceVariant;
       labelText = compact ? 'Local' : 'Local Mode';
+    } else if (!isPro) {
+      icon = Icons.workspace_premium_outlined;
+      backgroundColor = colors.surfaceContainerHighest;
+      foregroundColor = colors.onSurfaceVariant;
+      labelText = compact ? 'Pro' : 'Pro Sync';
     } else if (isSyncing) {
       icon = Icons.cloud_sync_rounded;
       backgroundColor = colors.primaryContainer;
