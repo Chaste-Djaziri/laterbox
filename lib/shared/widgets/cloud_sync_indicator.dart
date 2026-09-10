@@ -133,12 +133,15 @@ Future<void> showSyncPlansSheet(BuildContext context) {
     context: context,
     useRootNavigator: true,
     isScrollControlled: true,
+    constraints: const BoxConstraints(maxWidth: 840),
     backgroundColor: Theme.of(context).colorScheme.surface,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
     ),
-    builder: (sheetContext) => FractionallySizedBox(
-      heightFactor: 0.92,
+    builder: (sheetContext) => ConstrainedBox(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.sizeOf(sheetContext).height * 0.9,
+      ),
       child: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
