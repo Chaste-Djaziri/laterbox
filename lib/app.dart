@@ -46,6 +46,7 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
         unawaited(
           MacOSCompanion.setProAutomationEnabled(entitlement.hasProAccess),
         );
+        if (entitlement.hasProAccess) _drainPendingShares();
       });
     }, fireImmediately: true);
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -118,6 +119,9 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
 
   void _drainPendingShares() {
     if (_drainingShares) return;
+    if (!ref.read(proFeatureAccessProvider(ProFeature.shareIntegration))) {
+      return;
+    }
     _drainingShares = true;
     unawaited(_drainNativeShares());
   }
