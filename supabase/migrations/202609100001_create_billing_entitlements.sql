@@ -86,6 +86,8 @@ select id, 'billing_launch_grace', now(), now() + interval '30 days'
 from auth.users
 on conflict (user_id, reason) do nothing;
 
+drop function if exists public.get_my_entitlement();
+
 create or replace function public.get_my_entitlement()
 returns table (
   tier text,
