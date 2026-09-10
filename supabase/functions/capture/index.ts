@@ -35,6 +35,7 @@ type CaptureDependencies = {
   serviceRoleKey: string;
   createId: () => string;
   now: () => Date;
+  hasProAccess: (userId: string) => Promise<boolean>;
 };
 
 const defaultDependencies = (): CaptureDependencies => ({
@@ -44,6 +45,21 @@ const defaultDependencies = (): CaptureDependencies => ({
   serviceRoleKey: Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
   createId: () => crypto.randomUUID(),
   now: () => new Date(),
+  hasProAccess: async (userId: string) => {
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+    if (!serviceRoleKey || !supabaseUrl) return false;
+    const response = await fetch(`${supabaseUrl}/rest/v1/rpc/has_pro_entitlement`, {
+      method: "POST",
+      headers: {
+        apikey: serviceRoleKey,
+        authorization: `Bearer ${serviceRoleKey}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ target_user_id: userId }),
+    });
+    return response.ok && await response.json() === true;
+  },
 });
 
 export const createCaptureHandler = (
@@ -84,6 +100,9 @@ export const createCaptureHandler = (
 
     const userId = await authenticate(token, dependencies);
     if (userId === null) return json({ error: "Invalid access token" }, 401);
+    if (!await dependencies.hasProAccess(userId)) {
+      return json({ error: "LaterBox Pro is required for connected capture" }, 403);
+    }
 
     const itemId = dependencies.createId();
     const timestamp = dependencies.now().toISOString();
