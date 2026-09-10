@@ -93,9 +93,10 @@ void main() {
 
     expect(find.text('Sign in'), findsOneWidget);
     expect(find.text('Create account'), findsOneWidget);
-    expect(find.text('Continue without account'), findsOneWidget);
+    expect(find.text('Continue free'), findsOneWidget);
 
-    await tester.tap(find.text('Continue without account'));
+    await tester.ensureVisible(find.text('Continue free'));
+    await tester.tap(find.text('Continue free'));
     await tester.pumpAndSettle();
     expect(find.text('Inbox'), findsWidgets);
     expect(
