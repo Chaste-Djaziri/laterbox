@@ -4,6 +4,7 @@ import React, { createContext, useContext, useEffect, useState, useMemo, useCall
 import { getSupabaseClient } from '../supabase/client';
 import { LaterBoxItem, ItemStatus, InboxFilterType, Collection, Attachment } from '../supabase/types';
 import { useAuth } from './AuthContext';
+import { useBilling } from './BillingContext';
 import { normalizeUrl, isUrl, extractDomain } from '../utils/url';
 import { uploadAttachmentFile } from '../utils/attachment';
 
@@ -44,6 +45,7 @@ const ItemContext = createContext<ItemContextType | undefined>(undefined);
 
 export function ItemProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
+  const { isPro } = useBilling();
   const [items, setItems] = useState<LaterBoxItem[]>([]);
   const [collections, setCollections] = useState<Collection[]>([]);
   const [activeFilter, setActiveFilter] = useState<InboxFilterType>('all');
@@ -80,8 +82,9 @@ export function ItemProvider({ children }: { children: ReactNode }) {
 
   // Fetch from Supabase
   const fetchData = useCallback(async () => {
-    if (!user) {
+    if (!user || !isPro) {
       loadLocalData();
+      setSyncStatus('offline');
       setLoading(false);
       return;
     }
@@ -170,7 +173,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }, [user, loadLocalData, saveLocalData]);
+  }, [user, isPro, loadLocalData, saveLocalData]);
 
   useEffect(() => {
     fetchData();
@@ -302,7 +305,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
 
     // Upload files if provided
     let uploadedAttachments: Attachment[] = [];
-    if (files.length > 0 && user) {
+    if (files.length > 0 && user && isPro) {
       try {
         const uploadPromises = files.map((file) =>
           uploadAttachmentFile(file, itemId, user.id)
@@ -318,7 +321,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
     setItems(updated);
     saveLocalData(updated);
 
-    if (user) {
+    if (user && isPro) {
       try {
         const supabase = getSupabaseClient();
         await supabase.from('items').upsert({
@@ -435,7 +438,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
     setItems(updated);
     saveLocalData(updated);
 
-    if (user) {
+    if (user && isPro) {
       const supabase = getSupabaseClient();
       await supabase.from('items').update({ favorite, updated_at: new Date().toISOString() }).eq('id', id);
     }
@@ -446,7 +449,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
     setItems(updated);
     saveLocalData(updated);
 
-    if (user) {
+    if (user && isPro) {
       const supabase = getSupabaseClient();
       await supabase.from('items').update({ status, updated_at: new Date().toISOString() }).eq('id', id);
     }
@@ -462,7 +465,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
     setItems(updated);
     saveLocalData(updated);
 
-    if (user) {
+    if (user && isPro) {
       const supabase = getSupabaseClient();
       await supabase.from('items').update({ deleted_at: now }).eq('id', id);
     }
@@ -491,7 +494,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
     setItems(updated);
     saveLocalData(updated);
 
-    if (user) {
+    if (user && isPro) {
       const supabase = getSupabaseClient();
       if (trimmed) {
         await supabase.from('item_notes').upsert({
@@ -520,7 +523,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
     setCollections(updated);
     saveLocalData(items, updated);
 
-    if (user) {
+    if (user && isPro) {
       const supabase = getSupabaseClient();
       await supabase.from('collections').insert({
         id: newCol.id,
@@ -539,14 +542,14 @@ export function ItemProvider({ children }: { children: ReactNode }) {
     setCollections(updated);
     saveLocalData(items, updated);
 
-    if (user) {
+    if (user && isPro) {
       const supabase = getSupabaseClient();
       await supabase.from('collections').update({ deleted_at: now }).eq('id', id);
     }
   };
 
   const addItemToCollection = async (collectionId: string, itemId: string) => {
-    if (user) {
+    if (user && isPro) {
       const supabase = getSupabaseClient();
       await supabase.from('collection_items').upsert({
         collection_id: collectionId,
@@ -559,7 +562,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
   };
 
   const removeItemFromCollection = async (collectionId: string, itemId: string) => {
-    if (user) {
+    if (user && isPro) {
       const supabase = getSupabaseClient();
       await supabase
         .from('collection_items')
