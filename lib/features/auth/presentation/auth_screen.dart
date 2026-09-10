@@ -42,16 +42,21 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
           password: _passwordController.text,
         );
         if (mounted) {
-          setState(
-            () => _message = 'Account created. Check your email if confirmation is required.',
-          );
+          final signedIn = ref.read(authStateProvider).valueOrNull?.isAuthenticated ?? false;
+          if (signedIn) {
+            _finishAuthentication();
+          } else {
+            setState(
+              () => _message = 'Account created. Check your email if confirmation is required.',
+            );
+          }
         }
       } else {
         await repository.signIn(
           email: _emailController.text,
           password: _passwordController.text,
         );
-        if (mounted) context.go('/inbox');
+        if (mounted) _finishAuthentication();
       }
     } on AuthException catch (error) {
       setState(() => _message = error.message);
@@ -62,8 +67,15 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     }
   }
 
+  void _finishAuthentication() {
+    final next = GoRouterState.of(context).uri.queryParameters['next'];
+    context.go(next == 'plans' ? '/plans' : '/inbox');
+  }
+
   @override
   Widget build(BuildContext context) {
+    final mode = GoRouterState.of(context).uri.queryParameters['mode'];
+    final prefersSignup = mode == 'signup';
     return Scaffold(
       body: SafeArea(
         child: Center(
@@ -90,6 +102,14 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                       ),
                     ),
                     const SizedBox(height: 40),
+                    Text(
+                      prefersSignup ? 'Create your account' : 'Welcome back',
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 18),
                     TextFormField(
                       controller: _emailController,
                       keyboardType: TextInputType.emailAddress,
@@ -124,7 +144,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                       validator: (value) => value == null || value.length < 6
                           ? 'Password must be at least 6 characters.'
                           : null,
-                      onFieldSubmitted: (_) => _submit(createAccount: false),
+                      onFieldSubmitted: (_) => _submit(createAccount: prefersSignup),
                     ),
                     if (_message != null) ...[
                       const SizedBox(height: 14),
@@ -138,17 +158,34 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                     ],
                     const SizedBox(height: 20),
                     FilledButton(
+                      child: Text(
+                        _busy
+                            ? 'Please wait…'
+                            : prefersSignup
+                            ? 'Create account'
+                            : 'Sign in',
+                      ),
                       onPressed: _busy
                           ? null
-                          : () => _submit(createAccount: false),
-                      child: Text(_busy ? 'Please wait…' : 'Sign in'),
+                          : () => _submit(createAccount: prefersSignup),
                     ),
                     const SizedBox(height: 10),
                     OutlinedButton(
                       onPressed: _busy
                           ? null
-                          : () => _submit(createAccount: true),
-                      child: const Text('Create account'),
+                          : () {
+                              final query = GoRouterState.of(context).uri.queryParameters;
+                              final next = query['next'];
+                              final nextQuery = next == null ? '' : '&next=$next';
+                              context.go(
+                                '/login?mode=${prefersSignup ? 'signin' : 'signup'}$nextQuery',
+                              );
+                            },
+                      child: Text(
+                        prefersSignup
+                            ? 'Already have an account? Sign in'
+                            : 'Create account',
+                      ),
                     ),
                     const SizedBox(height: 18),
                     TextButton(
