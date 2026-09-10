@@ -35,6 +35,7 @@ Deno.test("capture inserts an authenticated browser item", async () => {
     anonKey: "publishable-key",
     createId: () => "00000000-0000-4000-8000-000000000002",
     now: () => new Date("2026-08-19T12:00:00.000Z"),
+    hasProAccess: () => Promise.resolve(true),
     fetch: async (input, init) => {
       const request = new Request(input, init);
       requests.push(request);
@@ -109,6 +110,7 @@ Deno.test("capture inserts scoped extension sessions with service role", async (
     serviceRoleKey: "service-role-key",
     createId: () => "00000000-0000-4000-8000-000000000003",
     now: () => new Date("2026-08-20T00:00:00.000Z"),
+    hasProAccess: () => Promise.resolve(true),
     fetch: async (input, init) => {
       const request = new Request(input, init);
       requests.push(request);
@@ -138,4 +140,30 @@ Deno.test("capture inserts scoped extension sessions with service role", async (
   const insert = requests.find((request) => request.url.endsWith("/rest/v1/items"));
   assert(insert !== undefined);
   assertEquals(insert!.headers.get("authorization"), "Bearer service-role-key");
+});
+
+Deno.test("capture rejects connected capture without Pro", async () => {
+  const handler = createCaptureHandler({
+    supabaseUrl: "https://project.supabase.co",
+    anonKey: "publishable-key",
+    hasProAccess: () => Promise.resolve(false),
+    fetch: async (input) => {
+      const request = new Request(input);
+      if (request.url.endsWith("/auth/v1/user")) return Response.json({ id: userId });
+      throw new Error("capture insert should not be called");
+    },
+  });
+
+  const response = await handler(
+    new Request("https://example.test/capture", {
+      method: "POST",
+      headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
+      body: JSON.stringify({ url: "https://example.com", source: "browserExtension" }),
+    }),
+  );
+
+  assertEquals(response.status, 403);
+  assertEquals(await response.json(), {
+    error: "LaterBox Pro is required for connected capture",
+  });
 });
