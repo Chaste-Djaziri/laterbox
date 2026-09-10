@@ -130,16 +130,43 @@ jobs:
 
       - name: Build macOS Application
         run: |
-          xcodebuild -workspace macos/Runner.xcworkspace \
-            -scheme Runner \
-            -configuration Release \
-            -derivedDataPath build/macos \
-            CODE_SIGN_IDENTITY="-" \
-            CODE_SIGN_STYLE="Manual" \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO \
-            -destination 'generic/platform=macOS' \
-            build
+          # Direct DMG builds use ad-hoc signing when no Developer ID cert is present;
+          # hardened runtime + notarization activates automatically when
+          # APPLE_CERTIFICATE_BASE64 is a Developer ID Application certificate.
+          if [ -n "$APPLE_CERTIFICATE_BASE64" ]; then
+            xcodebuild -workspace macos/Runner.xcworkspace \
+              -scheme Runner \
+              -configuration Release \
+              -derivedDataPath build/macos \
+              CODE_SIGN_STYLE="Manual" \
+              CODE_SIGN_IDENTITY="Developer ID Application" \
+              OTHER_CODE_SIGN_FLAGS="--options runtime --timestamp" \
+              -destination 'generic/platform=macOS' \
+              build
+          else
+            xcodebuild -workspace macos/Runner.xcworkspace \
+              -scheme Runner \
+              -configuration Release \
+              -derivedDataPath build/macos \
+              CODE_SIGN_IDENTITY="-" \
+              CODE_SIGN_STYLE="Manual" \
+              CODE_SIGNING_REQUIRED=NO \
+              CODE_SIGNING_ALLOWED=NO \
+              -destination 'generic/platform=macOS' \
+              build
+          fi
+        env:
+          APPLE_CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
+
+      - name: Notarize DMG (when Developer ID available)
+        if: env.APPLE_ID != '' && env.APPLE_APP_SPECIFIC_PASSWORD != '' && env.APPLE_TEAM_ID != ''
+        shell: bash
+        run: |
+          echo "Notarization will run after DMG creation via notarytool"
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
 
       - name: Package macOS DMG, PKG & Universal Zip
         shell: bash
@@ -155,8 +182,12 @@ jobs:
           
           echo "Packaging application from: $APP_PATH"
           
-          # Ad-hoc sign bundle before packaging
-          codesign --force --deep --sign - "$APP_PATH" || true
+          if [ -n "$APPLE_CERTIFICATE_BASE64" ]; then
+            # Hardened runtime + timestamp for notarization / Sparkle
+            codesign --force --deep --options runtime --timestamp --sign "Developer ID Application" "$APP_PATH" || true
+          else
+            codesign --force --deep --sign - "$APP_PATH" || true
+          fi
           
           # 1. Create Universal DMG
           hdiutil create -volname "LaterBox" -srcfolder "$APP_PATH" -ov -format UDZO dist/laterbox-macos-universal.dmg
@@ -164,13 +195,41 @@ jobs:
           cp dist/laterbox-macos-universal.dmg dist/laterbox-macos-apple-silicon.dmg
           cp dist/laterbox-macos-universal.dmg dist/laterbox-macos-intel.dmg
           
-          # 2. Create PKG Installer (Product Archive format for macOS & App Store Connect)
-          productbuild --component "$APP_PATH" /Applications dist/laterbox-macos-installer.pkg
-          cp dist/laterbox-macos-installer.pkg dist/laterbox-macos.pkg
+          # 1b. Notarize & staple DMG when secrets are present (Sparkle requires notarized DMG/zips)
+          if [ -n "$APPLE_ID" ] && [ -n "$APPLE_APP_SPECIFIC_PASSWORD" ] && [ -n "$APPLE_TEAM_ID" ]; then
+            echo "Submitting DMG for notarization…"
+            xcrun notarytool submit dist/laterbox-macos-universal.dmg --apple-id "$APPLE_ID" --password "$APPLE_APP_SPECIFIC_PASSWORD" --team-id "$APPLE_TEAM_ID" --wait || true
+            xcrun stapler staple dist/laterbox-macos-universal.dmg || true
+            cp dist/laterbox-macos-universal.dmg dist/laterbox-macos.dmg
+          fi
           
-          # 3. Create Universal Zip
+          # 2. Create PKG Installer (Product Archive format for macOS & App Store Connect)
+          productbuild --component "$APP_PATH" /Applications dist/laterbox-macos-installer.pkg || true
+          cp dist/laterbox-macos-installer.pkg dist/laterbox-macos.pkg 2>/dev/null || true
+          
+          # 3. Create Universal Zip (Sparkle delta-friendly, sequesterRsrc keeps extended attrs)
           ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" dist/laterbox-macos-universal.zip
           cp dist/laterbox-macos-universal.zip dist/laterbox-macos.zip
+
+          # 4. Generate Sparkle appcast when Sparkle private key is present
+          if [ -n "$SPARKLE_PRIVATE_KEY" ]; then
+            echo "$SPARKLE_PRIVATE_KEY" > /tmp/sparkle_key.pem
+            # Install Sparkle generate_appcast if available (via mint/brew or manual)
+            if command -v generate_appcast >/dev/null 2>&1; then
+              mkdir -p dist/appcast
+              cp dist/laterbox-macos-universal.zip dist/appcast/ 2>/dev/null || true
+              generate_appcast --ed-key-file /tmp/sparkle_key.pem dist/appcast || true
+              cp dist/appcast/appcast.xml dist/ 2>/dev/null || true
+            else
+              echo "generate_appcast not found — skipping appcast generation (install via: brew install sparkle)"
+            fi
+          fi
+        env:
+          APPLE_CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
 
       - name: Upload macOS Dist Artifacts
         uses: actions/upload-artifact@v4
@@ -185,6 +244,7 @@ jobs:
             dist/laterbox-macos.pkg
             dist/laterbox-macos-universal.zip
             dist/laterbox-macos.zip
+            dist/appcast.xml
           if-no-files-found: error
 
   build-windows:

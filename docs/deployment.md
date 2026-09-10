@@ -70,6 +70,43 @@ DEVELOPER_DIR=/Applications/Xcode-26.6.0.app/Contents/Developer xcodebuild archi
 - **Output App**: `build/macos/Build/Products/Release/laterbox.app`
 - **Output Archive**: `build/macos/archive/Runner.xcarchive`
 
+### Notarized DMG (Direct Distribution) + Sparkle Auto-Update
+Direct builds are ad-hoc signed by default. When a **Developer ID Application** certificate and notarization secrets are present, CI automatically:
+
+1. Codesigns with `--options runtime --timestamp` (hardened runtime)
+2. Creates a DMG via `hdiutil create -format UDZO`
+3. Notarizes with `xcrun notarytool submit --wait` + `xcrun stapler staple`
+4. Generates a Sparkle `appcast.xml` via `generate_appcast` when `SPARKLE_PRIVATE_KEY` is set.
+
+**Required GitHub Secrets for direct DMG + Sparkle:**
+
+| Secret | Purpose |
+|---|---|
+| `APPLE_CERTIFICATE_BASE64` | Developer ID Application .p12 |
+| `APPLE_CERTIFICATE_PASSWORD` | .p12 password |
+| `APPLE_ID` | Apple ID for notarytool |
+| `APPLE_APP_SPECIFIC_PASSWORD` | App-specific password |
+| `APPLE_TEAM_ID` | `LS42X27YFY` |
+| `SPARKLE_PRIVATE_KEY` | Ed25519 private key (`generate_keys` output) |
+| `SPARKLE_PUBLIC_KEY` | Goes in `macos/Runner/Info.plist` `SUPublicEDKey` |
+
+**Local Sparkle key generation:**
+```bash
+# Install Sparkle tools
+brew install sparkle
+generate_keys  # prints public key for Info.plist, private key for secret
+```
+
+**Enabling Sparkle in Xcode (one-time):**
+1. Open `macos/Runner.xcworkspace` → Runner → Package Dependencies → `+` → `https://github.com/sparkle-project/Sparkle` (Up to Next Major 2.6.0)
+2. Add `Sparkle` to Runner target → Build Phases → Link Binary
+3. `UpdaterService.swift` is already wired; no code change needed. Without the package it compiles as a no-op.
+
+SPARKLE feed lives at `https://laterbox.dev/api/appcast.xml` (`SUFeedURL` in `Info.plist`). The CI-generated `dist/appcast.xml` should be deployed alongside the DMG.
+
+### Mac App Store Packaging
+MAS builds are **not** Sparkle-based (updates via App Store). Create a separate `Release MAS` xcconfig with `app-sandbox true` and provisioning profile injection; upload via `xcrun altool --upload-app` as in the iOS lane. Do not notarize MAS builds.
+
 ---
 
 ## 4. Browser Extensions
