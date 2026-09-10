@@ -72,6 +72,11 @@ export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
       icon: <Download className="w-4 h-4" />,
     },
     {
+      href: '/plans',
+      label: 'Plans',
+      icon: <Crown className="w-4 h-4" />,
+    },
+    {
       href: '/settings',
       label: 'Settings',
       icon: <Settings className="w-4 h-4" />,
@@ -180,7 +185,7 @@ export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
             {!collapsed && <span className="min-w-0 flex-1 truncate text-[11px] font-black">{plan.label}</span>}
           </div>
           {!collapsed && plan.progress !== null && <div className="mt-2 h-1 overflow-hidden rounded-full bg-white/15"><div className={`h-full ${plan.tone === 'warning' ? 'bg-amber-300' : 'bg-[#d7ff27]'}`} style={{ width: `${Math.round(plan.progress * 100)}%` }} /></div>}
-          {!collapsed && (isPro && entitlement.provider === 'paddle' ? <button type="button" onClick={() => void manage()} className={`mt-2 text-[10px] font-black ${plan.tone === 'warning' ? 'text-amber-300' : 'text-[#d7ff27]'}`}>{plan.actionLabel}</button> : <Link href="/pricing" className="mt-2 block text-[10px] font-black text-[#d7ff27]">{plan.actionLabel}</Link>)}
+          {!collapsed && (isPro && entitlement.provider === 'paddle' ? <button type="button" onClick={() => void manage()} className={`mt-2 text-[10px] font-black ${plan.tone === 'warning' ? 'text-amber-300' : 'text-[#d7ff27]'}`}>{plan.actionLabel}</button> : <Link href="/plans" className="mt-2 block text-[10px] font-black text-[#d7ff27]">{plan.actionLabel}</Link>)}
         </div>
         <div className="flex items-center justify-center">
           <CloudSyncIndicator compact={collapsed} />
