@@ -43,7 +43,10 @@ class EntitlementPresentation {
         ? 'Ends today'
         : '$remaining day${remaining == 1 ? '' : 's'} left';
 
-    if (!entitlement.hasProAccess) {
+    final hasAccess = entitlement.tier == EntitlementTier.pro &&
+        (entitlement.accessEndsAt == null ||
+            entitlement.accessEndsAt!.isAfter(current));
+    if (!hasAccess) {
       return const EntitlementPresentation(
         label: 'Free',
         description: 'Local saving, reading, search, organization, and export.',
