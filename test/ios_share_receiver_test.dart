@@ -4,6 +4,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:laterbox/app.dart';
+import 'package:laterbox/core/auth/auth_provider.dart';
+import 'package:laterbox/core/billing/billing_providers.dart';
 import 'package:laterbox/core/database/app_database.dart';
 import 'package:laterbox/core/database/database_providers.dart';
 import 'package:laterbox/core/router/app_router.dart';
@@ -53,6 +55,8 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          guestModeProvider.overrideWith((ref) => true),
+          hasProAccessProvider.overrideWithValue(true),
           appDatabaseProvider.overrideWithValue(database),
           initialLocationProvider.overrideWithValue('/inbox'),
         ],
@@ -86,6 +90,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          guestModeProvider.overrideWith((ref) => true),
           appDatabaseProvider.overrideWithValue(database),
           initialLocationProvider.overrideWithValue('/inbox'),
         ],
