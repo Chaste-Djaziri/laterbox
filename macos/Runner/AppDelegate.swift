@@ -670,6 +670,14 @@ class AppDelegate: FlutterAppDelegate {
       channel.invokeMethod("openLaterBox", arguments: nil)
     }
 
+    notchController.onOpenPlans = { [weak self] in
+      if let window = self?.mainFlutterWindow {
+        window.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+      }
+      channel.invokeMethod("openPlans", arguments: nil)
+    }
+
     notchController.onToggleWatchMode = { [weak self] isWatching in
       if let watcher = self?.screenWatcher as? ScreenWatcher {
         Task { @MainActor in
@@ -697,6 +705,11 @@ class AppDelegate: FlutterAppDelegate {
         self.notchController.hide()
         result(true)
       case "startWatching":
+        guard self.notchController.canAcceptCapture else {
+          self.notchController.showProRequired()
+          result(FlutterError(code: "PRO_REQUIRED", message: "LaterBox Pro is required for Watch Mode.", details: nil))
+          return
+        }
         if let watcher = self.screenWatcher as? ScreenWatcher {
           Task { @MainActor in
             do {
