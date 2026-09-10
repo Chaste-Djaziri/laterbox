@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Check, Cloud, Database, Loader2, LockKeyhole, Sparkles } from 'lucide-react';
@@ -9,6 +9,20 @@ import { useAuth } from '@/lib/store/AuthContext';
 import { useBilling } from '@/lib/store/BillingContext';
 
 type Interval = 'month' | 'year';
+
+function validAppReturn(raw: string | null) {
+  if (!raw) return null;
+  try {
+    const uri = new URL(raw);
+    return uri.protocol === 'laterbox:' &&
+      uri.hostname === 'billing' &&
+      uri.pathname === '/complete'
+      ? uri.toString()
+      : null;
+  } catch {
+    return null;
+  }
+}
 
 const freeFeatures = ['Unlimited local saves', 'Reading, search, and organization', 'Local files and attachments', 'Export whenever you want', 'No account or connection required'];
 const proFeatures = ['Everything in Free', 'Secure sync across every device', 'Cloud-backed files and attachments', 'Browser and system share integrations', 'macOS notch clipboard capture and Watch Mode', 'Automatic capture and enrichment'];
@@ -34,6 +48,10 @@ function PricingContent() {
   const [busy, setBusy] = useState<Interval | 'manage' | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [prices, setPrices] = useState<Record<string, string>>({});
+  const didReturnToApp = useRef(false);
+  const appReturn = validAppReturn(searchParams.get('return_to'));
+  const expectedAccount = searchParams.get('account');
+  const accountMismatch = Boolean(user && expectedAccount && user.id !== expectedAccount);
   const isProduction = process.env.NEXT_PUBLIC_PADDLE_ENV === 'production';
   const monthlyId = isProduction
     ? process.env.NEXT_PUBLIC_PADDLE_PRO_MONTHLY_PRICE_ID_PROD ||
@@ -58,7 +76,10 @@ function PricingContent() {
     setMessage(null);
     try {
       if (action === 'manage') await manage();
-      else await subscribe(action);
+      else {
+        if (accountMismatch) throw new Error('Sign in with the same LaterBox account used in the app.');
+        await subscribe(action, appReturn || undefined);
+      }
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Billing is temporarily unavailable.');
     } finally {
@@ -68,6 +89,26 @@ function PricingContent() {
 
   const selectedId = interval === 'month' ? monthlyId : annualId;
   const localizedPrice = prices[selectedId] || (interval === 'month' ? '$3.99' : '$39.99');
+
+  useEffect(() => {
+    if (!appReturn || accountMismatch || (!isPro && checkoutState !== 'delayed') || didReturnToApp.current) return;
+    didReturnToApp.current = true;
+    const target = new URL(appReturn);
+    target.searchParams.set('status', isPro ? 'success' : 'processing');
+    const timer = window.setTimeout(() => window.location.assign(target.toString()), 500);
+    return () => window.clearTimeout(timer);
+  }, [accountMismatch, appReturn, checkoutState, isPro]);
+
+  const loginNext = useMemo(() => {
+    const params = new URLSearchParams({ plan: interval });
+    const source = searchParams.get('source');
+    const platform = searchParams.get('platform');
+    if (source === 'direct-app') params.set('source', source);
+    if (platform) params.set('platform', platform);
+    if (expectedAccount) params.set('account', expectedAccount);
+    if (appReturn) params.set('return_to', appReturn);
+    return `/pricing?${params.toString()}`;
+  }, [appReturn, expectedAccount, interval, searchParams]);
 
   return (
     <main className="min-h-screen bg-[#f7f5ee] px-5 py-14 text-[#171711] sm:py-20">
@@ -84,10 +125,13 @@ function PricingContent() {
 
         <div className="mt-10 grid gap-5 lg:grid-cols-2">
           <PlanCard title="LaterBox Free" price="Free forever" description="A calm, private library that works without an account or internet connection." features={freeFeatures} action={<Link href="/inbox" className="block rounded-2xl border border-[#d7d2c5] px-5 py-3 text-center text-sm font-black">Open LaterBox Free</Link>} />
-          <PlanCard featured title="LaterBox Pro" badge="14-day trial for eligible subscribers" price={localizedPrice} suffix={interval === 'month' ? '/month' : '/year'} description="Sync everywhere and capture useful content before it slips away." features={proFeatures} action={isPro ? entitlement.provider === 'paddle' ? <button type="button" onClick={() => void run('manage')} disabled={busy !== null} className="w-full rounded-2xl bg-[#d7ff27] px-5 py-3 text-sm font-black text-black disabled:opacity-50">{busy === 'manage' && <Loader2 className="mr-2 inline size-4 animate-spin" />}{presentation.actionLabel}</button> : <div className="rounded-2xl border border-white/15 px-5 py-3 text-center text-sm font-bold text-zinc-200">Pro is active · Manage in the App Store</div> : user ? <button type="button" onClick={() => void run(interval)} disabled={busy !== null} className="w-full rounded-2xl bg-[#d7ff27] px-5 py-3 text-sm font-black text-black disabled:opacity-50">{busy === interval && <Loader2 className="mr-2 inline size-4 animate-spin" />}Start free trial</button> : <Link href={`/login?next=${encodeURIComponent(`/pricing?plan=${interval}`)}`} className="block rounded-2xl bg-[#d7ff27] px-5 py-3 text-center text-sm font-black text-black">Sign in to start trial</Link>} />
+          <PlanCard featured title="LaterBox Pro" badge="14-day trial for eligible subscribers" price={localizedPrice} suffix={interval === 'month' ? '/month' : '/year'} description="Sync everywhere and capture useful content before it slips away." features={proFeatures} action={isPro ? appReturn ? <a href={appReturn} className="block rounded-2xl bg-[#d7ff27] px-5 py-3 text-center text-sm font-black text-black">Return to LaterBox</a> : entitlement.provider === 'paddle' ? <button type="button" onClick={() => void run('manage')} disabled={busy !== null} className="w-full rounded-2xl bg-[#d7ff27] px-5 py-3 text-sm font-black text-black disabled:opacity-50">{busy === 'manage' && <Loader2 className="mr-2 inline size-4 animate-spin" />}{presentation.actionLabel}</button> : <div className="rounded-2xl border border-white/15 px-5 py-3 text-center text-sm font-bold text-zinc-200">Pro is active · Manage in the App Store</div> : user ? <button type="button" onClick={() => void run(interval)} disabled={busy !== null} className="w-full rounded-2xl bg-[#d7ff27] px-5 py-3 text-sm font-black text-black disabled:opacity-50">{busy === interval && <Loader2 className="mr-2 inline size-4 animate-spin" />}Start free trial</button> : <Link href={`/login?next=${encodeURIComponent(loginNext)}`} className="block rounded-2xl bg-[#d7ff27] px-5 py-3 text-center text-sm font-black text-black">Sign in to start trial</Link>} />
         </div>
 
+        {accountMismatch && <p className="mx-auto mt-5 max-w-2xl rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-center text-sm font-bold text-red-700" role="alert">This browser is signed in to a different LaterBox account. Sign out and use the same account that opened this page.</p>}
+
         {checkoutState !== 'idle' && <div role="status" className={`mx-auto mt-6 max-w-2xl rounded-2xl border px-5 py-4 text-center text-sm font-bold ${checkoutState === 'confirmed' ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-amber-200 bg-amber-50 text-amber-900'}`}>{checkoutState === 'processing' && 'Payment received. Confirming Pro with the billing service…'}{checkoutState === 'confirmed' && 'LaterBox Pro is active on your account.'}{checkoutState === 'delayed' && 'Your payment is complete, but activation is still processing. It will appear automatically after the verified webhook arrives.'}</div>}
+        {appReturn && checkoutState === 'delayed' && <a href={appReturn.replace('status=success', 'status=processing')} className="mx-auto mt-3 block w-fit text-sm font-black underline">Return to LaterBox while activation finishes</a>}
         {message && <p className="mt-5 text-center text-sm font-bold text-red-700" role="alert">{message}</p>}
         {!prices[selectedId] && <p className="mt-3 text-center text-xs text-[#77746d]">USD reference price shown. Your localized total and applicable tax appear in Paddle checkout.</p>}
 
