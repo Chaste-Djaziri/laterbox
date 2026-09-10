@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
@@ -14,11 +13,13 @@ class ProPlans extends ConsumerWidget {
   const ProPlans({
     super.key,
     this.compact = false,
+    this.preferredInterval = PlanInterval.annual,
     this.onAuthenticationRequired,
     this.onContinueFree,
   });
 
   final bool compact;
+  final PlanInterval preferredInterval;
   final ValueChanged<PlanInterval>? onAuthenticationRequired;
   final VoidCallback? onContinueFree;
 
@@ -84,7 +85,7 @@ class ProPlans extends ConsumerWidget {
                 ref,
                 authenticated: authenticated,
                 apple: apple,
-                interval: PlanInterval.annual,
+                interval: preferredInterval,
               ),
             ),
           ],
@@ -185,7 +186,10 @@ class ProPlans extends ConsumerWidget {
               const SizedBox(height: 8),
               const Text('Both plans include the same Pro features. The App Store shows the final localized price and trial eligibility.'),
               const SizedBox(height: 18),
-              for (final product in apple.catalog.products)
+              for (final product in _orderedProducts(
+                apple.catalog.products,
+                interval,
+              ))
                 Padding(
                   padding: const EdgeInsets.only(bottom: 10),
                   child: FilledButton(
@@ -201,9 +205,23 @@ class ProPlans extends ConsumerWidget {
       return;
     }
     await launchUrl(
-      Uri.parse('https://laterbox.dev/pricing'),
+      Uri.parse('https://laterbox.dev/pricing?interval=${interval.name}'),
       mode: LaunchMode.externalApplication,
     );
+  }
+
+  List<ProductDetails> _orderedProducts(
+    List<ProductDetails> products,
+    PlanInterval preferred,
+  ) {
+    final preferredId = preferred == PlanInterval.annual
+        ? appleAnnualProductId
+        : appleMonthlyProductId;
+    return [...products]..sort((a, b) {
+      if (a.id == preferredId) return -1;
+      if (b.id == preferredId) return 1;
+      return a.id.compareTo(b.id);
+    });
   }
 }
 
