@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/auth/auth_provider.dart';
+import '../../../core/billing/billing_providers.dart';
 import '../../../core/database/database_providers.dart';
 import '../../../core/desktop/desktop_actions.dart';
 import '../../../core/desktop/desktop_providers.dart';
@@ -70,6 +71,9 @@ class SettingsScreen extends ConsumerWidget {
             vertical: 16,
           ),
           children: [
+            _SectionHeader('Plan'),
+            const _ProSubscriptionCard(),
+            const SizedBox(height: 12),
             // 1. Account Section
             _SectionHeader('Account & Security'),
             if (!isGuest && email != null)
@@ -118,6 +122,75 @@ class _SectionHeader extends StatelessWidget {
           fontWeight: FontWeight.w800,
           letterSpacing: 0.2,
         ),
+      ),
+    );
+  }
+}
+
+class _ProSubscriptionCard extends ConsumerWidget {
+  const _ProSubscriptionCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final entitlement = ref.watch(entitlementProvider).valueOrNull;
+    final isPro = ref.watch(hasProAccessProvider);
+    final theme = Theme.of(context);
+    final isStoreBuild = laterBoxDistribution == 'play' || laterBoxDistribution == 'app-store';
+
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.black,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          const Icon(Icons.workspace_premium_rounded, color: Color(0xFFD7FF27)),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'LaterBox ${isPro ? 'Pro' : 'Free'}',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  isPro
+                      ? 'Cloud sync and premium capture features are active.'
+                      : isStoreBuild
+                      ? 'Local saving stays free. Existing Pro subscribers can sign in to unlock connected features.'
+                      : 'Upgrade for cloud sync, attachments, integrations, and automatic capture.',
+                  style: theme.textTheme.bodySmall?.copyWith(color: Colors.white70),
+                ),
+                if (entitlement?.billingWarning != null) ...[
+                  const SizedBox(height: 5),
+                  const Text(
+                    'Payment needs attention. Manage billing on laterbox.dev.',
+                    style: TextStyle(color: Colors.amberAccent, fontSize: 12),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          if (canOpenWebCheckout)
+            FilledButton(
+              onPressed: () => launchUrl(
+                Uri.parse('https://laterbox.dev/pricing'),
+                mode: LaunchMode.externalApplication,
+              ),
+              style: FilledButton.styleFrom(
+                backgroundColor: const Color(0xFFD7FF27),
+                foregroundColor: Colors.black,
+              ),
+              child: Text(isPro ? 'Manage' : 'View Pro'),
+            ),
+        ],
       ),
     );
   }
