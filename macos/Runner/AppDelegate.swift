@@ -41,6 +41,7 @@ class AppDelegate: FlutterAppDelegate {
     launchedAtLogin = Self.detectLoginItemLaunch()
     super.applicationDidFinishLaunching(notification)
     NSApp.servicesProvider = self
+    NSUpdateDynamicServices()
     configureAppIcon()
     registerAppearanceObserver()
     registerChannels()
