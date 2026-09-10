@@ -60,7 +60,7 @@ export function CloudSyncIndicator({ compact = false }: { compact?: boolean }) {
   if (compact) {
     return (
       <button
-        onClick={() => isPro ? syncNow() : window.location.assign('/pricing')}
+        onClick={() => isPro ? syncNow() : window.location.assign('/plans')}
         title={status.tooltip}
         className="p-1.5 rounded-lg hover:bg-[#ebe7dc]/70 transition-colors focus:outline-none cursor-pointer"
       >
@@ -71,7 +71,7 @@ export function CloudSyncIndicator({ compact = false }: { compact?: boolean }) {
 
   return (
     <button
-      onClick={() => isPro ? syncNow() : window.location.assign('/pricing')}
+      onClick={() => isPro ? syncNow() : window.location.assign('/plans')}
       title={status.tooltip}
       className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold tracking-tight transition-all duration-150 hover:opacity-85 cursor-pointer shadow-xs ${status.color}`}
     >
