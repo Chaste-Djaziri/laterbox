@@ -240,7 +240,7 @@ export default function SettingsPage() {
                 Manage in the App Store
               </div>
             ) : (
-              <Link href="/pricing" className="rounded-xl bg-[#d7ff27] px-4 py-2.5 text-center text-xs font-black text-black">View Pro plans</Link>
+              <Link href="/plans" className="rounded-xl bg-[#d7ff27] px-4 py-2.5 text-center text-xs font-black text-black">View Pro plans</Link>
             )}
           </div>
         </section>
