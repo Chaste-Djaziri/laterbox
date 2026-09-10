@@ -1,6 +1,6 @@
 # LaterBox billing
 
-LaterBox uses a provider-neutral entitlement model. Paddle sandbox is the first billing provider; Apple StoreKit can populate the same subscription table before paid gates are enabled in App Store builds.
+LaterBox uses a provider-neutral entitlement model. Paddle powers web and direct desktop billing. StoreKit 2 powers iOS and Mac App Store purchases, while both providers unlock the same LaterBox account.
 
 ## Sandbox configuration
 
@@ -37,7 +37,49 @@ Apply the Supabase migrations before enabling checkout. The billing launch migra
 
 ## Distribution flags
 
-Flutter builds accept `--dart-define=LATERBOX_DISTRIBUTION=direct|play|app-store`. Direct desktop builds may open web billing. Google Play builds are consumption-only and show no checkout link. Apple App Store builds disable billing enforcement until StoreKit is implemented. `LATERBOX_WEB_URL` controls the entitlement API origin and defaults to `https://app.laterbox.dev`.
+Flutter builds accept `--dart-define=LATERBOX_DISTRIBUTION=direct|play|app-store`. Direct desktop builds open web billing. Google Play builds are consumption-only and show instructions without a checkout link. Apple App Store builds use StoreKit and enforce the normalized entitlement. `LATERBOX_WEB_URL` controls the entitlement API origin and defaults to `https://app.laterbox.dev`.
+
+## Apple configuration
+
+App Store Connect must contain these auto-renewable subscriptions in the same `LaterBox Pro` group:
+
+- `com.laterbox.pro.monthly`
+- `com.laterbox.pro.annual`
+
+Configure App Store Server Notifications V2 for both environments:
+
+```text
+Production: https://app.laterbox.dev/api/billing/apple/webhook
+Sandbox:    https://app.laterbox.dev/api/billing/apple/webhook
+```
+
+Set the following Worker secrets. `APPLE_ROOT_CERTIFICATES_BASE64` is a comma-separated list of DER-encoded Apple root certificates converted to base64; download the trusted roots directly from Apple PKI. Never commit the certificates or private key.
+
+```bash
+APPLE_APP_ID=<numeric App Apple ID, not a subscription Apple ID>
+APPLE_BUNDLE_ID=pro.micorp.laterbox
+APPLE_ROOT_CERTIFICATES_BASE64=...
+APPLE_ISSUER_ID=...
+APPLE_KEY_ID=...
+APPLE_PRIVATE_KEY=...
+```
+
+The current verification path uses Apple-signed StoreKit transaction JWS data and does not require the private API key for ordinary purchase verification. Keep the issuer/key values configured for App Store Server API operations and future subscription recovery tooling.
+
+StoreKit purchases require an authenticated LaterBox account. The Supabase user UUID is sent as `appAccountToken`; the server rejects transactions that are missing it or belong to another user.
+
+Build Apple store releases with:
+
+```bash
+flutter build ipa --release --dart-define=LATERBOX_DISTRIBUTION=app-store
+flutter build macos --release --dart-define=LATERBOX_DISTRIBUTION=app-store
+```
+
+Build Google Play without any external checkout surface:
+
+```bash
+flutter build appbundle --release --dart-define=LATERBOX_DISTRIBUTION=play
+```
 
 ## Access behavior
 
