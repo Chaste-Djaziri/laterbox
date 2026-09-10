@@ -157,8 +157,8 @@ function ExtensionConnectContent() {
   };
 
   const verifyInlineOtp = async () => {
-    if (!/^\d{6}$/.test(otp)) {
-      setError('Enter the six digit code from your email.');
+    if (!/^\d{8}$/.test(otp)) {
+      setError('Enter the eight digit code from your email.');
       return;
     }
     setAuthActionLoading(true);
@@ -194,12 +194,12 @@ function ExtensionConnectContent() {
           <div className="w-full max-w-md rounded-3xl border border-[#e4e0d5] bg-white p-6 text-center shadow-xl sm:p-8">
             <KeyRound className="mx-auto size-10" />
             <h1 className="mt-5 text-2xl font-black">Verify your email</h1>
-            <p className="mt-2 text-sm text-[#6c6b63]">Enter the six digit code sent to {authEmail.trim()}.</p>
+            <p className="mt-2 text-sm text-[#6c6b63]">Enter the eight digit code sent to {authEmail.trim()}.</p>
             {error && <p role="alert" className="mt-4 rounded-2xl bg-red-50 p-3 text-xs font-semibold text-red-700">{error}</p>}
             <form className="mt-6 space-y-3" onSubmit={(event) => { event.preventDefault(); void verifyInlineOtp(); }}>
-              <label htmlFor="extension-email-otp" className="sr-only">Six digit verification code</label>
-              <input id="extension-email-otp" inputMode="numeric" autoComplete="one-time-code" autoFocus maxLength={6} pattern="[0-9]{6}" value={otp} onChange={(event) => setOtp(event.target.value.replace(/\D/g, '').slice(0, 6))} className="h-16 w-full rounded-2xl border border-[#e4e0d5] bg-[#f7f5ee] px-4 text-center text-2xl font-black tracking-[0.4em] focus:border-[#171711] focus:outline-hidden" />
-              <button type="submit" disabled={authActionLoading || otp.length !== 6} className="flex h-12 w-full items-center justify-center rounded-xl bg-[#171711] text-sm font-bold text-white disabled:opacity-50">{authActionLoading ? <Loader2 className="size-4 animate-spin" /> : 'Verify and continue'}</button>
+              <label htmlFor="extension-email-otp" className="sr-only">Eight digit verification code</label>
+              <input id="extension-email-otp" inputMode="numeric" autoComplete="one-time-code" autoFocus maxLength={8} pattern="[0-9]{8}" value={otp} onChange={(event) => setOtp(event.target.value.replace(/\D/g, '').slice(0, 8))} className="h-16 w-full rounded-2xl border border-[#e4e0d5] bg-[#f7f5ee] px-4 text-center text-2xl font-black tracking-[0.3em] focus:border-[#171711] focus:outline-hidden" />
+              <button type="submit" disabled={authActionLoading || otp.length !== 8} className="flex h-12 w-full items-center justify-center rounded-xl bg-[#171711] text-sm font-bold text-white disabled:opacity-50">{authActionLoading ? <Loader2 className="size-4 animate-spin" /> : 'Verify and continue'}</button>
               <button type="button" disabled={authActionLoading} onClick={() => void resendInlineOtp()} className="h-10 w-full text-xs font-bold disabled:opacity-50">Send a new code</button>
               <button type="button" disabled={authActionLoading} onClick={() => { setOtpPurpose(null); setOtp(''); setError(null); }} className="h-10 w-full text-xs text-[#6c6b63] disabled:opacity-50">Use a different email</button>
             </form>
