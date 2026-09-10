@@ -101,6 +101,7 @@ Complete guides, architectural specifications, and API documentation are availab
 - 🧩 [Browser Extension Guide](docs/browser-extensions.md)
 - 🖥️ [Desktop Quick Capture & Features](docs/desktop-features.md)
 - 🚀 [Deployment & Release Workflows](docs/deployment.md)
+- 💳 [Paddle Billing & Entitlements](docs/billing.md)
 
 ---
 
