@@ -11,6 +11,7 @@ import '../../../core/auth/auth_provider.dart';
 import '../../../core/database/database_providers.dart';
 import '../../../core/desktop/desktop_actions.dart';
 import '../../../core/desktop/desktop_providers.dart';
+import '../../../core/desktop/updater_service.dart';
 import '../../../core/settings/desktop_settings.dart';
 import '../../../core/settings/desktop_shortcut.dart';
 import '../../../core/settings/settings_providers.dart';
@@ -1185,11 +1186,11 @@ class _ScreenRecordingTile extends ConsumerWidget {
 // About & Legal
 // ---------------------------------------------------------------------------
 
-class _AboutAndLegalCard extends StatelessWidget {
+class _AboutAndLegalCard extends ConsumerWidget {
   const _AboutAndLegalCard();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
 
     return Container(
@@ -1212,23 +1213,27 @@ class _AboutAndLegalCard extends StatelessWidget {
                 height: 28,
               ),
               const SizedBox(width: 12),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'LaterBox',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w800,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'LaterBox',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
-                  ),
-                  Text(
-                    'Version 1.0.38 (Build 39)',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
+                    Text(
+                      'Version 1.0.84 (Build 85) • ${_platformLabel()}',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
+              if (defaultTargetPlatform == TargetPlatform.macOS)
+                _UpdateButton(),
             ],
           ),
           const SizedBox(height: 16),
@@ -1268,6 +1273,45 @@ class _AboutAndLegalCard extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  String _platformLabel() {
+    if (kIsWeb) return 'Web';
+    switch (defaultTargetPlatform) {
+      case TargetPlatform.macOS:
+        return 'macOS • Sparkle';
+      case TargetPlatform.windows:
+        return 'Windows';
+      case TargetPlatform.linux:
+        return 'Linux';
+      case TargetPlatform.iOS:
+        return 'iOS';
+      case TargetPlatform.android:
+        return 'Android';
+      default:
+        return defaultTargetPlatform.name;
+    }
+  }
+}
+
+class _UpdateButton extends ConsumerWidget {
+  const _UpdateButton();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return FilledButton.tonalIcon(
+      icon: const Icon(Icons.system_update_rounded, size: 16),
+      label: const Text('Check for Updates'),
+      onPressed: () async {
+        const svc = UpdaterService();
+        final ok = await svc.checkForUpdates();
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(ok ? 'Checking for updates…' : 'Updater not available — add Sparkle via Xcode SPM to enable')),
+          );
+        }
+      },
     );
   }
 }

@@ -45,6 +45,7 @@ class AppDelegate: FlutterAppDelegate {
     configureAppIcon()
     registerAppearanceObserver()
     registerChannels()
+    Task { @MainActor in UpdaterService.shared.start() }
     DispatchQueue.main.async { [weak self] in
       self?.configureAppIcon()
       self?.registerChannels()
@@ -63,6 +64,21 @@ class AppDelegate: FlutterAppDelegate {
     registerAppLaunchChannel(controller: ctrl)
     registerShareCaptureChannel(controller: ctrl)
     registerMacCompanionChannel(controller: ctrl)
+    registerUpdaterChannel(controller: ctrl)
+  }
+
+  private func registerUpdaterChannel(controller: FlutterViewController) {
+    let channel = FlutterMethodChannel(name: "laterbox/updater", binaryMessenger: controller.engine.binaryMessenger)
+    channel.setMethodCallHandler { call, result in
+      switch call.method {
+      case "checkForUpdates":
+        Task { @MainActor in UpdaterService.shared.checkForUpdates() }
+        result(true)
+      case "canCheckForUpdates":
+        Task { @MainActor in result(UpdaterService.shared.canCheckForUpdates) }
+      default: result(FlutterMethodNotImplemented)
+      }
+    }
   }
 
   private func getFlutterViewController() -> FlutterViewController? {

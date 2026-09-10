@@ -37,6 +37,7 @@
 		A12388068005227E95E3FBB2 /* Pods_Runner.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2E1201AB7E1486AA8DC2350F /* Pods_Runner.framework */; };
 		A78630B959C1B5ADFAEF9968 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3F52D5775386A6F35F52E03B /* Cocoa.framework */; };
 		E5D5A6F056C71A09E7DC3F7D /* ShareCaptureQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 932D3A0962EC18C1E58D9CA9 /* ShareCaptureQueue.swift */; };
+		BBE70001DEADBEEF12345678 /* UpdaterService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAE70001DEADBEEF12345678 /* UpdaterService.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -123,6 +124,7 @@
 		BAE39CE67CE61928B4D131C6 /* ShareViewController.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
 		BC14496AEE964D9EEA68AB6C /* Pods-Runner.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.debug.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.debug.xcconfig"; sourceTree = "<group>"; };
 		E56B8153EAB87AA5D4BE9EF2 /* ShareExtension.entitlements */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.entitlements; path = ShareExtension.entitlements; sourceTree = "<group>"; };
+		AAE70001DEADBEEF12345678 /* UpdaterService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdaterService.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -239,6 +241,7 @@
 				33CC11122044BFA00003C045 /* MainFlutterWindow.swift */,
 				78B0C0012E6B000100000001 /* ScreenWatcher.swift */,
 				78B0C0032E6B000100000002 /* NotchPanelController.swift */,
+				AAE70001DEADBEEF12345678 /* UpdaterService.swift */,
 				33E51913231747F40026EE4D /* DebugProfile.entitlements */,
 				33E51914231749380026EE4D /* Release.entitlements */,
 				33CC11242044D66E0003C045 /* Resources */,
@@ -536,6 +539,7 @@
 				4AEFF9DDF080E38A2E37AE39 /* ShareCaptureQueue.swift in Sources */,
 				78B0C0022E6B000100000001 /* ScreenWatcher.swift in Sources */,
 				78B0C0042E6B000100000002 /* NotchPanelController.swift in Sources */,
+				BBE70001DEADBEEF12345678 /* UpdaterService.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
