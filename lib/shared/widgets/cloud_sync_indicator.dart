@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../core/auth/auth_provider.dart';
 import '../../core/billing/billing_providers.dart';
 import '../../core/database/app_database.dart';
 import '../../core/sync/sync_providers.dart';
 import '../../core/sync/sync_stats_provider.dart';
+import '../../features/billing/presentation/pro_plans.dart';
 
 class CloudSyncIndicator extends ConsumerWidget {
   const CloudSyncIndicator({
@@ -125,6 +127,66 @@ Future<void> showCloudSyncDetailSheet(BuildContext context, WidgetRef ref) {
   );
 }
 
+Future<void> showSyncPlansSheet(BuildContext context) {
+  final router = GoRouter.of(context);
+  return showModalBottomSheet<void>(
+    context: context,
+    useRootNavigator: true,
+    isScrollControlled: true,
+    backgroundColor: Theme.of(context).colorScheme.surface,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+    ),
+    builder: (sheetContext) => FractionallySizedBox(
+      heightFactor: 0.92,
+      child: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+          child: Column(
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Theme.of(sheetContext).colorScheme.outlineVariant,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                'Unlock cloud sync',
+                textAlign: TextAlign.center,
+                style: Theme.of(sheetContext).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Your local library stays free. Pro securely syncs it across your devices.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Theme.of(sheetContext).colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 24),
+              ProPlans(
+                compact: MediaQuery.sizeOf(sheetContext).width < 760,
+                onContinueFree: () => Navigator.of(sheetContext).pop(),
+                onAuthenticationRequired: (interval) {
+                  Navigator.of(sheetContext).pop();
+                  router.go(
+                    '/login?mode=signup&next=plans&interval=${interval.name}',
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
 class _CloudSyncDetailSheet extends ConsumerWidget {
   const _CloudSyncDetailSheet();
 
@@ -134,6 +196,7 @@ class _CloudSyncDetailSheet extends ConsumerWidget {
     final colors = theme.colorScheme;
     final auth = ref.watch(authStateProvider).asData?.value;
     final isAuthenticated = auth?.isAuthenticated ?? false;
+    final isPro = ref.watch(hasProAccessProvider);
     final statsAsync = ref.watch(syncStatsProvider);
 
     final stats = statsAsync.asData?.value ??
@@ -299,11 +362,17 @@ class _CloudSyncDetailSheet extends ConsumerWidget {
               width: double.infinity,
               child: FilledButton.icon(
                 onPressed: () async {
+                  if (!isPro) {
+                    await showSyncPlansSheet(context);
+                    return;
+                  }
                   Navigator.of(context).pop();
                   await ref.read(syncCoordinatorProvider).syncNow();
                 },
-                icon: const Icon(Icons.sync_rounded),
-                label: const Text('Sync Now'),
+                icon: Icon(
+                  isPro ? Icons.sync_rounded : Icons.workspace_premium_outlined,
+                ),
+                label: Text(isPro ? 'Sync Now' : 'View Pro plans'),
               ),
             ),
           ],
