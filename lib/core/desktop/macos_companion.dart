@@ -22,16 +22,19 @@ class MacOSCompanion {
 
   static CaptureService? _captureService;
   static VoidCallback? _onOpenLaterBox;
+  static VoidCallback? _onOpenPlans;
   static Future<void> Function(List<String> filePaths, String? text)? _onFilesDropped;
 
   /// Initializes the companion channel handler with callbacks into LaterBox.
   static void initialize({
     required CaptureService captureService,
     required VoidCallback onOpenLaterBox,
+    required VoidCallback onOpenPlans,
     Future<void> Function(List<String> filePaths, String? text)? onFilesDropped,
   }) {
     _captureService = captureService;
     _onOpenLaterBox = onOpenLaterBox;
+    _onOpenPlans = onOpenPlans;
     _onFilesDropped = onFilesDropped;
 
     if (!kIsWeb && Platform.isMacOS) {
@@ -120,6 +123,10 @@ class MacOSCompanion {
 
       case 'openLaterBox':
         _onOpenLaterBox?.call();
+        break;
+
+      case 'openPlans':
+        _onOpenPlans?.call();
         break;
 
       default:
