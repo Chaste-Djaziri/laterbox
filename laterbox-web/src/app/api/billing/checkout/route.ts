@@ -12,10 +12,17 @@ export async function POST(request: Request) {
     if (body.interval !== 'month' && body.interval !== 'year') {
       return NextResponse.json({ error: 'Choose a monthly or annual plan.' }, { status: 400 });
     }
+    const isProduction = process.env.NEXT_PUBLIC_PADDLE_ENV === 'production';
     const priceId =
       body.interval === 'month'
-        ? process.env.NEXT_PUBLIC_PADDLE_PRO_MONTHLY_PRICE_ID
-        : process.env.NEXT_PUBLIC_PADDLE_PRO_YEARLY_PRICE_ID;
+        ? isProduction
+          ? process.env.NEXT_PUBLIC_PADDLE_PRO_MONTHLY_PRICE_ID_PROD ||
+            process.env.NEXT_PUBLIC_PADDLE_PRO_MONTHLY_PRICE_ID
+          : process.env.NEXT_PUBLIC_PADDLE_PRO_MONTHLY_PRICE_ID
+        : isProduction
+          ? process.env.NEXT_PUBLIC_PADDLE_PRO_YEARLY_PRICE_ID_PROD ||
+            process.env.NEXT_PUBLIC_PADDLE_PRO_YEARLY_PRICE_ID
+          : process.env.NEXT_PUBLIC_PADDLE_PRO_YEARLY_PRICE_ID;
     if (!priceId) throw new Error('Paddle price is not configured.');
 
     const transaction = await paddleRequest<{ id: string }>('/transactions', {
