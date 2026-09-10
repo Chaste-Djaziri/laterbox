@@ -52,7 +52,8 @@ class ProPlans extends ConsumerWidget {
         width: compact ? 320 : 350,
         title: 'Free',
         price: 'Free forever',
-        description: 'A private local library for saving and finding what matters.',
+        description:
+            'A private local library for saving and finding what matters.',
         features: const [
           'Unlimited local saves',
           'Reading, search, and organization',
@@ -69,8 +70,12 @@ class ProPlans extends ConsumerWidget {
         width: compact ? 320 : 350,
         featured: true,
         title: 'LaterBox Pro',
-        price: _priceText(product(appleMonthlyProductId), product(appleAnnualProductId)),
-        description: 'Connected capture, secure sync, and automation everywhere.',
+        price: _priceText(
+          product(appleMonthlyProductId),
+          product(appleAnnualProductId),
+        ),
+        description:
+            'Connected capture, secure sync, and automation everywhere.',
         features: _proFeatures,
         badge: _trialBadge(apple),
         action: _actionLabel(authenticated),
@@ -78,6 +83,7 @@ class ProPlans extends ConsumerWidget {
           context,
           ref,
           authenticated: authenticated,
+          accountId: auth?.userId,
           apple: apple,
           interval: preferredInterval,
         ),
@@ -159,6 +165,7 @@ class ProPlans extends ConsumerWidget {
     BuildContext context,
     WidgetRef ref, {
     required bool authenticated,
+    required String? accountId,
     required ApplePurchaseService? apple,
     required PlanInterval interval,
   }) async {
@@ -175,7 +182,10 @@ class ProPlans extends ConsumerWidget {
             'Subscribe at laterbox.dev on the web, then return here and sign in with the same LaterBox account. Google Play purchases are not offered in this app.',
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Done')),
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Done'),
+            ),
           ],
         ),
       );
@@ -197,9 +207,15 @@ class ProPlans extends ConsumerWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text('Choose your plan', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900)),
+              Text(
+                'Choose your plan',
+                style: Theme.of(context).textTheme.headlineSmall
+                    ?.copyWith(fontWeight: FontWeight.w900),
+              ),
               const SizedBox(height: 8),
-              const Text('Both plans include the same Pro features. The App Store shows the final localized price and trial eligibility.'),
+              const Text(
+                'Both plans include the same Pro features. The App Store shows the final localized price and trial eligibility.',
+              ),
               const SizedBox(height: 18),
               for (final product in _orderedProducts(
                 apple.catalog.products,
@@ -209,7 +225,9 @@ class ProPlans extends ConsumerWidget {
                   padding: const EdgeInsets.only(bottom: 10),
                   child: FilledButton(
                     onPressed: () => Navigator.pop(context, product),
-                    child: Text('${product.id == appleAnnualProductId ? 'Annual' : 'Monthly'} · ${product.price}'),
+                    child: Text(
+                      '${product.id == appleAnnualProductId ? 'Annual' : 'Monthly'} · ${product.price}',
+                    ),
                   ),
                 ),
             ],
@@ -220,11 +238,34 @@ class ProPlans extends ConsumerWidget {
       return;
     }
     await launchUrl(
-      Uri.parse(
-        'https://laterbox.dev/pricing?plan=${interval == PlanInterval.monthly ? 'month' : 'year'}',
-      ),
+      _directCheckoutUri(interval, accountId: accountId),
       mode: LaunchMode.externalApplication,
     );
+  }
+
+  Uri _directCheckoutUri(PlanInterval interval, {required String? accountId}) {
+    final plan = interval == PlanInterval.monthly ? 'month' : 'year';
+    final platform = switch (defaultTargetPlatform) {
+      TargetPlatform.iOS => 'ios',
+      TargetPlatform.android => 'android',
+      TargetPlatform.macOS => 'macos',
+      TargetPlatform.windows => 'windows',
+      TargetPlatform.linux => 'linux',
+      _ => 'app',
+    };
+    final returnUri = Uri(
+      scheme: 'laterbox',
+      host: 'billing',
+      path: '/complete',
+      queryParameters: {'status': 'success', 'interval': plan},
+    );
+    return Uri.https('laterbox.dev', '/pricing', {
+      'plan': plan,
+      'source': 'direct-app',
+      'platform': platform,
+      if (accountId != null) 'account': accountId,
+      'return_to': returnUri.toString(),
+    });
   }
 
   List<ProductDetails> _orderedProducts(
@@ -291,36 +332,77 @@ class _PlanCard extends StatelessWidget {
                 color: const Color(0xFFD7FF27),
                 borderRadius: BorderRadius.circular(999),
               ),
-              child: Text(badge!, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 11)),
+              child: Text(
+                badge!,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 11,
+                ),
+              ),
             ),
-          Text(title, style: theme.textTheme.titleLarge?.copyWith(
-            color: featured ? Colors.white : null,
-            fontWeight: FontWeight.w900,
-          )),
+          Text(
+            title,
+            style: theme.textTheme.titleLarge?.copyWith(
+              color: featured ? Colors.white : null,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
           const SizedBox(height: 8),
-          Text(price, style: theme.textTheme.titleMedium?.copyWith(
-            color: featured ? const Color(0xFFD7FF27) : null,
-            fontWeight: FontWeight.w800,
-          )),
+          Text(
+            price,
+            style: theme.textTheme.titleMedium?.copyWith(
+              color: featured ? const Color(0xFFD7FF27) : null,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
           const SizedBox(height: 10),
-          Text(description, style: TextStyle(color: featured ? Colors.white70 : theme.colorScheme.onSurfaceVariant)),
+          Text(
+            description,
+            style: TextStyle(
+              color: featured
+                  ? Colors.white70
+                  : theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
           const SizedBox(height: 16),
-          ...features.map((feature) => Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: Row(children: [
-              Icon(Icons.check_circle_rounded, size: 17, color: featured ? const Color(0xFFD7FF27) : theme.colorScheme.primary),
-              const SizedBox(width: 8),
-              Expanded(child: Text(feature, style: TextStyle(color: featured ? Colors.white : null, fontSize: 13))),
-            ]),
-          )),
+          ...features.map(
+            (feature) => Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.check_circle_rounded,
+                    size: 17,
+                    color: featured
+                        ? const Color(0xFFD7FF27)
+                        : theme.colorScheme.primary,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      feature,
+                      style: TextStyle(
+                        color: featured ? Colors.white : null,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
           const SizedBox(height: 12),
           SizedBox(
             width: double.infinity,
             child: FilledButton(
               onPressed: onPressed,
               style: FilledButton.styleFrom(
-                backgroundColor: featured ? const Color(0xFFD7FF27) : theme.colorScheme.primary,
-                foregroundColor: featured ? Colors.black : theme.colorScheme.onPrimary,
+                backgroundColor: featured
+                    ? const Color(0xFFD7FF27)
+                    : theme.colorScheme.primary,
+                foregroundColor: featured
+                    ? Colors.black
+                    : theme.colorScheme.onPrimary,
               ),
               child: Text(action),
             ),
