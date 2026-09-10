@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/lib/store/AuthContext';
 import { useItems } from '@/lib/store/ItemContext';
+import { useBilling } from '@/lib/store/BillingContext';
 import { CloudSyncIndicator } from '@/components/ui/CloudSyncIndicator';
 import {
   User,
@@ -26,6 +27,7 @@ import {
   Eye,
   EyeOff,
   AlertTriangle,
+  Crown,
 } from 'lucide-react';
 
 interface VersionInfo {
@@ -38,6 +40,8 @@ interface VersionInfo {
 export default function SettingsPage() {
   const { user, signOut, updatePassword, deleteAccount } = useAuth();
   const { items, collections, syncNow } = useItems();
+  const { entitlement, isPro, loading: billingLoading, manage } = useBilling();
+  const [billingMessage, setBillingMessage] = useState<string | null>(null);
 
   const [currentVersion, setCurrentVersion] = useState<VersionInfo | null>(null);
   const [checkingUpdate, setCheckingUpdate] = useState(false);
@@ -202,6 +206,41 @@ export default function SettingsPage() {
             Manage your account, cloud sync preferences, deployment updates, and connected applications
           </p>
         </div>
+
+        <section className="rounded-3xl border border-[#e4e0d5] bg-[#171711] p-6 text-white sm:p-7">
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <div className="flex items-center gap-2">
+                <Crown className="size-5 text-[#d7ff27]" />
+                <h2 className="font-extrabold">LaterBox {isPro ? 'Pro' : 'Free'}</h2>
+              </div>
+              <p className="mt-2 max-w-xl text-xs leading-5 text-zinc-300">
+                {isPro
+                  ? entitlement.status === 'granted'
+                    ? 'Your launch access includes cloud sync and premium capture features.'
+                    : 'Cloud sync, attachments, integrations, and premium capture features are active.'
+                  : 'Local saving stays free. Upgrade for sync, cloud attachments, integrations, and automatic capture.'}
+              </p>
+              {entitlement.billingWarning && <p className="mt-2 text-xs font-bold text-amber-300">Payment needs attention. Update it in the billing portal to keep Pro active.</p>}
+              {billingMessage && <p className="mt-2 text-xs font-bold text-red-300">{billingMessage}</p>}
+            </div>
+            {isPro && entitlement.provider === 'paddle' ? (
+              <button
+                type="button"
+                disabled={billingLoading}
+                onClick={() => {
+                  setBillingMessage(null);
+                  void manage().catch((error) => setBillingMessage(error instanceof Error ? error.message : 'Unable to open billing.'));
+                }}
+                className="rounded-xl bg-white px-4 py-2.5 text-xs font-black text-[#171711] disabled:opacity-50"
+              >
+                Manage subscription
+              </button>
+            ) : (
+              <Link href="/pricing" className="rounded-xl bg-[#d7ff27] px-4 py-2.5 text-center text-xs font-black text-black">View Pro plans</Link>
+            )}
+          </div>
+        </section>
 
         {/* Account Section */}
         <section className="p-6 sm:p-7 rounded-3xl bg-white border border-[#e4e0d5] space-y-6">
