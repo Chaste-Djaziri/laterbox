@@ -22,6 +22,7 @@ class SyncService {
     LocalItemNoteDataSource? localNotes,
     RemoteItemNoteDataSource? remoteNotes,
     Future<AttachmentSyncService?> Function()? attachmentSync,
+    bool Function()? canSync,
   }) => SyncService._(
     local,
     remote,
@@ -33,6 +34,7 @@ class SyncService {
     localNotes,
     remoteNotes,
     attachmentSync,
+    canSync ?? (() => true),
   );
 
   SyncService._(
@@ -46,6 +48,7 @@ class SyncService {
     this._localNotes,
     this._remoteNotes,
     this._attachmentSync,
+    this._canSync,
   );
 
   final LocalItemDataSource _local;
@@ -58,6 +61,7 @@ class SyncService {
   final LocalItemNoteDataSource? _localNotes;
   final RemoteItemNoteDataSource? _remoteNotes;
   final Future<AttachmentSyncService?> Function()? _attachmentSync;
+  final bool Function() _canSync;
   Future<SyncResult>? _activeSync;
   int _pushed = 0;
   int _pulled = 0;
@@ -68,6 +72,7 @@ class SyncService {
   }
 
   Future<SyncResult> _run() async {
+    if (!_canSync()) return const SyncResult.skipped();
     final userId = _currentUserId();
     final remote = _remote;
     if (userId == null || remote == null) return const SyncResult.skipped();
