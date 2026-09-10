@@ -9,6 +9,8 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/auth/auth_provider.dart';
 import '../../../core/billing/billing_providers.dart';
+import '../../../core/billing/entitlement.dart';
+import '../../../core/billing/entitlement_presentation.dart';
 import '../../../core/database/database_providers.dart';
 import '../../../core/desktop/desktop_actions.dart';
 import '../../../core/desktop/desktop_providers.dart';
@@ -132,8 +134,9 @@ class _ProSubscriptionCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final entitlement = ref.watch(entitlementProvider).valueOrNull;
-    final isPro = ref.watch(hasProAccessProvider);
+    final entitlement = ref.watch(entitlementProvider).valueOrNull ?? const Entitlement.free();
+    final presentation = EntitlementPresentation.from(entitlement);
+    final isPro = entitlement.hasProAccess;
     final theme = Theme.of(context);
     final isStoreBuild = laterBoxDistribution == 'play' || laterBoxDistribution == 'app-store';
 
@@ -153,7 +156,7 @@ class _ProSubscriptionCard extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'LaterBox ${isPro ? 'Pro' : 'Free'}',
+                  presentation.label,
                   style: theme.textTheme.titleMedium?.copyWith(
                     color: Colors.white,
                     fontWeight: FontWeight.w800,
@@ -161,34 +164,52 @@ class _ProSubscriptionCard extends ConsumerWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  isPro
-                      ? 'Cloud sync and premium capture features are active.'
-                      : isStoreBuild
+                  !isPro && isStoreBuild
                       ? 'Local saving stays free. Existing Pro subscribers can sign in to unlock connected features.'
-                      : 'Upgrade for cloud sync, attachments, integrations, and automatic capture.',
+                      : presentation.description,
                   style: theme.textTheme.bodySmall?.copyWith(color: Colors.white70),
                 ),
-                if (entitlement?.billingWarning != null) ...[
+                if (entitlement.billingWarning != null) ...[
                   const SizedBox(height: 5),
                   const Text(
                     'Payment needs attention. Manage billing on laterbox.dev.',
                     style: TextStyle(color: Colors.amberAccent, fontSize: 12),
                   ),
                 ],
+                if (presentation.progress != null) ...[
+                  const SizedBox(height: 10),
+                  LinearProgressIndicator(
+                    value: presentation.progress,
+                    minHeight: 5,
+                    borderRadius: BorderRadius.circular(99),
+                    color: presentation.severity == EntitlementSeverity.warning
+                        ? Colors.amberAccent
+                        : const Color(0xFFD7FF27),
+                    backgroundColor: Colors.white12,
+                  ),
+                ],
               ],
             ),
           ),
-          if (canOpenWebCheckout)
+          if (canOpenWebCheckout || isStoreBuild)
             FilledButton(
-              onPressed: () => launchUrl(
-                Uri.parse('https://laterbox.dev/pricing'),
-                mode: LaunchMode.externalApplication,
-              ),
+              onPressed: () async {
+                if (isAppleAppStoreBuild && isPro && entitlement.provider == 'apple') {
+                  await ref.read(applePurchaseServiceProvider).openManagement();
+                } else if (isStoreBuild) {
+                  if (context.mounted) context.push('/plans');
+                } else {
+                  await launchUrl(
+                    Uri.parse('https://laterbox.dev/pricing'),
+                    mode: LaunchMode.externalApplication,
+                  );
+                }
+              },
               style: FilledButton.styleFrom(
                 backgroundColor: const Color(0xFFD7FF27),
                 foregroundColor: Colors.black,
               ),
-              child: Text(isPro ? 'Manage' : 'View Pro'),
+              child: Text(presentation.actionLabel),
             ),
         ],
       ),
