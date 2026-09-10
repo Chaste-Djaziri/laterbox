@@ -102,8 +102,8 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
 
   Future<void> _verifyOtp() async {
     final token = _otpController.text.trim();
-    if (_busy || !RegExp(r'^\d{6}$').hasMatch(token)) {
-      setState(() => _message = 'Enter the six digit code from your email.');
+    if (_busy || !RegExp(r'^\d{8}$').hasMatch(token)) {
+      setState(() => _message = 'Enter the eight digit code from your email.');
       return;
     }
     setState(() {
@@ -181,7 +181,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Enter the six digit code sent to ${_emailController.text.trim()}.',
+                    'Enter the eight digit code sent to ${_emailController.text.trim()}.',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -196,7 +196,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                     autofillHints: const [AutofillHints.oneTimeCode],
                     inputFormatters: [
                       FilteringTextInputFormatter.digitsOnly,
-                      LengthLimitingTextInputFormatter(6),
+                      LengthLimitingTextInputFormatter(8),
                     ],
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.headlineMedium?.copyWith(
@@ -207,7 +207,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                       labelText: 'Verification code',
                       counterText: '',
                     ),
-                    maxLength: 6,
+                    maxLength: 8,
                     onSubmitted: (_) => _verifyOtp(),
                   ),
                   if (_message != null) ...[
