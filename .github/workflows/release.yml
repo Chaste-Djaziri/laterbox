@@ -130,33 +130,20 @@ jobs:
 
       - name: Build macOS Application
         run: |
-          # Direct DMG builds use ad-hoc signing when no Developer ID cert is present;
-          # hardened runtime + notarization activates automatically when
-          # APPLE_CERTIFICATE_BASE64 is a Developer ID Application certificate.
-          if [ -n "$APPLE_CERTIFICATE_BASE64" ]; then
-            xcodebuild -workspace macos/Runner.xcworkspace \
-              -scheme Runner \
-              -configuration Release \
-              -derivedDataPath build/macos \
-              CODE_SIGN_STYLE="Manual" \
-              CODE_SIGN_IDENTITY="Developer ID Application" \
-              OTHER_CODE_SIGN_FLAGS="--options runtime --timestamp" \
-              -destination 'generic/platform=macOS' \
-              build
-          else
-            xcodebuild -workspace macos/Runner.xcworkspace \
-              -scheme Runner \
-              -configuration Release \
-              -derivedDataPath build/macos \
-              CODE_SIGN_IDENTITY="-" \
-              CODE_SIGN_STYLE="Manual" \
-              CODE_SIGNING_REQUIRED=NO \
-              CODE_SIGNING_ALLOWED=NO \
-              -destination 'generic/platform=macOS' \
-              build
-          fi
-        env:
-          APPLE_CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
+          # Build macOS release bundle without code signing at compile time.
+          # Full Developer ID Application / ad-hoc codesigning with entitlements
+          # and hardened runtime is performed in the packaging step below to avoid
+          # SPM resource bundle targets failing on missing provisioning profiles.
+          xcodebuild -workspace macos/Runner.xcworkspace \
+            -scheme Runner \
+            -configuration Release \
+            -derivedDataPath build/macos \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGN_STYLE="Manual" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            -destination 'generic/platform=macOS' \
+            build
 
       - name: Notarize DMG (when Developer ID available)
         if: env.APPLE_ID != '' && env.APPLE_APP_SPECIFIC_PASSWORD != '' && env.APPLE_TEAM_ID != ''
@@ -183,10 +170,22 @@ jobs:
           echo "Packaging application from: $APP_PATH"
           
           if [ -n "$APPLE_CERTIFICATE_BASE64" ]; then
-            # Hardened runtime + timestamp for notarization / Sparkle
-            codesign --force --deep --options runtime --timestamp --sign "Developer ID Application" "$APP_PATH" || true
+            if [ -d "$APP_PATH/Contents/PlugIns/ShareExtension.appex" ]; then
+              codesign --force --options runtime --timestamp \
+                --entitlements macos/ShareExtension/ShareExtension.entitlements \
+                --sign "Developer ID Application" "$APP_PATH/Contents/PlugIns/ShareExtension.appex" || true
+            fi
+            # Hardened runtime + timestamp + entitlements for notarization / Sparkle
+            codesign --force --deep --options runtime --timestamp \
+              --entitlements macos/Runner/Release.entitlements \
+              --sign "Developer ID Application" "$APP_PATH" || true
           else
-            codesign --force --deep --sign - "$APP_PATH" || true
+            if [ -d "$APP_PATH/Contents/PlugIns/ShareExtension.appex" ]; then
+              codesign --force --sign - \
+                --entitlements macos/ShareExtension/ShareExtension.entitlements "$APP_PATH/Contents/PlugIns/ShareExtension.appex" || true
+            fi
+            codesign --force --deep --sign - \
+              --entitlements macos/Runner/Release.entitlements "$APP_PATH" || true
           fi
           
           # 1. Create Universal DMG
