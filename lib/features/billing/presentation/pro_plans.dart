@@ -47,50 +47,61 @@ class ProPlans extends ConsumerWidget {
       return null;
     }
 
+    final cards = <Widget>[
+      _PlanCard(
+        width: compact ? 320 : 350,
+        title: 'Free',
+        price: 'Free forever',
+        description: 'A private local library for saving and finding what matters.',
+        features: const [
+          'Unlimited local saves',
+          'Reading, search, and organization',
+          'Local attachments and export',
+          'No account or connection required',
+        ],
+        action: 'Continue free',
+        onPressed: () {
+          ref.read(guestModeProvider.notifier).state = true;
+          onContinueFree?.call();
+        },
+      ),
+      _PlanCard(
+        width: compact ? 320 : 350,
+        featured: true,
+        title: 'LaterBox Pro',
+        price: _priceText(product(appleMonthlyProductId), product(appleAnnualProductId)),
+        description: 'Connected capture, secure sync, and automation everywhere.',
+        features: _proFeatures,
+        badge: _trialBadge(apple),
+        action: _actionLabel(authenticated),
+        onPressed: () => _startPro(
+          context,
+          ref,
+          authenticated: authenticated,
+          apple: apple,
+          interval: preferredInterval,
+        ),
+      ),
+    ];
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Wrap(
-          alignment: WrapAlignment.center,
-          spacing: 16,
-          runSpacing: 16,
-          children: [
-            _PlanCard(
-              width: compact ? 320 : 350,
-              title: 'Free',
-              price: 'Free forever',
-              description: 'A private local library for saving and finding what matters.',
-              features: const [
-                'Unlimited local saves',
-                'Reading, search, and organization',
-                'Local attachments and export',
-                'No account or connection required',
-              ],
-              action: 'Continue free',
-              onPressed: () {
-                ref.read(guestModeProvider.notifier).state = true;
-                onContinueFree?.call();
-              },
+        if (compact)
+          Wrap(
+            alignment: WrapAlignment.center,
+            spacing: 16,
+            runSpacing: 16,
+            children: cards,
+          )
+        else
+          IntrinsicHeight(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [cards.first, const SizedBox(width: 16), cards.last],
             ),
-            _PlanCard(
-              width: compact ? 320 : 350,
-              featured: true,
-              title: 'LaterBox Pro',
-              price: _priceText(product(appleMonthlyProductId), product(appleAnnualProductId)),
-              description: 'Connected capture, secure sync, and automation everywhere.',
-              features: _proFeatures,
-              badge: _trialBadge(apple),
-              action: _actionLabel(authenticated),
-              onPressed: () => _startPro(
-                context,
-                ref,
-                authenticated: authenticated,
-                apple: apple,
-                interval: preferredInterval,
-              ),
-            ),
-          ],
-        ),
+          ),
         if (apple != null) ...[
           const SizedBox(height: 12),
           Wrap(
