@@ -10,8 +10,10 @@ interface AuthContextType {
   loading: boolean;
   isGuest: boolean;
   signInWithOtp: (email: string) => Promise<{ error: AuthError | null }>;
+  verifyEmailOtp: (email: string, token: string) => Promise<{ error: AuthError | null }>;
+  resendSignupOtp: (email: string) => Promise<{ error: AuthError | null }>;
   signInWithPassword: (email: string, password: string) => Promise<{ error: AuthError | null }>;
-  signUpWithPassword: (email: string, password: string) => Promise<{ error: AuthError | null }>;
+  signUpWithPassword: (email: string, password: string) => Promise<{ error: AuthError | null; requiresConfirmation: boolean }>;
   signInWithOAuth: (provider: 'google' | 'github') => Promise<{ error: AuthError | null }>;
   signOut: () => Promise<void>;
   updatePassword: (password: string) => Promise<{ error: AuthError | null }>;
@@ -73,6 +75,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const redirectTo = typeof window !== 'undefined' ? `${window.location.origin}/inbox` : undefined;
     const { error } = await supabase.auth.signInWithOtp({
       email,
+      options: { emailRedirectTo: redirectTo, shouldCreateUser: false },
+    });
+    return { error };
+  };
+
+  const verifyEmailOtp = async (email: string, token: string) => {
+    const supabase = getSupabaseClient();
+    const { error } = await supabase.auth.verifyOtp({
+      email,
+      token,
+      type: 'email',
+    });
+    if (!error) {
+      setIsGuest(false);
+      localStorage.removeItem(GUEST_KEY);
+    }
+    return { error };
+  };
+
+  const resendSignupOtp = async (email: string) => {
+    const supabase = getSupabaseClient();
+    const redirectTo = typeof window !== 'undefined' ? `${window.location.origin}/inbox` : undefined;
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email,
       options: { emailRedirectTo: redirectTo },
     });
     return { error };
@@ -91,7 +118,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signUpWithPassword = async (email: string, password: string) => {
     const supabase = getSupabaseClient();
     const redirectTo = typeof window !== 'undefined' ? `${window.location.origin}/inbox` : undefined;
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: { emailRedirectTo: redirectTo },
@@ -100,7 +127,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsGuest(false);
       localStorage.removeItem(GUEST_KEY);
     }
-    return { error };
+    return { error, requiresConfirmation: !error && data.session === null };
   };
 
   const signInWithOAuth = async (provider: 'google' | 'github') => {
@@ -193,6 +220,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loading,
         isGuest,
         signInWithOtp,
+        verifyEmailOtp,
+        resendSignupOtp,
         signInWithPassword,
         signUpWithPassword,
         signInWithOAuth,
