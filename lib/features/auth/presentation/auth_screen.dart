@@ -68,8 +68,14 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   }
 
   void _finishAuthentication() {
-    final next = GoRouterState.of(context).uri.queryParameters['next'];
-    context.go(next == 'plans' ? '/plans' : '/inbox');
+    final query = GoRouterState.of(context).uri.queryParameters;
+    final next = query['next'];
+    final interval = query['interval'];
+    context.go(
+      next == 'plans'
+          ? '/plans${interval == null ? '' : '?interval=$interval'}'
+          : '/inbox',
+    );
   }
 
   @override
@@ -176,9 +182,13 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                           : () {
                               final query = GoRouterState.of(context).uri.queryParameters;
                               final next = query['next'];
+                              final interval = query['interval'];
                               final nextQuery = next == null ? '' : '&next=$next';
+                              final intervalQuery = interval == null
+                                  ? ''
+                                  : '&interval=$interval';
                               context.go(
-                                '/login?mode=${prefersSignup ? 'signin' : 'signup'}$nextQuery',
+                                '/login?mode=${prefersSignup ? 'signin' : 'signup'}$nextQuery$intervalQuery',
                               );
                             },
                       child: Text(
