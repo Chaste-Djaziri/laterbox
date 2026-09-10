@@ -1,11 +1,13 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useItems } from '@/lib/store/ItemContext';
 import { useAuth } from '@/lib/store/AuthContext';
+import { useBilling } from '@/lib/store/BillingContext';
+import { presentEntitlement } from '@/lib/billing/types';
 import { CloudSyncIndicator } from '../ui/CloudSyncIndicator';
 import {
   Inbox,
@@ -20,6 +22,7 @@ import {
   User,
   ChevronsLeft,
   ChevronsRight,
+  Crown,
 } from 'lucide-react';
 
 interface AppSidebarProps {
@@ -30,7 +33,16 @@ export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
   const pathname = usePathname();
   const { inboxItems } = useItems();
   const { user, isGuest, signOut } = useAuth();
+  const { entitlement, isPro, manage } = useBilling();
   const [collapsed, setCollapsed] = useState(false);
+  const [now, setNow] = useState(() => new Date());
+  const plan = useMemo(() => presentEntitlement(entitlement, now), [entitlement, now]);
+
+  useEffect(() => {
+    if (!entitlement.phaseEndsAt) return;
+    const timer = window.setInterval(() => setNow(new Date()), 60_000);
+    return () => window.clearInterval(timer);
+  }, [entitlement.phaseEndsAt]);
 
   const navLinks = [
     {
@@ -162,6 +174,14 @@ export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
 
       {/* Bottom Profile / Cloud Sync Section */}
       <div className="pt-3 border-t border-[#e4e0d5] space-y-2">
+        <div className="rounded-xl bg-[#171711] p-2.5 text-white" title={collapsed ? plan.label : undefined}>
+          <div className={`flex items-center ${collapsed ? 'justify-center' : 'gap-2'}`}>
+            <Crown className={`size-4 shrink-0 ${plan.tone === 'warning' ? 'text-amber-300' : 'text-[#d7ff27]'}`} />
+            {!collapsed && <span className="min-w-0 flex-1 truncate text-[11px] font-black">{plan.label}</span>}
+          </div>
+          {!collapsed && plan.progress !== null && <div className="mt-2 h-1 overflow-hidden rounded-full bg-white/15"><div className={`h-full ${plan.tone === 'warning' ? 'bg-amber-300' : 'bg-[#d7ff27]'}`} style={{ width: `${Math.round(plan.progress * 100)}%` }} /></div>}
+          {!collapsed && (isPro && entitlement.provider === 'paddle' ? <button type="button" onClick={() => void manage()} className={`mt-2 text-[10px] font-black ${plan.tone === 'warning' ? 'text-amber-300' : 'text-[#d7ff27]'}`}>{plan.actionLabel}</button> : <Link href="/pricing" className="mt-2 block text-[10px] font-black text-[#d7ff27]">{plan.actionLabel}</Link>)}
+        </div>
         <div className="flex items-center justify-center">
           <CloudSyncIndicator compact={collapsed} />
         </div>
