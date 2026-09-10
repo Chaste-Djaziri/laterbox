@@ -28,9 +28,11 @@ export async function getRequestUser(request: Request): Promise<User | null> {
 }
 
 export async function paddleRequest<T>(path: string, init?: RequestInit): Promise<T> {
-  const key = process.env.PADDLE_API_KEY || process.env.PADDLE_SANDBOX_API_KEY;
-  if (!key) throw new Error('Paddle API key is not configured.');
   const environment = process.env.NEXT_PUBLIC_PADDLE_ENV || 'sandbox';
+  const key = environment === 'production'
+    ? process.env.PADDLE_API_KEY
+    : process.env.PADDLE_SANDBOX_API_KEY || process.env.PADDLE_API_KEY;
+  if (!key) throw new Error(`Paddle ${environment} API key is not configured.`);
   const baseUrl = environment === 'production' ? 'https://api.paddle.com' : 'https://sandbox-api.paddle.com';
   const response = await fetch(`${baseUrl}${path}`, {
     ...init,
