@@ -4,6 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/auth/auth_provider.dart';
+import '../../../core/billing/billing_providers.dart';
+import '../../../core/billing/entitlement.dart';
+import '../../../core/billing/entitlement_presentation.dart';
 import '../../../shared/widgets/cloud_sync_indicator.dart';
 
 class DesktopSidebar extends ConsumerStatefulWidget {
@@ -214,6 +217,7 @@ class _DesktopSidebarState extends ConsumerState<DesktopSidebar> {
             ),
           ),
 
+          _PlanStatusCard(compact: isCompact),
           const Divider(height: 1),
           Padding(
             padding: EdgeInsets.all(isCompact ? 8 : 12),
@@ -307,6 +311,86 @@ class _DesktopSidebarState extends ConsumerState<DesktopSidebar> {
         ],
       ),
     );
+  }
+}
+
+class _PlanStatusCard extends ConsumerWidget {
+  const _PlanStatusCard({required this.compact});
+
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final entitlement = ref.watch(entitlementProvider).valueOrNull ?? const Entitlement.free();
+    final presentation = EntitlementPresentation.from(entitlement);
+    final warning = presentation.severity == EntitlementSeverity.warning;
+    final color = warning ? Colors.amber : const Color(0xFFD7FF27);
+    final card = InkWell(
+      onTap: () => context.push(entitlement.hasProAccess ? '/settings' : '/plans'),
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        margin: EdgeInsets.fromLTRB(compact ? 10 : 14, 8, compact ? 10 : 14, 10),
+        padding: EdgeInsets.all(compact ? 8 : 12),
+        decoration: BoxDecoration(
+          color: Colors.black,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: warning ? Colors.amber.shade700 : Colors.white12),
+        ),
+        child: compact
+            ? SizedBox(
+                width: 30,
+                height: 30,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    if (presentation.progress != null)
+                      CircularProgressIndicator(
+                        value: presentation.progress,
+                        strokeWidth: 3,
+                        color: color,
+                        backgroundColor: Colors.white12,
+                      ),
+                    Icon(Icons.workspace_premium_rounded, size: 17, color: color),
+                  ],
+                ),
+              )
+            : Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.workspace_premium_rounded, size: 17, color: color),
+                      const SizedBox(width: 7),
+                      Expanded(
+                        child: Text(
+                          presentation.label,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w800),
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (presentation.progress != null) ...[
+                    const SizedBox(height: 9),
+                    LinearProgressIndicator(
+                      value: presentation.progress,
+                      minHeight: 4,
+                      borderRadius: BorderRadius.circular(99),
+                      color: color,
+                      backgroundColor: Colors.white12,
+                    ),
+                  ],
+                  const SizedBox(height: 7),
+                  Text(
+                    presentation.actionLabel,
+                    style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w800),
+                  ),
+                ],
+              ),
+      ),
+    );
+    return compact ? Tooltip(message: presentation.label, child: card) : card;
   }
 }
 
