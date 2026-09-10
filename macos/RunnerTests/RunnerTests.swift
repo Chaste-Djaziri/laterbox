@@ -15,6 +15,7 @@ class RunnerTests: XCTestCase {
 
   func testCandidateMovesThroughSavingAndReceiptStates() {
     let controller = NotchPanelController()
+    controller.setProAutomationEnabled(true)
     let candidate = NotchCaptureCandidate(
       id: "capture-1",
       title: "Example",
@@ -47,5 +48,30 @@ class RunnerTests: XCTestCase {
     } else {
       XCTFail("Expected saved state")
     }
+  }
+
+  func testCandidateRequiresProAndOpensPlans() {
+    let controller = NotchPanelController()
+    let candidate = NotchCaptureCandidate(
+      id: "capture-locked",
+      title: "Example",
+      url: "https://example.com",
+      text: nil,
+      source: .clipboard,
+      kind: .link
+    )
+    var openedPlans = false
+    var requestedCapture = false
+    controller.onOpenPlans = { openedPlans = true }
+    controller.onCaptureRequested = { _ in requestedCapture = true }
+
+    controller.presentExternalCandidate(candidate)
+    if case .locked = controller.state {} else {
+      XCTFail("Expected locked state")
+    }
+    controller.performPrimaryAction()
+
+    XCTAssertTrue(openedPlans)
+    XCTAssertFalse(requestedCapture)
   }
 }
