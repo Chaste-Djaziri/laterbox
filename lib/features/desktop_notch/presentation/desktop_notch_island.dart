@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:ui';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,12 +10,13 @@ import '../../../core/desktop/desktop_providers.dart';
 import '../../../core/desktop/screen_watcher_service.dart';
 import '../../../core/theme/app_theme.dart';
 
-/// Floating Dynamic Island / Notch component for macOS.
+/// Floating Dynamic Island / Notch component for macOS (DEBUG-ONLY preview).
 ///
-/// Anchored at the top-center screen notch. Watches the active screen context,
-/// detects open browser tabs, automatically captures selected word references
-/// with W3C Scroll-to-Text Fragment URLs (`#:~:text=...`), and provides 1-click
-/// saving into the LaterBox inbox.
+/// Production macOS uses the native `NotchPanelController` NSPanel (see
+/// `macos/Runner/NotchPanelController.swift`) as the flagship capture surface
+/// so the pill never covers menu-bar controls and survives every display shape.
+/// This Flutter widget is retained only for `flutter run -d macos` previews
+/// and widget tests — it renders nothing in release/profile.
 class DesktopNotchIsland extends ConsumerStatefulWidget {
   const DesktopNotchIsland({super.key});
 
@@ -71,6 +73,13 @@ class _DesktopNotchIslandState extends ConsumerState<DesktopNotchIsland>
 
   @override
   Widget build(BuildContext context) {
+    // Flagship notch is the native NSPanel. Avoid duplicate UI in production
+    // where the Dart island would fight the panel for hover and focus.
+    if (kReleaseMode) return const SizedBox.shrink();
+    assert(() {
+      // In debug/profile we keep the island visible for quick iteration.
+      return true;
+    }());
     final notchService = ref.watch(desktopNotchServiceProvider);
     final watcher = ref.watch(screenWatcherServiceProvider);
     final isExpanded = notchService.isIslandExpanded;
