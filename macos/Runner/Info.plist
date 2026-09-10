@@ -24,6 +24,21 @@
 	<string>public.app-category.productivity</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
+	<key>FlutterDeepLinkingEnabled</key>
+	<false/>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>pro.micorp.laterbox</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>laterbox</string>
+			</array>
+		</dict>
+	</array>
 	<key>NSCameraUsageDescription</key>
 	<string>laterbox uses your camera to capture photos and scan documents to save for later.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
