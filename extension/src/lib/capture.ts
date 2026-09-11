@@ -4,6 +4,7 @@ import {
   enqueueCapture,
   getPendingCaptures,
   replacePendingCaptures,
+  setIsPro,
 } from "./storage";
 import type { Capture, CaptureResult } from "../types/capture";
 
@@ -56,6 +57,10 @@ export async function saveCapture(capture: Capture): Promise<CaptureResult> {
     const id = await sendCapture(capture, token);
     return { id, status: "saved" };
   } catch (error) {
+    if (error instanceof ProRequiredError) {
+      await setIsPro(false);
+      return { status: "proRequired", reason: "proRequired" };
+    }
     await enqueueCapture(capture);
     if (error instanceof AuthenticationError) return { status: "needsAuth" };
     return {
@@ -76,7 +81,12 @@ export async function flushQueue(): Promise<number> {
     try {
       await sendCapture(capture, token);
       flushed++;
-    } catch {
+    } catch (error) {
+      if (error instanceof ProRequiredError) {
+        await setIsPro(false);
+        remaining.push(capture);
+        break;
+      }
       remaining.push(capture);
     }
   }
@@ -93,7 +103,10 @@ async function sendCapture(capture: Capture, token: string): Promise<string> {
     },
     body: JSON.stringify(capture),
   });
-  if (response.status === 401 || response.status === 403) {
+  if (response.status === 403) {
+    throw new ProRequiredError();
+  }
+  if (response.status === 401) {
     throw new AuthenticationError();
   }
   if (!response.ok) throw new Error(`Capture failed with ${response.status}`);
@@ -102,4 +115,5 @@ async function sendCapture(capture: Capture, token: string): Promise<string> {
   return typeof body.id === "string" ? body.id : "";
 }
 
-class AuthenticationError extends Error {}
+export class AuthenticationError extends Error {}
+export class ProRequiredError extends Error {}
