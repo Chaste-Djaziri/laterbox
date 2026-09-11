@@ -122,9 +122,15 @@ async function handleCommand(command: string): Promise<void> {
       source: "browserExtension",
       createdAt: new Date().toISOString(),
     });
-    await setCommandBadge(
-      result.status === "saved" ? "✓" : result.status === "needsAuth" ? "!" : "…",
-    );
+    const badgeText =
+      result.status === "saved"
+        ? "✓"
+        : result.status === "proRequired"
+          ? "PRO"
+          : result.status === "needsAuth"
+            ? "!"
+            : "…";
+    await setCommandBadge(badgeText);
   } catch (error) {
     console.error("[LaterBox command] failed", command, error);
   }
@@ -133,7 +139,7 @@ async function handleCommand(command: string): Promise<void> {
 async function setCommandBadge(text: string): Promise<void> {
   await browser.action.setBadgeText({ text });
   await browser.action.setBadgeBackgroundColor({
-    color: text === "✓" ? "#26734d" : text === "!" ? "#a33a32" : "#6c6b63",
+    color: text === "✓" ? "#26734d" : text === "PRO" || text === "!" ? "#a33a32" : "#6c6b63",
   });
 }
 
@@ -395,10 +401,21 @@ async function handleContextMenu(
 
   if (!result) return;
 
-  await browser.action.setBadgeText({
-    text: result.status === "saved" ? "✓" : result.status === "needsAuth" ? "!" : "…",
-  });
+  const badgeText =
+    result.status === "saved"
+      ? "✓"
+      : result.status === "proRequired"
+        ? "PRO"
+        : result.status === "needsAuth"
+          ? "!"
+          : "…";
+  await browser.action.setBadgeText({ text: badgeText });
   await browser.action.setBadgeBackgroundColor({
-    color: result.status === "saved" ? "#171711" : "#6c6b63",
+    color:
+      result.status === "saved"
+        ? "#171711"
+        : result.status === "proRequired"
+          ? "#a33a32"
+          : "#6c6b63",
   });
 }
