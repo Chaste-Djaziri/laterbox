@@ -26,8 +26,8 @@ import '../../library/presentation/library_providers.dart';
 
 const _accessibilitySettingsUrl =
     'x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility';
-const _privacyPolicyUrl = 'https://laterbox.app/privacy';
-const _termsOfServiceUrl = 'https://laterbox.app/terms';
+const _privacyPolicyUrl = 'https://laterbox.dev/privacy';
+const _termsOfServiceUrl = 'https://laterbox.dev/terms';
 
 /// Settings and Account Management screen for Mobile & Desktop.
 class SettingsScreen extends ConsumerWidget {
@@ -1305,8 +1305,9 @@ class _ScreenRecordingTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     // Only show on macOS; on other platforms render nothing.
-    if (defaultTargetPlatform != TargetPlatform.macOS)
+    if (defaultTargetPlatform != TargetPlatform.macOS) {
       return const SizedBox.shrink();
+    }
     // We query trust lazily via MacOSCompanion; show a static tile that checks on tap.
     return ListTile(
       leading: const Icon(Icons.screen_search_desktop_rounded),
