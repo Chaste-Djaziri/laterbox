@@ -4,6 +4,7 @@ import type { Capture } from "../types/capture";
 const QUEUE_KEY = "pendingCaptures";
 const TOKEN_KEY = "accessToken";
 const USER_ID_KEY = "connectedUserId";
+const IS_PRO_KEY = "hasProPlan";
 
 export async function getAccessToken(): Promise<string> {
   const values = await browser.storage.local.get(TOKEN_KEY);
@@ -23,8 +24,17 @@ export async function getConnectedUserId(): Promise<string> {
   return typeof values[USER_ID_KEY] === "string" ? values[USER_ID_KEY] : "";
 }
 
+export async function getIsPro(): Promise<boolean | null> {
+  const values = await browser.storage.local.get(IS_PRO_KEY);
+  return typeof values[IS_PRO_KEY] === "boolean" ? values[IS_PRO_KEY] : null;
+}
+
+export async function setIsPro(isPro: boolean): Promise<void> {
+  await browser.storage.local.set({ [IS_PRO_KEY]: isPro });
+}
+
 export async function clearConnection(): Promise<void> {
-  await browser.storage.local.remove([TOKEN_KEY, USER_ID_KEY]);
+  await browser.storage.local.remove([TOKEN_KEY, USER_ID_KEY, IS_PRO_KEY]);
 }
 
 export async function getPendingCaptures(): Promise<Capture[]> {
