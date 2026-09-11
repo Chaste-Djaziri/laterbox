@@ -22,6 +22,6 @@ export type Capture = {
 
 export type CaptureResult = {
   id?: string;
-  status: "saved" | "queued" | "needsAuth";
-  reason?: "network" | "server";
+  status: "saved" | "queued" | "needsAuth" | "proRequired";
+  reason?: "network" | "server" | "proRequired";
 };
