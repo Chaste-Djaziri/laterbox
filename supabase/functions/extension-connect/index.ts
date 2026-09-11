@@ -16,6 +16,7 @@ type Dependencies = {
   createId: () => string;
   createToken: () => string;
   now: () => Date;
+  hasProAccess: (userId: string) => Promise<boolean>;
 };
 
 type ConnectionBody = {
@@ -32,6 +33,21 @@ const defaultDependencies = (): Dependencies => ({
   createId: () => crypto.randomUUID(),
   createToken: () => `lb_ext_${crypto.randomUUID().replaceAll("-", "")}`,
   now: () => new Date(),
+  hasProAccess: async (userId: string) => {
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+    if (!serviceRoleKey || !supabaseUrl) return false;
+    const response = await fetch(`${supabaseUrl}/rest/v1/rpc/has_pro_entitlement`, {
+      method: "POST",
+      headers: {
+        apikey: serviceRoleKey,
+        authorization: `Bearer ${serviceRoleKey}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ target_user_id: userId }),
+    });
+    return response.ok && (await response.json()) === true;
+  },
 });
 
 export const createConnectionHandler = (
@@ -81,6 +97,9 @@ export const createConnectionHandler = (
       }
       if (action === "status") {
         return await statusRequest(requestId, requestSecret, dependencies);
+      }
+      if (action === "entitlement") {
+        return await checkEntitlement(request, dependencies);
       }
       if (action === "revoke") {
         return await revokeSession(request, dependencies);
@@ -202,9 +221,35 @@ async function exchangeRequest(
       body: JSON.stringify({ used_at: now.toISOString() }),
     },
   );
-  if (!markedUsed.ok) return json({ error: "Could not complete connection" }, 502);
+  const isPro = await dependencies.hasProAccess(connection.user_id);
+  return json({ extensionToken: token, userId: connection.user_id, isPro }, 200);
+}
 
-  return json({ extensionToken: token, userId: connection.user_id }, 200);
+async function checkEntitlement(
+  request: Request,
+  dependencies: Dependencies,
+): Promise<Response> {
+  const token = bearerToken(request.headers.get("authorization"));
+  if (token === null || !token.startsWith("lb_ext_")) {
+    return json({ error: "Extension authentication required" }, 401);
+  }
+
+  const response = await adminFetch(
+    `/rest/v1/extension_sessions?token_hash=eq.${encodeURIComponent(await hash(token))}&revoked_at=is.null&select=user_id,expires_at`,
+    dependencies,
+  );
+  if (!response.ok) return json({ error: "Could not verify session" }, 502);
+  const rows = await response.json();
+  const session = Array.isArray(rows) ? rows[0] : null;
+  if (!session || typeof session.user_id !== "string") {
+    return json({ error: "Session invalid or expired" }, 401);
+  }
+  if (new Date(session.expires_at).getTime() <= dependencies.now().getTime()) {
+    return json({ error: "Session expired" }, 401);
+  }
+
+  const isPro = await dependencies.hasProAccess(session.user_id);
+  return json({ isPro, userId: session.user_id }, 200);
 }
 
 async function revokeSession(
