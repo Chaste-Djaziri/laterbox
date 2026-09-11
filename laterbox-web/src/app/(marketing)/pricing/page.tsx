@@ -99,11 +99,24 @@ function PricingContent() {
     return () => window.clearTimeout(timer);
   }, [accountMismatch, appReturn, checkoutState, isPro]);
 
+  const autoCheckoutTriggered = useRef(false);
+  useEffect(() => {
+    const shouldCheckout = searchParams.get('checkout') === 'true';
+    if (!shouldCheckout || !user || isPro || autoCheckoutTriggered.current || busy !== null) return;
+    autoCheckoutTriggered.current = true;
+    const timer = window.setTimeout(() => {
+      void run(interval);
+    }, 400);
+    return () => window.clearTimeout(timer);
+  }, [busy, interval, isPro, searchParams, user]);
+
   const loginNext = useMemo(() => {
     const params = new URLSearchParams({ plan: interval });
     const source = searchParams.get('source');
+    const checkout = searchParams.get('checkout');
     const platform = searchParams.get('platform');
-    if (source === 'direct-app') params.set('source', source);
+    if (source) params.set('source', source);
+    if (checkout) params.set('checkout', checkout);
     if (platform) params.set('platform', platform);
     if (expectedAccount) params.set('account', expectedAccount);
     if (appReturn) params.set('return_to', appReturn);
@@ -113,6 +126,11 @@ function PricingContent() {
   return (
     <main className="min-h-screen bg-[#f7f5ee] px-5 py-14 text-[#171711] sm:py-20">
       <div className="mx-auto max-w-6xl">
+        {searchParams.get('source') === 'extension' && (
+          <div className="mx-auto mb-6 max-w-xl rounded-2xl border border-[#d0db84] bg-[#fbffdc] px-4 py-3 text-center text-xs font-bold text-[#444a10]">
+            ⚡ Upgrade to LaterBox Pro to use the browser extension across all your tabs.
+          </div>
+        )}
         <header className="mx-auto max-w-3xl text-center">
           <span className="inline-flex items-center gap-2 rounded-full bg-[#e6edb0] px-3 py-1.5 text-xs font-black uppercase tracking-[0.2em]"><Sparkles className="size-3.5" /> LaterBox Pro</span>
           <h1 className="mt-5 text-4xl font-black tracking-[-0.045em] sm:text-6xl">Your library is free. Upgrade the connected parts.</h1>
