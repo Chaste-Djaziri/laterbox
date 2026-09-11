@@ -1,6 +1,6 @@
 'use client';
 
-import React, { Suspense, useEffect, useMemo, useState, type ReactNode } from 'react';
+import React, { Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import {
@@ -124,11 +124,28 @@ function AppPlansContent() {
     }
   }
 
+  const autoCheckoutTriggered = useRef(false);
+  useEffect(() => {
+    const shouldCheckout = searchParams.get('checkout') === 'true';
+    if (!shouldCheckout || !user || isPro || autoCheckoutTriggered.current || busy !== null || billingLoading) return;
+    autoCheckoutTriggered.current = true;
+    const timer = window.setTimeout(() => {
+      void handleAction(interval);
+    }, 400);
+    return () => window.clearTimeout(timer);
+  }, [billingLoading, busy, interval, isPro, searchParams, user]);
+
   const selectedId = interval === 'month' ? monthlyId : annualId;
   const localizedPrice = prices[selectedId] || (interval === 'month' ? '$3.99' : '$39.99');
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-8 py-8 sm:py-10 space-y-8">
+      {searchParams.get('source') === 'extension' && (
+        <div className="rounded-2xl border border-[#d0db84] bg-[#fbffdc] px-4 py-3 text-center text-xs font-bold text-[#444a10]">
+          ⚡ Upgrade to LaterBox Pro below to activate and use your browser extension.
+        </div>
+      )}
+
       {/* Top Breadcrumb / Header */}
       <div className="space-y-1">
         <div className="flex items-center gap-2 text-xs font-bold text-[#6c6b63]">
