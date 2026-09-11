@@ -1,7 +1,10 @@
 import {
+  checkProEntitlement,
   connectLaterBox,
   disconnectLaterBox,
   getAccessToken,
+  getIsPro,
+  getProUpgradeUrl,
 } from "../lib/auth";
 import { flushQueue, saveCapture, saveSelectionFromTab } from "../lib/capture";
 import { getPageContext, type PageContext } from "../lib/page";
@@ -16,8 +19,12 @@ const highlightPanel = document.querySelector<HTMLElement>("#highlight")!;
 const selectionElement = document.querySelector<HTMLElement>("#selection")!;
 const saveSelectionButton = document.querySelector<HTMLButtonElement>("#save-selection")!;
 const disconnectedPanel = document.querySelector<HTMLElement>("#disconnected")!;
+const proRequiredPanel = document.querySelector<HTMLElement>("#pro-required")!;
 const connectedPanel = document.querySelector<HTMLElement>("#connected")!;
 const connectButton = document.querySelector<HTMLButtonElement>("#connect")!;
+const getProButton = document.querySelector<HTMLButtonElement>("#get-pro")!;
+const refreshProButton = document.querySelector<HTMLButtonElement>("#refresh-pro")!;
+const disconnectProButton = document.querySelector<HTMLButtonElement>("#disconnect-pro")!;
 const saveButton = document.querySelector<HTMLButtonElement>("#save")!;
 const disconnectButton = document.querySelector<HTMLButtonElement>("#disconnect")!;
 const openButton = document.querySelector<HTMLButtonElement>("#open-laterbox")!;
@@ -36,6 +43,11 @@ async function initialize(): Promise<void> {
   await refreshActivePage();
   await updateConnectionState();
   await refreshHighlightPermission();
+
+  const token = await getAccessToken();
+  if (token.startsWith("lb_ext_")) {
+    void checkProEntitlement().then(() => void updateConnectionState());
+  }
 
   browser.storage.onChanged.addListener((changes, areaName) => {
     if (areaName === "local") {
@@ -88,6 +100,29 @@ document.addEventListener("visibilitychange", () => {
 });
 
 connectButton.addEventListener("click", () => void connect());
+getProButton.addEventListener("click", () => {
+  void browser.tabs.create({ url: getProUpgradeUrl() });
+});
+
+refreshProButton.addEventListener("click", async () => {
+  refreshProButton.disabled = true;
+  setStatus("Checking Pro status...");
+  try {
+    const pro = await checkProEntitlement();
+    await updateConnectionState();
+    if (pro) {
+      setStatus("Pro active! You're ready to capture.", "success");
+    } else {
+      setStatus("Pro plan not detected yet. Complete checkout on the web.", "error");
+    }
+  } catch {
+    setStatus("Could not check Pro status.", "error");
+  } finally {
+    refreshProButton.disabled = false;
+  }
+});
+
+disconnectProButton.addEventListener("click", () => void disconnect());
 saveButton.addEventListener("click", () => void savePage());
 saveSelectionButton.addEventListener("click", () => void saveSelection());
 disconnectButton.addEventListener("click", () => void disconnect());
@@ -122,11 +157,16 @@ async function enableHighlighting(): Promise<void> {
 }
 
 async function updateConnectionState(): Promise<void> {
-  const connected = (await getAccessToken()).startsWith("lb_ext_") &&
-      (await getConnectedUserId()).length > 0;
+  const token = await getAccessToken();
+  const userId = await getConnectedUserId();
+  const connected = token.startsWith("lb_ext_") && userId.length > 0;
+  const isPro = connected ? await getIsPro() : null;
+  const isProRequired = connected && isPro === false;
+
   disconnectedPanel.hidden = connected;
-  connectedPanel.hidden = !connected;
-  if (connected) {
+  proRequiredPanel.hidden = !isProRequired;
+  connectedPanel.hidden = !connected || isProRequired;
+  if (connected && isPro !== false) {
     const flushed = await flushQueue();
     if (flushed > 0) setStatus(`Synced ${flushed} queued capture${flushed === 1 ? "" : "s"}.`);
   }
@@ -194,6 +234,10 @@ async function showResult(
 ): Promise<void> {
   if (result.status === "saved") {
     setStatus("Saved to laterbox.", "success");
+  } else if (result.status === "proRequired") {
+    await updateConnectionState();
+    setStatus("Get Pro to use this extension.", "error");
+    button.disabled = false;
   } else if (result.status === "needsAuth") {
     await disconnectLaterBox();
     await updateConnectionState();
