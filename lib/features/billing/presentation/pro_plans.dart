@@ -8,6 +8,9 @@ import '../../../core/auth/auth_provider.dart';
 import '../../../core/billing/apple_purchase_service.dart';
 import '../../../core/billing/billing_providers.dart';
 
+const _termsOfServiceUrl = 'https://laterbox.dev/terms';
+const _privacyPolicyUrl = 'https://laterbox.dev/privacy';
+
 enum PlanInterval { monthly, annual }
 
 class ProPlans extends ConsumerWidget {
@@ -109,12 +112,13 @@ class ProPlans extends ConsumerWidget {
               children: [cards.first, const SizedBox(width: 16), cards.last],
             ),
           ),
-        if (apple != null) ...[
-          const SizedBox(height: 12),
-          Wrap(
-            alignment: WrapAlignment.center,
-            spacing: 6,
-            children: [
+        const SizedBox(height: 16),
+        Wrap(
+          alignment: WrapAlignment.center,
+          spacing: 8,
+          runSpacing: 4,
+          children: [
+            if (apple != null) ...[
               TextButton(
                 onPressed: authenticated ? apple.restore : null,
                 child: const Text('Restore Purchases'),
@@ -127,14 +131,28 @@ class ProPlans extends ConsumerWidget {
                 child: const Text('Refresh Status'),
               ),
             ],
-          ),
-          if (apple.catalog.message != null)
-            Text(
-              apple.catalog.message!,
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            TextButton(
+              onPressed: () => launchUrl(
+                Uri.parse(_termsOfServiceUrl),
+                mode: LaunchMode.externalApplication,
+              ),
+              child: const Text('Terms of Use (EULA)'),
             ),
-        ],
+            TextButton(
+              onPressed: () => launchUrl(
+                Uri.parse(_privacyPolicyUrl),
+                mode: LaunchMode.externalApplication,
+              ),
+              child: const Text('Privacy Policy'),
+            ),
+          ],
+        ),
+        if (apple?.catalog.message != null)
+          Text(
+            apple!.catalog.message!,
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Theme.of(context).colorScheme.error),
+          ),
       ],
     );
   }
@@ -202,7 +220,8 @@ class ProPlans extends ConsumerWidget {
         context: context,
         useSafeArea: true,
         showDragHandle: true,
-        builder: (context) => Padding(
+        isScrollControlled: true,
+        builder: (context) => SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(24, 8, 24, 28),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -231,6 +250,41 @@ class ProPlans extends ConsumerWidget {
                     ),
                   ),
                 ),
+              const SizedBox(height: 12),
+              Text(
+                'Payment will be charged to your Apple ID account at confirmation of purchase. Subscription automatically renews unless canceled at least 24 hours before the end of the current billing period. You can manage and cancel your subscriptions in your App Store account settings at any time.',
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      fontSize: 11,
+                    ),
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                alignment: WrapAlignment.center,
+                spacing: 8,
+                children: [
+                  TextButton(
+                    onPressed: () => launchUrl(
+                      Uri.parse(_termsOfServiceUrl),
+                      mode: LaunchMode.externalApplication,
+                    ),
+                    child: const Text('Terms of Use (EULA)', style: TextStyle(fontSize: 12)),
+                  ),
+                  TextButton(
+                    onPressed: () => launchUrl(
+                      Uri.parse(_privacyPolicyUrl),
+                      mode: LaunchMode.externalApplication,
+                    ),
+                    child: const Text('Privacy Policy', style: TextStyle(fontSize: 12)),
+                  ),
+                  if (authenticated)
+                    TextButton(
+                      onPressed: apple.restore,
+                      child: const Text('Restore Purchases', style: TextStyle(fontSize: 12)),
+                    ),
+                ],
+              ),
             ],
           ),
         ),
