@@ -4,13 +4,15 @@ import {
   clearPendingConnection,
   getAccessToken,
   getConnectedUserId,
+  getIsPro,
   getPendingConnection,
   setAccessToken,
   setConnectedUserId,
+  setIsPro,
   setPendingConnection,
 } from "./storage";
 
-export { getAccessToken, getPendingConnection, clearPendingConnection };
+export { getAccessToken, getConnectedUserId, getIsPro, getPendingConnection, clearPendingConnection };
 
 export async function connectWithAccessToken(token: string): Promise<void> {
   await setAccessToken(token);
@@ -171,7 +173,49 @@ async function exchangeConnection(
   await setAccessToken(response.extensionToken);
   const userId = typeof response.userId === "string" ? response.userId : "";
   await setConnectedUserId(userId);
+  if (typeof response.isPro === "boolean") {
+    await setIsPro(response.isPro);
+  } else {
+    // If not returned directly, check entitlement
+    void checkProEntitlement();
+  }
   return userId;
+}
+
+export async function checkProEntitlement(): Promise<boolean> {
+  const token = await getAccessToken();
+  const connectionEndpoint = getConnectionEndpoint();
+  if (!token || !connectionEndpoint) {
+    return false;
+  }
+
+  try {
+    const response = await fetch(connectionEndpoint, {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${token}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ action: "entitlement" }),
+    });
+
+    if (!response.ok) {
+      return false;
+    }
+
+    const data = (await response.json()) as { isPro?: unknown };
+    const isPro = data?.isPro === true;
+    await setIsPro(isPro);
+    return isPro;
+  } catch {
+    const cached = await getIsPro();
+    return cached === true;
+  }
+}
+
+export function getProUpgradeUrl(): string {
+  const webUrl = import.meta.env.VITE_LATERBOX_WEB_URL || "https://laterbox.dev";
+  return `${webUrl.replace(/\/$/, "")}/pricing?checkout=true&source=extension`;
 }
 
 function createConnectCredentials(): { requestId: string; requestSecret: string } {
