@@ -203,7 +203,16 @@ jobs:
           fi
           
           # 2. Create PKG Installer (Product Archive format for macOS & App Store Connect)
-          productbuild --component "$APP_PATH" /Applications dist/laterbox-macos-installer.pkg || true
+          INSTALLER_IDENTITY=""
+          if [ -n "$APPLE_CERTIFICATE_BASE64" ] && [ -f "$KEYCHAIN_PATH" ]; then
+            INSTALLER_IDENTITY=$(security find-identity -v "$KEYCHAIN_PATH" 2>/dev/null | grep -E "3rd Party Mac Developer Installer|Apple Distribution|Developer ID Installer" | head -n 1 | sed 's/.*"\(.*\)".*/\1/' || true)
+          fi
+          if [ -n "$INSTALLER_IDENTITY" ]; then
+            echo "Signing installer PKG with: $INSTALLER_IDENTITY"
+            productbuild --sign "$INSTALLER_IDENTITY" --component "$APP_PATH" /Applications dist/laterbox-macos-installer.pkg || productbuild --component "$APP_PATH" /Applications dist/laterbox-macos-installer.pkg || true
+          else
+            productbuild --component "$APP_PATH" /Applications dist/laterbox-macos-installer.pkg || true
+          fi
           cp dist/laterbox-macos-installer.pkg dist/laterbox-macos.pkg 2>/dev/null || true
           
           # 3. Create Universal Zip (Sparkle delta-friendly, sequesterRsrc keeps extended attrs)
@@ -224,6 +233,7 @@ jobs:
             fi
           fi
         env:
+          KEYCHAIN_PATH: ${{ runner.temp }}/build.keychain
           APPLE_CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
@@ -245,6 +255,42 @@ jobs:
             dist/laterbox-macos.zip
             dist/appcast.xml
           if-no-files-found: error
+
+      - name: Upload to Mac App Store Connect / TestFlight
+        if: env.APP_STORE_CONNECT_API_KEY_BASE64 != '' && env.APP_STORE_CONNECT_KEY_ID != ''
+        shell: bash
+        run: |
+          mkdir -p ~/.appstoreconnect/private_keys
+          echo "$APP_STORE_CONNECT_API_KEY_BASE64" | base64 --decode > ~/.appstoreconnect/private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8
+
+          PKG_PATH="dist/laterbox-macos.pkg"
+          if [ ! -f "$PKG_PATH" ]; then
+            PKG_PATH=$(find dist -name "*macos*.pkg" -o -name "*.pkg" 2>/dev/null | head -n 1)
+          fi
+
+          if [ -f "$PKG_PATH" ]; then
+            echo "Uploading $PKG_PATH to Mac App Store Connect / TestFlight..."
+            xcrun altool --upload-app \
+              -f "$PKG_PATH" \
+              -t macos \
+              --apiKey "${{ secrets.APP_STORE_CONNECT_KEY_ID }}" \
+              --apiIssuer "${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}" || \
+            xcrun altool --upload-package \
+              "$PKG_PATH" \
+              --apiKey "${{ secrets.APP_STORE_CONNECT_KEY_ID }}" \
+              --apiIssuer "${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}" || \
+            xcrun altool --upload-app \
+              -f "$PKG_PATH" \
+              -t osx \
+              --apiKey "${{ secrets.APP_STORE_CONNECT_KEY_ID }}" \
+              --apiIssuer "${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}" || true
+          else
+            echo "macOS PKG not found, skipping Mac App Store upload."
+          fi
+        env:
+          APP_STORE_CONNECT_API_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_API_KEY_BASE64 }}
+          APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
 
   build-windows:
     name: Build Windows Release & Installer
