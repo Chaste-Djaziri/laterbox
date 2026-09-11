@@ -121,6 +121,72 @@ Deno.test("status rejects an unknown connection request", async () => {
   assertEquals(response.status, 404);
 });
 
+Deno.test("entitlement requires valid extension token", async () => {
+  const handler = createConnectionHandler({
+    supabaseUrl: "https://project.supabase.co",
+    serviceRoleKey: "service-role-key",
+  });
+
+  const response = await handler(
+    new Request("https://example.test/extension-connect", {
+      method: "POST",
+      body: JSON.stringify({ action: "entitlement" }),
+    }),
+  );
+
+  assertEquals(response.status, 401);
+});
+
+Deno.test("entitlement returns isPro status for valid session", async () => {
+  const testToken = "lb_ext_0123456789abcdef0123456789abcdef";
+  let proAccess = false;
+  const handler = createConnectionHandler({
+    supabaseUrl: "https://project.supabase.co",
+    serviceRoleKey: "service-role-key",
+    hasProAccess: async (userId: string) => userId === "user-pro" && proAccess,
+    fetch: async (input: string | URL | Request) => {
+      const url =
+        typeof input === "string"
+          ? input
+          : input instanceof URL
+            ? input.toString()
+            : input.url;
+      if (url.includes("/rest/v1/extension_sessions?token_hash=")) {
+        return Response.json([
+          {
+            user_id: "user-pro",
+            expires_at: new Date(Date.now() + 60_000).toISOString(),
+          },
+        ]);
+      }
+      return Response.json({}, { status: 500 });
+    },
+  });
+
+  // Test when hasProAccess is false
+  const res1 = await handler(
+    new Request("https://example.test/extension-connect", {
+      method: "POST",
+      headers: { authorization: `Bearer ${testToken}` },
+      body: JSON.stringify({ action: "entitlement" }),
+    }),
+  );
+  assertEquals(res1.status, 200);
+  assertEquals(await res1.json(), { isPro: false, userId: "user-pro" });
+
+  // Test when hasProAccess is true
+  proAccess = true;
+  const res2 = await handler(
+    new Request("https://example.test/extension-connect", {
+      method: "POST",
+      headers: { authorization: `Bearer ${testToken}` },
+      body: JSON.stringify({ action: "entitlement" }),
+    }),
+  );
+  assertEquals(res2.status, 200);
+  assertEquals(await res2.json(), { isPro: true, userId: "user-pro" });
+});
+
 async function sha256Hex(value: string): Promise<string> {
   const bytes = new TextEncoder().encode(value);
   const digest = await crypto.subtle.digest("SHA-256", bytes);
