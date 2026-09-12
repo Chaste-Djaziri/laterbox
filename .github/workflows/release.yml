@@ -379,7 +379,11 @@ jobs:
           fi
 
           profile_bundle_id() {
-            security cms -D -i "$1" | plutil -extract Entitlements.com.apple.application-identifier raw - | sed 's/^[^.]*\.//'
+            local profile_plist
+            profile_plist=$(mktemp)
+            security cms -D -i "$1" > "$profile_plist"
+            /usr/libexec/PlistBuddy -c 'Print :Entitlements:com.apple.application-identifier' "$profile_plist" | sed 's/^[^.]*\.//'
+            rm -f "$profile_plist"
           }
 
           test "$(profile_bundle_id "$APPSTORE_APP/Contents/embedded.provisionprofile")" = "pro.micorp.laterbox"
