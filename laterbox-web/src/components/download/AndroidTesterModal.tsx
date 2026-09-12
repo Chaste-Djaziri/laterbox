@@ -65,21 +65,31 @@ export function AndroidTesterModal({
                   Ready to install LaterBox!
                 </h4>
                 <p className="text-xs text-[#6c6b63] leading-relaxed">
-                  Join the testing program with the same Google account you use on your Android device, then install LaterBox from Google Play.
+                  First join the tester group with the Google account on your Android device. Then open Google Play with that same account to install LaterBox.
                 </p>
               </div>
           </div>
 
           <div className="space-y-3">
               <a
-                href="https://play.google.com/apps/testing/pro.micorp.laterbox"
+                href="https://groups.google.com/g/laterbox-testers"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-full inline-flex items-center justify-center gap-2.5 px-5 py-3.5 rounded-2xl bg-[#171711] hover:bg-[#282723] active:bg-[#0f0f0e] text-white text-sm font-extrabold shadow-md transition-all group cursor-pointer"
               >
                 <Smartphone className="w-4 h-4 text-[#E7FF57]" />
-                <span>Join Android Testers on Google Play</span>
+                <span>1. Join the Tester Group</span>
                 <ExternalLink className="w-4 h-4 text-white/70 group-hover:translate-x-0.5 transition-transform" />
+              </a>
+              <a
+                href="https://play.google.com/store/apps/details?id=pro.micorp.laterbox"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full inline-flex items-center justify-center gap-2.5 px-5 py-3.5 rounded-2xl border border-[#171711] hover:bg-[#ebe7dc] text-[#171711] text-sm font-extrabold transition-all group cursor-pointer"
+              >
+                <Download className="w-4 h-4" />
+                <span>2. Download from Google Play</span>
+                <ExternalLink className="w-4 h-4 text-[#6c6b63] group-hover:translate-x-0.5 transition-transform" />
               </a>
           </div>
 
