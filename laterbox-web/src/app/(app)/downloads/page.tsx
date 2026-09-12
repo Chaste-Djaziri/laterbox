@@ -223,7 +223,9 @@ export default function InAppDownloadsPage() {
         <div>
           <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-[#ebe7dc] dark:bg-[#282723] text-xs font-semibold text-[#6c6b63] dark:text-[#a09e94] mb-2">
             <Sparkles className="w-3.5 h-3.5 text-amber-600" />
-            <span>Official Native Clients • v{latestVersionTag}</span>
+            <span>
+              Official Native Clients{latestVersionTag ? ` • v${latestVersionTag}` : ''}
+            </span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-[#171711] dark:text-[#f4f2ea] tracking-tight">
             Apps & Downloads
