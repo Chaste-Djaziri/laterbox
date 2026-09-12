@@ -885,10 +885,14 @@ jobs:
 
       - name: Build Safari Container Application (macOS)
         run: |
+          VERSION=$(node -p "require('./version.json').version")
+          BUILD_NUM=$(node -p "require('./version.json').build_number")
           xcodebuild -project safari_app/laterbox/laterbox.xcodeproj \
             -scheme "laterbox (macOS)" \
             -configuration Release \
             -derivedDataPath build/safari_macos \
+            MARKETING_VERSION="$VERSION" \
+            CURRENT_PROJECT_VERSION="$BUILD_NUM" \
             CODE_SIGN_IDENTITY="-" \
             CODE_SIGN_STYLE="Manual" \
             CODE_SIGNING_REQUIRED=NO \
