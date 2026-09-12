@@ -176,38 +176,6 @@ export async function GET(
       });
     }
 
-    // Fallback tag check
-    const fallbackUrl = `https://github.com/${GITHUB_REPO}/releases/download/v1.0.17/${filename}`;
-    const fallbackRes = await fetch(fallbackUrl, {
-      headers: {
-        ...authHeader,
-        'Accept': 'application/octet-stream',
-      },
-      redirect: 'follow',
-    });
-
-    if (fallbackRes.ok && fallbackRes.body) {
-      const mimeType = getMimeType(filename);
-      const resHeaders = new Headers({
-        'Content-Type': mimeType,
-        'Content-Disposition': `attachment; filename="${filename}"`,
-        'Content-Transfer-Encoding': 'binary',
-        'X-Content-Type-Options': 'nosniff',
-        'Cache-Control': 'public, max-age=3600, s-maxage=3600',
-        'Access-Control-Allow-Origin': '*',
-      });
-
-      const contentLength = fallbackRes.headers.get('content-length');
-      if (contentLength) {
-        resHeaders.set('Content-Length', contentLength);
-      }
-
-      return new NextResponse(fallbackRes.body as any, {
-        status: 200,
-        headers: resHeaders,
-      });
-    }
-
     return new NextResponse(`File not found: ${filename}`, { status: 404 });
   } catch (error) {
     console.error(`Direct stream failed for ${filename}:`, error);
