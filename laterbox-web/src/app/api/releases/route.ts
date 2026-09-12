@@ -48,6 +48,7 @@ export async function GET(request: NextRequest) {
         html_url?: string;
         published_at: string;
         assets: Array<{
+          id?: number;
           name: string;
           size: number;
           browser_download_url: string;
@@ -72,7 +73,9 @@ export async function GET(request: NextRequest) {
             assets: (rel.assets || []).map((asset) => ({
               name: asset.name,
               size: asset.size,
-              browser_download_url: `/api/download/${encodeURIComponent(asset.name)}`,
+              browser_download_url: asset.id
+                ? `/api/download/${encodeURIComponent(asset.name)}?assetId=${asset.id}`
+                : `/api/download/${encodeURIComponent(asset.name)}`,
             })),
           }));
 
