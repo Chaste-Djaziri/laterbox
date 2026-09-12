@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { defineConfig } from "vite";
+import { defineConfig, build } from "vite";
 
 const rootDir = dirname(fileURLToPath(import.meta.url));
 const browserTarget = process.env.BROWSER ?? "chromium";
@@ -22,6 +22,26 @@ export default defineConfig({
         });
       },
     },
+    {
+      name: "build-background-script",
+      async closeBundle() {
+        await build({
+          configFile: false,
+          publicDir: false,
+          build: {
+            outDir: resolve(rootDir, `dist/${browserTarget}`),
+            emptyOutDir: false,
+            modulePreload: false,
+            lib: {
+              entry: resolve(rootDir, "src/background/service-worker.ts"),
+              name: "LaterBoxBackground",
+              formats: ["iife"],
+              fileName: () => "background.js",
+            },
+          },
+        });
+      },
+    },
   ],
   build: {
     outDir: `dist/${browserTarget}`,
@@ -30,7 +50,6 @@ export default defineConfig({
     rollupOptions: {
       input: {
         popup: resolve(rootDir, "src/popup/popup.html"),
-        background: resolve(rootDir, "src/background/service-worker.ts"),
         sidepanel: resolve(rootDir, "src/sidepanel/sidepanel.html"),
       },
       output: {
