@@ -55,6 +55,7 @@ function formatBytes(bytes?: number): string {
 }
 
 interface ReleaseAsset {
+  id?: number;
   name: string;
   browser_download_url: string;
   size?: number;
@@ -120,9 +121,12 @@ export default function InAppDownloadsPage() {
                 html_url: rel.html_url || `https://github.com/Chaste-Djaziri/laterbox/releases/tag/${rel.tag_name}`,
                 published_at: rel.published_at,
                 assets: (rel.assets || []).map((a) => ({
+                  id: a.id,
                   name: a.name,
                   size: a.size,
-                  browser_download_url: `/api/download/${encodeURIComponent(a.name)}`,
+                  browser_download_url: a.id
+                    ? `/api/download/${encodeURIComponent(a.name)}?assetId=${a.id}`
+                    : `/api/download/${encodeURIComponent(a.name)}`,
                 })),
               }));
               setReleases(mapped);
