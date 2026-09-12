@@ -107,7 +107,7 @@ jobs:
         run: flutter pub get
 
       - name: Install Apple Certificates & Provisioning Profiles
-        if: env.APPLE_CERTIFICATE_BASE64 != '' || env.APPLE_INSTALLER_CERTIFICATE_BASE64 != ''
+        if: secrets.APPLE_CERTIFICATE_BASE64 != '' || secrets.APPLE_INSTALLER_CERTIFICATE_BASE64 != ''
         shell: bash
         run: |
           KEYCHAIN_PATH=$RUNNER_TEMP/build.keychain
@@ -185,7 +185,7 @@ jobs:
             build
 
       - name: Notarize DMG (when Developer ID available)
-        if: env.APPLE_ID != '' && env.APPLE_APP_SPECIFIC_PASSWORD != '' && env.APPLE_TEAM_ID != ''
+        if: secrets.APPLE_ID != '' && secrets.APPLE_APP_SPECIFIC_PASSWORD != '' && secrets.APPLE_TEAM_ID != ''
         shell: bash
         run: |
           echo "Notarization will run after DMG creation via notarytool"
@@ -380,7 +380,7 @@ jobs:
           if-no-files-found: error
 
       - name: Upload to Mac App Store Connect / TestFlight
-        if: env.APP_STORE_CONNECT_API_KEY_BASE64 != '' && env.APP_STORE_CONNECT_KEY_ID != ''
+        if: secrets.APP_STORE_CONNECT_API_KEY_BASE64 != '' && secrets.APP_STORE_CONNECT_KEY_ID != ''
         shell: bash
         run: |
           KEYCHAIN_PATH=$RUNNER_TEMP/build.keychain
@@ -793,6 +793,158 @@ jobs:
             dist/laterbox-safari-extension.zip
           if-no-files-found: error
 
+  build-safari-app:
+    name: Build & Submit Safari Extension Container (macOS)
+    needs: check-version
+    if: needs.check-version.outputs.should_release == 'true'
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+          cache-dependency-path: extension/package-lock.json
+
+      - name: Build Safari Extension Web Assets
+        run: |
+          cd extension
+          npm ci
+          npm run build:safari
+          mkdir -p "../safari_app/laterbox/Shared (Extension)"
+          cp -R dist/safari/* "../safari_app/laterbox/Shared (Extension)/"
+
+      - name: Install Apple Certificates & Keychains
+        if: secrets.APPLE_CERTIFICATE_BASE64 != '' || secrets.APPLE_INSTALLER_CERTIFICATE_BASE64 != ''
+        shell: bash
+        run: |
+          KEYCHAIN_PATH=$RUNNER_TEMP/build.keychain
+          KEYCHAIN_PASSWORD=$(openssl rand -base64 12)
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security default-keychain -s "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+
+          if [ -n "$APPLE_CERTIFICATE_BASE64" ]; then
+            echo "$APPLE_CERTIFICATE_BASE64" | base64 --decode > $RUNNER_TEMP/cert.p12
+            security import $RUNNER_TEMP/cert.p12 -k "$KEYCHAIN_PATH" -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign -T /usr/bin/security -T /usr/bin/productbuild
+          fi
+
+          if [ -n "$APPLE_INSTALLER_CERTIFICATE_BASE64" ]; then
+            INSTALLER_PWD="${APPLE_INSTALLER_CERTIFICATE_PASSWORD:-$APPLE_CERTIFICATE_PASSWORD}"
+            echo "$APPLE_INSTALLER_CERTIFICATE_BASE64" | base64 --decode > $RUNNER_TEMP/installer_cert.p12
+            security import $RUNNER_TEMP/installer_cert.p12 -k "$KEYCHAIN_PATH" -P "$INSTALLER_PWD" -T /usr/bin/codesign -T /usr/bin/security -T /usr/bin/productbuild
+          fi
+
+          security set-key-partition-list -S apple-tool:,apple:,codesign:,productbuild: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+        env:
+          APPLE_CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_INSTALLER_CERTIFICATE_BASE64: ${{ secrets.APPLE_INSTALLER_CERTIFICATE_BASE64 }}
+          APPLE_INSTALLER_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_INSTALLER_CERTIFICATE_PASSWORD }}
+
+      - name: Build Safari Container Application (macOS)
+        run: |
+          xcodebuild -project safari_app/laterbox/laterbox.xcodeproj \
+            -scheme "laterbox (macOS)" \
+            -configuration Release \
+            -derivedDataPath build/safari_macos \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGN_STYLE="Manual" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            -destination 'generic/platform=macOS' \
+            build
+
+      - name: Package Safari Extension macOS App & PKG
+        shell: bash
+        run: |
+          mkdir -p dist
+          APP_PATH=$(find build/safari_macos -name "laterbox.app" -type d | head -n 1)
+          if [ -z "$APP_PATH" ]; then
+            APP_PATH=$(find ~/Library/Developer/Xcode/DerivedData -name "laterbox.app" -type d | head -n 1)
+          fi
+
+          echo "Packaging Safari Container from: $APP_PATH"
+
+          KEYCHAIN_PATH="$RUNNER_TEMP/build.keychain"
+          MAC_APP_IDENTITY=""
+          MAC_INSTALLER_IDENTITY=""
+          if [ -f "$KEYCHAIN_PATH" ]; then
+            MAC_APP_IDENTITY=$(security find-identity -v "$KEYCHAIN_PATH" 2>/dev/null | grep -E "3rd Party Mac Developer Application|Apple Distribution|Developer ID Application|Apple Development" | head -n 1 | sed 's/.*"\(.*\)".*/\1/' || true)
+            MAC_INSTALLER_IDENTITY=$(security find-identity -v "$KEYCHAIN_PATH" 2>/dev/null | grep -E "3rd Party Mac Developer Installer" | head -n 1 | sed 's/.*"\(.*\)".*/\1/' || true)
+          fi
+
+          SIGN_IDENTITY="${MAC_APP_IDENTITY:--}"
+          SIGN_OPTS="--force"
+          if [ "$SIGN_IDENTITY" != "-" ]; then
+            SIGN_OPTS="--force --timestamp --options runtime"
+          fi
+
+          # Sign embedded Safari extension appex first
+          EXT_PATH="$APP_PATH/Contents/PlugIns/laterbox Extension.appex"
+          if [ -d "$EXT_PATH" ]; then
+            codesign $SIGN_OPTS --sign "$SIGN_IDENTITY" "$EXT_PATH" || true
+          fi
+
+          # Sign container app
+          codesign $SIGN_OPTS --sign "$SIGN_IDENTITY" "$APP_PATH" || true
+
+          # Create Universal Zip
+          ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" dist/laterbox-safari-extension-macos.zip
+
+          # Create PKG installer
+          if [ -n "$MAC_INSTALLER_IDENTITY" ]; then
+            echo "Signing Safari package with: $MAC_INSTALLER_IDENTITY"
+            productbuild --sign "$MAC_INSTALLER_IDENTITY" --component "$APP_PATH" /Applications dist/laterbox-safari-extension.pkg
+          else
+            echo "Creating unsigned Safari package"
+            productbuild --component "$APP_PATH" /Applications dist/laterbox-safari-extension.pkg || true
+          fi
+
+      - name: Upload Safari App Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: laterbox-safari-app-dist
+          path: |
+            dist/laterbox-safari-extension.pkg
+            dist/laterbox-safari-extension-macos.zip
+          if-no-files-found: warn
+
+      - name: Upload Safari Extension to Mac App Store Connect / TestFlight
+        if: secrets.APP_STORE_CONNECT_API_KEY_BASE64 != '' && secrets.APP_STORE_CONNECT_KEY_ID != ''
+        shell: bash
+        run: |
+          KEYCHAIN_PATH=$RUNNER_TEMP/build.keychain
+          MAC_INSTALLER_IDENTITY=""
+          if [ -f "$KEYCHAIN_PATH" ]; then
+            MAC_INSTALLER_IDENTITY=$(security find-identity -v "$KEYCHAIN_PATH" 2>/dev/null | grep -E "3rd Party Mac Developer Installer" | head -n 1 | sed 's/.*"\(.*\)".*/\1/' || true)
+          fi
+
+          PKG_PATH="dist/laterbox-safari-extension.pkg"
+          if [ ! -f "$PKG_PATH" ] || [ -z "$MAC_INSTALLER_IDENTITY" ]; then
+            echo "::notice::Skipping Safari Extension App Store upload (requires 3rd Party Mac Developer Installer certificate and registered App Store Connect app for pro.micorp.laterbox.safari)."
+            exit 0
+          fi
+
+          mkdir -p ~/.appstoreconnect/private_keys
+          echo "$APP_STORE_CONNECT_API_KEY_BASE64" | base64 --decode > ~/.appstoreconnect/private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8
+
+          echo "Submitting Safari Extension package to Mac App Store Connect..."
+          xcrun altool --upload-app \
+            -f "$PKG_PATH" \
+            -t macos \
+            --apiKey "${{ secrets.APP_STORE_CONNECT_KEY_ID }}" \
+            --apiIssuer "${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}" || true
+        env:
+          APP_STORE_CONNECT_API_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_API_KEY_BASE64 }}
+          APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+
   build-and-deploy-web:
     name: Build & Deploy Web to Cloudflare
     needs: check-version
@@ -832,7 +984,7 @@ jobs:
           NEXT_PUBLIC_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Deploy Next.js Web to Cloudflare Workers / Pages
-        if: env.CLOUDFLARE_API_TOKEN != ''
+        if: secrets.CLOUDFLARE_API_TOKEN != ''
         run: |
           cd laterbox-web
           echo "${{ secrets.GITHUB_TOKEN }}" | npx wrangler secret put GITHUB_TOKEN || true
@@ -854,7 +1006,7 @@ jobs:
 
   create-release:
     name: Publish GitHub Release
-    needs: [check-version, build-macos, build-windows, build-linux, build-android, build-ios, build-extension, build-and-deploy-web]
+    needs: [check-version, build-macos, build-windows, build-linux, build-android, build-ios, build-extension, build-safari-app, build-and-deploy-web]
     if: always() && !cancelled() && needs.check-version.outputs.should_release == 'true'
     runs-on: ubuntu-latest
 
@@ -902,6 +1054,13 @@ jobs:
         continue-on-error: true
         with:
           name: laterbox-extension-dist
+          path: dist
+
+      - name: Download Safari App Artifacts
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: laterbox-safari-app-dist
           path: dist
 
       - name: Determine Release Tag
