@@ -60,10 +60,46 @@ export async function GET(
         'User-Agent': 'LaterBox-Direct-Downloader/1.0',
       }
     : {
-        'User-Agent': 'LaterBox-Direct-Downloader/1.0',
-      };
+      'User-Agent': 'LaterBox-Direct-Downloader/1.0',
+    };
+  const requestedAssetId = Number(request.nextUrl.searchParams.get('assetId'));
 
   try {
+    // A release-history link includes the immutable GitHub asset ID, so it
+    // always downloads the file from that exact release rather than a newer
+    // asset with the same filename.
+    if (Number.isSafeInteger(requestedAssetId) && requestedAssetId > 0) {
+      const assetDownloadRes = await fetch(
+        `https://api.github.com/repos/${GITHUB_REPO}/releases/assets/${requestedAssetId}`,
+        {
+          headers: {
+            ...authHeader,
+            'Accept': 'application/octet-stream',
+          },
+          redirect: 'manual',
+        }
+      );
+
+      const signedLocation = assetDownloadRes.headers.get('location');
+      if (signedLocation) {
+        return NextResponse.redirect(signedLocation, { status: 302 });
+      }
+
+      if (assetDownloadRes.ok && assetDownloadRes.body) {
+        return new NextResponse(assetDownloadRes.body as any, {
+          status: 200,
+          headers: {
+            'Content-Type': getMimeType(filename),
+            'Content-Disposition': `attachment; filename="${filename}"`,
+            'X-Content-Type-Options': 'nosniff',
+            'Cache-Control': 'public, max-age=3600, s-maxage=3600',
+          },
+        });
+      }
+
+      return new NextResponse(`File not found: ${filename}`, { status: 404 });
+    }
+
     // 1. If token is available, resolve asset via GitHub Release API for direct binary access
     if (token) {
       try {
