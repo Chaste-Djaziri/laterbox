@@ -639,7 +639,7 @@ export default function InAppDownloadsPage() {
                 >
                   <span className="flex items-center gap-2">
                     <Sparkles className="w-4 h-4 text-emerald-400" />
-                    <span>Join Android Testers on Google Play</span>
+                    <span>Join Android Testers</span>
                   </span>
                   <ArrowRight className="w-4 h-4" />
                 </button>
@@ -682,19 +682,28 @@ export default function InAppDownloadsPage() {
 
             <div className="p-6 rounded-2xl bg-[#ebe7dc]/40 dark:bg-[#1a1a15] border border-[#e5e0d3] dark:border-[#2e2d27] space-y-4">
               <h4 className="text-xs font-bold uppercase tracking-wider text-[#6c6b63] dark:text-[#a09e94]">
-                Google Play Closed Testing Track
+                Android closed testing
               </h4>
               <p className="text-xs text-[#6c6b63] dark:text-[#a09e94] leading-relaxed">
-                Join the official Google Play testing track to receive automatic updates directly from the Play Store without manual APK installs.
+                Join the tester group first, then download LaterBox from Google Play with the same Google account.
               </p>
               <div className="space-y-2">
                 <a
-                  href="https://play.google.com/apps/testing/pro.micorp.laterbox"
+                  href="https://groups.google.com/g/laterbox-testers"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#171711] dark:bg-[#383731] text-white font-bold text-xs hover:bg-[#282723] transition-colors"
                 >
-                  <span>Join Android Testers on Google Play</span>
+                  <span>1. Join the Tester Group</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+                <a
+                  href="https://play.google.com/store/apps/details?id=pro.micorp.laterbox"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-[#171711] text-[#171711] dark:text-[#f4f2ea] font-bold text-xs hover:bg-[#ebe7dc] dark:hover:bg-[#383731] transition-colors"
+                >
+                  <span>2. Download from Google Play</span>
                   <ExternalLink className="w-3.5 h-3.5" />
                 </a>
               </div>
