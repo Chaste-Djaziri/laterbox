@@ -386,9 +386,20 @@ jobs:
             rm -f "$profile_plist"
           }
 
-          test "$(profile_bundle_id "$APPSTORE_APP/Contents/embedded.provisionprofile")" = "pro.micorp.laterbox"
-          test "$(profile_bundle_id "$APPSTORE_APP/Contents/PlugIns/ShareExtension.appex/Contents/embedded.provisionprofile")" = "pro.micorp.laterbox.ShareExtension"
-          test "$(profile_bundle_id "$APPSTORE_APP/Contents/PlugIns/SafariExtension.appex/Contents/embedded.provisionprofile")" = "pro.micorp.laterbox.SafariExtension"
+          require_profile_bundle_id() {
+            local profile_path="$1"
+            local expected_bundle_id="$2"
+            local actual_bundle_id
+            actual_bundle_id=$(profile_bundle_id "$profile_path")
+            if [ "$actual_bundle_id" != "$expected_bundle_id" ]; then
+              echo "::error::Provisioning profile bundle ID mismatch. Expected $expected_bundle_id, received $actual_bundle_id."
+              exit 1
+            fi
+          }
+
+          require_profile_bundle_id "$APPSTORE_APP/Contents/embedded.provisionprofile" "pro.micorp.laterbox"
+          require_profile_bundle_id "$APPSTORE_APP/Contents/PlugIns/ShareExtension.appex/Contents/embedded.provisionprofile" "pro.micorp.laterbox.ShareExtension"
+          require_profile_bundle_id "$APPSTORE_APP/Contents/PlugIns/SafariExtension.appex/Contents/embedded.provisionprofile" "pro.micorp.laterbox.SafariExtension"
           /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APPSTORE_APP/Contents/Info.plist" | grep -qx 'pro.micorp.laterbox'
           /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APPSTORE_APP/Contents/PlugIns/ShareExtension.appex/Contents/Info.plist" | grep -qx 'pro.micorp.laterbox.ShareExtension'
           /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APPSTORE_APP/Contents/PlugIns/SafariExtension.appex/Contents/Info.plist" | grep -qx 'pro.micorp.laterbox.SafariExtension'
