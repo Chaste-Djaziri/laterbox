@@ -43,6 +43,7 @@ export async function GET(request: NextRequest) {
         id?: number;
         tag_name: string;
         name?: string;
+        draft?: boolean;
         body?: string;
         html_url?: string;
         published_at: string;
@@ -53,9 +54,13 @@ export async function GET(request: NextRequest) {
         }>;
       }>;
 
-      if (Array.isArray(releases) && releases.length > 0) {
+      const publishedReleases = Array.isArray(releases)
+        ? releases.filter((release) => !release.draft)
+        : [];
+
+      if (Array.isArray(publishedReleases) && publishedReleases.length > 0) {
         // Transform all asset download URLs to use the internal laterbox.dev proxy
-        const transformedReleases = releases.map((rel) => ({
+        const transformedReleases = publishedReleases.map((rel) => ({
           id: rel.id,
           tag_name: rel.tag_name,
           name: rel.name || rel.tag_name,
