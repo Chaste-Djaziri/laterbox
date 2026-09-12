@@ -535,7 +535,7 @@ export default function DownloadPage() {
                   className="inline-flex items-center gap-2.5 px-6 py-3 rounded-full bg-[#171711] hover:bg-[#282723] text-white text-xs font-extrabold shadow-sm hover:shadow-md transition-all cursor-pointer group"
                 >
                   <Smartphone className="w-4 h-4 text-[#E7FF57]" />
-                  <span>Google Play Closed Beta (Recommended)</span>
+                  <span>Join Android Testers (Recommended)</span>
                   <ArrowRight className="w-3.5 h-3.5 text-white/70 group-hover:translate-x-0.5 transition-transform" />
                 </button>
 
@@ -561,7 +561,7 @@ export default function DownloadPage() {
 
               <div className="text-[11px] text-[#6c6b63]">
                 <p className="font-semibold text-[#171711]">Minimum Requirements</p>
-                <p>Android 8.0 (Oreo) or later • Google Play Closed Beta testing group or direct APK sideload</p>
+                <p>Android 8.0 (Oreo) or later • Join the tester group, then install from Google Play or sideload an APK</p>
               </div>
             </div>
           )}
