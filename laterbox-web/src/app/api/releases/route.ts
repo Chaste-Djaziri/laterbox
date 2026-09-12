@@ -60,7 +60,9 @@ export async function GET(request: NextRequest) {
 
       if (Array.isArray(publishedReleases) && publishedReleases.length > 0) {
         // Transform all asset download URLs to use the internal laterbox.dev proxy
-        const transformedReleases = publishedReleases.map((rel) => ({
+        const transformedReleases = publishedReleases
+          .sort((a, b) => Date.parse(b.published_at) - Date.parse(a.published_at))
+          .map((rel) => ({
           id: rel.id,
           tag_name: rel.tag_name,
           name: rel.name || rel.tag_name,
@@ -71,7 +73,7 @@ export async function GET(request: NextRequest) {
             name: asset.name,
             size: asset.size,
             browser_download_url: `/api/download/${encodeURIComponent(asset.name)}`,
-          })),
+          }));
         }));
 
         return NextResponse.json(transformedReleases, {
