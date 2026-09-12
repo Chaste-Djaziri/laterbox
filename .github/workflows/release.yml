@@ -820,6 +820,7 @@ jobs:
       APPLE_INSTALLER_CERTIFICATE_BASE64: ${{ secrets.APPLE_INSTALLER_CERTIFICATE_BASE64 }}
       APPLE_INSTALLER_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_INSTALLER_CERTIFICATE_PASSWORD }}
       APPLE_SAFARI_MAC_PROVISIONING_PROFILE_BASE64: ${{ secrets.APPLE_SAFARI_MAC_PROVISIONING_PROFILE_BASE64 }}
+      APPLE_SAFARI_EXT_PROVISIONING_PROFILE_BASE64: ${{ secrets.APPLE_SAFARI_EXT_PROVISIONING_PROFILE_BASE64 }}
       APP_STORE_CONNECT_API_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_API_KEY_BASE64 }}
       APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
       APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
@@ -867,9 +868,12 @@ jobs:
 
           security set-key-partition-list -S apple-tool:,apple:,codesign:,productbuild: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
 
-          # Decode Safari Provisioning Profile if provided
+          # Decode Safari Provisioning Profiles if provided
           if [ -n "$APPLE_SAFARI_MAC_PROVISIONING_PROFILE_BASE64" ]; then
             echo "$APPLE_SAFARI_MAC_PROVISIONING_PROFILE_BASE64" | base64 --decode > /tmp/safari_main.provisionprofile
+          fi
+          if [ -n "$APPLE_SAFARI_EXT_PROVISIONING_PROFILE_BASE64" ]; then
+            echo "$APPLE_SAFARI_EXT_PROVISIONING_PROFILE_BASE64" | base64 --decode > /tmp/safari_ext.provisionprofile
           fi
         env:
           APPLE_CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
@@ -877,6 +881,7 @@ jobs:
           APPLE_INSTALLER_CERTIFICATE_BASE64: ${{ secrets.APPLE_INSTALLER_CERTIFICATE_BASE64 }}
           APPLE_INSTALLER_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_INSTALLER_CERTIFICATE_PASSWORD }}
           APPLE_SAFARI_MAC_PROVISIONING_PROFILE_BASE64: ${{ secrets.APPLE_SAFARI_MAC_PROVISIONING_PROFILE_BASE64 }}
+          APPLE_SAFARI_EXT_PROVISIONING_PROFILE_BASE64: ${{ secrets.APPLE_SAFARI_EXT_PROVISIONING_PROFILE_BASE64 }}
 
       - name: Build Safari Container Application (macOS)
         run: |
@@ -906,6 +911,14 @@ jobs:
           if [ -f /tmp/safari_main.provisionprofile ]; then
             echo "Embedding provisioning profile into Safari container app..."
             cp /tmp/safari_main.provisionprofile "$APP_PATH/Contents/embedded.provisionprofile"
+          fi
+
+          EXT_PATH="$APP_PATH/Contents/PlugIns/laterbox Extension.appex"
+
+          # Embed provisioning profile into extension if available
+          if [ -f /tmp/safari_ext.provisionprofile ] && [ -d "$EXT_PATH" ]; then
+            echo "Embedding provisioning profile into Safari extension..."
+            cp /tmp/safari_ext.provisionprofile "$EXT_PATH/Contents/embedded.provisionprofile"
           fi
 
           KEYCHAIN_PATH="$RUNNER_TEMP/build.keychain"
