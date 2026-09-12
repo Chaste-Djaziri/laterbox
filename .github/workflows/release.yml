@@ -819,6 +819,7 @@ jobs:
       APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
       APPLE_INSTALLER_CERTIFICATE_BASE64: ${{ secrets.APPLE_INSTALLER_CERTIFICATE_BASE64 }}
       APPLE_INSTALLER_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_INSTALLER_CERTIFICATE_PASSWORD }}
+      APPLE_SAFARI_MAC_PROVISIONING_PROFILE_BASE64: ${{ secrets.APPLE_SAFARI_MAC_PROVISIONING_PROFILE_BASE64 }}
       APP_STORE_CONNECT_API_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_API_KEY_BASE64 }}
       APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
       APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
@@ -865,11 +866,17 @@ jobs:
           fi
 
           security set-key-partition-list -S apple-tool:,apple:,codesign:,productbuild: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+          # Decode Safari Provisioning Profile if provided
+          if [ -n "$APPLE_SAFARI_MAC_PROVISIONING_PROFILE_BASE64" ]; then
+            echo "$APPLE_SAFARI_MAC_PROVISIONING_PROFILE_BASE64" | base64 --decode > /tmp/safari_main.provisionprofile
+          fi
         env:
           APPLE_CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
           APPLE_INSTALLER_CERTIFICATE_BASE64: ${{ secrets.APPLE_INSTALLER_CERTIFICATE_BASE64 }}
           APPLE_INSTALLER_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_INSTALLER_CERTIFICATE_PASSWORD }}
+          APPLE_SAFARI_MAC_PROVISIONING_PROFILE_BASE64: ${{ secrets.APPLE_SAFARI_MAC_PROVISIONING_PROFILE_BASE64 }}
 
       - name: Build Safari Container Application (macOS)
         run: |
@@ -895,6 +902,12 @@ jobs:
 
           echo "Packaging Safari Container from: $APP_PATH"
 
+          # Embed provisioning profile if available
+          if [ -f /tmp/safari_main.provisionprofile ]; then
+            echo "Embedding provisioning profile into Safari container app..."
+            cp /tmp/safari_main.provisionprofile "$APP_PATH/Contents/embedded.provisionprofile"
+          fi
+
           KEYCHAIN_PATH="$RUNNER_TEMP/build.keychain"
           MAC_APP_IDENTITY=""
           MAC_INSTALLER_IDENTITY=""
@@ -909,14 +922,34 @@ jobs:
             SIGN_OPTS="--force --timestamp --options runtime"
           fi
 
-          # Sign embedded Safari extension appex first
+          # 1. Sign embedded Safari extension inside-out with its App Sandbox entitlements
           EXT_PATH="$APP_PATH/Contents/PlugIns/laterbox Extension.appex"
           if [ -d "$EXT_PATH" ]; then
-            codesign $SIGN_OPTS --sign "$SIGN_IDENTITY" "$EXT_PATH" || true
+            if [ -f "$EXT_PATH/Contents/MacOS/laterbox Extension" ]; then
+              codesign $SIGN_OPTS \
+                --entitlements "safari_app/laterbox/macOS (Extension)/laterbox_Extension.entitlements" \
+                --sign "$SIGN_IDENTITY" \
+                "$EXT_PATH/Contents/MacOS/laterbox Extension" || true
+            fi
+            codesign $SIGN_OPTS \
+              --entitlements "safari_app/laterbox/macOS (Extension)/laterbox_Extension.entitlements" \
+              --sign "$SIGN_IDENTITY" \
+              "$EXT_PATH" || true
           fi
 
-          # Sign container app
-          codesign $SIGN_OPTS --sign "$SIGN_IDENTITY" "$APP_PATH" || true
+          # 2. Sign container app executable with App Sandbox entitlements
+          if [ -f "$APP_PATH/Contents/MacOS/laterbox" ]; then
+            codesign $SIGN_OPTS \
+              --entitlements "safari_app/laterbox/macOS (App)/laterbox.entitlements" \
+              --sign "$SIGN_IDENTITY" \
+              "$APP_PATH/Contents/MacOS/laterbox" || true
+          fi
+
+          # 3. Sign root container app bundle
+          codesign $SIGN_OPTS \
+            --entitlements "safari_app/laterbox/macOS (App)/laterbox.entitlements" \
+            --sign "$SIGN_IDENTITY" \
+            "$APP_PATH" || true
 
           # Create Universal Zip
           ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" dist/laterbox-safari-extension-macos.zip
