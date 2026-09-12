@@ -106,8 +106,8 @@ jobs:
       - name: Install Dependencies
         run: flutter pub get
 
-      - name: Install Apple Certificate & Keychains
-        if: env.APPLE_CERTIFICATE_BASE64 != ''
+      - name: Install Apple Certificates & Provisioning Profiles
+        if: env.APPLE_CERTIFICATE_BASE64 != '' || env.APPLE_INSTALLER_CERTIFICATE_BASE64 != ''
         shell: bash
         run: |
           KEYCHAIN_PATH=$RUNNER_TEMP/build.keychain
@@ -117,13 +117,52 @@ jobs:
           security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
           security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
 
-          # Decode and import Certificate
-          echo "$APPLE_CERTIFICATE_BASE64" | base64 --decode > $RUNNER_TEMP/cert.p12
-          security import $RUNNER_TEMP/cert.p12 -k "$KEYCHAIN_PATH" -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign -T /usr/bin/security
-          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          # 1. Decode and import main Application/Distribution Certificate
+          if [ -n "$APPLE_CERTIFICATE_BASE64" ]; then
+            echo "$APPLE_CERTIFICATE_BASE64" | base64 --decode > $RUNNER_TEMP/cert.p12
+            security import $RUNNER_TEMP/cert.p12 -k "$KEYCHAIN_PATH" -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign -T /usr/bin/security -T /usr/bin/productbuild
+          fi
+
+          # 2. Decode and import Mac Installer Certificate if provided separately
+          if [ -n "$APPLE_INSTALLER_CERTIFICATE_BASE64" ]; then
+            INSTALLER_PWD="${APPLE_INSTALLER_CERTIFICATE_PASSWORD:-$APPLE_CERTIFICATE_PASSWORD}"
+            echo "$APPLE_INSTALLER_CERTIFICATE_BASE64" | base64 --decode > $RUNNER_TEMP/installer_cert.p12
+            security import $RUNNER_TEMP/installer_cert.p12 -k "$KEYCHAIN_PATH" -P "$INSTALLER_PWD" -T /usr/bin/codesign -T /usr/bin/security -T /usr/bin/productbuild
+          fi
+
+          security set-key-partition-list -S apple-tool:,apple:,codesign:,productbuild: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+          # 3. Decode and install macOS Main Provisioning Profile
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          MAIN_PROFILE_B64="${APPLE_MAC_PROVISIONING_PROFILE_BASE64:-$APPLE_PROVISIONING_PROFILE_BASE64}"
+          if [ -n "$MAIN_PROFILE_B64" ]; then
+            echo "$MAIN_PROFILE_B64" | base64 --decode > /tmp/mac_main.provisionprofile
+            UUID=$(security cms -D -i /tmp/mac_main.provisionprofile 2>/dev/null | grep -A1 '<key>UUID</key>' | grep '<string>' | sed 's/.*<string>\(.*\)<\/string>.*/\1/' | xargs || true)
+            if [ -n "$UUID" ]; then
+              cp /tmp/mac_main.provisionprofile ~/Library/MobileDevice/Provisioning\ Profiles/${UUID}.provisionprofile
+              echo "Installed macOS provisioning profile (UUID: $UUID)"
+            fi
+          fi
+
+          # 4. Decode and install macOS Share Extension Provisioning Profile
+          SHARE_PROFILE_B64="${APPLE_MAC_SHARE_EXTENSION_PROVISIONING_PROFILE_BASE64:-$APPLE_SHARE_EXTENSION_PROVISIONING_PROFILE_BASE64}"
+          if [ -n "$SHARE_PROFILE_B64" ]; then
+            echo "$SHARE_PROFILE_B64" | base64 --decode > /tmp/mac_share.provisionprofile
+            SHARE_UUID=$(security cms -D -i /tmp/mac_share.provisionprofile 2>/dev/null | grep -A1 '<key>UUID</key>' | grep '<string>' | sed 's/.*<string>\(.*\)<\/string>.*/\1/' | xargs || true)
+            if [ -n "$SHARE_UUID" ]; then
+              cp /tmp/mac_share.provisionprofile ~/Library/MobileDevice/Provisioning\ Profiles/${SHARE_UUID}.provisionprofile
+              echo "Installed macOS ShareExtension provisioning profile (UUID: $SHARE_UUID)"
+            fi
+          fi
         env:
           APPLE_CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_INSTALLER_CERTIFICATE_BASE64: ${{ secrets.APPLE_INSTALLER_CERTIFICATE_BASE64 }}
+          APPLE_INSTALLER_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_INSTALLER_CERTIFICATE_PASSWORD }}
+          APPLE_MAC_PROVISIONING_PROFILE_BASE64: ${{ secrets.APPLE_MAC_PROVISIONING_PROFILE_BASE64 }}
+          APPLE_PROVISIONING_PROFILE_BASE64: ${{ secrets.APPLE_PROVISIONING_PROFILE_BASE64 }}
+          APPLE_MAC_SHARE_EXTENSION_PROVISIONING_PROFILE_BASE64: ${{ secrets.APPLE_MAC_SHARE_EXTENSION_PROVISIONING_PROFILE_BASE64 }}
+          APPLE_SHARE_EXTENSION_PROVISIONING_PROFILE_BASE64: ${{ secrets.APPLE_SHARE_EXTENSION_PROVISIONING_PROFILE_BASE64 }}
 
       - name: Configure macOS Project
         run: flutter build macos --release --config-only
@@ -131,9 +170,9 @@ jobs:
       - name: Build macOS Application
         run: |
           # Build macOS release bundle without code signing at compile time.
-          # Full Developer ID Application / ad-hoc codesigning with entitlements
-          # and hardened runtime is performed in the packaging step below to avoid
-          # SPM resource bundle targets failing on missing provisioning profiles.
+          # Full inside-out codesigning with entitlements and hardened runtime
+          # is performed in the packaging step below to prevent SPM resource targets
+          # failing on missing provisioning profiles during compilation.
           xcodebuild -workspace macos/Runner.xcworkspace \
             -scheme Runner \
             -configuration Release \
@@ -169,72 +208,156 @@ jobs:
           
           echo "Packaging application from: $APP_PATH"
           
-          if [ -n "$APPLE_CERTIFICATE_BASE64" ]; then
-            if [ -d "$APP_PATH/Contents/PlugIns/ShareExtension.appex" ]; then
-              codesign --force --options runtime --timestamp \
-                --entitlements macos/ShareExtension/ShareExtension.entitlements \
-                --sign "Developer ID Application" "$APP_PATH/Contents/PlugIns/ShareExtension.appex" || true
-            fi
-            # Hardened runtime + timestamp + entitlements for notarization / Sparkle
-            codesign --force --deep --options runtime --timestamp \
-              --entitlements macos/Runner/Release.entitlements \
-              --sign "Developer ID Application" "$APP_PATH" || true
-          else
-            if [ -d "$APP_PATH/Contents/PlugIns/ShareExtension.appex" ]; then
-              codesign --force --sign - \
-                --entitlements macos/ShareExtension/ShareExtension.entitlements "$APP_PATH/Contents/PlugIns/ShareExtension.appex" || true
-            fi
-            codesign --force --deep --sign - \
-              --entitlements macos/Runner/Release.entitlements "$APP_PATH" || true
+          # Inspect keychain identities
+          KEYCHAIN_PATH="$RUNNER_TEMP/build.keychain"
+          if [ -f "$KEYCHAIN_PATH" ]; then
+            echo "--- Available identities in keychain ---"
+            security find-identity -v "$KEYCHAIN_PATH" || true
+            echo "----------------------------------------"
           fi
           
-          # 1. Create Universal DMG
+          MAC_APP_STORE_APP_IDENTITY=$(security find-identity -v "$KEYCHAIN_PATH" 2>/dev/null | grep -E "3rd Party Mac Developer Application|Apple Distribution" | head -n 1 | sed 's/.*"\(.*\)".*/\1/' || true)
+          DEV_ID_APP_IDENTITY=$(security find-identity -v "$KEYCHAIN_PATH" 2>/dev/null | grep -E "Developer ID Application" | head -n 1 | sed 's/.*"\(.*\)".*/\1/' || true)
+          ANY_APP_IDENTITY=$(security find-identity -v "$KEYCHAIN_PATH" 2>/dev/null | grep -E "3rd Party Mac Developer Application|Apple Distribution|Developer ID Application|Apple Development|Mac Developer" | head -n 1 | sed 's/.*"\(.*\)".*/\1/' || true)
+          
+          MAC_INSTALLER_IDENTITY=$(security find-identity -v "$KEYCHAIN_PATH" 2>/dev/null | grep -E "3rd Party Mac Developer Installer" | head -n 1 | sed 's/.*"\(.*\)".*/\1/' || true)
+          DEV_ID_INSTALLER_IDENTITY=$(security find-identity -v "$KEYCHAIN_PATH" 2>/dev/null | grep -E "Developer ID Installer" | head -n 1 | sed 's/.*"\(.*\)".*/\1/' || true)
+          
+          # Inside-out signing helper:
+          # Apple Technical Note TN3127: Never use --deep for production code signing
+          # as it strips/overrides nested component entitlements.
+          sign_bundle() {
+            local TARGET_APP="$1"
+            local SIGN_IDENTITY="$2"
+            local SIGN_OPTS="--force --timestamp --options runtime"
+            
+            if [ -z "$SIGN_IDENTITY" ] || [ "$SIGN_IDENTITY" = "-" ]; then
+              SIGN_IDENTITY="-"
+              SIGN_OPTS="--force"
+            fi
+            
+            echo "Signing $TARGET_APP with identity: '$SIGN_IDENTITY'"
+            
+            # 1. Sign all embedded frameworks and dylibs
+            if [ -d "$TARGET_APP/Contents/Frameworks" ]; then
+              find "$TARGET_APP/Contents/Frameworks" -depth -type d -name "*.framework" 2>/dev/null | while read -r fw; do
+                codesign $SIGN_OPTS --sign "$SIGN_IDENTITY" "$fw" || true
+              done
+              find "$TARGET_APP/Contents/Frameworks" -type f \( -name "*.dylib" -o -name "*.so" \) 2>/dev/null | while read -r dylib; do
+                codesign $SIGN_OPTS --sign "$SIGN_IDENTITY" "$dylib" || true
+              done
+            fi
+            
+            # 2. Sign ShareExtension executable and bundle with its own App Sandbox entitlements
+            local EXT_DIR="$TARGET_APP/Contents/PlugIns/ShareExtension.appex"
+            if [ -d "$EXT_DIR" ]; then
+              if [ -f "$EXT_DIR/Contents/MacOS/ShareExtension" ]; then
+                codesign $SIGN_OPTS \
+                  --entitlements macos/ShareExtension/ShareExtension.entitlements \
+                  --sign "$SIGN_IDENTITY" \
+                  "$EXT_DIR/Contents/MacOS/ShareExtension"
+              fi
+              codesign $SIGN_OPTS \
+                --entitlements macos/ShareExtension/ShareExtension.entitlements \
+                --sign "$SIGN_IDENTITY" \
+                "$EXT_DIR"
+            fi
+            
+            # 3. Sign main executable with Runner Release App Sandbox entitlements
+            if [ -f "$TARGET_APP/Contents/MacOS/laterbox" ]; then
+              codesign $SIGN_OPTS \
+                --entitlements macos/Runner/Release.entitlements \
+                --sign "$SIGN_IDENTITY" \
+                "$TARGET_APP/Contents/MacOS/laterbox"
+            fi
+            
+            # 4. Sign root app bundle WITHOUT --deep to preserve nested entitlements
+            codesign $SIGN_OPTS \
+              --entitlements macos/Runner/Release.entitlements \
+              --sign "$SIGN_IDENTITY" \
+              "$TARGET_APP"
+              
+            echo "Verifying code signature & App Sandbox entitlements for $TARGET_APP:"
+            codesign --verify --verbose=2 "$TARGET_APP" || true
+            echo "Main executable entitlements:"
+            codesign -d --entitlements :- "$TARGET_APP/Contents/MacOS/laterbox" 2>/dev/null | grep -E "com.apple.security.app-sandbox" || true
+            if [ -d "$EXT_DIR" ]; then
+              echo "ShareExtension entitlements:"
+              codesign -d --entitlements :- "$EXT_DIR/Contents/MacOS/ShareExtension" 2>/dev/null | grep -E "com.apple.security.app-sandbox" || true
+            fi
+          }
+
+          # --- 1. Sign & Package Direct Distribution (DMG & Universal Zip for Sparkle / GitHub) ---
+          DMG_APP_IDENTITY="${DEV_ID_APP_IDENTITY:-${ANY_APP_IDENTITY:--}}"
+          sign_bundle "$APP_PATH" "$DMG_APP_IDENTITY"
+
+          # 1a. Create Universal DMG
           hdiutil create -volname "LaterBox" -srcfolder "$APP_PATH" -ov -format UDZO dist/laterbox-macos-universal.dmg
           cp dist/laterbox-macos-universal.dmg dist/laterbox-macos.dmg
           cp dist/laterbox-macos-universal.dmg dist/laterbox-macos-apple-silicon.dmg
           cp dist/laterbox-macos-universal.dmg dist/laterbox-macos-intel.dmg
           
-          # 1b. Notarize & staple DMG when secrets are present (Sparkle requires notarized DMG/zips)
-          if [ -n "$APPLE_ID" ] && [ -n "$APPLE_APP_SPECIFIC_PASSWORD" ] && [ -n "$APPLE_TEAM_ID" ]; then
+          # 1b. Notarize & staple DMG when Developer ID credentials are present
+          if [ -n "$DEV_ID_APP_IDENTITY" ] && [ -n "$APPLE_ID" ] && [ -n "$APPLE_APP_SPECIFIC_PASSWORD" ] && [ -n "$APPLE_TEAM_ID" ]; then
             echo "Submitting DMG for notarization…"
             xcrun notarytool submit dist/laterbox-macos-universal.dmg --apple-id "$APPLE_ID" --password "$APPLE_APP_SPECIFIC_PASSWORD" --team-id "$APPLE_TEAM_ID" --wait || true
             xcrun stapler staple dist/laterbox-macos-universal.dmg || true
             cp dist/laterbox-macos-universal.dmg dist/laterbox-macos.dmg
           fi
-          
-          # 2. Create PKG Installer (Product Archive format for macOS & App Store Connect)
-          INSTALLER_IDENTITY=""
-          if [ -n "$APPLE_CERTIFICATE_BASE64" ] && [ -f "$KEYCHAIN_PATH" ]; then
-            INSTALLER_IDENTITY=$(security find-identity -v "$KEYCHAIN_PATH" 2>/dev/null | grep -E "3rd Party Mac Developer Installer|Apple Distribution|Developer ID Installer" | head -n 1 | sed 's/.*"\(.*\)".*/\1/' || true)
-          fi
-          if [ -n "$INSTALLER_IDENTITY" ]; then
-            echo "Signing installer PKG with: $INSTALLER_IDENTITY"
-            productbuild --sign "$INSTALLER_IDENTITY" --component "$APP_PATH" /Applications dist/laterbox-macos-installer.pkg || productbuild --component "$APP_PATH" /Applications dist/laterbox-macos-installer.pkg || true
-          else
-            productbuild --component "$APP_PATH" /Applications dist/laterbox-macos-installer.pkg || true
-          fi
-          cp dist/laterbox-macos-installer.pkg dist/laterbox-macos.pkg 2>/dev/null || true
-          
-          # 3. Create Universal Zip (Sparkle delta-friendly, sequesterRsrc keeps extended attrs)
+
+          # 1c. Create Universal Zip (Sparkle delta-friendly)
           ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" dist/laterbox-macos-universal.zip
           cp dist/laterbox-macos-universal.zip dist/laterbox-macos.zip
 
-          # 4. Generate Sparkle appcast when Sparkle private key is present
+          # --- 2. Prepare & Sign Dedicated Mac App Store Package ---
+          APPSTORE_APP="/tmp/appstore/laterbox.app"
+          mkdir -p /tmp/appstore
+          rm -rf "$APPSTORE_APP"
+          cp -R "$APP_PATH" "$APPSTORE_APP"
+
+          # Embed provisioning profiles if available
+          if [ -f /tmp/mac_main.provisionprofile ]; then
+            echo "Embedding provisioning profile into App Store bundle..."
+            cp /tmp/mac_main.provisionprofile "$APPSTORE_APP/Contents/embedded.provisionprofile"
+          fi
+          if [ -f /tmp/mac_share.provisionprofile ] && [ -d "$APPSTORE_APP/Contents/PlugIns/ShareExtension.appex/Contents" ]; then
+            echo "Embedding share extension provisioning profile..."
+            cp /tmp/mac_share.provisionprofile "$APPSTORE_APP/Contents/PlugIns/ShareExtension.appex/Contents/embedded.provisionprofile"
+          fi
+
+          # Sign App Store bundle with Apple Distribution / 3rd Party Mac Developer Application
+          APPSTORE_APP_IDENTITY="${MAC_APP_STORE_APP_IDENTITY:-${ANY_APP_IDENTITY:--}}"
+          sign_bundle "$APPSTORE_APP" "$APPSTORE_APP_IDENTITY"
+
+          # Create PKG archive with productbuild
+          if [ -n "$MAC_INSTALLER_IDENTITY" ]; then
+            echo "Building signed Mac App Store package with: $MAC_INSTALLER_IDENTITY"
+            productbuild --sign "$MAC_INSTALLER_IDENTITY" --component "$APPSTORE_APP" /Applications dist/laterbox-macos.pkg
+            cp dist/laterbox-macos.pkg dist/laterbox-macos-installer.pkg
+          elif [ -n "$DEV_ID_INSTALLER_IDENTITY" ]; then
+            echo "Building signed installer package with Developer ID Installer: $DEV_ID_INSTALLER_IDENTITY"
+            productbuild --sign "$DEV_ID_INSTALLER_IDENTITY" --component "$APP_PATH" /Applications dist/laterbox-macos-installer.pkg
+            cp dist/laterbox-macos-installer.pkg dist/laterbox-macos.pkg
+          else
+            echo "Building unsigned installer package"
+            productbuild --component "$APP_PATH" /Applications dist/laterbox-macos-installer.pkg || true
+            cp dist/laterbox-macos-installer.pkg dist/laterbox-macos.pkg 2>/dev/null || true
+          fi
+
+          # --- 3. Generate Sparkle appcast when Sparkle private key is present ---
           if [ -n "$SPARKLE_PRIVATE_KEY" ]; then
             echo "$SPARKLE_PRIVATE_KEY" > /tmp/sparkle_key.pem
-            # Install Sparkle generate_appcast if available (via mint/brew or manual)
             if command -v generate_appcast >/dev/null 2>&1; then
               mkdir -p dist/appcast
               cp dist/laterbox-macos-universal.zip dist/appcast/ 2>/dev/null || true
               generate_appcast --ed-key-file /tmp/sparkle_key.pem dist/appcast || true
               cp dist/appcast/appcast.xml dist/ 2>/dev/null || true
             else
-              echo "generate_appcast not found — skipping appcast generation (install via: brew install sparkle)"
+              echo "generate_appcast not found — skipping appcast generation"
             fi
           fi
         env:
           KEYCHAIN_PATH: ${{ runner.temp }}/build.keychain
-          APPLE_CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
@@ -260,33 +383,37 @@ jobs:
         if: env.APP_STORE_CONNECT_API_KEY_BASE64 != '' && env.APP_STORE_CONNECT_KEY_ID != ''
         shell: bash
         run: |
-          mkdir -p ~/.appstoreconnect/private_keys
-          echo "$APP_STORE_CONNECT_API_KEY_BASE64" | base64 --decode > ~/.appstoreconnect/private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8
+          KEYCHAIN_PATH=$RUNNER_TEMP/build.keychain
+          MAC_INSTALLER_IDENTITY=""
+          if [ -f "$KEYCHAIN_PATH" ]; then
+            MAC_INSTALLER_IDENTITY=$(security find-identity -v "$KEYCHAIN_PATH" 2>/dev/null | grep -E "3rd Party Mac Developer Installer" | head -n 1 | sed 's/.*"\(.*\)".*/\1/' || true)
+          fi
 
           PKG_PATH="dist/laterbox-macos.pkg"
           if [ ! -f "$PKG_PATH" ]; then
-            PKG_PATH=$(find dist -name "*macos*.pkg" -o -name "*.pkg" 2>/dev/null | head -n 1)
+            echo "macOS PKG not found, skipping Mac App Store upload."
+            exit 0
           fi
 
-          if [ -f "$PKG_PATH" ]; then
-            echo "Uploading $PKG_PATH to Mac App Store Connect / TestFlight..."
-            xcrun altool --upload-app \
-              -f "$PKG_PATH" \
-              -t macos \
-              --apiKey "${{ secrets.APP_STORE_CONNECT_KEY_ID }}" \
-              --apiIssuer "${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}" || \
-            xcrun altool --upload-package \
-              "$PKG_PATH" \
-              --apiKey "${{ secrets.APP_STORE_CONNECT_KEY_ID }}" \
-              --apiIssuer "${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}" || \
-            xcrun altool --upload-app \
-              -f "$PKG_PATH" \
-              -t osx \
-              --apiKey "${{ secrets.APP_STORE_CONNECT_KEY_ID }}" \
-              --apiIssuer "${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}" || true
-          else
-            echo "macOS PKG not found, skipping Mac App Store upload."
+          if [ -z "$MAC_INSTALLER_IDENTITY" ]; then
+            echo "::warning::Skipping Mac App Store Connect upload: App Store Connect strictly requires the macOS package to be signed with a '3rd Party Mac Developer Installer' certificate (Error 90237)."
+            echo "To enable Mac App Store uploads, please export your '3rd Party Mac Developer Installer' certificate and private key to GitHub secrets (APPLE_INSTALLER_CERTIFICATE_BASE64 or inside APPLE_CERTIFICATE_BASE64) along with the macOS provisioning profile (APPLE_MAC_PROVISIONING_PROFILE_BASE64)."
+            exit 0
           fi
+
+          mkdir -p ~/.appstoreconnect/private_keys
+          echo "$APP_STORE_CONNECT_API_KEY_BASE64" | base64 --decode > ~/.appstoreconnect/private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8
+
+          echo "Uploading $PKG_PATH to Mac App Store Connect / TestFlight..."
+          xcrun altool --upload-app \
+            -f "$PKG_PATH" \
+            -t macos \
+            --apiKey "${{ secrets.APP_STORE_CONNECT_KEY_ID }}" \
+            --apiIssuer "${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}" || \
+          xcrun altool --upload-package \
+            "$PKG_PATH" \
+            --apiKey "${{ secrets.APP_STORE_CONNECT_KEY_ID }}" \
+            --apiIssuer "${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}"
         env:
           APP_STORE_CONNECT_API_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_API_KEY_BASE64 }}
           APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
