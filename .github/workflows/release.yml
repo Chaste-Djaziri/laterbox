@@ -96,9 +96,8 @@ jobs:
       APPLE_INSTALLER_CERTIFICATE_BASE64: ${{ secrets.APPLE_INSTALLER_CERTIFICATE_BASE64 }}
       APPLE_INSTALLER_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_INSTALLER_CERTIFICATE_PASSWORD }}
       APPLE_MAC_PROVISIONING_PROFILE_BASE64: ${{ secrets.APPLE_MAC_PROVISIONING_PROFILE_BASE64 }}
-      APPLE_PROVISIONING_PROFILE_BASE64: ${{ secrets.APPLE_PROVISIONING_PROFILE_BASE64 }}
       APPLE_MAC_SHARE_EXTENSION_PROVISIONING_PROFILE_BASE64: ${{ secrets.APPLE_MAC_SHARE_EXTENSION_PROVISIONING_PROFILE_BASE64 }}
-      APPLE_SHARE_EXTENSION_PROVISIONING_PROFILE_BASE64: ${{ secrets.APPLE_SHARE_EXTENSION_PROVISIONING_PROFILE_BASE64 }}
+      APPLE_MAC_SAFARI_EXTENSION_PROVISIONING_PROFILE_BASE64: ${{ secrets.APPLE_MAC_SAFARI_EXTENSION_PROVISIONING_PROFILE_BASE64 }}
       APPLE_ID: ${{ secrets.APPLE_ID }}
       APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
       APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
@@ -118,6 +117,19 @@ jobs:
         with:
           channel: 'stable'
           cache: true
+
+      - name: Build Safari extension assets
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: extension/package-lock.json
+
+      - name: Package Safari extension resources
+        run: |
+          cd extension
+          npm ci
+          npm run build:safari
 
       - name: Install Dependencies
         run: flutter pub get
@@ -150,7 +162,7 @@ jobs:
 
           # 3. Decode and install macOS Main Provisioning Profile
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-          MAIN_PROFILE_B64="${APPLE_MAC_PROVISIONING_PROFILE_BASE64:-$APPLE_PROVISIONING_PROFILE_BASE64}"
+          MAIN_PROFILE_B64="$APPLE_MAC_PROVISIONING_PROFILE_BASE64"
           if [ -n "$MAIN_PROFILE_B64" ]; then
             echo "$MAIN_PROFILE_B64" | base64 --decode > /tmp/mac_main.provisionprofile
             UUID=$(security cms -D -i /tmp/mac_main.provisionprofile 2>/dev/null | grep -A1 '<key>UUID</key>' | grep '<string>' | sed 's/.*<string>\(.*\)<\/string>.*/\1/' | xargs || true)
@@ -161,7 +173,7 @@ jobs:
           fi
 
           # 4. Decode and install macOS Share Extension Provisioning Profile
-          SHARE_PROFILE_B64="${APPLE_MAC_SHARE_EXTENSION_PROVISIONING_PROFILE_BASE64:-$APPLE_SHARE_EXTENSION_PROVISIONING_PROFILE_BASE64}"
+          SHARE_PROFILE_B64="$APPLE_MAC_SHARE_EXTENSION_PROVISIONING_PROFILE_BASE64"
           if [ -n "$SHARE_PROFILE_B64" ]; then
             echo "$SHARE_PROFILE_B64" | base64 --decode > /tmp/mac_share.provisionprofile
             SHARE_UUID=$(security cms -D -i /tmp/mac_share.provisionprofile 2>/dev/null | grep -A1 '<key>UUID</key>' | grep '<string>' | sed 's/.*<string>\(.*\)<\/string>.*/\1/' | xargs || true)
@@ -170,15 +182,23 @@ jobs:
               echo "Installed macOS ShareExtension provisioning profile (UUID: $SHARE_UUID)"
             fi
           fi
+
+          # 5. Decode and install the embedded Safari Web Extension profile.
+          if [ -n "$APPLE_MAC_SAFARI_EXTENSION_PROVISIONING_PROFILE_BASE64" ]; then
+            echo "$APPLE_MAC_SAFARI_EXTENSION_PROVISIONING_PROFILE_BASE64" | base64 --decode > /tmp/mac_safari.provisionprofile
+            SAFARI_UUID=$(security cms -D -i /tmp/mac_safari.provisionprofile 2>/dev/null | grep -A1 '<key>UUID</key>' | grep '<string>' | sed 's/.*<string>\(.*\)<\/string>.*/\1/' | xargs)
+            test -n "$SAFARI_UUID"
+            cp /tmp/mac_safari.provisionprofile ~/Library/MobileDevice/Provisioning\ Profiles/${SAFARI_UUID}.provisionprofile
+            echo "Installed macOS SafariExtension provisioning profile (UUID: $SAFARI_UUID)"
+          fi
         env:
           APPLE_CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
           APPLE_INSTALLER_CERTIFICATE_BASE64: ${{ secrets.APPLE_INSTALLER_CERTIFICATE_BASE64 }}
           APPLE_INSTALLER_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_INSTALLER_CERTIFICATE_PASSWORD }}
           APPLE_MAC_PROVISIONING_PROFILE_BASE64: ${{ secrets.APPLE_MAC_PROVISIONING_PROFILE_BASE64 }}
-          APPLE_PROVISIONING_PROFILE_BASE64: ${{ secrets.APPLE_PROVISIONING_PROFILE_BASE64 }}
           APPLE_MAC_SHARE_EXTENSION_PROVISIONING_PROFILE_BASE64: ${{ secrets.APPLE_MAC_SHARE_EXTENSION_PROVISIONING_PROFILE_BASE64 }}
-          APPLE_SHARE_EXTENSION_PROVISIONING_PROFILE_BASE64: ${{ secrets.APPLE_SHARE_EXTENSION_PROVISIONING_PROFILE_BASE64 }}
+          APPLE_MAC_SAFARI_EXTENSION_PROVISIONING_PROFILE_BASE64: ${{ secrets.APPLE_MAC_SAFARI_EXTENSION_PROVISIONING_PROFILE_BASE64 }}
 
       - name: Configure macOS Project
         run: flutter build macos --release --config-only
@@ -257,10 +277,10 @@ jobs:
             # 1. Sign all embedded frameworks and dylibs
             if [ -d "$TARGET_APP/Contents/Frameworks" ]; then
               find "$TARGET_APP/Contents/Frameworks" -depth -type d -name "*.framework" 2>/dev/null | while read -r fw; do
-                codesign $SIGN_OPTS --sign "$SIGN_IDENTITY" "$fw" || true
+                codesign $SIGN_OPTS --sign "$SIGN_IDENTITY" "$fw"
               done
               find "$TARGET_APP/Contents/Frameworks" -type f \( -name "*.dylib" -o -name "*.so" \) 2>/dev/null | while read -r dylib; do
-                codesign $SIGN_OPTS --sign "$SIGN_IDENTITY" "$dylib" || true
+                codesign $SIGN_OPTS --sign "$SIGN_IDENTITY" "$dylib"
               done
             fi
             
@@ -278,8 +298,20 @@ jobs:
                 --sign "$SIGN_IDENTITY" \
                 "$EXT_DIR"
             fi
+
+            # 3. Sign the embedded Safari Web Extension with its own entitlement set.
+            local SAFARI_DIR="$TARGET_APP/Contents/PlugIns/SafariExtension.appex"
+            test -d "$SAFARI_DIR"
+            codesign $SIGN_OPTS \
+              --entitlements macos/SafariExtension/SafariExtension.entitlements \
+              --sign "$SIGN_IDENTITY" \
+              "$SAFARI_DIR/Contents/MacOS/SafariExtension"
+            codesign $SIGN_OPTS \
+              --entitlements macos/SafariExtension/SafariExtension.entitlements \
+              --sign "$SIGN_IDENTITY" \
+              "$SAFARI_DIR"
             
-            # 3. Sign main executable with Runner Release App Sandbox entitlements
+            # 4. Sign main executable with Runner Release App Sandbox entitlements
             if [ -f "$TARGET_APP/Contents/MacOS/laterbox" ]; then
               codesign $SIGN_OPTS \
                 --entitlements macos/Runner/Release.entitlements \
@@ -287,20 +319,21 @@ jobs:
                 "$TARGET_APP/Contents/MacOS/laterbox"
             fi
             
-            # 4. Sign root app bundle WITHOUT --deep to preserve nested entitlements
+            # 5. Sign root app bundle WITHOUT --deep to preserve nested entitlements
             codesign $SIGN_OPTS \
               --entitlements macos/Runner/Release.entitlements \
               --sign "$SIGN_IDENTITY" \
               "$TARGET_APP"
               
             echo "Verifying code signature & App Sandbox entitlements for $TARGET_APP:"
-            codesign --verify --verbose=2 "$TARGET_APP" || true
+            codesign --verify --deep --strict --verbose=2 "$TARGET_APP"
             echo "Main executable entitlements:"
-            codesign -d --entitlements :- "$TARGET_APP/Contents/MacOS/laterbox" 2>/dev/null | grep -E "com.apple.security.app-sandbox" || true
+            codesign -d --entitlements :- "$TARGET_APP/Contents/MacOS/laterbox" 2>/dev/null | grep -q "com.apple.security.app-sandbox"
             if [ -d "$EXT_DIR" ]; then
               echo "ShareExtension entitlements:"
-              codesign -d --entitlements :- "$EXT_DIR/Contents/MacOS/ShareExtension" 2>/dev/null | grep -E "com.apple.security.app-sandbox" || true
+              codesign -d --entitlements :- "$EXT_DIR/Contents/MacOS/ShareExtension" 2>/dev/null | grep -q "com.apple.security.app-sandbox"
             fi
+            codesign -d --entitlements :- "$SAFARI_DIR/Contents/MacOS/SafariExtension" 2>/dev/null | grep -q "com.apple.security.app-sandbox"
           }
 
           # --- 1. Sign & Package Direct Distribution (DMG & Universal Zip for Sparkle / GitHub) ---
@@ -340,6 +373,21 @@ jobs:
             echo "Embedding share extension provisioning profile..."
             cp /tmp/mac_share.provisionprofile "$APPSTORE_APP/Contents/PlugIns/ShareExtension.appex/Contents/embedded.provisionprofile"
           fi
+          if [ -f /tmp/mac_safari.provisionprofile ] && [ -d "$APPSTORE_APP/Contents/PlugIns/SafariExtension.appex/Contents" ]; then
+            echo "Embedding Safari extension provisioning profile..."
+            cp /tmp/mac_safari.provisionprofile "$APPSTORE_APP/Contents/PlugIns/SafariExtension.appex/Contents/embedded.provisionprofile"
+          fi
+
+          profile_bundle_id() {
+            security cms -D -i "$1" | plutil -extract Entitlements.com.apple.application-identifier raw - | sed 's/^[^.]*\.//'
+          }
+
+          test "$(profile_bundle_id "$APPSTORE_APP/Contents/embedded.provisionprofile")" = "pro.micorp.laterbox"
+          test "$(profile_bundle_id "$APPSTORE_APP/Contents/PlugIns/ShareExtension.appex/Contents/embedded.provisionprofile")" = "pro.micorp.laterbox.ShareExtension"
+          test "$(profile_bundle_id "$APPSTORE_APP/Contents/PlugIns/SafariExtension.appex/Contents/embedded.provisionprofile")" = "pro.micorp.laterbox.SafariExtension"
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APPSTORE_APP/Contents/Info.plist" | grep -qx 'pro.micorp.laterbox'
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APPSTORE_APP/Contents/PlugIns/ShareExtension.appex/Contents/Info.plist" | grep -qx 'pro.micorp.laterbox.ShareExtension'
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APPSTORE_APP/Contents/PlugIns/SafariExtension.appex/Contents/Info.plist" | grep -qx 'pro.micorp.laterbox.SafariExtension'
 
           # Sign App Store bundle with Apple Distribution / 3rd Party Mac Developer Application
           APPSTORE_APP_IDENTITY="${MAC_APP_STORE_APP_IDENTITY:-${ANY_APP_IDENTITY:--}}"
@@ -424,10 +472,6 @@ jobs:
           xcrun altool --upload-app \
             -f "$PKG_PATH" \
             -t macos \
-            --apiKey "${{ secrets.APP_STORE_CONNECT_KEY_ID }}" \
-            --apiIssuer "${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}" || \
-          xcrun altool --upload-package \
-            "$PKG_PATH" \
             --apiKey "${{ secrets.APP_STORE_CONNECT_KEY_ID }}" \
             --apiIssuer "${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}"
         env:
@@ -810,9 +854,11 @@ jobs:
           if-no-files-found: error
 
   build-safari-app:
+    # Retained temporarily for historical workflow references; the embedded
+    # SafariExtension target in build-macos is the only supported release path.
     name: Build & Submit Safari Extension Container (macOS)
     needs: check-version
-    if: needs.check-version.outputs.should_release == 'true'
+    if: false
     runs-on: macos-latest
     env:
       APPLE_CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
@@ -1083,7 +1129,7 @@ jobs:
 
   create-release:
     name: Publish GitHub Release
-    needs: [check-version, build-macos, build-windows, build-linux, build-android, build-ios, build-extension, build-safari-app, build-and-deploy-web]
+    needs: [check-version, build-macos, build-windows, build-linux, build-android, build-ios, build-extension, build-and-deploy-web]
     if: always() && !cancelled() && needs.check-version.outputs.should_release == 'true'
     runs-on: ubuntu-latest
 
@@ -1131,13 +1177,6 @@ jobs:
         continue-on-error: true
         with:
           name: laterbox-extension-dist
-          path: dist
-
-      - name: Download Safari App Artifacts
-        uses: actions/download-artifact@v4
-        continue-on-error: true
-        with:
-          name: laterbox-safari-app-dist
           path: dist
 
       - name: Determine Release Tag
