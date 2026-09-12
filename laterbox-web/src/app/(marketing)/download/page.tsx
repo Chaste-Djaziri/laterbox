@@ -365,9 +365,11 @@ export default function DownloadPage() {
                 ? 'LaterBox Browser Extensions'
                 : 'LaterBox Desktop'}
             </h2>
-            <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-mono font-bold bg-[#e6edb0] text-[#171711] border border-[#d0db84]">
-              v{latestVersionTag}
-            </span>
+            {latestVersionTag && (
+              <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-mono font-bold bg-[#e6edb0] text-[#171711] border border-[#d0db84]">
+                v{latestVersionTag}
+              </span>
+            )}
           </div>
 
           {/* Dynamic Platform Card */}
@@ -649,9 +651,11 @@ export default function DownloadPage() {
             <h2 className="text-xl sm:text-2xl font-bold text-[#171711]">
               LaterBox for Browsers
             </h2>
-            <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-mono font-bold bg-[#e6edb0] text-[#171711] border border-[#d0db84]">
-              v{latestVersionTag}
-            </span>
+            {latestVersionTag && (
+              <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-mono font-bold bg-[#e6edb0] text-[#171711] border border-[#d0db84]">
+                v{latestVersionTag}
+              </span>
+            )}
           </div>
 
           <p className="text-xs sm:text-sm text-[#6c6b63] max-w-2xl">
