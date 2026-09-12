@@ -63,18 +63,18 @@ export async function GET(request: NextRequest) {
         const transformedReleases = publishedReleases
           .sort((a, b) => Date.parse(b.published_at) - Date.parse(a.published_at))
           .map((rel) => ({
-          id: rel.id,
-          tag_name: rel.tag_name,
-          name: rel.name || rel.tag_name,
-          body: rel.body || '',
-          html_url: rel.html_url || `https://github.com/${GITHUB_REPO}/releases/tag/${rel.tag_name}`,
-          published_at: rel.published_at,
-          assets: (rel.assets || []).map((asset) => ({
-            name: asset.name,
-            size: asset.size,
-            browser_download_url: `/api/download/${encodeURIComponent(asset.name)}`,
+            id: rel.id,
+            tag_name: rel.tag_name,
+            name: rel.name || rel.tag_name,
+            body: rel.body || '',
+            html_url: rel.html_url || `https://github.com/${GITHUB_REPO}/releases/tag/${rel.tag_name}`,
+            published_at: rel.published_at,
+            assets: (rel.assets || []).map((asset) => ({
+              name: asset.name,
+              size: asset.size,
+              browser_download_url: `/api/download/${encodeURIComponent(asset.name)}`,
+            })),
           }));
-        }));
 
         return NextResponse.json(transformedReleases, {
           headers: {
