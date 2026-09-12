@@ -90,6 +90,22 @@ jobs:
     needs: check-version
     if: needs.check-version.outputs.should_release == 'true'
     runs-on: macos-latest
+    env:
+      APPLE_CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
+      APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+      APPLE_INSTALLER_CERTIFICATE_BASE64: ${{ secrets.APPLE_INSTALLER_CERTIFICATE_BASE64 }}
+      APPLE_INSTALLER_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_INSTALLER_CERTIFICATE_PASSWORD }}
+      APPLE_MAC_PROVISIONING_PROFILE_BASE64: ${{ secrets.APPLE_MAC_PROVISIONING_PROFILE_BASE64 }}
+      APPLE_PROVISIONING_PROFILE_BASE64: ${{ secrets.APPLE_PROVISIONING_PROFILE_BASE64 }}
+      APPLE_MAC_SHARE_EXTENSION_PROVISIONING_PROFILE_BASE64: ${{ secrets.APPLE_MAC_SHARE_EXTENSION_PROVISIONING_PROFILE_BASE64 }}
+      APPLE_SHARE_EXTENSION_PROVISIONING_PROFILE_BASE64: ${{ secrets.APPLE_SHARE_EXTENSION_PROVISIONING_PROFILE_BASE64 }}
+      APPLE_ID: ${{ secrets.APPLE_ID }}
+      APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      APP_STORE_CONNECT_API_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_API_KEY_BASE64 }}
+      APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+      APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+      SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
 
     steps:
       - name: Checkout Repository
@@ -107,7 +123,7 @@ jobs:
         run: flutter pub get
 
       - name: Install Apple Certificates & Provisioning Profiles
-        if: secrets.APPLE_CERTIFICATE_BASE64 != '' || secrets.APPLE_INSTALLER_CERTIFICATE_BASE64 != ''
+        if: env.APPLE_CERTIFICATE_BASE64 != '' || env.APPLE_INSTALLER_CERTIFICATE_BASE64 != ''
         shell: bash
         run: |
           KEYCHAIN_PATH=$RUNNER_TEMP/build.keychain
@@ -185,7 +201,7 @@ jobs:
             build
 
       - name: Notarize DMG (when Developer ID available)
-        if: secrets.APPLE_ID != '' && secrets.APPLE_APP_SPECIFIC_PASSWORD != '' && secrets.APPLE_TEAM_ID != ''
+        if: env.APPLE_ID != '' && env.APPLE_APP_SPECIFIC_PASSWORD != '' && env.APPLE_TEAM_ID != ''
         shell: bash
         run: |
           echo "Notarization will run after DMG creation via notarytool"
@@ -380,7 +396,7 @@ jobs:
           if-no-files-found: error
 
       - name: Upload to Mac App Store Connect / TestFlight
-        if: secrets.APP_STORE_CONNECT_API_KEY_BASE64 != '' && secrets.APP_STORE_CONNECT_KEY_ID != ''
+        if: env.APP_STORE_CONNECT_API_KEY_BASE64 != '' && env.APP_STORE_CONNECT_KEY_ID != ''
         shell: bash
         run: |
           KEYCHAIN_PATH=$RUNNER_TEMP/build.keychain
@@ -798,6 +814,14 @@ jobs:
     needs: check-version
     if: needs.check-version.outputs.should_release == 'true'
     runs-on: macos-latest
+    env:
+      APPLE_CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
+      APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+      APPLE_INSTALLER_CERTIFICATE_BASE64: ${{ secrets.APPLE_INSTALLER_CERTIFICATE_BASE64 }}
+      APPLE_INSTALLER_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_INSTALLER_CERTIFICATE_PASSWORD }}
+      APP_STORE_CONNECT_API_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_API_KEY_BASE64 }}
+      APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+      APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
 
     steps:
       - name: Checkout Repository
@@ -819,7 +843,7 @@ jobs:
           cp -R dist/safari/* "../safari_app/laterbox/Shared (Extension)/"
 
       - name: Install Apple Certificates & Keychains
-        if: secrets.APPLE_CERTIFICATE_BASE64 != '' || secrets.APPLE_INSTALLER_CERTIFICATE_BASE64 != ''
+        if: env.APPLE_CERTIFICATE_BASE64 != '' || env.APPLE_INSTALLER_CERTIFICATE_BASE64 != ''
         shell: bash
         run: |
           KEYCHAIN_PATH=$RUNNER_TEMP/build.keychain
@@ -916,7 +940,7 @@ jobs:
           if-no-files-found: warn
 
       - name: Upload Safari Extension to Mac App Store Connect / TestFlight
-        if: secrets.APP_STORE_CONNECT_API_KEY_BASE64 != '' && secrets.APP_STORE_CONNECT_KEY_ID != ''
+        if: env.APP_STORE_CONNECT_API_KEY_BASE64 != '' && env.APP_STORE_CONNECT_KEY_ID != ''
         shell: bash
         run: |
           KEYCHAIN_PATH=$RUNNER_TEMP/build.keychain
@@ -950,6 +974,9 @@ jobs:
     needs: check-version
     if: needs.check-version.outputs.should_release == 'true'
     runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
     steps:
       - name: Checkout Repository
@@ -984,7 +1011,7 @@ jobs:
           NEXT_PUBLIC_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Deploy Next.js Web to Cloudflare Workers / Pages
-        if: secrets.CLOUDFLARE_API_TOKEN != ''
+        if: env.CLOUDFLARE_API_TOKEN != ''
         run: |
           cd laterbox-web
           echo "${{ secrets.GITHUB_TOKEN }}" | npx wrangler secret put GITHUB_TOKEN || true
