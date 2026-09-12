@@ -340,6 +340,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                     ],
                     const SizedBox(height: 20),
                     FilledButton(
+                      onPressed: _busy
+                          ? null
+                          : () => _submit(createAccount: prefersSignup),
                       child: Text(
                         _busy
                             ? 'Please wait…'
@@ -347,9 +350,6 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                             ? 'Create account'
                             : 'Sign in',
                       ),
-                      onPressed: _busy
-                          ? null
-                          : () => _submit(createAccount: prefersSignup),
                     ),
                     const SizedBox(height: 10),
                     OutlinedButton(
