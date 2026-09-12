@@ -48,14 +48,14 @@ export function Header() {
       }`}
     >
       <header
-        className={`w-full flex items-center justify-between transition-all duration-300 ${
+        className={`w-full grid grid-cols-[1fr_auto_1fr] items-center transition-all duration-300 ${
           isScrolled
             ? 'pointer-events-auto bg-white/90 backdrop-blur-xl border border-[#e4e0d5] shadow-lg shadow-black/[0.03] rounded-2xl sm:rounded-3xl px-4 sm:px-6 py-2.5 sm:py-3'
             : 'bg-transparent border-b border-transparent py-5 sm:py-6'
         }`}
       >
         {/* Brand Logo */}
-        <Link href="/" className="flex items-center gap-3 group">
+        <Link href="/" className="flex items-center gap-3 group justify-self-start">
           <div className="w-[38px] h-[38px] sm:w-[42px] sm:h-[42px] relative rounded-xl overflow-hidden shadow-xs transition-transform group-hover:scale-105 bg-[#e6edb0] p-1.5 shrink-0">
             <Image
               src="/branding/laterbox-icon.png"
@@ -72,7 +72,7 @@ export function Header() {
         </Link>
 
         {/* Nav Links (Pages Only) */}
-        <nav className="hidden md:flex items-center gap-7 text-[14px] font-semibold text-[#6c6b63]">
+        <nav className="hidden md:flex items-center gap-7 text-[14px] font-semibold text-[#6c6b63] justify-self-center">
           {navLinks.map((link) => {
             const isActive = pathname === link.href;
             return (
@@ -95,7 +95,7 @@ export function Header() {
         </nav>
 
         {/* Auth / Launch Actions & Mobile Toggle */}
-        <div className="flex items-center gap-2.5 sm:gap-3">
+        <div className="flex items-center gap-2.5 sm:gap-3 justify-self-end">
           {user ? (
             <Link
               href="/inbox"
