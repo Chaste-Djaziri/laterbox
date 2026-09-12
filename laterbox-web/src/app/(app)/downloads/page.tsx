@@ -28,7 +28,6 @@ import {
   ArrowRight,
   Package,
 } from 'lucide-react';
-import { APP_VERSION } from '@/lib/version';
 
 type PlatformId = 'macos' | 'windows' | 'linux' | 'android' | 'ios' | 'extensions';
 type HistoryTab = 'all' | 'desktop' | 'mobile' | 'extensions';
@@ -82,7 +81,7 @@ export default function InAppDownloadsPage() {
   const [releases, setReleases] = useState<GitHubRelease[]>([]);
   const [loadingReleases, setLoadingReleases] = useState<boolean>(true);
   const [releaseSearchQuery, setReleaseSearchQuery] = useState<string>('');
-  const [latestVersionTag, setLatestVersionTag] = useState<string>(APP_VERSION);
+  const [latestVersionTag, setLatestVersionTag] = useState<string>('');
 
   const previousReleasesRef = useRef<HTMLDivElement>(null);
 
@@ -90,25 +89,6 @@ export default function InAppDownloadsPage() {
     const detected = detectUserPlatform();
     setDetectedPlatform(detected);
     setSelectedPlatform(detected);
-
-    const fallbackAssets: ReleaseAsset[] = [
-      { name: 'laterbox-macos-apple-silicon.dmg', browser_download_url: '/api/download/laterbox-macos-apple-silicon.dmg', size: 26650283 },
-      { name: 'laterbox-macos-intel.dmg', browser_download_url: '/api/download/laterbox-macos-intel.dmg', size: 26650283 },
-      { name: 'laterbox-macos-installer.pkg', browser_download_url: '/api/download/laterbox-macos-installer.pkg', size: 23386222 },
-      { name: 'laterbox-macos-universal.zip', browser_download_url: '/api/download/laterbox-macos-universal.zip', size: 23408107 },
-      { name: 'laterbox-windows-setup.exe', browser_download_url: '/api/download/laterbox-windows-setup.exe', size: 12863119 },
-      { name: 'laterbox-windows-x64.zip', browser_download_url: '/api/download/laterbox-windows-x64.zip', size: 14988560 },
-      { name: 'laterbox-linux-x64.tar.gz', browser_download_url: '/api/download/laterbox-linux-x64.tar.gz', size: 12703419 },
-      { name: 'laterbox-linux-x64.zip', browser_download_url: '/api/download/laterbox-linux-x64.zip', size: 12715443 },
-      { name: 'laterbox-linux.AppImage', browser_download_url: '/api/download/laterbox-linux.AppImage', size: 12703419 },
-      { name: 'laterbox-linux.deb', browser_download_url: '/api/download/laterbox-linux.deb', size: 12703419 },
-      { name: 'laterbox-android.apk', browser_download_url: '/api/download/laterbox-android.apk', size: 66794291 },
-      { name: 'laterbox-android-release.apk', browser_download_url: '/api/download/laterbox-android-release.apk', size: 66794291 },
-      { name: 'laterbox-ios.ipa', browser_download_url: '/api/download/laterbox-ios.ipa', size: 25415861 },
-      { name: 'laterbox-chrome-extension.zip', browser_download_url: '/api/download/laterbox-chrome-extension.zip', size: 41255 },
-      { name: 'laterbox-firefox-extension.zip', browser_download_url: '/api/download/laterbox-firefox-extension.zip', size: 41245 },
-      { name: 'laterbox-safari-extension.zip', browser_download_url: '/api/download/laterbox-safari-extension.zip', size: 41219 },
-    ];
 
     setLoadingReleases(true);
     fetch('/api/releases')
@@ -153,30 +133,12 @@ export default function InAppDownloadsPage() {
             }
           }
         } catch {
-          // Fallback
+          // The public GitHub API is unavailable too. Do not show invented releases.
         }
 
-        setReleases([
-          {
-            id: 80,
-            tag_name: `v${APP_VERSION}`,
-            name: `LaterBox v${APP_VERSION}`,
-            body: 'Full offline SQLite synchronization, instantaneous spotlight capture, and browser extension companion pairing.',
-            html_url: `https://github.com/Chaste-Djaziri/laterbox/releases/tag/v${APP_VERSION}`,
-            published_at: new Date().toISOString(),
-            assets: fallbackAssets,
-          },
-          {
-            id: 48,
-            tag_name: 'v1.0.48',
-            name: 'LaterBox v1.0.48',
-            body: 'Pro features upgrade, multi-platform sync speedups, and responsive landing improvements.',
-            html_url: 'https://github.com/Chaste-Djaziri/laterbox/releases/tag/v1.0.48',
-            published_at: new Date(Date.now() - 86400000).toISOString(),
-            assets: fallbackAssets,
-          },
-        ]);
-        setExpandedVersions(new Set([APP_VERSION, '1.0.48']));
+        setReleases([]);
+        setExpandedVersions(new Set());
+        setLatestVersionTag('');
       })
       .finally(() => {
         setLoadingReleases(false);
