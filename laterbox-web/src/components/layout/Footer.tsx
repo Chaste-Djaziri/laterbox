@@ -137,13 +137,13 @@ export function Footer() {
                 <ArrowUpRight className="w-3 h-3 text-[#9e9b92]" />
               </a>
               <a
-                href="https://play.google.com/apps/testing/pro.micorp.laterbox"
+                href="https://groups.google.com/g/laterbox-testers"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-[#e4e0d5] hover:border-[#171711] hover:text-[#171711] text-[#6c6b63] font-semibold transition-all shadow-2xs"
               >
                 <Smartphone className="w-3.5 h-3.5" />
-                <span>Android Beta</span>
+                <span>Android Testers</span>
                 <ArrowUpRight className="w-3 h-3 text-[#9e9b92]" />
               </a>
             </div>
