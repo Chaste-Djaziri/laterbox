@@ -102,8 +102,11 @@ class MacOSCompanion {
           final isAttachmentExt = {'jpg', 'jpeg', 'png', 'webp', 'heic', 'pdf', 'txt', 'md', 'doc', 'docx'}.contains(ext);
           if ((looksLikeFile || isAttachmentExt) && (trimmed.contains('/') || trimmed.startsWith('file'))) {
             final path = trimmed.startsWith('file://') ? Uri.parse(trimmed).toFilePath() : trimmed;
-            if (path.isNotEmpty) filePaths.add(path);
-            else textItems.add(trimmed);
+            if (path.isNotEmpty) {
+              filePaths.add(path);
+            } else {
+              textItems.add(trimmed);
+            }
           } else {
             textItems.add(trimmed);
           }
