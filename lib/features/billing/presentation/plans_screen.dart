@@ -36,14 +36,14 @@ class PlansScreen extends ConsumerWidget {
               child: Column(
                 children: [
                   Text(
-                    'Choose how you use LaterBox',
+                    'Choose a Pro plan',
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.headlineMedium
                         ?.copyWith(fontWeight: FontWeight.w900),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Your local library stays free. Upgrade only for connected features.',
+                    'Unlock secure cloud sync, attachments, and connected capture across your devices.',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -72,7 +72,7 @@ class PlansScreen extends ConsumerWidget {
                   ],
                   ProPlans(
                     preferredInterval: preferredInterval,
-                    onContinueFree: () => context.go('/inbox'),
+                    showFreePlan: false,
                   ),
                 ],
               ),
