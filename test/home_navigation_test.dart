@@ -67,10 +67,12 @@ void main() {
 
     expect(navigationDestination('Inbox'), findsOneWidget);
     expect(find.text('Flutter notes'), findsOneWidget);
+    expect(tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex, 0);
 
     await tester.tap(navigationDestination('Library'));
     await tester.pumpAndSettle();
 
+    expect(tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex, 1);
     expect(find.text('Library'), findsWidgets);
     expect(find.text('All Items'), findsOneWidget);
     expect(find.text('Favorites'), findsOneWidget);
@@ -85,6 +87,7 @@ void main() {
     await tester.tap(navigationDestination('Settings'));
     await tester.pumpAndSettle();
 
+    expect(tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex, 2);
     expect(find.text('Settings'), findsWidgets);
 
     await tester.pumpWidget(const SizedBox.shrink());
@@ -101,6 +104,9 @@ void main() {
     expect(find.text('Search items, tags, notes...'), findsOneWidget);
     await tester.tap(find.byKey(const Key('home_search_input')));
     await tester.pumpAndSettle();
+
+    // Keep home page link highlighted (index 0), NOT library (index 1)
+    expect(tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex, 0);
 
     expect(find.text('Recent'), findsOneWidget);
     expect(find.text('Flutter notes'), findsOneWidget);
@@ -130,6 +136,76 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Search items, tags, notes...'), findsOneWidget);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(milliseconds: 1));
+    await database.close();
+  });
+
+  testWidgets('home page shows only filters with items in it (videos, notes, products)', (tester) async {
+    final database = AppDatabase(NativeDatabase.memory());
+    final timestamp = DateTime.utc(2026, 8, 19);
+    await database.saveItem(
+      ItemsCompanion.insert(
+        id: 'note-item',
+        title: const Value('Quick Note'),
+        textContent: const Value('Meeting summary'),
+        type: const Value('note'),
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      ),
+    );
+    await database.saveItem(
+      ItemsCompanion.insert(
+        id: 'video-item',
+        title: const Value('Flutter YouTube Video'),
+        url: const Value('https://youtube.com/watch?v=123'),
+        type: const Value('video'),
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      ),
+    );
+    await database.saveItem(
+      ItemsCompanion.insert(
+        id: 'product-item',
+        title: const Value('Ergonomic Keyboard'),
+        url: const Value('https://store.example.com/keyboard'),
+        type: const Value('product'),
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      ),
+    );
+
+    await pumpApp(tester, database);
+    await tester.pumpAndSettle();
+
+    // Filters with items should appear
+    expect(find.text('All'), findsOneWidget);
+    expect(find.text('Notes'), findsOneWidget);
+    expect(find.text('Videos'), findsOneWidget);
+    expect(find.text('Products'), findsOneWidget);
+
+    // Filters without items must NOT appear
+    expect(find.text('Music'), findsNothing);
+    expect(find.text('Books'), findsNothing);
+    expect(find.text('Places'), findsNothing);
+    expect(find.text('Code'), findsNothing);
+
+    // Selecting 'Videos' filters to only the video item
+    await tester.tap(find.text('Videos'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Flutter YouTube Video'), findsOneWidget);
+    expect(find.text('Quick Note'), findsNothing);
+    expect(find.text('Ergonomic Keyboard'), findsNothing);
+
+    // Selecting 'Products' filters to only the product item
+    await tester.tap(find.text('Products'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Ergonomic Keyboard'), findsOneWidget);
+    expect(find.text('Flutter YouTube Video'), findsNothing);
+    expect(find.text('Quick Note'), findsNothing);
 
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(milliseconds: 1));
