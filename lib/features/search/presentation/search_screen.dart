@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/settings/item_view_mode.dart';
 import '../../../features/enrichment/domain/content_type.dart';
 import '../../../features/library/presentation/library_providers.dart';
 import '../../../shared/models/laterbox_item.dart';
 import '../../../shared/widgets/item_card.dart';
+import '../../../shared/widgets/item_list_row.dart';
+import '../../../shared/widgets/view_mode_toggle.dart';
 import 'search_providers.dart';
 
 class SearchScreen extends ConsumerStatefulWidget {
@@ -38,6 +41,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     final query = ref.watch(searchQueryProvider);
     final results = ref.watch(searchResultsProvider);
     final recent = ref.watch(allItemsProvider);
+    final viewMode = ref.watch(itemViewModeProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -45,6 +49,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           'Search',
           style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: -0.6),
         ),
+        actions: const [
+          ViewModeToggle(compact: true),
+          SizedBox(width: 8),
+        ],
       ),
       body: SafeArea(
         top: false,
@@ -78,28 +86,30 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                 ),
              ),
              _TypeFilterChips(),
-             Expanded(
-               child: query.trim().isEmpty
-                  ? _RecentList(items: recent)
-                  : results.when(
-                      loading: () => const Center(
-                        child: CircularProgressIndicator.adaptive(),
+              Expanded(
+                child: query.trim().isEmpty
+                    ? _RecentList(items: recent, viewMode: viewMode)
+                    : results.when(
+                        loading: () => const Center(
+                          child: CircularProgressIndicator.adaptive(),
+                        ),
+                        error: (error, stackTrace) => Center(
+                          child: Text('Search failed: $error'),
+                        ),
+                        data: (results) => results.isEmpty
+                            ? _NoResults(query: query)
+                            : ListView.separated(
+                                padding: const EdgeInsets.fromLTRB(20, 4, 20, 104),
+                                itemCount: results.length,
+                                separatorBuilder: (context, index) =>
+                                    SizedBox(height: viewMode.isCards ? 12 : 8),
+                                itemBuilder: (context, index) =>
+                                    viewMode.isCards
+                                        ? ItemCard(item: results[index].item)
+                                        : ItemListRow(item: results[index].item),
+                              ),
                       ),
-                      error: (error, stackTrace) => Center(
-                        child: Text('Search failed: $error'),
-                      ),
-                      data: (results) => results.isEmpty
-                          ? _NoResults(query: query)
-                          : ListView.separated(
-                              padding: const EdgeInsets.fromLTRB(20, 4, 20, 104),
-                              itemCount: results.length,
-                              separatorBuilder: (context, index) =>
-                                  const SizedBox(height: 12),
-                              itemBuilder: (context, index) =>
-                                  ItemCard(item: results[index].item),
-                            ),
-                    ),
-            ),
+              ),
           ],
         ),
       ),
@@ -108,9 +118,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 }
 
 class _RecentList extends StatelessWidget {
-  const _RecentList({required this.items});
+  const _RecentList({required this.items, required this.viewMode});
 
   final AsyncValue<List<LaterBoxItem>> items;
+  final ItemViewMode viewMode;
 
   @override
   Widget build(BuildContext context) {
@@ -120,25 +131,29 @@ class _RecentList extends StatelessWidget {
       error: (error, stackTrace) => const _SearchHint(),
       data: (items) => items.isEmpty
           ? const _SearchHint()
-          : ListView(
+          : ListView.separated(
               padding: const EdgeInsets.fromLTRB(20, 4, 20, 104),
-              children: [
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: Text(
+              itemCount: items.length + 1,
+              separatorBuilder: (context, index) =>
+                  index == 0
+                      ? const SizedBox(height: 8)
+                      : SizedBox(height: viewMode.isCards ? 12 : 8),
+              itemBuilder: (context, index) {
+                if (index == 0) {
+                  return Text(
                     'Recent',
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 1.1,
-                    ),
-                  ),
-                ),
-                for (final item in items) ...[
-                  ItemCard(item: item),
-                  const SizedBox(height: 12),
-                ],
-              ],
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1.1,
+                        ),
+                  );
+                }
+                final item = items[index - 1];
+                return viewMode.isCards
+                    ? ItemCard(item: item)
+                    : ItemListRow(item: item);
+              },
             ),
     );
   }
