@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../features/enrichment/domain/content_type.dart';
 import '../../features/inbox/presentation/inbox_providers.dart';
 
 class FilterChipBar extends ConsumerWidget {
@@ -14,34 +13,29 @@ class FilterChipBar extends ConsumerWidget {
 
     int getCount(InboxFilterType filter) {
       if (filter == InboxFilterType.all) return allItems.length;
-      return allItems.where((item) {
-        switch (filter) {
-          case InboxFilterType.starred:
-            return item.favorite;
-          case InboxFilterType.notes:
-            return item.url == null ||
-                (item.text != null && item.text!.isNotEmpty);
-          case InboxFilterType.articles:
-            return item.metadata?.classification?.type == ContentType.article;
-          case InboxFilterType.videos:
-            return item.metadata?.classification?.type == ContentType.video;
-          case InboxFilterType.music:
-            return item.metadata?.classification?.type == ContentType.music;
-          case InboxFilterType.all:
-            return true;
-        }
-      }).length;
+      return allItems.where(filter.matches).length;
     }
+
+    if (allItems.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final visibleFilters = <InboxFilterType>[
+      InboxFilterType.all,
+      ...InboxFilterType.values
+          .where((f) => f != InboxFilterType.all)
+          .where((f) => getCount(f) > 0 || activeFilter == f),
+    ];
 
     return SizedBox(
       height: 38,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 4),
-        itemCount: InboxFilterType.values.length,
+        itemCount: visibleFilters.length,
         separatorBuilder: (context, index) => const SizedBox(width: 8),
         itemBuilder: (context, index) {
-          final filter = InboxFilterType.values[index];
+          final filter = visibleFilters[index];
           final isSelected = activeFilter == filter;
           final count = getCount(filter);
 
