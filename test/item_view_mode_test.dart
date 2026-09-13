@@ -174,6 +174,16 @@ void main() {
     expect(find.byType(ItemCard), findsOneWidget);
     expect(find.byType(ItemListRow), findsNothing);
 
+    // Header layout: Inbox title with count beside it, view switcher, and 3 dots
+    expect(find.text('Inbox'), findsOneWidget);
+    expect(find.text('1'), findsAtLeastNWidgets(1));
+    expect(find.byType(ViewModeToggle), findsOneWidget);
+    expect(find.byIcon(Icons.more_vert_rounded), findsOneWidget);
+
+    // Top app bar icons are removed
+    expect(find.byIcon(Icons.search), findsNothing);
+    expect(find.byIcon(Icons.add_circle_outline_rounded), findsNothing);
+
     // Switch view mode to list
     await container.read(itemViewModeProvider.notifier).setViewMode(ItemViewMode.list);
     await tester.pumpAndSettle();
