@@ -372,7 +372,31 @@ jobs:
           # filename is copied only after stapling so the website never serves
           # an unstapled Apple Silicon or Intel alias.
           echo "Submitting DMG for notarization…"
-          xcrun notarytool submit dist/laterbox-macos-universal.dmg --apple-id "$APPLE_ID" --password "$APPLE_APP_SPECIFIC_PASSWORD" --team-id "$APPLE_TEAM_ID" --wait
+          NOTARY_RESULT=$(mktemp)
+          set +e
+          xcrun notarytool submit dist/laterbox-macos-universal.dmg \
+            --apple-id "$APPLE_ID" \
+            --password "$APPLE_APP_SPECIFIC_PASSWORD" \
+            --team-id "$APPLE_TEAM_ID" \
+            --wait \
+            --output-format json > "$NOTARY_RESULT"
+          NOTARY_EXIT=$?
+          set -e
+          cat "$NOTARY_RESULT"
+          if [ "$NOTARY_EXIT" -ne 0 ]; then
+            SUBMISSION_ID=$(plutil -extract id raw -o - "$NOTARY_RESULT" 2>/dev/null || true)
+            if [ -n "$SUBMISSION_ID" ]; then
+              echo "::group::Apple notarization log ($SUBMISSION_ID)"
+              xcrun notarytool log "$SUBMISSION_ID" \
+                --apple-id "$APPLE_ID" \
+                --password "$APPLE_APP_SPECIFIC_PASSWORD" \
+                --team-id "$APPLE_TEAM_ID" \
+                --output-format json || true
+              echo "::endgroup::"
+            fi
+            echo "::error::Apple rejected the DMG notarization request. See the Apple notarization log above."
+            exit "$NOTARY_EXIT"
+          fi
           xcrun stapler staple dist/laterbox-macos-universal.dmg
           spctl -a -vvv -t open dist/laterbox-macos-universal.dmg
           cp dist/laterbox-macos-universal.dmg dist/laterbox-macos.dmg
