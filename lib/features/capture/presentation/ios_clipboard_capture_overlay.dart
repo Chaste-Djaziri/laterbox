@@ -39,6 +39,7 @@ class _IosClipboardCaptureOverlayState
   String? _lastHandledValue;
   EnrichedMetadata? _metadata;
   bool _saving = false;
+  bool _promptVisible = false;
 
   bool get _isIos => !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS;
 
@@ -83,6 +84,10 @@ class _IosClipboardCaptureOverlayState
     setState(() {
       _candidate = value;
       _metadata = null;
+      _promptVisible = false;
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && _candidate == value) setState(() => _promptVisible = true);
     });
     _loadMetadata(value);
   }
@@ -102,11 +107,16 @@ class _IosClipboardCaptureOverlayState
   }
 
   void _dismiss() {
-    setState(() {
-      _lastHandledValue = _candidate;
-      _candidate = null;
-      _metadata = null;
-      _saving = false;
+    if (!_promptVisible) return;
+    setState(() => _promptVisible = false);
+    Future<void>.delayed(const Duration(milliseconds: 220), () {
+      if (!mounted) return;
+      setState(() {
+        _lastHandledValue = _candidate;
+        _candidate = null;
+        _metadata = null;
+        _saving = false;
+      });
     });
   }
 
@@ -119,12 +129,7 @@ class _IosClipboardCaptureOverlayState
           .read(captureServiceProvider)
           .save(CapturePayload.fromValue(value));
       if (!mounted) return;
-      setState(() {
-        _lastHandledValue = value;
-        _candidate = null;
-        _metadata = null;
-        _saving = false;
-      });
+      _dismiss();
     } catch (_) {
       if (mounted) setState(() => _saving = false);
     }
@@ -142,12 +147,22 @@ class _IosClipboardCaptureOverlayState
             top: MediaQuery.paddingOf(context).top + 8,
             left: 16,
             right: 16,
-            child: _ClipboardSavePrompt(
-              value: candidate,
-              metadata: _metadata,
-              saving: _saving,
-              onSave: _save,
-              onDismiss: _dismiss,
+            child: AnimatedSlide(
+              offset: _promptVisible ? Offset.zero : const Offset(0, -1.2),
+              duration: const Duration(milliseconds: 220),
+              curve: Curves.easeOutCubic,
+              child: AnimatedOpacity(
+                opacity: _promptVisible ? 1 : 0,
+                duration: const Duration(milliseconds: 180),
+                curve: Curves.easeOut,
+                child: _ClipboardSavePrompt(
+                  value: candidate,
+                  metadata: _metadata,
+                  saving: _saving,
+                  onSave: _save,
+                  onDismiss: _dismiss,
+                ),
+              ),
             ),
           ),
       ],
