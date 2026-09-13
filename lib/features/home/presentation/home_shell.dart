@@ -9,7 +9,7 @@ import '../../../core/billing/entitlement.dart';
 import '../../../core/billing/entitlement_presentation.dart';
 import '../../inbox/presentation/inbox_screen.dart';
 import '../../library/presentation/library_screen.dart';
-import '../../search/presentation/search_screen.dart';
+import '../../settings/presentation/settings_screen.dart';
 import 'desktop_sidebar.dart';
 
 class HomeShell extends ConsumerWidget {
@@ -26,10 +26,10 @@ class HomeShell extends ConsumerWidget {
 
   static const List<Widget> _screens = [
     InboxScreen(),
-    SearchScreen(),
     LibraryScreen(),
+    SettingsScreen(),
   ];
-  static const List<String> _paths = ['/inbox', '/search', '/library'];
+  static const List<String> _paths = ['/inbox', '/library', '/settings'];
 
   Future<void> _openCapture(BuildContext context) {
     return showModalBottomSheet<void>(
@@ -91,13 +91,14 @@ class HomeShell extends ConsumerWidget {
                   label: 'Inbox',
                 ),
                 NavigationDestination(
-                  icon: Icon(Icons.search_rounded),
-                  label: 'Search',
-                ),
-                NavigationDestination(
                   icon: Icon(Icons.auto_stories_outlined),
                   selectedIcon: Icon(Icons.auto_stories_rounded),
                   label: 'Library',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.settings_outlined),
+                  selectedIcon: Icon(Icons.settings_rounded),
+                  label: 'Settings',
                 ),
               ],
             ),
