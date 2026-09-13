@@ -96,144 +96,9 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
                         ),
                       ],
                     ),
-              actions: [
-                const ViewModeToggle(compact: true),
-                const CloudSyncIndicator(compact: true),
-                IconButton(
-                  onPressed: () => _openCapture(context),
-                  tooltip: 'Quick Save',
-                  icon: const Icon(Icons.add_circle_outline_rounded),
-                ),
-                IconButton(
-                  onPressed: () => context.go('/search'),
-                  tooltip: 'Search',
-                  icon: const Icon(Icons.search),
-                ),
-                PopupMenuButton<String>(
-                  icon: const Icon(Icons.more_vert_rounded),
-                  tooltip: 'Shortcuts & Menu',
-                  onSelected: (value) async {
-                    switch (value) {
-                      case 'toggle_view_mode':
-                        ref.read(itemViewModeProvider.notifier).toggle();
-                        break;
-                      case 'capture':
-                        _openCapture(context);
-                        break;
-                      case 'kept':
-                        context.go('/kept');
-                        break;
-                      case 'library':
-                        context.go('/library');
-                        break;
-                      case 'tutorial':
-                        context.push('/tutorial');
-                        break;
-                      case 'settings':
-                        context.push('/settings');
-                        break;
-                      case 'signout':
-                        await ref.read(authRepositoryProvider).signOut();
-                        ref.read(guestModeProvider.notifier).state = true;
-                        break;
-                      case 'signin':
-                        ref.read(guestModeProvider.notifier).state = false;
-                        break;
-                    }
-                  },
-                  itemBuilder: (context) => [
-                    const PopupMenuItem(
-                      value: 'capture',
-                      child: Row(
-                        children: [
-                          Icon(Icons.add_rounded, size: 20),
-                          SizedBox(width: 12),
-                          Text('Quick Save / Paste'),
-                        ],
-                      ),
-                    ),
-                    const PopupMenuItem(
-                      value: 'kept',
-                      child: Row(
-                        children: [
-                          Icon(Icons.check_circle_outline_rounded, size: 20),
-                          SizedBox(width: 12),
-                          Text('Kept Items'),
-                        ],
-                      ),
-                    ),
-                    const PopupMenuItem(
-                      value: 'library',
-                      child: Row(
-                        children: [
-                          Icon(Icons.auto_stories_outlined, size: 20),
-                          SizedBox(width: 12),
-                          Text('Library'),
-                        ],
-                      ),
-                    ),
-                    const PopupMenuDivider(),
-                    const PopupMenuItem(
-                      value: 'tutorial',
-                      child: Row(
-                        children: [
-                          Icon(Icons.help_outline_rounded, size: 20),
-                          SizedBox(width: 12),
-                          Text('Guide & Shortcuts'),
-                        ],
-                      ),
-                    ),
-                    const PopupMenuItem(
-                      value: 'settings',
-                      child: Row(
-                        children: [
-                          Icon(Icons.settings_outlined, size: 20),
-                          SizedBox(width: 12),
-                          Text('Settings'),
-                        ],
-                      ),
-                    ),
-                    PopupMenuItem(
-                      value: 'toggle_view_mode',
-                      child: Row(
-                        children: [
-                          Icon(
-                            viewMode.isCards
-                                ? Icons.view_list_rounded
-                                : Icons.grid_view_rounded,
-                            size: 20,
-                          ),
-                          const SizedBox(width: 12),
-                          Text(viewMode.isCards ? 'List view' : 'Cards view'),
-                        ],
-                      ),
-                    ),
-                    const PopupMenuDivider(),
-                    if (auth?.isAuthenticated ?? false)
-                      const PopupMenuItem(
-                        value: 'signout',
-                        child: Row(
-                          children: [
-                            Icon(Icons.logout_rounded, size: 20),
-                            SizedBox(width: 12),
-                            Text('Sign out'),
-                          ],
-                        ),
-                      )
-                    else
-                      const PopupMenuItem(
-                        value: 'signin',
-                        child: Row(
-                          children: [
-                            Icon(Icons.person_outline_rounded, size: 20),
-                            SizedBox(width: 12),
-                            Text('Sign in'),
-                          ],
-                        ),
-                      ),
-                  ],
-                ),
-                const SizedBox(width: 4),
+              actions: const [
+                CloudSyncIndicator(compact: true),
+                SizedBox(width: 8),
               ],
             ),
       body: SafeArea(
@@ -260,9 +125,11 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
                       children: [
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
                                 Text(
                                   'Inbox',
@@ -274,23 +141,32 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
                                 ),
                                 if (rawItems.asData?.value
                                     case final list?) ...[
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    '${list.length} ${list.length == 1 ? 'item' : 'items'} saved',
-                                    style: theme.textTheme.bodyMedium?.copyWith(
-                                      color: theme.colorScheme.onSurfaceVariant,
-                                      fontWeight: FontWeight.w500,
+                                  const SizedBox(width: 10),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 9,
+                                      vertical: 3,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: theme.colorScheme.surfaceContainerHigh,
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Text(
+                                      '${list.length}',
+                                      style: theme.textTheme.labelMedium?.copyWith(
+                                        color: theme.colorScheme.onSurfaceVariant,
+                                        fontWeight: FontWeight.w700,
+                                      ),
                                     ),
                                   ),
                                 ],
                               ],
                             ),
-                            if (isDesktop)
-                              Row(
-                                children: [
-                                  const ViewModeToggle(),
-                                  const SizedBox(width: 12),
-                                  if (isMac)
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (isDesktop) ...[
+                                  if (isMac) ...[
                                     IconButton(
                                       onPressed: () => ref
                                           .read(desktopActionsProvider)
@@ -301,53 +177,153 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
                                         size: 20,
                                       ),
                                     ),
+                                    const SizedBox(width: 4),
+                                  ],
                                   const CloudSyncIndicator(),
-                                  const SizedBox(width: 12),
-                                  TextButton.icon(
-                                    onPressed: () => context.push('/tutorial'),
-                                    icon: const Icon(
-                                      Icons.help_outline_rounded,
-                                      size: 18,
-                                    ),
-                                    label: const Text('Tutorial'),
-                                  ),
                                   const SizedBox(width: 8),
-                                  if (auth?.isAuthenticated ?? false)
-                                    TextButton.icon(
-                                      onPressed: () async {
+                                ],
+                                ViewModeToggle(compact: !isDesktop),
+                                const SizedBox(width: 2),
+                                PopupMenuButton<String>(
+                                  icon: const Icon(Icons.more_vert_rounded),
+                                  tooltip: 'Shortcuts & Menu',
+                                  onSelected: (value) async {
+                                    switch (value) {
+                                      case 'toggle_view_mode':
+                                        ref
+                                            .read(
+                                              itemViewModeProvider.notifier,
+                                            )
+                                            .toggle();
+                                        break;
+                                      case 'capture':
+                                        _openCapture(context);
+                                        break;
+                                      case 'kept':
+                                        context.go('/kept');
+                                        break;
+                                      case 'library':
+                                        context.go('/library');
+                                        break;
+                                      case 'tutorial':
+                                        context.push('/tutorial');
+                                        break;
+                                      case 'settings':
+                                        context.push('/settings');
+                                        break;
+                                      case 'signout':
                                         await ref
                                             .read(authRepositoryProvider)
                                             .signOut();
                                         ref
-                                                .read(
-                                                  guestModeProvider.notifier,
-                                                )
-                                                .state =
-                                            true;
-                                      },
-                                      icon: const Icon(
-                                        Icons.logout_rounded,
-                                        size: 18,
+                                            .read(
+                                              guestModeProvider.notifier,
+                                            )
+                                            .state = true;
+                                        break;
+                                      case 'signin':
+                                        ref
+                                            .read(
+                                              guestModeProvider.notifier,
+                                            )
+                                            .state = false;
+                                        break;
+                                    }
+                                  },
+                                  itemBuilder: (context) => [
+                                    const PopupMenuItem(
+                                      value: 'capture',
+                                      child: Row(
+                                        children: [
+                                          Icon(Icons.add_rounded, size: 20),
+                                          SizedBox(width: 12),
+                                          Text('Quick Save / Paste'),
+                                        ],
                                       ),
-                                      label: const Text('Sign out'),
-                                    )
-                                  else
-                                    TextButton.icon(
-                                      onPressed: () =>
-                                          ref
-                                                  .read(
-                                                    guestModeProvider.notifier,
-                                                  )
-                                                  .state =
-                                              false,
-                                      icon: const Icon(
-                                        Icons.person_outline_rounded,
-                                        size: 18,
-                                      ),
-                                      label: const Text('Sign in'),
                                     ),
-                                ],
-                              ),
+                                    const PopupMenuItem(
+                                      value: 'kept',
+                                      child: Row(
+                                        children: [
+                                          Icon(Icons.check_circle_outline_rounded, size: 20),
+                                          SizedBox(width: 12),
+                                          Text('Kept Items'),
+                                        ],
+                                      ),
+                                    ),
+                                    const PopupMenuItem(
+                                      value: 'library',
+                                      child: Row(
+                                        children: [
+                                          Icon(Icons.auto_stories_outlined, size: 20),
+                                          SizedBox(width: 12),
+                                          Text('Library'),
+                                        ],
+                                      ),
+                                    ),
+                                    const PopupMenuDivider(),
+                                    const PopupMenuItem(
+                                      value: 'tutorial',
+                                      child: Row(
+                                        children: [
+                                          Icon(Icons.help_outline_rounded, size: 20),
+                                          SizedBox(width: 12),
+                                          Text('Guide & Shortcuts'),
+                                        ],
+                                      ),
+                                    ),
+                                    const PopupMenuItem(
+                                      value: 'settings',
+                                      child: Row(
+                                        children: [
+                                          Icon(Icons.settings_outlined, size: 20),
+                                          SizedBox(width: 12),
+                                          Text('Settings'),
+                                        ],
+                                      ),
+                                    ),
+                                    PopupMenuItem(
+                                      value: 'toggle_view_mode',
+                                      child: Row(
+                                        children: [
+                                          Icon(
+                                            viewMode.isCards
+                                                ? Icons.view_list_rounded
+                                                : Icons.grid_view_rounded,
+                                            size: 20,
+                                          ),
+                                          SizedBox(width: 12),
+                                          Text(viewMode.isCards ? 'List view' : 'Cards view'),
+                                        ],
+                                      ),
+                                    ),
+                                    const PopupMenuDivider(),
+                                    if (auth?.isAuthenticated ?? false)
+                                      const PopupMenuItem(
+                                        value: 'signout',
+                                        child: Row(
+                                          children: [
+                                            Icon(Icons.logout_rounded, size: 20),
+                                            SizedBox(width: 12),
+                                            Text('Sign out'),
+                                          ],
+                                        ),
+                                      )
+                                    else
+                                      const PopupMenuItem(
+                                        value: 'signin',
+                                        child: Row(
+                                          children: [
+                                            Icon(Icons.person_outline_rounded, size: 20),
+                                            SizedBox(width: 12),
+                                            Text('Sign in'),
+                                          ],
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ],
+                            ),
                           ],
                         ),
                         const SizedBox(height: 16),
