@@ -796,7 +796,7 @@ jobs:
           APPLE_SHARE_EXTENSION_PROVISIONING_PROFILE_BASE64: ${{ secrets.APPLE_SHARE_EXTENSION_PROVISIONING_PROFILE_BASE64 }}
 
       - name: Build Flutter iOS Bundle (no initial codesign)
-        run: flutter build ios --release --no-codesign
+        run: flutter build ios --release --no-codesign --dart-define=LATERBOX_DISTRIBUTION=app-store
 
       - name: Archive and Sign iOS IPA
         if: env.APPLE_CERTIFICATE_BASE64 != ''
