@@ -120,19 +120,17 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
         ),
       ),
-      GoRoute(
-        path: '/search',
-        pageBuilder: (context, state) =>
-            NoTransitionPage(key: state.pageKey, child: const SearchScreen()),
-      ),
       ShellRoute(
         builder: (context, state, child) {
           final location = state.uri.path;
           int selectedIndex = 0;
-          if (location.startsWith('/library') || location.startsWith('/kept')) {
-            selectedIndex = 1;
-          } else if (location.startsWith('/settings')) {
+          if (location.startsWith('/settings')) {
             selectedIndex = 2;
+          } else if (location.startsWith('/library') ||
+              location.startsWith('/kept')) {
+            selectedIndex = 1;
+          } else {
+            selectedIndex = 0;
           }
           return AuthGate(
             child: HomeShell(selectedIndex: selectedIndex, child: child),
@@ -144,6 +142,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             pageBuilder: (context, state) => NoTransitionPage(
               key: state.pageKey,
               child: const InboxScreen(),
+            ),
+          ),
+          GoRoute(
+            path: '/search',
+            pageBuilder: (context, state) => NoTransitionPage(
+              key: state.pageKey,
+              child: const SearchScreen(),
             ),
           ),
           GoRoute(
