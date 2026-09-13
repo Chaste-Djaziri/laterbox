@@ -1,13 +1,13 @@
-import 'dart:async';
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/desktop/clipboard_capture_service.dart';
+import '../../../core/enrichment/enrichment_providers.dart';
 import '../domain/capture_payload.dart';
 import '../domain/capture_providers.dart';
+import '../../enrichment/domain/item_metadata.dart';
 
 typedef ClipboardTextReader = Future<String?> Function();
 
@@ -37,8 +37,8 @@ class _IosClipboardCaptureOverlayState
     with WidgetsBindingObserver {
   String? _candidate;
   String? _lastHandledValue;
+  EnrichedMetadata? _metadata;
   bool _saving = false;
-  Timer? _dismissTimer;
 
   bool get _isIos => !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS;
 
@@ -54,7 +54,6 @@ class _IosClipboardCaptureOverlayState
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _dismissTimer?.cancel();
     super.dispose();
   }
 
@@ -81,14 +80,32 @@ class _IosClipboardCaptureOverlayState
         value == _lastHandledValue) {
       return;
     }
-    setState(() => _candidate = value);
+    setState(() {
+      _candidate = value;
+      _metadata = null;
+    });
+    _loadMetadata(value);
+  }
+
+  Future<void> _loadMetadata(String value) async {
+    if (!ClipboardCaptureService.isUrl(value)) return;
+    final remote = ref.read(remoteMetadataDataSourceProvider);
+    if (remote == null) return;
+    try {
+      final metadata = await remote.fetch(value);
+      if (mounted && _candidate == value) {
+        setState(() => _metadata = metadata);
+      }
+    } catch (_) {
+      // The prompt remains useful offline or when a website blocks metadata.
+    }
   }
 
   void _dismiss() {
-    _dismissTimer?.cancel();
     setState(() {
       _lastHandledValue = _candidate;
       _candidate = null;
+      _metadata = null;
       _saving = false;
     });
   }
@@ -105,10 +122,8 @@ class _IosClipboardCaptureOverlayState
       setState(() {
         _lastHandledValue = value;
         _candidate = null;
+        _metadata = null;
         _saving = false;
-      });
-      _dismissTimer = Timer(const Duration(seconds: 2), () {
-        if (mounted) setState(() {});
       });
     } catch (_) {
       if (mounted) setState(() => _saving = false);
@@ -129,6 +144,7 @@ class _IosClipboardCaptureOverlayState
             right: 16,
             child: _ClipboardSavePrompt(
               value: candidate,
+              metadata: _metadata,
               saving: _saving,
               onSave: _save,
               onDismiss: _dismiss,
@@ -142,12 +158,14 @@ class _IosClipboardCaptureOverlayState
 class _ClipboardSavePrompt extends StatelessWidget {
   const _ClipboardSavePrompt({
     required this.value,
+    required this.metadata,
     required this.saving,
     required this.onSave,
     required this.onDismiss,
   });
 
   final String value;
+  final EnrichedMetadata? metadata;
   final bool saving;
   final VoidCallback onSave;
   final VoidCallback onDismiss;
@@ -156,6 +174,12 @@ class _ClipboardSavePrompt extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isLink = ClipboardCaptureService.isUrl(value);
+    final previewImageUrl = metadata?.previewImageUrl?.trim();
+    final title = metadata?.title?.trim();
+    final domain =
+        metadata?.siteName?.trim() ??
+        metadata?.domain?.trim() ??
+        Uri.tryParse(value)?.host.replaceFirst(RegExp(r'^www\\.'), '');
     return Material(
       color: Colors.transparent,
       child: DecoratedBox(
@@ -174,8 +198,11 @@ class _ClipboardSavePrompt extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(16, 14, 12, 12),
           child: Row(
             children: [
-              Icon(
-                isLink ? Icons.link_rounded : Icons.content_paste_rounded,
+              _PreviewIcon(
+                imageUrl: previewImageUrl?.isEmpty == false
+                    ? previewImageUrl
+                    : null,
+                icon: isLink ? Icons.link_rounded : Icons.content_paste_rounded,
                 color: theme.colorScheme.onInverseSurface,
               ),
               const SizedBox(width: 12),
@@ -185,7 +212,9 @@ class _ClipboardSavePrompt extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Save copied item?',
+                      title?.isNotEmpty == true ? title! : 'Save copied item?',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.labelLarge?.copyWith(
                         color: theme.colorScheme.onInverseSurface,
                         fontWeight: FontWeight.w800,
@@ -193,7 +222,9 @@ class _ClipboardSavePrompt extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      value.replaceAll(RegExp(r'\s+'), ' '),
+                      domain?.isNotEmpty == true
+                          ? domain!
+                          : value.replaceAll(RegExp(r'\s+'), ' '),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.bodySmall?.copyWith(
@@ -207,10 +238,15 @@ class _ClipboardSavePrompt extends StatelessWidget {
               ),
               TextButton(
                 onPressed: saving ? null : onDismiss,
+                style: TextButton.styleFrom(foregroundColor: Colors.white),
                 child: const Text('Not now'),
               ),
               FilledButton(
                 onPressed: saving ? null : onSave,
+                style: FilledButton.styleFrom(
+                  backgroundColor: const Color(0xFF34C759),
+                  foregroundColor: Colors.white,
+                ),
                 child: saving
                     ? const SizedBox(
                         width: 16,
@@ -222,6 +258,43 @@ class _ClipboardSavePrompt extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _PreviewIcon extends StatelessWidget {
+  const _PreviewIcon({
+    required this.imageUrl,
+    required this.icon,
+    required this.color,
+  });
+
+  final String? imageUrl;
+  final IconData icon;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final fallback = Container(
+      width: 48,
+      height: 48,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Icon(icon, color: color),
+    );
+    if (imageUrl == null) return fallback;
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(14),
+      child: Image.network(
+        imageUrl!,
+        width: 48,
+        height: 48,
+        fit: BoxFit.cover,
+        errorBuilder: (_, _, _) => fallback,
       ),
     );
   }
