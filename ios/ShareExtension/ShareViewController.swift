@@ -103,6 +103,11 @@ final class ShareViewController: UIViewController {
            !provider.hasItemConformingToTypeIdentifier(UTType.fileURL.identifier) {
             return nil
         }
+        // Safari provides JavaScript preprocessing results as a property list.
+        // It contains the page URL and selected text, not a user attachment.
+        if provider.hasItemConformingToTypeIdentifier(UTType.propertyList.identifier) {
+            return nil
+        }
         return provider.registeredTypeIdentifiers.first { identifier in
             guard let type = UTType(identifier) else { return false }
             if type.conforms(to: .url) && !type.conforms(to: .fileURL) { return false }
