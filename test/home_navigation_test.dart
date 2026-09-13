@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -123,5 +124,26 @@ void main() {
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(milliseconds: 1));
     await database.close();
+  });
+
+  testWidgets('renders standard size floating action button on iOS', (tester) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+    try {
+      final database = await seedDatabase();
+      await pumpApp(tester, database);
+      await tester.pumpAndSettle();
+
+      final fabFinder = find.byType(FloatingActionButton);
+      expect(fabFinder, findsOneWidget);
+      final size = tester.getSize(fabFinder);
+      expect(size.width, lessThan(60));
+      expect(size.height, lessThan(60));
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump(const Duration(milliseconds: 1));
+      await database.close();
+    } finally {
+      debugDefaultTargetPlatformOverride = null;
+    }
   });
 }
