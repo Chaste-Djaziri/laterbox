@@ -157,7 +157,7 @@ Future<void> showSyncPlansSheet(BuildContext context) {
               ),
               const SizedBox(height: 20),
               Text(
-                'Unlock cloud sync',
+                'Choose a Pro plan',
                 textAlign: TextAlign.center,
                 style: Theme.of(sheetContext).textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.w900,
@@ -165,7 +165,7 @@ Future<void> showSyncPlansSheet(BuildContext context) {
               ),
               const SizedBox(height: 6),
               Text(
-                'Your local library stays free. Pro securely syncs it across your devices.',
+                'Unlock secure cloud sync, attachments, and connected capture across your devices.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: Theme.of(sheetContext).colorScheme.onSurfaceVariant,
@@ -174,7 +174,7 @@ Future<void> showSyncPlansSheet(BuildContext context) {
               const SizedBox(height: 24),
               ProPlans(
                 compact: MediaQuery.sizeOf(sheetContext).width < 760,
-                onContinueFree: () => Navigator.of(sheetContext).pop(),
+                showFreePlan: false,
                 onAuthenticationRequired: (interval) {
                   Navigator.of(sheetContext).pop();
                   router.go(
