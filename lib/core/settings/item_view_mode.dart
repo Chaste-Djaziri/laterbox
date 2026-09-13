@@ -45,11 +45,16 @@ class ItemViewModeNotifier extends StateNotifier<ItemViewMode> {
 
   final AppDatabase _db;
   StreamSubscription<List<AppSetting>>? _sub;
+  String? _lastWritten;
 
   void _init() {
     _sub = _db.watchAllSettings().listen((rows) {
       for (final row in rows) {
         if (row.key == itemViewModeSettingKey) {
+          if (_lastWritten != null && row.value != _lastWritten) {
+            return;
+          }
+          _lastWritten = null;
           final mode = ItemViewMode.values.firstWhere(
             (m) => m.name == row.value,
             orElse: () => ItemViewMode.cards,
@@ -66,6 +71,7 @@ class ItemViewModeNotifier extends StateNotifier<ItemViewMode> {
   Future<void> setViewMode(ItemViewMode mode) async {
     if (state == mode) return;
     state = mode;
+    _lastWritten = mode.name;
     await _db.writeSetting(itemViewModeSettingKey, mode.name);
   }
 
