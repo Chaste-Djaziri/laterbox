@@ -244,8 +244,8 @@ class _ClipboardSavePrompt extends StatelessWidget {
               FilledButton(
                 onPressed: saving ? null : onSave,
                 style: FilledButton.styleFrom(
-                  backgroundColor: const Color(0xFF34C759),
-                  foregroundColor: Colors.white,
+                  backgroundColor: theme.colorScheme.primary,
+                  foregroundColor: theme.colorScheme.onPrimary,
                 ),
                 child: saving
                     ? const SizedBox(
