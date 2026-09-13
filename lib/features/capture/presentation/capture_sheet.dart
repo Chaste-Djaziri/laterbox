@@ -33,6 +33,7 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
   @override
   void initState() {
     super.initState();
+    _controller.addListener(_onTextChanged);
     _sendAnimController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 320),
@@ -70,8 +71,13 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
     );
   }
 
+  void _onTextChanged() {
+    if (mounted) setState(() {});
+  }
+
   @override
   void dispose() {
+    _controller.removeListener(_onTextChanged);
     _sendAnimController.dispose();
     _controller.dispose();
     _focusNode.dispose();
@@ -205,6 +211,97 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
     return const {'png', 'jpg', 'jpeg', 'gif', 'webp', 'heic', 'svg'}.contains(ext);
   }
 
+  bool _isMoreThanTwoLines(String text, double availableWidth) {
+    if ('\n'.allMatches(text).length >= 2) return true;
+    if (text.length < 40) return false;
+
+    final span = TextSpan(
+      text: text,
+      style: const TextStyle(fontSize: 16, height: 1.35),
+    );
+    final tp = TextPainter(
+      text: span,
+      textDirection: TextDirection.ltr,
+      maxLines: 10,
+    );
+    tp.layout(maxWidth: availableWidth > 50 ? availableWidth : 260);
+    return tp.computeLineMetrics().length > 2;
+  }
+
+  Widget _buildPlusButton(bool isDark) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: _saving ? null : () => _chooseFiles(),
+        borderRadius: BorderRadius.circular(999),
+        child: Padding(
+          padding: const EdgeInsets.all(8),
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              Icon(
+                Icons.add_rounded,
+                size: 26,
+                color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+              ),
+              const SizedBox(
+                width: 32,
+                height: 32,
+                child: Center(
+                  child: Text(
+                    'Choose files',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.transparent,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTextField(bool isDark, bool isMoreThanTwoLines) {
+    return TextField(
+      controller: _controller,
+      focusNode: _focusNode,
+      enabled: !_saving,
+      minLines: isMoreThanTwoLines ? 2 : 1,
+      maxLines: isMoreThanTwoLines ? null : 2,
+      keyboardType: TextInputType.multiline,
+      textInputAction: TextInputAction.newline,
+      style: TextStyle(
+        fontSize: 16,
+        height: 1.35,
+        color: isDark ? Colors.white : const Color(0xFF0F172A),
+      ),
+      decoration: InputDecoration(
+        border: InputBorder.none,
+        enabledBorder: InputBorder.none,
+        focusedBorder: InputBorder.none,
+        errorBorder: InputBorder.none,
+        focusedErrorBorder: InputBorder.none,
+        disabledBorder: InputBorder.none,
+        filled: false,
+        isDense: true,
+        contentPadding: EdgeInsets.symmetric(
+          vertical: isMoreThanTwoLines ? 4 : 8,
+          horizontal: 0,
+        ),
+        hintText: 'Type your message...',
+        hintStyle: TextStyle(
+          color: isDark ? Colors.grey.shade500 : Colors.grey.shade500,
+          fontSize: 16,
+          fontWeight: FontWeight.w400,
+        ),
+      ),
+      onSubmitted: _saving ? null : (_) => _save(),
+    );
+  }
+
   Future<void> _save() async {
     if (_saving) return;
     setState(() {
@@ -305,12 +402,9 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
     final pillBgColor = isDark
         ? const Color(0xFF26262B)
         : const Color(0xFFF2F3F6);
-    final sendBtnBgColor = isDark
-        ? Colors.white
-        : const Color(0xFF0F172A);
-    final sendIconColor = isDark
-        ? const Color(0xFF0F172A)
-        : Colors.white;
+    // Green-themed like the app (uses the app's signature green primaryContainer and onPrimaryContainer)
+    final sendBtnBgColor = theme.colorScheme.primaryContainer;
+    final sendIconColor = theme.colorScheme.onPrimaryContainer;
 
     return Shortcuts(
       shortcuts: const {
@@ -525,185 +619,176 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
                               ),
                             ],
 
-                            // The Chat Input Bar + Circular Send Button (Exact Image 1 layout)
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                // Pill input bar
-                                Expanded(
-                                  child: Container(
-                                    decoration: BoxDecoration(
-                                      color: pillBgColor,
-                                      borderRadius: BorderRadius.circular(999),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: Colors.black
-                                              .withValues(alpha: 0.12),
-                                          blurRadius: 16,
-                                          offset: const Offset(0, 4),
+                            // The Chat Input Bar + Circular Send Button (Image 1 layout)
+                            LayoutBuilder(
+                              builder: (context, constraints) {
+                                final availableWidth =
+                                    constraints.maxWidth - 48 - 10 - 28;
+                                final isMoreThanTwoLines = _isMoreThanTwoLines(
+                                  _controller.text,
+                                  availableWidth > 50 ? availableWidth : 260,
+                                );
+                                final pillBorderRadius =
+                                    isMoreThanTwoLines ? 20.0 : 999.0;
+                                final pillMinHeight =
+                                    isMoreThanTwoLines ? 96.0 : 48.0;
+                                final pillMaxHeight =
+                                    isMoreThanTwoLines ? 160.0 : 64.0;
+
+                                return Row(
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  children: [
+                                    // Pill input bar
+                                    Expanded(
+                                      child: AnimatedContainer(
+                                        duration:
+                                            const Duration(milliseconds: 180),
+                                        curve: Curves.easeOutCubic,
+                                        constraints: BoxConstraints(
+                                          minHeight: pillMinHeight,
+                                          maxHeight: pillMaxHeight,
                                         ),
-                                      ],
-                                    ),
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 6,
-                                      vertical: 4,
-                                    ),
-                                    child: Row(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.center,
-                                      children: [
-                                        // Plus (+) Button to attach files/images
-                                        Material(
-                                          color: Colors.transparent,
-                                          child: InkWell(
-                                            onTap: _saving
-                                                ? null
-                                                : () => _chooseFiles(),
-                                            borderRadius:
-                                                BorderRadius.circular(999),
-                                            child: Padding(
-                                              padding: const EdgeInsets.all(8),
-                                              child: Stack(
-                                                alignment: Alignment.center,
+                                        decoration: BoxDecoration(
+                                          color: pillBgColor,
+                                          borderRadius: BorderRadius.circular(
+                                              pillBorderRadius),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: Colors.black
+                                                  .withValues(alpha: 0.12),
+                                              blurRadius: 16,
+                                              offset: const Offset(0, 4),
+                                            ),
+                                          ],
+                                        ),
+                                        padding: EdgeInsets.symmetric(
+                                          horizontal:
+                                              isMoreThanTwoLines ? 4 : 6,
+                                          vertical: isMoreThanTwoLines ? 4 : 4,
+                                        ),
+                                        child: isMoreThanTwoLines
+                                            ? Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                mainAxisSize: MainAxisSize.min,
                                                 children: [
-                                                  Icon(
-                                                    Icons.add_rounded,
-                                                    size: 26,
-                                                    color: isDark
-                                                        ? Colors.grey.shade400
-                                                        : Colors.grey.shade600,
-                                                  ),
-                                                  const SizedBox(
-                                                    width: 32,
-                                                    height: 32,
-                                                    child: Center(
-                                                      child: Text(
-                                                        'Choose files',
-                                                        style: TextStyle(
-                                                          fontSize: 14,
-                                                          color: Colors.transparent,
-                                                        ),
-                                                      ),
+                                                  // Text field on top spanning full width
+                                                  Flexible(
+                                                    child: Padding(
+                                                      padding:
+                                                          const EdgeInsets.fromLTRB(
+                                                              14, 10, 14, 2),
+                                                      child: _buildTextField(
+                                                          isDark, true),
                                                     ),
                                                   ),
+                                                  // Plus button on the bottom left below text
+                                                  Padding(
+                                                    padding:
+                                                        const EdgeInsets.only(
+                                                            left: 2, bottom: 2),
+                                                    child: _buildPlusButton(
+                                                        isDark),
+                                                  ),
                                                 ],
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-
-                                        // Text Field
-                                        Expanded(
-                                          child: Padding(
-                                            padding: const EdgeInsets.only(
-                                              left: 4,
-                                              right: 12,
-                                              top: 2,
-                                              bottom: 2,
-                                            ),
-                                            child: TextField(
-                                              controller: _controller,
-                                              focusNode: _focusNode,
-                                              enabled: !_saving,
-                                              minLines: 1,
-                                              maxLines: 5,
-                                              keyboardType:
-                                                  TextInputType.multiline,
-                                              textInputAction:
-                                                  TextInputAction.newline,
-                                              style: TextStyle(
-                                                fontSize: 16,
-                                                height: 1.35,
-                                                color: isDark
-                                                    ? Colors.white
-                                                    : const Color(0xFF0F172A),
-                                              ),
-                                              decoration:
-                                                  InputDecoration.collapsed(
-                                                hintText:
-                                                    'Type your message...',
-                                                hintStyle: TextStyle(
-                                                  color: isDark
-                                                      ? Colors.grey.shade500
-                                                      : Colors.grey.shade500,
-                                                  fontSize: 16,
-                                                  fontWeight: FontWeight.w400,
-                                                ),
-                                              ),
-                                              onSubmitted: _saving
-                                                  ? null
-                                                  : (_) => _save(),
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-
-                                const SizedBox(width: 10),
-
-                                // Circular Send Button ("send being save")
-                                Material(
-                                  color: Colors.transparent,
-                                  child: InkWell(
-                                    onTap: _saving ? null : _save,
-                                    borderRadius: BorderRadius.circular(999),
-                                    child: Container(
-                                      width: 48,
-                                      height: 48,
-                                      decoration: BoxDecoration(
-                                        color: sendBtnBgColor,
-                                        shape: BoxShape.circle,
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: Colors.black
-                                                .withValues(alpha: 0.16),
-                                            blurRadius: 12,
-                                            offset: const Offset(0, 3),
-                                          ),
-                                        ],
-                                      ),
-                                      child: Center(
-                                        child: _saving
-                                            ? SizedBox.square(
-                                                dimension: 18,
-                                                child: CircularProgressIndicator(
-                                                  strokeWidth: 2,
-                                                  color: sendIconColor,
-                                                ),
                                               )
-                                            : Stack(
-                                                alignment: Alignment.center,
+                                            : Row(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.center,
                                                 children: [
-                                                  Transform.rotate(
-                                                    angle: -0.2,
-                                                    child: Icon(
-                                                      Icons.send_rounded,
-                                                      color: sendIconColor,
-                                                      size: 22,
-                                                    ),
-                                                  ),
-                                                  const SizedBox(
-                                                    width: 48,
-                                                    height: 48,
-                                                    child: Center(
-                                                      child: Text(
-                                                        'Save',
-                                                        style: TextStyle(
-                                                          fontSize: 14,
-                                                          color: Colors.transparent,
-                                                        ),
+                                                  _buildPlusButton(isDark),
+                                                  Expanded(
+                                                    child: Padding(
+                                                      padding:
+                                                          const EdgeInsets.only(
+                                                        left: 4,
+                                                        right: 12,
+                                                        top: 2,
+                                                        bottom: 2,
                                                       ),
+                                                      child: _buildTextField(
+                                                          isDark, false),
                                                     ),
                                                   ),
                                                 ],
                                               ),
                                       ),
                                     ),
-                                  ),
-                                ),
-                              ],
+
+                                    const SizedBox(width: 10),
+
+                                    // Circular Send Button ("send being save", green-themed like app)
+                                    Material(
+                                      color: Colors.transparent,
+                                      child: InkWell(
+                                        onTap: _saving ? null : _save,
+                                        borderRadius:
+                                            BorderRadius.circular(999),
+                                        child: Container(
+                                          width: 48,
+                                          height: 48,
+                                          decoration: BoxDecoration(
+                                            color: sendBtnBgColor,
+                                            shape: BoxShape.circle,
+                                            border: Border.all(
+                                              color: theme.colorScheme.primary
+                                                  .withValues(alpha: 0.2),
+                                              width: 1,
+                                            ),
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: Colors.black
+                                                    .withValues(alpha: 0.14),
+                                                blurRadius: 10,
+                                                offset: const Offset(0, 3),
+                                              ),
+                                            ],
+                                          ),
+                                          child: Center(
+                                            child: _saving
+                                                ? SizedBox.square(
+                                                    dimension: 18,
+                                                    child:
+                                                        CircularProgressIndicator(
+                                                      strokeWidth: 2,
+                                                      color: sendIconColor,
+                                                    ),
+                                                  )
+                                                : Stack(
+                                                    alignment:
+                                                        Alignment.center,
+                                                    children: [
+                                                      Transform.rotate(
+                                                        angle: -0.2,
+                                                        child: Icon(
+                                                          Icons.send_rounded,
+                                                          color: sendIconColor,
+                                                          size: 22,
+                                                        ),
+                                                      ),
+                                                      const SizedBox(
+                                                        width: 48,
+                                                        height: 48,
+                                                        child: Center(
+                                                          child: Text(
+                                                            'Save',
+                                                            style: TextStyle(
+                                                              fontSize: 14,
+                                                              color: Colors
+                                                                  .transparent,
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              },
                             ),
                           ],
                         ),
