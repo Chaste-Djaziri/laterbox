@@ -55,6 +55,7 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
+      barrierColor: Colors.black.withValues(alpha: 0.65),
       backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
