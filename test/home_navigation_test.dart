@@ -60,20 +60,13 @@ void main() {
     );
   }
 
-  testWidgets('navigates between Inbox, Search and Library', (tester) async {
+  testWidgets('navigates between Inbox, Library and Settings', (tester) async {
     final database = await seedDatabase();
     await pumpApp(tester, database);
     await tester.pumpAndSettle();
 
     expect(navigationDestination('Inbox'), findsOneWidget);
     expect(find.text('Flutter notes'), findsOneWidget);
-
-    await tester.tap(navigationDestination('Search'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Recent'), findsOneWidget);
-    expect(find.text('Flutter notes'), findsOneWidget);
-    expect(find.text('Dart notes'), findsOneWidget);
 
     await tester.tap(navigationDestination('Library'));
     await tester.pumpAndSettle();
@@ -89,18 +82,29 @@ void main() {
     expect(find.text('Flutter notes'), findsOneWidget);
     expect(find.text('Dart notes'), findsOneWidget);
 
+    await tester.tap(navigationDestination('Settings'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Settings'), findsWidgets);
+
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(milliseconds: 1));
     await database.close();
   });
 
-  testWidgets('search filters items as you type', (tester) async {
+  testWidgets('search input on home page activates search view and filters items', (tester) async {
     final database = await seedDatabase();
     await pumpApp(tester, database);
     await tester.pumpAndSettle();
 
-    await tester.tap(navigationDestination('Search'));
+    // Tap search input on home page to activate search view page
+    expect(find.text('Search items, tags, notes...'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('home_search_input')));
     await tester.pumpAndSettle();
+
+    expect(find.text('Recent'), findsOneWidget);
+    expect(find.text('Flutter notes'), findsOneWidget);
+    expect(find.text('Dart notes'), findsOneWidget);
 
     await tester.enterText(find.byType(TextField), 'flutter');
     await tester.pumpAndSettle();
@@ -120,6 +124,12 @@ void main() {
     expect(find.text('Recent'), findsOneWidget);
     expect(find.text('Flutter notes'), findsOneWidget);
     expect(find.text('Dart notes'), findsOneWidget);
+
+    // Tap back to return to Inbox
+    await tester.tap(find.byTooltip('Back'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Search items, tags, notes...'), findsOneWidget);
 
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(milliseconds: 1));
