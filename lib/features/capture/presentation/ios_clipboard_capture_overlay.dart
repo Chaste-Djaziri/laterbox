@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -35,11 +37,14 @@ class IosClipboardCaptureOverlay extends ConsumerStatefulWidget {
 class _IosClipboardCaptureOverlayState
     extends ConsumerState<IosClipboardCaptureOverlay>
     with WidgetsBindingObserver {
+  static const _clipboardEvents = EventChannel('laterbox/ios_clipboard');
+
   String? _candidate;
   String? _lastHandledValue;
   EnrichedMetadata? _metadata;
   bool _saving = false;
   bool _promptVisible = false;
+  StreamSubscription<dynamic>? _clipboardEventSubscription;
 
   bool get _isIos => !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS;
 
@@ -48,6 +53,9 @@ class _IosClipboardCaptureOverlayState
     super.initState();
     if (_isIos) {
       WidgetsBinding.instance.addObserver(this);
+      _clipboardEventSubscription = _clipboardEvents
+          .receiveBroadcastStream()
+          .listen((_) => _checkClipboard());
       WidgetsBinding.instance.addPostFrameCallback((_) => _checkClipboard());
     }
   }
@@ -55,12 +63,16 @@ class _IosClipboardCaptureOverlayState
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _clipboardEventSubscription?.cancel();
     super.dispose();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) _checkClipboard();
+    if (state == AppLifecycleState.resumed) {
+      _checkClipboard();
+      Future<void>.delayed(const Duration(milliseconds: 350), _checkClipboard);
+    }
   }
 
   Future<String?> _readClipboard() async {
