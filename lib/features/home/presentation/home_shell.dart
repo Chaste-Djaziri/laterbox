@@ -48,7 +48,8 @@ class HomeShell extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final width = MediaQuery.sizeOf(context).width;
     final isDesktop = _isDesktopPlatform() || width >= 900;
-    final effectiveIndex = navigationShell?.currentIndex ?? selectedIndex;
+    final effectiveIndex = (navigationShell?.currentIndex ?? selectedIndex)
+        .clamp(0, _paths.length - 1);
     final Widget bodyContent = child ?? navigationShell ?? _screens[effectiveIndex];
 
     void handleDestinationSelected(int index) {
@@ -138,7 +139,13 @@ class _MobilePlanStatus extends ConsumerWidget {
     return Material(
       color: warning ? Colors.amber.shade50 : Theme.of(context).colorScheme.surface,
       child: InkWell(
-        onTap: () => context.push(entitlement.hasProAccess ? '/settings' : '/plans'),
+        onTap: () {
+          if (entitlement.hasProAccess) {
+            context.go('/settings');
+          } else {
+            context.push('/plans');
+          }
+        },
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
           child: Row(
