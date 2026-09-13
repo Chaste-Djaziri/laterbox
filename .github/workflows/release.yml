@@ -103,6 +103,7 @@ jobs:
       APPLE_ID: ${{ secrets.APPLE_ID }}
       APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
       APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      SKIP_MACOS_NOTARIZATION: 'true'
       APP_STORE_CONNECT_API_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_API_KEY_BASE64 }}
       APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
       APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
@@ -234,7 +235,7 @@ jobs:
             build
 
       - name: Notarize DMG (when Developer ID available)
-        if: env.APPLE_ID != '' && env.APPLE_APP_SPECIFIC_PASSWORD != '' && env.APPLE_TEAM_ID != ''
+        if: env.SKIP_MACOS_NOTARIZATION != 'true' && env.APPLE_ID != '' && env.APPLE_APP_SPECIFIC_PASSWORD != '' && env.APPLE_TEAM_ID != ''
         shell: bash
         run: |
           echo "Notarization will run after DMG creation via notarytool"
@@ -354,11 +355,6 @@ jobs:
             echo "::error::A Developer ID Application certificate is required for downloadable macOS builds. Add APPLE_DEVELOPER_ID_CERTIFICATE_BASE64 (and its password) before releasing."
             exit 1
           fi
-          if [ -z "$APPLE_ID" ] || [ -z "$APPLE_APP_SPECIFIC_PASSWORD" ] || [ -z "$APPLE_TEAM_ID" ]; then
-            echo "::error::APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD, and APPLE_TEAM_ID are required to notarize downloadable macOS builds."
-            exit 1
-          fi
-
           DMG_APP_IDENTITY="$DEV_ID_APP_IDENTITY"
           sign_bundle "$APP_PATH" "$DMG_APP_IDENTITY"
 
@@ -368,41 +364,28 @@ jobs:
           cp dist/laterbox-macos-universal.dmg dist/laterbox-macos-apple-silicon.dmg
           cp dist/laterbox-macos-universal.dmg dist/laterbox-macos-intel.dmg
           
-          # 1b. Notarize and staple the direct-download DMG. Every public
-          # filename is copied only after stapling so the website never serves
-          # an unstapled Apple Silicon or Intel alias.
-          echo "Submitting DMG for notarization…"
-          NOTARY_RESULT=$(mktemp)
-          set +e
-          xcrun notarytool submit dist/laterbox-macos-universal.dmg \
-            --apple-id "$APPLE_ID" \
-            --password "$APPLE_APP_SPECIFIC_PASSWORD" \
-            --team-id "$APPLE_TEAM_ID" \
-            --wait \
-            --output-format json > "$NOTARY_RESULT"
-          NOTARY_EXIT=$?
-          set -e
-          cat "$NOTARY_RESULT"
-          SUBMISSION_ID=$(plutil -extract id raw -o - "$NOTARY_RESULT" 2>/dev/null || true)
-          NOTARY_STATUS=$(plutil -extract status raw -o - "$NOTARY_RESULT" 2>/dev/null || true)
-          if [ "$NOTARY_EXIT" -ne 0 ] || [ "$NOTARY_STATUS" != "Accepted" ]; then
-            if [ -n "$SUBMISSION_ID" ]; then
-              echo "::group::Apple notarization log ($SUBMISSION_ID)"
-              xcrun notarytool log "$SUBMISSION_ID" \
-                --apple-id "$APPLE_ID" \
-                --password "$APPLE_APP_SPECIFIC_PASSWORD" \
-                --team-id "$APPLE_TEAM_ID" \
-                --output-format json || true
-              echo "::endgroup::"
+          # 1b. Notarization is temporarily disabled because Apple reports
+          # that this team is not configured for it (status 7000). Set this
+          # value to false once Apple enables notarization for the team.
+          if [ "$SKIP_MACOS_NOTARIZATION" = "true" ]; then
+            echo "::warning::Skipping macOS notarization. Direct-download DMGs may be blocked by Gatekeeper."
+          else
+            if [ -z "$APPLE_ID" ] || [ -z "$APPLE_APP_SPECIFIC_PASSWORD" ] || [ -z "$APPLE_TEAM_ID" ]; then
+              echo "::error::APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD, and APPLE_TEAM_ID are required to notarize downloadable macOS builds."
+              exit 1
             fi
-            echo "::error::Apple notarization did not succeed (status: ${NOTARY_STATUS:-unknown}). See the Apple notarization log above."
-            exit 1
+            echo "Submitting DMG for notarization…"
+            xcrun notarytool submit dist/laterbox-macos-universal.dmg \
+              --apple-id "$APPLE_ID" \
+              --password "$APPLE_APP_SPECIFIC_PASSWORD" \
+              --team-id "$APPLE_TEAM_ID" \
+              --wait
+            xcrun stapler staple dist/laterbox-macos-universal.dmg
+            spctl -a -vvv -t open dist/laterbox-macos-universal.dmg
+            cp dist/laterbox-macos-universal.dmg dist/laterbox-macos.dmg
+            cp dist/laterbox-macos-universal.dmg dist/laterbox-macos-apple-silicon.dmg
+            cp dist/laterbox-macos-universal.dmg dist/laterbox-macos-intel.dmg
           fi
-          xcrun stapler staple dist/laterbox-macos-universal.dmg
-          spctl -a -vvv -t open dist/laterbox-macos-universal.dmg
-          cp dist/laterbox-macos-universal.dmg dist/laterbox-macos.dmg
-          cp dist/laterbox-macos-universal.dmg dist/laterbox-macos-apple-silicon.dmg
-          cp dist/laterbox-macos-universal.dmg dist/laterbox-macos-intel.dmg
 
           # 1c. Create Universal Zip (Sparkle delta-friendly)
           ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" dist/laterbox-macos-universal.zip
