@@ -23,6 +23,7 @@ import 'features/attachments/domain/attachment_import_result.dart';
 import 'features/capture/domain/capture_providers.dart';
 import 'features/capture/domain/capture_payload.dart';
 import 'features/capture/domain/native_share_payload.dart';
+import 'features/capture/presentation/ios_clipboard_capture_overlay.dart';
 import 'features/quick_capture/presentation/quick_capture_screen.dart';
 
 class LaterBoxApp extends ConsumerStatefulWidget {
@@ -368,7 +369,9 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
         } else {
           content = child ?? const SizedBox.shrink();
         }
-        return WebUpdateBannerOverlay(child: content);
+        return IosClipboardCaptureOverlay(
+          child: WebUpdateBannerOverlay(child: content),
+        );
       },
     );
   }
