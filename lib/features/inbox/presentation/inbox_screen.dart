@@ -33,7 +33,7 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
     _searchFocusNode.addListener(() {
       if (_searchFocusNode.hasFocus) {
         _searchFocusNode.unfocus();
-        context.push('/search');
+        context.go('/search');
       }
     });
   }
@@ -89,7 +89,7 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
             context.push('/tutorial');
             break;
           case 'settings':
-            context.push('/settings');
+            context.go('/settings');
             break;
           case 'signout':
             await ref.read(authRepositoryProvider).signOut();
@@ -197,7 +197,7 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
   Widget _buildSearchInput(BuildContext context, ThemeData theme) {
     return InkWell(
       key: const Key('home_search_input'),
-      onTap: () => context.push('/search'),
+      onTap: () => context.go('/search'),
       borderRadius: BorderRadius.circular(14),
       child: IgnorePointer(
         child: TextField(
