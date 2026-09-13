@@ -16,13 +16,67 @@ class CaptureSheet extends ConsumerStatefulWidget {
   ConsumerState<CaptureSheet> createState() => _CaptureSheetState();
 }
 
-class _CaptureSheetState extends ConsumerState<CaptureSheet> {
+class _CaptureSheetState extends ConsumerState<CaptureSheet>
+    with SingleTickerProviderStateMixin {
   final _controller = TextEditingController();
   final _focusNode = FocusNode();
   String? _error;
   final List<PickedAttachmentFile> _selectedFiles = [];
   List<AttachmentImportFailure> _fileFailures = const [];
   bool _saving = false;
+
+  late final AnimationController _sendAnimController;
+  late final Animation<Offset> _slideAnimation;
+  late final Animation<double> _fadeAnimation;
+  late final Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _sendAnimController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 360),
+    );
+    _slideAnimation = Tween<Offset>(
+      begin: Offset.zero,
+      end: const Offset(0, -0.42),
+    ).animate(
+      CurvedAnimation(
+        parent: _sendAnimController,
+        curve: Curves.easeInOutCubic,
+      ),
+    );
+    _fadeAnimation = Tween<double>(
+      begin: 1.0,
+      end: 0.0,
+    ).animate(
+      CurvedAnimation(
+        parent: _sendAnimController,
+        curve: const Interval(0.2, 1.0, curve: Curves.easeOut),
+      ),
+    );
+    _scaleAnimation = Tween<double>(
+      begin: 1.0,
+      end: 0.93,
+    ).animate(
+      CurvedAnimation(
+        parent: _sendAnimController,
+        curve: Curves.easeInOutCubic,
+      ),
+    );
+
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => _focusNode.requestFocus(),
+    );
+  }
+
+  @override
+  void dispose() {
+    _sendAnimController.dispose();
+    _controller.dispose();
+    _focusNode.dispose();
+    super.dispose();
+  }
 
   Future<void> _chooseFiles() async {
     final platform = Theme.of(context).platform;
@@ -144,19 +198,26 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet> {
     }
   }
 
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback(
-      (_) => _focusNode.requestFocus(),
-    );
+  Future<void> _pasteFromClipboard() async {
+    final data = await Clipboard.getData(Clipboard.kTextPlain);
+    final text = data?.text;
+    if (text != null && text.trim().isNotEmpty) {
+      final current = _controller.text;
+      if (current.isEmpty) {
+        _controller.text = text.trim();
+      } else {
+        _controller.text = '$current\n${text.trim()}';
+      }
+      _controller.selection = TextSelection.fromPosition(
+        TextPosition(offset: _controller.text.length),
+      );
+      setState(() => _error = null);
+    }
   }
 
-  @override
-  void dispose() {
-    _controller.dispose();
-    _focusNode.dispose();
-    super.dispose();
+  bool _isImageFile(String name) {
+    final ext = name.split('.').last.toLowerCase();
+    return const {'png', 'jpg', 'jpeg', 'gif', 'webp', 'heic', 'svg'}.contains(ext);
   }
 
   Future<void> _save() async {
@@ -165,6 +226,25 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet> {
       _saving = true;
       _error = null;
     });
+
+    // Validate empty input upfront if no files are selected
+    if (_selectedFiles.isEmpty) {
+      try {
+        CapturePayload.fromValue(
+          _controller.text,
+          source: CaptureSource.manual,
+        );
+      } on FormatException catch (error) {
+        setState(() {
+          _saving = false;
+          _error = error.message;
+        });
+        return;
+      }
+    }
+
+    // Trigger smooth outgoing chat animation
+    final animFuture = _sendAnimController.forward();
 
     var popped = false;
     try {
@@ -183,10 +263,16 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet> {
                   );
         if (!mounted) return;
         if (!result.saved) {
-          setState(() => _fileFailures = result.failures);
+          _sendAnimController.reverse();
+          setState(() {
+            _fileFailures = result.failures;
+            _saving = false;
+          });
           return;
         }
 
+        await animFuture;
+        if (!mounted) return;
         final messenger = ScaffoldMessenger.of(context);
         popped = true;
         Navigator.of(context).pop();
@@ -197,6 +283,7 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet> {
         }
         return;
       }
+
       await ref
           .read(captureServiceProvider)
           .save(
@@ -205,13 +292,17 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet> {
               source: CaptureSource.manual,
             ),
           );
+
+      await animFuture;
       if (mounted) {
         popped = true;
         Navigator.of(context).pop();
       }
     } on FormatException catch (error) {
+      _sendAnimController.reverse();
       setState(() => _error = error.message);
     } catch (_) {
+      _sendAnimController.reverse();
       setState(() => _error = 'Could not save this item. Try again.');
     } finally {
       if (mounted && !popped) {
@@ -222,6 +313,7 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final keyboardHeight = MediaQuery.viewInsetsOf(context).bottom;
 
     return Shortcuts(
@@ -235,140 +327,372 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet> {
           ),
         },
         child: SingleChildScrollView(
-          padding: EdgeInsets.fromLTRB(20, 12, 20, 20 + keyboardHeight),
+          padding: EdgeInsets.fromLTRB(18, 10, 18, 20 + keyboardHeight),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              // Top drag indicator
               Center(
                 child: Container(
-                  width: 40,
+                  width: 38,
                   height: 4,
+                  margin: const EdgeInsets.only(top: 4, bottom: 16),
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.outline,
+                    color: theme.colorScheme.outlineVariant,
                     borderRadius: BorderRadius.circular(999),
                   ),
                 ),
               ),
-              const SizedBox(height: 24),
+
+              // Header bar
               Row(
                 children: [
+                  Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.primary.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(
+                      Icons.all_inbox_rounded,
+                      size: 18,
+                      color: theme.colorScheme.primary,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
                   Expanded(
-                    child: Text(
-                      'Save to laterbox',
-                      style: Theme.of(context).textTheme.headlineSmall
-                          ?.copyWith(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Save to laterbox',
+                          style: theme.textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.w800,
-                            letterSpacing: -0.5,
+                            letterSpacing: -0.3,
                           ),
+                        ),
+                        Text(
+                          'Notes, web links, or attachments',
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   IconButton(
                     onPressed: () => Navigator.of(context).pop(),
                     tooltip: 'Close',
-                    icon: const Icon(Icons.close_rounded),
+                    icon: const Icon(Icons.close_rounded, size: 20),
+                    visualDensity: VisualDensity.compact,
                   ),
-                ],
-              ),
-              const SizedBox(height: 28),
-              Text(
-                'Paste anything',
-                style: Theme.of(context).textTheme.labelLarge
-                    ?.copyWith(fontWeight: FontWeight.w700),
-              ),
-              const SizedBox(height: 10),
-              TextField(
-                controller: _controller,
-                focusNode: _focusNode,
-                enabled: !_saving,
-                minLines: 3,
-                maxLines: 6,
-                textInputAction: TextInputAction.done,
-                keyboardType: TextInputType.url,
-                autocorrect: false,
-                decoration: InputDecoration(
-                  hintText: 'https://...',
-                  errorText: _error,
-                ),
-                onSubmitted: _saving ? null : (_) => _save(),
-              ),
-              const SizedBox(height: 20),
-              Row(
-                children: [
-                  const Expanded(child: Divider()),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    child: Text(
-                      'or',
-                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ),
-                  const Expanded(child: Divider()),
                 ],
               ),
               const SizedBox(height: 16),
-              OutlinedButton.icon(
-                onPressed: _saving ? null : _chooseFiles,
-                icon: const Icon(Icons.attach_file_rounded),
-                label: const Text('Choose files'),
-              ),
-              if (_selectedFiles.isNotEmpty) ...[
-                const SizedBox(height: 12),
-                ..._selectedFiles.map(
-                  (file) => ListTile(
-                    dense: true,
-                    contentPadding: EdgeInsets.zero,
-                    leading: const Icon(Icons.insert_drive_file_outlined),
-                    title: Text(
-                      file.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    trailing: IconButton(
-                      onPressed: _saving
-                          ? null
-                          : () => setState(() {
-                              _selectedFiles.remove(file);
-                              _fileFailures = const [];
-                            }),
-                      tooltip: 'Remove ${file.name}',
-                      icon: const Icon(Icons.close_rounded),
-                    ),
-                  ),
-                ),
-              ],
-              if (_fileFailures.isNotEmpty) ...[
-                const SizedBox(height: 12),
-                Text(
-                  'Couldn’t add:',
-                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    color: Theme.of(context).colorScheme.error,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                ..._fileFailures.map(
-                  (failure) => Text(
-                    '• ${failure.displayName} — ${_failureReason(failure.code)}',
-                    style: Theme.of(context).textTheme.bodySmall
-                        ?.copyWith(color: Theme.of(context).colorScheme.error),
-                  ),
-                ),
-              ],
-              const SizedBox(height: 20),
-              FilledButton(
-                onPressed: _saving ? null : _save,
-                child: _saving
-                    ? const SizedBox.square(
-                        dimension: 22,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
+
+              // Chat-Style Composer with fly-away send animation
+              SlideTransition(
+                position: _slideAnimation,
+                child: FadeTransition(
+                  opacity: _fadeAnimation,
+                  child: ScaleTransition(
+                    scale: _scaleAnimation,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.surfaceContainerHighest
+                            .withValues(alpha: 0.4),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: _error != null
+                              ? theme.colorScheme.error
+                              : theme.colorScheme.outlineVariant
+                                  .withValues(alpha: 0.7),
+                          width: 1.2,
                         ),
-                      )
-                    : const Text('Save'),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Text input
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
+                            child: TextField(
+                              controller: _controller,
+                              focusNode: _focusNode,
+                              enabled: !_saving,
+                              minLines: 3,
+                              maxLines: 7,
+                              textInputAction: TextInputAction.newline,
+                              keyboardType: TextInputType.multiline,
+                              autocorrect: true,
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                fontSize: 15,
+                                height: 1.45,
+                              ),
+                              decoration: InputDecoration.collapsed(
+                                hintText:
+                                    'Write a note, paste a link, or attach files...',
+                                hintStyle: theme.textTheme.bodyMedium?.copyWith(
+                                  color: theme.colorScheme.onSurfaceVariant
+                                      .withValues(alpha: 0.65),
+                                  fontSize: 15,
+                                ),
+                              ),
+                              onSubmitted: _saving ? null : (_) => _save(),
+                            ),
+                          ),
+
+                          // Selected files preview chips
+                          if (_selectedFiles.isNotEmpty) ...[
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(14, 0, 14, 8),
+                              child: Wrap(
+                                spacing: 8,
+                                runSpacing: 6,
+                                children: _selectedFiles.map((file) {
+                                  return Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 6,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: theme
+                                          .colorScheme.surfaceContainerHighest,
+                                      borderRadius: BorderRadius.circular(10),
+                                      border: Border.all(
+                                        color: theme.colorScheme.outlineVariant,
+                                      ),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          _isImageFile(file.name)
+                                              ? Icons.image_outlined
+                                              : Icons.insert_drive_file_outlined,
+                                          size: 16,
+                                          color: theme.colorScheme.primary,
+                                        ),
+                                        const SizedBox(width: 6),
+                                        ConstrainedBox(
+                                          constraints: const BoxConstraints(
+                                            maxWidth: 160,
+                                          ),
+                                          child: Text(
+                                            file.name,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: theme.textTheme.labelMedium
+                                                ?.copyWith(
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 4),
+                                        InkWell(
+                                          onTap: _saving
+                                              ? null
+                                              : () => setState(() {
+                                                    _selectedFiles.remove(file);
+                                                    _fileFailures = const [];
+                                                  }),
+                                          borderRadius:
+                                              BorderRadius.circular(999),
+                                          child: Icon(
+                                            Icons.close_rounded,
+                                            size: 14,
+                                            color: theme
+                                                .colorScheme.onSurfaceVariant,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                }).toList(),
+                              ),
+                            ),
+                          ],
+
+                          // Subtle divider between message input and composer controls
+                          Divider(
+                            height: 1,
+                            thickness: 1,
+                            color: theme.colorScheme.outlineVariant
+                                .withValues(alpha: 0.35),
+                          ),
+
+                          // Composer action bar
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(8, 6, 8, 6),
+                            child: Row(
+                              children: [
+                                // Choose files button (keeps 'Choose files' text for tests)
+                                TextButton.icon(
+                                  onPressed: _saving ? null : _chooseFiles,
+                                  icon: const Icon(
+                                    Icons.attach_file_rounded,
+                                    size: 18,
+                                  ),
+                                  label: const Text('Choose files'),
+                                  style: TextButton.styleFrom(
+                                    visualDensity: VisualDensity.compact,
+                                    foregroundColor:
+                                        theme.colorScheme.onSurfaceVariant,
+                                    textStyle: const TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 13,
+                                    ),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 6,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                  ),
+                                ),
+
+                                // Clipboard paste shortcut
+                                IconButton(
+                                  onPressed:
+                                      _saving ? null : _pasteFromClipboard,
+                                  tooltip: 'Paste from clipboard',
+                                  visualDensity: VisualDensity.compact,
+                                  icon: const Icon(
+                                    Icons.content_paste_rounded,
+                                    size: 18,
+                                  ),
+                                ),
+
+                                const Spacer(),
+
+                                // Chat-style Save send button
+                                FilledButton(
+                                  onPressed: _saving ? null : _save,
+                                  style: FilledButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 14,
+                                      vertical: 8,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(18),
+                                    ),
+                                    elevation: 0,
+                                  ),
+                                  child: _saving
+                                      ? const SizedBox.square(
+                                          dimension: 16,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            color: Colors.white,
+                                          ),
+                                        )
+                                      : const Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Text(
+                                              'Save',
+                                              style: TextStyle(
+                                                fontWeight: FontWeight.w700,
+                                                fontSize: 13.5,
+                                              ),
+                                            ),
+                                            SizedBox(width: 4),
+                                            Icon(
+                                              Icons.arrow_upward_rounded,
+                                              size: 16,
+                                            ),
+                                          ],
+                                        ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
               ),
+
+              // Error banner
+              if (_error != null) ...[
+                const SizedBox(height: 10),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color:
+                        theme.colorScheme.errorContainer.withValues(alpha: 0.5),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: theme.colorScheme.error.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.error_outline_rounded,
+                        size: 16,
+                        color: theme.colorScheme.error,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          _error!,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onErrorContainer,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+
+              // Attachment failures list if any
+              if (_fileFailures.isNotEmpty) ...[
+                const SizedBox(height: 10),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color:
+                        theme.colorScheme.errorContainer.withValues(alpha: 0.4),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Couldn’t add:',
+                        style: theme.textTheme.labelMedium?.copyWith(
+                          color: theme.colorScheme.error,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      ..._fileFailures.map(
+                        (failure) => Text(
+                          '• ${failure.displayName} — ${_failureReason(failure.code)}',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.error,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ],
           ),
         ),
