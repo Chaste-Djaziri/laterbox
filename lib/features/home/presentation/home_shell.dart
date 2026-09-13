@@ -104,14 +104,26 @@ class HomeShell extends ConsumerWidget {
               ],
             ),
       floatingActionButton: (!isDesktop && effectiveIndex == 0)
-          ? FloatingActionButton.large(
-              onPressed: () => _openCapture(context),
-              tooltip: 'Save something',
-              child: const Icon(Icons.add_rounded, size: 32),
-            )
+          ? (_isIOS(context)
+              ? FloatingActionButton(
+                  onPressed: () => _openCapture(context),
+                  tooltip: 'Save something',
+                  child: const Icon(Icons.add_rounded),
+                )
+              : FloatingActionButton.large(
+                  onPressed: () => _openCapture(context),
+                  tooltip: 'Save something',
+                  child: const Icon(Icons.add_rounded, size: 32),
+                ))
           : null,
     );
   }
+}
+
+bool _isIOS(BuildContext context) {
+  if (kIsWeb) return false;
+  return Theme.of(context).platform == TargetPlatform.iOS ||
+      defaultTargetPlatform == TargetPlatform.iOS;
 }
 
 class _MobilePlanStatus extends ConsumerWidget {
