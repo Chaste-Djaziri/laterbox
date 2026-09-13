@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/settings/item_view_mode.dart';
 import '../../../shared/models/laterbox_item.dart';
 import '../../../shared/widgets/item_card.dart';
+import '../../../shared/widgets/item_list_row.dart';
+import '../../../shared/widgets/view_mode_toggle.dart';
 
 /// A filtered item list behind a Library row or collection tile. The caller
 /// supplies the live [provider] so this stays a dumb, reusable screen.
@@ -19,6 +22,7 @@ class LibrarySectionScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final items = ref.watch(provider);
+    final viewMode = ref.watch(itemViewModeProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -26,6 +30,10 @@ class LibrarySectionScreen extends ConsumerWidget {
           title,
           style: const TextStyle(fontWeight: FontWeight.w800, letterSpacing: -0.6),
         ),
+        actions: const [
+          ViewModeToggle(compact: true),
+          SizedBox(width: 8),
+        ],
       ),
       body: SafeArea(
         top: false,
@@ -49,9 +57,10 @@ class LibrarySectionScreen extends ConsumerWidget {
                   padding: const EdgeInsets.fromLTRB(20, 16, 20, 40),
                   itemCount: items.length,
                   separatorBuilder: (context, index) =>
-                      const SizedBox(height: 12),
-                  itemBuilder: (context, index) =>
-                      ItemCard(item: items[index]),
+                      SizedBox(height: viewMode.isCards ? 12 : 8),
+                  itemBuilder: (context, index) => viewMode.isCards
+                      ? ItemCard(item: items[index])
+                      : ItemListRow(item: items[index]),
                 ),
         ),
       ),
