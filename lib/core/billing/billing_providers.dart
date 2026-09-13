@@ -25,11 +25,18 @@ bool get billingEnforcementEnabled {
   return true;
 }
 
-bool get isAppleAppStoreBuild =>
-    !kIsWeb &&
-    laterBoxDistribution == 'app-store' &&
-    (defaultTargetPlatform == TargetPlatform.iOS ||
-        defaultTargetPlatform == TargetPlatform.macOS);
+bool isAppleStoreDistribution({
+  String distribution = laterBoxDistribution,
+  TargetPlatform? platform,
+  bool isWeb = kIsWeb,
+}) {
+  final target = platform ?? defaultTargetPlatform;
+  return !isWeb &&
+      distribution == 'app-store' &&
+      (target == TargetPlatform.iOS || target == TargetPlatform.macOS);
+}
+
+bool get isAppleAppStoreBuild => isAppleStoreDistribution();
 
 bool get canOpenWebCheckout {
   if (kIsWeb ||
