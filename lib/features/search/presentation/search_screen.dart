@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/settings/item_view_mode.dart';
 import '../../../features/enrichment/domain/content_type.dart';
@@ -45,6 +46,17 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded),
+          tooltip: 'Back',
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/inbox');
+            }
+          },
+        ),
         title: const Text(
           'Search',
           style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: -0.6),
@@ -62,6 +74,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
               child: TextField(
                 controller: _controller,
+                autofocus: true,
                 onChanged: _setQuery,
                 textInputAction: TextInputAction.search,
                 decoration: InputDecoration(
