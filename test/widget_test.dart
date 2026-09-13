@@ -30,7 +30,7 @@ void main() {
     await tester.tap(find.byTooltip('Save something'));
     await tester.pumpAndSettle();
     await tester.enterText(
-      find.byType(TextField),
+      find.byType(TextField).last,
       'https://github.com/flutter/flutter',
     );
     await tester.tap(find.text('Save'));
@@ -64,7 +64,7 @@ void main() {
     await tester.tap(find.byTooltip('Save something'));
     await tester.pumpAndSettle();
     await tester.enterText(
-      find.byType(TextField),
+      find.byType(TextField).last,
       '   ',
     );
     await tester.tap(find.text('Save'));
@@ -109,14 +109,14 @@ void main() {
     expect(
       find.descendant(
         of: find.byType(NavigationBar),
-        matching: find.text('Search'),
+        matching: find.text('Library'),
       ),
       findsOneWidget,
     );
     expect(
       find.descendant(
         of: find.byType(NavigationBar),
-        matching: find.text('Library'),
+        matching: find.text('Settings'),
       ),
       findsOneWidget,
     );
