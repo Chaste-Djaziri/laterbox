@@ -17,12 +17,14 @@ class ProPlans extends ConsumerWidget {
   const ProPlans({
     super.key,
     this.compact = false,
+    this.showFreePlan = true,
     this.preferredInterval = PlanInterval.annual,
     this.onAuthenticationRequired,
     this.onContinueFree,
   });
 
   final bool compact;
+  final bool showFreePlan;
   final PlanInterval preferredInterval;
   final ValueChanged<PlanInterval>? onAuthenticationRequired;
   final VoidCallback? onContinueFree;
@@ -52,7 +54,8 @@ class ProPlans extends ConsumerWidget {
     }
 
     final cards = <Widget>[
-      _PlanCard(
+      if (showFreePlan)
+        _PlanCard(
         width: compact ? 320 : 350,
         title: 'Free',
         price: 'Free forever',
@@ -97,7 +100,7 @@ class ProPlans extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (compact)
+        if (compact || !showFreePlan)
           Wrap(
             alignment: WrapAlignment.center,
             spacing: 16,
