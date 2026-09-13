@@ -5,10 +5,13 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/auth/auth_provider.dart';
 import '../../../core/desktop/desktop_actions.dart';
+import '../../../core/settings/item_view_mode.dart';
 import '../../../core/sync/sync_providers.dart';
 import '../../../shared/widgets/cloud_sync_indicator.dart';
 import '../../../shared/widgets/filter_chip_bar.dart';
 import '../../../shared/widgets/item_card.dart';
+import '../../../shared/widgets/item_list_row.dart';
+import '../../../shared/widgets/view_mode_toggle.dart';
 import '../../capture/presentation/capture_sheet.dart';
 import 'inbox_providers.dart';
 
@@ -58,6 +61,7 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
 
     final rawItems = ref.watch(inboxItemsProvider);
     final filteredItems = ref.watch(filteredInboxItemsProvider);
+    final viewMode = ref.watch(itemViewModeProvider);
     final auth = ref.watch(authStateProvider).asData?.value;
     final theme = Theme.of(context);
     final isMac = !kIsWeb && platform == TargetPlatform.macOS;
@@ -93,6 +97,7 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
                       ],
                     ),
               actions: [
+                const ViewModeToggle(compact: true),
                 const CloudSyncIndicator(compact: true),
                 IconButton(
                   onPressed: () => _openCapture(context),
@@ -109,6 +114,9 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
                   tooltip: 'Shortcuts & Menu',
                   onSelected: (value) async {
                     switch (value) {
+                      case 'toggle_view_mode':
+                        ref.read(itemViewModeProvider.notifier).toggle();
+                        break;
                       case 'capture':
                         _openCapture(context);
                         break;
@@ -182,6 +190,21 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
                           Icon(Icons.settings_outlined, size: 20),
                           SizedBox(width: 12),
                           Text('Settings'),
+                        ],
+                      ),
+                    ),
+                    PopupMenuItem(
+                      value: 'toggle_view_mode',
+                      child: Row(
+                        children: [
+                          Icon(
+                            viewMode.isCards
+                                ? Icons.view_list_rounded
+                                : Icons.grid_view_rounded,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 12),
+                          Text(viewMode.isCards ? 'List view' : 'Cards view'),
                         ],
                       ),
                     ),
@@ -265,6 +288,8 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
                             if (isDesktop)
                               Row(
                                 children: [
+                                  const ViewModeToggle(),
+                                  const SizedBox(width: 12),
                                   if (isMac)
                                     IconButton(
                                       onPressed: () => ref
@@ -343,33 +368,55 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
                   data: (itemList) => itemList.isEmpty
                       ? const SliverFillRemaining(child: _EmptyInbox())
                       : isDesktop
-                      ? SliverPadding(
-                          padding: const EdgeInsets.fromLTRB(32, 0, 32, 104),
-                          sliver: SliverGrid(
-                            delegate: SliverChildBuilderDelegate(
-                              (context, index) =>
-                                  ItemCard(item: itemList[index], isGrid: true),
-                              childCount: itemList.length,
-                            ),
-                            gridDelegate:
-                                const SliverGridDelegateWithMaxCrossAxisExtent(
-                                  maxCrossAxisExtent: 320,
-                                  mainAxisSpacing: 16,
-                                  crossAxisSpacing: 16,
-                                  childAspectRatio: 0.72,
+                      ? (viewMode.isCards
+                          ? SliverPadding(
+                              padding: const EdgeInsets.fromLTRB(32, 0, 32, 104),
+                              sliver: SliverGrid(
+                                delegate: SliverChildBuilderDelegate(
+                                  (context, index) =>
+                                      ItemCard(item: itemList[index], isGrid: true),
+                                  childCount: itemList.length,
                                 ),
-                          ),
-                        )
-                      : SliverPadding(
-                          padding: const EdgeInsets.fromLTRB(20, 0, 20, 104),
-                          sliver: SliverList.separated(
-                            itemCount: itemList.length,
-                            separatorBuilder: (context, index) =>
-                                const SizedBox(height: 14),
-                            itemBuilder: (context, index) =>
-                                ItemCard(item: itemList[index]),
-                          ),
-                        ),
+                                gridDelegate:
+                                    const SliverGridDelegateWithMaxCrossAxisExtent(
+                                      maxCrossAxisExtent: 320,
+                                      mainAxisSpacing: 16,
+                                      crossAxisSpacing: 16,
+                                      childAspectRatio: 0.72,
+                                    ),
+                              ),
+                            )
+                          : SliverPadding(
+                              padding: const EdgeInsets.fromLTRB(32, 0, 32, 104),
+                              sliver: SliverList.separated(
+                                itemCount: itemList.length,
+                                separatorBuilder: (context, index) =>
+                                    const SizedBox(height: 10),
+                                itemBuilder: (context, index) =>
+                                    ItemListRow(item: itemList[index]),
+                              ),
+                            ))
+                      : (viewMode.isCards
+                          ? SliverPadding(
+                              padding: const EdgeInsets.fromLTRB(20, 0, 20, 104),
+                              sliver: SliverList.separated(
+                                itemCount: itemList.length,
+                                separatorBuilder: (context, index) =>
+                                    const SizedBox(height: 14),
+                                itemBuilder: (context, index) =>
+                                    ItemCard(item: itemList[index]),
+                              ),
+                            )
+                          : SliverPadding(
+                              padding: const EdgeInsets.fromLTRB(20, 0, 20, 104),
+                              sliver: SliverList.separated(
+                                itemCount: itemList.length,
+                                separatorBuilder: (context, index) =>
+                                    const SizedBox(height: 10),
+                                itemBuilder: (context, index) =>
+                                    ItemListRow(item: itemList[index]),
+                              ),
+                            )),
                 ),
               ],
             ),
