@@ -25,9 +25,22 @@ class InboxScreen extends ConsumerStatefulWidget {
 
 class _InboxScreenState extends ConsumerState<InboxScreen> {
   final ScrollController _scrollController = ScrollController();
+  final FocusNode _searchFocusNode = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    _searchFocusNode.addListener(() {
+      if (_searchFocusNode.hasFocus) {
+        _searchFocusNode.unfocus();
+        context.push('/search');
+      }
+    });
+  }
 
   @override
   void dispose() {
+    _searchFocusNode.dispose();
     _scrollController.dispose();
     super.dispose();
   }
@@ -178,6 +191,55 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
             ),
           ),
       ],
+    );
+  }
+
+  Widget _buildSearchInput(BuildContext context, ThemeData theme) {
+    return TextField(
+      focusNode: _searchFocusNode,
+      readOnly: true,
+      onTap: () => context.push('/search'),
+      decoration: InputDecoration(
+        hintText: 'Search items, tags, notes...',
+        hintStyle: TextStyle(
+          color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+          fontSize: 14,
+          fontWeight: FontWeight.w400,
+        ),
+        prefixIcon: Icon(
+          Icons.search_rounded,
+          size: 20,
+          color: theme.colorScheme.onSurfaceVariant,
+        ),
+        filled: true,
+        fillColor: theme.colorScheme.surfaceContainerHigh.withValues(alpha: 0.6),
+        isDense: true,
+        contentPadding: const EdgeInsets.symmetric(
+          vertical: 11,
+          horizontal: 16,
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(
+            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.25),
+            width: 1,
+          ),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(
+            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.25),
+            width: 1,
+          ),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(
+            color: theme.colorScheme.primary,
+            width: 1.5,
+          ),
+        ),
+      ),
     );
   }
 
@@ -352,6 +414,8 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
                           ),
                           const SizedBox(height: 16),
                         ],
+                        _buildSearchInput(context, theme),
+                        const SizedBox(height: 12),
                         const FilterChipBar(),
                       ],
                     ),
