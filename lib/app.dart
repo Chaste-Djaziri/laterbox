@@ -170,9 +170,6 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
 
   void _drainPendingShares() {
     if (_drainingShares) return;
-    if (!ref.read(proFeatureAccessProvider(ProFeature.shareIntegration))) {
-      return;
-    }
     _drainingShares = true;
     unawaited(_drainNativeShares());
   }
