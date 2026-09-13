@@ -2,9 +2,12 @@ import Flutter
 import UIKit
 
 @main
-@objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate {
+@objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate, FlutterStreamHandler {
   private let queue = ShareCaptureQueue(appGroupId: "group.pro.micorp.laterbox")
   private var shareChannel: FlutterMethodChannel?
+  private var clipboardEventChannel: FlutterEventChannel?
+  private var clipboardEventSink: FlutterEventSink?
+  private var pasteboardObserver: NSObjectProtocol?
 
   override func application(
     _ application: UIApplication,
@@ -16,6 +19,7 @@ import UIKit
   func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
     registerShareChannel(with: engineBridge.applicationRegistrar.messenger())
+    registerClipboardChannel(with: engineBridge.applicationRegistrar.messenger())
   }
 
   func registerShareChannel(with messenger: FlutterBinaryMessenger) {
@@ -41,5 +45,39 @@ import UIKit
       }
     }
     self.shareChannel = channel
+  }
+
+  private func registerClipboardChannel(with messenger: FlutterBinaryMessenger) {
+    if clipboardEventChannel != nil { return }
+    let channel = FlutterEventChannel(
+      name: "laterbox/ios_clipboard",
+      binaryMessenger: messenger
+    )
+    channel.setStreamHandler(self)
+    clipboardEventChannel = channel
+  }
+
+  func onListen(
+    withArguments arguments: Any?,
+    eventSink events: @escaping FlutterEventSink
+  ) -> FlutterError? {
+    clipboardEventSink = events
+    pasteboardObserver = NotificationCenter.default.addObserver(
+      forName: UIPasteboard.changedNotification,
+      object: UIPasteboard.general,
+      queue: .main
+    ) { [weak self] _ in
+      self?.clipboardEventSink?(nil)
+    }
+    return nil
+  }
+
+  func onCancel(withArguments arguments: Any?) -> FlutterError? {
+    if let pasteboardObserver {
+      NotificationCenter.default.removeObserver(pasteboardObserver)
+    }
+    pasteboardObserver = nil
+    clipboardEventSink = nil
+    return nil
   }
 }
