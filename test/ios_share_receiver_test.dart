@@ -24,7 +24,7 @@ Future<void> _pumpUntilFound(
 }
 
 void main() {
-  testWidgets('imports queued iOS shares through the capture pipeline', (
+  testWidgets('imports queued iOS shares for a free account', (
     tester,
   ) async {
     final database = AppDatabase(NativeDatabase.memory());
@@ -56,7 +56,7 @@ void main() {
       ProviderScope(
         overrides: [
           guestModeProvider.overrideWith((ref) => true),
-          hasProAccessProvider.overrideWithValue(true),
+          hasProAccessProvider.overrideWithValue(false),
           appDatabaseProvider.overrideWithValue(database),
           initialLocationProvider.overrideWithValue('/inbox'),
         ],
