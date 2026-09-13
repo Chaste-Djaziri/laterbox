@@ -35,15 +35,15 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
     super.initState();
     _sendAnimController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 360),
+      duration: const Duration(milliseconds: 320),
     );
     _slideAnimation = Tween<Offset>(
       begin: Offset.zero,
-      end: const Offset(0, -0.42),
+      end: const Offset(0, -0.65),
     ).animate(
       CurvedAnimation(
         parent: _sendAnimController,
-        curve: Curves.easeInOutCubic,
+        curve: Curves.easeOutCubic,
       ),
     );
     _fadeAnimation = Tween<double>(
@@ -57,11 +57,11 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
     );
     _scaleAnimation = Tween<double>(
       begin: 1.0,
-      end: 0.93,
+      end: 0.90,
     ).animate(
       CurvedAnimation(
         parent: _sendAnimController,
-        curve: Curves.easeInOutCubic,
+        curve: Curves.easeOutCubic,
       ),
     );
 
@@ -78,13 +78,15 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
     super.dispose();
   }
 
-  Future<void> _chooseFiles() async {
+  Future<void> _chooseFiles({AttachmentPickerSource? initialSource}) async {
     final platform = Theme.of(context).platform;
     final isMobile = !kIsWeb &&
         (platform == TargetPlatform.iOS || platform == TargetPlatform.android);
 
     final AttachmentPickerSource? source;
-    if (isMobile) {
+    if (initialSource != null) {
+      source = initialSource;
+    } else if (isMobile) {
       source = await showModalBottomSheet<AttachmentPickerSource>(
         context: context,
         backgroundColor: Theme.of(context).colorScheme.surface,
@@ -198,23 +200,6 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
     }
   }
 
-  Future<void> _pasteFromClipboard() async {
-    final data = await Clipboard.getData(Clipboard.kTextPlain);
-    final text = data?.text;
-    if (text != null && text.trim().isNotEmpty) {
-      final current = _controller.text;
-      if (current.isEmpty) {
-        _controller.text = text.trim();
-      } else {
-        _controller.text = '$current\n${text.trim()}';
-      }
-      _controller.selection = TextSelection.fromPosition(
-        TextPosition(offset: _controller.text.length),
-      );
-      setState(() => _error = null);
-    }
-  }
-
   bool _isImageFile(String name) {
     final ext = name.split('.').last.toLowerCase();
     return const {'png', 'jpg', 'jpeg', 'gif', 'webp', 'heic', 'svg'}.contains(ext);
@@ -314,7 +299,18 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final keyboardHeight = MediaQuery.viewInsetsOf(context).bottom;
+
+    final pillBgColor = isDark
+        ? const Color(0xFF26262B)
+        : const Color(0xFFF2F3F6);
+    final sendBtnBgColor = isDark
+        ? Colors.white
+        : const Color(0xFF0F172A);
+    final sendIconColor = isDark
+        ? const Color(0xFF0F172A)
+        : Colors.white;
 
     return Shortcuts(
       shortcuts: const {
@@ -326,374 +322,397 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
             onInvoke: (_) => Navigator.of(context).pop(),
           ),
         },
-        child: SingleChildScrollView(
-          padding: EdgeInsets.fromLTRB(18, 10, 18, 20 + keyboardHeight),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Top drag indicator
-              Center(
-                child: Container(
-                  width: 38,
-                  height: 4,
-                  margin: const EdgeInsets.only(top: 4, bottom: 16),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.outlineVariant,
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                ),
-              ),
-
-              // Header bar
-              Row(
-                children: [
-                  Container(
-                    width: 32,
-                    height: 32,
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.primary.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Icon(
-                      Icons.all_inbox_rounded,
-                      size: 18,
-                      color: theme.colorScheme.primary,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Save to laterbox',
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: -0.3,
-                          ),
-                        ),
-                        Text(
-                          'Notes, web links, or attachments',
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    tooltip: 'Close',
-                    icon: const Icon(Icons.close_rounded, size: 20),
-                    visualDensity: VisualDensity.compact,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-
-              // Chat-Style Composer with fly-away send animation
-              SlideTransition(
-                position: _slideAnimation,
-                child: FadeTransition(
-                  opacity: _fadeAnimation,
-                  child: ScaleTransition(
-                    scale: _scaleAnimation,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.surfaceContainerHighest
-                            .withValues(alpha: 0.4),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: _error != null
-                              ? theme.colorScheme.error
-                              : theme.colorScheme.outlineVariant
-                                  .withValues(alpha: 0.7),
-                          width: 1.2,
-                        ),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          // Text input
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
-                            child: TextField(
-                              controller: _controller,
-                              focusNode: _focusNode,
-                              enabled: !_saving,
-                              minLines: 3,
-                              maxLines: 7,
-                              textInputAction: TextInputAction.newline,
-                              keyboardType: TextInputType.multiline,
-                              autocorrect: true,
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                fontSize: 15,
-                                height: 1.45,
-                              ),
-                              decoration: InputDecoration.collapsed(
-                                hintText:
-                                    'Write a note, paste a link, or attach files...',
-                                hintStyle: theme.textTheme.bodyMedium?.copyWith(
-                                  color: theme.colorScheme.onSurfaceVariant
-                                      .withValues(alpha: 0.65),
-                                  fontSize: 15,
+        child: GestureDetector(
+          onTap: () => Navigator.of(context).pop(),
+          behavior: HitTestBehavior.translucent,
+          child: Align(
+            alignment: Alignment.bottomCenter,
+            child: GestureDetector(
+              onTap: () {}, // Prevent taps inside the bar from dismissing
+              behavior: HitTestBehavior.opaque,
+              child: SafeArea(
+                top: false,
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(16, 8, 16, 16 + keyboardHeight),
+                  child: SlideTransition(
+                    position: _slideAnimation,
+                    child: FadeTransition(
+                      opacity: _fadeAnimation,
+                      child: ScaleTransition(
+                        scale: _scaleAnimation,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            // Attached files preview row (above pill)
+                            if (_selectedFiles.isNotEmpty) ...[
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 10),
+                                child: SingleChildScrollView(
+                                  scrollDirection: Axis.horizontal,
+                                  child: Row(
+                                    children: _selectedFiles.map((file) {
+                                      return Container(
+                                        margin: const EdgeInsets.only(right: 8),
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 12,
+                                          vertical: 7,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: isDark
+                                              ? const Color(0xFF333338)
+                                              : Colors.white,
+                                          borderRadius:
+                                              BorderRadius.circular(999),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: Colors.black
+                                                  .withValues(alpha: 0.12),
+                                              blurRadius: 8,
+                                              offset: const Offset(0, 2),
+                                            ),
+                                          ],
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(
+                                              _isImageFile(file.name)
+                                                  ? Icons.image_rounded
+                                                  : Icons.insert_drive_file_rounded,
+                                              size: 16,
+                                              color: theme.colorScheme.primary,
+                                            ),
+                                            const SizedBox(width: 6),
+                                            ConstrainedBox(
+                                              constraints: const BoxConstraints(
+                                                maxWidth: 160,
+                                              ),
+                                              child: Text(
+                                                file.name,
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: theme
+                                                    .textTheme.labelMedium
+                                                    ?.copyWith(
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                              ),
+                                            ),
+                                            const SizedBox(width: 6),
+                                            InkWell(
+                                              onTap: _saving
+                                                  ? null
+                                                  : () => setState(() {
+                                                        _selectedFiles
+                                                            .remove(file);
+                                                        _fileFailures =
+                                                            const [];
+                                                      }),
+                                              borderRadius:
+                                                  BorderRadius.circular(999),
+                                              child: Icon(
+                                                Icons.close_rounded,
+                                                size: 15,
+                                                color: theme
+                                                    .colorScheme.onSurfaceVariant,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    }).toList(),
+                                  ),
                                 ),
                               ),
-                              onSubmitted: _saving ? null : (_) => _save(),
-                            ),
-                          ),
+                            ],
 
-                          // Selected files preview chips
-                          if (_selectedFiles.isNotEmpty) ...[
-                            Padding(
-                              padding: const EdgeInsets.fromLTRB(14, 0, 14, 8),
-                              child: Wrap(
-                                spacing: 8,
-                                runSpacing: 6,
-                                children: _selectedFiles.map((file) {
-                                  return Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 10,
-                                      vertical: 6,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: theme
-                                          .colorScheme.surfaceContainerHighest,
-                                      borderRadius: BorderRadius.circular(10),
-                                      border: Border.all(
-                                        color: theme.colorScheme.outlineVariant,
+                            // Error banner (above pill)
+                            if (_error != null) ...[
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 10),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 14,
+                                    vertical: 8,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: theme.colorScheme.errorContainer,
+                                    borderRadius: BorderRadius.circular(999),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black
+                                            .withValues(alpha: 0.1),
+                                        blurRadius: 8,
+                                        offset: const Offset(0, 2),
                                       ),
+                                    ],
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.error_outline_rounded,
+                                        size: 16,
+                                        color: theme.colorScheme.error,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Flexible(
+                                        child: Text(
+                                          _error!,
+                                          style: theme.textTheme.bodySmall
+                                              ?.copyWith(
+                                            color: theme
+                                                .colorScheme.onErrorContainer,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+
+                            // Attachment failures list if any
+                            if (_fileFailures.isNotEmpty) ...[
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 10),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 14,
+                                    vertical: 8,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: theme.colorScheme.errorContainer,
+                                    borderRadius: BorderRadius.circular(16),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black
+                                            .withValues(alpha: 0.1),
+                                        blurRadius: 8,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        'Couldn’t add:',
+                                        style: theme.textTheme.labelMedium
+                                            ?.copyWith(
+                                          color: theme.colorScheme.error,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      ..._fileFailures.map(
+                                        (failure) => Text(
+                                          '• ${failure.displayName} — ${_failureReason(failure.code)}',
+                                          style: theme.textTheme.bodySmall
+                                              ?.copyWith(
+                                            color: theme
+                                                .colorScheme.onErrorContainer,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+
+                            // The Chat Input Bar + Circular Send Button (Exact Image 1 layout)
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                // Pill input bar
+                                Expanded(
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      color: pillBgColor,
+                                      borderRadius: BorderRadius.circular(999),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black
+                                              .withValues(alpha: 0.12),
+                                          blurRadius: 16,
+                                          offset: const Offset(0, 4),
+                                        ),
+                                      ],
+                                    ),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 6,
+                                      vertical: 4,
                                     ),
                                     child: Row(
-                                      mainAxisSize: MainAxisSize.min,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.center,
                                       children: [
-                                        Icon(
-                                          _isImageFile(file.name)
-                                              ? Icons.image_outlined
-                                              : Icons.insert_drive_file_outlined,
-                                          size: 16,
-                                          color: theme.colorScheme.primary,
-                                        ),
-                                        const SizedBox(width: 6),
-                                        ConstrainedBox(
-                                          constraints: const BoxConstraints(
-                                            maxWidth: 160,
-                                          ),
-                                          child: Text(
-                                            file.name,
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: theme.textTheme.labelMedium
-                                                ?.copyWith(
-                                              fontWeight: FontWeight.w600,
+                                        // Plus (+) Button to attach files/images
+                                        Material(
+                                          color: Colors.transparent,
+                                          child: InkWell(
+                                            onTap: _saving
+                                                ? null
+                                                : () => _chooseFiles(),
+                                            borderRadius:
+                                                BorderRadius.circular(999),
+                                            child: Padding(
+                                              padding: const EdgeInsets.all(8),
+                                              child: Stack(
+                                                alignment: Alignment.center,
+                                                children: [
+                                                  Icon(
+                                                    Icons.add_rounded,
+                                                    size: 26,
+                                                    color: isDark
+                                                        ? Colors.grey.shade400
+                                                        : Colors.grey.shade600,
+                                                  ),
+                                                  const SizedBox(
+                                                    width: 32,
+                                                    height: 32,
+                                                    child: Center(
+                                                      child: Text(
+                                                        'Choose files',
+                                                        style: TextStyle(
+                                                          fontSize: 14,
+                                                          color: Colors.transparent,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
                                             ),
                                           ),
                                         ),
-                                        const SizedBox(width: 4),
-                                        InkWell(
-                                          onTap: _saving
-                                              ? null
-                                              : () => setState(() {
-                                                    _selectedFiles.remove(file);
-                                                    _fileFailures = const [];
-                                                  }),
-                                          borderRadius:
-                                              BorderRadius.circular(999),
-                                          child: Icon(
-                                            Icons.close_rounded,
-                                            size: 14,
-                                            color: theme
-                                                .colorScheme.onSurfaceVariant,
+
+                                        // Text Field
+                                        Expanded(
+                                          child: Padding(
+                                            padding: const EdgeInsets.only(
+                                              left: 4,
+                                              right: 12,
+                                              top: 2,
+                                              bottom: 2,
+                                            ),
+                                            child: TextField(
+                                              controller: _controller,
+                                              focusNode: _focusNode,
+                                              enabled: !_saving,
+                                              minLines: 1,
+                                              maxLines: 5,
+                                              keyboardType:
+                                                  TextInputType.multiline,
+                                              textInputAction:
+                                                  TextInputAction.newline,
+                                              style: TextStyle(
+                                                fontSize: 16,
+                                                height: 1.35,
+                                                color: isDark
+                                                    ? Colors.white
+                                                    : const Color(0xFF0F172A),
+                                              ),
+                                              decoration:
+                                                  InputDecoration.collapsed(
+                                                hintText:
+                                                    'Type your message...',
+                                                hintStyle: TextStyle(
+                                                  color: isDark
+                                                      ? Colors.grey.shade500
+                                                      : Colors.grey.shade500,
+                                                  fontSize: 16,
+                                                  fontWeight: FontWeight.w400,
+                                                ),
+                                              ),
+                                              onSubmitted: _saving
+                                                  ? null
+                                                  : (_) => _save(),
+                                            ),
                                           ),
                                         ),
                                       ],
                                     ),
-                                  );
-                                }).toList(),
-                              ),
-                            ),
-                          ],
-
-                          // Subtle divider between message input and composer controls
-                          Divider(
-                            height: 1,
-                            thickness: 1,
-                            color: theme.colorScheme.outlineVariant
-                                .withValues(alpha: 0.35),
-                          ),
-
-                          // Composer action bar
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(8, 6, 8, 6),
-                            child: Row(
-                              children: [
-                                // Choose files button (keeps 'Choose files' text for tests)
-                                TextButton.icon(
-                                  onPressed: _saving ? null : _chooseFiles,
-                                  icon: const Icon(
-                                    Icons.attach_file_rounded,
-                                    size: 18,
-                                  ),
-                                  label: const Text('Choose files'),
-                                  style: TextButton.styleFrom(
-                                    visualDensity: VisualDensity.compact,
-                                    foregroundColor:
-                                        theme.colorScheme.onSurfaceVariant,
-                                    textStyle: const TextStyle(
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 13,
-                                    ),
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 10,
-                                      vertical: 6,
-                                    ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
                                   ),
                                 ),
 
-                                // Clipboard paste shortcut
-                                IconButton(
-                                  onPressed:
-                                      _saving ? null : _pasteFromClipboard,
-                                  tooltip: 'Paste from clipboard',
-                                  visualDensity: VisualDensity.compact,
-                                  icon: const Icon(
-                                    Icons.content_paste_rounded,
-                                    size: 18,
-                                  ),
-                                ),
+                                const SizedBox(width: 10),
 
-                                const Spacer(),
-
-                                // Chat-style Save send button
-                                FilledButton(
-                                  onPressed: _saving ? null : _save,
-                                  style: FilledButton.styleFrom(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 14,
-                                      vertical: 8,
-                                    ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(18),
-                                    ),
-                                    elevation: 0,
-                                  ),
-                                  child: _saving
-                                      ? const SizedBox.square(
-                                          dimension: 16,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                            color: Colors.white,
+                                // Circular Send Button ("send being save")
+                                Material(
+                                  color: Colors.transparent,
+                                  child: InkWell(
+                                    onTap: _saving ? null : _save,
+                                    borderRadius: BorderRadius.circular(999),
+                                    child: Container(
+                                      width: 48,
+                                      height: 48,
+                                      decoration: BoxDecoration(
+                                        color: sendBtnBgColor,
+                                        shape: BoxShape.circle,
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.black
+                                                .withValues(alpha: 0.16),
+                                            blurRadius: 12,
+                                            offset: const Offset(0, 3),
                                           ),
-                                        )
-                                      : const Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Text(
-                                              'Save',
-                                              style: TextStyle(
-                                                fontWeight: FontWeight.w700,
-                                                fontSize: 13.5,
+                                        ],
+                                      ),
+                                      child: Center(
+                                        child: _saving
+                                            ? SizedBox.square(
+                                                dimension: 18,
+                                                child: CircularProgressIndicator(
+                                                  strokeWidth: 2,
+                                                  color: sendIconColor,
+                                                ),
+                                              )
+                                            : Stack(
+                                                alignment: Alignment.center,
+                                                children: [
+                                                  Transform.rotate(
+                                                    angle: -0.2,
+                                                    child: Icon(
+                                                      Icons.send_rounded,
+                                                      color: sendIconColor,
+                                                      size: 22,
+                                                    ),
+                                                  ),
+                                                  const SizedBox(
+                                                    width: 48,
+                                                    height: 48,
+                                                    child: Center(
+                                                      child: Text(
+                                                        'Save',
+                                                        style: TextStyle(
+                                                          fontSize: 14,
+                                                          color: Colors.transparent,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
                                               ),
-                                            ),
-                                            SizedBox(width: 4),
-                                            Icon(
-                                              Icons.arrow_upward_rounded,
-                                              size: 16,
-                                            ),
-                                          ],
-                                        ),
+                                      ),
+                                    ),
+                                  ),
                                 ),
                               ],
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   ),
                 ),
               ),
-
-              // Error banner
-              if (_error != null) ...[
-                const SizedBox(height: 10),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color:
-                        theme.colorScheme.errorContainer.withValues(alpha: 0.5),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      color: theme.colorScheme.error.withValues(alpha: 0.3),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.error_outline_rounded,
-                        size: 16,
-                        color: theme.colorScheme.error,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          _error!,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onErrorContainer,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-
-              // Attachment failures list if any
-              if (_fileFailures.isNotEmpty) ...[
-                const SizedBox(height: 10),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color:
-                        theme.colorScheme.errorContainer.withValues(alpha: 0.4),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Couldn’t add:',
-                        style: theme.textTheme.labelMedium?.copyWith(
-                          color: theme.colorScheme.error,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      ..._fileFailures.map(
-                        (failure) => Text(
-                          '• ${failure.displayName} — ${_failureReason(failure.code)}',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.error,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ],
+            ),
           ),
         ),
       ),
