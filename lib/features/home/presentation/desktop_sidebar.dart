@@ -230,7 +230,7 @@ class _DesktopSidebarState extends ConsumerState<DesktopSidebar> {
                     ? Tooltip(
                         message: '$userEmail • Settings',
                         child: InkWell(
-                          onTap: () => context.push('/settings'),
+                          onTap: () => context.go('/settings'),
                           borderRadius: BorderRadius.circular(18),
                           child: CircleAvatar(
                             radius: 18,
@@ -247,7 +247,7 @@ class _DesktopSidebarState extends ConsumerState<DesktopSidebar> {
                         ),
                       )
                     : InkWell(
-                        onTap: () => context.push('/settings'),
+                        onTap: () => context.go('/settings'),
                         borderRadius: BorderRadius.circular(12),
                         child: Container(
                           padding: const EdgeInsets.all(8),
@@ -326,7 +326,13 @@ class _PlanStatusCard extends ConsumerWidget {
     final warning = presentation.severity == EntitlementSeverity.warning;
     final color = warning ? Colors.amber : const Color(0xFFD7FF27);
     final card = InkWell(
-      onTap: () => context.push(entitlement.hasProAccess ? '/settings' : '/plans'),
+      onTap: () {
+        if (entitlement.hasProAccess) {
+          context.go('/settings');
+        } else {
+          context.push('/plans');
+        }
+      },
       borderRadius: BorderRadius.circular(12),
       child: Container(
         margin: EdgeInsets.fromLTRB(compact ? 10 : 14, 8, compact ? 10 : 14, 10),
