@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/auth/auth_provider.dart';
+import '../../../core/auth/auth_state.dart';
 import '../../../core/desktop/desktop_actions.dart';
 import '../../../core/settings/item_view_mode.dart';
 import '../../../core/sync/sync_providers.dart';
@@ -49,6 +50,137 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
     );
   }
 
+  Widget _buildMenuButton(
+    BuildContext context,
+    ItemViewMode viewMode,
+    LaterBoxAuthState? auth,
+  ) {
+    return PopupMenuButton<String>(
+      icon: const Icon(Icons.more_vert_rounded),
+      tooltip: 'Shortcuts & Menu',
+      onSelected: (value) async {
+        switch (value) {
+          case 'toggle_view_mode':
+            ref.read(itemViewModeProvider.notifier).toggle();
+            break;
+          case 'capture':
+            _openCapture(context);
+            break;
+          case 'kept':
+            context.go('/kept');
+            break;
+          case 'library':
+            context.go('/library');
+            break;
+          case 'tutorial':
+            context.push('/tutorial');
+            break;
+          case 'settings':
+            context.push('/settings');
+            break;
+          case 'signout':
+            await ref.read(authRepositoryProvider).signOut();
+            ref.read(guestModeProvider.notifier).state = true;
+            break;
+          case 'signin':
+            ref.read(guestModeProvider.notifier).state = false;
+            break;
+        }
+      },
+      itemBuilder: (context) => [
+        const PopupMenuItem(
+          value: 'capture',
+          child: Row(
+            children: [
+              Icon(Icons.add_rounded, size: 20),
+              SizedBox(width: 12),
+              Text('Quick Save / Paste'),
+            ],
+          ),
+        ),
+        const PopupMenuItem(
+          value: 'kept',
+          child: Row(
+            children: [
+              Icon(Icons.check_circle_outline_rounded, size: 20),
+              SizedBox(width: 12),
+              Text('Kept Items'),
+            ],
+          ),
+        ),
+        const PopupMenuItem(
+          value: 'library',
+          child: Row(
+            children: [
+              Icon(Icons.auto_stories_outlined, size: 20),
+              SizedBox(width: 12),
+              Text('Library'),
+            ],
+          ),
+        ),
+        const PopupMenuDivider(),
+        const PopupMenuItem(
+          value: 'tutorial',
+          child: Row(
+            children: [
+              Icon(Icons.help_outline_rounded, size: 20),
+              SizedBox(width: 12),
+              Text('Guide & Shortcuts'),
+            ],
+          ),
+        ),
+        const PopupMenuItem(
+          value: 'settings',
+          child: Row(
+            children: [
+              Icon(Icons.settings_outlined, size: 20),
+              SizedBox(width: 12),
+              Text('Settings'),
+            ],
+          ),
+        ),
+        PopupMenuItem(
+          value: 'toggle_view_mode',
+          child: Row(
+            children: [
+              Icon(
+                viewMode.isCards
+                    ? Icons.view_list_rounded
+                    : Icons.grid_view_rounded,
+                size: 20,
+              ),
+              SizedBox(width: 12),
+              Text(viewMode.isCards ? 'List view' : 'Cards view'),
+            ],
+          ),
+        ),
+        const PopupMenuDivider(),
+        if (auth?.isAuthenticated ?? false)
+          const PopupMenuItem(
+            value: 'signout',
+            child: Row(
+              children: [
+                Icon(Icons.logout_rounded, size: 20),
+                SizedBox(width: 12),
+                Text('Sign out'),
+              ],
+            ),
+          )
+        else
+          const PopupMenuItem(
+            value: 'signin',
+            child: Row(
+              children: [
+                Icon(Icons.person_outline_rounded, size: 20),
+                SizedBox(width: 12),
+                Text('Sign in'),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.sizeOf(context).width;
@@ -70,35 +202,55 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
       appBar: isDesktop
           ? null
           : AppBar(
-              title: width < 480
-                  ? Image.asset(
-                      'assets/branding/laterbox-icon.png',
-                      width: 28,
-                      height: 28,
-                      fit: BoxFit.contain,
-                    )
-                  : Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Image.asset(
-                          'assets/branding/laterbox-icon.png',
-                          width: 26,
-                          height: 26,
-                          fit: BoxFit.contain,
-                        ),
-                        const SizedBox(width: 8),
-                        const Text(
-                          'laterbox',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: -0.6,
-                          ),
-                        ),
-                      ],
+              centerTitle: false,
+              titleSpacing: 16,
+              title: Row(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Image.asset(
+                    'assets/branding/laterbox-icon.png',
+                    width: 26,
+                    height: 26,
+                    fit: BoxFit.contain,
+                  ),
+                  const SizedBox(width: 10),
+                  const Text(
+                    'Inbox',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.6,
                     ),
-              actions: const [
-                CloudSyncIndicator(compact: true),
-                SizedBox(width: 8),
+                  ),
+                  if (rawItems.asData?.value case final list?) ...[
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.surfaceContainerHigh,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        '${list.length}',
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+              actions: [
+                const CloudSyncIndicator(compact: true),
+                const SizedBox(width: 2),
+                const ViewModeToggle(compact: true),
+                _buildMenuButton(context, viewMode, auth),
+                const SizedBox(width: 4),
               ],
             ),
       body: SafeArea(
@@ -115,7 +267,7 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
                 SliverPadding(
                   padding: EdgeInsets.fromLTRB(
                     isDesktop ? 32 : 20,
-                    isDesktop ? (isMac ? 44 : 28) : 18,
+                    isDesktop ? (isMac ? 44 : 28) : 12,
                     isDesktop ? 32 : 20,
                     16,
                   ),
@@ -123,49 +275,55 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            Row(
-                              mainAxisSize: MainAxisSize.min,
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              children: [
-                                Text(
-                                  'Inbox',
-                                  style: theme.textTheme.headlineLarge
-                                      ?.copyWith(
-                                        fontWeight: FontWeight.w800,
-                                        letterSpacing: -1.1,
-                                      ),
-                                ),
-                                if (rawItems.asData?.value
-                                    case final list?) ...[
-                                  const SizedBox(width: 10),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 9,
-                                      vertical: 3,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: theme.colorScheme.surfaceContainerHigh,
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Text(
-                                      '${list.length}',
-                                      style: theme.textTheme.labelMedium?.copyWith(
-                                        color: theme.colorScheme.onSurfaceVariant,
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                    ),
+                        if (isDesktop) ...[
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    'Inbox',
+                                    style: theme.textTheme.headlineLarge
+                                        ?.copyWith(
+                                          fontWeight: FontWeight.w800,
+                                          letterSpacing: -1.1,
+                                        ),
                                   ),
+                                  if (rawItems.asData?.value
+                                      case final list?) ...[
+                                    const SizedBox(width: 10),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 9,
+                                        vertical: 3,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: theme
+                                            .colorScheme
+                                            .surfaceContainerHigh,
+                                        borderRadius:
+                                            BorderRadius.circular(12),
+                                      ),
+                                      child: Text(
+                                        '${list.length}',
+                                        style: theme.textTheme.labelMedium
+                                            ?.copyWith(
+                                              color: theme
+                                                  .colorScheme
+                                                  .onSurfaceVariant,
+                                              fontWeight: FontWeight.w700,
+                                            ),
+                                      ),
+                                    ),
+                                  ],
                                 ],
-                              ],
-                            ),
-                            Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                if (isDesktop) ...[
+                              ),
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
                                   if (isMac) ...[
                                     IconButton(
                                       onPressed: () => ref
@@ -181,152 +339,19 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
                                   ],
                                   const CloudSyncIndicator(),
                                   const SizedBox(width: 8),
+                                  ViewModeToggle(compact: !isDesktop),
+                                  const SizedBox(width: 2),
+                                  _buildMenuButton(
+                                    context,
+                                    viewMode,
+                                    auth,
+                                  ),
                                 ],
-                                ViewModeToggle(compact: !isDesktop),
-                                const SizedBox(width: 2),
-                                PopupMenuButton<String>(
-                                  icon: const Icon(Icons.more_vert_rounded),
-                                  tooltip: 'Shortcuts & Menu',
-                                  onSelected: (value) async {
-                                    switch (value) {
-                                      case 'toggle_view_mode':
-                                        ref
-                                            .read(
-                                              itemViewModeProvider.notifier,
-                                            )
-                                            .toggle();
-                                        break;
-                                      case 'capture':
-                                        _openCapture(context);
-                                        break;
-                                      case 'kept':
-                                        context.go('/kept');
-                                        break;
-                                      case 'library':
-                                        context.go('/library');
-                                        break;
-                                      case 'tutorial':
-                                        context.push('/tutorial');
-                                        break;
-                                      case 'settings':
-                                        context.push('/settings');
-                                        break;
-                                      case 'signout':
-                                        await ref
-                                            .read(authRepositoryProvider)
-                                            .signOut();
-                                        ref
-                                            .read(
-                                              guestModeProvider.notifier,
-                                            )
-                                            .state = true;
-                                        break;
-                                      case 'signin':
-                                        ref
-                                            .read(
-                                              guestModeProvider.notifier,
-                                            )
-                                            .state = false;
-                                        break;
-                                    }
-                                  },
-                                  itemBuilder: (context) => [
-                                    const PopupMenuItem(
-                                      value: 'capture',
-                                      child: Row(
-                                        children: [
-                                          Icon(Icons.add_rounded, size: 20),
-                                          SizedBox(width: 12),
-                                          Text('Quick Save / Paste'),
-                                        ],
-                                      ),
-                                    ),
-                                    const PopupMenuItem(
-                                      value: 'kept',
-                                      child: Row(
-                                        children: [
-                                          Icon(Icons.check_circle_outline_rounded, size: 20),
-                                          SizedBox(width: 12),
-                                          Text('Kept Items'),
-                                        ],
-                                      ),
-                                    ),
-                                    const PopupMenuItem(
-                                      value: 'library',
-                                      child: Row(
-                                        children: [
-                                          Icon(Icons.auto_stories_outlined, size: 20),
-                                          SizedBox(width: 12),
-                                          Text('Library'),
-                                        ],
-                                      ),
-                                    ),
-                                    const PopupMenuDivider(),
-                                    const PopupMenuItem(
-                                      value: 'tutorial',
-                                      child: Row(
-                                        children: [
-                                          Icon(Icons.help_outline_rounded, size: 20),
-                                          SizedBox(width: 12),
-                                          Text('Guide & Shortcuts'),
-                                        ],
-                                      ),
-                                    ),
-                                    const PopupMenuItem(
-                                      value: 'settings',
-                                      child: Row(
-                                        children: [
-                                          Icon(Icons.settings_outlined, size: 20),
-                                          SizedBox(width: 12),
-                                          Text('Settings'),
-                                        ],
-                                      ),
-                                    ),
-                                    PopupMenuItem(
-                                      value: 'toggle_view_mode',
-                                      child: Row(
-                                        children: [
-                                          Icon(
-                                            viewMode.isCards
-                                                ? Icons.view_list_rounded
-                                                : Icons.grid_view_rounded,
-                                            size: 20,
-                                          ),
-                                          SizedBox(width: 12),
-                                          Text(viewMode.isCards ? 'List view' : 'Cards view'),
-                                        ],
-                                      ),
-                                    ),
-                                    const PopupMenuDivider(),
-                                    if (auth?.isAuthenticated ?? false)
-                                      const PopupMenuItem(
-                                        value: 'signout',
-                                        child: Row(
-                                          children: [
-                                            Icon(Icons.logout_rounded, size: 20),
-                                            SizedBox(width: 12),
-                                            Text('Sign out'),
-                                          ],
-                                        ),
-                                      )
-                                    else
-                                      const PopupMenuItem(
-                                        value: 'signin',
-                                        child: Row(
-                                          children: [
-                                            Icon(Icons.person_outline_rounded, size: 20),
-                                            SizedBox(width: 12),
-                                            Text('Sign in'),
-                                          ],
-                                        ),
-                                      ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                        ],
                         const FilterChipBar(),
                       ],
                     ),
