@@ -383,8 +383,9 @@ jobs:
           NOTARY_EXIT=$?
           set -e
           cat "$NOTARY_RESULT"
-          if [ "$NOTARY_EXIT" -ne 0 ]; then
-            SUBMISSION_ID=$(plutil -extract id raw -o - "$NOTARY_RESULT" 2>/dev/null || true)
+          SUBMISSION_ID=$(plutil -extract id raw -o - "$NOTARY_RESULT" 2>/dev/null || true)
+          NOTARY_STATUS=$(plutil -extract status raw -o - "$NOTARY_RESULT" 2>/dev/null || true)
+          if [ "$NOTARY_EXIT" -ne 0 ] || [ "$NOTARY_STATUS" != "Accepted" ]; then
             if [ -n "$SUBMISSION_ID" ]; then
               echo "::group::Apple notarization log ($SUBMISSION_ID)"
               xcrun notarytool log "$SUBMISSION_ID" \
@@ -394,8 +395,8 @@ jobs:
                 --output-format json || true
               echo "::endgroup::"
             fi
-            echo "::error::Apple rejected the DMG notarization request. See the Apple notarization log above."
-            exit "$NOTARY_EXIT"
+            echo "::error::Apple notarization did not succeed (status: ${NOTARY_STATUS:-unknown}). See the Apple notarization log above."
+            exit 1
           fi
           xcrun stapler staple dist/laterbox-macos-universal.dmg
           spctl -a -vvv -t open dist/laterbox-macos-universal.dmg
