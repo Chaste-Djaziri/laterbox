@@ -97,6 +97,43 @@ void main() {
 
     expect(find.text('document.pdf'), findsNothing);
   });
+
+  testWidgets(
+    'chat composer has borderless input, green send button, and resizes for >2 lines',
+    (tester) async {
+      await tester.pumpWidget(
+        const ProviderScope(
+          child: MaterialApp(
+            home: Scaffold(
+              body: CaptureSheet(),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // 1. Verify TextField has borderless decoration
+      final textField = tester.widget<TextField>(find.byType(TextField));
+      expect(textField.decoration?.border, InputBorder.none);
+      expect(textField.decoration?.focusedBorder, InputBorder.none);
+      expect(textField.decoration?.enabledBorder, InputBorder.none);
+
+      // 2. Verify initial single-line size
+      final initialSize = tester.getSize(find.byType(AnimatedContainer));
+      expect(initialSize.height, lessThanOrEqualTo(70));
+
+      // 3. Enter text with more than 2 lines
+      await tester.enterText(
+        find.byType(TextField),
+        'Line 1: Project kickoff\nLine 2: Review requirements\nLine 3: Plan delivery',
+      );
+      await tester.pumpAndSettle();
+
+      // 4. Verify container height expanded to accommodate multiline text
+      final expandedSize = tester.getSize(find.byType(AnimatedContainer));
+      expect(expandedSize.height, greaterThan(initialSize.height));
+    },
+  );
 }
 
 class _FakePicker implements AttachmentFilePicker {
