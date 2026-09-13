@@ -10,15 +10,69 @@ import '../data/item_repository.dart';
 
 enum InboxFilterType {
   all('All', Icons.all_inbox_rounded),
-  articles('Articles', Icons.article_rounded),
+  starred('Starred', Icons.star_rounded),
   videos('Videos', Icons.play_circle_rounded),
-  music('Music', Icons.music_note_rounded),
   notes('Notes', Icons.note_alt_rounded),
-  starred('Starred', Icons.star_rounded);
+  products('Products', Icons.shopping_bag_outlined),
+  articles('Articles', Icons.article_rounded),
+  music('Music', Icons.music_note_rounded),
+  code('Code', Icons.code_rounded),
+  places('Places', Icons.place_outlined),
+  books('Books', Icons.menu_book_rounded),
+  files('Files', Icons.attach_file_rounded);
 
   const InboxFilterType(this.label, this.icon);
   final String label;
   final IconData icon;
+
+  bool matches(LaterBoxItem item) {
+    switch (this) {
+      case InboxFilterType.all:
+        return true;
+      case InboxFilterType.starred:
+        return item.favorite;
+      case InboxFilterType.videos:
+        final t = item.type.toLowerCase();
+        final ct = item.metadata?.classification?.type;
+        return ct == ContentType.video || t == 'video';
+      case InboxFilterType.notes:
+        final t = item.type.toLowerCase();
+        final hasNoUrl = item.url == null || item.url!.trim().isEmpty;
+        final hasText = item.text != null && item.text!.trim().isNotEmpty;
+        return t == 'note' || (hasNoUrl && hasText);
+      case InboxFilterType.products:
+        final t = item.type.toLowerCase();
+        final ct = item.metadata?.classification?.type;
+        return ct == ContentType.product || t == 'product';
+      case InboxFilterType.articles:
+        final t = item.type.toLowerCase();
+        final ct = item.metadata?.classification?.type;
+        return ct == ContentType.article || t == 'article';
+      case InboxFilterType.music:
+        final t = item.type.toLowerCase();
+        final ct = item.metadata?.classification?.type;
+        return ct == ContentType.music || t == 'music' || t == 'audio';
+      case InboxFilterType.code:
+        final t = item.type.toLowerCase();
+        final ct = item.metadata?.classification?.type;
+        return ct == ContentType.repository || t == 'repository' || t == 'code';
+      case InboxFilterType.places:
+        final t = item.type.toLowerCase();
+        final ct = item.metadata?.classification?.type;
+        return ct == ContentType.place || t == 'place';
+      case InboxFilterType.books:
+        final t = item.type.toLowerCase();
+        final ct = item.metadata?.classification?.type;
+        return ct == ContentType.book || t == 'book';
+      case InboxFilterType.files:
+        final t = item.type.toLowerCase();
+        final ct = item.metadata?.classification?.type;
+        return ct == ContentType.file ||
+            t == 'file' ||
+            t == 'document' ||
+            t == 'pdf';
+    }
+  }
 }
 
 final itemRepositoryProvider = Provider<ItemRepository>((ref) {
@@ -65,23 +119,6 @@ final filteredInboxItemsProvider =
 
   return itemsAsync.whenData((items) {
     if (filter == InboxFilterType.all) return items;
-
-    return items.where((item) {
-      switch (filter) {
-        case InboxFilterType.starred:
-          return item.favorite;
-        case InboxFilterType.notes:
-          return item.url == null ||
-              (item.text != null && item.text!.isNotEmpty);
-        case InboxFilterType.articles:
-          return item.metadata?.classification?.type == ContentType.article;
-        case InboxFilterType.videos:
-          return item.metadata?.classification?.type == ContentType.video;
-        case InboxFilterType.music:
-          return item.metadata?.classification?.type == ContentType.music;
-        case InboxFilterType.all:
-          return true;
-      }
-    }).toList();
+    return items.where(filter.matches).toList();
   });
 });
