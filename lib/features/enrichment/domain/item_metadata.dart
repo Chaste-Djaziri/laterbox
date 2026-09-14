@@ -56,4 +56,24 @@ class EnrichedMetadata {
   final String? faviconUrl;
   final String? previewImageUrl;
   final ClassificationResult? classification;
+
+  EnrichedMetadata copyWith({
+    String? domain,
+    String? siteName,
+    String? title,
+    String? description,
+    String? faviconUrl,
+    String? previewImageUrl,
+    ClassificationResult? classification,
+  }) {
+    return EnrichedMetadata(
+      domain: domain ?? this.domain,
+      siteName: siteName ?? this.siteName,
+      title: title ?? this.title,
+      description: description ?? this.description,
+      faviconUrl: faviconUrl ?? this.faviconUrl,
+      previewImageUrl: previewImageUrl ?? this.previewImageUrl,
+      classification: classification ?? this.classification,
+    );
+  }
 }
