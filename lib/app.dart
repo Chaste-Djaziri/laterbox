@@ -94,6 +94,25 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
   }
 
   void _handleAppLink(Uri uri) {
+    if (uri.scheme == 'laterbox' && uri.host == 'share') {
+      final value = uri.queryParameters['value'] ??
+          uri.queryParameters['url'] ??
+          uri.queryParameters['text'];
+      if (value != null && value.isNotEmpty) {
+        final id = uri.queryParameters['id'] ??
+            DateTime.now().microsecondsSinceEpoch.toString();
+        unawaited(
+          ref.read(captureServiceProvider).save(
+                CapturePayload.fromValue(
+                  value,
+                  id: id,
+                  source: CaptureSource.iosShare,
+                ),
+              ),
+        );
+      }
+      return;
+    }
     if (laterBoxDistribution != 'direct' ||
         uri.scheme != 'laterbox' ||
         uri.host != 'billing' ||
@@ -276,8 +295,8 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
           _inFlightShareIds.remove(payload.id);
         }
       }
-    } on MissingPluginException {
-      // Share method channel not registered on this platform.
+    } on MissingPluginException catch (error) {
+      debugPrint('[LaterBox] Share method channel not registered: $error');
     } on Object catch (error, stackTrace) {
       debugPrint('Failed to import Apple shares: $error\n$stackTrace');
     }
