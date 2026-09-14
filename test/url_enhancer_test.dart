@@ -6,8 +6,32 @@ import 'package:http/testing.dart';
 import 'package:laterbox/core/database/app_database.dart';
 import 'package:laterbox/features/enrichment/data/local_metadata_data_source.dart';
 import 'package:laterbox/features/enrichment/domain/url_enhancer.dart';
+import 'package:laterbox/features/enrichment/domain/url_utils.dart';
 
 void main() {
+  group('decodeHtmlEntities and cleanMetaText', () {
+    test('decodes decimal numeric entities such as &#064; to @', () {
+      expect(decodeHtmlEntities('&#064;'), '@');
+      expect(decodeHtmlEntities('user&#064;example.com'), 'user@example.com');
+      expect(decodeHtmlEntities('Chaste Djaziri (&#064;chaste_djaziri)'), 'Chaste Djaziri (@chaste_djaziri)');
+    });
+
+    test('decodes hexadecimal numeric entities such as &#x2022; to bullet •', () {
+      expect(decodeHtmlEntities('&#x2022;'), '•');
+      expect(decodeHtmlEntities('Item 1 &#x2022; Item 2'), 'Item 1 • Item 2');
+    });
+
+    test('decodes combined Instagram title with both &#064; and &#x2022;', () {
+      const raw = 'Chaste Djaziri (&#064;chaste_djaziri) &#x2022; Instagram photos and videos';
+      expect(cleanMetaText(raw), 'Chaste Djaziri (@chaste_djaziri) • Instagram photos and videos');
+    });
+
+    test('decodes named entities and normalizes excess whitespace', () {
+      const raw = '  &quot;Breaking&quot; &amp; &lt;News&gt; &mdash; &copy; 2026 \n\t ';
+      expect(cleanMetaText(raw), '"Breaking" & <News> — © 2026');
+    });
+  });
+
   group('UrlEnhancer.parseHtmlMetadata', () {
     test('extracts og:title, og:image, og:site_name, and og:description', () {
       const html = '''
