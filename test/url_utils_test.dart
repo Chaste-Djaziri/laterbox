@@ -46,4 +46,20 @@ void main() {
       expect(extractDomain(''), isNull);
     });
   });
+
+  group('extractUrls', () {
+    test('extracts multiple URLs and strips trailing punctuation', () {
+      const text =
+          'Check https://instagram.com/chaste_djaziri. Also see https://youtube.com/watch?v=123, thanks!';
+      expect(extractUrls(text), [
+        'https://instagram.com/chaste_djaziri',
+        'https://youtube.com/watch?v=123',
+      ]);
+    });
+
+    test('returns empty list when no URLs are present', () {
+      expect(extractUrls('just some random note text'), isEmpty);
+      expect(extractUrls(''), isEmpty);
+    });
+  });
 }
