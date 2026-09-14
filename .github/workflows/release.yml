@@ -151,6 +151,7 @@ jobs:
           KEYCHAIN_PASSWORD=$(openssl rand -base64 12)
           security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
           security default-keychain -s "$KEYCHAIN_PATH"
+          security list-keychains -d user -s "$KEYCHAIN_PATH"
           security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
           security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
 
@@ -450,12 +451,36 @@ jobs:
           # Create PKG archive with productbuild
           if [ -n "$MAC_INSTALLER_IDENTITY" ]; then
             echo "Building signed Mac App Store package with: $MAC_INSTALLER_IDENTITY"
-            if ! perl -e '
-              $timeout = shift @ARGV;
-              alarm $timeout;
-              exec @ARGV or die "Unable to start productbuild: $!\\n";
-            ' 600 productbuild --timestamp=none --sign "$MAC_INSTALLER_IDENTITY" --component "$APPSTORE_APP" /Applications dist/laterbox-macos.pkg; then
-              echo "::error::Mac App Store package build failed or timed out after 10 minutes."
+            run_with_timeout() {
+              local timeout_seconds="$1"
+              shift
+
+              "$@" &
+              local command_pid=$!
+              (
+                sleep "$timeout_seconds"
+                if kill -0 "$command_pid" 2>/dev/null; then
+                  echo "::error::productbuild exceeded ${timeout_seconds}s; terminating it."
+                  kill -TERM "$command_pid" 2>/dev/null
+                  sleep 5
+                  if kill -0 "$command_pid" 2>/dev/null; then
+                    kill -KILL "$command_pid" 2>/dev/null
+                  fi
+                fi
+              ) &
+              local watchdog_pid=$!
+
+              local command_status=0
+              wait "$command_pid" || command_status=$?
+              if kill -0 "$watchdog_pid" 2>/dev/null; then
+                kill "$watchdog_pid" 2>/dev/null
+              fi
+              wait "$watchdog_pid" 2>/dev/null || :
+              return "$command_status"
+            }
+
+            if ! run_with_timeout 300 productbuild --timestamp=none --sign "$MAC_INSTALLER_IDENTITY" --component "$APPSTORE_APP" /Applications dist/laterbox-macos.pkg; then
+              echo "::error::Mac App Store package build failed or timed out after 5 minutes."
               exit 1
             fi
             cp dist/laterbox-macos.pkg dist/laterbox-macos-installer.pkg
