@@ -857,7 +857,6 @@ class _AppIconSettingsTile extends ConsumerWidget {
 
     return Material(
       color: colors.surfaceContainerHighest.withValues(alpha: 0.35),
-      borderRadius: BorderRadius.circular(20),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
         side: BorderSide(
