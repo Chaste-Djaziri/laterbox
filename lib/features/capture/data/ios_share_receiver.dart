@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/services.dart';
 
 import '../domain/native_share_payload.dart';
@@ -7,6 +9,34 @@ class IosShareReceiver {
 
   static const channelName = 'laterbox/apple_share';
   static const MethodChannel _channel = MethodChannel(channelName);
+  static final StreamController<void> _shareAvailableController =
+      StreamController<void>.broadcast();
+  static bool _handlerInitialized = false;
+
+  static void _ensureHandlerInitialized() {
+    if (_handlerInitialized) return;
+    _handlerInitialized = true;
+    _channel.setMethodCallHandler((call) async {
+      if (call.method == 'onNewShareAvailable') {
+        _shareAvailableController.add(null);
+      }
+      return null;
+    });
+  }
+
+  Stream<void> get onShareAvailable {
+    _ensureHandlerInitialized();
+    return _shareAvailableController.stream;
+  }
+
+  Future<bool> isAppGroupAvailable() async {
+    try {
+      final res = await _channel.invokeMethod<bool>('isAppGroupAvailable');
+      return res ?? false;
+    } catch (_) {
+      return false;
+    }
+  }
 
   Future<List<NativeSharePayload>> consumePendingShares() async {
     final raw = await _channel.invokeMethod<List<dynamic>>('consumePending');
@@ -34,3 +64,4 @@ class IosShareReceiver {
     });
   }
 }
+
