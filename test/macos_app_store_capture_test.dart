@@ -17,11 +17,14 @@ import 'package:laterbox/features/inbox/presentation/inbox_screen.dart';
 
 void main() {
   setUpAll(() async {
-    final fontData = await File('/System/Library/Fonts/Supplemental/Arial.ttf')
-        .readAsBytes();
-    final fontLoader = FontLoader('AppStoreCaptureFont')
-      ..addFont(Future.value(fontData.buffer.asByteData()));
-    await fontLoader.load();
+    await _loadFont(
+      'AppStoreCaptureFont',
+      '/System/Library/Fonts/Supplemental/Arial.ttf',
+    );
+    await _loadFont(
+      'MaterialIcons',
+      '/Users/chastedjazirihabimanahirwa/development/flutter/bin/cache/artifacts/material_fonts/MaterialIcons-Regular.otf',
+    );
   });
 
   testWidgets('renders the macOS App Store inbox screenshot', (tester) async {
@@ -39,13 +42,15 @@ void main() {
   ) async {
     await _pumpScene(
       tester,
-      const Scaffold(
-        body: SafeArea(
-          child: CaptureSheet(
+      Stack(
+        children: [
+          const IgnorePointer(child: InboxScreen()),
+          ColoredBox(color: Colors.black.withValues(alpha: 0.44)),
+          const CaptureSheet(
             initialText:
                 'https://www.nngroup.com/articles/information-overload/',
           ),
-        ),
+        ],
       ),
     );
 
@@ -65,6 +70,13 @@ void main() {
     );
     await _disposeScene(tester);
   });
+}
+
+Future<void> _loadFont(String family, String path) async {
+  final fontData = await File(path).readAsBytes();
+  final fontLoader = FontLoader(family)
+    ..addFont(Future.value(fontData.buffer.asByteData()));
+  await fontLoader.load();
 }
 
 Future<void> _pumpScene(WidgetTester tester, Widget scene) async {
