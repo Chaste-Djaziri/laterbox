@@ -109,7 +109,7 @@ class UrlEnhancer {
     return EnrichedMetadata(
       domain: domain,
       siteName: domain,
-      title: domain,
+      title: null,
       faviconUrl: 'https://www.google.com/s2/favicons?domain=$domain&sz=128',
       classification: classification,
     );
