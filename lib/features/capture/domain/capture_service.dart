@@ -10,6 +10,8 @@ class CaptureService {
     return _repository.save(
       payload.url ?? payload.value,
       id: payload.id,
+      title: payload.title,
+      type: payload.type,
       createdAt: payload.createdAt,
       textContent: payload.text,
       url: payload.url,
