@@ -1107,11 +1107,11 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
                     if (hasPreviews) ...[
                       ..._sentUrlPreviews.map((p) {
                         final meta = p.metadata;
-                        final domain = meta?.domain ??
+                        final domain = cleanMetaText(meta?.domain) ??
                             extractDomain(p.url) ??
                             Uri.tryParse(p.url)?.host ??
                             p.url;
-                        final title = meta?.title ?? domain;
+                        final title = cleanMetaText(meta?.title) ?? domain;
                         final imageUrl = meta?.previewImageUrl;
 
                         return Container(
@@ -1242,11 +1242,11 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
 
   Widget _buildUrlPreviewCard(UrlPreviewItem item) {
     final meta = item.metadata;
-    final domain = meta?.domain ??
+    final domain = cleanMetaText(meta?.domain) ??
         extractDomain(item.url) ??
         Uri.tryParse(item.url)?.host ??
         item.url;
-    final title = meta?.title ?? domain;
+    final title = cleanMetaText(meta?.title) ?? domain;
     final imageUrl = meta?.previewImageUrl;
 
     return Container(
