@@ -24,3 +24,24 @@ String? extractDomain(String? raw) {
   if (host == null || host.isEmpty) return null;
   return host.startsWith('www.') ? host.substring(4) : host;
 }
+
+/// Extracts all HTTP and HTTPS URLs from arbitrary text.
+List<String> extractUrls(String text) {
+  if (text.isEmpty) return const [];
+  final regex = RegExp(
+    r'https?:\/\/[^\s<>"\)\]\}]+',
+    caseSensitive: false,
+  );
+  final matches = regex.allMatches(text);
+  final urls = <String>[];
+  for (final match in matches) {
+    var url = match.group(0)!;
+    while (url.isNotEmpty && RegExp(r'[\.,;:!\?\)\]\}]$').hasMatch(url)) {
+      url = url.substring(0, url.length - 1);
+    }
+    if (url.isNotEmpty && !urls.contains(url)) {
+      urls.add(url);
+    }
+  }
+  return urls;
+}
