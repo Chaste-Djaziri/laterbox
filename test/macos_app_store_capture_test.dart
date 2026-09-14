@@ -85,7 +85,7 @@ Future<void> _pumpScene(WidgetTester tester, Widget scene) async {
 
 Future<void> _disposeScene(WidgetTester tester) async {
   await tester.pumpWidget(const SizedBox.shrink());
-  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 1));
 }
 
 Future<void> _seedDatabase(AppDatabase database) async {
