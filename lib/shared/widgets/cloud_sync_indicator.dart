@@ -128,7 +128,7 @@ Future<void> showCloudSyncDetailSheet(BuildContext context, WidgetRef ref) {
 }
 
 Future<void> showSyncPlansSheet(BuildContext context) {
-  final router = GoRouter.of(context);
+  final router = GoRouter.maybeOf(context);
   return showModalBottomSheet<void>(
     context: context,
     useRootNavigator: true,
@@ -177,7 +177,7 @@ Future<void> showSyncPlansSheet(BuildContext context) {
                 showFreePlan: false,
                 onAuthenticationRequired: (interval) {
                   Navigator.of(sheetContext).pop();
-                  router.go(
+                  router?.go(
                     '/login?mode=signup&next=plans&interval=${interval.name}',
                   );
                 },
