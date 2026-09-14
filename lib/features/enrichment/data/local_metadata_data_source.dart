@@ -50,9 +50,9 @@ class LocalMetadataDataSource {
     String? userId,
   ) {
     final now = DateTime.now();
-    return _database.updateMetadata(
-      itemId,
-      ItemMetadataCompanion(
+    return _database.upsertMetadata(
+      ItemMetadataCompanion.insert(
+        itemId: itemId,
         userId: Value(userId),
         status: const Value('enriched'),
         domain: Value(metadata.domain),
@@ -71,7 +71,8 @@ class LocalMetadataDataSource {
         ),
         lastError: const Value(null),
         enrichedAt: Value(now),
-        updatedAt: Value(now),
+        createdAt: now,
+        updatedAt: now,
       ),
     );
   }
