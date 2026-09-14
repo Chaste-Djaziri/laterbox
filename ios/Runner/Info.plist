@@ -45,7 +45,6 @@
 			<dict>
 				<key>CFBundleIconFiles</key>
 				<array>
-					<string>AppIcon-Dark60x60</string>
 					<string>AppIcon-Dark</string>
 				</array>
 				<key>UIPrerenderedIcon</key>
@@ -55,7 +54,6 @@
 			<dict>
 				<key>CFBundleIconFiles</key>
 				<array>
-					<string>AppIcon-Neon60x60</string>
 					<string>AppIcon-Neon</string>
 				</array>
 				<key>UIPrerenderedIcon</key>
@@ -65,7 +63,6 @@
 			<dict>
 				<key>CFBundleIconFiles</key>
 				<array>
-					<string>AppIcon-Emerald60x60</string>
 					<string>AppIcon-Emerald</string>
 				</array>
 				<key>UIPrerenderedIcon</key>
@@ -75,7 +72,6 @@
 			<dict>
 				<key>CFBundleIconFiles</key>
 				<array>
-					<string>AppIcon-Sunset60x60</string>
 					<string>AppIcon-Sunset</string>
 				</array>
 				<key>UIPrerenderedIcon</key>
@@ -85,7 +81,6 @@
 			<dict>
 				<key>CFBundleIconFiles</key>
 				<array>
-					<string>AppIcon-Monochrome60x60</string>
 					<string>AppIcon-Monochrome</string>
 				</array>
 				<key>UIPrerenderedIcon</key>
@@ -110,8 +105,6 @@
 			<dict>
 				<key>CFBundleIconFiles</key>
 				<array>
-					<string>AppIcon-Dark76x76</string>
-					<string>AppIcon-Dark83.5x83.5</string>
 					<string>AppIcon-Dark</string>
 				</array>
 				<key>UIPrerenderedIcon</key>
@@ -121,8 +114,6 @@
 			<dict>
 				<key>CFBundleIconFiles</key>
 				<array>
-					<string>AppIcon-Neon76x76</string>
-					<string>AppIcon-Neon83.5x83.5</string>
 					<string>AppIcon-Neon</string>
 				</array>
 				<key>UIPrerenderedIcon</key>
@@ -132,8 +123,6 @@
 			<dict>
 				<key>CFBundleIconFiles</key>
 				<array>
-					<string>AppIcon-Emerald76x76</string>
-					<string>AppIcon-Emerald83.5x83.5</string>
 					<string>AppIcon-Emerald</string>
 				</array>
 				<key>UIPrerenderedIcon</key>
@@ -143,8 +132,6 @@
 			<dict>
 				<key>CFBundleIconFiles</key>
 				<array>
-					<string>AppIcon-Sunset76x76</string>
-					<string>AppIcon-Sunset83.5x83.5</string>
 					<string>AppIcon-Sunset</string>
 				</array>
 				<key>UIPrerenderedIcon</key>
@@ -154,8 +141,6 @@
 			<dict>
 				<key>CFBundleIconFiles</key>
 				<array>
-					<string>AppIcon-Monochrome76x76</string>
-					<string>AppIcon-Monochrome83.5x83.5</string>
 					<string>AppIcon-Monochrome</string>
 				</array>
 				<key>UIPrerenderedIcon</key>
