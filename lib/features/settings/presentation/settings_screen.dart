@@ -23,6 +23,7 @@ import '../../../shared/widgets/cloud_sync_indicator.dart';
 import '../../collections/presentation/collection_providers.dart';
 import '../../inbox/presentation/inbox_providers.dart';
 import '../../library/presentation/library_providers.dart';
+import 'widgets/app_icon_switcher.dart';
 
 const _accessibilitySettingsUrl =
     'x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility';
@@ -91,7 +92,12 @@ class SettingsScreen extends ConsumerWidget {
               const _DesktopShortcutSettings(),
             ],
 
-            // 3. Cloud Sync & Storage Diagnostics
+            // 3. App Icon
+            const SizedBox(height: 12),
+            _SectionHeader('App Icon'),
+            const AppIconSwitcherCard(),
+
+            // 4. Cloud Sync & Storage Diagnostics
             const SizedBox(height: 12),
             _SectionHeader('Cloud Sync & Diagnostics'),
             const _SyncAndStorageCard(),
