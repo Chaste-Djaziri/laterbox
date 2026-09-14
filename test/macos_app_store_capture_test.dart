@@ -19,6 +19,8 @@ const _generateAppStoreMedia = bool.fromEnvironment('GENERATE_APP_STORE_MEDIA');
 
 void main() {
   setUpAll(() async {
+    if (!_generateAppStoreMedia) return;
+
     await _loadFont(
       'AppStoreCaptureFont',
       '/System/Library/Fonts/Supplemental/Arial.ttf',
