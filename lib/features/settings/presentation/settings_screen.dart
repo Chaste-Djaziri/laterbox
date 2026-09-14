@@ -15,6 +15,7 @@ import '../../../core/database/database_providers.dart';
 import '../../../core/desktop/desktop_actions.dart';
 import '../../../core/desktop/desktop_providers.dart';
 import '../../../core/desktop/updater_service.dart';
+import '../../../core/ios/ios_app_store_update_service.dart';
 import '../../../core/settings/desktop_settings.dart';
 import '../../../core/settings/desktop_shortcut.dart';
 import '../../../core/settings/settings_providers.dart';
@@ -859,19 +860,12 @@ class _AppIconSettingsTile extends ConsumerWidget {
       color: colors.surfaceContainerHighest.withValues(alpha: 0.35),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
-        side: BorderSide(
-          color: colors.outlineVariant.withValues(alpha: 0.6),
-        ),
+        side: BorderSide(color: colors.outlineVariant.withValues(alpha: 0.6)),
       ),
       clipBehavior: Clip.antiAlias,
       child: ListTile(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 6,
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
         leading: Container(
           width: 44,
           height: 44,
@@ -892,10 +886,7 @@ class _AppIconSettingsTile extends ConsumerWidget {
               fit: BoxFit.cover,
               errorBuilder: (_, _, _) => Container(
                 color: colors.surfaceContainerHighest,
-                child: Icon(
-                  Icons.apps_rounded,
-                  color: colors.onSurfaceVariant,
-                ),
+                child: Icon(Icons.apps_rounded, color: colors.onSurfaceVariant),
               ),
             ),
           ),
@@ -930,10 +921,7 @@ class _AppIconSettingsTile extends ConsumerWidget {
               ),
             ),
             const SizedBox(width: 8),
-            Icon(
-              Icons.chevron_right_rounded,
-              color: colors.onSurfaceVariant,
-            ),
+            Icon(Icons.chevron_right_rounded, color: colors.onSurfaceVariant),
           ],
         ),
         onTap: () {
@@ -941,9 +929,8 @@ class _AppIconSettingsTile extends ConsumerWidget {
           if (router != null) {
             context.push('/settings/icon');
           } else {
-            Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const AppIconScreen()),
-            );
+            Navigator.of(context)
+                .push(MaterialPageRoute(builder: (_) => const AppIconScreen()));
           }
         },
       ),
@@ -1520,6 +1507,8 @@ class _AboutAndLegalCard extends ConsumerWidget {
               ),
               if (defaultTargetPlatform == TargetPlatform.macOS)
                 _UpdateButton(),
+              if (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS)
+                const _IosAppStoreUpdateButton(),
             ],
           ),
           const SizedBox(height: 16),
@@ -1601,6 +1590,33 @@ class _UpdateButton extends ConsumerWidget {
             ),
           );
         }
+      },
+    );
+  }
+}
+
+class _IosAppStoreUpdateButton extends ConsumerWidget {
+  const _IosAppStoreUpdateButton();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return FilledButton.tonalIcon(
+      icon: const Icon(Icons.system_update_rounded, size: 16),
+      label: const Text('Check for Updates'),
+      onPressed: () async {
+        final notifier = ref.read(iosAppStoreUpdateProvider.notifier);
+        await notifier.checkForUpdate(force: true);
+        if (!context.mounted) return;
+        final update = ref.read(iosAppStoreUpdateProvider);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              update.shouldShow
+                  ? 'Update ${update.latestVersion} is available on the App Store.'
+                  : 'LaterBox is up to date.',
+            ),
+          ),
+        );
       },
     );
   }
