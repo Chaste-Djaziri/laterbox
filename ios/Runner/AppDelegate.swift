@@ -10,14 +10,19 @@ import UIKit
   private var pasteboardObserver: NSObjectProtocol?
   private var appIconChannel: FlutterMethodChannel?
 
+  private var darwinObserverRegistered = false
+
   override func application(
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
     let result = super.application(application, didFinishLaunchingWithOptions: launchOptions)
     if let controller = window?.rootViewController as? FlutterViewController {
+      registerShareChannel(with: controller.binaryMessenger)
+      registerClipboardChannel(with: controller.binaryMessenger)
       registerAppIconChannel(with: controller.binaryMessenger)
     }
+    setupDarwinShareObserver()
     return result
   }
 
@@ -26,6 +31,28 @@ import UIKit
     registerShareChannel(with: engineBridge.applicationRegistrar.messenger())
     registerClipboardChannel(with: engineBridge.applicationRegistrar.messenger())
     registerAppIconChannel(with: engineBridge.applicationRegistrar.messenger())
+    setupDarwinShareObserver()
+  }
+
+  private func setupDarwinShareObserver() {
+    guard !darwinObserverRegistered else { return }
+    darwinObserverRegistered = true
+
+    let observer = Unmanaged.passUnretained(self).toOpaque()
+    CFNotificationCenterAddObserver(
+      CFNotificationCenterGetDarwinNotifyCenter(),
+      observer,
+      { _, observer, _, _, _ in
+        guard let observer = observer else { return }
+        let appDelegate = Unmanaged<AppDelegate>.fromOpaque(observer).takeUnretainedValue()
+        DispatchQueue.main.async {
+          appDelegate.shareChannel?.invokeMethod("onNewShareAvailable", arguments: nil)
+        }
+      },
+      ShareCaptureQueue.shareReceivedNotification as CFString,
+      nil,
+      .deliverImmediately
+    )
   }
 
   private func registerAppIconChannel(with messenger: FlutterBinaryMessenger?) {
@@ -87,6 +114,8 @@ import UIKit
         let arguments = call.arguments as? [String: Any]
         let ids = Set(arguments?["ids"] as? [String] ?? [])
         result(self.queue.acknowledge(ids: ids))
+      case "isAppGroupAvailable":
+        result(self.queue.isAppGroupAvailable)
       default:
         result(FlutterMethodNotImplemented)
       }
