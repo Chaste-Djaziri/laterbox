@@ -95,7 +95,7 @@ jobs:
     name: Build macOS Release & App Store Connect / TestFlight
     needs: check-version
     if: needs.check-version.outputs.should_release == 'true'
-    runs-on: macos-latest
+    runs-on: macos-15-intel
     env:
       APPLE_CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
       APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
@@ -179,8 +179,12 @@ jobs:
             # productbuild on GitHub-hosted macOS runners consults the login
             # keychain even when a temporary keychain is the default. Import
             # the installer identity there with an explicit productbuild ACL.
-            LOGIN_KEYCHAIN=$(security login-keychain | tr -d '"')
-            security import $RUNNER_TEMP/installer_cert.p12 -k "$LOGIN_KEYCHAIN" -P "$INSTALLER_PWD" -T /usr/bin/productbuild -T /usr/bin/security
+            LOGIN_KEYCHAIN=$(security login-keychain 2>/dev/null | tr -d '"' || true)
+            if [ -n "$LOGIN_KEYCHAIN" ] && [ -e "$LOGIN_KEYCHAIN" ]; then
+              security import $RUNNER_TEMP/installer_cert.p12 -k "$LOGIN_KEYCHAIN" -P "$INSTALLER_PWD" -T /usr/bin/productbuild -T /usr/bin/security
+            else
+              echo "No login keychain is available on this runner; using the configured build keychain."
+            fi
           fi
 
           security set-key-partition-list -S apple-tool:,apple:,codesign:,productbuild: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
