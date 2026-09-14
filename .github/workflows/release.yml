@@ -95,9 +95,10 @@ jobs:
     name: Build macOS Release & App Store Connect / TestFlight
     needs: check-version
     if: needs.check-version.outputs.should_release == 'true'
-    # macOS 15's hosted image repeatedly hangs in productbuild after all
-    # signing has completed. Use the current Intel macOS image instead.
-    runs-on: macos-26-intel
+    # GitHub-hosted macOS images repeatedly hang in productbuild after all
+    # signing has completed. Package on the maintainer's registered Mac,
+    # where the same command completes successfully.
+    runs-on: [self-hosted, macOS, ARM64, laterbox-release]
     env:
       APPLE_CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
       APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
