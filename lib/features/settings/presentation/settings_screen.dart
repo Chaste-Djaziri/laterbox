@@ -1505,12 +1505,18 @@ class _AboutAndLegalCard extends ConsumerWidget {
                   ],
                 ),
               ),
-              if (defaultTargetPlatform == TargetPlatform.macOS)
-                _UpdateButton(),
-              if (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS)
-                const _IosAppStoreUpdateButton(),
             ],
           ),
+          if (defaultTargetPlatform == TargetPlatform.macOS ||
+              (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS)) ...[
+            const SizedBox(height: 12),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: defaultTargetPlatform == TargetPlatform.macOS
+                  ? _UpdateButton()
+                  : const _IosAppStoreUpdateButton(),
+            ),
+          ],
           const SizedBox(height: 16),
           const Divider(height: 1),
           const SizedBox(height: 8),
