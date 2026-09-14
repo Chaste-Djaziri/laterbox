@@ -23,7 +23,9 @@ import '../../../shared/widgets/cloud_sync_indicator.dart';
 import '../../collections/presentation/collection_providers.dart';
 import '../../inbox/presentation/inbox_providers.dart';
 import '../../library/presentation/library_providers.dart';
-import 'widgets/app_icon_switcher.dart';
+import '../../../core/app_icon/app_icon_providers.dart';
+import '../../../core/app_icon/app_icon_service.dart';
+import 'app_icon_screen.dart';
 
 const _accessibilitySettingsUrl =
     'x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility';
@@ -95,7 +97,7 @@ class SettingsScreen extends ConsumerWidget {
             // 3. App Icon
             const SizedBox(height: 12),
             _SectionHeader('App Icon'),
-            const AppIconSwitcherCard(),
+            const _AppIconSettingsTile(),
 
             // 4. Cloud Sync & Storage Diagnostics
             const SizedBox(height: 12),
@@ -837,6 +839,112 @@ class _SyncAndStorageCard extends ConsumerWidget {
             label: const Text('Force Sync Now'),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _AppIconSettingsTile extends ConsumerWidget {
+  const _AppIconSettingsTile();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final currentIconAsync = ref.watch(currentAppIconProvider);
+    final activeId = currentIconAsync.valueOrNull;
+    final currentOption = AppIconOption.fromId(activeId);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: colors.surfaceContainerHighest.withValues(alpha: 0.35),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: colors.outlineVariant.withValues(alpha: 0.6),
+        ),
+      ),
+      child: ListTile(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 6,
+        ),
+        leading: Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(10),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.1),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: Image.asset(
+              currentOption.assetPath,
+              fit: BoxFit.cover,
+              errorBuilder: (_, _, _) => Container(
+                color: colors.surfaceContainerHighest,
+                child: Icon(
+                  Icons.apps_rounded,
+                  color: colors.onSurfaceVariant,
+                ),
+              ),
+            ),
+          ),
+        ),
+        title: Text(
+          'App Icon',
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        subtitle: Text(
+          '${currentOption.name} • ${currentOption.subtitle}',
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: colors.onSurfaceVariant,
+          ),
+        ),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: colors.primaryContainer.withValues(alpha: 0.7),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                currentOption.name,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: colors.onPrimaryContainer,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Icon(
+              Icons.chevron_right_rounded,
+              color: colors.onSurfaceVariant,
+            ),
+          ],
+        ),
+        onTap: () {
+          final router = GoRouter.maybeOf(context);
+          if (router != null) {
+            context.push('/settings/icon');
+          } else {
+            Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const AppIconScreen()),
+            );
+          }
+        },
       ),
     );
   }
