@@ -213,7 +213,7 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
 
   bool _isMoreThanTwoLines(String text, double availableWidth) {
     if ('\n'.allMatches(text).length >= 2) return true;
-    if (text.length < 40) return false;
+    if (text.length < 30) return false;
 
     final span = TextSpan(
       text: text,
@@ -225,7 +225,9 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
       maxLines: 10,
     );
     tp.layout(maxWidth: availableWidth > 50 ? availableWidth : 260);
-    return tp.computeLineMetrics().length > 2;
+    final isMore = tp.computeLineMetrics().length > 2;
+    tp.dispose();
+    return isMore;
   }
 
   Widget _buildPlusButton(bool isDark) {
@@ -264,13 +266,14 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
     );
   }
 
-  Widget _buildTextField(bool isDark, bool isMoreThanTwoLines) {
+  Widget _buildTextField(bool isDark) {
     return TextField(
+      key: const ValueKey('chat_capture_text_field'),
       controller: _controller,
       focusNode: _focusNode,
       enabled: !_saving,
-      minLines: isMoreThanTwoLines ? 2 : 1,
-      maxLines: isMoreThanTwoLines ? null : 2,
+      minLines: 1,
+      maxLines: 6,
       keyboardType: TextInputType.multiline,
       textInputAction: TextInputAction.newline,
       style: TextStyle(
@@ -287,8 +290,8 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
         disabledBorder: InputBorder.none,
         filled: false,
         isDense: true,
-        contentPadding: EdgeInsets.symmetric(
-          vertical: isMoreThanTwoLines ? 4 : 8,
+        contentPadding: const EdgeInsets.symmetric(
+          vertical: 6,
           horizontal: 0,
         ),
         hintText: 'Type your message...',
@@ -642,8 +645,9 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
                                     Expanded(
                                       child: AnimatedContainer(
                                         duration:
-                                            const Duration(milliseconds: 180),
+                                            const Duration(milliseconds: 200),
                                         curve: Curves.easeOutCubic,
+                                        clipBehavior: Clip.antiAlias,
                                         constraints: BoxConstraints(
                                           minHeight: pillMinHeight,
                                           maxHeight: pillMaxHeight,
@@ -661,57 +665,44 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
                                             ),
                                           ],
                                         ),
-                                        padding: EdgeInsets.symmetric(
-                                          horizontal:
-                                              isMoreThanTwoLines ? 4 : 6,
-                                          vertical: isMoreThanTwoLines ? 4 : 4,
-                                        ),
-                                        child: isMoreThanTwoLines
-                                            ? Column(
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.start,
-                                                mainAxisSize: MainAxisSize.min,
-                                                children: [
-                                                  // Text field on top spanning full width
-                                                  Flexible(
-                                                    child: Padding(
-                                                      padding:
-                                                          const EdgeInsets.fromLTRB(
-                                                              14, 10, 14, 2),
-                                                      child: _buildTextField(
-                                                          isDark, true),
-                                                    ),
-                                                  ),
-                                                  // Plus button on the bottom left below text
-                                                  Padding(
-                                                    padding:
-                                                        const EdgeInsets.only(
-                                                            left: 2, bottom: 2),
-                                                    child: _buildPlusButton(
-                                                        isDark),
-                                                  ),
-                                                ],
-                                              )
-                                            : Row(
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.center,
-                                                children: [
-                                                  _buildPlusButton(isDark),
-                                                  Expanded(
-                                                    child: Padding(
-                                                      padding:
-                                                          const EdgeInsets.only(
-                                                        left: 4,
-                                                        right: 12,
-                                                        top: 2,
-                                                        bottom: 2,
-                                                      ),
-                                                      child: _buildTextField(
-                                                          isDark, false),
-                                                    ),
-                                                  ),
-                                                ],
+                                        child: Stack(
+                                          alignment: Alignment.topLeft,
+                                          children: [
+                                            // Text field: permanently mounted in the same slot to preserve IME connection & continuous typing
+                                            AnimatedPadding(
+                                              duration: const Duration(
+                                                  milliseconds: 200),
+                                              curve: Curves.easeOutCubic,
+                                              padding: isMoreThanTwoLines
+                                                  ? const EdgeInsets.fromLTRB(
+                                                      14, 10, 14, 42)
+                                                  : const EdgeInsets.fromLTRB(
+                                                      44, 6, 12, 6),
+                                              child: _buildTextField(isDark),
+                                            ),
+
+                                            // Plus button: smoothly glides between center-left and bottom-left
+                                            Positioned.fill(
+                                              child: AnimatedAlign(
+                                                duration: const Duration(
+                                                    milliseconds: 200),
+                                                curve: Curves.easeOutCubic,
+                                                alignment: isMoreThanTwoLines
+                                                    ? Alignment.bottomLeft
+                                                    : Alignment.centerLeft,
+                                                child: Padding(
+                                                  padding: isMoreThanTwoLines
+                                                      ? const EdgeInsets.only(
+                                                          left: 4, bottom: 4)
+                                                      : const EdgeInsets.only(
+                                                          left: 4),
+                                                  child:
+                                                      _buildPlusButton(isDark),
+                                                ),
                                               ),
+                                            ),
+                                          ],
+                                        ),
                                       ),
                                     ),
 
