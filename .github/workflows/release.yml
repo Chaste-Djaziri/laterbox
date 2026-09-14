@@ -175,6 +175,12 @@ jobs:
             INSTALLER_PWD="${APPLE_INSTALLER_CERTIFICATE_PASSWORD:-$APPLE_CERTIFICATE_PASSWORD}"
             echo "$APPLE_INSTALLER_CERTIFICATE_BASE64" | base64 --decode > $RUNNER_TEMP/installer_cert.p12
             security import $RUNNER_TEMP/installer_cert.p12 -k "$KEYCHAIN_PATH" -P "$INSTALLER_PWD" -T /usr/bin/codesign -T /usr/bin/security -T /usr/bin/productbuild
+
+            # productbuild on GitHub-hosted macOS runners consults the login
+            # keychain even when a temporary keychain is the default. Import
+            # the installer identity there with an explicit productbuild ACL.
+            LOGIN_KEYCHAIN=$(security login-keychain | tr -d '"')
+            security import $RUNNER_TEMP/installer_cert.p12 -k "$LOGIN_KEYCHAIN" -P "$INSTALLER_PWD" -T /usr/bin/productbuild -T /usr/bin/security
           fi
 
           security set-key-partition-list -S apple-tool:,apple:,codesign:,productbuild: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
