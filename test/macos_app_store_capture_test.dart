@@ -1,3 +1,6 @@
+import 'dart:io';
+import 'dart:ui';
+
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
@@ -12,6 +15,14 @@ import 'package:laterbox/features/detail/presentation/item_detail_screen.dart';
 import 'package:laterbox/features/inbox/presentation/inbox_screen.dart';
 
 void main() {
+  setUpAll(() async {
+    final fontData = await File('/System/Library/Fonts/Supplemental/Arial.ttf')
+        .readAsBytes();
+    final fontLoader = FontLoader('AppStoreCaptureFont')
+      ..addFont(Future.value(fontData.buffer.asByteData()));
+    await fontLoader.load();
+  });
+
   testWidgets('renders the macOS App Store inbox screenshot', (tester) async {
     await _pumpScene(tester, const InboxScreen());
 
@@ -30,7 +41,8 @@ void main() {
       const Scaffold(
         body: SafeArea(
           child: CaptureSheet(
-            initialText: 'https://www.nngroup.com/articles/information-overload/',
+            initialText:
+                'https://www.nngroup.com/articles/information-overload/',
           ),
         ),
       ),
@@ -75,7 +87,7 @@ Future<void> _pumpScene(WidgetTester tester, Widget scene) async {
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
         title: 'LaterBox',
-        theme: AppTheme.light,
+        theme: AppTheme.light.copyWith(fontFamily: 'AppStoreCaptureFont'),
         home: scene,
       ),
     ),
@@ -95,8 +107,7 @@ Future<void> _seedDatabase(AppDatabase database) async {
       id: 'spatial-design',
       url: 'https://www.nngroup.com/articles/information-overload/',
       title: 'A calmer way to manage information overload',
-      description:
-          'Practical ideas for reducing digital clutter, protecting attention, and returning to what matters.',
+      description: 'Practical ideas for reducing digital clutter, protecting attention, and returning to what matters.',
       domain: 'nngroup.com',
       type: 'article',
       favorite: true,
@@ -105,8 +116,7 @@ Future<void> _seedDatabase(AppDatabase database) async {
       id: 'flutter-performance',
       url: 'https://docs.flutter.dev/perf/best-practices',
       title: 'Flutter performance best practices worth remembering',
-      description:
-          'Build smooth interfaces with efficient rendering, smaller rebuilds, and responsive layouts.',
+      description: 'Build smooth interfaces with efficient rendering, smaller rebuilds, and responsive layouts.',
       domain: 'docs.flutter.dev',
       type: 'article',
       favorite: false,
@@ -115,8 +125,7 @@ Future<void> _seedDatabase(AppDatabase database) async {
       id: 'product-video',
       url: 'https://www.youtube.com/watch?v=aqz-KE-bpKQ',
       title: 'A beautiful product story told in five minutes',
-      description:
-          'Saved to revisit the pacing, visual hierarchy, and narrative structure.',
+      description: 'Saved to revisit the pacing, visual hierarchy, and narrative structure.',
       domain: 'youtube.com',
       type: 'video',
       favorite: false,
@@ -125,8 +134,7 @@ Future<void> _seedDatabase(AppDatabase database) async {
       id: 'reading-note',
       url: null,
       title: 'Ideas for a calmer reading workflow',
-      description:
-          'Keep the inbox intentional. Archive after reading and collect only what deserves a second look.',
+      description: 'Keep the inbox intentional. Archive after reading and collect only what deserves a second look.',
       domain: 'LaterBox note',
       type: 'note',
       favorite: true,
