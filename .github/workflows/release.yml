@@ -467,13 +467,9 @@ jobs:
           APPSTORE_APP_IDENTITY="${MAC_APP_STORE_APP_IDENTITY:-${ANY_APP_IDENTITY:--}}"
           sign_bundle "$APPSTORE_APP" "$APPSTORE_APP_IDENTITY"
 
-          # Create PKG archive with productbuild
+          # Create the signed Mac App Store PKG.
           if [ -n "$MAC_INSTALLER_IDENTITY" ]; then
             echo "Building signed Mac App Store package with: $MAC_INSTALLER_IDENTITY"
-            # Avoid the runner's default keychain search, which can block
-            # productbuild indefinitely even though the temporary CI keychain
-            # already contains the installer identity and private key.
-            PRODUCTBUILD_KEYCHAIN="$RUNNER_TEMP/build.keychain"
             run_with_timeout() {
               local timeout_seconds="$1"
               shift
@@ -502,7 +498,7 @@ jobs:
               return "$command_status"
             }
 
-            if ! run_with_timeout 300 productbuild --keychain "$PRODUCTBUILD_KEYCHAIN" --timestamp=none --sign "$MAC_INSTALLER_IDENTITY" --cert "Apple Worldwide Developer Relations Certification Authority" --component "$APPSTORE_APP" /Applications dist/laterbox-macos.pkg; then
+            if ! run_with_timeout 300 productbuild --timestamp=none --sign "$MAC_INSTALLER_IDENTITY" --cert "Apple Worldwide Developer Relations Certification Authority" --component "$APPSTORE_APP" /Applications dist/laterbox-macos.pkg; then
               echo "::error::Mac App Store package build failed or timed out after 5 minutes."
               exit 1
             fi
