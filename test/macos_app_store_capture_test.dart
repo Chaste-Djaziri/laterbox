@@ -15,6 +15,8 @@ import 'package:laterbox/features/capture/presentation/capture_sheet.dart';
 import 'package:laterbox/features/detail/presentation/item_detail_screen.dart';
 import 'package:laterbox/features/inbox/presentation/inbox_screen.dart';
 
+const _generateAppStoreMedia = bool.fromEnvironment('GENERATE_APP_STORE_MEDIA');
+
 void main() {
   setUpAll(() async {
     await _loadFont(
@@ -35,7 +37,7 @@ void main() {
       matchesGoldenFile('../assets/app_store/macos/01_inbox.png'),
     );
     await _disposeScene(tester);
-  });
+  }, skip: !_generateAppStoreMedia);
 
   testWidgets('renders the macOS App Store quick capture screenshot', (
     tester,
@@ -61,7 +63,7 @@ void main() {
       matchesGoldenFile('../assets/app_store/macos/02_quick_capture.png'),
     );
     await _disposeScene(tester);
-  });
+  }, skip: !_generateAppStoreMedia);
 
   testWidgets('renders the macOS App Store reader screenshot', (tester) async {
     await _pumpScene(tester, const ItemDetailScreen(itemId: 'spatial-design'));
@@ -71,7 +73,7 @@ void main() {
       matchesGoldenFile('../assets/app_store/macos/03_reader.png'),
     );
     await _disposeScene(tester);
-  });
+  }, skip: !_generateAppStoreMedia);
 }
 
 Future<void> _loadFont(String family, String path) async {
