@@ -45,3 +45,82 @@ List<String> extractUrls(String text) {
   }
   return urls;
 }
+
+/// Fully decodes HTML entities in text, including decimal numeric entities
+/// (e.g. `&#064;` -> `@`), hex numeric entities (e.g. `&#x2022;` -> `•`),
+/// and standard named entities (`&quot;`, `&amp;`, `&bull;`, etc.).
+String decodeHtmlEntities(String input) {
+  if (!input.contains('&')) return input;
+
+  var current = input;
+  for (var pass = 0; pass < 3; pass++) {
+    final prev = current;
+
+    // 1. Decimal numeric entities: &#064;, &#64;, &#8226;, etc.
+    current = current.replaceAllMapped(RegExp(r'&#([0-9]{1,7});'), (match) {
+      try {
+        final code = int.parse(match.group(1)!);
+        if (code > 0 && code <= 0x10FFFF) {
+          return String.fromCharCode(code);
+        }
+      } catch (_) {}
+      return match.group(0)!;
+    });
+
+    // 2. Hexadecimal numeric entities: &#x2022;, &#x40;, &#x0026;, etc.
+    current = current.replaceAllMapped(
+      RegExp(r'&#[xX]([0-9a-fA-F]{1,6});'),
+      (match) {
+        try {
+          final code = int.parse(match.group(1)!, radix: 16);
+          if (code > 0 && code <= 0x10FFFF) {
+            return String.fromCharCode(code);
+          }
+        } catch (_) {}
+        return match.group(0)!;
+      },
+    );
+
+    // 3. Named entities
+    current = current
+        .replaceAll('&amp;', '&')
+        .replaceAll('&quot;', '"')
+        .replaceAll('&apos;', "'")
+        .replaceAll('&lt;', '<')
+        .replaceAll('&gt;', '>')
+        .replaceAll('&nbsp;', ' ')
+        .replaceAll('&bull;', '•')
+        .replaceAll('&middot;', '·')
+        .replaceAll('&sdot;', '⋅')
+        .replaceAll('&mdash;', '—')
+        .replaceAll('&ndash;', '–')
+        .replaceAll('&hellip;', '…')
+        .replaceAll('&copy;', '©')
+        .replaceAll('&reg;', '®')
+        .replaceAll('&trade;', '™')
+        .replaceAll('&laquo;', '«')
+        .replaceAll('&raquo;', '»')
+        .replaceAll('&lsquo;', '‘')
+        .replaceAll('&rsquo;', '’')
+        .replaceAll('&ldquo;', '“')
+        .replaceAll('&rdquo;', '”')
+        .replaceAll('&prime;', '′')
+        .replaceAll('&Prime;', '″');
+
+    if (current == prev) break;
+  }
+
+  return current;
+}
+
+/// Cleans and formats metadata text: decodes HTML entities (like &#064; -> @,
+/// &#x2022; -> •), strips superfluous newlines/tabs, and normalizes spaces.
+String? cleanMetaText(String? input) {
+  if (input == null) return null;
+  final decoded = decodeHtmlEntities(input);
+  final normalized = decoded
+      .replaceAll(RegExp(r'[\r\n\t]+'), ' ')
+      .replaceAll(RegExp(r'\s{2,}'), ' ')
+      .trim();
+  return normalized.isEmpty ? null : normalized;
+}
