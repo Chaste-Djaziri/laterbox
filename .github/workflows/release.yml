@@ -151,7 +151,10 @@ jobs:
           KEYCHAIN_PASSWORD=$(openssl rand -base64 12)
           security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
           security default-keychain -s "$KEYCHAIN_PATH"
-          security list-keychains -d user -s "$KEYCHAIN_PATH"
+          # Keep Apple's System Roots in the search list. Replacing the list
+          # with only the temporary keychain leaves productbuild unable to
+          # build the installer certificate's trust chain on CI.
+          security list-keychains -d user -s "$KEYCHAIN_PATH" /Library/Keychains/System.keychain
           security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
           security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
 
