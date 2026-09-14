@@ -59,7 +59,7 @@ final class ShareCaptureQueue {
     private let key = "laterbox.pendingShareCaptures"
 
     var isAppGroupAvailable: Bool {
-        return groupContainerURL != nil || groupDefaults != nil
+        return groupContainerURL != nil
     }
 
     init(appGroupId: String = "group.pro.micorp.laterbox") {
@@ -163,8 +163,8 @@ final class ShareCaptureQueue {
             }
         }
 
-        // 2. Write to App Group UserDefaults suite (accessible cross-process)
-        if let groupDefaults {
+        // 2. Write to App Group UserDefaults suite (accessible cross-process only if App Group container is valid)
+        if let groupDefaults, groupContainerURL != nil {
             groupDefaults.set(data, forKey: key)
             groupDefaults.synchronize()
             if groupDefaults.data(forKey: key) != nil {
