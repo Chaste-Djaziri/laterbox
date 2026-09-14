@@ -7,6 +7,7 @@ import 'package:timeago/timeago.dart' as timeago;
 import '../../features/attachments/presentation/attachment_preview.dart';
 import '../../features/attachments/presentation/attachment_providers.dart';
 import '../../features/enrichment/domain/content_type.dart';
+import '../../features/enrichment/domain/url_utils.dart';
 import '../../features/inbox/presentation/inbox_providers.dart';
 import '../models/laterbox_item.dart';
 import 'item_actions.dart';
@@ -35,21 +36,23 @@ class _ItemCardState extends ConsumerState<ItemCard> {
     final cardRadius = isDesktop ? 16.0 : 20.0;
     final uri = widget.item.url == null ? null : Uri.tryParse(widget.item.url!);
     final isFile = widget.item.type == 'file';
-    final eyebrow =
+    final rawEyebrow =
         widget.item.metadata?.domain ??
         uri?.host.replaceFirst('www.', '') ??
         (isFile ? 'File' : 'Note');
-    final title =
+    final eyebrow = cleanMetaText(rawEyebrow) ?? rawEyebrow;
+    final rawTitle =
         widget.item.metadata?.title ??
         widget.item.title ??
         widget.item.url ??
         widget.item.text ??
         'Untitled';
+    final title = cleanMetaText(rawTitle) ?? rawTitle;
     final capturedText = widget.item.text?.trim();
     final isCaptured = capturedText != null && capturedText.isNotEmpty;
     final description = isCaptured
         ? capturedText
-        : widget.item.metadata?.description?.trim();
+        : cleanMetaText(widget.item.metadata?.description?.trim());
     final faviconUrl = widget.item.metadata?.faviconUrl;
     final coverUrl = widget.item.metadata?.previewImageUrl;
     final attachments = isFile
@@ -142,6 +145,7 @@ class _ItemCardState extends ConsumerState<ItemCard> {
                               ? _GridCardContent(
                                   eyebrow: eyebrow,
                                   faviconUrl: faviconUrl,
+                                  imageUrl: coverUrl,
                                   title: title,
                                   description: description,
                                   isCaptured: isCaptured,
@@ -151,6 +155,7 @@ class _ItemCardState extends ConsumerState<ItemCard> {
                               : _ListCardContent(
                                   eyebrow: eyebrow,
                                   faviconUrl: faviconUrl,
+                                  imageUrl: coverUrl,
                                   title: title,
                                   description: description,
                                   isCaptured: isCaptured,
@@ -215,6 +220,7 @@ class _GridCardContent extends StatelessWidget {
   const _GridCardContent({
     required this.eyebrow,
     this.faviconUrl,
+    this.imageUrl,
     required this.title,
     this.description,
     required this.isCaptured,
@@ -224,6 +230,7 @@ class _GridCardContent extends StatelessWidget {
 
   final String eyebrow;
   final String? faviconUrl;
+  final String? imageUrl;
   final String title;
   final String? description;
   final bool isCaptured;
@@ -245,7 +252,12 @@ class _GridCardContent extends StatelessWidget {
       children: [
         Row(
           children: [
-            _CardGlyph(eyebrow: eyebrow, faviconUrl: faviconUrl, size: 22),
+            _CardGlyph(
+              eyebrow: eyebrow,
+              faviconUrl: faviconUrl,
+              imageUrl: imageUrl,
+              size: 22,
+            ),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
@@ -343,6 +355,7 @@ class _ListCardContent extends StatelessWidget {
   const _ListCardContent({
     required this.eyebrow,
     this.faviconUrl,
+    this.imageUrl,
     required this.title,
     this.description,
     required this.isCaptured,
@@ -353,6 +366,7 @@ class _ListCardContent extends StatelessWidget {
 
   final String eyebrow;
   final String? faviconUrl;
+  final String? imageUrl;
   final String title;
   final String? description;
   final bool isCaptured;
@@ -370,6 +384,7 @@ class _ListCardContent extends StatelessWidget {
         _CardGlyph(
           eyebrow: eyebrow,
           faviconUrl: faviconUrl,
+          imageUrl: imageUrl,
           size: isDesktop ? 40 : 44,
         ),
         SizedBox(width: isDesktop ? 12 : 14),
@@ -485,7 +500,7 @@ class ItemCoverImage extends StatefulWidget {
 }
 
 class _ItemCoverImageState extends State<ItemCoverImage>
-    with AutomaticKeepAliveClientMixin {
+  with AutomaticKeepAliveClientMixin {
   bool _failed = false;
   bool _usingProxy = false;
 
@@ -563,10 +578,16 @@ class _ItemCoverImageState extends State<ItemCoverImage>
 }
 
 class _CardGlyph extends StatelessWidget {
-  const _CardGlyph({required this.eyebrow, this.faviconUrl, this.size = 44});
+  const _CardGlyph({
+    required this.eyebrow,
+    this.faviconUrl,
+    this.imageUrl,
+    this.size = 44,
+  });
 
   final String eyebrow;
   final String? faviconUrl;
+  final String? imageUrl;
   final double size;
 
   @override
@@ -592,6 +613,64 @@ class _CardGlyph extends StatelessWidget {
                 ),
       ),
     );
+
+    // If an image preview is available (e.g. cover/thumbnail), display it nicely
+    if (imageUrl != null && imageUrl!.isNotEmpty) {
+      final effectiveImageUrl = kIsWeb
+          ? 'https://images.weserv.nl/?url=${Uri.encodeComponent(imageUrl!.replaceFirst(RegExp(r'^https?://'), ''))}'
+          : imageUrl!;
+
+      return Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(size * 0.27),
+          border: Border.all(
+            color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5),
+            width: 0.5,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 2,
+              offset: const Offset(0, 1),
+            ),
+          ],
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            fallback,
+            Positioned.fill(
+              child: Image.network(
+                effectiveImageUrl,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  if (faviconUrl != null && faviconUrl!.isNotEmpty) {
+                    final effectiveFaviconUrl = kIsWeb
+                        ? 'https://images.weserv.nl/?url=${Uri.encodeComponent(faviconUrl!.replaceFirst(RegExp(r'^https?://'), ''))}'
+                        : faviconUrl!;
+                    return Container(
+                      color: Colors.white,
+                      padding: EdgeInsets.all(size * 0.12),
+                      child: Image.network(
+                        effectiveFaviconUrl,
+                        fit: BoxFit.contain,
+                        errorBuilder: (context, error, stackTrace) =>
+                            const SizedBox.shrink(),
+                      ),
+                    );
+                  }
+                  return const SizedBox.shrink();
+                },
+              ),
+            ),
+          ],
+        ),
+      );
+    }
 
     if (faviconUrl == null || faviconUrl!.isEmpty) return fallback;
     final effectiveFaviconUrl = kIsWeb
