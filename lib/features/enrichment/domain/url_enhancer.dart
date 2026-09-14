@@ -32,7 +32,7 @@ class UrlEnhancer {
     final cached = await local.enrichedForUrl(normalized);
     if (cached != null &&
         (cached.title != null || cached.previewImageUrl != null)) {
-      return EnrichedMetadata.fromDrift(cached);
+      return _sanitize(EnrichedMetadata.fromDrift(cached));
     }
 
     // 2. Try remote Supabase Edge Function (enrich-url) if available
@@ -41,7 +41,7 @@ class UrlEnhancer {
       try {
         final metadata = await remoteDataSource.fetch(normalized);
         if (metadata.title != null || metadata.previewImageUrl != null) {
-          return metadata;
+          return _sanitize(metadata);
         }
       } catch (_) {
         // Fallback to direct client-side open graph fetch
@@ -49,7 +49,8 @@ class UrlEnhancer {
     }
 
     // 3. Fallback: direct Open Graph and oEmbed scraping
-    return _fetchDirect(uri);
+    final direct = await _fetchDirect(uri);
+    return _sanitize(direct);
   }
 
   Future<EnrichedMetadata?> _fetchDirect(Uri uri) async {
@@ -144,7 +145,7 @@ class UrlEnhancer {
         if (match != null) {
           final content = match.group(1)?.trim();
           if (content != null && content.isNotEmpty) {
-            return _decodeHtml(content);
+            return cleanMetaText(content);
           }
         }
       }
@@ -201,20 +202,13 @@ class UrlEnhancer {
     );
   }
 
-  static String _decodeHtml(String input) {
-    return input
-        .replaceAll('&amp;', '&')
-        .replaceAll('&quot;', '"')
-        .replaceAll('&apos;', "'")
-        .replaceAll('&#39;', "'")
-        .replaceAll('&#x27;', "'")
-        .replaceAll('&lt;', '<')
-        .replaceAll('&gt;', '>')
-        .replaceAll('&nbsp;', ' ')
-        .replaceAll('&bull;', '•')
-        .replaceAll('&#8226;', '•')
-        .replaceAll('&mdash;', '—')
-        .replaceAll('&ndash;', '–')
-        .trim();
+  static EnrichedMetadata? _sanitize(EnrichedMetadata? meta) {
+    if (meta == null) return null;
+    return meta.copyWith(
+      title: cleanMetaText(meta.title),
+      siteName: cleanMetaText(meta.siteName),
+      description: cleanMetaText(meta.description),
+      domain: cleanMetaText(meta.domain),
+    );
   }
 }
