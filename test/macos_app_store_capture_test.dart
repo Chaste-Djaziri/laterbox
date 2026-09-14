@@ -115,6 +115,19 @@ final ThemeData _captureTheme = AppTheme.light.copyWith(
   primaryTextTheme: AppTheme.light.primaryTextTheme.apply(
     fontFamily: 'AppStoreCaptureFont',
   ),
+  filledButtonTheme: FilledButtonThemeData(
+    style: FilledButton.styleFrom(
+      backgroundColor: AppTheme.ink,
+      foregroundColor: AppTheme.surface,
+      minimumSize: const Size(0, 56),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      textStyle: const TextStyle(
+        fontFamily: 'AppStoreCaptureFont',
+        fontSize: 16,
+        fontWeight: FontWeight.w700,
+      ),
+    ),
+  ),
 );
 
 Future<void> _disposeScene(WidgetTester tester) async {
