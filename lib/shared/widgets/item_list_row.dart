@@ -5,6 +5,7 @@ import 'package:timeago/timeago.dart' as timeago;
 
 import '../../features/attachments/presentation/attachment_providers.dart';
 import '../../features/enrichment/domain/content_type.dart';
+import '../../features/enrichment/domain/url_utils.dart';
 import '../../features/inbox/presentation/inbox_providers.dart';
 import '../models/item_status.dart';
 import '../models/laterbox_item.dart';
@@ -35,17 +36,20 @@ class _ItemListRowState extends ConsumerState<ItemListRow> {
     final isFile = widget.item.type == 'file';
     final isStarred = widget.item.favorite;
 
-    final eyebrow = widget.item.metadata?.domain ??
+    final rawEyebrow = widget.item.metadata?.domain ??
         uri?.host.replaceFirst('www.', '') ??
         (isFile ? 'File' : 'Note');
+    final eyebrow = cleanMetaText(rawEyebrow) ?? rawEyebrow;
 
-    final title = widget.item.metadata?.title ??
+    final rawTitle = widget.item.metadata?.title ??
         widget.item.title ??
         widget.item.url ??
         widget.item.text ??
         'Untitled';
+    final title = cleanMetaText(rawTitle) ?? rawTitle;
 
     final faviconUrl = widget.item.metadata?.faviconUrl;
+    final coverUrl = widget.item.metadata?.previewImageUrl;
     final repository = ref.read(itemRepositoryProvider);
 
     final borderColor = _isHovered
@@ -81,6 +85,7 @@ class _ItemListRowState extends ConsumerState<ItemListRow> {
                 _ItemTypeLeadingIcon(
                   item: widget.item,
                   faviconUrl: faviconUrl,
+                  imageUrl: coverUrl,
                   isFile: isFile,
                 ),
                 const SizedBox(width: 12),
@@ -240,11 +245,13 @@ class _ItemTypeLeadingIcon extends StatelessWidget {
   const _ItemTypeLeadingIcon({
     required this.item,
     required this.faviconUrl,
+    this.imageUrl,
     required this.isFile,
   });
 
   final LaterBoxItem item;
   final String? faviconUrl;
+  final String? imageUrl;
   final bool isFile;
 
   @override
@@ -255,6 +262,24 @@ class _ItemTypeLeadingIcon extends StatelessWidget {
     final type = item.metadata?.classification?.type ??
         (isFile ? ContentType.file : (isNote ? null : ContentType.link));
 
+    if (imageUrl != null && imageUrl!.isNotEmpty) {
+      return Container(
+        width: 36,
+        height: 36,
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surfaceContainerHigh,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Image.network(
+          imageUrl!,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) =>
+              _buildFaviconOrFallback(context, type, isNote: isNote),
+        ),
+      );
+    }
+
     return Container(
       width: 36,
       height: 36,
@@ -263,20 +288,29 @@ class _ItemTypeLeadingIcon extends StatelessWidget {
         borderRadius: BorderRadius.circular(10),
       ),
       alignment: Alignment.center,
-      child: faviconUrl != null && faviconUrl!.isNotEmpty
-          ? ClipRRect(
-              borderRadius: BorderRadius.circular(6),
-              child: Image.network(
-                faviconUrl!,
-                width: 20,
-                height: 20,
-                fit: BoxFit.contain,
-                errorBuilder: (context, error, stackTrace) =>
-                    _buildFallbackIcon(context, type, isNote: isNote),
-              ),
-            )
-          : _buildFallbackIcon(context, type, isNote: isNote),
+      child: _buildFaviconOrFallback(context, type, isNote: isNote),
     );
+  }
+
+  Widget _buildFaviconOrFallback(
+    BuildContext context,
+    ContentType? type, {
+    required bool isNote,
+  }) {
+    if (faviconUrl != null && faviconUrl!.isNotEmpty) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(6),
+        child: Image.network(
+          faviconUrl!,
+          width: 20,
+          height: 20,
+          fit: BoxFit.contain,
+          errorBuilder: (context, error, stackTrace) =>
+              _buildFallbackIcon(context, type, isNote: isNote),
+        ),
+      );
+    }
+    return _buildFallbackIcon(context, type, isNote: isNote);
   }
 
   Widget _buildFallbackIcon(
