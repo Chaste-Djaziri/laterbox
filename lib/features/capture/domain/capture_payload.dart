@@ -11,6 +11,8 @@ enum CaptureSource {
 class CapturePayload {
   const CapturePayload({
     this.id,
+    this.title,
+    this.type,
     this.text,
     this.url,
     this.createdAt,
@@ -20,6 +22,8 @@ class CapturePayload {
   factory CapturePayload.fromValue(
     String value, {
     String? id,
+    String? title,
+    String? type,
     DateTime? createdAt,
     CaptureSource source = CaptureSource.manual,
   }) {
@@ -39,6 +43,8 @@ class CapturePayload {
       }
       return CapturePayload(
         id: id,
+        title: title,
+        type: type,
         url: trimmed,
         text: quoteText,
         createdAt: createdAt,
@@ -70,6 +76,8 @@ class CapturePayload {
         }
         return CapturePayload(
           id: id,
+          title: title,
+          type: type,
           url: finalUrl,
           text: remainingText,
           createdAt: createdAt,
@@ -78,6 +86,8 @@ class CapturePayload {
       } else {
         return CapturePayload(
           id: id,
+          title: title,
+          type: type,
           url: matchedUrl,
           text: null,
           createdAt: createdAt,
@@ -88,6 +98,8 @@ class CapturePayload {
 
     return CapturePayload(
       id: id,
+      title: title,
+      type: type,
       url: null,
       text: trimmed,
       createdAt: createdAt,
@@ -96,6 +108,8 @@ class CapturePayload {
   }
 
   final String? id;
+  final String? title;
+  final String? type;
   final String? text;
   final String? url;
   final DateTime? createdAt;
