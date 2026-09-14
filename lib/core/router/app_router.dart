@@ -20,6 +20,7 @@ import '../../features/library/presentation/library_providers.dart';
 import '../../features/library/presentation/library_screen.dart';
 import '../../features/library/presentation/library_section_screen.dart';
 import '../../features/search/presentation/search_screen.dart';
+import '../../features/settings/presentation/app_icon_screen.dart';
 import '../../features/settings/presentation/settings_screen.dart';
 
 import '../../features/splash/presentation/splash_screen.dart';
@@ -164,6 +165,15 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               key: state.pageKey,
               child: const SettingsScreen(),
             ),
+            routes: [
+              GoRoute(
+                path: 'icon',
+                pageBuilder: (context, state) => NoTransitionPage(
+                  key: state.pageKey,
+                  child: const AppIconScreen(),
+                ),
+              ),
+            ],
           ),
           GoRoute(
             path: '/kept',
