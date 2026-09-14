@@ -1,16 +1,49 @@
-import 'package:flutter/material.dart';
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:uuid/uuid.dart';
 
+import '../../../core/auth/auth_provider.dart';
+import '../../../core/enrichment/enrichment_providers.dart';
 import '../../attachments/data/attachment_file_picker.dart';
 import '../../attachments/domain/attachment_import_result.dart';
 import '../../attachments/presentation/attachment_providers.dart';
+import '../../enrichment/domain/item_metadata.dart';
+import '../../enrichment/domain/url_utils.dart';
 import '../domain/capture_payload.dart';
 import '../domain/capture_providers.dart';
 
+class UrlPreviewItem {
+  const UrlPreviewItem({
+    required this.url,
+    this.metadata,
+    this.isLoading = false,
+  });
+
+  final String url;
+  final EnrichedMetadata? metadata;
+  final bool isLoading;
+
+  UrlPreviewItem copyWith({
+    String? url,
+    EnrichedMetadata? metadata,
+    bool? isLoading,
+  }) {
+    return UrlPreviewItem(
+      url: url ?? this.url,
+      metadata: metadata ?? this.metadata,
+      isLoading: isLoading ?? this.isLoading,
+    );
+  }
+}
+
 class CaptureSheet extends ConsumerStatefulWidget {
-  const CaptureSheet({super.key});
+  const CaptureSheet({super.key, this.initialText});
+
+  final String? initialText;
 
   @override
   ConsumerState<CaptureSheet> createState() => _CaptureSheetState();
@@ -25,8 +58,13 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
   List<AttachmentImportFailure> _fileFailures = const [];
   bool _saving = false;
 
+  final Map<String, UrlPreviewItem> _urlPreviews = {};
+  final Set<String> _dismissedUrls = {};
+  Timer? _urlDebounceTimer;
+
   String? _sentMessageText;
   List<PickedAttachmentFile> _sentFiles = const [];
+  List<UrlPreviewItem> _sentUrlPreviews = const [];
 
   late final AnimationController _sendAnimController;
   late final Animation<Offset> _inputSlideAnimation;
@@ -137,17 +175,90 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
       ),
     ]).animate(_sendAnimController);
 
-    WidgetsBinding.instance.addPostFrameCallback(
-      (_) => _focusNode.requestFocus(),
-    );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (widget.initialText != null && widget.initialText!.isNotEmpty) {
+        _controller.text = widget.initialText!;
+        _detectAndEnhanceUrls();
+      }
+      _focusNode.requestFocus();
+    });
   }
 
   void _onTextChanged() {
     if (mounted) setState(() {});
+    _urlDebounceTimer?.cancel();
+    _urlDebounceTimer = Timer(const Duration(milliseconds: 250), () {
+      _detectAndEnhanceUrls();
+    });
+  }
+
+  void _detectAndEnhanceUrls() {
+    if (!mounted) return;
+    final urls = extractUrls(_controller.text);
+    final activeUrls = urls.where((u) => !_dismissedUrls.contains(u)).toList();
+
+    var changed = false;
+    final toRemove =
+        _urlPreviews.keys.where((u) => !activeUrls.contains(u)).toList();
+    for (final u in toRemove) {
+      _urlPreviews.remove(u);
+      changed = true;
+    }
+
+    for (final url in activeUrls) {
+      if (!_urlPreviews.containsKey(url)) {
+        _urlPreviews[url] = UrlPreviewItem(url: url, isLoading: true);
+        changed = true;
+        _fetchPreviewFor(url);
+      }
+    }
+
+    if (changed && mounted) setState(() {});
+  }
+
+  Future<void> _fetchPreviewFor(String url) async {
+    try {
+      final enhancer = ref.read(urlEnhancerProvider);
+      final meta = await enhancer.enhance(url);
+      if (!mounted ||
+          _dismissedUrls.contains(url) ||
+          !_urlPreviews.containsKey(url)) {
+        return;
+      }
+      setState(() {
+        _urlPreviews[url] = UrlPreviewItem(
+          url: url,
+          metadata: meta,
+          isLoading: false,
+        );
+      });
+    } catch (_) {
+      if (!mounted ||
+          _dismissedUrls.contains(url) ||
+          !_urlPreviews.containsKey(url)) {
+        return;
+      }
+      setState(() {
+        _urlPreviews[url] = UrlPreviewItem(
+          url: url,
+          metadata: null,
+          isLoading: false,
+        );
+      });
+    }
+  }
+
+  void _dismissUrl(String url) {
+    setState(() {
+      _dismissedUrls.add(url);
+      _urlPreviews.remove(url);
+    });
   }
 
   @override
   void dispose() {
+    _urlDebounceTimer?.cancel();
     _controller.removeListener(_onTextChanged);
     _sendAnimController.dispose();
     _controller.dispose();
@@ -403,6 +514,7 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
     setState(() {
       _sentMessageText = _controller.text;
       _sentFiles = List.of(_selectedFiles);
+      _sentUrlPreviews = List.of(_urlPreviews.values);
     });
 
     // Dismiss keyboard so full dimmed overlay is visible
@@ -413,6 +525,11 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
 
     var popped = false;
     try {
+      final primaryMeta = _urlPreviews.values
+          .map((p) => p.metadata)
+          .whereType<EnrichedMetadata>()
+          .firstOrNull;
+
       if (_selectedFiles.isNotEmpty) {
         final result = kIsWeb
             ? await ref
@@ -433,9 +550,20 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
             _fileFailures = result.failures;
             _sentMessageText = null;
             _sentFiles = const [];
+            _sentUrlPreviews = const [];
             _saving = false;
           });
           return;
+        }
+
+        final savedItemId = result.itemId;
+        if (primaryMeta != null && savedItemId != null) {
+          try {
+            final userId = ref.read(activeUserIdProvider);
+            await ref
+                .read(localMetadataDataSourceProvider)
+                .saveEnriched(savedItemId, primaryMeta, userId);
+          } catch (_) {}
         }
 
         await animFuture;
@@ -451,14 +579,22 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
         return;
       }
 
-      await ref
-          .read(captureServiceProvider)
-          .save(
-            CapturePayload.fromValue(
-              _controller.text,
-              source: CaptureSource.manual,
-            ),
-          );
+      final itemId = const Uuid().v4();
+      final payload = CapturePayload.fromValue(
+        _controller.text,
+        id: itemId,
+        source: CaptureSource.manual,
+      );
+      await ref.read(captureServiceProvider).save(payload);
+
+      if (primaryMeta != null) {
+        try {
+          final userId = ref.read(activeUserIdProvider);
+          await ref
+              .read(localMetadataDataSourceProvider)
+              .saveEnriched(itemId, primaryMeta, userId);
+        } catch (_) {}
+      }
 
       await animFuture;
       if (mounted) {
@@ -470,6 +606,7 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
       setState(() {
         _sentMessageText = null;
         _sentFiles = const [];
+        _sentUrlPreviews = const [];
         _error = error.message;
       });
     } catch (_) {
@@ -477,6 +614,7 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
       setState(() {
         _sentMessageText = null;
         _sentFiles = const [];
+        _sentUrlPreviews = const [];
         _error = 'Could not save this item. Try again.';
       });
     } finally {
@@ -739,6 +877,31 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
                               ),
                             ],
 
+                            // URL Preview Cards (matching reference screenshot)
+                            if (_urlPreviews.isNotEmpty) ...[
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 10),
+                                child: ConstrainedBox(
+                                  constraints:
+                                      const BoxConstraints(maxHeight: 200),
+                                  child: SingleChildScrollView(
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.stretch,
+                                      children: _urlPreviews.values.map((item) {
+                                        return Padding(
+                                          padding:
+                                              const EdgeInsets.only(bottom: 8),
+                                          child: _buildUrlPreviewCard(item),
+                                        );
+                                      }).toList(),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+
                             // The Chat Input Bar + Circular Send Button (Image 1 layout)
                             LayoutBuilder(
                               builder: (context, constraints) {
@@ -917,6 +1080,7 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
     final message = _sentMessageText ?? '';
     final hasFiles = _sentFiles.isNotEmpty;
     final hasText = message.trim().isNotEmpty;
+    final hasPreviews = _sentUrlPreviews.isNotEmpty;
 
     return Semantics(
       label: 'Sent message',
@@ -940,6 +1104,76 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    if (hasPreviews) ...[
+                      ..._sentUrlPreviews.map((p) {
+                        final meta = p.metadata;
+                        final domain = meta?.domain ??
+                            extractDomain(p.url) ??
+                            Uri.tryParse(p.url)?.host ??
+                            p.url;
+                        final title = meta?.title ?? domain;
+                        final imageUrl = meta?.previewImageUrl;
+
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 6),
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      title,
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      domain,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        color: Colors.white
+                                            .withValues(alpha: 0.75),
+                                        fontSize: 11,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              if (imageUrl != null && imageUrl.isNotEmpty) ...[
+                                const SizedBox(width: 8),
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Image.network(
+                                    imageUrl,
+                                    width: 44,
+                                    height: 44,
+                                    fit: BoxFit.cover,
+                                    errorBuilder:
+                                        (context, error, stackTrace) =>
+                                            const SizedBox.shrink(),
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        );
+                      }),
+                      if (hasText || hasFiles) const SizedBox(height: 4),
+                    ],
                     if (hasFiles) ...[
                       Wrap(
                         spacing: 6,
@@ -1002,6 +1236,148 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildUrlPreviewCard(UrlPreviewItem item) {
+    final meta = item.metadata;
+    final domain = meta?.domain ??
+        extractDomain(item.url) ??
+        Uri.tryParse(item.url)?.host ??
+        item.url;
+    final title = meta?.title ?? domain;
+    final imageUrl = meta?.previewImageUrl;
+
+    return Container(
+      key: ValueKey('url_preview_${item.url}'),
+      padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF242429),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.2),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          // Left: Title and domain
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 14.5,
+                    fontWeight: FontWeight.w600,
+                    height: 1.25,
+                  ),
+                ),
+                const SizedBox(height: 5),
+                Text(
+                  domain,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Colors.grey.shade400,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+
+          // Right: Square thumbnail with circular close button
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: Container(
+                  width: 58,
+                  height: 58,
+                  color: const Color(0xFF333338),
+                  child: imageUrl != null && imageUrl.isNotEmpty
+                      ? Image.network(
+                          imageUrl,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Center(
+                              child: Icon(
+                                Icons.link_rounded,
+                                size: 26,
+                                color: Colors.grey.shade400,
+                              ),
+                            );
+                          },
+                        )
+                      : item.isLoading
+                          ? const Center(
+                              child: SizedBox.square(
+                                dimension: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white70,
+                                ),
+                              ),
+                            )
+                          : Center(
+                              child: Icon(
+                                Icons.language_rounded,
+                                size: 26,
+                                color: Colors.grey.shade400,
+                              ),
+                            ),
+                ),
+              ),
+
+              // Dismiss button in top-right of thumbnail
+              Positioned(
+                top: -3,
+                right: -3,
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    key: ValueKey('dismiss_url_${item.url}'),
+                    onTap: () => _dismissUrl(item.url),
+                    borderRadius: BorderRadius.circular(999),
+                    child: Container(
+                      width: 22,
+                      height: 22,
+                      decoration: BoxDecoration(
+                        color: const Color(0xEE2A2A2E),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.25),
+                          width: 1,
+                        ),
+                      ),
+                      child: const Center(
+                        child: Icon(
+                          Icons.close_rounded,
+                          size: 13,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
