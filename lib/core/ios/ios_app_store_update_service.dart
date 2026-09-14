@@ -59,8 +59,9 @@ class IosAppStoreUpdateNotifier extends StateNotifier<IosAppStoreUpdateState> {
     return (await PackageInfo.fromPlatform()).version;
   }
 
-  Future<void> checkForUpdate() async {
-    if (!_enabled || _checking || state.dismissed) return;
+  Future<void> checkForUpdate({bool force = false}) async {
+    if (!_enabled || _checking || (state.dismissed && !force)) return;
+    if (force) state = const IosAppStoreUpdateState();
     _checking = true;
     try {
       final installedVersion = await _installedVersion();
