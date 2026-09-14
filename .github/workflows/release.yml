@@ -150,24 +150,28 @@ jobs:
         if: env.APPLE_CERTIFICATE_BASE64 != '' || env.APPLE_DEVELOPER_ID_CERTIFICATE_BASE64 != '' || env.APPLE_INSTALLER_CERTIFICATE_BASE64 != ''
         shell: bash
         run: |
-          # The registered maintainer Mac already has the signing identities
-          # in its login keychain. Its LaunchAgent cannot answer a Keychain UI
-          # prompt for a temporary imported private key, so use the existing
-          # non-interactive identities on self-hosted runs.
+          # The registered maintainer Mac uses a dedicated signing keychain.
+          # A LaunchAgent cannot answer Keychain UI prompts, so unlock it with
+          # the dedicated secret and grant signing tools non-interactive access.
           if [ "${RUNNER_ENVIRONMENT:-}" = "self-hosted" ]; then
-            echo "Using signing identities from the self-hosted runner login keychain."
-            security find-identity -v -p codesigning
+            KEYCHAIN_PATH="$HOME/Library/Keychains/laterbox-signing.keychain-db"
+            KEYCHAIN_PASSWORD="$APPLE_SELF_HOSTED_KEYCHAIN_PASSWORD"
+            test -n "$KEYCHAIN_PASSWORD"
+            test -f "$KEYCHAIN_PATH"
+            security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+            security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
           else
-          KEYCHAIN_PATH=$RUNNER_TEMP/build.keychain
-          KEYCHAIN_PASSWORD=$(openssl rand -base64 12)
-          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
-          security default-keychain -s "$KEYCHAIN_PATH"
-          # Keep Apple's System Roots in the search list. Replacing the list
-          # with only the temporary keychain leaves productbuild unable to
-          # build the installer certificate's trust chain on CI.
-          security list-keychains -d user -s "$KEYCHAIN_PATH" /Library/Keychains/System.keychain
-          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
-          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+            KEYCHAIN_PATH=$RUNNER_TEMP/build.keychain
+            KEYCHAIN_PASSWORD=$(openssl rand -base64 12)
+            security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+            security default-keychain -s "$KEYCHAIN_PATH"
+            # Keep Apple's System Roots in the search list. Replacing the list
+            # with only the temporary keychain leaves productbuild unable to
+            # build the installer certificate's trust chain on CI.
+            security list-keychains -d user -s "$KEYCHAIN_PATH" /Library/Keychains/System.keychain
+            security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+            security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          fi
 
           # 1. Decode and import main Application/Distribution Certificate
           if [ -n "$APPLE_CERTIFICATE_BASE64" ]; then
@@ -199,19 +203,20 @@ jobs:
               --output "$RUNNER_TEMP/AppleWWDRCAG3.cer"
             security import "$RUNNER_TEMP/AppleWWDRCAG3.cer" -k "$KEYCHAIN_PATH" -T /usr/bin/productbuild -T /usr/bin/security
 
-            # productbuild on GitHub-hosted macOS runners consults the login
-            # keychain even when a temporary keychain is the default. Import
-            # the installer identity there with an explicit productbuild ACL.
-            LOGIN_KEYCHAIN=$(security login-keychain 2>/dev/null | tr -d '"' || true)
-            if [ -n "$LOGIN_KEYCHAIN" ] && [ -e "$LOGIN_KEYCHAIN" ]; then
-              security import $RUNNER_TEMP/installer_cert.p12 -k "$LOGIN_KEYCHAIN" -P "$INSTALLER_PWD" -T /usr/bin/productbuild -T /usr/bin/security
-            else
-              echo "No login keychain is available on this runner; using the configured build keychain."
+            # The self-hosted runner uses its dedicated keychain exclusively.
+            # GitHub-hosted runners retain this login-keychain import as a
+            # compatibility fallback for productbuild.
+            if [ "${RUNNER_ENVIRONMENT:-}" != "self-hosted" ]; then
+              LOGIN_KEYCHAIN=$(security login-keychain 2>/dev/null | tr -d '"' || true)
+              if [ -n "$LOGIN_KEYCHAIN" ] && [ -e "$LOGIN_KEYCHAIN" ]; then
+                security import $RUNNER_TEMP/installer_cert.p12 -k "$LOGIN_KEYCHAIN" -P "$INSTALLER_PWD" -T /usr/bin/productbuild -T /usr/bin/security
+              else
+                echo "No login keychain is available on this runner; using the configured build keychain."
+              fi
             fi
           fi
 
           security set-key-partition-list -S apple-tool:,apple:,codesign:,productbuild: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
-          fi
 
           # 3. Decode and install macOS Main Provisioning Profile
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
@@ -251,6 +256,7 @@ jobs:
           APPLE_DEVELOPER_ID_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_DEVELOPER_ID_CERTIFICATE_PASSWORD }}
           APPLE_INSTALLER_CERTIFICATE_BASE64: ${{ secrets.APPLE_INSTALLER_CERTIFICATE_BASE64 }}
           APPLE_INSTALLER_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_INSTALLER_CERTIFICATE_PASSWORD }}
+          APPLE_SELF_HOSTED_KEYCHAIN_PASSWORD: ${{ secrets.APPLE_SELF_HOSTED_KEYCHAIN_PASSWORD }}
           APPLE_MAC_PROVISIONING_PROFILE_BASE64: ${{ secrets.APPLE_MAC_PROVISIONING_PROFILE_BASE64 }}
           APPLE_MAC_SHARE_EXTENSION_PROVISIONING_PROFILE_BASE64: ${{ secrets.APPLE_MAC_SHARE_EXTENSION_PROVISIONING_PROFILE_BASE64 }}
           APPLE_MAC_SAFARI_EXTENSION_PROVISIONING_PROFILE_BASE64: ${{ secrets.APPLE_MAC_SAFARI_EXTENSION_PROVISIONING_PROFILE_BASE64 }}
@@ -299,17 +305,10 @@ jobs:
           
           echo "Packaging application from: $APP_PATH"
           
-          # Inspect signing identities. Self-hosted jobs intentionally use
-          # the maintainer's login keychain rather than the temporary CI
-          # keychain, whose private keys cannot answer a LaunchAgent prompt.
+          # Inspect signing identities. The self-hosted LaunchAgent uses its
+          # dedicated keychain, whose private keys have non-interactive ACLs.
           if [ "${RUNNER_ENVIRONMENT:-}" = "self-hosted" ]; then
-            KEYCHAIN_PATH=$(security default-keychain | tr -d '"')
-            # A LaunchAgent can retain a stale default-keychain preference
-            # after a macOS login-keychain reset. Fall back to the active
-            # login keychain file used by this runner account.
-            if [ ! -f "$KEYCHAIN_PATH" ]; then
-              KEYCHAIN_PATH=$(find "$HOME/Library/Keychains" -maxdepth 1 -type f -name 'login*.keychain-db' -print -quit)
-            fi
+            KEYCHAIN_PATH="$HOME/Library/Keychains/laterbox-signing.keychain-db"
           else
             KEYCHAIN_PATH="$RUNNER_TEMP/build.keychain"
           fi
@@ -327,6 +326,12 @@ jobs:
           
           MAC_INSTALLER_IDENTITY=$(security find-identity -v "$KEYCHAIN_PATH" 2>/dev/null | grep -E "3rd Party Mac Developer Installer" | head -n 1 | sed 's/.*"\(.*\)".*/\1/' || true)
           DEV_ID_INSTALLER_IDENTITY=$(security find-identity -v "$KEYCHAIN_PATH" 2>/dev/null | grep -E "Developer ID Installer" | head -n 1 | sed 's/.*"\(.*\)".*/\1/' || true)
+
+          # Always search the job-specific signing keychain. This keeps the
+          # self-hosted LaunchAgent independent of the user's login keychain.
+          codesign() {
+            command codesign --keychain "$KEYCHAIN_PATH" "$@"
+          }
           
           # Inside-out signing helper:
           # Apple Technical Note TN3127: Never use --deep for production code signing
@@ -527,7 +532,7 @@ jobs:
               return "$command_status"
             }
 
-            if ! run_with_timeout 300 productbuild --timestamp=none --sign "$MAC_INSTALLER_IDENTITY" --cert "Apple Worldwide Developer Relations Certification Authority" --component "$APPSTORE_APP" /Applications dist/laterbox-macos.pkg; then
+            if ! run_with_timeout 300 productbuild --keychain "$KEYCHAIN_PATH" --timestamp=none --sign "$MAC_INSTALLER_IDENTITY" --cert "Apple Worldwide Developer Relations Certification Authority" --component "$APPSTORE_APP" /Applications dist/laterbox-macos.pkg; then
               echo "::error::Mac App Store package build failed or timed out after 5 minutes."
               exit 1
             fi
