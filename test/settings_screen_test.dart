@@ -12,6 +12,7 @@ import 'package:laterbox/core/settings/desktop_shortcut.dart';
 import 'package:laterbox/core/settings/settings_providers.dart';
 import 'package:laterbox/core/theme/app_theme.dart';
 import 'package:laterbox/features/settings/presentation/settings_screen.dart';
+import 'package:laterbox/features/settings/presentation/widgets/app_icon_switcher.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -187,8 +188,9 @@ void main() {
   ) async {
     await pumpScreen(tester, isPro: false);
 
+    final pageScrollable = find.byType(Scrollable).first;
     final syncButton = find.text('Force Sync Now');
-    await tester.scrollUntilVisible(syncButton, 300);
+    await tester.scrollUntilVisible(syncButton, 300, scrollable: pageScrollable);
     expect(syncButton, findsOneWidget);
 
     await tester.tap(syncButton);
@@ -203,8 +205,9 @@ void main() {
   ) async {
     await pumpScreen(tester, isPro: true);
 
+    final pageScrollable = find.byType(Scrollable).first;
     final syncButton = find.text('Force Sync Now');
-    await tester.scrollUntilVisible(syncButton, 300);
+    await tester.scrollUntilVisible(syncButton, 300, scrollable: pageScrollable);
     expect(syncButton, findsOneWidget);
 
     await tester.tap(syncButton);
@@ -213,5 +216,30 @@ void main() {
     expect(find.text('Choose a Pro plan'), findsNothing);
     expect(find.text('Cloud sync completed'), findsOneWidget);
   });
+
+  testWidgets('renders App Icon section with variant options', (tester) async {
+    await pumpScreen(tester);
+
+    final pageScrollable = find.byType(Scrollable).first;
+    final appIconHeader = find.text('App Icon');
+    await tester.scrollUntilVisible(
+      appIconHeader,
+      300,
+      scrollable: pageScrollable,
+    );
+    expect(appIconHeader, findsOneWidget);
+
+    final card = find.byType(AppIconSwitcherCard);
+    await tester.scrollUntilVisible(
+      card,
+      200,
+      scrollable: pageScrollable,
+    );
+    expect(find.text('Classic Light'), findsWidgets);
+    expect(find.text('Midnight Dark'), findsOneWidget);
+    expect(find.text('Neon Lime'), findsOneWidget);
+    expect(find.text('Emerald Forest'), findsOneWidget);
+  });
 }
+
 
