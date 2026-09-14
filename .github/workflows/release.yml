@@ -199,7 +199,8 @@ jobs:
             curl --fail --location --retry 3 --max-time 30 \
               https://www.apple.com/certificateauthority/AppleWWDRCAG3.cer \
               --output "$RUNNER_TEMP/AppleWWDRCAG3.cer"
-            security import "$RUNNER_TEMP/AppleWWDRCAG3.cer" -k "$KEYCHAIN_PATH" -T /usr/bin/productbuild -T /usr/bin/security
+            security find-certificate -c "Apple Worldwide Developer Relations Certification Authority" "$KEYCHAIN_PATH" >/dev/null 2>&1 || \
+              security import "$RUNNER_TEMP/AppleWWDRCAG3.cer" -k "$KEYCHAIN_PATH" -T /usr/bin/productbuild -T /usr/bin/security
 
             # The self-hosted runner uses its dedicated keychain exclusively.
             # GitHub-hosted runners retain this login-keychain import as a
