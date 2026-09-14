@@ -7,11 +7,19 @@ import '../../features/enrichment/data/enrichment_repository.dart';
 import '../../features/enrichment/data/local_metadata_data_source.dart';
 import '../../features/enrichment/data/remote_metadata_data_source.dart';
 import '../../features/enrichment/domain/enrichment_service.dart';
+import '../../features/enrichment/domain/url_enhancer.dart';
 import '../../features/inbox/presentation/inbox_providers.dart';
 import '../auth/auth_provider.dart';
 import '../database/database_providers.dart';
 import '../supabase/supabase_provider.dart';
 import 'enrichment_coordinator.dart';
+
+final urlEnhancerProvider = Provider<UrlEnhancer>((ref) {
+  return UrlEnhancer(
+    local: ref.watch(localMetadataDataSourceProvider),
+    remote: ref.watch(remoteMetadataDataSourceProvider),
+  );
+});
 
 final localMetadataDataSourceProvider = Provider<LocalMetadataDataSource>((ref) {
   return LocalMetadataDataSource(ref.watch(appDatabaseProvider));
