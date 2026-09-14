@@ -44,7 +44,9 @@ dependencies:
   uuid: ^4.6.0
   timeago: ^3.7.1
   supabase_flutter: ^2.17.2
-  connectivity_plus: ^7.3.1
+  # 7.x references macOS 26 Network APIs, which Xcode 16's macOS 15 SDK
+  # cannot compile on the Intel GitHub runner used to package the App Store build.
+  connectivity_plus: 6.1.5
   url_launcher: ^6.3.2
   app_links: ^7.2.1
   web: ^1.1.1
