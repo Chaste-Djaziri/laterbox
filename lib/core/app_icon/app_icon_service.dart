@@ -88,18 +88,17 @@ class AppIconOption {
 class AppIconService {
   const AppIconService({
     MethodChannel? channel,
-    TargetPlatform? platform,
-  })  : _channel = channel ?? const MethodChannel('laterbox/app_icon'),
-        _platform = platform;
+    this.platform,
+  })  : _channel = channel ?? const MethodChannel('laterbox/app_icon');
 
   final MethodChannel _channel;
-  final TargetPlatform? _platform;
+  final TargetPlatform? platform;
 
-  TargetPlatform get platform => _platform ?? defaultTargetPlatform;
+  TargetPlatform get effectivePlatform => platform ?? defaultTargetPlatform;
 
   /// Whether the current platform and device support alternate app icons.
   Future<bool> isSupported() async {
-    if (kIsWeb || platform != TargetPlatform.iOS) {
+    if (kIsWeb || effectivePlatform != TargetPlatform.iOS) {
       return false;
     }
     try {
@@ -114,7 +113,7 @@ class AppIconService {
 
   /// Gets the currently active alternate icon name (`null` for default primary).
   Future<String?> getCurrentIconName() async {
-    if (kIsWeb || platform != TargetPlatform.iOS) {
+    if (kIsWeb || effectivePlatform != TargetPlatform.iOS) {
       return null;
     }
     try {
@@ -128,7 +127,7 @@ class AppIconService {
 
   /// Switches the iOS app icon to the specified variant [iconName] (or `null` to reset to default).
   Future<bool> setAlternateIconName(String? iconName) async {
-    if (kIsWeb || platform != TargetPlatform.iOS) {
+    if (kIsWeb || effectivePlatform != TargetPlatform.iOS) {
       return false;
     }
     try {
