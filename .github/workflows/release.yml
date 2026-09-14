@@ -584,7 +584,11 @@ jobs:
         if: env.APP_STORE_CONNECT_API_KEY_BASE64 != '' && env.APP_STORE_CONNECT_KEY_ID != ''
         shell: bash
         run: |
-          KEYCHAIN_PATH=$RUNNER_TEMP/build.keychain
+          if [ "${RUNNER_ENVIRONMENT:-}" = "self-hosted" ]; then
+            KEYCHAIN_PATH="$HOME/Library/Keychains/laterbox-signing.keychain-db"
+          else
+            KEYCHAIN_PATH="$RUNNER_TEMP/build.keychain"
+          fi
           MAC_INSTALLER_IDENTITY=""
           if [ -f "$KEYCHAIN_PATH" ]; then
             MAC_INSTALLER_IDENTITY=$(security find-identity -v "$KEYCHAIN_PATH" 2>/dev/null | grep -E "3rd Party Mac Developer Installer" | head -n 1 | sed 's/.*"\(.*\)".*/\1/' || true)
@@ -592,14 +596,13 @@ jobs:
 
           PKG_PATH="dist/laterbox-macos.pkg"
           if [ ! -f "$PKG_PATH" ]; then
-            echo "macOS PKG not found, skipping Mac App Store upload."
-            exit 0
+            echo "::error::macOS PKG not found; cannot upload to Mac App Store Connect."
+            exit 1
           fi
 
           if [ -z "$MAC_INSTALLER_IDENTITY" ]; then
-            echo "::warning::Skipping Mac App Store Connect upload: App Store Connect strictly requires the macOS package to be signed with a '3rd Party Mac Developer Installer' certificate (Error 90237)."
-            echo "To enable Mac App Store uploads, please export your '3rd Party Mac Developer Installer' certificate and private key to GitHub secrets (APPLE_INSTALLER_CERTIFICATE_BASE64 or inside APPLE_CERTIFICATE_BASE64) along with the macOS provisioning profile (APPLE_MAC_PROVISIONING_PROFILE_BASE64)."
-            exit 0
+            echo "::error::Mac App Store Connect requires a 3rd Party Mac Developer Installer identity."
+            exit 1
           fi
 
           mkdir -p ~/.appstoreconnect/private_keys
