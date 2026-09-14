@@ -211,6 +211,10 @@ class UrlEnhancer {
         .replaceAll('&lt;', '<')
         .replaceAll('&gt;', '>')
         .replaceAll('&nbsp;', ' ')
+        .replaceAll('&bull;', '•')
+        .replaceAll('&#8226;', '•')
+        .replaceAll('&mdash;', '—')
+        .replaceAll('&ndash;', '–')
         .trim();
   }
 }
