@@ -4,6 +4,7 @@ import 'dart:ui';
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:laterbox/core/auth/auth_provider.dart';
@@ -87,13 +88,20 @@ Future<void> _pumpScene(WidgetTester tester, Widget scene) async {
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
         title: 'LaterBox',
-        theme: AppTheme.light.copyWith(fontFamily: 'AppStoreCaptureFont'),
+        theme: _captureTheme,
         home: scene,
       ),
     ),
   );
   await tester.pump(const Duration(milliseconds: 350));
 }
+
+final ThemeData _captureTheme = AppTheme.light.copyWith(
+  textTheme: AppTheme.light.textTheme.apply(fontFamily: 'AppStoreCaptureFont'),
+  primaryTextTheme: AppTheme.light.primaryTextTheme.apply(
+    fontFamily: 'AppStoreCaptureFont',
+  ),
+);
 
 Future<void> _disposeScene(WidgetTester tester) async {
   await tester.pumpWidget(const SizedBox.shrink());
