@@ -13,6 +13,8 @@ import 'core/desktop/desktop_capabilities.dart';
 import 'core/desktop/desktop_providers.dart';
 import 'core/desktop/macos_companion.dart';
 import 'core/enrichment/enrichment_providers.dart';
+import 'core/ios/ios_app_store_update_overlay.dart';
+import 'core/ios/ios_app_store_update_service.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/scroll_behavior.dart';
@@ -124,6 +126,9 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
       _drainPendingShares();
       if (kIsWeb) {
         ref.read(webUpdateProvider.notifier).checkForUpdate();
+      }
+      if (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS) {
+        ref.read(iosAppStoreUpdateProvider.notifier).checkForUpdate();
       }
     }
   }
@@ -369,8 +374,10 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
         } else {
           content = child ?? const SizedBox.shrink();
         }
-        return IosClipboardCaptureOverlay(
-          child: WebUpdateBannerOverlay(child: content),
+        return IosAppStoreUpdateOverlay(
+          child: IosClipboardCaptureOverlay(
+            child: WebUpdateBannerOverlay(child: content),
+          ),
         );
       },
     );
