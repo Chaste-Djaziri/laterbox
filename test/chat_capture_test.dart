@@ -183,6 +183,71 @@ void main() {
       expect(focusNode.hasFocus, isTrue);
     },
   );
+
+  testWidgets(
+    'on send, message renders as green chat bubble on empty dimmed overlay before closing',
+    (tester) async {
+      final database = AppDatabase(NativeDatabase.memory());
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            guestModeProvider.overrideWith((ref) => true),
+            appDatabaseProvider.overrideWithValue(database),
+            initialLocationProvider.overrideWithValue('/inbox'),
+          ],
+          child: const LaterBoxApp(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byTooltip('Save something'));
+      await tester.pumpAndSettle();
+
+      const message = "Let's meet up for dinner after work!";
+      await tester.enterText(find.byType(TextField).last, message);
+      await tester.pump();
+
+      // Tap Save button
+      await tester.tap(find.text('Save'));
+
+      // Advance animation into the display hold phase (350ms)
+      await tester.pump(const Duration(milliseconds: 350));
+
+      // 1. Sent chat bubble is now prominently visible on the dimmed overlay
+      expect(find.byKey(const ValueKey('sent_chat_bubble')), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('sent_chat_bubble')),
+          matching: find.text(message),
+        ),
+        findsOneWidget,
+      );
+
+      // Verify the bubble uses the green styling matching the reference design
+      final customPaint = tester.widget<CustomPaint>(
+        find.descendant(
+          of: find.byKey(const ValueKey('sent_chat_bubble')),
+          matching: find.byType(CustomPaint),
+        ),
+      );
+      expect(
+        (customPaint.painter! as SentChatBubblePainter).color,
+        const Color(0xFF34C759),
+      );
+
+      // 2. Settle the animation to completion
+      await tester.pumpAndSettle();
+
+      // Bubble and sheet are dismissed, item is present in inbox
+      expect(find.byKey(const ValueKey('sent_chat_bubble')), findsNothing);
+      expect(find.text(message), findsOneWidget);
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump(const Duration(milliseconds: 1));
+      await database.close();
+    },
+  );
 }
 
 class _FakePicker implements AttachmentFilePicker {
