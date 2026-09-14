@@ -304,9 +304,17 @@ jobs:
           # keychain, whose private keys cannot answer a LaunchAgent prompt.
           if [ "${RUNNER_ENVIRONMENT:-}" = "self-hosted" ]; then
             KEYCHAIN_PATH=$(security default-keychain | tr -d '"')
+            # A LaunchAgent can retain a stale default-keychain preference
+            # after a macOS login-keychain reset. Fall back to the active
+            # login keychain file used by this runner account.
+            if [ ! -f "$KEYCHAIN_PATH" ]; then
+              KEYCHAIN_PATH=$(find "$HOME/Library/Keychains" -maxdepth 1 -type f -name 'login*.keychain-db' -print -quit)
+            fi
           else
             KEYCHAIN_PATH="$RUNNER_TEMP/build.keychain"
           fi
+          test -n "$KEYCHAIN_PATH"
+          test -f "$KEYCHAIN_PATH"
           if [ -f "$KEYCHAIN_PATH" ]; then
             echo "--- Available identities in keychain ---"
             security find-identity -v "$KEYCHAIN_PATH" || true
