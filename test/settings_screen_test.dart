@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:laterbox/core/billing/billing_providers.dart';
 import 'package:laterbox/core/database/app_database.dart';
 import 'package:laterbox/core/database/database_providers.dart';
 import 'package:laterbox/core/desktop/desktop_providers.dart';
@@ -49,6 +50,7 @@ void main() {
   Future<AppDatabase> pumpScreen(
     WidgetTester tester, {
     bool accessibilityGranted = true,
+    bool isPro = false,
   }) async {
     tester.view.physicalSize = const Size(800, 1400);
     tester.view.devicePixelRatio = 1.0;
@@ -66,6 +68,7 @@ void main() {
         accessibilityTrustedProvider.overrideWith(
           (ref) async => accessibilityGranted,
         ),
+        hasProAccessProvider.overrideWithValue(isPro),
       ],
     );
     addTearDown(container.dispose);
@@ -178,4 +181,37 @@ void main() {
     );
     expect(find.text('⌘ T'), findsNothing);
   });
+
+  testWidgets('force sync prompts pro plan sheet when user is not pro', (
+    tester,
+  ) async {
+    await pumpScreen(tester, isPro: false);
+
+    final syncButton = find.text('Force Sync Now');
+    await tester.scrollUntilVisible(syncButton, 300);
+    expect(syncButton, findsOneWidget);
+
+    await tester.tap(syncButton);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Choose a Pro plan'), findsOneWidget);
+    expect(find.text('Cloud sync completed'), findsNothing);
+  });
+
+  testWidgets('force sync runs sync and shows snackbar when user is pro', (
+    tester,
+  ) async {
+    await pumpScreen(tester, isPro: true);
+
+    final syncButton = find.text('Force Sync Now');
+    await tester.scrollUntilVisible(syncButton, 300);
+    expect(syncButton, findsOneWidget);
+
+    await tester.tap(syncButton);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Choose a Pro plan'), findsNothing);
+    expect(find.text('Cloud sync completed'), findsOneWidget);
+  });
 }
+
