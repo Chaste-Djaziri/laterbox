@@ -190,7 +190,9 @@ void main() {
 
     final pageScrollable = find.byType(Scrollable).first;
     final syncButton = find.text('Force Sync Now');
-    await tester.scrollUntilVisible(syncButton, 300, scrollable: pageScrollable);
+    await tester.scrollUntilVisible(syncButton, 100, scrollable: pageScrollable);
+    await tester.drag(pageScrollable, const Offset(0, -150));
+    await tester.pumpAndSettle();
     expect(syncButton, findsOneWidget);
 
     await tester.tap(syncButton);
@@ -207,7 +209,9 @@ void main() {
 
     final pageScrollable = find.byType(Scrollable).first;
     final syncButton = find.text('Force Sync Now');
-    await tester.scrollUntilVisible(syncButton, 300, scrollable: pageScrollable);
+    await tester.scrollUntilVisible(syncButton, 100, scrollable: pageScrollable);
+    await tester.drag(pageScrollable, const Offset(0, -150));
+    await tester.pumpAndSettle();
     expect(syncButton, findsOneWidget);
 
     await tester.tap(syncButton);
@@ -217,7 +221,9 @@ void main() {
     expect(find.text('Cloud sync completed'), findsOneWidget);
   });
 
-  testWidgets('renders App Icon section with variant options', (tester) async {
+  testWidgets('renders App Icon tile and opens dedicated AppIconScreen', (
+    tester,
+  ) async {
     await pumpScreen(tester);
 
     final pageScrollable = find.byType(Scrollable).first;
@@ -229,16 +235,27 @@ void main() {
     );
     expect(appIconHeader, findsOneWidget);
 
-    final card = find.byType(AppIconSwitcherCard);
+    final appIconTile = find.widgetWithText(ListTile, 'App Icon');
     await tester.scrollUntilVisible(
-      card,
+      appIconTile,
       200,
       scrollable: pageScrollable,
     );
+    expect(appIconTile, findsOneWidget);
+    expect(find.text('Classic Light • Paper & Ink'), findsOneWidget);
+
+    await tester.tap(appIconTile);
+    await tester.pumpAndSettle();
+
+    // Now on dedicated AppIconScreen
+    expect(find.text('Available Variants'), findsOneWidget);
+    expect(find.text('Current Home Screen Icon'), findsOneWidget);
     expect(find.text('Classic Light'), findsWidgets);
     expect(find.text('Midnight Dark'), findsOneWidget);
     expect(find.text('Neon Lime'), findsOneWidget);
     expect(find.text('Emerald Forest'), findsOneWidget);
+    expect(find.text('Sunset Coral'), findsOneWidget);
+    expect(find.text('Monochrome'), findsOneWidget);
   });
 }
 
