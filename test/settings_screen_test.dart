@@ -12,7 +12,6 @@ import 'package:laterbox/core/settings/desktop_shortcut.dart';
 import 'package:laterbox/core/settings/settings_providers.dart';
 import 'package:laterbox/core/theme/app_theme.dart';
 import 'package:laterbox/features/settings/presentation/settings_screen.dart';
-import 'package:laterbox/features/settings/presentation/widgets/app_icon_switcher.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
