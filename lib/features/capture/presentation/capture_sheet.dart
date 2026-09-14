@@ -25,10 +25,15 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
   List<AttachmentImportFailure> _fileFailures = const [];
   bool _saving = false;
 
+  String? _sentMessageText;
+  List<PickedAttachmentFile> _sentFiles = const [];
+
   late final AnimationController _sendAnimController;
-  late final Animation<Offset> _slideAnimation;
-  late final Animation<double> _fadeAnimation;
-  late final Animation<double> _scaleAnimation;
+  late final Animation<Offset> _inputSlideAnimation;
+  late final Animation<double> _inputFadeAnimation;
+  late final Animation<double> _bubbleFadeAnimation;
+  late final Animation<double> _bubbleScaleAnimation;
+  late final Animation<Offset> _bubbleSlideAnimation;
 
   @override
   void initState() {
@@ -36,35 +41,101 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
     _controller.addListener(_onTextChanged);
     _sendAnimController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 320),
+      duration: const Duration(milliseconds: 850),
     );
-    _slideAnimation = Tween<Offset>(
-      begin: Offset.zero,
-      end: const Offset(0, -0.65),
-    ).animate(
-      CurvedAnimation(
-        parent: _sendAnimController,
-        curve: Curves.easeOutCubic,
+
+    // Input Bar animations: quickly slide down and fade away (0% - 22% of duration)
+    _inputFadeAnimation = TweenSequence<double>([
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 1.0, end: 0.0)
+            .chain(CurveTween(curve: Curves.easeOut)),
+        weight: 22,
       ),
-    );
-    _fadeAnimation = Tween<double>(
-      begin: 1.0,
-      end: 0.0,
-    ).animate(
-      CurvedAnimation(
-        parent: _sendAnimController,
-        curve: const Interval(0.2, 1.0, curve: Curves.easeOut),
+      TweenSequenceItem(
+        tween: ConstantTween<double>(0.0),
+        weight: 78,
       ),
-    );
-    _scaleAnimation = Tween<double>(
-      begin: 1.0,
-      end: 0.90,
-    ).animate(
-      CurvedAnimation(
-        parent: _sendAnimController,
-        curve: Curves.easeOutCubic,
+    ]).animate(_sendAnimController);
+
+    _inputSlideAnimation = TweenSequence<Offset>([
+      TweenSequenceItem(
+        tween: Tween<Offset>(
+          begin: Offset.zero,
+          end: const Offset(0.0, 0.35),
+        ).chain(CurveTween(curve: Curves.easeOut)),
+        weight: 22,
       ),
-    );
+      TweenSequenceItem(
+        tween: ConstantTween<Offset>(const Offset(0.0, 0.35)),
+        weight: 78,
+      ),
+    ]).animate(_sendAnimController);
+
+    // Sent Chat Bubble animations on dimmed overlay:
+    // 1. Pop into view on the dimmed overlay with spring (12% - 44% of duration)
+    // 2. Rest prominently on the empty dimmed overlay (44% - 72% of duration)
+    // 3. Float up and dissolve as overlay closes (72% - 100% of duration)
+    _bubbleFadeAnimation = TweenSequence<double>([
+      TweenSequenceItem(
+        tween: ConstantTween<double>(0.0),
+        weight: 12,
+      ),
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 0.0, end: 1.0)
+            .chain(CurveTween(curve: Curves.easeOut)),
+        weight: 28,
+      ),
+      TweenSequenceItem(
+        tween: ConstantTween<double>(1.0),
+        weight: 32,
+      ),
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 1.0, end: 0.0)
+            .chain(CurveTween(curve: Curves.easeIn)),
+        weight: 28,
+      ),
+    ]).animate(_sendAnimController);
+
+    _bubbleScaleAnimation = TweenSequence<double>([
+      TweenSequenceItem(
+        tween: ConstantTween<double>(0.65),
+        weight: 12,
+      ),
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 0.65, end: 1.0)
+            .chain(CurveTween(curve: Curves.easeOutBack)),
+        weight: 32,
+      ),
+      TweenSequenceItem(
+        tween: ConstantTween<double>(1.0),
+        weight: 56,
+      ),
+    ]).animate(_sendAnimController);
+
+    _bubbleSlideAnimation = TweenSequence<Offset>([
+      TweenSequenceItem(
+        tween: ConstantTween<Offset>(const Offset(0.05, 0.40)),
+        weight: 12,
+      ),
+      TweenSequenceItem(
+        tween: Tween<Offset>(
+          begin: const Offset(0.05, 0.40),
+          end: Offset.zero,
+        ).chain(CurveTween(curve: Curves.easeOutBack)),
+        weight: 32,
+      ),
+      TweenSequenceItem(
+        tween: ConstantTween<Offset>(Offset.zero),
+        weight: 28,
+      ),
+      TweenSequenceItem(
+        tween: Tween<Offset>(
+          begin: Offset.zero,
+          end: const Offset(0.0, -0.28),
+        ).chain(CurveTween(curve: Curves.easeInCubic)),
+        weight: 28,
+      ),
+    ]).animate(_sendAnimController);
 
     WidgetsBinding.instance.addPostFrameCallback(
       (_) => _focusNode.requestFocus(),
@@ -328,7 +399,16 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
       }
     }
 
-    // Trigger smooth outgoing chat animation
+    // Capture sent payload for the overlay chat bubble animation
+    setState(() {
+      _sentMessageText = _controller.text;
+      _sentFiles = List.of(_selectedFiles);
+    });
+
+    // Dismiss keyboard so full dimmed overlay is visible
+    _focusNode.unfocus();
+
+    // Trigger smooth outgoing chat animation on dimmed overlay
     final animFuture = _sendAnimController.forward();
 
     var popped = false;
@@ -351,6 +431,8 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
           _sendAnimController.reverse();
           setState(() {
             _fileFailures = result.failures;
+            _sentMessageText = null;
+            _sentFiles = const [];
             _saving = false;
           });
           return;
@@ -385,10 +467,18 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
       }
     } on FormatException catch (error) {
       _sendAnimController.reverse();
-      setState(() => _error = error.message);
+      setState(() {
+        _sentMessageText = null;
+        _sentFiles = const [];
+        _error = error.message;
+      });
     } catch (_) {
       _sendAnimController.reverse();
-      setState(() => _error = 'Could not save this item. Try again.');
+      setState(() {
+        _sentMessageText = null;
+        _sentFiles = const [];
+        _error = 'Could not save this item. Try again.';
+      });
     } finally {
       if (mounted && !popped) {
         setState(() => _saving = false);
@@ -420,24 +510,51 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
           ),
         },
         child: GestureDetector(
-          onTap: () => Navigator.of(context).pop(),
+          onTap: _saving ? null : () => Navigator.of(context).pop(),
           behavior: HitTestBehavior.translucent,
-          child: Align(
-            alignment: Alignment.bottomCenter,
-            child: GestureDetector(
-              onTap: () {}, // Prevent taps inside the bar from dismissing
-              behavior: HitTestBehavior.opaque,
-              child: SafeArea(
-                top: false,
-                child: Padding(
-                  padding: EdgeInsets.fromLTRB(16, 8, 16, 16 + keyboardHeight),
-                  child: SlideTransition(
-                    position: _slideAnimation,
-                    child: FadeTransition(
-                      opacity: _fadeAnimation,
-                      child: ScaleTransition(
-                        scale: _scaleAnimation,
-                        child: Column(
+          child: Stack(
+            children: [
+              // 1. Sent message chat bubble on the empty dimmed overlay
+              if (_sentMessageText != null || _sentFiles.isNotEmpty)
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: SafeArea(
+                      child: Align(
+                        alignment: Alignment.bottomRight,
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(32, 0, 16, 76),
+                          child: SlideTransition(
+                            position: _bubbleSlideAnimation,
+                            child: FadeTransition(
+                              opacity: _bubbleFadeAnimation,
+                              child: ScaleTransition(
+                                scale: _bubbleScaleAnimation,
+                                child: _buildSentMessageBubble(),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+
+              // 2. Input pill composer (slides down and fades out on send)
+              Align(
+                alignment: Alignment.bottomCenter,
+                child: GestureDetector(
+                  onTap: () {}, // Prevent taps inside the bar from dismissing
+                  behavior: HitTestBehavior.opaque,
+                  child: SafeArea(
+                    top: false,
+                    child: Padding(
+                      padding:
+                          EdgeInsets.fromLTRB(16, 8, 16, 16 + keyboardHeight),
+                      child: SlideTransition(
+                        position: _inputSlideAnimation,
+                        child: FadeTransition(
+                          opacity: _inputFadeAnimation,
+                          child: Column(
                           mainAxisSize: MainAxisSize.min,
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
@@ -789,6 +906,100 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
                 ),
               ),
             ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+  Widget _buildSentMessageBubble() {
+    final message = _sentMessageText ?? '';
+    final hasFiles = _sentFiles.isNotEmpty;
+    final hasText = message.trim().isNotEmpty;
+
+    return Semantics(
+      label: 'Sent message',
+      child: KeyedSubtree(
+        key: const ValueKey('sent_chat_bubble'),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: MediaQuery.sizeOf(context).width * 0.82,
+            minWidth: 72,
+          ),
+          child: CustomPaint(
+            painter: const SentChatBubblePainter(
+              color: Color(0xFF34C759), // Iconic iMessage / app vibrant green
+            ),
+            child: ClipPath(
+              clipper: const SentChatBubbleClipper(),
+              child: Container(
+                color: const Color(0xFF34C759),
+                padding: const EdgeInsets.fromLTRB(16, 11, 23, 11),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (hasFiles) ...[
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 6,
+                        children: _sentFiles.map((f) {
+                          return Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.18),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  _isImageFile(f.name)
+                                      ? Icons.image_rounded
+                                      : Icons.insert_drive_file_rounded,
+                                  size: 14,
+                                  color: Colors.white,
+                                ),
+                                const SizedBox(width: 4),
+                                ConstrainedBox(
+                                  constraints:
+                                      const BoxConstraints(maxWidth: 130),
+                                  child: Text(
+                                    f.name,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                      if (hasText) const SizedBox(height: 6),
+                    ],
+                    if (hasText)
+                      Text(
+                        message,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          height: 1.35,
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
           ),
         ),
       ),
@@ -825,4 +1036,78 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
     AttachmentImportFailureCode.databaseFailed =>
       'the attachment could not be saved',
   };
+}
+
+/// Outgoing iMessage-style speech bubble with bottom-right tail
+class SentChatBubbleClipper extends CustomClipper<Path> {
+  const SentChatBubbleClipper();
+
+  @override
+  Path getClip(Size size) {
+    final path = Path();
+    const r = 18.0;
+    const tailWidth = 7.0;
+    final w = size.width;
+    final h = size.height;
+
+    // Start at top-left
+    path.moveTo(r, 0);
+    // Top line
+    path.lineTo(w - tailWidth - r, 0);
+    // Top-right corner
+    path.arcToPoint(
+      Offset(w - tailWidth, r),
+      radius: const Radius.circular(r),
+    );
+    // Right line down towards tail
+    path.lineTo(w - tailWidth, h - 14);
+    // Outer curve sweeping to the tail tip
+    path.quadraticBezierTo(w - 1, h - 3, w, h);
+    // Bottom curve sweeping from tail tip back to bottom line
+    path.quadraticBezierTo(w - 7, h, w - tailWidth - 14, h);
+    // Bottom line
+    path.lineTo(r, h);
+    // Bottom-left corner
+    path.arcToPoint(
+      Offset(0, h - r),
+      radius: const Radius.circular(r),
+    );
+    // Left line
+    path.lineTo(0, r);
+    // Top-left corner
+    path.arcToPoint(
+      const Offset(r, 0),
+      radius: const Radius.circular(r),
+    );
+
+    path.close();
+    return path;
+  }
+
+  @override
+  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
+}
+
+class SentChatBubblePainter extends CustomPainter {
+  final Color color;
+  const SentChatBubblePainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const clipper = SentChatBubbleClipper();
+    final path = clipper.getClip(size);
+    // Subtle drop shadow for depth on dimmed overlay
+    canvas.drawShadow(
+      path,
+      Colors.black.withValues(alpha: 0.32),
+      8,
+      false,
+    );
+    final paint = Paint()..color = color;
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant SentChatBubblePainter oldDelegate) =>
+      color != oldDelegate.color;
 }
