@@ -2,7 +2,7 @@ import Flutter
 import UIKit
 
 @main
-@objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate, FlutterStreamHandler {
+@objc class AppDelegate: FlutterAppDelegate, FlutterStreamHandler {
   private let queue = ShareCaptureQueue(appGroupId: "group.pro.micorp.laterbox")
   private var shareChannel: FlutterMethodChannel?
   private var clipboardEventChannel: FlutterEventChannel?
@@ -16,22 +16,29 @@ import UIKit
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
+    GeneratedPluginRegistrant.register(with: self)
     let result = super.application(application, didFinishLaunchingWithOptions: launchOptions)
-    if let controller = window?.rootViewController as? FlutterViewController {
-      registerShareChannel(with: controller.binaryMessenger)
-      registerClipboardChannel(with: controller.binaryMessenger)
-      registerAppIconChannel(with: controller.binaryMessenger)
-    }
+    ensureChannelsRegistered()
     setupDarwinShareObserver()
     return result
   }
 
-  func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
-    GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
-    registerShareChannel(with: engineBridge.applicationRegistrar.messenger())
-    registerClipboardChannel(with: engineBridge.applicationRegistrar.messenger())
-    registerAppIconChannel(with: engineBridge.applicationRegistrar.messenger())
-    setupDarwinShareObserver()
+  override func applicationDidBecomeActive(_ application: UIApplication) {
+    super.applicationDidBecomeActive(application)
+    ensureChannelsRegistered()
+  }
+
+  private func ensureChannelsRegistered() {
+    let messenger: FlutterBinaryMessenger? = {
+      if let controller = window?.rootViewController as? FlutterViewController {
+        return controller.binaryMessenger
+      }
+      return registrar(forPlugin: "LaterBoxPlugin")?.messenger()
+    }()
+    guard let messenger else { return }
+    registerShareChannel(with: messenger)
+    registerClipboardChannel(with: messenger)
+    registerAppIconChannel(with: messenger)
   }
 
   private func setupDarwinShareObserver() {
@@ -46,6 +53,7 @@ import UIKit
         guard let observer = observer else { return }
         let appDelegate = Unmanaged<AppDelegate>.fromOpaque(observer).takeUnretainedValue()
         DispatchQueue.main.async {
+          appDelegate.ensureChannelsRegistered()
           appDelegate.shareChannel?.invokeMethod("onNewShareAvailable", arguments: nil)
         }
       },
