@@ -18,83 +18,196 @@ permissions:
 
 jobs:
   check-version:
-    name: Detect Version Bump
+    name: Detect Release Targets
     runs-on: ubuntu-latest
     outputs:
       should_release: ${{ steps.check.outputs.should_release }}
       version: ${{ steps.check.outputs.version }}
-      release_scope: ${{ steps.check.outputs.release_scope }}
+      macos: ${{ steps.check.outputs.macos }}
+      windows: ${{ steps.check.outputs.windows }}
+      linux: ${{ steps.check.outputs.linux }}
+      android: ${{ steps.check.outputs.android }}
+      ios: ${{ steps.check.outputs.ios }}
+      extensions: ${{ steps.check.outputs.extensions }}
+      web: ${{ steps.check.outputs.web }}
+      publish_release: ${{ steps.check.outputs.publish_release }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Check If Version Was Bumped
+      - name: Detect Changed Release Targets
         id: check
         shell: bash
         run: |
           VERSION=$(node -p "require('./version.json').version")
-          RELEASE_SCOPE="all"
-          if [ "${{ github.event_name }}" = "push" ] && [[ "${{ github.event.head_commit.message }}" == *"[macos-only]"* ]]; then
-            RELEASE_SCOPE="macos"
-          fi
-          echo "release_scope=$RELEASE_SCOPE" >> $GITHUB_OUTPUT
+          TARGET_MACOS=false
+          TARGET_WINDOWS=false
+          TARGET_LINUX=false
+          TARGET_ANDROID=false
+          TARGET_IOS=false
+          TARGET_EXTENSIONS=false
+          TARGET_WEB=false
 
+          emit_outputs() {
+            local should_release="$1"
+            local publish_release=false
+            if [ "$TARGET_MACOS" = true ] || [ "$TARGET_WINDOWS" = true ] || [ "$TARGET_LINUX" = true ] || [ "$TARGET_ANDROID" = true ] || [ "$TARGET_IOS" = true ] || [ "$TARGET_EXTENSIONS" = true ]; then
+              publish_release=true
+            fi
+
+            echo "should_release=$should_release" >> "$GITHUB_OUTPUT"
+            echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+            echo "macos=$TARGET_MACOS" >> "$GITHUB_OUTPUT"
+            echo "windows=$TARGET_WINDOWS" >> "$GITHUB_OUTPUT"
+            echo "linux=$TARGET_LINUX" >> "$GITHUB_OUTPUT"
+            echo "android=$TARGET_ANDROID" >> "$GITHUB_OUTPUT"
+            echo "ios=$TARGET_IOS" >> "$GITHUB_OUTPUT"
+            echo "extensions=$TARGET_EXTENSIONS" >> "$GITHUB_OUTPUT"
+            echo "web=$TARGET_WEB" >> "$GITHUB_OUTPUT"
+            echo "publish_release=$publish_release" >> "$GITHUB_OUTPUT"
+            echo "Selected release targets: macos=$TARGET_MACOS windows=$TARGET_WINDOWS linux=$TARGET_LINUX android=$TARGET_ANDROID ios=$TARGET_IOS extensions=$TARGET_EXTENSIONS web=$TARGET_WEB publish_release=$publish_release"
+          }
+
+          select_all_targets() {
+            TARGET_MACOS=true
+            TARGET_WINDOWS=true
+            TARGET_LINUX=true
+            TARGET_ANDROID=true
+            TARGET_IOS=true
+            TARGET_EXTENSIONS=true
+            TARGET_WEB=true
+          }
+
+          # Tags and explicit dispatches are intentional full releases.
           if [ "${{ github.event_name }}" = "workflow_dispatch" ] || [ "${{ startsWith(github.ref, 'refs/tags/v') }}" = "true" ]; then
-            echo "should_release=true" >> $GITHUB_OUTPUT
-            echo "version=$VERSION" >> $GITHUB_OUTPUT
-            echo "Manual dispatch or tag trigger for v$VERSION. Proceeding with release build."
+            select_all_targets
+            emit_outputs true
+            echo "Manual dispatch or tag trigger for v$VERSION. Running every release target."
             exit 0
           fi
 
           BEFORE="${{ github.event.before }}"
           AFTER="${{ github.event.after }}"
+          BASE_REF="$BEFORE"
+          TARGET_REF="$AFTER"
+          if ! git rev-parse --verify "$TARGET_REF" >/dev/null 2>&1; then
+            TARGET_REF=HEAD
+          fi
 
           # If before commit is a valid commit hash on this repo, check diff across the entire push range
           if [ -n "$BEFORE" ] && [ "$BEFORE" != "0000000000000000000000000000000000000000" ] && git rev-parse --verify "$BEFORE" >/dev/null 2>&1; then
-            CHANGED_FILES=$(git diff --name-only "$BEFORE" "$AFTER" 2>/dev/null || echo "")
+            CHANGED_FILES=$(git diff --name-only "$BASE_REF" "$TARGET_REF" 2>/dev/null || echo "")
           else
             # Check against latest tag if available, or last commit
             LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
             if [ -n "$LAST_TAG" ]; then
-              CHANGED_FILES=$(git diff --name-only "$LAST_TAG" HEAD 2>/dev/null || echo "")
+              BASE_REF="$LAST_TAG"
             else
-              CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD 2>/dev/null || echo "")
+              BASE_REF=HEAD~1
             fi
+            CHANGED_FILES=$(git diff --name-only "$BASE_REF" "$TARGET_REF" 2>/dev/null || echo "")
           fi
 
           echo "Pushed range: $BEFORE .. $AFTER"
           echo "Changed files in pushed range:"
           echo "$CHANGED_FILES"
 
-          # 1. Did any version file change in the pushed commits?
+          # A normal push is release-eligible only when its version metadata
+          # changed. Generated version files below do not, by themselves,
+          # select any platform to rebuild.
           VERSION_CHANGED="false"
-          if echo "$CHANGED_FILES" | grep -qE 'version\.json|pubspec\.yaml'; then
+          if echo "$CHANGED_FILES" | grep -qx 'version.json'; then
+            VERSION_CHANGED="true"
+          fi
+          if git diff --unified=0 "$BASE_REF" "$TARGET_REF" -- pubspec.yaml 2>/dev/null | grep -qE '^[+]version:'; then
             VERSION_CHANGED="true"
           fi
 
-          # 2. Does the git tag for this current version (v$VERSION) already exist?
-          TAG_EXISTS="false"
-          if git rev-parse "refs/tags/v$VERSION" >/dev/null 2>&1 || git rev-parse "v$VERSION" >/dev/null 2>&1; then
-            TAG_EXISTS="true"
+          # Keep the existing macOS-only escape hatch for signing and package
+          # repairs, including commits that do not include a version bump.
+          if [[ "${{ github.event.head_commit.message }}" == *"[macos-only]"* ]]; then
+            TARGET_MACOS=true
+            emit_outputs true
+            echo "Explicit [macos-only] override for v$VERSION."
+            exit 0
           fi
 
-          # If version files were touched in the push OR the tag for this version doesn't exist yet, proceed with release
-          if [ "$VERSION_CHANGED" = "true" ] || [ "$TAG_EXISTS" = "false" ]; then
-            echo "should_release=true" >> $GITHUB_OUTPUT
-            echo "version=$VERSION" >> $GITHUB_OUTPUT
-            echo "Release build triggered for v$VERSION (version changed: $VERSION_CHANGED, tag exists: $TAG_EXISTS)."
-          else
-            echo "should_release=false" >> $GITHUB_OUTPUT
-            echo "version=$VERSION" >> $GITHUB_OUTPUT
-            echo "No version bump in pushed range and release tag v$VERSION already exists. Skipping release builds."
+          if [ "$VERSION_CHANGED" != "true" ]; then
+            emit_outputs false
+            echo "No version bump in pushed range. Skipping product release builds."
+            exit 0
           fi
+
+          metadata_only_change() {
+            local file="$1"
+            local diff
+            diff=$(git diff --unified=0 "$BASE_REF" "$TARGET_REF" -- "$file" 2>/dev/null || true)
+            case "$file" in
+              version.json|laterbox-web/version.json|laterbox-web/public/version.json|laterbox-web/src/lib/version.ts)
+                return 0
+                ;;
+              pubspec.yaml)
+                echo "$diff" | grep -E '^[+-]' | grep -vE '^(---|\+\+\+|[+-]version:)' | grep -q . && return 1 || return 0
+                ;;
+              extension/package.json|extension/manifests/chromium.json|extension/manifests/firefox.json|extension/manifests/safari.json)
+                echo "$diff" | grep -E '^[+-]' | grep -vE '^(---|\+\+\+|[+-][[:space:]]*"version"[[:space:]]*:)' | grep -q . && return 1 || return 0
+                ;;
+              scripts/laterbox.iss)
+                echo "$diff" | grep -E '^[+-]' | grep -vE '^(---|\+\+\+|[+-]#define[[:space:]]+AppVersion[[:space:]])' | grep -q . && return 1 || return 0
+                ;;
+              *)
+                return 1
+                ;;
+            esac
+          }
+
+          while IFS= read -r file; do
+            [ -z "$file" ] && continue
+            if metadata_only_change "$file"; then
+              echo "Ignoring generated version metadata: $file"
+              continue
+            fi
+
+            case "$file" in
+              lib/*|assets/branding/*|main.dart|pubspec.yaml|pubspec.lock)
+                TARGET_MACOS=true; TARGET_WINDOWS=true; TARGET_LINUX=true
+                TARGET_ANDROID=true; TARGET_IOS=true; TARGET_WEB=true
+                ;;
+              macos/*|scripts/package_macos.*)
+                TARGET_MACOS=true
+                ;;
+              windows/*|scripts/package_windows.*)
+                TARGET_WINDOWS=true
+                ;;
+              linux/*|scripts/package_linux.*)
+                TARGET_LINUX=true
+                ;;
+              android/*|scripts/package_android.*)
+                TARGET_ANDROID=true
+                ;;
+              ios/*|scripts/package_ios.*)
+                TARGET_IOS=true
+                ;;
+              extension/*)
+                TARGET_EXTENSIONS=true; TARGET_MACOS=true
+                ;;
+              laterbox-web/*|web/*|cloudflare/*|scripts/deploy_web.*)
+                TARGET_WEB=true
+                ;;
+              *)
+                echo "No product release target mapped for: $file"
+                ;;
+            esac
+          done <<< "$CHANGED_FILES"
+
+          emit_outputs true
 
   build-macos:
     name: Build macOS Release & App Store Connect / TestFlight
     needs: check-version
-    if: needs.check-version.outputs.should_release == 'true'
+    if: needs.check-version.outputs.macos == 'true'
     # GitHub-hosted macOS images repeatedly hang in productbuild after all
     # signing has completed. Package on the maintainer's registered Mac,
     # where the same command completes successfully.
@@ -625,7 +738,7 @@ jobs:
   build-windows:
     name: Build Windows Release & Installer
     needs: check-version
-    if: needs.check-version.outputs.should_release == 'true' && needs.check-version.outputs.release_scope == 'all'
+    if: needs.check-version.outputs.windows == 'true'
     runs-on: windows-latest
 
     steps:
@@ -668,7 +781,7 @@ jobs:
   build-linux:
     name: Build Linux Release (.tar.gz, .zip)
     needs: check-version
-    if: needs.check-version.outputs.should_release == 'true' && needs.check-version.outputs.release_scope == 'all'
+    if: needs.check-version.outputs.linux == 'true'
     runs-on: ubuntu-latest
 
     steps:
@@ -711,7 +824,7 @@ jobs:
   build-android:
     name: Build Android Release (.apk, .aab) & Google Play
     needs: check-version
-    if: needs.check-version.outputs.should_release == 'true' && needs.check-version.outputs.release_scope == 'all'
+    if: needs.check-version.outputs.android == 'true'
     runs-on: ubuntu-latest
 
     steps:
@@ -797,7 +910,7 @@ jobs:
   build-ios:
     name: Build iOS Release & App Store Connect / TestFlight
     needs: check-version
-    if: needs.check-version.outputs.should_release == 'true' && needs.check-version.outputs.release_scope == 'all'
+    if: needs.check-version.outputs.ios == 'true'
     runs-on: macos-latest
 
     steps:
@@ -962,7 +1075,7 @@ jobs:
   build-extension:
     name: Build Browser Extensions (Chrome, Firefox, Safari)
     needs: check-version
-    if: needs.check-version.outputs.should_release == 'true' && needs.check-version.outputs.release_scope == 'all'
+    if: needs.check-version.outputs.extensions == 'true'
     runs-on: ubuntu-latest
 
     steps:
@@ -1211,7 +1324,7 @@ jobs:
   build-and-deploy-web:
     name: Build & Deploy Web to Cloudflare
     needs: check-version
-    if: needs.check-version.outputs.should_release == 'true' && needs.check-version.outputs.release_scope == 'all'
+    if: needs.check-version.outputs.web == 'true'
     runs-on: ubuntu-latest
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -1273,7 +1386,7 @@ jobs:
   create-release:
     name: Publish GitHub Release
     needs: [check-version, build-macos, build-windows, build-linux, build-android, build-ios, build-extension, build-and-deploy-web]
-    if: always() && !cancelled() && needs.check-version.outputs.should_release == 'true' && needs.check-version.outputs.release_scope == 'all'
+    if: always() && !cancelled() && needs.check-version.outputs.publish_release == 'true'
     runs-on: ubuntu-latest
 
     steps:
