@@ -39,6 +39,7 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
     with WidgetsBindingObserver {
   final AppLinks _appLinks = AppLinks();
   StreamSubscription<Uri>? _appLinkSubscription;
+  StreamSubscription<void>? _shareAvailableSubscription;
   Timer? _billingRefreshTimer;
   bool _drainingShares = false;
   final Set<String> _inFlightShareIds = {};
@@ -54,6 +55,12 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
         debugPrint('[LaterBox] app link failed: $error');
       },
     );
+    _shareAvailableSubscription = ref
+        .read(iosShareReceiverProvider)
+        .onShareAvailable
+        .listen((_) {
+      _drainPendingShares();
+    });
     ref.listenManual(entitlementProvider, (_, next) {
       next.whenData((entitlement) {
         unawaited(
@@ -80,6 +87,7 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
   @override
   void dispose() {
     _appLinkSubscription?.cancel();
+    _shareAvailableSubscription?.cancel();
     _billingRefreshTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
@@ -219,6 +227,15 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
   Future<void> _importAppleShares() async {
     try {
       final receiver = ref.read(iosShareReceiverProvider);
+      if (!kIsWeb && Platform.isIOS) {
+        final groupOk = await receiver.isAppGroupAvailable();
+        if (!groupOk) {
+          debugPrint(
+            '[LaterBox] WARNING: iOS App Group container is not accessible on this device. '
+            'Check App Group entitlements and provisioning profile.',
+          );
+        }
+      }
       final pending = await receiver.consumePendingShares();
       if (pending.isEmpty) return;
       for (final payload in pending) {
