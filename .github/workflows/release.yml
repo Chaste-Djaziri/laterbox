@@ -176,6 +176,15 @@ jobs:
             echo "$APPLE_INSTALLER_CERTIFICATE_BASE64" | base64 --decode > $RUNNER_TEMP/installer_cert.p12
             security import $RUNNER_TEMP/installer_cert.p12 -k "$KEYCHAIN_PATH" -P "$INSTALLER_PWD" -T /usr/bin/codesign -T /usr/bin/security -T /usr/bin/productbuild
 
+            # The installer identity is issued by Apple's WWDR G3
+            # intermediate. Add it to the otherwise empty CI keychain so
+            # productbuild can embed a complete signing chain without an
+            # unbounded network lookup.
+            curl --fail --location --retry 3 --max-time 30 \
+              https://www.apple.com/certificateauthority/AppleWWDRCAG3.cer \
+              --output "$RUNNER_TEMP/AppleWWDRCAG3.cer"
+            security import "$RUNNER_TEMP/AppleWWDRCAG3.cer" -k "$KEYCHAIN_PATH" -T /usr/bin/productbuild -T /usr/bin/security
+
             # productbuild on GitHub-hosted macOS runners consults the login
             # keychain even when a temporary keychain is the default. Import
             # the installer identity there with an explicit productbuild ACL.
@@ -493,7 +502,7 @@ jobs:
               return "$command_status"
             }
 
-            if ! run_with_timeout 300 productbuild --keychain "$PRODUCTBUILD_KEYCHAIN" --timestamp=none --sign "$MAC_INSTALLER_IDENTITY" --component "$APPSTORE_APP" /Applications dist/laterbox-macos.pkg; then
+            if ! run_with_timeout 300 productbuild --keychain "$PRODUCTBUILD_KEYCHAIN" --timestamp=none --sign "$MAC_INSTALLER_IDENTITY" --cert "Apple Worldwide Developer Relations Certification Authority" --component "$APPSTORE_APP" /Applications dist/laterbox-macos.pkg; then
               echo "::error::Mac App Store package build failed or timed out after 5 minutes."
               exit 1
             fi
