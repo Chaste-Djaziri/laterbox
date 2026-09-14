@@ -299,8 +299,14 @@ jobs:
           
           echo "Packaging application from: $APP_PATH"
           
-          # Inspect keychain identities
-          KEYCHAIN_PATH="$RUNNER_TEMP/build.keychain"
+          # Inspect signing identities. Self-hosted jobs intentionally use
+          # the maintainer's login keychain rather than the temporary CI
+          # keychain, whose private keys cannot answer a LaunchAgent prompt.
+          if [ "${RUNNER_ENVIRONMENT:-}" = "self-hosted" ]; then
+            KEYCHAIN_PATH=$(security default-keychain | tr -d '"')
+          else
+            KEYCHAIN_PATH="$RUNNER_TEMP/build.keychain"
+          fi
           if [ -f "$KEYCHAIN_PATH" ]; then
             echo "--- Available identities in keychain ---"
             security find-identity -v "$KEYCHAIN_PATH" || true
