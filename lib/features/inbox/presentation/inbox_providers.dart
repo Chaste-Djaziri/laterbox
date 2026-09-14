@@ -19,7 +19,8 @@ enum InboxFilterType {
   code('Code', Icons.code_rounded),
   places('Places', Icons.place_outlined),
   books('Books', Icons.menu_book_rounded),
-  files('Files', Icons.attach_file_rounded);
+  files('Files', Icons.attach_file_rounded),
+  links('Links', Icons.link_rounded);
 
   const InboxFilterType(this.label, this.icon);
   final String label;
@@ -71,6 +72,11 @@ enum InboxFilterType {
             t == 'file' ||
             t == 'document' ||
             t == 'pdf';
+      case InboxFilterType.links:
+        final t = item.type.toLowerCase();
+        final ct = item.metadata?.classification?.type;
+        final hasUrl = item.url != null && item.url!.trim().isNotEmpty;
+        return ct == ContentType.link || t == 'link' || (hasUrl && ct == null);
     }
   }
 }
