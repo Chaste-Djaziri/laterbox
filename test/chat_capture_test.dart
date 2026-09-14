@@ -6,10 +6,14 @@ import 'package:laterbox/app.dart';
 import 'package:laterbox/core/auth/auth_provider.dart';
 import 'package:laterbox/core/database/app_database.dart';
 import 'package:laterbox/core/database/database_providers.dart';
+import 'package:laterbox/core/enrichment/enrichment_providers.dart';
 import 'package:laterbox/core/router/app_router.dart';
 import 'package:laterbox/features/attachments/data/attachment_file_picker.dart';
 import 'package:laterbox/features/attachments/presentation/attachment_providers.dart';
 import 'package:laterbox/features/capture/presentation/capture_sheet.dart';
+import 'package:laterbox/features/enrichment/data/local_metadata_data_source.dart';
+import 'package:laterbox/features/enrichment/domain/item_metadata.dart';
+import 'package:laterbox/features/enrichment/domain/url_enhancer.dart';
 
 void main() {
   testWidgets('chat-style capture composer saves note and closes with animation', (
@@ -248,6 +252,89 @@ void main() {
       await database.close();
     },
   );
+
+  testWidgets(
+    'URL preview card formats entities (&#064; -> @, &#x2022; -> •) and allows dismissal',
+    (tester) async {
+      final database = AppDatabase(NativeDatabase.memory());
+      final fakeEnhancer = _FakeUrlEnhancer(LocalMetadataDataSource(database));
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            guestModeProvider.overrideWith((ref) => true),
+            appDatabaseProvider.overrideWithValue(database),
+            initialLocationProvider.overrideWithValue('/inbox'),
+            urlEnhancerProvider.overrideWithValue(fakeEnhancer),
+          ],
+          child: const LaterBoxApp(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byTooltip('Save something'));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        find.byType(TextField).last,
+        'https://instagram.com/chaste_djaziri',
+      );
+      // Wait for debounce and async enhancement
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pumpAndSettle();
+
+      // Verify preview card appears with decoded title (no &#064; or &#x2022;)
+      expect(
+        find.text(
+          'Chaste Djaziri (@chaste_djaziri) • Instagram photos and videos',
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.text(
+          'Chaste Djaziri (&#064;chaste_djaziri) &#x2022; Instagram photos and videos',
+        ),
+        findsNothing,
+      );
+      expect(find.text('instagram.com'), findsOneWidget);
+
+      // Dismiss the preview card via (X) button
+      await tester.tap(
+        find.byKey(
+          const ValueKey(
+            'dismiss_url_https://instagram.com/chaste_djaziri',
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Verify card was dismissed
+      expect(
+        find.text(
+          'Chaste Djaziri (@chaste_djaziri) • Instagram photos and videos',
+        ),
+        findsNothing,
+      );
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump(const Duration(milliseconds: 1));
+      await database.close();
+    },
+  );
+}
+
+class _FakeUrlEnhancer extends UrlEnhancer {
+  _FakeUrlEnhancer(LocalMetadataDataSource local) : super(local: local);
+
+  @override
+  Future<EnrichedMetadata?> enhance(String rawUrl) async {
+    return const EnrichedMetadata(
+      title:
+          'Chaste Djaziri (&#064;chaste_djaziri) &#x2022; Instagram photos and videos',
+      domain: 'instagram.com',
+      previewImageUrl: 'https://example.com/chaste.jpg',
+    );
+  }
 }
 
 class _FakePicker implements AttachmentFilePicker {
