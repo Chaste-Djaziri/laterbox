@@ -4,7 +4,9 @@ import UniformTypeIdentifiers
 final class ShareViewController: UIViewController {
     private let queue = ShareCaptureQueue(appGroupId: AppGroup.identifier)
     private let statusView = ShareStatusView()
+    private let backdropView = UIView()
     private let actionStack = UIStackView()
+    private var isSuccessDismissing = false
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -13,17 +15,44 @@ final class ShareViewController: UIViewController {
         processSharedContent()
     }
 
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        animateIn()
+    }
+
     // MARK: UI
 
     private func configureUI() {
-        view.backgroundColor = UIColor.black.withAlphaComponent(0.18)
+        view.backgroundColor = .clear
 
-        view.addSubview(statusView)
+        backdropView.backgroundColor = UIColor.black.withAlphaComponent(0.38)
+        backdropView.alpha = 0
+        backdropView.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(backdropView)
+
+        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(backdropTapped))
+        backdropView.addGestureRecognizer(tapGesture)
+
+        statusView.alpha = 0
+        statusView.transform = CGAffineTransform(scaleX: 0.88, y: 0.88).translatedBy(x: 0, y: 18)
         statusView.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(statusView)
+
+        let cardTapGesture = UITapGestureRecognizer(target: self, action: #selector(cardTapped))
+        statusView.addGestureRecognizer(cardTapGesture)
+
         NSLayoutConstraint.activate([
-            statusView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 24),
-            statusView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -24),
-            statusView.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+            backdropView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            backdropView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            backdropView.topAnchor.constraint(equalTo: view.topAnchor),
+            backdropView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+
+            statusView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            statusView.centerYAnchor.constraint(equalTo: view.centerYAnchor, constant: -10),
+            statusView.widthAnchor.constraint(greaterThanOrEqualToConstant: 280),
+            statusView.widthAnchor.constraint(lessThanOrEqualToConstant: 340),
+            statusView.leadingAnchor.constraint(greaterThanOrEqualTo: view.leadingAnchor, constant: 28),
+            statusView.trailingAnchor.constraint(lessThanOrEqualTo: view.trailingAnchor, constant: -28),
         ])
 
         actionStack.axis = .horizontal
@@ -40,9 +69,38 @@ final class ShareViewController: UIViewController {
         view.addSubview(actionStack)
         actionStack.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
-            actionStack.topAnchor.constraint(equalTo: statusView.bottomAnchor, constant: 20),
+            actionStack.topAnchor.constraint(equalTo: statusView.bottomAnchor, constant: 18),
             actionStack.centerXAnchor.constraint(equalTo: view.centerXAnchor),
         ])
+    }
+
+    private func animateIn() {
+        UIView.animate(withDuration: 0.25, delay: 0, options: [.curveEaseOut]) {
+            self.backdropView.alpha = 1
+        }
+        UIView.animate(
+            withDuration: 0.42,
+            delay: 0.05,
+            usingSpringWithDamping: 0.76,
+            initialSpringVelocity: 0.6,
+            options: [.curveEaseOut],
+            animations: {
+                self.statusView.alpha = 1
+                self.statusView.transform = .identity
+            }
+        )
+    }
+
+    @objc private func backdropTapped() {
+        if isSuccessDismissing {
+            finishWithAnimation()
+        }
+    }
+
+    @objc private func cardTapped() {
+        if isSuccessDismissing {
+            finishWithAnimation()
+        }
     }
 
     private func makeButton(title: String, isDestructive: Bool) -> UIButton {
@@ -340,10 +398,20 @@ final class ShareViewController: UIViewController {
             showFailure("Couldn't read the shared content")
             return
         }
+        let isUrl = trimmed?.hasPrefix("http://") == true || trimmed?.hasPrefix("https://") == true
+        let captureKind: String
+        if !filePaths.isEmpty {
+            captureKind = "attachments"
+        } else if isUrl {
+            captureKind = "url"
+        } else {
+            captureKind = "text"
+        }
+
         let capture = PendingShareCapture(
             id: captureId,
             value: trimmed,
-            kind: filePaths.isEmpty ? "text" : "attachments",
+            kind: filePaths.isEmpty ? (isUrl ? "url" : "text") : "attachments",
             source: "iosShare",
             createdAt: ISO8601DateFormatter().string(from: Date()),
             filePaths: filePaths
@@ -351,7 +419,7 @@ final class ShareViewController: UIViewController {
         if queue.enqueue(capture) {
             let subtitle: String?
             if filePaths.isEmpty, let trimmed {
-                subtitle = displaySubtitle(for: trimmed, kind: "text")
+                subtitle = displaySubtitle(for: trimmed, kind: captureKind)
             } else if failureCount > 0 && !filePaths.isEmpty {
                 subtitle = "\(filePaths.count) saved, \(failureCount) couldn't be read"
             } else {
@@ -359,7 +427,7 @@ final class ShareViewController: UIViewController {
                     ? URL(fileURLWithPath: filePaths[0]).lastPathComponent
                     : "\(filePaths.count) files"
             }
-            showSuccess(subtitle: subtitle)
+            showSuccess(subtitle: subtitle, kind: captureKind)
         } else {
             showFailure("Could not save to LaterBox queue")
         }
@@ -388,12 +456,29 @@ final class ShareViewController: UIViewController {
         }
     }
 
-    private func showSuccess(subtitle: String?) {
+    private func showSuccess(subtitle: String?, kind: String?) {
+        isSuccessDismissing = true
         triggerSuccessFeedback()
-        statusView.setState(.success(subtitle))
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.1) { [weak self] in
-            self?.finish()
+        statusView.setState(.success(subtitle: subtitle, kind: kind), dismissDuration: 2.4)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.4) { [weak self] in
+            self?.finishWithAnimation()
         }
+    }
+
+    private func finishWithAnimation() {
+        UIView.animate(
+            withDuration: 0.26,
+            delay: 0,
+            options: [.curveEaseIn],
+            animations: {
+                self.statusView.alpha = 0
+                self.statusView.transform = CGAffineTransform(scaleX: 0.93, y: 0.93)
+                self.backdropView.alpha = 0
+            },
+            completion: { [weak self] _ in
+                self?.finish()
+            }
+        )
     }
 
     private func showFailure(_ message: String) {
@@ -419,11 +504,15 @@ final class ShareViewController: UIViewController {
 
     private func displaySubtitle(for value: String, kind: String) -> String? {
         if kind == "url", let url = URL(string: value), let host = url.host {
-            return host.replacingOccurrences(of: "www.", with: "")
+            let cleanHost = host.replacingOccurrences(of: "www.", with: "")
+            if let firstComponent = url.path.components(separatedBy: "/").filter({ !$0.isEmpty }).first, firstComponent.count < 25 {
+                return "\(cleanHost)/\(firstComponent)"
+            }
+            return cleanHost
         }
         let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return nil }
-        return String(trimmed.prefix(60))
+        return String(trimmed.prefix(50))
     }
 
     private func finish() {
