@@ -756,6 +756,7 @@ class _SyncAndStorageCard extends ConsumerWidget {
     final allItems = ref.watch(allItemsProvider);
     final keptItems = ref.watch(keptProvider);
     final collections = ref.watch(collectionCountsProvider);
+    final isPro = ref.watch(hasProAccessProvider);
 
     return Container(
       decoration: BoxDecoration(
@@ -811,6 +812,10 @@ class _SyncAndStorageCard extends ConsumerWidget {
           const SizedBox(height: 14),
           FilledButton.tonalIcon(
             onPressed: () async {
+              if (!isPro) {
+                await showSyncPlansSheet(context);
+                return;
+              }
               await ref.read(syncCoordinatorProvider).syncNow();
               ref.invalidate(inboxItemsProvider);
               if (context.mounted) {
@@ -819,7 +824,10 @@ class _SyncAndStorageCard extends ConsumerWidget {
                 );
               }
             },
-            icon: const Icon(Icons.sync_rounded, size: 16),
+            icon: Icon(
+              isPro ? Icons.sync_rounded : Icons.workspace_premium_outlined,
+              size: 16,
+            ),
             label: const Text('Force Sync Now'),
           ),
         ],
