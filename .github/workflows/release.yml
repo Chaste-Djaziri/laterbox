@@ -150,6 +150,14 @@ jobs:
         if: env.APPLE_CERTIFICATE_BASE64 != '' || env.APPLE_DEVELOPER_ID_CERTIFICATE_BASE64 != '' || env.APPLE_INSTALLER_CERTIFICATE_BASE64 != ''
         shell: bash
         run: |
+          # The registered maintainer Mac already has the signing identities
+          # in its login keychain. Its LaunchAgent cannot answer a Keychain UI
+          # prompt for a temporary imported private key, so use the existing
+          # non-interactive identities on self-hosted runs.
+          if [ "${RUNNER_ENVIRONMENT:-}" = "self-hosted" ]; then
+            echo "Using signing identities from the self-hosted runner login keychain."
+            security find-identity -v -p codesigning
+          else
           KEYCHAIN_PATH=$RUNNER_TEMP/build.keychain
           KEYCHAIN_PASSWORD=$(openssl rand -base64 12)
           security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
@@ -203,6 +211,7 @@ jobs:
           fi
 
           security set-key-partition-list -S apple-tool:,apple:,codesign:,productbuild: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          fi
 
           # 3. Decode and install macOS Main Provisioning Profile
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
