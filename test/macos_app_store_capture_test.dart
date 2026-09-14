@@ -19,6 +19,7 @@ void main() {
       find.byType(MaterialApp),
       matchesGoldenFile('../assets/app_store/macos/01_inbox.png'),
     );
+    await _disposeScene(tester);
   });
 
   testWidgets('renders the macOS App Store quick capture screenshot', (
@@ -39,6 +40,7 @@ void main() {
       find.byType(MaterialApp),
       matchesGoldenFile('../assets/app_store/macos/02_quick_capture.png'),
     );
+    await _disposeScene(tester);
   });
 
   testWidgets('renders the macOS App Store reader screenshot', (tester) async {
@@ -48,6 +50,7 @@ void main() {
       find.byType(MaterialApp),
       matchesGoldenFile('../assets/app_store/macos/03_reader.png'),
     );
+    await _disposeScene(tester);
   });
 }
 
@@ -78,6 +81,11 @@ Future<void> _pumpScene(WidgetTester tester, Widget scene) async {
     ),
   );
   await tester.pump(const Duration(milliseconds: 350));
+}
+
+Future<void> _disposeScene(WidgetTester tester) async {
+  await tester.pumpWidget(const SizedBox.shrink());
+  await tester.pump();
 }
 
 Future<void> _seedDatabase(AppDatabase database) async {
