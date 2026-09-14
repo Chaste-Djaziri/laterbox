@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 
 import '../data/local_metadata_data_source.dart';
 import '../data/remote_metadata_data_source.dart';
+import 'content_type.dart';
 import 'item_metadata.dart';
 import 'url_utils.dart';
 
@@ -68,6 +69,11 @@ class UrlEnhancer {
             'https://www.youtube.com/s/desktop/f1725893/img/favicon_144x144.png',
         previewImageUrl: oembed?['thumbnail_url'] ??
             'https://i.ytimg.com/vi/$ytId/hqdefault.jpg',
+        classification: const ClassificationResult(
+          type: ContentType.video,
+          confidence: 0.99,
+          source: ClassificationSource.domainRule,
+        ),
       );
     }
 
@@ -192,6 +198,13 @@ class UrlEnhancer {
 
     final favicon = 'https://www.google.com/s2/favicons?domain=$domain&sz=128';
 
+    final ogType = extractMeta([
+      r'''<meta[^>]+property=["']og:type["'][^>]+content=["']([^"']+)["']''',
+      r'''<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:type["']''',
+    ])?.toLowerCase();
+
+    final classification = classifyUrl(uri, ogType);
+
     return EnrichedMetadata(
       domain: domain,
       siteName: siteName ?? domain,
@@ -199,6 +212,120 @@ class UrlEnhancer {
       description: description,
       faviconUrl: favicon,
       previewImageUrl: resolvedImage,
+      classification: classification,
+    );
+  }
+
+  static ClassificationResult? classifyUrl(Uri uri, String? ogType) {
+    final domain = (extractDomain(uri.toString()) ?? uri.host).toLowerCase();
+    final path = uri.path.toLowerCase();
+
+    // 1. Videos
+    if (domain == 'youtube.com' ||
+        domain == 'youtu.be' ||
+        domain == 'vimeo.com' ||
+        domain == 'tiktok.com' ||
+        domain == 'dailymotion.com' ||
+        domain == 'twitch.tv' ||
+        path.contains('/reel/') ||
+        path.contains('/shorts/') ||
+        (ogType != null && ogType.startsWith('video'))) {
+      return const ClassificationResult(
+        type: ContentType.video,
+        confidence: 0.95,
+        source: ClassificationSource.domainRule,
+      );
+    }
+
+    // 2. Code / Repositories
+    if (domain == 'github.com' ||
+        domain == 'gitlab.com' ||
+        domain == 'bitbucket.org' ||
+        domain == 'gist.github.com') {
+      return const ClassificationResult(
+        type: ContentType.repository,
+        confidence: 0.95,
+        source: ClassificationSource.domainRule,
+      );
+    }
+
+    // 3. Music / Audio
+    if (domain == 'spotify.com' ||
+        domain == 'soundcloud.com' ||
+        domain == 'music.apple.com' ||
+        domain == 'bandcamp.com' ||
+        (ogType != null && ogType.startsWith('music'))) {
+      return const ClassificationResult(
+        type: ContentType.music,
+        confidence: 0.95,
+        source: ClassificationSource.domainRule,
+      );
+    }
+
+    // 4. Products / Shopping
+    if (domain.contains('amazon.') ||
+        domain.contains('ebay.') ||
+        domain.contains('etsy.') ||
+        domain.contains('shopify.') ||
+        domain.contains('aliexpress.') ||
+        domain.contains('target.com') ||
+        domain.contains('walmart.com') ||
+        ogType == 'product' ||
+        ogType == 'product.item') {
+      return const ClassificationResult(
+        type: ContentType.product,
+        confidence: 0.95,
+        source: ClassificationSource.domainRule,
+      );
+    }
+
+    // 5. Places / Maps
+    if (domain.contains('maps.google.') ||
+        (domain.contains('google.com') && path.startsWith('/maps')) ||
+        domain == 'maps.apple.com' ||
+        domain == 'openstreetmap.org' ||
+        ogType == 'place') {
+      return const ClassificationResult(
+        type: ContentType.place,
+        confidence: 0.95,
+        source: ClassificationSource.domainRule,
+      );
+    }
+
+    // 6. Books
+    if (domain.contains('goodreads.com') ||
+        domain.contains('books.google.') ||
+        ogType == 'book') {
+      return const ClassificationResult(
+        type: ContentType.book,
+        confidence: 0.95,
+        source: ClassificationSource.domainRule,
+      );
+    }
+
+    // 7. Articles / News / Blogs
+    if (ogType == 'article' ||
+        domain == 'medium.com' ||
+        domain == 'substack.com' ||
+        domain == 'dev.to' ||
+        domain.contains('blog.') ||
+        domain.contains('news.') ||
+        domain == 'nytimes.com' ||
+        domain == 'bbc.com' ||
+        domain == 'theverge.com' ||
+        domain == 'techcrunch.com') {
+      return const ClassificationResult(
+        type: ContentType.article,
+        confidence: 0.85,
+        source: ClassificationSource.domainRule,
+      );
+    }
+
+    // 8. General Web Links
+    return const ClassificationResult(
+      type: ContentType.link,
+      confidence: 0.7,
+      source: ClassificationSource.heuristic,
     );
   }
 
