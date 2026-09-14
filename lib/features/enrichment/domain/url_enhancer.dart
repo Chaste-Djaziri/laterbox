@@ -77,29 +77,41 @@ class UrlEnhancer {
       );
     }
 
+    final isSocial = domain.contains('instagram.com') ||
+        domain.contains('facebook.com') ||
+        domain.contains('threads.net');
+
     try {
+      final userAgent = isSocial
+          ? 'facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)'
+          : 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36';
+
       final response = await _httpClient.get(
         uri,
         headers: {
-          'User-Agent':
-              'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
+          'User-Agent': userAgent,
           'Accept':
               'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
         },
       ).timeout(const Duration(seconds: 5));
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
-        return parseHtmlMetadata(response.body, uri);
+        final meta = parseHtmlMetadata(response.body, uri);
+        if (meta.title != null && meta.title != domain) {
+          return meta;
+        }
       }
     } catch (_) {
       // Ignored
     }
 
+    final classification = classifyUrl(uri, null);
     return EnrichedMetadata(
       domain: domain,
       siteName: domain,
       title: domain,
       faviconUrl: 'https://www.google.com/s2/favicons?domain=$domain&sz=128',
+      classification: classification,
     );
   }
 
