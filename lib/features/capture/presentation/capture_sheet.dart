@@ -525,10 +525,21 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
 
     var popped = false;
     try {
-      final primaryMeta = _urlPreviews.values
+      var primaryMeta = _urlPreviews.values
           .map((p) => p.metadata)
           .whereType<EnrichedMetadata>()
           .firstOrNull;
+
+      // If URL preview hasn't finished resolving yet, fetch it now so title & category are captured
+      if (primaryMeta == null) {
+        final urls = extractUrls(_controller.text);
+        final firstActiveUrl = urls.where((u) => !_dismissedUrls.contains(u)).firstOrNull;
+        if (firstActiveUrl != null) {
+          try {
+            primaryMeta = await ref.read(urlEnhancerProvider).enhance(firstActiveUrl);
+          } catch (_) {}
+        }
+      }
 
       if (_selectedFiles.isNotEmpty) {
         final result = kIsWeb
@@ -583,6 +594,8 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
       final payload = CapturePayload.fromValue(
         _controller.text,
         id: itemId,
+        title: primaryMeta?.title,
+        type: primaryMeta?.classification?.type.value,
         source: CaptureSource.manual,
       );
       await ref.read(captureServiceProvider).save(payload);
