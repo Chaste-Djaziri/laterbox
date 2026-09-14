@@ -50,11 +50,17 @@ struct PendingShareCapture: Codable {
 }
 
 final class ShareCaptureQueue {
+    static let shareReceivedNotification = "pro.micorp.laterbox.share_received"
+
     private let appGroupId: String
     private let groupDefaults: UserDefaults?
     private let groupContainerURL: URL?
     private let fallbackContainerURL: URL
     private let key = "laterbox.pendingShareCaptures"
+
+    var isAppGroupAvailable: Bool {
+        return groupContainerURL != nil || groupDefaults != nil
+    }
 
     init(appGroupId: String = "group.pro.micorp.laterbox") {
         self.appGroupId = appGroupId
@@ -87,7 +93,10 @@ final class ShareCaptureQueue {
     }
 
     private func ensureDirectoryExists(at url: URL) {
-        try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true, attributes: nil)
+        let attributes: [FileAttributeKey: Any] = [
+            .protectionKey: FileProtectionType.completeUntilFirstUserAuthentication
+        ]
+        try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true, attributes: attributes)
     }
 
     private var activeContainerURL: URL {
@@ -111,6 +120,17 @@ final class ShareCaptureQueue {
         return directory
     }
 
+    private func notifyShareReceived() {
+        let notificationName = CFNotificationName(Self.shareReceivedNotification as CFString)
+        CFNotificationCenterPostNotification(
+            CFNotificationCenterGetDarwinNotifyCenter(),
+            notificationName,
+            nil,
+            nil,
+            true
+        )
+    }
+
     @discardableResult
     func enqueue(_ capture: PendingShareCapture) -> Bool {
         var captures = readAll()
@@ -121,35 +141,61 @@ final class ShareCaptureQueue {
 
         guard let data = try? JSONEncoder().encode(captures) else { return false }
         
-        var writeSucceeded = false
+        var sharedWriteSucceeded = false
+        var fallbackWriteSucceeded = false
 
-        // 1. Write to all available file queue locations
-        for fileURL in queueFileURLs {
+        // 1. Write to App Group file container (accessible cross-process)
+        if let group = groupContainerURL {
+            let fileURL = group.appendingPathComponent("pending-share-captures.json")
             let parentDir = fileURL.deletingLastPathComponent()
             ensureDirectoryExists(at: parentDir)
             do {
-                try data.write(to: fileURL, options: .atomic)
-                writeSucceeded = true
+                try data.write(to: fileURL, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
+                sharedWriteSucceeded = true
             } catch {
                 do {
                     try data.write(to: fileURL)
-                    writeSucceeded = true
+                    try? FileManager.default.setAttributes([.protectionKey: FileProtectionType.completeUntilFirstUserAuthentication], ofItemAtPath: fileURL.path)
+                    sharedWriteSucceeded = true
                 } catch {
-                    NSLog("[LaterBox] Could not write to queue file at \(fileURL.path): \(error)")
+                    NSLog("[LaterBox] Could not write to group queue file: \(error)")
                 }
             }
         }
 
-        // 2. Write to App Group UserDefaults suite
+        // 2. Write to App Group UserDefaults suite (accessible cross-process)
         if let groupDefaults {
             groupDefaults.set(data, forKey: key)
             groupDefaults.synchronize()
             if groupDefaults.data(forKey: key) != nil {
-                writeSucceeded = true
+                sharedWriteSucceeded = true
             }
         }
 
-        return writeSucceeded
+        // 3. Write to fallback sandbox container (only used when running in standalone mode / unit tests)
+        let fallbackURL = fallbackContainerURL.appendingPathComponent("pending-share-captures.json")
+        let fallbackParent = fallbackURL.deletingLastPathComponent()
+        ensureDirectoryExists(at: fallbackParent)
+        do {
+            try data.write(to: fallbackURL, options: .atomic)
+            fallbackWriteSucceeded = true
+        } catch {
+            do {
+                try data.write(to: fallbackURL)
+                fallbackWriteSucceeded = true
+            } catch {
+                NSLog("[LaterBox] Could not write to fallback queue file: \(error)")
+            }
+        }
+
+        // Cross-process sharing requires at least one App Group medium, OR fallback if App Group is intentionally not configured (e.g. unit tests)
+        let success = isAppGroupAvailable ? sharedWriteSucceeded : fallbackWriteSucceeded
+
+        if success {
+            notifyShareReceived()
+        }
+
+        return success
     }
 
     func readAll() -> [PendingShareCapture] {
@@ -164,21 +210,29 @@ final class ShareCaptureQueue {
             }
         }
 
-        // 1. Read from queue files
-        for fileURL in queueFileURLs {
+        // 1. Read from shared App Group queue file
+        if let group = groupContainerURL {
+            let fileURL = group.appendingPathComponent("pending-share-captures.json")
             if let fileData = try? Data(contentsOf: fileURL),
                let decoded = try? JSONDecoder().decode([PendingShareCapture].self, from: fileData) {
                 appendUnique(decoded)
             }
         }
 
-        // 2. Read from App Group UserDefaults (sync first for cross-process updates)
+        // 2. Read from App Group UserDefaults suite
         if let groupDefaults {
             groupDefaults.synchronize()
             if let groupData = groupDefaults.data(forKey: key),
                let decoded = try? JSONDecoder().decode([PendingShareCapture].self, from: groupData) {
                 appendUnique(decoded)
             }
+        }
+
+        // 3. Read from fallback container (for unit tests or local legacy files)
+        let fallbackURL = fallbackContainerURL.appendingPathComponent("pending-share-captures.json")
+        if let fileData = try? Data(contentsOf: fallbackURL),
+           let decoded = try? JSONDecoder().decode([PendingShareCapture].self, from: fileData) {
+            appendUnique(decoded)
         }
 
         return captures
@@ -210,7 +264,11 @@ final class ShareCaptureQueue {
         for fileURL in queueFileURLs {
             let parentDir = fileURL.deletingLastPathComponent()
             ensureDirectoryExists(at: parentDir)
-            try? data.write(to: fileURL, options: .atomic)
+            do {
+                try data.write(to: fileURL, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
+            } catch {
+                try? data.write(to: fileURL)
+            }
         }
 
         groupDefaults?.set(data, forKey: key)
