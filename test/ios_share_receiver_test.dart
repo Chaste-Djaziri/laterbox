@@ -105,4 +105,68 @@ void main() {
     await tester.pump(const Duration(milliseconds: 1));
     await database.close();
   });
+
+  testWidgets('drains pending shares when onNewShareAvailable event is received', (
+    tester,
+  ) async {
+    final database = AppDatabase(NativeDatabase.memory());
+    const channel = MethodChannel(IosShareReceiver.channelName);
+    const androidChannel = MethodChannel(AndroidShareReceiver.channelName);
+    var returnShares = false;
+
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(androidChannel, (call) async => []);
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
+          if (call.method == 'isAppGroupAvailable') return true;
+          if (call.method == 'consumePending') {
+            if (!returnShares) return [];
+            return [
+              {
+                'id': 'dynamic-share-42',
+                'value': 'https://example.com/live',
+                'createdAt': '2026-09-14T21:00:00Z',
+              },
+            ];
+          }
+          if (call.method == 'acknowledgePending') return true;
+          return null;
+        });
+    addTearDown(
+      () => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        ..setMockMethodCallHandler(channel, null)
+        ..setMockMethodCallHandler(androidChannel, null),
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          guestModeProvider.overrideWith((ref) => true),
+          hasProAccessProvider.overrideWithValue(false),
+          appDatabaseProvider.overrideWithValue(database),
+          initialLocationProvider.overrideWithValue('/inbox'),
+        ],
+        child: const LaterBoxApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Nothing saved yet'), findsOneWidget);
+
+    returnShares = true;
+    await TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .handlePlatformMessage(
+          IosShareReceiver.channelName,
+          const StandardMethodCodec().encodeMethodCall(
+            const MethodCall('onNewShareAvailable'),
+          ),
+          (ByteData? data) {},
+        );
+
+    await _pumpUntilFound(tester, find.text('https://example.com/live'));
+    expect(find.text('https://example.com/live'), findsOneWidget);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(milliseconds: 1));
+    await database.close();
+  });
 }
