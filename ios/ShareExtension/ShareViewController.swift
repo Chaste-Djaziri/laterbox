@@ -429,7 +429,19 @@ final class ShareViewController: UIViewController {
             }
             showSuccess(subtitle: subtitle, kind: captureKind)
         } else {
-            showFailure("Could not save to LaterBox queue")
+            // If App Group is unavailable on this device build, fall back to direct deep-link save for web URLs/text
+            if !queue.isAppGroupAvailable, filePaths.isEmpty, let trimmed,
+               let encoded = trimmed.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
+               let deepLink = URL(string: "laterbox://share?value=\(encoded)&id=\(captureId)") {
+                openHostApp(url: deepLink)
+                showSuccess(subtitle: displaySubtitle(for: trimmed, kind: captureKind), kind: captureKind)
+                return
+            }
+            if !queue.isAppGroupAvailable {
+                showFailure("App Group container unavailable. Check device entitlements.")
+            } else {
+                showFailure("Could not save to LaterBox queue")
+            }
         }
     }
 
@@ -517,6 +529,18 @@ final class ShareViewController: UIViewController {
 
     private func finish() {
         extensionContext?.completeRequest(returningItems: nil, completionHandler: nil)
+    }
+
+    private func openHostApp(url: URL) {
+        var responder: UIResponder? = self
+        let selector = sel_registerName("openURL:")
+        while let current = responder {
+            if current.responds(to: selector) {
+                current.perform(selector, with: url)
+                return
+            }
+            responder = current.next
+        }
     }
 }
 
