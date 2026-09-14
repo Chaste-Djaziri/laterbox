@@ -855,14 +855,16 @@ class _AppIconSettingsTile extends ConsumerWidget {
     final activeId = currentIconAsync.valueOrNull;
     final currentOption = AppIconOption.fromId(activeId);
 
-    return Container(
-      decoration: BoxDecoration(
-        color: colors.surfaceContainerHighest.withValues(alpha: 0.35),
+    return Material(
+      color: colors.surfaceContainerHighest.withValues(alpha: 0.35),
+      borderRadius: BorderRadius.circular(20),
+      shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(
+        side: BorderSide(
           color: colors.outlineVariant.withValues(alpha: 0.6),
         ),
       ),
+      clipBehavior: Clip.antiAlias,
       child: ListTile(
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
