@@ -42,15 +42,17 @@ void main() {
   ) async {
     await _pumpScene(
       tester,
-      Stack(
-        children: [
-          const IgnorePointer(child: InboxScreen()),
-          ColoredBox(color: Colors.black.withValues(alpha: 0.44)),
-          const CaptureSheet(
-            initialText:
-                'https://www.nngroup.com/articles/information-overload/',
-          ),
-        ],
+      Scaffold(
+        body: Stack(
+          children: [
+            const IgnorePointer(child: InboxScreen()),
+            ColoredBox(color: Colors.black.withValues(alpha: 0.44)),
+            const CaptureSheet(
+              initialText:
+                  'https://www.nngroup.com/articles/information-overload/',
+            ),
+          ],
+        ),
       ),
     );
 
