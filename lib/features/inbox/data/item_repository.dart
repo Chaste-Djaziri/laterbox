@@ -54,6 +54,8 @@ class ItemRepository {
   Future<void> save(
     String value, {
     String? id,
+    String? title,
+    String? type,
     DateTime? createdAt,
     String? textContent,
     String? url,
@@ -102,13 +104,19 @@ class ItemRepository {
       return;
     }
 
+    final resolvedType = type ??
+        (isUrl
+            ? (bodyText != null && bodyText.isNotEmpty ? 'quote' : 'link')
+            : 'text');
+
     await _local.insert(
       ItemsCompanion.insert(
         id: itemId,
         userId: Value(_userId),
         url: Value(normalizedUrl),
+        title: Value(title),
         textContent: Value(bodyText),
-        type: Value(isUrl ? (bodyText != null && bodyText.isNotEmpty ? 'quote' : 'link') : 'text'),
+        type: Value(resolvedType),
         createdAt: now,
         updatedAt: now,
         syncStatus: Value(SyncStatus.pending.databaseValue),
