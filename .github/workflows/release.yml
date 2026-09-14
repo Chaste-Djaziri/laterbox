@@ -100,6 +100,9 @@ jobs:
     # where the same command completes successfully.
     runs-on: [self-hosted, macOS, ARM64, laterbox-release]
     env:
+      # App Store Connect currently accepts the installed Xcode 26 release,
+      # not the Xcode 27 beta selected by the system default.
+      DEVELOPER_DIR: /Applications/Xcode-26.6.0.app/Contents/Developer
       APPLE_CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
       APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
       APPLE_DEVELOPER_ID_CERTIFICATE_BASE64: ${{ secrets.APPLE_DEVELOPER_ID_CERTIFICATE_BASE64 }}
