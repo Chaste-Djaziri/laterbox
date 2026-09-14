@@ -134,6 +134,55 @@ void main() {
       expect(expandedSize.height, greaterThan(initialSize.height));
     },
   );
+
+  testWidgets(
+    'continuous typing across multiline expansion keeps EditableText element mounted and focused',
+    (tester) async {
+      await tester.pumpWidget(
+        const ProviderScope(
+          child: MaterialApp(
+            home: Scaffold(
+              body: CaptureSheet(),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final initialElement = tester.element(find.byType(EditableText));
+      final focusNode =
+          tester.widget<EditableText>(find.byType(EditableText)).focusNode;
+      expect(focusNode.hasFocus, isTrue);
+
+      // Type line 1
+      await tester.enterText(find.byType(TextField), 'First line');
+      await tester.pump();
+      expect(tester.element(find.byType(EditableText)), same(initialElement));
+
+      // Type across resize threshold (> 2 lines)
+      await tester.enterText(
+        find.byType(TextField),
+        'First line\nSecond line\nThird line continuing to type smoothly',
+      );
+      // Pump mid-animation (100ms) to ensure smooth interpolation
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(tester.element(find.byType(EditableText)), same(initialElement));
+      expect(focusNode.hasFocus, isTrue);
+
+      await tester.pumpAndSettle();
+      expect(tester.element(find.byType(EditableText)), same(initialElement));
+      expect(focusNode.hasFocus, isTrue);
+
+      // Continue typing more content without interruption
+      await tester.enterText(
+        find.byType(TextField),
+        'First line\nSecond line\nThird line continuing to type smoothly and effortlessly',
+      );
+      await tester.pump();
+      expect(tester.element(find.byType(EditableText)), same(initialElement));
+      expect(focusNode.hasFocus, isTrue);
+    },
+  );
 }
 
 class _FakePicker implements AttachmentFilePicker {
