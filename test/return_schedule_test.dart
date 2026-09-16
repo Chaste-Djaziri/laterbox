@@ -63,7 +63,7 @@ void main() {
     var saved = (await repo.watchAllItems().first).single;
     expect(saved.type, 'task'); expect(saved.returnAt, now.toUtc()); expect(saved.isDue(now), isTrue);
     expect(await repo.save('Do the thing', returnAt: now.add(const Duration(days: 1))), 'task');
-    expect((await db.itemById('task'))!.returnAt, now.toUtc());
+    expect((await db.itemById('task'))!.returnAt?.toUtc(), now.toUtc());
     await repo.reschedule('task', now.add(const Duration(days: 1)));
     saved = (await repo.watchAllItems().first).single;
     expect(saved.isDue(now), isFalse);
@@ -77,7 +77,7 @@ void main() {
       'status': 'deferred', 'return_at': now.toUtc().toIso8601String(), 'created_at': now.toUtc().toIso8601String(),
       'updated_at': now.toUtc().toIso8601String()});
     await local.applyRemote(remote, now);
-    expect((await db.itemById('remote'))!.returnAt, now.toUtc());
+    expect((await db.itemById('remote'))!.returnAt?.toUtc(), now.toUtc());
     expect((await repo.watchAllItems().first).map((i) => i.id), ['task']);
     await service.save(CapturePayload.fromValue('Unscheduled share', id: 'share', source: CaptureSource.iosShare));
     expect((await db.itemById('share'))!.status, 'deferred');
