@@ -9,6 +9,7 @@ import '../../features/attachments/presentation/attachment_providers.dart';
 import '../../features/enrichment/domain/content_type.dart';
 import '../../features/enrichment/domain/url_utils.dart';
 import '../../features/inbox/presentation/inbox_providers.dart';
+import '../../features/scheduling/presentation/return_time_picker.dart';
 import '../models/laterbox_item.dart';
 import 'item_actions.dart';
 
@@ -89,8 +90,9 @@ class _ItemCardState extends ConsumerState<ItemCard> {
                 : (isDesktop ? 800 : double.infinity),
           ),
           child: Semantics(
-            label:
-                '$eyebrow, $title, saved ${timeago.format(widget.item.createdAt)}',
+            label: widget.item.returnAt != null
+                ? '$eyebrow, $title, returns ${returnTimeLabel(context, widget.item.returnAt)}'
+                : '$eyebrow, $title, saved ${timeago.format(widget.item.createdAt)}',
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 150),
               curve: Curves.easeOutCubic,
@@ -340,7 +342,9 @@ class _GridCardContent extends StatelessWidget {
         ],
         const SizedBox(height: 6),
         Text(
-          timeago.format(item.createdAt),
+          item.returnAt != null
+              ? returnTimeLabel(context, item.returnAt)
+              : timeago.format(item.createdAt),
           style: theme.textTheme.labelSmall?.copyWith(
             color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
             fontSize: 10,
@@ -475,7 +479,9 @@ class _ListCardContent extends StatelessWidget {
               ],
               const SizedBox(height: 12),
               Text(
-                timeago.format(item.createdAt),
+                item.returnAt != null
+                    ? returnTimeLabel(context, item.returnAt)
+                    : timeago.format(item.createdAt),
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
