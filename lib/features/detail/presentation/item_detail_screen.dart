@@ -19,6 +19,7 @@ import '../../collections/presentation/collection_providers.dart';
 import '../../inbox/presentation/inbox_providers.dart';
 import '../../notes/presentation/item_note_section.dart';
 import 'detail_providers.dart';
+import '../../scheduling/presentation/return_time_picker.dart';
 
 /// The permanent home for a single item: rich preview, open-original, and the
 /// full set of lifecycle actions without cluttering the cards.
@@ -187,6 +188,12 @@ class _ItemDetailBody extends ConsumerWidget {
     return ListView(
       padding: const EdgeInsets.only(bottom: 40),
       children: [
+        Padding(padding: const EdgeInsets.all(24), child: ReturnTimePicker(
+          value: item.returnAt, onChanged: (time) => ref.read(itemRepositoryProvider).reschedule(item.id, time))),
+        if (item.type == 'task' && item.isActive)
+          Padding(padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: FilledButton.icon(onPressed: () => ref.read(itemRepositoryProvider).archive(item.id),
+              icon: const Icon(Icons.task_alt), label: const Text('Done'))),
         if (hasAttachmentPreview)
           AttachmentDetailPreview(
             attachments: attachments,
