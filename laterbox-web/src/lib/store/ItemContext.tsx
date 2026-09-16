@@ -6,7 +6,7 @@ import { LaterBoxItem, ItemStatus, InboxFilterType, Collection, Attachment } fro
 import { useAuth } from './AuthContext';
 import { useBilling } from './BillingContext';
 import { normalizeUrl, isUrl, extractDomain } from '../utils/url';
-import { uploadAttachmentFile } from '../utils/attachment';
+import { storeLocalAttachment } from '../utils/local-attachments';
 import { isActive, isDue, migrateSchedule } from '../utils/schedule';
 
 const LOCAL_ITEMS_KEY = 'laterbox_local_items';
@@ -317,19 +317,8 @@ export function ItemProvider({ children }: { children: ReactNode }) {
         : null,
     };
 
-    // Upload files if provided
-    let uploadedAttachments: Attachment[] = [];
-    if (files.length > 0 && user && isPro) {
-      try {
-        const uploadPromises = files.map((file) =>
-          uploadAttachmentFile(file, itemId, user.id)
-        );
-        uploadedAttachments = await Promise.all(uploadPromises);
-        newItem.attachments = uploadedAttachments;
-      } catch (err) {
-        console.warn('[LaterBox] Attachment upload warning:', err);
-      }
-    }
+    // Commit file bytes locally before reporting capture success, including offline/guest captures.
+    newItem.attachments = await Promise.all(files.map(file => storeLocalAttachment(file, itemId, user?.id || null)));
 
     const updated = [newItem, ...items];
     setItems(updated);
