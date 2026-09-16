@@ -100,15 +100,6 @@ export function ItemProvider({ children }: { children: ReactNode }) {
 
       await syncPendingCaptures(user.id);
 
-      // Retry offline schedule changes before fetching the cloud snapshot.
-      const pendingKey = `laterbox_pending_schedules_${user.id}`;
-      const pending = JSON.parse(localStorage.getItem(pendingKey) || '{}');
-      for (const [id, change] of Object.entries(pending as Record<string, { status: string; return_at: string | null; updated_at: string }>)) {
-        const { error } = await supabase.from('items').update(change).eq('id', id).eq('user_id', user.id).is('deleted_at', null).lte('updated_at', (change as { updated_at: string }).updated_at);
-        if (error) throw error;
-        delete pending[id]; localStorage.setItem(pendingKey, JSON.stringify(pending));
-      }
-
       // Fetch items
       const { data: itemRows, error: itemError } = await supabase
         .from('items')
@@ -434,10 +425,11 @@ export function ItemProvider({ children }: { children: ReactNode }) {
     const updated = items.map((i) => (i.id === id ? { ...i, favorite, updated_at: new Date().toISOString() } : i));
     setItems(updated);
     saveLocalData(updated);
+    const changed = updated.find(item => item.id === id);
+    if (changed) queueCapture(changed);
 
     if (user && isPro) {
-      const supabase = getSupabaseClient();
-      await supabase.from('items').update({ favorite, updated_at: new Date().toISOString() }).eq('id', id);
+      try { await syncPendingCaptures(user.id); } catch { setSyncStatus('error'); }
     }
   };
 
@@ -445,10 +437,11 @@ export function ItemProvider({ children }: { children: ReactNode }) {
     const updated = items.map((i) => (i.id === id ? { ...i, status, updated_at: new Date().toISOString() } : i));
     setItems(updated);
     saveLocalData(updated);
+    const changed = updated.find(item => item.id === id);
+    if (changed) queueCapture(changed);
 
     if (user && isPro) {
-      const supabase = getSupabaseClient();
-      await supabase.from('items').update({ status, updated_at: new Date().toISOString() }).eq('id', id);
+      try { await syncPendingCaptures(user.id); } catch { setSyncStatus('error'); }
     }
   };
 
@@ -457,16 +450,11 @@ export function ItemProvider({ children }: { children: ReactNode }) {
     const updated = items.map(item => item.id === id
       ? { ...item, status: 'deferred' as ItemStatus, return_at: returnAt, updated_at: timestamp } : item);
     setItems(updated); saveLocalData(updated);
-    const pendingItem = updated.find(item => item.id === id);
-    if (pendingItem && user && localStorage.getItem(`laterbox_pending_captures_${user.id}`)?.includes(id)) queueCapture(pendingItem);
+
+    const changed = updated.find(item => item.id === id);
+    if (changed) queueCapture(changed);
     if (user && isPro) {
-      const key = `laterbox_pending_schedules_${user.id}`;
-      const pending = JSON.parse(localStorage.getItem(key) || '{}');
-      pending[id] = { status: 'deferred', return_at: returnAt, updated_at: timestamp };
-      localStorage.setItem(key, JSON.stringify(pending));
-      const { error } = await getSupabaseClient().from('items').update(pending[id]).eq('id', id).eq('user_id', user.id);
-      if (error) { setSyncStatus('error'); return; }
-      delete pending[id]; localStorage.setItem(key, JSON.stringify(pending));
+      try { await syncPendingCaptures(user.id); } catch { setSyncStatus('error'); }
     }
   };
 
@@ -476,13 +464,14 @@ export function ItemProvider({ children }: { children: ReactNode }) {
 
   const deleteItem = async (id: string) => {
     const now = new Date().toISOString();
+    const deleted = items.find(item => item.id === id);
+    if (deleted) queueCapture({ ...deleted, deleted_at: now, updated_at: now });
     const updated = items.filter((i) => i.id !== id);
     setItems(updated);
     saveLocalData(updated);
 
     if (user && isPro) {
-      const supabase = getSupabaseClient();
-      await supabase.from('items').update({ deleted_at: now }).eq('id', id);
+      try { await syncPendingCaptures(user.id); } catch { setSyncStatus('error'); }
     }
   };
 
