@@ -77,6 +77,23 @@ final class QueueTests: XCTestCase {
         XCTAssertEqual(queue.readAll().count, 2)
     }
 
+    func testCapturePersistsReturnAtSchedule() throws {
+        let queue = try XCTUnwrap(queue)
+        let capture = PendingShareCapture(
+            id: "scheduled-1",
+            value: "Read later",
+            kind: "text",
+            source: "iosShare",
+            createdAt: "2026-08-20T10:00:00Z",
+            returnAt: "2026-08-21T09:00:00Z"
+        )
+        XCTAssertTrue(queue.enqueue(capture))
+
+        let saved = try XCTUnwrap(queue.readAll().first)
+        XCTAssertEqual(saved.returnAt, "2026-08-21T09:00:00Z")
+        XCTAssertEqual(saved.toDictionary["returnAt"] as? String, "2026-08-21T09:00:00Z")
+    }
+
     private func makeCapture(id: String, value: String, kind: String) -> PendingShareCapture {
         PendingShareCapture(
             id: id,
