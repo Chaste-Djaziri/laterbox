@@ -14,6 +14,9 @@ import '../../attachments/presentation/attachment_providers.dart';
 import '../../enrichment/domain/item_metadata.dart';
 import '../../enrichment/domain/url_utils.dart';
 import '../domain/capture_payload.dart';
+import '../../scheduling/presentation/return_time_picker.dart';
+import '../../inbox/data/item_repository.dart';
+import 'package:go_router/go_router.dart';
 import '../domain/capture_providers.dart';
 
 class UrlPreviewItem {
@@ -41,9 +44,11 @@ class UrlPreviewItem {
 }
 
 class CaptureSheet extends ConsumerStatefulWidget {
-  const CaptureSheet({super.key, this.initialText});
+  const CaptureSheet({super.key, this.initialText, this.initialFiles = const [], this.browseFiles = false});
 
   final String? initialText;
+  final List<PickedAttachmentFile> initialFiles;
+  final bool browseFiles;
 
   @override
   ConsumerState<CaptureSheet> createState() => _CaptureSheetState();
@@ -54,6 +59,8 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
   final _controller = TextEditingController();
   final _focusNode = FocusNode();
   String? _error;
+  String _captureKind = 'link';
+  DateTime? _returnAt;
   final List<PickedAttachmentFile> _selectedFiles = [];
   List<AttachmentImportFailure> _fileFailures = const [];
   bool _saving = false;
@@ -76,6 +83,9 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
   @override
   void initState() {
     super.initState();
+    _selectedFiles.addAll(widget.initialFiles);
+    if (widget.initialFiles.isNotEmpty) _captureKind = 'file';
+    if (widget.browseFiles) WidgetsBinding.instance.addPostFrameCallback((_) => _chooseFiles());
     _controller.addListener(_onTextChanged);
     _sendAnimController = AnimationController(
       vsync: this,
@@ -545,7 +555,7 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
         final result = kIsWeb
             ? await ref
                   .read(webAttachmentImportServiceProvider)
-                  .importFiles(files: _selectedFiles, text: _controller.text)
+                  .importFiles(files: _selectedFiles, text: _controller.text, returnAt: _returnAt)
             : await (await ref.read(attachmentImportServiceProvider.future))
                   .importFiles(
                     sourcePaths: _selectedFiles
@@ -553,6 +563,7 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
                         .whereType<String>()
                         .toList(),
                     text: _controller.text,
+                    returnAt: _returnAt,
                   );
         if (!mounted) return;
         if (!result.saved) {
@@ -595,10 +606,12 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
         _controller.text,
         id: itemId,
         title: primaryMeta?.title,
-        type: primaryMeta?.classification?.type.value,
+        type: _captureKind == 'task' ? 'task' : _captureKind == 'idea' ? 'note' : primaryMeta?.classification?.type.value,
+        returnAt: _returnAt,
         source: CaptureSource.manual,
       );
-      await ref.read(captureServiceProvider).save(payload);
+      final savedId = await ref.read(captureServiceProvider).saveWithResult(payload);
+      if (savedId != itemId) throw DuplicateCaptureException(savedId);
 
       if (primaryMeta != null) {
         try {
@@ -614,6 +627,13 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
         popped = true;
         Navigator.of(context).pop();
       }
+    } on DuplicateCaptureException catch (error) {
+      _sendAnimController.reverse();
+      if (!mounted) return;
+      setState(() { _error = error.toString(); _saving = false; _sentMessageText = null; });
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(error.toString()), action: SnackBarAction(label: 'View item',
+          onPressed: () { Navigator.of(context).pop(); context.push('/item/${error.itemId}'); })));
     } on FormatException catch (error) {
       _sendAnimController.reverse();
       setState(() {
@@ -709,6 +729,18 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
                           mainAxisSize: MainAxisSize.min,
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
+                            Wrap(spacing: 8, runSpacing: 4, children: [
+                              for (final kind in const {'link': 'Link', 'file': 'File', 'task': 'Task', 'idea': 'Idea'}.entries)
+                                ChoiceChip(label: Text(kind.value), selected: _captureKind == kind.key,
+                                  onSelected: _saving ? null : (_) {
+                                    setState(() => _captureKind = kind.key);
+                                    if (kind.key == 'file') _chooseFiles();
+                                  }),
+                            ]),
+                            const SizedBox(height: 8),
+                            ReturnTimePicker(value: _returnAt,
+                              onChanged: (time) { if (!_saving) setState(() => _returnAt = time); }),
+                            const SizedBox(height: 12),
                             // Attached files preview row (above pill)
                             if (_selectedFiles.isNotEmpty) ...[
                               Padding(
