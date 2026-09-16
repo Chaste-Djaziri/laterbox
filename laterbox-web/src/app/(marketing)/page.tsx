@@ -57,7 +57,7 @@ export default function LandingPage() {
       badge: 'Spotlight Speed',
       title: 'Global Quick Capture Hotkey',
       description:
-        'Trigger LaterBox from anywhere with ⌥ Space (macOS/Linux) or Ctrl+Alt+Space (Windows). Capture links, selected text, or attachments without interrupting your flow.',
+        'Trigger LaterBox from anywhere with ⌃ ⌥ Space (macOS), Ctrl+Shift+L (Windows), or Alt+Space (Linux). Capture links, selected text, or attachments without interrupting your flow.',
     },
     {
       icon: <Sparkles className="w-6 h-6 text-[#171711]" />,
@@ -99,7 +99,7 @@ export default function LandingPage() {
   const comparisonRows = [
     {
       feature: 'Global System Hotkey (Desktop)',
-      laterbox: 'Native ⌥ Space / Ctrl+Alt+Space popup',
+      laterbox: 'Native ⌃ ⌥ Space / Ctrl+Shift+L popup',
       others: 'Requires browser to be open & focused',
       isPro: true,
     },
@@ -301,7 +301,7 @@ export default function LandingPage() {
                     </div>
                     <div className="flex items-center gap-1.5 text-[10px] font-mono text-[#9e9b92]">
                       <span className="px-1.5 py-0.5 rounded bg-[#f0ede4] text-[#171711] font-bold">
-                        ⌥ Space
+                        ⌃ ⌥ Space
                       </span>
                       <span>anywhere</span>
                     </div>
