@@ -60,7 +60,11 @@ void main() {
     await tester.tap(find.text('Flutter notes'));
     await tester.pumpAndSettle();
 
-    await tester.scrollUntilVisible(find.text('Collection'), 150, scrollable: find.byType(Scrollable).last);
+    await tester.scrollUntilVisible(
+      find.text('Collection'),
+      150,
+      scrollable: find.byType(Scrollable).last,
+    );
     expect(find.text('Collection'), findsOneWidget);
     expect(find.text('Saved'), findsOneWidget);
     expect(find.text('URL'), findsOneWidget);
@@ -69,8 +73,9 @@ void main() {
     await disposeDatabase(tester, database);
   });
 
-  testWidgets('long pressing a card keeps an item out of the inbox',
-      (tester) async {
+  testWidgets('long pressing a card keeps an item out of the inbox', (
+    tester,
+  ) async {
     final database = await seedDatabase();
     await pumpApp(tester, database);
 
@@ -88,8 +93,9 @@ void main() {
     await disposeDatabase(tester, database);
   });
 
-  testWidgets('marking as seen from action sheet archives the item',
-      (tester) async {
+  testWidgets('marking as seen from action sheet archives the item', (
+    tester,
+  ) async {
     final database = await seedDatabase();
     await pumpApp(tester, database);
 
@@ -107,7 +113,9 @@ void main() {
     await disposeDatabase(tester, database);
   });
 
-  testWidgets('deleting from the action sheet removes the item', (tester) async {
+  testWidgets('deleting from the action sheet removes the item', (
+    tester,
+  ) async {
     final database = await seedDatabase();
     await pumpApp(tester, database);
 
@@ -145,8 +153,9 @@ void main() {
     await disposeDatabase(tester, database);
   });
 
-  testWidgets('adding to a new collection from the action sheet',
-      (tester) async {
+  testWidgets('adding to a new collection from the action sheet', (
+    tester,
+  ) async {
     final database = await seedDatabase();
     await pumpApp(tester, database);
 
