@@ -282,7 +282,7 @@ export function QuickCaptureModal({ isOpen, onClose, initialFiles, browseFiles =
           {success && (
             <div className="flex items-center gap-2 p-3 rounded-xl bg-[#e6edb0]/70 text-[#171711] text-xs font-bold border border-[#d0db84]">
               <Check className="w-4 h-4 shrink-0" />
-              <span>Saved to your inbox!</span>
+              <span>Saved to LaterBox!</span>
             </div>
           )}
 
