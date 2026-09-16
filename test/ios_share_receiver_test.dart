@@ -76,6 +76,61 @@ void main() {
     await database.close();
   });
 
+  testWidgets('imports queued iOS share with returnAt scheduled time', (tester) async {
+    final database = AppDatabase(NativeDatabase.memory());
+    const channel = MethodChannel(IosShareReceiver.channelName);
+    const androidChannel = MethodChannel(AndroidShareReceiver.channelName);
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(androidChannel, (call) async => []);
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
+          if (call.method == 'consumePending') {
+            return [
+              {
+                'id': 'return-at-share-123',
+                'value': 'https://example.com/scheduled',
+                'createdAt': '2026-08-19T07:01:00Z',
+                'returnAt': '2026-08-20T10:00:00.000Z',
+              },
+            ];
+          }
+          if (call.method == 'acknowledgePending') return true;
+          return null;
+        });
+    addTearDown(
+      () => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        ..setMockMethodCallHandler(channel, null)
+        ..setMockMethodCallHandler(androidChannel, null),
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          guestModeProvider.overrideWith((ref) => true),
+          hasProAccessProvider.overrideWithValue(false),
+          appDatabaseProvider.overrideWithValue(database),
+          initialLocationProvider.overrideWithValue('/inbox'),
+        ],
+        child: const LaterBoxApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final stored = (await tester.runAsync(
+      () => database.watchAllItemsWithMetadata(null).first,
+    ))!;
+    expect(stored, hasLength(1));
+    expect(stored.single.$1.url, 'https://example.com/scheduled');
+    expect(stored.single.$1.status, 'deferred');
+    expect(
+      stored.single.$1.returnAt?.toUtc(),
+      DateTime.parse('2026-08-20T10:00:00.000Z'),
+    );
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(milliseconds: 1));
+    await database.close();
+  });
+
   testWidgets('does not import an empty iOS share queue', (tester) async {
     final database = AppDatabase(NativeDatabase.memory());
     const channel = MethodChannel(IosShareReceiver.channelName);
