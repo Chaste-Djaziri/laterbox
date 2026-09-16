@@ -10,7 +10,7 @@ import '../../../core/billing/entitlement_presentation.dart';
 import '../../../shared/widgets/cloud_sync_indicator.dart';
 import '../../inbox/presentation/inbox_providers.dart';
 
-class DesktopSidebar extends ConsumerStatefulWidget {
+class DesktopSidebar extends ConsumerWidget {
   const DesktopSidebar({
     super.key,
     required this.selectedIndex,
@@ -25,12 +25,7 @@ class DesktopSidebar extends ConsumerStatefulWidget {
   static const double sidebarWidth = 268.0;
 
   @override
-  ConsumerState<DesktopSidebar> createState() => _DesktopSidebarState();
-}
-
-class _DesktopSidebarState extends ConsumerState<DesktopSidebar> {
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final isMac = !kIsWeb && defaultTargetPlatform == TargetPlatform.macOS;
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
@@ -164,7 +159,7 @@ class _DesktopSidebarState extends ConsumerState<DesktopSidebar> {
                           borderRadius: BorderRadius.circular(12),
                           child: InkWell(
                             canRequestFocus: false,
-                            onTap: widget.onOpenCapture,
+                            onTap: onOpenCapture,
                             borderRadius: BorderRadius.circular(12),
                             hoverColor: Colors.transparent,
                             child: SizedBox(
@@ -185,7 +180,7 @@ class _DesktopSidebarState extends ConsumerState<DesktopSidebar> {
                         elevation: 0,
                         child: InkWell(
                           canRequestFocus: false,
-                          onTap: widget.onOpenCapture,
+                          onTap: onOpenCapture,
                           borderRadius: BorderRadius.circular(12),
                           hoverColor: Colors.transparent,
                           child: Container(
@@ -282,7 +277,7 @@ class _DesktopSidebarState extends ConsumerState<DesktopSidebar> {
 
   bool _isEntrySelected(_NavEntry entry, String currentPath) {
     if (entry.tabIndex != null) {
-      return entry.tabIndex == widget.selectedIndex;
+      return entry.tabIndex == selectedIndex;
     }
     if (currentPath.isNotEmpty) {
       if (entry.path == '/home') {
@@ -295,7 +290,7 @@ class _DesktopSidebarState extends ConsumerState<DesktopSidebar> {
 
   void _handleNavTap(BuildContext context, _NavEntry entry) {
     if (entry.tabIndex != null) {
-      widget.onDestinationSelected(entry.tabIndex!);
+      onDestinationSelected(entry.tabIndex!);
     } else if (entry.path == '/search') {
       context.go('/search');
     } else {
