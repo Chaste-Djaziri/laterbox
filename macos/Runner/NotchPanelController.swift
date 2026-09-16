@@ -152,8 +152,8 @@ final class NotchPanelView: NSView {
     path.line(to: NSPoint(x: bounds.width, y: bounds.height))
     path.curve(
       to: NSPoint(x: bounds.width - bodyInset, y: shoulderBottom),
-      controlPoint1: NSPoint(x: bounds.width - 2, y: bounds.height),
-      controlPoint2: NSPoint(x: bounds.width - bodyInset, y: bounds.height - 2)
+      controlPoint1: NSPoint(x: bounds.width - 1, y: bounds.height),
+      controlPoint2: NSPoint(x: bounds.width - bodyInset, y: bounds.height - 1)
     )
     path.line(to: NSPoint(x: bounds.width - bodyInset, y: bottomRadius))
     path.curve(
@@ -170,8 +170,8 @@ final class NotchPanelView: NSView {
     path.line(to: NSPoint(x: bodyInset, y: shoulderBottom))
     path.curve(
       to: NSPoint(x: 0, y: bounds.height),
-      controlPoint1: NSPoint(x: bodyInset, y: bounds.height - 2),
-      controlPoint2: NSPoint(x: 2, y: bounds.height)
+      controlPoint1: NSPoint(x: bodyInset, y: bounds.height - 1),
+      controlPoint2: NSPoint(x: 1, y: bounds.height)
     )
     path.close()
     return path
