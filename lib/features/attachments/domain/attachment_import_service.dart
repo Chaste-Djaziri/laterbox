@@ -38,6 +38,7 @@ class AttachmentImportService {
     required List<String> sourcePaths,
     String? text,
     String? itemId,
+    DateTime? returnAt,
   }) async {
     if (itemId != null) {
       final existingIds = await _repository.existingAttachmentIds(itemId);
@@ -125,6 +126,7 @@ class AttachmentImportService {
             ? null
             : normalizedText,
         createdAt: createdAt,
+        returnAt: returnAt,
         attachments: stored,
       );
     } catch (error) {
