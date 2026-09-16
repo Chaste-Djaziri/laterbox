@@ -38,7 +38,7 @@ class _ItemListRowState extends ConsumerState<ItemListRow> {
 
     final rawEyebrow = widget.item.metadata?.domain ??
         uri?.host.replaceFirst('www.', '') ??
-        (isFile ? 'File' : 'Note');
+        (isFile ? 'File' : widget.item.type == 'task' ? 'Task' : 'Note');
     final eyebrow = cleanMetaText(rawEyebrow) ?? rawEyebrow;
 
     final rawTitle = widget.item.metadata?.title ??
@@ -118,43 +118,11 @@ class _ItemListRowState extends ConsumerState<ItemListRow> {
                         ],
                       ),
                       const SizedBox(height: 2),
-                      Row(
-                        children: [
-                          Flexible(
-                            child: Text(
-                              eyebrow,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: theme.colorScheme.onSurfaceVariant,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 11,
-                              ),
-                            ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 4),
-                            child: Text(
-                              '·',
-                              style: TextStyle(
-                                color: theme.colorScheme.onSurfaceVariant,
-                                fontSize: 11,
-                              ),
-                            ),
-                          ),
-                          Text(
-                            timeago.format(widget.item.createdAt),
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
-                              fontSize: 11,
-                            ),
-                          ),
-                          if (isFile) ...[
-                            const SizedBox(width: 6),
-                            _FileAttachmentBadge(itemId: widget.item.id),
-                          ],
-                        ],
-                      ),
+                      Text('$eyebrow · ${timeago.format(widget.item.createdAt)}',
+                        maxLines: 1, overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant, fontSize: 11)),
+                      if (isFile) _FileAttachmentBadge(itemId: widget.item.id),
                     ],
                   ),
                 ),
@@ -319,6 +287,7 @@ class _ItemTypeLeadingIcon extends StatelessWidget {
     required bool isNote,
   }) {
     final theme = Theme.of(context);
+    if (item.type == 'task') return Icon(Icons.task_alt, size: 18, color: theme.colorScheme.primary);
     if (isFile) {
       return Icon(
         Icons.attach_file_rounded,
