@@ -16,7 +16,9 @@ class TextSelector {
       final decoded = jsonDecode(raw);
       if (decoded is! Map<String, dynamic>) return const TextSelector();
       return TextSelector(
-        before: decoded['before'] is String ? decoded['before'] as String : null,
+        before: decoded['before'] is String
+            ? decoded['before'] as String
+            : null,
         after: decoded['after'] is String ? decoded['after'] as String : null,
       );
     } on FormatException {
@@ -27,8 +29,8 @@ class TextSelector {
   final String? before;
   final String? after;
 
-  bool get isEmpty => (before == null || before!.isEmpty) &&
-      (after == null || after!.isEmpty);
+  bool get isEmpty =>
+      (before == null || before!.isEmpty) && (after == null || after!.isEmpty);
 }
 
 class LaterBoxItem {
@@ -46,10 +48,7 @@ class LaterBoxItem {
     this.returnAt,
   });
 
-  factory LaterBoxItem.fromDriftRows(
-    Item item,
-    ItemMetadataData? metadata,
-  ) {
+  factory LaterBoxItem.fromDriftRows(Item item, ItemMetadataData? metadata) {
     return LaterBoxItem(
       id: item.id,
       url: item.url,
@@ -76,8 +75,12 @@ class LaterBoxItem {
   final DateTime createdAt;
   final DateTime? returnAt;
 
-  bool get isActive => status == ItemStatus.inbox || status == ItemStatus.deferred;
-  bool isDue(DateTime now) => isActive && (status == ItemStatus.inbox || (returnAt != null && !returnAt!.isAfter(now)));
+  bool get isActive =>
+      status == ItemStatus.inbox || status == ItemStatus.deferred;
+  bool isDue(DateTime now) =>
+      isActive &&
+      (status == ItemStatus.inbox ||
+          (returnAt != null && !returnAt!.isAfter(now)));
 
   /// Enrichment content (domain, title, description, favicon) once available.
   final EnrichedMetadata? metadata;
