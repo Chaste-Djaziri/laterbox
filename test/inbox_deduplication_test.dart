@@ -175,9 +175,11 @@ void main() {
       tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
       await tester.pumpAndSettle();
 
-      expect(find.text('EXAMPLE.COM'), findsOneWidget);
-      expect(find.text('https://example.com/shared-once'), findsOneWidget);
-      expect(find.text('1'), findsAtLeastNWidgets(1));
+      expect(find.text('EXAMPLE.COM'), findsNothing);
+      final captured = await database.watchAllItemsWithMetadata(null).first;
+      expect(captured, hasLength(1));
+      expect(captured.single.$1.status, 'deferred');
+      expect(captured.single.$1.returnAt, isNull);
       expect(consumeCallCount, greaterThanOrEqualTo(1));
 
       await tester.pumpWidget(const SizedBox.shrink());
