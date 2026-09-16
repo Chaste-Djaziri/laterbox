@@ -44,7 +44,7 @@ void main() {
 
     final stored = (await tester.runAsync(() => database.watchAllItemsWithMetadata(null).first))!;
     expect(stored, hasLength(2));
-    expect(stored.every((row) => row.item.status == 'deferred' && row.item.returnAt == null), isTrue);
+    expect(stored.every((row) => row.$1.status == 'deferred' && row.$1.returnAt == null), isTrue);
     expect(find.text('https://example.com/a'), findsNothing);
     expect(find.text('You’re all clear'), findsOneWidget);
 
