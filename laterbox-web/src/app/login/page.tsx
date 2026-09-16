@@ -37,7 +37,7 @@ function LoginContent() {
   const requestedNext = searchParams.get('next');
   const nextPath = requestedNext?.startsWith('/') && !requestedNext.startsWith('//')
     ? requestedNext
-    : '/inbox';
+    : '/home';
 
   const handleSignIn = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -149,7 +149,7 @@ function LoginContent() {
 
   const handleContinueWithoutAccount = () => {
     continueAsGuest();
-    router.push('/inbox');
+    router.push('/home');
   };
 
   if (otpPurpose) {
