@@ -537,9 +537,9 @@ class _DeviceTutorial {
       _TutorialStep(
         icon: Icons.keyboard_command_key_rounded,
         title: 'Capture without changing apps',
-        description: 'Press Option and Space from any app to open the floating Quick Capture window.',
+        description: 'Press Control, Option, and Space together to open the floating Quick Capture window.',
         shortcutLabel: 'GLOBAL SHORTCUT',
-        shortcut: '⌥ Space',
+        shortcut: '⌃ ⌥ Space',
         details: [
           'Paste a URL or write a note',
           'Press Return to save it to Inbox',
@@ -562,9 +562,9 @@ class _DeviceTutorial {
       _TutorialStep(
         icon: Icons.keyboard_alt_rounded,
         title: 'Capture without changing programs',
-        description: 'Press Ctrl, Alt, and Space together to open Quick Capture above your current program.',
+        description: 'Press Ctrl, Shift, and L together to open Quick Capture above your current program.',
         shortcutLabel: 'GLOBAL SHORTCUT',
-        shortcut: 'Ctrl + Alt + Space',
+        shortcut: 'Ctrl + Shift + L',
         details: [
           'Paste a link or type a thought',
           'Press Enter to save it immediately',
