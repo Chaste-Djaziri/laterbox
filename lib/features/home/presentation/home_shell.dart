@@ -11,6 +11,8 @@ import '../../inbox/presentation/inbox_screen.dart';
 import '../../library/presentation/library_screen.dart';
 import '../../settings/presentation/settings_screen.dart';
 import 'desktop_sidebar.dart';
+import 'home_dashboard.dart';
+import '../../scheduling/presentation/schedule_providers.dart';
 
 class HomeShell extends ConsumerWidget {
   const HomeShell({
@@ -25,11 +27,15 @@ class HomeShell extends ConsumerWidget {
   final Widget? child;
 
   static const List<Widget> _screens = [
+    HomeDashboard(),
     InboxScreen(),
+    ScheduleScreen(view: ScheduleView.today),
+    ScheduleScreen(view: ScheduleView.upcoming),
+    ScheduleScreen(view: ScheduleView.someday),
     LibraryScreen(),
     SettingsScreen(),
   ];
-  static const List<String> _paths = ['/inbox', '/library', '/settings'];
+  static const List<String> _paths = ['/home', '/inbox', '/today', '/upcoming', '/someday', '/library', '/settings'];
 
   Future<void> _openCapture(BuildContext context) {
     return showModalBottomSheet<void>(
@@ -82,9 +88,10 @@ class HomeShell extends ConsumerWidget {
               children: [
                 const _MobilePlanStatus(),
                 NavigationBar(
-              selectedIndex: effectiveIndex,
-              onDestinationSelected: handleDestinationSelected,
+              selectedIndex: effectiveIndex == 1 ? 1 : effectiveIndex == 5 ? 2 : effectiveIndex == 6 ? 3 : 0,
+              onDestinationSelected: (index) => handleDestinationSelected(const [0, 1, 5, 6][index]),
               destinations: const [
+                NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'Home'),
                 NavigationDestination(
                   icon: Icon(Icons.inbox_outlined),
                   selectedIcon: Icon(Icons.inbox_rounded),
@@ -104,7 +111,7 @@ class HomeShell extends ConsumerWidget {
             ),
               ],
             ),
-      floatingActionButton: (!isDesktop && effectiveIndex == 0)
+      floatingActionButton: (!isDesktop && effectiveIndex != 6)
           ? (_isIOS(context)
               ? FloatingActionButton(
                   onPressed: () => _openCapture(context),
