@@ -17,11 +17,15 @@ class DesktopShortcut {
 
   /// The platform default quick capture shortcut.
   static DesktopShortcut defaultQuickCapture() {
+    if (defaultTargetPlatform == TargetPlatform.windows) {
+      return DesktopShortcut(
+        keyId: PhysicalKeyboardKey.keyL.usbHidUsage,
+        modifiers: const [DesktopModifier.control, DesktopModifier.shift],
+      );
+    }
     return DesktopShortcut(
       keyId: PhysicalKeyboardKey.space.usbHidUsage,
-      modifiers: defaultTargetPlatform == TargetPlatform.windows
-          ? const [DesktopModifier.control, DesktopModifier.alt]
-          : const [DesktopModifier.alt],
+      modifiers: const [DesktopModifier.control, DesktopModifier.alt],
     );
   }
 
