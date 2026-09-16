@@ -7,6 +7,7 @@ import { MediaEmbed } from '@/components/item/MediaEmbed';
 import { NoteEditor } from '@/components/item/NoteEditor';
 import { AddToCollectionModal } from '@/components/collections/AddToCollectionModal';
 import { ReturnTimePicker } from '@/components/scheduling/ReturnTimePicker';
+import { isDue } from '@/lib/utils/schedule';
 import { useItems } from '@/lib/store/ItemContext';
 import { extractDomain, formatTimeAgo, buildTextFragmentUrl } from '@/lib/utils/url';
 import { fetchAttachmentDownloadUrl } from '@/lib/utils/attachment';
@@ -211,6 +212,7 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
   const router = useRouter();
   const {
     getItemById,
+    now,
     setFavorite,
     reschedule,
     keepItem,
@@ -454,7 +456,7 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
                     : 'bg-[#f4f4f5] text-[#71717a]'
                 }`}
               >
-                {(item.status === 'inbox' || item.status === 'deferred') ? 'Inbox' : item.status === 'saved' ? 'Kept' : 'Archived'}
+                {isDue(item, now) ? 'Inbox' : item.status === 'deferred' ? (item.return_at ? 'Scheduled' : 'Someday') : item.status === 'saved' ? 'Kept' : 'Archived'}
               </span>
 
               {item.metadata?.content_type && (
