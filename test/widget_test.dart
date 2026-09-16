@@ -64,10 +64,7 @@ void main() {
 
     await tester.tap(find.byTooltip('Save something'));
     await tester.pumpAndSettle();
-    await tester.enterText(
-      find.byType(TextField).last,
-      '   ',
-    );
+    await tester.enterText(find.byType(TextField).last, '   ');
     await tester.tap(find.text('Save'));
     await tester.pump();
 
