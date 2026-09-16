@@ -50,9 +50,10 @@ async function computeSha256(file: File): Promise<string> {
 export async function uploadAttachmentFile(
   file: File,
   itemId: string,
-  userId: string
+  userId: string,
+  existingAttachmentId?: string
 ): Promise<Attachment> {
-  const attachmentId = crypto.randomUUID();
+  const attachmentId = existingAttachmentId || crypto.randomUUID();
   const extension = file.name.split('.').pop()?.toLowerCase() || '';
   const sha256 = await computeSha256(file);
   const byteSize = file.size;
@@ -110,6 +111,8 @@ export async function uploadAttachmentFile(
     console.warn('[LaterBox] Edge upload failed, saving local reference:', err);
   }
 
+  if (!r2ObjectKey) throw new Error('Cloud file upload is unavailable. Your local copy is safe.');
+
   const now = new Date().toISOString();
 
   const record: Attachment = {
@@ -128,7 +131,7 @@ export async function uploadAttachmentFile(
 
   // Insert into attachments table in Supabase
   try {
-    await supabase.from('attachments').insert({
+    const { error } = await supabase.from('attachments').upsert({
       id: attachmentId,
       item_id: itemId,
       user_id: userId,
@@ -141,8 +144,10 @@ export async function uploadAttachmentFile(
       created_at: now,
       updated_at: now,
     });
+    if (error) throw error;
   } catch (err) {
     console.error('[LaterBox] Failed to insert attachment row in Supabase:', err);
+    throw err;
   }
 
   return record;
