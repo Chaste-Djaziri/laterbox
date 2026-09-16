@@ -607,7 +607,7 @@ class AppDelegate: FlutterAppDelegate {
         window.level = .statusBar
       } else {
         window.isOpaque = true
-        window.backgroundColor = NSColor(red: 0.969, green: 0.961, blue: 0.933, alpha: 1.0)
+        window.backgroundColor = .clear
         window.hasShadow = true
         window.titleVisibility = .hidden
         window.titlebarAppearsTransparent = true
