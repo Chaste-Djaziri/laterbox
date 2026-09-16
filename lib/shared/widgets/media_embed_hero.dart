@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../utils/media_embed_helper.dart';
-import 'web_embed_iframe.dart' if (dart.library.io) 'native_embed_stub.dart';
 
 class MediaEmbedHero extends StatelessWidget {
   const MediaEmbedHero({
@@ -24,12 +23,10 @@ class MediaEmbedHero extends StatelessWidget {
     // Desktop 16:9 ratio maintained on phone size with side blank spaces
     final effectiveAspectRatio = isCompactScreen ? 16 / 9 : embedInfo.aspectRatio;
 
-    final Widget playerWidget = kIsWeb
-        ? buildWebEmbedIframe(embedInfo.embedUrl)
-        : _NativeEmbedPlayerCard(
-            embedInfo: embedInfo,
-            fallbackCoverUrl: fallbackCoverUrl,
-          );
+    final Widget playerWidget = _NativeEmbedPlayerCard(
+      embedInfo: embedInfo,
+      fallbackCoverUrl: fallbackCoverUrl,
+    );
 
     return Container(
       width: double.infinity,
