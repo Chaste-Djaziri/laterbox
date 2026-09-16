@@ -62,6 +62,7 @@ dependencies:
   in_app_purchase_storekit: ^0.4.12
   package_info_plus: ^9.0.0
   desktop_drop: ^0.8.4
+  video_player: ^2.14.0
 
 dev_dependencies:
   flutter_test:
