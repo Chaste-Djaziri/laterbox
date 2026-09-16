@@ -43,6 +43,7 @@ class LaterBoxItem {
     this.status = ItemStatus.inbox,
     required this.createdAt,
     this.metadata,
+    this.returnAt,
   });
 
   factory LaterBoxItem.fromDriftRows(
@@ -59,6 +60,7 @@ class LaterBoxItem {
       favorite: item.favorite,
       status: ItemStatus.fromDatabase(item.status),
       createdAt: item.createdAt,
+      returnAt: item.returnAt,
       metadata: metadata == null ? null : EnrichedMetadata.fromDrift(metadata),
     );
   }
@@ -72,6 +74,10 @@ class LaterBoxItem {
   final bool favorite;
   final ItemStatus status;
   final DateTime createdAt;
+  final DateTime? returnAt;
+
+  bool get isActive => status == ItemStatus.inbox || status == ItemStatus.deferred;
+  bool isDue(DateTime now) => isActive && (status == ItemStatus.inbox || (returnAt != null && !returnAt!.isAfter(now)));
 
   /// Enrichment content (domain, title, description, favicon) once available.
   final EnrichedMetadata? metadata;
@@ -89,6 +95,8 @@ class LaterBoxItem {
     bool? favorite,
     ItemStatus? status,
     DateTime? createdAt,
+    DateTime? returnAt,
+    bool clearReturnAt = false,
     EnrichedMetadata? metadata,
   }) {
     return LaterBoxItem(
@@ -101,6 +109,7 @@ class LaterBoxItem {
       favorite: favorite ?? this.favorite,
       status: status ?? this.status,
       createdAt: createdAt ?? this.createdAt,
+      returnAt: clearReturnAt ? null : returnAt ?? this.returnAt,
       metadata: metadata ?? this.metadata,
     );
   }
