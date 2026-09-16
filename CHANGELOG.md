@@ -40,3 +40,4 @@ All notable user-facing changes to LaterBox will be documented in this file.
 - **Sidebar Navigation**: Removed redundant "Search" tab from sidebar navigation in favor of the header search button and `⌘K` shortcut.
 - **Apps Download Link**: Desktop sidebar "Apps" link now points directly to the external download page (`https://laterbox.dev/download`).
 - **Platform Architecture**: Removed legacy Flutter web build configuration and web-specific updater services in favor of the dedicated `laterbox-web` Next.js application.
+- **Download Page**: Download page now only shows iOS and Android downloads. macOS, Windows, Linux, and browser extension downloads are hidden for now.
