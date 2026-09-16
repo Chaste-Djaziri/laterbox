@@ -64,6 +64,7 @@ dependencies:
   in_app_purchase: ^3.3.0
   in_app_purchase_storekit: ^0.4.12
   package_info_plus: ^9.0.0
+  desktop_drop: ^0.8.4
 
 dev_dependencies:
   flutter_test:
