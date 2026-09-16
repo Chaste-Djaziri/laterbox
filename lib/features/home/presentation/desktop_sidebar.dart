@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/auth/auth_provider.dart';
 import '../../../core/billing/billing_providers.dart';
@@ -58,7 +59,7 @@ class DesktopSidebar extends ConsumerWidget {
       _NavEntry(label: 'Someday', icon: Icons.schedule_outlined, selectedIcon: Icons.schedule_rounded, path: '/someday', tabIndex: 4),
       _NavEntry(label: 'Library', icon: Icons.auto_stories_outlined, selectedIcon: Icons.auto_stories_rounded, path: '/library', tabIndex: 5),
       _NavEntry(label: 'Guide', icon: Icons.explore_outlined, selectedIcon: Icons.explore_rounded, path: '/tutorial'),
-      _NavEntry(label: 'Apps', icon: Icons.download_rounded, selectedIcon: Icons.download_rounded, path: '/download'),
+      _NavEntry(label: 'Apps', icon: Icons.download_rounded, selectedIcon: Icons.download_rounded, path: 'https://laterbox.dev/download', isExternal: true),
       _NavEntry(label: 'Plans', icon: Icons.workspace_premium_rounded, selectedIcon: Icons.workspace_premium_rounded, path: '/plans'),
       _NavEntry(label: 'Settings', icon: Icons.settings_outlined, selectedIcon: Icons.settings_rounded, path: '/settings', tabIndex: 6),
     ];
@@ -347,16 +348,18 @@ class _SidebarTabItem extends StatelessWidget {
     final backgroundColor = isSelected ? activePillBg : Colors.transparent;
     final foregroundColor = isSelected ? activePillFg : inactivePillFg;
 
-    final content = Material(
-      color: Colors.transparent,
-      child: InkWell(
-        canRequestFocus: false,
-        borderRadius: BorderRadius.circular(12),
-        hoverColor: Colors.transparent,
-        highlightColor: Colors.transparent,
-        splashColor: Colors.transparent,
-        onTap: onTap,
-        child: Container(
+    final content = MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          canRequestFocus: false,
+          borderRadius: BorderRadius.circular(12),
+          hoverColor: Colors.transparent,
+          highlightColor: Colors.transparent,
+          splashColor: Colors.transparent,
+          onTap: onTap,
+          child: Container(
           height: 42,
           margin: const EdgeInsets.only(bottom: 4),
           padding: EdgeInsets.symmetric(horizontal: isCompact ? 0 : 14),
@@ -416,6 +419,7 @@ class _SidebarTabItem extends StatelessWidget {
           ),
         ),
       ),
+    ),
     );
 
     if (isCompact) {
@@ -441,18 +445,20 @@ class _PlanStatusCard extends StatelessWidget {
     final warning = presentation.severity == EntitlementSeverity.warning;
     final color = warning ? Colors.amber : const Color(0xFFD7FF27);
 
-    final card = InkWell(
-      canRequestFocus: false,
-      onTap: () {
-        if (entitlement.hasProAccess) {
-          context.go('/settings');
-        } else {
-          context.push('/plans');
-        }
-      },
-      borderRadius: BorderRadius.circular(12),
-      hoverColor: Colors.transparent,
-      child: Container(
+    final card = MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: InkWell(
+        canRequestFocus: false,
+        onTap: () {
+          if (entitlement.hasProAccess) {
+            context.go('/settings');
+          } else {
+            context.push('/plans');
+          }
+        },
+        borderRadius: BorderRadius.circular(12),
+        hoverColor: Colors.transparent,
+        child: Container(
         margin: EdgeInsets.symmetric(horizontal: compact ? 8 : 14),
         padding: EdgeInsets.all(compact ? 8 : 12),
         decoration: BoxDecoration(
@@ -533,6 +539,7 @@ class _PlanStatusCard extends StatelessWidget {
                 ],
               ),
       ),
+    ),
     );
     return compact ? Tooltip(message: presentation.label, child: card) : card;
   }
@@ -570,12 +577,14 @@ class _UserCard extends StatelessWidget {
     if (compact) {
       return Tooltip(
         message: '$userEmail • ${isGuest ? "Sign In" : "Settings"}',
-        child: InkWell(
-          canRequestFocus: false,
-          onTap: () => isGuest ? context.push('/login') : context.go('/settings'),
-          borderRadius: BorderRadius.circular(8),
-          hoverColor: Colors.transparent,
-          child: Container(
+        child: MouseRegion(
+          cursor: SystemMouseCursors.click,
+          child: InkWell(
+            canRequestFocus: false,
+            onTap: () => isGuest ? context.push('/login') : context.go('/settings'),
+            borderRadius: BorderRadius.circular(8),
+            hoverColor: Colors.transparent,
+            child: Container(
             width: 34,
             height: 34,
             decoration: BoxDecoration(
@@ -593,6 +602,7 @@ class _UserCard extends StatelessWidget {
             ),
           ),
         ),
+      ),
       );
     }
 
@@ -657,12 +667,14 @@ class _UserCard extends StatelessWidget {
             Material(
               color: isDark ? const Color(0xFFE6EDB0) : const Color(0xFF171711),
               borderRadius: BorderRadius.circular(8),
-              child: InkWell(
-                canRequestFocus: false,
-                onTap: () => context.push('/login'),
-                borderRadius: BorderRadius.circular(8),
-                hoverColor: Colors.transparent,
-                child: Container(
+              child: MouseRegion(
+                cursor: SystemMouseCursors.click,
+                child: InkWell(
+                  canRequestFocus: false,
+                  onTap: () => context.push('/login'),
+                  borderRadius: BorderRadius.circular(8),
+                  hoverColor: Colors.transparent,
+                  child: Container(
                   height: 32,
                   alignment: Alignment.center,
                   padding: const EdgeInsets.symmetric(horizontal: 10),
@@ -692,6 +704,7 @@ class _UserCard extends StatelessWidget {
                   ),
                 ),
               ),
+            ),
             ),
           ],
         ),
@@ -751,17 +764,20 @@ class _UserCard extends StatelessWidget {
               ],
             ),
           ),
-          InkWell(
-            canRequestFocus: false,
-            onTap: () => context.go('/settings'),
-            borderRadius: BorderRadius.circular(6),
-            hoverColor: Colors.transparent,
-            child: Padding(
-              padding: const EdgeInsets.all(5),
-              child: Icon(
-                Icons.settings_outlined,
-                size: 17,
-                color: textMuted,
+          MouseRegion(
+            cursor: SystemMouseCursors.click,
+            child: InkWell(
+              canRequestFocus: false,
+              onTap: () => context.go('/settings'),
+              borderRadius: BorderRadius.circular(6),
+              hoverColor: Colors.transparent,
+              child: Padding(
+                padding: const EdgeInsets.all(5),
+                child: Icon(
+                  Icons.settings_outlined,
+                  size: 17,
+                  color: textMuted,
+                ),
               ),
             ),
           ),
