@@ -46,9 +46,12 @@ class ItemRepository {
   }
 
   Stream<LaterBoxItem?> watchItem(String id) {
-    return _local.watchItemWithMetadata(id).map(
-      (row) => row == null ? null : LaterBoxItem.fromDriftRows(row.$1, row.$2),
-    );
+    return _local
+        .watchItemWithMetadata(id)
+        .map(
+          (row) =>
+              row == null ? null : LaterBoxItem.fromDriftRows(row.$1, row.$2),
+        );
   }
 
   Future<String> save(
@@ -81,19 +84,22 @@ class ItemRepository {
     final bodyText = textContent?.trim().isNotEmpty == true
         ? textContent!.trim()
         : (normalizedUrl != null && normalizedUrl.contains(':~:text=')
-            ? () {
-                try {
-                  final raw =
-                      normalizedUrl.split(':~:text=').last.split('&').first;
-                  final decoded = Uri.decodeComponent(raw);
-                  return decoded
-                      .replaceAll(RegExp(r'^[^\-,]+-,'), '')
-                      .replaceAll(RegExp(r',-[^\-,]+$'), '');
-                } catch (_) {
-                  return null;
-                }
-              }()
-            : (isUrl ? null : normalized));
+              ? () {
+                  try {
+                    final raw = normalizedUrl
+                        .split(':~:text=')
+                        .last
+                        .split('&')
+                        .first;
+                    final decoded = Uri.decodeComponent(raw);
+                    return decoded
+                        .replaceAll(RegExp(r'^[^\-,]+-,'), '')
+                        .replaceAll(RegExp(r',-[^\-,]+$'), '');
+                  } catch (_) {
+                    return null;
+                  }
+                }()
+              : (isUrl ? null : normalized));
     final now = createdAt ?? DateTime.now();
 
     final existing = await _local.findActiveInboxItem(
@@ -105,7 +111,8 @@ class ItemRepository {
       return existing.id;
     }
 
-    final resolvedType = type ??
+    final resolvedType =
+        type ??
         (isUrl
             ? (bodyText != null && bodyText.isNotEmpty ? 'quote' : 'link')
             : 'text');
@@ -152,7 +159,6 @@ class ItemRepository {
     unawaited(_onSaved());
   }
 
-
   Future<void> delete(String id) async {
     await _local.softDelete(id);
     unawaited(_onSaved());
@@ -170,8 +176,8 @@ class ItemRepository {
       final key = item.url != null && item.url!.isNotEmpty
           ? 'url:${item.url}'
           : (item.textContent != null && item.textContent!.isNotEmpty
-              ? 'text:${item.textContent}'
-              : null);
+                ? 'text:${item.textContent}'
+                : null);
       if (key != null && !seenKeys.add(key)) {
         continue;
       }
