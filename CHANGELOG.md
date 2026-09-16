@@ -11,6 +11,9 @@ All notable user-facing changes to LaterBox will be documented in this file.
 - **Video Attachment Player & Queue Mode**: Added a custom in-app video player for video attachments featuring custom play/pause icons, interactive progress scrubber, elapsed/total duration, and a Queue Mode with playlist drawer, auto-advance, and skip controls for multiple video attachments.
 - **Web-Styled Search Icon**: Added a rounded search button (`⌘K`) in the Home dashboard header matching the web interface.
 
+### Fixed
+- **iOS Dynamic Island Overlay**: Fixed a missing Overlay assertion error by removing the tooltip from the overlay close button and providing an Overlay widget ancestor.
+
 ### Changed
 - **macOS App Icon**: Updated macOS app icon to use the white app icon with black icon in light mode, and pure black background with white icon in dark mode.
 - **Desktop Quick Capture Shortcut**: Updated default global capture shortcut to Control+Option on macOS (`⌃ ⌥ Space`) and `Ctrl + Shift + L` on Windows.
