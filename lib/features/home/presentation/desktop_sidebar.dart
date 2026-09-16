@@ -10,7 +10,7 @@ import '../../../core/billing/entitlement_presentation.dart';
 import '../../../shared/widgets/cloud_sync_indicator.dart';
 import '../../inbox/presentation/inbox_providers.dart';
 
-class DesktopSidebar extends ConsumerStatefulWidget {
+class DesktopSidebar extends ConsumerWidget {
   const DesktopSidebar({
     super.key,
     required this.selectedIndex,
@@ -22,17 +22,10 @@ class DesktopSidebar extends ConsumerStatefulWidget {
   final ValueChanged<int> onDestinationSelected;
   final VoidCallback onOpenCapture;
 
-  @override
-  ConsumerState<DesktopSidebar> createState() => _DesktopSidebarState();
-}
-
-class _DesktopSidebarState extends ConsumerState<DesktopSidebar> {
-  bool _isCollapsed = false;
+  static const double sidebarWidth = 268.0;
 
   @override
-  Widget build(BuildContext context) {
-    final width = MediaQuery.sizeOf(context).width;
-    final targetCompact = _isCollapsed || width < 1000;
+  Widget build(BuildContext context, WidgetRef ref) {
     final isMac = !kIsWeb && defaultTargetPlatform == TargetPlatform.macOS;
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
@@ -48,7 +41,6 @@ class _DesktopSidebarState extends ConsumerState<DesktopSidebar> {
     final sidebarBg = isDark ? const Color(0xFF161614) : const Color(0xFFF7F5EE);
     final sidebarBorder = isDark ? Colors.white.withValues(alpha: 0.08) : const Color(0xFFE4E0D5);
     final textPrimary = isDark ? Colors.white : const Color(0xFF171711);
-    final textMuted = isDark ? const Color(0xFFA09E95) : const Color(0xFF6C6B63);
     final dividerColor = isDark ? Colors.white.withValues(alpha: 0.08) : const Color(0xFFE4E0D5).withValues(alpha: 0.8);
 
     final navEntries = [
@@ -65,11 +57,8 @@ class _DesktopSidebarState extends ConsumerState<DesktopSidebar> {
       _NavEntry(label: 'Settings', icon: Icons.settings_outlined, selectedIcon: Icons.settings_rounded, path: '/settings', tabIndex: 6),
     ];
 
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
-      curve: Curves.easeInOut,
-      clipBehavior: Clip.hardEdge,
-      width: targetCompact ? 76 : 240,
+    return Container(
+      width: sidebarWidth,
       decoration: BoxDecoration(
         color: sidebarBg,
         border: Border(
@@ -84,244 +73,194 @@ class _DesktopSidebarState extends ConsumerState<DesktopSidebar> {
           final isCompact = constraints.maxWidth < 160;
 
           return Column(
-        children: [
-          // Safe top padding for macOS traffic lights (38px) or standard desktop header (14px)
-          SizedBox(height: isMac ? 38 : 14),
+            children: [
+              // Safe top padding for macOS traffic lights (40px) or standard desktop header (16px)
+              SizedBox(height: isMac ? 40 : 16),
 
-          // Header: Brand & Collapse Toggle
-          Padding(
-            padding: EdgeInsets.symmetric(
-              horizontal: isCompact ? 10 : 14,
-              vertical: 4,
-            ),
-            child: Row(
-              mainAxisAlignment: isCompact
-                  ? MainAxisAlignment.center
-                  : MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Row(
-                    mainAxisAlignment: isCompact
-                        ? MainAxisAlignment.center
-                        : MainAxisAlignment.start,
-                    children: [
-                      Container(
-                        width: 34,
-                        height: 34,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(9),
-                          color: isDark
-                              ? const Color(0xFF1E1E1E)
-                              : const Color(0xFFE6EDB0),
-                          border: isDark
-                              ? Border.all(
-                                  color: Colors.white.withValues(alpha: 0.12),
-                                  width: 1,
-                                )
-                              : null,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(
-                                alpha: isDark ? 0.35 : 0.08,
-                              ),
-                              blurRadius: 3,
-                              offset: const Offset(0, 1),
+              // Header: Brand (no collapse icon)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 38,
+                      height: 38,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(10),
+                        color: isDark
+                            ? const Color(0xFF1E1E1E)
+                            : const Color(0xFFE6EDB0),
+                        border: isDark
+                            ? Border.all(
+                                color: Colors.white.withValues(alpha: 0.12),
+                                width: 1,
+                              )
+                            : null,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(
+                              alpha: isDark ? 0.35 : 0.08,
                             ),
-                          ],
+                            blurRadius: 3,
+                            offset: const Offset(0, 1),
+                          ),
+                        ],
+                      ),
+                      padding: const EdgeInsets.all(4.5),
+                      child: Image.asset(
+                        isDark
+                            ? 'assets/branding/laterbox-icon-white.png'
+                            : 'assets/branding/laterbox-icon.png',
+                        fit: BoxFit.contain,
+                        errorBuilder: (context, error, stackTrace) => Icon(
+                          Icons.bookmark_rounded,
+                          color: textPrimary,
+                          size: 22,
                         ),
-                        padding: const EdgeInsets.all(4),
-                        child: Image.asset(
-                          isDark
-                              ? 'assets/branding/laterbox-icon-white.png'
-                              : 'assets/branding/laterbox-icon.png',
-                          fit: BoxFit.contain,
-                          errorBuilder: (context, error, stackTrace) => Icon(
-                            Icons.bookmark_rounded,
+                      ),
+                    ),
+                    if (!isCompact) ...[
+                      const SizedBox(width: 12),
+                      Flexible(
+                        child: Text(
+                          'laterbox',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
                             color: textPrimary,
-                            size: 20,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -0.5,
+                            fontSize: 18,
                           ),
                         ),
                       ),
-                      if (!isCompact) ...[
-                        const SizedBox(width: 10),
-                        Flexible(
-                          child: Text(
-                            'laterbox',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              color: textPrimary,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: -0.5,
-                              fontSize: 17,
-                            ),
-                          ),
-                        ),
-                      ],
                     ],
-                  ),
-                ),
-                if (!isCompact)
-                  Tooltip(
-                    message: 'Collapse sidebar',
-                    child: InkWell(
-                      onTap: () => setState(() => _isCollapsed = true),
-                      borderRadius: BorderRadius.circular(8),
-                      child: Padding(
-                        padding: const EdgeInsets.all(5),
-                        child: Icon(
-                          Icons.keyboard_double_arrow_left_rounded,
-                          size: 16,
-                          color: textMuted,
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-
-          if (isCompact)
-            Padding(
-              padding: const EdgeInsets.only(top: 4, bottom: 2),
-              child: Tooltip(
-                message: 'Expand sidebar',
-                child: InkWell(
-                  onTap: () => setState(() => _isCollapsed = false),
-                  borderRadius: BorderRadius.circular(8),
-                  child: Padding(
-                    padding: const EdgeInsets.all(5),
-                    child: Icon(
-                      Icons.keyboard_double_arrow_right_rounded,
-                      size: 16,
-                      color: textMuted,
-                    ),
-                  ),
+                  ],
                 ),
               ),
-            ),
 
-          const SizedBox(height: 12),
+              const SizedBox(height: 14),
 
-          // Quick Capture "Save Item" Button
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: isCompact ? 10 : 14),
-            child: isCompact
-                ? Tooltip(
-                    message: 'Save Item (⌥ Space)',
-                    child: Material(
-                      color: isDark ? const Color(0xFFE6EDB0) : const Color(0xFF171711),
-                      borderRadius: BorderRadius.circular(12),
-                      child: InkWell(
-                        onTap: widget.onOpenCapture,
-                        borderRadius: BorderRadius.circular(12),
-                        child: SizedBox(
-                          width: 38,
-                          height: 38,
-                          child: Icon(
-                            Icons.add_rounded,
-                            size: 18,
-                            color: isDark ? const Color(0xFF171711) : Colors.white,
-                          ),
-                        ),
-                      ),
-                    ),
-                  )
-                : Material(
-                    color: isDark ? const Color(0xFFE6EDB0) : const Color(0xFF171711),
-                    borderRadius: BorderRadius.circular(12),
-                    elevation: 0,
-                    child: InkWell(
-                      onTap: widget.onOpenCapture,
-                      borderRadius: BorderRadius.circular(12),
-                      hoverColor: isDark ? const Color(0xFFD6DDA0) : const Color(0xFF282723),
-                      child: Container(
-                        height: 38,
-                        padding: const EdgeInsets.symmetric(horizontal: 14),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.add_rounded,
-                              size: 16,
-                              color: isDark ? const Color(0xFF171711) : Colors.white,
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              'Save Item',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
+              // Quick Capture "Save Item" Button
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: isCompact
+                    ? Tooltip(
+                        message: 'Save Item (⌥ Space)',
+                        child: Material(
+                          color: isDark ? const Color(0xFFE6EDB0) : const Color(0xFF171711),
+                          borderRadius: BorderRadius.circular(12),
+                          child: InkWell(
+                            onTap: onOpenCapture,
+                            borderRadius: BorderRadius.circular(12),
+                            hoverColor: Colors.transparent,
+                            child: SizedBox(
+                              width: 42,
+                              height: 42,
+                              child: Icon(
+                                Icons.add_rounded,
+                                size: 20,
                                 color: isDark ? const Color(0xFF171711) : Colors.white,
                               ),
                             ),
-                          ],
+                          ),
+                        ),
+                      )
+                    : Material(
+                        color: isDark ? const Color(0xFFE6EDB0) : const Color(0xFF171711),
+                        borderRadius: BorderRadius.circular(12),
+                        elevation: 0,
+                        child: InkWell(
+                          onTap: onOpenCapture,
+                          borderRadius: BorderRadius.circular(12),
+                          hoverColor: Colors.transparent,
+                          child: Container(
+                            height: 42,
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.add_rounded,
+                                  size: 18,
+                                  color: isDark ? const Color(0xFF171711) : Colors.white,
+                                ),
+                                const SizedBox(width: 10),
+                                Text(
+                                  'Save Item',
+                                  style: TextStyle(
+                                    fontSize: 13.5,
+                                    fontWeight: FontWeight.w700,
+                                    color: isDark ? const Color(0xFF171711) : Colors.white,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
                       ),
+              ),
+
+              // Subtle Divider
+              Container(
+                height: 1,
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                color: dividerColor,
+              ),
+
+              // Scrollable Navigation Link Pills (no hover state)
+              Expanded(
+                child: ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                  itemCount: navEntries.length,
+                  itemBuilder: (context, index) {
+                    final entry = navEntries[index];
+                    final isSelected = _isEntrySelected(context, entry);
+
+                    return _SidebarTabItem(
+                      entry: entry,
+                      isSelected: isSelected,
+                      isCompact: isCompact,
+                      onTap: () => _handleNavTap(context, entry),
+                    );
+                  },
+                ),
+              ),
+
+              // Bottom Pro Plan, Cloud Sync & User Profile
+              Container(
+                padding: const EdgeInsets.only(top: 10),
+                decoration: BoxDecoration(
+                  border: Border(top: BorderSide(color: dividerColor, width: 1)),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _PlanStatusCard(compact: isCompact),
+                    const SizedBox(height: 8),
+                    Center(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: CloudSyncIndicator(compact: isCompact),
+                      ),
                     ),
-                  ),
-          ),
-
-          // Subtle Divider
-          Container(
-            height: 1,
-            margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            color: dividerColor,
-          ),
-
-          // Scrollable Navigation Link Pills
-          Expanded(
-            child: ListView.builder(
-              padding: EdgeInsets.symmetric(horizontal: isCompact ? 8 : 12),
-              itemCount: navEntries.length,
-              itemBuilder: (context, index) {
-                final entry = navEntries[index];
-                final isSelected = _isEntrySelected(context, entry);
-
-                return _SidebarTabItem(
-                  entry: entry,
-                  isSelected: isSelected,
-                  isCompact: isCompact,
-                  onTap: () => _handleNavTap(context, entry),
-                );
-              },
-            ),
-          ),
-
-          // Bottom Pro Plan, Cloud Sync & User Profile
-          Container(
-            padding: const EdgeInsets.only(top: 10),
-            decoration: BoxDecoration(
-              border: Border(top: BorderSide(color: dividerColor, width: 1)),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _PlanStatusCard(compact: isCompact),
-                const SizedBox(height: 6),
-                Center(
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: CloudSyncIndicator(compact: isCompact),
-                  ),
+                    const SizedBox(height: 10),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 14),
+                      child: _UserCard(
+                        userEmail: userEmail,
+                        isGuest: isGuest,
+                        compact: isCompact,
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                  ],
                 ),
-                const SizedBox(height: 8),
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: isCompact ? 8 : 12),
-                  child: _UserCard(
-                    userEmail: userEmail,
-                    isGuest: isGuest,
-                    compact: isCompact,
-                  ),
-                ),
-                const SizedBox(height: 12),
-              ],
-            ),
-          ),
-        ],
-      );
-    },
-  ),
-);
+              ),
+            ],
+          );
+        },
+      ),
+    );
   }
 
   bool _isEntrySelected(BuildContext context, _NavEntry entry) {
@@ -333,7 +272,7 @@ class _DesktopSidebarState extends ConsumerState<DesktopSidebar> {
       return currentPath.startsWith(entry.path);
     } catch (_) {
       if (entry.tabIndex != null) {
-        return entry.tabIndex == widget.selectedIndex;
+        return entry.tabIndex == selectedIndex;
       }
       return false;
     }
@@ -341,7 +280,7 @@ class _DesktopSidebarState extends ConsumerState<DesktopSidebar> {
 
   void _handleNavTap(BuildContext context, _NavEntry entry) {
     if (entry.tabIndex != null) {
-      widget.onDestinationSelected(entry.tabIndex!);
+      onDestinationSelected(entry.tabIndex!);
     } else if (entry.path == '/search') {
       context.go('/search');
     } else {
@@ -368,7 +307,7 @@ class _NavEntry {
   final int? badgeCount;
 }
 
-class _SidebarTabItem extends StatefulWidget {
+class _SidebarTabItem extends StatelessWidget {
   const _SidebarTabItem({
     required this.entry,
     required this.isSelected,
@@ -382,13 +321,6 @@ class _SidebarTabItem extends StatefulWidget {
   final VoidCallback onTap;
 
   @override
-  State<_SidebarTabItem> createState() => _SidebarTabItemState();
-}
-
-class _SidebarTabItemState extends State<_SidebarTabItem> {
-  bool _isHovered = false;
-
-  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
@@ -396,40 +328,34 @@ class _SidebarTabItemState extends State<_SidebarTabItem> {
     final activePillBg = isDark ? const Color(0xFF2E331B) : const Color(0xFFE6EDB0);
     final activePillFg = isDark ? const Color(0xFFD7FF27) : const Color(0xFF171711);
     final inactivePillFg = isDark ? const Color(0xFFA09E95) : const Color(0xFF6C6B63);
-    final hoverPillBg = isDark
-        ? Colors.white.withValues(alpha: 0.06)
-        : const Color(0xFFEBE7DC).withValues(alpha: 0.7);
 
     final badgeActiveBg = isDark ? const Color(0xFF3F4625) : const Color(0xFFD8E09E);
     final badgeInactiveBg = isDark
         ? Colors.white.withValues(alpha: 0.1)
         : const Color(0xFFEBE7DC);
 
-    final backgroundColor = widget.isSelected
-        ? activePillBg
-        : (_isHovered ? hoverPillBg : Colors.transparent);
-
-    final foregroundColor = widget.isSelected
-        ? activePillFg
-        : (_isHovered ? (isDark ? Colors.white : const Color(0xFF171711)) : inactivePillFg);
+    // No hover state: background is strictly active pill color or transparent
+    final backgroundColor = isSelected ? activePillBg : Colors.transparent;
+    final foregroundColor = isSelected ? activePillFg : inactivePillFg;
 
     final content = Material(
       color: Colors.transparent,
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
-        onHover: (hovered) => setState(() => _isHovered = hovered),
-        onTap: widget.onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
-          height: 38,
-          margin: const EdgeInsets.only(bottom: 3),
-          padding: EdgeInsets.symmetric(horizontal: widget.isCompact ? 0 : 12),
+        hoverColor: Colors.transparent,
+        highlightColor: Colors.transparent,
+        splashColor: Colors.transparent,
+        onTap: onTap,
+        child: Container(
+          height: 42,
+          margin: const EdgeInsets.only(bottom: 4),
+          padding: EdgeInsets.symmetric(horizontal: isCompact ? 0 : 14),
           decoration: BoxDecoration(
             color: backgroundColor,
             borderRadius: BorderRadius.circular(12),
           ),
           child: Row(
-            mainAxisAlignment: widget.isCompact
+            mainAxisAlignment: isCompact
                 ? MainAxisAlignment.center
                 : MainAxisAlignment.spaceBetween,
             children: [
@@ -437,21 +363,21 @@ class _SidebarTabItemState extends State<_SidebarTabItem> {
                 child: Row(
                   children: [
                     Icon(
-                      widget.isSelected ? widget.entry.selectedIcon : widget.entry.icon,
+                      isSelected ? entry.selectedIcon : entry.icon,
                       color: foregroundColor,
-                      size: 16,
+                      size: 18,
                     ),
-                    if (!widget.isCompact) ...[
-                      const SizedBox(width: 10),
+                    if (!isCompact) ...[
+                      const SizedBox(width: 12),
                       Expanded(
                         child: Text(
-                          widget.entry.label,
+                          entry.label,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                            fontWeight: widget.isSelected ? FontWeight.w700 : FontWeight.w600,
+                            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
                             color: foregroundColor,
-                            fontSize: 12.5,
+                            fontSize: 13.5,
                           ),
                         ),
                       ),
@@ -459,20 +385,20 @@ class _SidebarTabItemState extends State<_SidebarTabItem> {
                   ],
                 ),
               ),
-              if (!widget.isCompact && (widget.entry.badgeCount ?? 0) > 0)
+              if (!isCompact && (entry.badgeCount ?? 0) > 0)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
                   decoration: BoxDecoration(
-                    color: widget.isSelected ? badgeActiveBg : badgeInactiveBg,
+                    color: isSelected ? badgeActiveBg : badgeInactiveBg,
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
-                    '${widget.entry.badgeCount}',
+                    '${entry.badgeCount}',
                     style: TextStyle(
-                      fontSize: 10,
+                      fontSize: 11,
                       fontWeight: FontWeight.w700,
                       fontFamily: 'monospace',
-                      color: widget.isSelected ? activePillFg : inactivePillFg,
+                      color: isSelected ? activePillFg : inactivePillFg,
                     ),
                   ),
                 ),
@@ -482,8 +408,8 @@ class _SidebarTabItemState extends State<_SidebarTabItem> {
       ),
     );
 
-    if (widget.isCompact) {
-      return Tooltip(message: widget.entry.label, child: content);
+    if (isCompact) {
+      return Tooltip(message: entry.label, child: content);
     }
 
     return content;
@@ -512,9 +438,10 @@ class _PlanStatusCard extends ConsumerWidget {
         }
       },
       borderRadius: BorderRadius.circular(12),
+      hoverColor: Colors.transparent,
       child: Container(
-        margin: EdgeInsets.symmetric(horizontal: compact ? 8 : 12),
-        padding: EdgeInsets.all(compact ? 8 : 10),
+        margin: EdgeInsets.symmetric(horizontal: compact ? 8 : 14),
+        padding: EdgeInsets.all(compact ? 8 : 12),
         decoration: BoxDecoration(
           color: const Color(0xFF171711),
           borderRadius: BorderRadius.circular(12),
@@ -524,8 +451,8 @@ class _PlanStatusCard extends ConsumerWidget {
         ),
         child: compact
             ? SizedBox(
-                width: 28,
-                height: 28,
+                width: 30,
+                height: 30,
                 child: Stack(
                   alignment: Alignment.center,
                   children: [
@@ -538,7 +465,7 @@ class _PlanStatusCard extends ConsumerWidget {
                       ),
                     Icon(
                       Icons.workspace_premium_rounded,
-                      size: 16,
+                      size: 17,
                       color: color,
                     ),
                   ],
@@ -551,10 +478,10 @@ class _PlanStatusCard extends ConsumerWidget {
                     children: [
                       Icon(
                         Icons.workspace_premium_rounded,
-                        size: 16,
+                        size: 17,
                         color: color,
                       ),
-                      const SizedBox(width: 7),
+                      const SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           presentation.label,
@@ -562,7 +489,7 @@ class _PlanStatusCard extends ConsumerWidget {
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
                             color: Colors.white,
-                            fontSize: 11,
+                            fontSize: 12,
                             fontWeight: FontWeight.w900,
                           ),
                         ),
@@ -570,7 +497,7 @@ class _PlanStatusCard extends ConsumerWidget {
                     ],
                   ),
                   if (presentation.progress != null) ...[
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 9),
                     ClipRRect(
                       borderRadius: BorderRadius.circular(99),
                       child: LinearProgressIndicator(
@@ -586,7 +513,7 @@ class _PlanStatusCard extends ConsumerWidget {
                     presentation.actionLabel,
                     style: TextStyle(
                       color: color,
-                      fontSize: 10,
+                      fontSize: 11,
                       fontWeight: FontWeight.w900,
                     ),
                   ),
@@ -633,9 +560,10 @@ class _UserCard extends StatelessWidget {
         child: InkWell(
           onTap: () => isGuest ? context.push('/login') : context.go('/settings'),
           borderRadius: BorderRadius.circular(8),
+          hoverColor: Colors.transparent,
           child: Container(
-            width: 32,
-            height: 32,
+            width: 34,
+            height: 34,
             decoration: BoxDecoration(
               color: const Color(0xFFE6EDB0),
               borderRadius: BorderRadius.circular(8),
@@ -644,7 +572,7 @@ class _UserCard extends StatelessWidget {
             child: Text(
               avatarText,
               style: const TextStyle(
-                fontSize: 13,
+                fontSize: 14,
                 fontWeight: FontWeight.w800,
                 color: Color(0xFF171711),
               ),
@@ -656,7 +584,7 @@ class _UserCard extends StatelessWidget {
 
     if (isGuest) {
       return Container(
-        padding: const EdgeInsets.all(10),
+        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: cardBg,
           borderRadius: BorderRadius.circular(12),
@@ -668,8 +596,8 @@ class _UserCard extends StatelessWidget {
             Row(
               children: [
                 Container(
-                  width: 28,
-                  height: 28,
+                  width: 32,
+                  height: 32,
                   decoration: BoxDecoration(
                     color: const Color(0xFFE6EDB0),
                     borderRadius: BorderRadius.circular(8),
@@ -678,13 +606,13 @@ class _UserCard extends StatelessWidget {
                   child: const Text(
                     'G',
                     style: TextStyle(
-                      fontSize: 12,
+                      fontSize: 13,
                       fontWeight: FontWeight.w800,
                       color: Color(0xFF171711),
                     ),
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 10),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -693,7 +621,7 @@ class _UserCard extends StatelessWidget {
                       Text(
                         'Guest Mode',
                         style: TextStyle(
-                          fontSize: 12,
+                          fontSize: 13,
                           fontWeight: FontWeight.w700,
                           color: textPrimary,
                         ),
@@ -701,7 +629,7 @@ class _UserCard extends StatelessWidget {
                       Text(
                         'Local storage',
                         style: TextStyle(
-                          fontSize: 10,
+                          fontSize: 11,
                           fontWeight: FontWeight.w500,
                           color: textMuted,
                         ),
@@ -711,25 +639,25 @@ class _UserCard extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 10),
             Material(
               color: isDark ? const Color(0xFFE6EDB0) : const Color(0xFF171711),
               borderRadius: BorderRadius.circular(8),
               child: InkWell(
                 onTap: () => context.push('/login'),
                 borderRadius: BorderRadius.circular(8),
-                hoverColor: isDark ? const Color(0xFFD6DDA0) : const Color(0xFF282723),
+                hoverColor: Colors.transparent,
                 child: Container(
-                  height: 28,
+                  height: 32,
                   alignment: Alignment.center,
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(
                         Icons.login_rounded,
-                        size: 12,
+                        size: 13,
                         color: isDark ? const Color(0xFF171711) : Colors.white,
                       ),
                       const SizedBox(width: 6),
@@ -739,7 +667,7 @@ class _UserCard extends StatelessWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                            fontSize: 11,
+                            fontSize: 11.5,
                             fontWeight: FontWeight.w700,
                             color: isDark ? const Color(0xFF171711) : Colors.white,
                           ),
@@ -756,7 +684,7 @@ class _UserCard extends StatelessWidget {
     }
 
     return Container(
-      padding: const EdgeInsets.all(8),
+      padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: cardBg,
         borderRadius: BorderRadius.circular(12),
@@ -765,8 +693,8 @@ class _UserCard extends StatelessWidget {
       child: Row(
         children: [
           Container(
-            width: 28,
-            height: 28,
+            width: 32,
+            height: 32,
             decoration: BoxDecoration(
               color: const Color(0xFFE6EDB0),
               borderRadius: BorderRadius.circular(8),
@@ -775,13 +703,13 @@ class _UserCard extends StatelessWidget {
             child: Text(
               avatarText,
               style: const TextStyle(
-                fontSize: 12,
+                fontSize: 13,
                 fontWeight: FontWeight.w800,
                 color: Color(0xFF171711),
               ),
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -792,7 +720,7 @@ class _UserCard extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: 13,
                     fontWeight: FontWeight.w700,
                     color: textPrimary,
                   ),
@@ -800,7 +728,7 @@ class _UserCard extends StatelessWidget {
                 Text(
                   'Account',
                   style: TextStyle(
-                    fontSize: 10,
+                    fontSize: 11,
                     fontWeight: FontWeight.w500,
                     color: textMuted,
                   ),
@@ -811,11 +739,12 @@ class _UserCard extends StatelessWidget {
           InkWell(
             onTap: () => context.go('/settings'),
             borderRadius: BorderRadius.circular(6),
+            hoverColor: Colors.transparent,
             child: Padding(
-              padding: const EdgeInsets.all(4),
+              padding: const EdgeInsets.all(5),
               child: Icon(
                 Icons.settings_outlined,
-                size: 15,
+                size: 17,
                 color: textMuted,
               ),
             ),
