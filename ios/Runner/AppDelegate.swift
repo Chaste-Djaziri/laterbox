@@ -9,6 +9,7 @@ import UIKit
   private var clipboardEventSink: FlutterEventSink?
   private var pasteboardObserver: NSObjectProtocol?
   private var appIconChannel: FlutterMethodChannel?
+  private var liveActivityChannel: FlutterMethodChannel?
 
   private var darwinObserverRegistered = false
 
@@ -39,6 +40,7 @@ import UIKit
     registerShareChannel(with: messenger)
     registerClipboardChannel(with: messenger)
     registerAppIconChannel(with: messenger)
+    registerLiveActivityChannel(with: messenger)
   }
 
   private func setupDarwinShareObserver() {
@@ -163,5 +165,81 @@ import UIKit
     pasteboardObserver = nil
     clipboardEventSink = nil
     return nil
+  }
+
+  private func registerLiveActivityChannel(with messenger: FlutterBinaryMessenger?) {
+    guard let messenger, liveActivityChannel == nil else { return }
+    let channel = FlutterMethodChannel(
+      name: "pro.micorp.laterbox/live_activity",
+      binaryMessenger: messenger
+    )
+    channel.setMethodCallHandler { call, result in
+      if #available(iOS 16.1, *) {
+        switch call.method {
+        case "isSupported":
+          result(LiveActivityManager.shared.isSupported)
+        case "start":
+          guard let args = call.arguments as? [String: Any],
+                let id = args["id"] as? String,
+                let title = args["title"] as? String else {
+            result(FlutterError(code: "INVALID_ARGS", message: "Missing id or title", details: nil))
+            return
+          }
+          let subtitle = args["subtitle"] as? String
+          let returnSchedule = args["returnSchedule"] as? String
+          let captureType = args["captureType"] as? String ?? "share"
+          let isCompleted = args["isCompleted"] as? Bool ?? true
+          let isError = args["isError"] as? Bool ?? false
+          let autoDismiss = args["autoDismissSeconds"] as? Double ?? 3.5
+
+          LiveActivityManager.shared.startActivity(
+            id: id,
+            title: title,
+            subtitle: subtitle,
+            returnSchedule: returnSchedule,
+            captureType: captureType,
+            isCompleted: isCompleted,
+            isError: isError,
+            autoDismissSeconds: autoDismiss
+          )
+          result(true)
+        case "update":
+          guard let args = call.arguments as? [String: Any],
+                let id = args["id"] as? String else {
+            result(FlutterError(code: "INVALID_ARGS", message: "Missing id", details: nil))
+            return
+          }
+          LiveActivityManager.shared.updateActivity(
+            id: id,
+            title: args["title"] as? String,
+            subtitle: args["subtitle"] as? String,
+            returnSchedule: args["returnSchedule"] as? String,
+            isCompleted: args["isCompleted"] as? Bool,
+            isError: args["isError"] as? Bool
+          )
+          result(true)
+        case "end":
+          guard let args = call.arguments as? [String: Any],
+                let id = args["id"] as? String else {
+            result(FlutterError(code: "INVALID_ARGS", message: "Missing id", details: nil))
+            return
+          }
+          LiveActivityManager.shared.endActivity(id: id)
+          result(true)
+        case "endAll":
+          LiveActivityManager.shared.endAllActivities()
+          result(true)
+        default:
+          result(FlutterMethodNotImplemented)
+        }
+      } else {
+        if call.method == "isSupported" {
+          result(false)
+        } else {
+          result(false)
+        }
+      }
+    }
+    self.liveActivityChannel = channel
   }
 }
