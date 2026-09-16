@@ -45,8 +45,8 @@ class IosLiveActivityService {
       await _channel.invokeMethod<bool>('start', {
         'id': id,
         'title': title,
-        if (subtitle != null) 'subtitle': subtitle,
-        if (returnSchedule != null) 'returnSchedule': returnSchedule,
+        ?'subtitle': subtitle,
+        ?'returnSchedule': returnSchedule,
         'captureType': captureType,
         'isCompleted': isCompleted,
         'isError': isError,
@@ -71,11 +71,11 @@ class IosLiveActivityService {
     try {
       await _channel.invokeMethod<bool>('update', {
         'id': id,
-        if (title != null) 'title': title,
-        if (subtitle != null) 'subtitle': subtitle,
-        if (returnSchedule != null) 'returnSchedule': returnSchedule,
-        if (isCompleted != null) 'isCompleted': isCompleted,
-        if (isError != null) 'isError': isError,
+        ?'title': title,
+        ?'subtitle': subtitle,
+        ?'returnSchedule': returnSchedule,
+        ?'isCompleted': isCompleted,
+        ?'isError': isError,
       });
     } on PlatformException catch (e) {
       debugPrint('[IosLiveActivityService] Failed to update Live Activity: $e');
