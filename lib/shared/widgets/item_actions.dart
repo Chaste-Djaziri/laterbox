@@ -101,8 +101,9 @@ Future<void> showItemActions(
                         value: item.returnAt,
                         onChanged: (time) async {
                           await repository.reschedule(itemId, time);
-                          if (pickerContext.mounted)
+                          if (pickerContext.mounted) {
                             Navigator.of(pickerContext).pop();
+                          }
                         },
                       ),
                     ),
