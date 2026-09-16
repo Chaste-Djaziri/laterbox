@@ -19,3 +19,5 @@ All notable user-facing changes to LaterBox will be documented in this file.
 - **Desktop Sidebar**: Added hover state and pointer cursor on interactive sidebar links.
 - **macOS Home Header**: Removed redundant "Home" AppBar title on macOS and desktop platforms in favor of a clean greeting header.
 - **Sidebar Navigation**: Removed redundant "Search" tab from sidebar navigation in favor of the header search button and `⌘K` shortcut.
+- **Apps Download Link**: Desktop sidebar "Apps" link now points directly to the external download page (`https://laterbox.dev/download`).
+- **Platform Architecture**: Removed legacy Flutter web build configuration and web-specific updater services in favor of the dedicated `laterbox-web` Next.js application.
