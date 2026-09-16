@@ -41,9 +41,13 @@ void main() {
         ),
       ],
       text: 'Browser capture',
+      returnAt: DateTime.utc(2026, 9, 20, 9),
     );
 
     expect(result.saved, isTrue);
+    final item = await database.itemById(result.itemId!);
+    expect(item!.status, 'deferred');
+    expect(item.returnAt?.toUtc(), DateTime.utc(2026, 9, 20, 9));
     final attachment = await database.attachments.select().getSingle();
     expect(attachment.localPath, isNull);
     expect(attachment.localBytes, bytes);
