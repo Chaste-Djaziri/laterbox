@@ -59,6 +59,8 @@ export function ItemProvider({ children }: { children: ReactNode }) {
 
   // Load from local storage
   const loadLocalData = useCallback(() => {
+    setItems([]);
+    setCollections([]);
     try {
       const stored = localStorage.getItem(`${LOCAL_ITEMS_KEY}_${user?.id || 'guest'}`) || localStorage.getItem(LOCAL_ITEMS_KEY);
       if (stored) {
