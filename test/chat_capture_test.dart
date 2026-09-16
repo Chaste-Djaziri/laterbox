@@ -56,7 +56,7 @@ void main() {
     // Verify modal is dismissed and the unscheduled capture waits outside Inbox
     expect(find.text('Type your message...'), findsNothing);
     expect(find.text('Remember to check out the new design'), findsNothing);
-    final stored = await tester.runAsync(() => database.watchAllItemsWithMetadata(null).first);
+    final stored = (await tester.runAsync(() => database.watchAllItemsWithMetadata(null).first))!;
     expect(stored.single.$1.textContent, 'Remember to check out the new design');
     expect(stored.single.$1.returnAt, isNull);
 
@@ -249,7 +249,7 @@ void main() {
       // Bubble and sheet are dismissed; an unscheduled capture waits in Someday.
       expect(find.byKey(const ValueKey('sent_chat_bubble')), findsNothing);
       expect(find.text(message), findsNothing);
-      final stored = await tester.runAsync(() => database.watchAllItemsWithMetadata(null).first);
+      final stored = (await tester.runAsync(() => database.watchAllItemsWithMetadata(null).first))!;
       expect(stored.single.$1.textContent, message);
       expect(stored.single.$1.status, 'deferred');
       expect(stored.single.$1.returnAt, isNull);
