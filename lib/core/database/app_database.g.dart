@@ -101,6 +101,17 @@ class $ItemsTable extends Items with TableInfo<$ItemsTable, Item> {
     requiredDuringInsert: false,
     defaultValue: const Constant('inbox'),
   );
+  static const VerificationMeta _returnAtMeta = const VerificationMeta(
+    'returnAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> returnAt = GeneratedColumn<DateTime>(
+    'return_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -168,6 +179,7 @@ class $ItemsTable extends Items with TableInfo<$ItemsTable, Item> {
     type,
     favorite,
     status,
+    returnAt,
     createdAt,
     updatedAt,
     syncStatus,
@@ -243,6 +255,12 @@ class $ItemsTable extends Items with TableInfo<$ItemsTable, Item> {
       context.handle(
         _statusMeta,
         status.isAcceptableOrUnknown(data['status']!, _statusMeta),
+      );
+    }
+    if (data.containsKey('return_at')) {
+      context.handle(
+        _returnAtMeta,
+        returnAt.isAcceptableOrUnknown(data['return_at']!, _returnAtMeta),
       );
     }
     if (data.containsKey('created_at')) {
@@ -327,6 +345,10 @@ class $ItemsTable extends Items with TableInfo<$ItemsTable, Item> {
         DriftSqlType.string,
         data['${effectivePrefix}status'],
       )!,
+      returnAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}return_at'],
+      ),
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -366,6 +388,7 @@ class Item extends DataClass implements Insertable<Item> {
   final String type;
   final bool favorite;
   final String status;
+  final DateTime? returnAt;
   final DateTime createdAt;
   final DateTime updatedAt;
   final String syncStatus;
@@ -381,6 +404,7 @@ class Item extends DataClass implements Insertable<Item> {
     required this.type,
     required this.favorite,
     required this.status,
+    this.returnAt,
     required this.createdAt,
     required this.updatedAt,
     required this.syncStatus,
@@ -409,6 +433,9 @@ class Item extends DataClass implements Insertable<Item> {
     map['type'] = Variable<String>(type);
     map['favorite'] = Variable<bool>(favorite);
     map['status'] = Variable<String>(status);
+    if (!nullToAbsent || returnAt != null) {
+      map['return_at'] = Variable<DateTime>(returnAt);
+    }
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
     map['sync_status'] = Variable<String>(syncStatus);
@@ -440,6 +467,9 @@ class Item extends DataClass implements Insertable<Item> {
       type: Value(type),
       favorite: Value(favorite),
       status: Value(status),
+      returnAt: returnAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(returnAt),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
       syncStatus: Value(syncStatus),
@@ -467,6 +497,7 @@ class Item extends DataClass implements Insertable<Item> {
       type: serializer.fromJson<String>(json['type']),
       favorite: serializer.fromJson<bool>(json['favorite']),
       status: serializer.fromJson<String>(json['status']),
+      returnAt: serializer.fromJson<DateTime?>(json['returnAt']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       syncStatus: serializer.fromJson<String>(json['syncStatus']),
@@ -487,6 +518,7 @@ class Item extends DataClass implements Insertable<Item> {
       'type': serializer.toJson<String>(type),
       'favorite': serializer.toJson<bool>(favorite),
       'status': serializer.toJson<String>(status),
+      'returnAt': serializer.toJson<DateTime?>(returnAt),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'syncStatus': serializer.toJson<String>(syncStatus),
@@ -505,6 +537,7 @@ class Item extends DataClass implements Insertable<Item> {
     String? type,
     bool? favorite,
     String? status,
+    Value<DateTime?> returnAt = const Value.absent(),
     DateTime? createdAt,
     DateTime? updatedAt,
     String? syncStatus,
@@ -520,6 +553,7 @@ class Item extends DataClass implements Insertable<Item> {
     type: type ?? this.type,
     favorite: favorite ?? this.favorite,
     status: status ?? this.status,
+    returnAt: returnAt.present ? returnAt.value : this.returnAt,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
     syncStatus: syncStatus ?? this.syncStatus,
@@ -541,6 +575,7 @@ class Item extends DataClass implements Insertable<Item> {
       type: data.type.present ? data.type.value : this.type,
       favorite: data.favorite.present ? data.favorite.value : this.favorite,
       status: data.status.present ? data.status.value : this.status,
+      returnAt: data.returnAt.present ? data.returnAt.value : this.returnAt,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       syncStatus: data.syncStatus.present
@@ -565,6 +600,7 @@ class Item extends DataClass implements Insertable<Item> {
           ..write('type: $type, ')
           ..write('favorite: $favorite, ')
           ..write('status: $status, ')
+          ..write('returnAt: $returnAt, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('syncStatus: $syncStatus, ')
@@ -585,6 +621,7 @@ class Item extends DataClass implements Insertable<Item> {
     type,
     favorite,
     status,
+    returnAt,
     createdAt,
     updatedAt,
     syncStatus,
@@ -604,6 +641,7 @@ class Item extends DataClass implements Insertable<Item> {
           other.type == this.type &&
           other.favorite == this.favorite &&
           other.status == this.status &&
+          other.returnAt == this.returnAt &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
           other.syncStatus == this.syncStatus &&
@@ -621,6 +659,7 @@ class ItemsCompanion extends UpdateCompanion<Item> {
   final Value<String> type;
   final Value<bool> favorite;
   final Value<String> status;
+  final Value<DateTime?> returnAt;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   final Value<String> syncStatus;
@@ -637,6 +676,7 @@ class ItemsCompanion extends UpdateCompanion<Item> {
     this.type = const Value.absent(),
     this.favorite = const Value.absent(),
     this.status = const Value.absent(),
+    this.returnAt = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.syncStatus = const Value.absent(),
@@ -654,6 +694,7 @@ class ItemsCompanion extends UpdateCompanion<Item> {
     this.type = const Value.absent(),
     this.favorite = const Value.absent(),
     this.status = const Value.absent(),
+    this.returnAt = const Value.absent(),
     required DateTime createdAt,
     required DateTime updatedAt,
     this.syncStatus = const Value.absent(),
@@ -673,6 +714,7 @@ class ItemsCompanion extends UpdateCompanion<Item> {
     Expression<String>? type,
     Expression<bool>? favorite,
     Expression<String>? status,
+    Expression<DateTime>? returnAt,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
     Expression<String>? syncStatus,
@@ -690,6 +732,7 @@ class ItemsCompanion extends UpdateCompanion<Item> {
       if (type != null) 'type': type,
       if (favorite != null) 'favorite': favorite,
       if (status != null) 'status': status,
+      if (returnAt != null) 'return_at': returnAt,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (syncStatus != null) 'sync_status': syncStatus,
@@ -709,6 +752,7 @@ class ItemsCompanion extends UpdateCompanion<Item> {
     Value<String>? type,
     Value<bool>? favorite,
     Value<String>? status,
+    Value<DateTime?>? returnAt,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
     Value<String>? syncStatus,
@@ -726,6 +770,7 @@ class ItemsCompanion extends UpdateCompanion<Item> {
       type: type ?? this.type,
       favorite: favorite ?? this.favorite,
       status: status ?? this.status,
+      returnAt: returnAt ?? this.returnAt,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       syncStatus: syncStatus ?? this.syncStatus,
@@ -765,6 +810,9 @@ class ItemsCompanion extends UpdateCompanion<Item> {
     if (status.present) {
       map['status'] = Variable<String>(status.value);
     }
+    if (returnAt.present) {
+      map['return_at'] = Variable<DateTime>(returnAt.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -798,6 +846,7 @@ class ItemsCompanion extends UpdateCompanion<Item> {
           ..write('type: $type, ')
           ..write('favorite: $favorite, ')
           ..write('status: $status, ')
+          ..write('returnAt: $returnAt, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('syncStatus: $syncStatus, ')
@@ -5854,6 +5903,7 @@ typedef $$ItemsTableCreateCompanionBuilder = ItemsCompanion Function({
   Value<String> type,
   Value<bool> favorite,
   Value<String> status,
+  Value<DateTime?> returnAt,
   required DateTime createdAt,
   required DateTime updatedAt,
   Value<String> syncStatus,
@@ -5871,6 +5921,7 @@ typedef $$ItemsTableUpdateCompanionBuilder = ItemsCompanion Function({
   Value<String> type,
   Value<bool> favorite,
   Value<String> status,
+  Value<DateTime?> returnAt,
   Value<DateTime> createdAt,
   Value<DateTime> updatedAt,
   Value<String> syncStatus,
@@ -5990,6 +6041,11 @@ class $$ItemsTableFilterComposer extends Composer<_$AppDatabase, $ItemsTable> {
 
   ColumnFilters<String> get status => $composableBuilder(
     column: $table.status,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get returnAt => $composableBuilder(
+    column: $table.returnAt,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -6148,6 +6204,11 @@ class $$ItemsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<DateTime> get returnAt => $composableBuilder(
+    column: $table.returnAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -6213,6 +6274,9 @@ class $$ItemsTableAnnotationComposer
 
   GeneratedColumn<String> get status =>
       $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get returnAt =>
+      $composableBuilder(column: $table.returnAt, builder: (column) => column);
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -6350,6 +6414,7 @@ class $$ItemsTableTableManager
                 Value<String> type = const Value.absent(),
                 Value<bool> favorite = const Value.absent(),
                 Value<String> status = const Value.absent(),
+                Value<DateTime?> returnAt = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<String> syncStatus = const Value.absent(),
@@ -6366,6 +6431,7 @@ class $$ItemsTableTableManager
                 type: type,
                 favorite: favorite,
                 status: status,
+                returnAt: returnAt,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 syncStatus: syncStatus,
@@ -6384,6 +6450,7 @@ class $$ItemsTableTableManager
                 Value<String> type = const Value.absent(),
                 Value<bool> favorite = const Value.absent(),
                 Value<String> status = const Value.absent(),
+                Value<DateTime?> returnAt = const Value.absent(),
                 required DateTime createdAt,
                 required DateTime updatedAt,
                 Value<String> syncStatus = const Value.absent(),
@@ -6400,6 +6467,7 @@ class $$ItemsTableTableManager
                 type: type,
                 favorite: favorite,
                 status: status,
+                returnAt: returnAt,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 syncStatus: syncStatus,
