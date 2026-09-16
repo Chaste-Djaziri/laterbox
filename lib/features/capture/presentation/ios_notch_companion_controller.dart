@@ -18,12 +18,14 @@ class IosNotchClipboardPrompt extends IosNotchState {
     this.metadata,
     this.saving = false,
     this.selectedReturnAt,
+    this.isCustom = false,
   });
 
   final String value;
   final EnrichedMetadata? metadata;
   final bool saving;
   final DateTime? selectedReturnAt;
+  final bool isCustom;
 
   IosNotchClipboardPrompt copyWith({
     String? value,
@@ -31,6 +33,7 @@ class IosNotchClipboardPrompt extends IosNotchState {
     bool? saving,
     DateTime? selectedReturnAt,
     bool clearReturnAt = false,
+    bool? isCustom,
   }) {
     return IosNotchClipboardPrompt(
       value: value ?? this.value,
@@ -38,6 +41,7 @@ class IosNotchClipboardPrompt extends IosNotchState {
       saving: saving ?? this.saving,
       selectedReturnAt:
           clearReturnAt ? null : (selectedReturnAt ?? this.selectedReturnAt),
+      isCustom: isCustom ?? (clearReturnAt ? false : this.isCustom),
     );
   }
 }
@@ -79,11 +83,12 @@ class IosNotchCompanionController extends StateNotifier<IosNotchState> {
     }
   }
 
-  void updatePromptReturnAt(DateTime? returnAt) {
+  void updatePromptReturnAt(DateTime? returnAt, {bool isCustom = false}) {
     if (state case final IosNotchClipboardPrompt prompt) {
       state = prompt.copyWith(
         selectedReturnAt: returnAt,
         clearReturnAt: returnAt == null,
+        isCustom: isCustom,
       );
     }
   }
