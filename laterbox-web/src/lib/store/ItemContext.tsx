@@ -7,6 +7,7 @@ import { useAuth } from './AuthContext';
 import { useBilling } from './BillingContext';
 import { normalizeUrl, isUrl, extractDomain } from '../utils/url';
 import { storeLocalAttachment } from '../utils/local-attachments';
+import { itemRow, queueCapture, syncPendingCaptures } from '../utils/pending-captures';
 import { isActive, isDue, migrateSchedule } from '../utils/schedule';
 
 const LOCAL_ITEMS_KEY = 'laterbox_local_items';
@@ -97,6 +98,8 @@ export function ItemProvider({ children }: { children: ReactNode }) {
     try {
       const supabase = getSupabaseClient();
 
+      await syncPendingCaptures(user.id);
+
       // Retry offline schedule changes before fetching the cloud snapshot.
       const pendingKey = `laterbox_pending_schedules_${user.id}`;
       const pending = JSON.parse(localStorage.getItem(pendingKey) || '{}');
@@ -157,7 +160,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
         ...migrateSchedule(item),
         metadata: metaMap.get(item.id) || null,
         note: noteMap.get(item.id) || null,
-        attachments: attachmentMap.get(item.id) || [],
+        attachments: attachmentMap.get(item.id) || (JSON.parse(localStorage.getItem(`${LOCAL_ITEMS_KEY}_${user.id}`) || '[]') as LaterBoxItem[]).find(local => local.id === item.id)?.attachments || [],
       }));
 
       // Deduplicate items by ID and URL/text
@@ -323,24 +326,14 @@ export function ItemProvider({ children }: { children: ReactNode }) {
     const updated = [newItem, ...items];
     setItems(updated);
     saveLocalData(updated);
+    queueCapture(newItem);
 
     if (user && isPro) {
       try {
         const supabase = getSupabaseClient();
-        await supabase.from('items').upsert({
-          id: newItem.id,
-          user_id: user.id,
-          url: newItem.url,
-          title: newItem.title,
-          text_content: newItem.text_content,
-          text_selector: newItem.text_selector,
-          type: newItem.type,
-          favorite: newItem.favorite,
-          status: newItem.status,
-          return_at: newItem.return_at,
-          created_at: newItem.created_at,
-          updated_at: newItem.updated_at,
-        });
+        const { error: saveError } = await supabase.from('items').upsert(itemRow(newItem));
+        if (saveError) throw saveError;
+        await syncPendingCaptures(user.id);
 
         // Trigger enrichment via fast API & Edge function if it's a URL
         if (normalizedUrl) {
@@ -464,6 +457,8 @@ export function ItemProvider({ children }: { children: ReactNode }) {
     const updated = items.map(item => item.id === id
       ? { ...item, status: 'deferred' as ItemStatus, return_at: returnAt, updated_at: timestamp } : item);
     setItems(updated); saveLocalData(updated);
+    const pendingItem = updated.find(item => item.id === id);
+    if (pendingItem && user && localStorage.getItem(`laterbox_pending_captures_${user.id}`)?.includes(id)) queueCapture(pendingItem);
     if (user && isPro) {
       const key = `laterbox_pending_schedules_${user.id}`;
       const pending = JSON.parse(localStorage.getItem(key) || '{}');
