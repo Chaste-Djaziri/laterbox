@@ -67,12 +67,12 @@ void main() {
 
     expect(navigationDestination('Inbox'), findsOneWidget);
     expect(find.text('Flutter notes'), findsOneWidget);
-    expect(tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex, 0);
+    expect(tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex, 1);
 
     await tester.tap(navigationDestination('Library'));
     await tester.pumpAndSettle();
 
-    expect(tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex, 1);
+    expect(tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex, 2);
     expect(find.text('Library'), findsWidgets);
     expect(find.text('All Items'), findsOneWidget);
     expect(find.text('Favorites'), findsOneWidget);
@@ -87,7 +87,7 @@ void main() {
     await tester.tap(navigationDestination('Settings'));
     await tester.pumpAndSettle();
 
-    expect(tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex, 2);
+    expect(tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex, 3);
     expect(find.text('Settings'), findsWidgets);
 
     await tester.pumpWidget(const SizedBox.shrink());
@@ -106,7 +106,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // Keep home page link highlighted (index 0), NOT library (index 1)
-    expect(tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex, 0);
+    expect(tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex, 1);
 
     expect(find.text('Recent'), findsOneWidget);
     expect(find.text('Flutter notes'), findsOneWidget);
