@@ -6,7 +6,7 @@ laterbox provides deep operating system integrations for desktop platforms (macO
 
 ## 1. Global Quick Capture Hotkey
 - Allows capturing URLs, text snippets, and notes instantly without switching away from your current application.
-- Configurable in Settings (default hotkey: `Cmd+Shift+Space` or `Cmd+T`).
+- Configurable in Settings (default hotkey: `⌃ ⌥ Space` on macOS, `Ctrl + Shift + L` on Windows, `Alt + Space` on Linux).
 - Implemented via `hotkey_manager` and [`lib/core/desktop/desktop_actions.dart`](file:///Users/chastedjazirihabimanahirwa/Documents/Github/laterbox/lib/core/desktop/desktop_actions.dart).
 
 ---
