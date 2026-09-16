@@ -61,7 +61,7 @@ LaterBox is architected from the ground up around **Local-First Software** princ
 
 ## Core Capabilities
 
-- **⚡ Universal Quick Capture**: System-wide global hotkeys (\`⌥ Space\` on Mac, \`Ctrl+Alt+Space\` on Windows, \`Alt+Space\` on Linux), mobile share sheets, and 1-click browser extension popups.
+- **⚡ Universal Quick Capture**: System-wide global hotkeys (\`⌃ ⌥ Space\` on Mac, \`Ctrl + Shift + L\` on Windows, \`Alt+Space\` on Linux), mobile share sheets, and 1-click browser extension popups.
 - **🎬 Distraction-Free Media**: Watch YouTube videos and listen to audio without ads, algorithms, or tracking directly inside your vault.
 - **📖 Clean Reader Mode**: Read long-form articles with customizable typography, dark/light themes, and private markdown annotations.
 - **🏷️ Deep Search & Collections**: Instant full-text search across titles, URLs, summaries, and personal notes with custom visual collections.
@@ -73,8 +73,8 @@ LaterBox is architected from the ground up around **Local-First Software** princ
 
 | Platform | Target Artifacts | Capabilities | Status |
 |---|---|---|---|
-| **macOS** | Universal \`.dmg\`, \`.pkg\` | Spotlight Quick Capture (\`⌥ Space\`), System Tray, Native File Picker | **Production Ready** |
-| **Windows** | Inno Setup \`.exe\`, Portable Zip | Hotkey (\`Ctrl+Alt+Space\`), Tray Minimization, Toast Alerts | **Production Ready** |
+| **macOS** | Universal \`.dmg\`, \`.pkg\` | Spotlight Quick Capture (\`⌃ ⌥ Space\`), System Tray, Native File Picker | **Production Ready** |
+| **Windows** | Inno Setup \`.exe\`, Portable Zip | Hotkey (\`Ctrl + Shift + L\`), Tray Minimization, Toast Alerts | **Production Ready** |
 | **Linux** | AppImage, Tarball | Hotkey (\`Alt+Space\`), SQLite FTS5 Local Storage | **Production Ready** |
 | **iOS** | TestFlight Beta / IPA | Native iOS Share Sheet Extension, Biometrics | **Beta** |
 | **Android** | Google Play Beta / APK | Android Share Intent Target, Offline Cache | **Beta** |
@@ -408,7 +408,7 @@ These shortcuts work globally across your entire operating system when the Later
 
 | Action | macOS Hotkey | Windows Hotkey | Linux Hotkey |
 |---|---|---|---|
-| **Open Quick Capture** | \`⌥ Space\` (Option+Space) | \`Ctrl + Alt + Space\` | \`Alt + Space\` |
+| **Open Quick Capture** | \`⌃ ⌥ Space\` (Control+Option+Space) | \`Ctrl + Shift + L\` | \`Alt + Space\` |
 | **Submit / Save Link** | \`⌘ Enter\` | \`Ctrl + Enter\` | \`Ctrl + Enter\` |
 | **Attach Files / Media** | \`⌘ O\` | \`Ctrl + O\` | \`Ctrl + O\` |
 | **Dismiss / Hide Bar** | \`Escape\` | \`Escape\` | \`Escape\` |
@@ -564,7 +564,7 @@ LaterBox utilizes **Last-Write-Wins (LWW)** with field-level merging based on UT
 
 The LaterBox desktop companion features a floating Spotlight-style quick capture modal:
 
-- **Global Hotkey Daemon**: Registers native OS keybinds (\`⌥ Space\` on Mac, \`Ctrl+Alt+Space\` on Windows) using native platform channels.
+- **Global Hotkey Daemon**: Registers native OS keybinds (\`⌃ ⌥ Space\` on Mac, \`Ctrl + Shift + L\` on Windows) using native platform channels.
 - **Frameless Window**: The window operates in a borderless, translucent floating mode centered horizontally in the upper third of the primary screen.
 - **Instant Focus**: When invoked, the window forces OS focus directly into the URL input field.
 
