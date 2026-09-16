@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/desktop/clipboard_capture_service.dart';
 import '../../../core/enrichment/enrichment_providers.dart';
+import '../../../core/ios/ios_live_activity_service.dart';
 import '../domain/capture_payload.dart';
 import '../domain/capture_providers.dart';
 import 'ios_notch_companion_controller.dart';
@@ -134,6 +135,17 @@ class _IosClipboardCaptureOverlayState
         subtitle: displayTitle,
         returnAt: prompt.selectedReturnAt,
       );
+      final scheduleTag = prompt.selectedReturnAt != null
+          ? _DynamicIslandCard._formatReturnTag(prompt.selectedReturnAt!)
+          : null;
+      ref.read(iosLiveActivityServiceProvider).startActivity(
+            id: DateTime.now().millisecondsSinceEpoch.toString(),
+            title: 'Saved to LaterBox',
+            subtitle: displayTitle,
+            returnSchedule: scheduleTag,
+            captureType: 'clipboard',
+            isCompleted: true,
+          );
     } catch (err) {
       if (mounted) {
         notifier.showError('Could not save item: $err');
