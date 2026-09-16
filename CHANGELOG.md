@@ -5,6 +5,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- **Video Attachment Player & Queue Mode**: Added a custom in-app video player for video attachments featuring custom play/pause icons, interactive progress scrubber, elapsed/total duration, and a Queue Mode with playlist drawer, auto-advance, and skip controls for multiple video attachments.
 - **Web-Styled Search Icon**: Added a rounded search button (`⌘K`) in the Home dashboard header matching the web interface.
 
 ### Changed
