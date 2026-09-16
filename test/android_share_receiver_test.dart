@@ -19,11 +19,11 @@ void main() {
     const channel = MethodChannel(AndroidShareReceiver.channelName);
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, (call) async {
-      if (call.method == 'consumeShares') {
-        return ['https://example.com/a', 'read this later'];
-      }
-      return null;
-    });
+          if (call.method == 'consumeShares') {
+            return ['https://example.com/a', 'read this later'];
+          }
+          return null;
+        });
     addTearDown(
       () => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(channel, null),
@@ -42,9 +42,16 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final stored = (await tester.runAsync(() => database.watchAllItemsWithMetadata(null).first))!;
+    final stored = (await tester.runAsync(
+      () => database.watchAllItemsWithMetadata(null).first,
+    ))!;
     expect(stored, hasLength(2));
-    expect(stored.every((row) => row.$1.status == 'deferred' && row.$1.returnAt == null), isTrue);
+    expect(
+      stored.every(
+        (row) => row.$1.status == 'deferred' && row.$1.returnAt == null,
+      ),
+      isTrue,
+    );
     expect(find.text('https://example.com/a'), findsNothing);
     expect(find.text('You’re all clear'), findsOneWidget);
 
