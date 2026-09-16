@@ -11,6 +11,8 @@ import '../../inbox/presentation/inbox_screen.dart';
 import '../../library/presentation/library_screen.dart';
 import '../../settings/presentation/settings_screen.dart';
 import 'desktop_sidebar.dart';
+import 'home_dashboard.dart';
+import '../../scheduling/presentation/schedule_providers.dart';
 
 class HomeShell extends ConsumerWidget {
   const HomeShell({
@@ -25,11 +27,23 @@ class HomeShell extends ConsumerWidget {
   final Widget? child;
 
   static const List<Widget> _screens = [
+    HomeDashboard(),
     InboxScreen(),
+    ScheduleScreen(view: ScheduleView.today),
+    ScheduleScreen(view: ScheduleView.upcoming),
+    ScheduleScreen(view: ScheduleView.someday),
     LibraryScreen(),
     SettingsScreen(),
   ];
-  static const List<String> _paths = ['/inbox', '/library', '/settings'];
+  static const List<String> _paths = [
+    '/home',
+    '/inbox',
+    '/today',
+    '/upcoming',
+    '/someday',
+    '/library',
+    '/settings',
+  ];
 
   Future<void> _openCapture(BuildContext context) {
     return showModalBottomSheet<void>(
@@ -49,7 +63,8 @@ class HomeShell extends ConsumerWidget {
     final isDesktop = _isDesktopPlatform() || width >= 900;
     final effectiveIndex = (navigationShell?.currentIndex ?? selectedIndex)
         .clamp(0, _paths.length - 1);
-    final Widget bodyContent = child ?? navigationShell ?? _screens[effectiveIndex];
+    final Widget bodyContent =
+        child ?? navigationShell ?? _screens[effectiveIndex];
 
     void handleDestinationSelected(int index) {
       if (navigationShell != null) {
@@ -82,40 +97,52 @@ class HomeShell extends ConsumerWidget {
               children: [
                 const _MobilePlanStatus(),
                 NavigationBar(
-              selectedIndex: effectiveIndex,
-              onDestinationSelected: handleDestinationSelected,
-              destinations: const [
-                NavigationDestination(
-                  icon: Icon(Icons.inbox_outlined),
-                  selectedIcon: Icon(Icons.inbox_rounded),
-                  label: 'Inbox',
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.auto_stories_outlined),
-                  selectedIcon: Icon(Icons.auto_stories_rounded),
-                  label: 'Library',
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.settings_outlined),
-                  selectedIcon: Icon(Icons.settings_rounded),
-                  label: 'Settings',
+                  selectedIndex: effectiveIndex == 1
+                      ? 1
+                      : effectiveIndex == 5
+                      ? 2
+                      : effectiveIndex == 6
+                      ? 3
+                      : 0,
+                  onDestinationSelected: (index) =>
+                      handleDestinationSelected(const [0, 1, 5, 6][index]),
+                  destinations: const [
+                    NavigationDestination(
+                      icon: Icon(Icons.home_outlined),
+                      selectedIcon: Icon(Icons.home),
+                      label: 'Home',
+                    ),
+                    NavigationDestination(
+                      icon: Icon(Icons.inbox_outlined),
+                      selectedIcon: Icon(Icons.inbox_rounded),
+                      label: 'Inbox',
+                    ),
+                    NavigationDestination(
+                      icon: Icon(Icons.auto_stories_outlined),
+                      selectedIcon: Icon(Icons.auto_stories_rounded),
+                      label: 'Library',
+                    ),
+                    NavigationDestination(
+                      icon: Icon(Icons.settings_outlined),
+                      selectedIcon: Icon(Icons.settings_rounded),
+                      label: 'Settings',
+                    ),
+                  ],
                 ),
               ],
             ),
-              ],
-            ),
-      floatingActionButton: (!isDesktop && effectiveIndex == 0)
+      floatingActionButton: (!isDesktop && effectiveIndex != 6)
           ? (_isIOS(context)
-              ? FloatingActionButton(
-                  onPressed: () => _openCapture(context),
-                  tooltip: 'Save something',
-                  child: const Icon(Icons.add_rounded),
-                )
-              : FloatingActionButton.large(
-                  onPressed: () => _openCapture(context),
-                  tooltip: 'Save something',
-                  child: const Icon(Icons.add_rounded, size: 32),
-                ))
+                ? FloatingActionButton(
+                    onPressed: () => _openCapture(context),
+                    tooltip: 'Save something',
+                    child: const Icon(Icons.add_rounded),
+                  )
+                : FloatingActionButton.large(
+                    onPressed: () => _openCapture(context),
+                    tooltip: 'Save something',
+                    child: const Icon(Icons.add_rounded, size: 32),
+                  ))
           : null,
     );
   }
@@ -132,11 +159,14 @@ class _MobilePlanStatus extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final entitlement = ref.watch(entitlementProvider).valueOrNull ?? const Entitlement.free();
+    final entitlement =
+        ref.watch(entitlementProvider).valueOrNull ?? const Entitlement.free();
     final plan = EntitlementPresentation.from(entitlement);
     final warning = plan.severity == EntitlementSeverity.warning;
     return Material(
-      color: warning ? Colors.amber.shade50 : Theme.of(context).colorScheme.surface,
+      color: warning
+          ? Colors.amber.shade50
+          : Theme.of(context).colorScheme.surface,
       child: InkWell(
         onTap: () {
           if (entitlement.hasProAccess) {
@@ -152,13 +182,30 @@ class _MobilePlanStatus extends ConsumerWidget {
               Icon(
                 Icons.workspace_premium_rounded,
                 size: 17,
-                color: warning ? Colors.amber.shade900 : Theme.of(context).colorScheme.primary,
+                color: warning
+                    ? Colors.amber.shade900
+                    : Theme.of(context).colorScheme.primary,
               ),
               const SizedBox(width: 8),
               Expanded(
-                child: Text(plan.label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800)),
+                child: Text(
+                  plan.label,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
               ),
-              Text(plan.actionLabel, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: warning ? Colors.amber.shade900 : Theme.of(context).colorScheme.primary)),
+              Text(
+                plan.actionLabel,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                  color: warning
+                      ? Colors.amber.shade900
+                      : Theme.of(context).colorScheme.primary,
+                ),
+              ),
             ],
           ),
         ),

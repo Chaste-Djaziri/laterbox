@@ -25,7 +25,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Nothing saved yet'), findsOneWidget);
+    expect(find.text('You’re all clear'), findsOneWidget);
 
     await tester.tap(find.byTooltip('Save something'));
     await tester.pumpAndSettle();
@@ -33,6 +33,7 @@ void main() {
       find.byType(TextField).last,
       'https://github.com/flutter/flutter',
     );
+    await tester.tap(find.text('Now'));
     await tester.tap(find.text('Save'));
     await tester.pumpAndSettle();
 
@@ -59,14 +60,11 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Nothing saved yet'), findsOneWidget);
+    expect(find.text('You’re all clear'), findsOneWidget);
 
     await tester.tap(find.byTooltip('Save something'));
     await tester.pumpAndSettle();
-    await tester.enterText(
-      find.byType(TextField).last,
-      '   ',
-    );
+    await tester.enterText(find.byType(TextField).last, '   ');
     await tester.tap(find.text('Save'));
     await tester.pump();
 

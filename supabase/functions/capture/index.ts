@@ -117,7 +117,8 @@ export const createCaptureHandler = (
         : JSON.stringify(capture.selector),
       type: capture.text !== null ? "note" : "link",
       favorite: false,
-      status: "inbox",
+      status: "deferred",
+      return_at: null,
       created_at: timestamp,
       updated_at: timestamp,
     };

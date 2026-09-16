@@ -43,6 +43,7 @@ class RemoteItem {
     required this.createdAt,
     required this.updatedAt,
     this.deletedAt,
+    this.returnAt,
   });
 
   factory RemoteItem.fromJson(Map<String, dynamic> json) {
@@ -58,6 +59,9 @@ class RemoteItem {
       status: json['status'] as String? ?? 'inbox',
       createdAt: DateTime.parse(json['created_at'] as String).toUtc(),
       updatedAt: DateTime.parse(json['updated_at'] as String).toUtc(),
+      returnAt: json['return_at'] == null
+          ? null
+          : DateTime.parse(json['return_at'] as String).toUtc(),
       deletedAt: json['deleted_at'] == null
           ? null
           : DateTime.parse(json['deleted_at'] as String).toUtc(),
@@ -76,6 +80,7 @@ class RemoteItem {
   final DateTime createdAt;
   final DateTime updatedAt;
   final DateTime? deletedAt;
+  final DateTime? returnAt;
 }
 
 extension on Item {
@@ -89,6 +94,7 @@ extension on Item {
     'type': type,
     'favorite': favorite,
     'status': status,
+    'return_at': returnAt?.toUtc().toIso8601String(),
     'created_at': createdAt.toUtc().toIso8601String(),
     'updated_at': updatedAt.toUtc().toIso8601String(),
     'deleted_at': deletedAt?.toUtc().toIso8601String(),

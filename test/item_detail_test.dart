@@ -60,6 +60,11 @@ void main() {
     await tester.tap(find.text('Flutter notes'));
     await tester.pumpAndSettle();
 
+    await tester.scrollUntilVisible(
+      find.text('Collection'),
+      150,
+      scrollable: find.byType(Scrollable).last,
+    );
     expect(find.text('Collection'), findsOneWidget);
     expect(find.text('Saved'), findsOneWidget);
     expect(find.text('URL'), findsOneWidget);
@@ -68,8 +73,9 @@ void main() {
     await disposeDatabase(tester, database);
   });
 
-  testWidgets('long pressing a card keeps an item out of the inbox',
-      (tester) async {
+  testWidgets('long pressing a card keeps an item out of the inbox', (
+    tester,
+  ) async {
     final database = await seedDatabase();
     await pumpApp(tester, database);
 
@@ -81,14 +87,15 @@ void main() {
     await tester.tap(find.text('Keep'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Nothing saved yet'), findsOneWidget);
+    expect(find.text('You’re all clear'), findsOneWidget);
     expect((await database.itemById('item-1'))!.status, 'saved');
 
     await disposeDatabase(tester, database);
   });
 
-  testWidgets('marking as seen from action sheet archives the item',
-      (tester) async {
+  testWidgets('marking as seen from action sheet archives the item', (
+    tester,
+  ) async {
     final database = await seedDatabase();
     await pumpApp(tester, database);
 
@@ -100,13 +107,15 @@ void main() {
     await tester.tap(find.text('Mark as Seen'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Nothing saved yet'), findsOneWidget);
+    expect(find.text('You’re all clear'), findsOneWidget);
     expect((await database.itemById('item-1'))!.status, 'archived');
 
     await disposeDatabase(tester, database);
   });
 
-  testWidgets('deleting from the action sheet removes the item', (tester) async {
+  testWidgets('deleting from the action sheet removes the item', (
+    tester,
+  ) async {
     final database = await seedDatabase();
     await pumpApp(tester, database);
 
@@ -121,7 +130,7 @@ void main() {
     await tester.tap(find.widgetWithText(FilledButton, 'Delete'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Nothing saved yet'), findsOneWidget);
+    expect(find.text('You’re all clear'), findsOneWidget);
     expect((await database.itemById('item-1'))!.deletedAt != null, isTrue);
 
     await disposeDatabase(tester, database);
@@ -144,8 +153,9 @@ void main() {
     await disposeDatabase(tester, database);
   });
 
-  testWidgets('adding to a new collection from the action sheet',
-      (tester) async {
+  testWidgets('adding to a new collection from the action sheet', (
+    tester,
+  ) async {
     final database = await seedDatabase();
     await pumpApp(tester, database);
 

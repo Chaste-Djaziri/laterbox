@@ -47,7 +47,7 @@ export default function InboxPage() {
               Inbox
             </h1>
             <p className="text-sm text-[#6c6b63] font-medium mt-0.5">
-              {filteredInboxItems.length} {filteredInboxItems.length === 1 ? 'item' : 'items'} saved
+              {filteredInboxItems.length} {filteredInboxItems.length === 1 ? 'item' : 'items'} ready
             </p>
           </div>
 
@@ -149,12 +149,12 @@ export default function InboxPage() {
                   ? 'No items match your search'
                   : activeFilter !== 'all'
                   ? `No ${activeFilter} in your inbox`
-                  : 'Nothing saved yet'}
+                  : 'You’re all clear'}
               </h3>
               <p className="text-xs sm:text-sm text-[#6c6b63] max-w-sm mx-auto mt-1">
                 {searchQuery
                   ? 'Try a different search query or clear the filter.'
-                  : 'Tap + to save a link or note for later.'}
+                  : 'Items appear here when their return time arrives.'}
               </p>
             </div>
             <div className="pt-2">

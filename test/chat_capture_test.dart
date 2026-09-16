@@ -16,102 +16,106 @@ import 'package:laterbox/features/enrichment/domain/item_metadata.dart';
 import 'package:laterbox/features/enrichment/domain/url_enhancer.dart';
 
 void main() {
-  testWidgets('chat-style capture composer saves note and closes with animation', (
-    tester,
-  ) async {
-    final database = AppDatabase(NativeDatabase.memory());
+  testWidgets(
+    'chat-style capture composer saves note and closes with animation',
+    (tester) async {
+      final database = AppDatabase(NativeDatabase.memory());
 
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          guestModeProvider.overrideWith((ref) => true),
-          appDatabaseProvider.overrideWithValue(database),
-          initialLocationProvider.overrideWithValue('/inbox'),
-        ],
-        child: const LaterBoxApp(),
-      ),
-    );
-    await tester.pumpAndSettle();
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            guestModeProvider.overrideWith((ref) => true),
+            appDatabaseProvider.overrideWithValue(database),
+            initialLocationProvider.overrideWithValue('/inbox'),
+          ],
+          child: const LaterBoxApp(),
+        ),
+      );
+      await tester.pumpAndSettle();
 
-    // Open capture sheet via FAB
-    await tester.tap(find.byTooltip('Save something'));
-    await tester.pumpAndSettle();
+      // Open capture sheet via FAB
+      await tester.tap(find.byTooltip('Save something'));
+      await tester.pumpAndSettle();
 
-    // Verify chat composer elements are present
-    expect(find.text('Type your message...'), findsOneWidget);
-    expect(find.text('Choose files'), findsOneWidget);
-    expect(find.text('Save'), findsOneWidget);
+      // Verify chat composer elements are present
+      expect(find.text('Type your message...'), findsOneWidget);
+      expect(find.text('Choose files'), findsOneWidget);
+      expect(find.text('Save'), findsOneWidget);
 
-    // Enter a note in the chat composer
-    await tester.enterText(
-      find.byType(TextField).last,
-      'Remember to check out the new design',
-    );
-    await tester.pump();
+      // Enter a note in the chat composer
+      await tester.enterText(
+        find.byType(TextField).last,
+        'Remember to check out the new design',
+      );
+      await tester.pump();
 
-    // Tap Save to trigger the send animation and save
-    await tester.tap(find.text('Save'));
-    await tester.pumpAndSettle();
+      // Tap Save to trigger the send animation and save
+      await tester.tap(find.text('Save'));
+      await tester.pumpAndSettle();
 
-    // Verify modal is dismissed and item appears in inbox
-    expect(find.text('Type your message...'), findsNothing);
-    expect(find.text('Remember to check out the new design'), findsOneWidget);
+      // Verify modal is dismissed and the unscheduled capture waits outside Inbox
+      expect(find.text('Type your message...'), findsNothing);
+      expect(find.text('Remember to check out the new design'), findsNothing);
+      final stored = (await tester.runAsync(
+        () => database.watchAllItemsWithMetadata(null).first,
+      ))!;
+      expect(
+        stored.single.$1.textContent,
+        'Remember to check out the new design',
+      );
+      expect(stored.single.$1.returnAt, isNull);
 
-    await tester.pumpWidget(const SizedBox.shrink());
-    await tester.pump(const Duration(milliseconds: 1));
-    await database.close();
-  });
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump(const Duration(milliseconds: 1));
+      await database.close();
+    },
+  );
 
-  testWidgets('chat composer attaches file and renders chip with remove action', (
-    tester,
-  ) async {
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          attachmentFilePickerProvider.overrideWithValue(
-            const _FakePicker([
-              PickedAttachmentFile(
-                name: 'document.pdf',
-                size: 2048,
-                path: '/tmp/document.pdf',
-              ),
-            ]),
-          ),
-        ],
-        child: MaterialApp(
-          theme: ThemeData(platform: TargetPlatform.macOS),
-          home: const Scaffold(
-            body: CaptureSheet(),
+  testWidgets(
+    'chat composer attaches file and renders chip with remove action',
+    (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            attachmentFilePickerProvider.overrideWithValue(
+              const _FakePicker([
+                PickedAttachmentFile(
+                  name: 'document.pdf',
+                  size: 2048,
+                  path: '/tmp/document.pdf',
+                ),
+              ]),
+            ),
+          ],
+          child: MaterialApp(
+            theme: ThemeData(platform: TargetPlatform.macOS),
+            home: const Scaffold(body: CaptureSheet()),
           ),
         ),
-      ),
-    );
-    await tester.pumpAndSettle();
+      );
+      await tester.pumpAndSettle();
 
-    // Tap Choose files
-    await tester.tap(find.text('Choose files'));
-    await tester.pumpAndSettle();
+      // Tap Choose files
+      await tester.tap(find.text('Choose files'));
+      await tester.pumpAndSettle();
 
-    // Chip should be visible
-    expect(find.text('document.pdf'), findsOneWidget);
+      // Chip should be visible
+      expect(find.text('document.pdf'), findsOneWidget);
 
-    // Remove the file chip
-    await tester.tap(find.byIcon(Icons.close_rounded).last);
-    await tester.pumpAndSettle();
+      // Remove the file chip
+      await tester.tap(find.byIcon(Icons.close_rounded).last);
+      await tester.pumpAndSettle();
 
-    expect(find.text('document.pdf'), findsNothing);
-  });
+      expect(find.text('document.pdf'), findsNothing);
+    },
+  );
 
   testWidgets(
     'chat composer has borderless input, green send button, and resizes for >2 lines',
     (tester) async {
       await tester.pumpWidget(
         const ProviderScope(
-          child: MaterialApp(
-            home: Scaffold(
-              body: CaptureSheet(),
-            ),
-          ),
+          child: MaterialApp(home: Scaffold(body: CaptureSheet())),
         ),
       );
       await tester.pumpAndSettle();
@@ -144,18 +148,15 @@ void main() {
     (tester) async {
       await tester.pumpWidget(
         const ProviderScope(
-          child: MaterialApp(
-            home: Scaffold(
-              body: CaptureSheet(),
-            ),
-          ),
+          child: MaterialApp(home: Scaffold(body: CaptureSheet())),
         ),
       );
       await tester.pumpAndSettle();
 
       final initialElement = tester.element(find.byType(EditableText));
-      final focusNode =
-          tester.widget<EditableText>(find.byType(EditableText)).focusNode;
+      final focusNode = tester
+          .widget<EditableText>(find.byType(EditableText))
+          .focusNode;
       expect(focusNode.hasFocus, isTrue);
 
       // Type line 1
@@ -243,9 +244,15 @@ void main() {
       // 2. Settle the animation to completion
       await tester.pumpAndSettle();
 
-      // Bubble and sheet are dismissed, item is present in inbox
+      // Bubble and sheet are dismissed; an unscheduled capture waits in Someday.
       expect(find.byKey(const ValueKey('sent_chat_bubble')), findsNothing);
-      expect(find.text(message), findsOneWidget);
+      expect(find.text(message), findsNothing);
+      final stored = (await tester.runAsync(
+        () => database.watchAllItemsWithMetadata(null).first,
+      ))!;
+      expect(stored.single.$1.textContent, message);
+      expect(stored.single.$1.status, 'deferred');
+      expect(stored.single.$1.returnAt, isNull);
 
       await tester.pumpWidget(const SizedBox.shrink());
       await tester.pump(const Duration(milliseconds: 1));
@@ -301,9 +308,7 @@ void main() {
       // Dismiss the preview card via (X) button
       await tester.tap(
         find.byKey(
-          const ValueKey(
-            'dismiss_url_https://instagram.com/chaste_djaziri',
-          ),
+          const ValueKey('dismiss_url_https://instagram.com/chaste_djaziri'),
         ),
       );
       await tester.pumpAndSettle();
@@ -329,8 +334,7 @@ class _FakeUrlEnhancer extends UrlEnhancer {
   @override
   Future<EnrichedMetadata?> enhance(String rawUrl) async {
     return const EnrichedMetadata(
-      title:
-          'Chaste Djaziri (&#064;chaste_djaziri) &#x2022; Instagram photos and videos',
+      title: 'Chaste Djaziri (&#064;chaste_djaziri) &#x2022; Instagram photos and videos',
       domain: 'instagram.com',
       previewImageUrl: 'https://example.com/chaste.jpg',
     );

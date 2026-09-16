@@ -7,6 +7,7 @@ import '../../../core/sync/sync_providers.dart';
 import '../../../shared/models/laterbox_item.dart';
 import '../../enrichment/domain/content_type.dart';
 import '../data/item_repository.dart';
+import '../../scheduling/presentation/schedule_providers.dart';
 
 enum InboxFilterType {
   all('All', Icons.all_inbox_rounded),
@@ -100,8 +101,8 @@ List<LaterBoxItem> deduplicateInboxItems(List<LaterBoxItem> items) {
     final key = item.url != null && item.url!.isNotEmpty
         ? 'url:${item.url}'
         : (item.text != null && item.text!.isNotEmpty
-            ? 'text:${item.text}'
-            : null);
+              ? 'text:${item.text}'
+              : null);
     if (key != null && !seenKeys.add(key)) continue;
     result.add(item);
   }
@@ -109,17 +110,28 @@ List<LaterBoxItem> deduplicateInboxItems(List<LaterBoxItem> items) {
 }
 
 final inboxItemsProvider = StreamProvider<List<LaterBoxItem>>((ref) {
-  return ref
-      .watch(itemRepositoryProvider)
-      .watchInboxItems()
-      .map(deduplicateInboxItems);
+  final now =
+      ref.watch(scheduleClockProvider).valueOrNull ??
+      ref.watch(scheduleNowProvider)();
+  return ref.watch(itemRepositoryProvider).watchInboxItems().map((items) {
+    final due = deduplicateInboxItems(
+      items.where((item) => item.isDue(now)).toList(),
+    );
+    due.sort(
+      (a, b) =>
+          (a.returnAt ?? a.createdAt).compareTo(b.returnAt ?? b.createdAt),
+    );
+    return due;
+  });
 });
 
-final inboxFilterProvider =
-    StateProvider<InboxFilterType>((ref) => InboxFilterType.all);
+final inboxFilterProvider = StateProvider<InboxFilterType>(
+  (ref) => InboxFilterType.all,
+);
 
-final filteredInboxItemsProvider =
-    Provider<AsyncValue<List<LaterBoxItem>>>((ref) {
+final filteredInboxItemsProvider = Provider<AsyncValue<List<LaterBoxItem>>>((
+  ref,
+) {
   final itemsAsync = ref.watch(inboxItemsProvider);
   final filter = ref.watch(inboxFilterProvider);
 

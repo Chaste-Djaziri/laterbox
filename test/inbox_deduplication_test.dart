@@ -58,131 +58,148 @@ void main() {
       await database.close();
     });
 
-    test('deduplicateInboxItems filters out duplicate items with same URL or ID', () {
-      final now = DateTime.now();
-      final items = [
-        LaterBoxItem(
-          id: 'item-1',
-          url: 'https://example.com/duplicate',
-          createdAt: now,
-        ),
-        LaterBoxItem(
-          id: 'item-2',
-          url: 'https://example.com/duplicate',
-          createdAt: now.subtract(const Duration(seconds: 1)),
-        ),
-        LaterBoxItem(
-          id: 'item-3',
-          url: 'https://example.com/unique',
-          createdAt: now,
-        ),
-        LaterBoxItem(
-          id: 'item-1',
-          url: 'https://example.com/duplicate',
-          createdAt: now,
-        ),
-      ];
+    test(
+      'deduplicateInboxItems filters out duplicate items with same URL or ID',
+      () {
+        final now = DateTime.now();
+        final items = [
+          LaterBoxItem(
+            id: 'item-1',
+            url: 'https://example.com/duplicate',
+            createdAt: now,
+          ),
+          LaterBoxItem(
+            id: 'item-2',
+            url: 'https://example.com/duplicate',
+            createdAt: now.subtract(const Duration(seconds: 1)),
+          ),
+          LaterBoxItem(
+            id: 'item-3',
+            url: 'https://example.com/unique',
+            createdAt: now,
+          ),
+          LaterBoxItem(
+            id: 'item-1',
+            url: 'https://example.com/duplicate',
+            createdAt: now,
+          ),
+        ];
 
-      final deduplicated = deduplicateInboxItems(items);
-      expect(deduplicated.length, 2);
-      expect(deduplicated[0].id, 'item-1');
-      expect(deduplicated[1].id, 'item-3');
-    });
+        final deduplicated = deduplicateInboxItems(items);
+        expect(deduplicated.length, 2);
+        expect(deduplicated[0].id, 'item-1');
+        expect(deduplicated[1].id, 'item-3');
+      },
+    );
 
-    test('ItemRepository.watchInboxItems filters legacy duplicate rows in SQLite', () async {
-      final database = AppDatabase(NativeDatabase.memory());
-      final local = LocalItemDataSource(database);
-      final repository = ItemRepository(
-        local,
-        userId: null,
-        onSaved: () async {},
-      );
+    test(
+      'ItemRepository.watchInboxItems filters legacy duplicate rows in SQLite',
+      () async {
+        final database = AppDatabase(NativeDatabase.memory());
+        final local = LocalItemDataSource(database);
+        final repository = ItemRepository(
+          local,
+          userId: null,
+          onSaved: () async {},
+        );
 
-      final now = DateTime.now();
-      await database.saveItem(
-        ItemsCompanion.insert(
-          id: 'legacy-1',
-          url: const drift.Value('https://example.com/legacy'),
-          type: const drift.Value('link'),
-          status: const drift.Value('inbox'),
-          createdAt: now,
-          updatedAt: now,
-        ),
-      );
-      await database.saveItem(
-        ItemsCompanion.insert(
-          id: 'legacy-2',
-          url: const drift.Value('https://example.com/legacy'),
-          type: const drift.Value('link'),
-          status: const drift.Value('inbox'),
-          createdAt: now.subtract(const Duration(seconds: 5)),
-          updatedAt: now.subtract(const Duration(seconds: 5)),
-        ),
-      );
+        final now = DateTime.now();
+        await database.saveItem(
+          ItemsCompanion.insert(
+            id: 'legacy-1',
+            url: const drift.Value('https://example.com/legacy'),
+            type: const drift.Value('link'),
+            status: const drift.Value('inbox'),
+            createdAt: now,
+            updatedAt: now,
+          ),
+        );
+        await database.saveItem(
+          ItemsCompanion.insert(
+            id: 'legacy-2',
+            url: const drift.Value('https://example.com/legacy'),
+            type: const drift.Value('link'),
+            status: const drift.Value('inbox'),
+            createdAt: now.subtract(const Duration(seconds: 5)),
+            updatedAt: now.subtract(const Duration(seconds: 5)),
+          ),
+        );
 
-      final items = await repository.watchInboxItems().first;
-      expect(items.length, 1);
-      expect(items.first.id, 'legacy-1');
+        final items = await repository.watchInboxItems().first;
+        expect(items.length, 1);
+        expect(items.first.id, 'legacy-1');
 
-      await database.close();
-    });
+        await database.close();
+      },
+    );
 
-    testWidgets('mobile share drain does not show duplicated items on multiple lifecycle calls', (
-      tester,
-    ) async {
-      final database = AppDatabase(NativeDatabase.memory());
-      var consumeCallCount = 0;
-      const channel = MethodChannel(AndroidShareReceiver.channelName);
-      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-          .setMockMethodCallHandler(channel, (call) async {
-            if (call.method == 'consumeShares') {
-              consumeCallCount++;
-              return [
-                {
-                  'id': 'share-abc',
-                  'text': 'https://example.com/shared-once',
-                  'filePaths': <String>[],
-                  'createdAt': DateTime.now().toIso8601String(),
-                },
-              ];
-            }
-            if (call.method == 'acknowledgeShares') return true;
-            return null;
-          });
-      addTearDown(
-        () => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-            .setMockMethodCallHandler(channel, null),
-      );
+    testWidgets(
+      'mobile share drain does not show duplicated items on multiple lifecycle calls',
+      (tester) async {
+        final database = AppDatabase(NativeDatabase.memory());
+        var consumeCallCount = 0;
+        const channel = MethodChannel(AndroidShareReceiver.channelName);
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+            .setMockMethodCallHandler(channel, (call) async {
+              if (call.method == 'consumeShares') {
+                consumeCallCount++;
+                return [
+                  {
+                    'id': 'share-abc',
+                    'text': 'https://example.com/shared-once',
+                    'filePaths': <String>[],
+                    'createdAt': DateTime.now().toIso8601String(),
+                  },
+                ];
+              }
+              if (call.method == 'acknowledgeShares') return true;
+              return null;
+            });
+        addTearDown(
+          () => TestDefaultBinaryMessengerBinding
+              .instance
+              .defaultBinaryMessenger
+              .setMockMethodCallHandler(channel, null),
+        );
 
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            guestModeProvider.overrideWith((ref) => true),
-            hasProAccessProvider.overrideWithValue(true),
-            appDatabaseProvider.overrideWithValue(database),
-            initialLocationProvider.overrideWithValue('/inbox'),
-          ],
-          child: const LaterBoxApp(),
-        ),
-      );
-      await tester.pumpAndSettle();
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              guestModeProvider.overrideWith((ref) => true),
+              hasProAccessProvider.overrideWithValue(true),
+              appDatabaseProvider.overrideWithValue(database),
+              initialLocationProvider.overrideWithValue('/inbox'),
+            ],
+            child: const LaterBoxApp(),
+          ),
+        );
+        await tester.pumpAndSettle();
 
-      // Trigger app resumed lifecycle event
-      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
-      await tester.pumpAndSettle();
+        // Trigger app resumed lifecycle event
+        tester.binding.handleAppLifecycleStateChanged(
+          AppLifecycleState.resumed,
+        );
+        await tester.pumpAndSettle();
 
-      // Trigger app resumed lifecycle event again
-      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
-      await tester.pumpAndSettle();
+        // Trigger app resumed lifecycle event again
+        tester.binding.handleAppLifecycleStateChanged(
+          AppLifecycleState.resumed,
+        );
+        await tester.pumpAndSettle();
 
-      expect(find.text('EXAMPLE.COM'), findsOneWidget);
-      expect(find.text('https://example.com/shared-once'), findsOneWidget);
-      expect(find.text('1'), findsAtLeastNWidgets(1));
-      expect(consumeCallCount, greaterThanOrEqualTo(1));
+        expect(find.text('EXAMPLE.COM'), findsNothing);
+        final captured = (await tester.runAsync(
+          () => database.watchAllItemsWithMetadata(null).first,
+        ))!;
+        expect(captured, hasLength(1));
+        expect(captured.single.$1.status, 'deferred');
+        expect(captured.single.$1.returnAt, isNull);
+        expect(consumeCallCount, greaterThanOrEqualTo(1));
 
-      await tester.pumpWidget(const SizedBox.shrink());
-      await tester.pump(const Duration(milliseconds: 1));
-      await database.close();
-    });
+        await tester.pumpWidget(const SizedBox.shrink());
+        await tester.pump(const Duration(milliseconds: 1));
+        await database.close();
+      },
+    );
   });
 }

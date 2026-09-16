@@ -7,6 +7,7 @@ import '../../features/inbox/presentation/inbox_providers.dart';
 import '../models/item_status.dart';
 import '../models/laterbox_item.dart';
 import 'laterbox_extension.dart';
+import '../../features/scheduling/presentation/return_time_picker.dart';
 
 /// Opens the modal action sheet for an item. Used by the item card (long
 /// press) and the item detail screen. Every action writes to Drift first and
@@ -20,7 +21,7 @@ Future<void> showItemActions(
   final itemId = item.id;
 
   final (statusLabel, statusIcon, statusAction) = switch (item.status) {
-    ItemStatus.inbox => (
+    ItemStatus.inbox || ItemStatus.deferred => (
       'Keep',
       Icons.bookmark_add_outlined,
       () => repository.keep(itemId),
@@ -49,127 +50,176 @@ Future<void> showItemActions(
       return SafeArea(
         child: SingleChildScrollView(
           child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    item.metadata?.title ?? item.title ?? item.url ?? 'Untitled',
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(sheetContext).textTheme.titleMedium
-                        ?.copyWith(fontWeight: FontWeight.w700),
-                  ),
-                  if (item.url != null) ...[
-                    const SizedBox(height: 4),
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                     Text(
-                      item.url!,
-                      maxLines: 1,
+                      item.metadata?.title ??
+                          item.title ??
+                          item.url ??
+                          'Untitled',
+                      maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: Theme.of(sheetContext).textTheme.bodySmall
-                          ?.copyWith(
-                            color: Theme.of(sheetContext)
-                                .colorScheme
-                                .onSurfaceVariant,
-                          ),
+                      style: Theme.of(sheetContext).textTheme.titleMedium
+                          ?.copyWith(fontWeight: FontWeight.w700),
                     ),
-                  ],
-                ],
-              ),
-            ),
-            ListTile(
-              leading: Icon(
-                item.favorite
-                    ? Icons.star_rounded
-                    : Icons.star_border_rounded,
-              ),
-              title: Text(item.favorite ? 'Remove from Favorites' : 'Favorite'),
-              onTap: () {
-                Navigator.of(sheetContext).pop();
-                repository.setFavorite(itemId, !item.favorite);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.playlist_add_rounded),
-              title: const Text('Add to collection'),
-              onTap: () {
-                Navigator.of(sheetContext).pop();
-                showCollectionPicker(context, ref, itemId);
-              },
-            ),
-            ListTile(
-              leading: Icon(
-                item.isArchived
-                    ? Icons.mark_email_unread_outlined
-                    : Icons.check_circle_outline_rounded,
-                color: item.isArchived ? null : Theme.of(sheetContext).colorScheme.primary,
-              ),
-              title: Text(item.isArchived ? 'Mark as Unseen (Move to Inbox)' : 'Mark as Seen'),
-              onTap: () {
-                Navigator.of(sheetContext).pop();
-                if (item.isArchived) {
-                  repository.markUnseen(itemId);
-                } else {
-                  repository.markSeen(itemId);
-                }
-              },
-            ),
-            ListTile(
-              leading: Icon(statusIcon),
-              title: Text(statusLabel),
-              onTap: () {
-                Navigator.of(sheetContext).pop();
-                statusAction();
-              },
-            ),
-            if (item.url != null)
-              ListTile(
-                leading: const Icon(Icons.open_in_new_rounded),
-                title: const Text('Open original'),
-                onTap: () {
-                  Navigator.of(sheetContext).pop();
-                  openOriginalForItem(context, item);
-                },
-              ),
-            ListTile(
-              leading: Icon(
-                Icons.delete_outline_rounded,
-                color: Theme.of(sheetContext).colorScheme.error,
-              ),
-              title: Text(
-                'Delete',
-                style: TextStyle(color: Theme.of(sheetContext).colorScheme.error),
-              ),
-              onTap: () async {
-                final confirmed = await showDialog<bool>(
-                  context: sheetContext,
-                  builder: (dialogContext) => AlertDialog(
-                    title: const Text('Delete this item?'),
-                    content: const Text('It will be moved to trash.'),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.of(dialogContext).pop(false),
-                        child: const Text('Cancel'),
-                      ),
-                      FilledButton(
-                        onPressed: () => Navigator.of(dialogContext).pop(true),
-                        child: const Text('Delete'),
+                    if (item.url != null) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        item.url!,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(sheetContext).textTheme.bodySmall
+                            ?.copyWith(
+                              color: Theme.of(sheetContext)
+                                  .colorScheme
+                                  .onSurfaceVariant,
+                            ),
                       ),
                     ],
-                  ),
-                );
-                if (confirmed == true && sheetContext.mounted) {
+                  ],
+                ),
+              ),
+              ListTile(
+                leading: const Icon(Icons.schedule),
+                title: const Text('Choose return time'),
+                subtitle: Text(returnTimeLabel(sheetContext, item.returnAt)),
+                onTap: () async {
                   Navigator.of(sheetContext).pop();
-                  repository.delete(itemId);
-                }
-              },
-            ),
-            const SizedBox(height: 8),
-          ],
+                  await showModalBottomSheet<void>(
+                    context: context,
+                    useSafeArea: true,
+                    showDragHandle: true,
+                    builder: (pickerContext) => Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: ReturnTimePicker(
+                        value: item.returnAt,
+                        onChanged: (time) async {
+                          await repository.reschedule(itemId, time);
+                          if (pickerContext.mounted) {
+                            Navigator.of(pickerContext).pop();
+                          }
+                        },
+                      ),
+                    ),
+                  );
+                },
+              ),
+              if (item.type == 'task' && !item.isArchived)
+                ListTile(
+                  leading: const Icon(Icons.task_alt),
+                  title: const Text('Done'),
+                  onTap: () {
+                    Navigator.of(sheetContext).pop();
+                    repository.archive(itemId);
+                  },
+                ),
+              ListTile(
+                leading: Icon(
+                  item.favorite
+                      ? Icons.star_rounded
+                      : Icons.star_border_rounded,
+                ),
+                title: Text(
+                  item.favorite ? 'Remove from Favorites' : 'Favorite',
+                ),
+                onTap: () {
+                  Navigator.of(sheetContext).pop();
+                  repository.setFavorite(itemId, !item.favorite);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.playlist_add_rounded),
+                title: const Text('Add to collection'),
+                onTap: () {
+                  Navigator.of(sheetContext).pop();
+                  showCollectionPicker(context, ref, itemId);
+                },
+              ),
+              ListTile(
+                leading: Icon(
+                  item.isArchived
+                      ? Icons.mark_email_unread_outlined
+                      : Icons.check_circle_outline_rounded,
+                  color: item.isArchived
+                      ? null
+                      : Theme.of(sheetContext).colorScheme.primary,
+                ),
+                title: Text(
+                  item.isArchived
+                      ? 'Mark as Unseen (Move to Inbox)'
+                      : 'Mark as Seen',
+                ),
+                onTap: () {
+                  Navigator.of(sheetContext).pop();
+                  if (item.isArchived) {
+                    repository.markUnseen(itemId);
+                  } else {
+                    repository.markSeen(itemId);
+                  }
+                },
+              ),
+              ListTile(
+                leading: Icon(statusIcon),
+                title: Text(statusLabel),
+                onTap: () {
+                  Navigator.of(sheetContext).pop();
+                  statusAction();
+                },
+              ),
+              if (item.url != null)
+                ListTile(
+                  leading: const Icon(Icons.open_in_new_rounded),
+                  title: const Text('Open original'),
+                  onTap: () {
+                    Navigator.of(sheetContext).pop();
+                    openOriginalForItem(context, item);
+                  },
+                ),
+              ListTile(
+                leading: Icon(
+                  Icons.delete_outline_rounded,
+                  color: Theme.of(sheetContext).colorScheme.error,
+                ),
+                title: Text(
+                  'Delete',
+                  style: TextStyle(
+                    color: Theme.of(sheetContext).colorScheme.error,
+                  ),
+                ),
+                onTap: () async {
+                  final confirmed = await showDialog<bool>(
+                    context: sheetContext,
+                    builder: (dialogContext) => AlertDialog(
+                      title: const Text('Delete this item?'),
+                      content: const Text('It will be moved to trash.'),
+                      actions: [
+                        TextButton(
+                          onPressed: () =>
+                              Navigator.of(dialogContext).pop(false),
+                          child: const Text('Cancel'),
+                        ),
+                        FilledButton(
+                          onPressed: () =>
+                              Navigator.of(dialogContext).pop(true),
+                          child: const Text('Delete'),
+                        ),
+                      ],
+                    ),
+                  );
+                  if (confirmed == true && sheetContext.mounted) {
+                    Navigator.of(sheetContext).pop();
+                    repository.delete(itemId);
+                  }
+                },
+              ),
+              const SizedBox(height: 8),
+            ],
           ),
         ),
       );
@@ -183,9 +233,8 @@ Future<void> openOriginal(BuildContext context, String url) async {
   if (uri == null || !uri.hasScheme) return;
   final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
   if (!launched && context.mounted) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Could not open link.')));
+    ScaffoldMessenger.of(context)
+        .showSnackBar(const SnackBar(content: Text('Could not open link.')));
   }
 }
 
@@ -212,7 +261,10 @@ String? buildTextFragmentUrl(LaterBoxItem item) {
   return '$base#:~:text=$directive';
 }
 
-Future<void> openOriginalForItem(BuildContext context, LaterBoxItem item) async {
+Future<void> openOriginalForItem(
+  BuildContext context,
+  LaterBoxItem item,
+) async {
   final url = item.url;
   if (url == null) return;
   final fragmentUrl = buildTextFragmentUrl(item);
@@ -282,17 +334,15 @@ class _CollectionPickerSheet extends ConsumerWidget {
               child: collections.when(
                 loading: () => const Padding(
                   padding: EdgeInsets.all(24),
-                  child: Center(
-                    child: CircularProgressIndicator.adaptive(),
-                  ),
+                  child: Center(child: CircularProgressIndicator.adaptive()),
                 ),
                 error: (error, stackTrace) => Padding(
                   padding: const EdgeInsets.all(24),
                   child: Text('Could not load collections: $error'),
                 ),
                 data: (collections) {
-                  final memberIds = membership
-                          .value
+                  final memberIds =
+                      membership.value
                           ?.map((collection) => collection.id)
                           .toSet() ??
                       <String>{};
@@ -319,8 +369,9 @@ class _CollectionPickerSheet extends ConsumerWidget {
                             value: memberIds.contains(collection.id),
                             title: Text(collection.name),
                             onChanged: (checked) {
-                              final repository =
-                                  ref.read(collectionRepositoryProvider);
+                              final repository = ref.read(
+                                collectionRepositoryProvider,
+                              );
                               repository.setItemMembership(
                                 collection.id,
                                 itemId,

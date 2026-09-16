@@ -29,11 +29,7 @@ class LocalItemDataSource {
     String query, {
     String? contentType,
   }) {
-    return _database.searchItems(
-      userId,
-      query,
-      contentType: contentType,
-    );
+    return _database.searchItems(userId, query, contentType: contentType);
   }
 
   Stream<(Item, ItemMetadataData?)?> watchItemWithMetadata(String id) {
@@ -42,7 +38,8 @@ class LocalItemDataSource {
 
   Future<void> insert(ItemsCompanion item) => _database.saveItem(item);
 
-  Future<bool> exists(String id) async => (await _database.itemById(id)) != null;
+  Future<bool> exists(String id) async =>
+      (await _database.itemById(id)) != null;
 
   Future<Item?> findActiveInboxItem(
     String? userId, {
@@ -82,7 +79,10 @@ class LocalItemDataSource {
         textSelector: Value(remote.textSelector),
         type: Value(remote.type),
         favorite: Value(remote.favorite),
-        status: Value(remote.status),
+        status: Value(remote.status == 'inbox' ? 'deferred' : remote.status),
+        returnAt: Value(
+          remote.status == 'inbox' ? remote.createdAt : remote.returnAt,
+        ),
         createdAt: remote.createdAt,
         updatedAt: remote.updatedAt,
         syncStatus: const Value('synced'),
@@ -119,6 +119,19 @@ class LocalItemDataSource {
 
   Future<void> updateStatus(String id, String status) {
     return _database.updateItemStatus(id, status);
+  }
+
+  Future<void> updateSchedule(String id, DateTime? returnAt) {
+    return (_database.update(
+      _database.items,
+    )..where((item) => item.id.equals(id))).write(
+      ItemsCompanion(
+        status: const Value('deferred'),
+        returnAt: Value(returnAt),
+        updatedAt: Value(DateTime.now().toUtc()),
+        syncStatus: const Value('pending'),
+      ),
+    );
   }
 
   Future<void> updateFavorite(String id, bool favorite) {

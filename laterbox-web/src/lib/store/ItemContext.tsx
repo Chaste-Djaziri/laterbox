@@ -6,7 +6,9 @@ import { LaterBoxItem, ItemStatus, InboxFilterType, Collection, Attachment } fro
 import { useAuth } from './AuthContext';
 import { useBilling } from './BillingContext';
 import { normalizeUrl, isUrl, extractDomain } from '../utils/url';
-import { uploadAttachmentFile } from '../utils/attachment';
+import { storeLocalAttachment } from '../utils/local-attachments';
+import { itemRow, queueCapture, syncPendingCaptures } from '../utils/pending-captures';
+import { isActive, isDue, migrateSchedule } from '../utils/schedule';
 
 const LOCAL_ITEMS_KEY = 'laterbox_local_items';
 const LOCAL_COLLECTIONS_KEY = 'laterbox_local_collections';
@@ -25,7 +27,9 @@ interface ItemContextType {
   setActiveFilter: (filter: InboxFilterType) => void;
   loading: boolean;
   syncStatus: SyncState;
-  saveItem: (value: string, options?: { id?: string; textSelector?: string; files?: File[] }) => Promise<LaterBoxItem>;
+  saveItem: (value: string, options?: { id?: string; textSelector?: string; files?: File[]; returnAt?: string | null; type?: string }) => Promise<LaterBoxItem>;
+  now: Date;
+  reschedule: (id: string, returnAt: string | null) => Promise<void>;
   setFavorite: (id: string, favorite: boolean) => Promise<void>;
   setStatus: (id: string, status: ItemStatus) => Promise<void>;
   keepItem: (id: string) => Promise<void>;
@@ -47,6 +51,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const { isPro } = useBilling();
   const [items, setItems] = useState<LaterBoxItem[]>([]);
+  const [now, setNow] = useState(() => new Date());
   const [collections, setCollections] = useState<Collection[]>([]);
   const [activeFilter, setActiveFilter] = useState<InboxFilterType>('all');
   const [loading, setLoading] = useState(true);
@@ -54,31 +59,33 @@ export function ItemProvider({ children }: { children: ReactNode }) {
 
   // Load from local storage
   const loadLocalData = useCallback(() => {
+    setItems([]);
+    setCollections([]);
     try {
-      const stored = localStorage.getItem(LOCAL_ITEMS_KEY);
+      const stored = localStorage.getItem(`${LOCAL_ITEMS_KEY}_${user?.id || 'guest'}`) || localStorage.getItem(LOCAL_ITEMS_KEY);
       if (stored) {
-        setItems(JSON.parse(stored));
+        setItems((JSON.parse(stored) as LaterBoxItem[]).filter(item => (item.user_id || null) === (user?.id || null)).map(migrateSchedule));
       }
-      const storedCols = localStorage.getItem(LOCAL_COLLECTIONS_KEY);
+      const storedCols = localStorage.getItem(`${LOCAL_COLLECTIONS_KEY}_${user?.id || 'guest'}`) || localStorage.getItem(LOCAL_COLLECTIONS_KEY);
       if (storedCols) {
-        setCollections(JSON.parse(storedCols));
+        setCollections((JSON.parse(storedCols) as Collection[]).filter(collection => (collection.user_id || null) === (user?.id || null)));
       }
     } catch {
       // ignore
     }
-  }, []);
+  }, [user?.id]);
 
   // Save to local storage
   const saveLocalData = useCallback((newItems: LaterBoxItem[], newCols?: Collection[]) => {
     try {
-      localStorage.setItem(LOCAL_ITEMS_KEY, JSON.stringify(newItems));
+      localStorage.setItem(`${LOCAL_ITEMS_KEY}_${user?.id || 'guest'}`,  JSON.stringify(newItems));
       if (newCols) {
-        localStorage.setItem(LOCAL_COLLECTIONS_KEY, JSON.stringify(newCols));
+        localStorage.setItem(`${LOCAL_COLLECTIONS_KEY}_${user?.id || 'guest'}`,  JSON.stringify(newCols));
       }
     } catch {
       // ignore
     }
-  }, []);
+  }, [user?.id]);
 
   // Fetch from Supabase
   const fetchData = useCallback(async () => {
@@ -92,6 +99,8 @@ export function ItemProvider({ children }: { children: ReactNode }) {
     setSyncStatus('syncing');
     try {
       const supabase = getSupabaseClient();
+
+      await syncPendingCaptures(user.id);
 
       // Fetch items
       const { data: itemRows, error: itemError } = await supabase
@@ -140,11 +149,12 @@ export function ItemProvider({ children }: { children: ReactNode }) {
         attachmentMap.set(att.item_id, list);
       });
 
+      const cachedItems = JSON.parse(localStorage.getItem(`${LOCAL_ITEMS_KEY}_${user.id}`) || '[]') as LaterBoxItem[];
       const mappedItems: LaterBoxItem[] = (itemRows || []).map((item) => ({
-        ...item,
+        ...migrateSchedule(item),
         metadata: metaMap.get(item.id) || null,
         note: noteMap.get(item.id) || null,
-        attachments: attachmentMap.get(item.id) || [],
+        attachments: [...new Map([...(cachedItems.find(local => local.id === item.id && local.user_id === user.id)?.attachments || []), ...(attachmentMap.get(item.id) || [])].filter(attachment => !attachment.deleted_at).map(attachment => [attachment.id, attachment])).values()],
       }));
 
       // Deduplicate items by ID and URL/text
@@ -182,7 +192,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
   // Save Item (URL, text, or file attachments)
   const saveItem = async (
     value: string,
-    options?: { id?: string; textSelector?: string; files?: File[] }
+    options?: { id?: string; textSelector?: string; files?: File[]; returnAt?: string | null; type?: string }
   ): Promise<LaterBoxItem> => {
     const trimmed = value.trim();
     const files = options?.files || [];
@@ -192,7 +202,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
     }
 
     let normalizedUrl: string | null = null;
-    let textContent: string | null = null;
+    let textContent: string | null = files.length ? trimmed || null : null;
 
     if (files.length === 0) {
       if (isUrl(trimmed)) {
@@ -232,7 +242,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
     if (files.length === 0) {
       const existing = items.find(
         (i) =>
-          i.status === 'inbox' &&
+          isActive(i) &&
           !i.deleted_at &&
           ((normalizedUrl && i.url === normalizedUrl) || (textContent && i.text_content === textContent))
       );
@@ -278,9 +288,10 @@ export function ItemProvider({ children }: { children: ReactNode }) {
       title: defaultTitle,
       text_content: textContent,
       text_selector: options?.textSelector || null,
-      type: itemType,
+      type: options?.type || itemType,
       favorite: false,
-      status: 'inbox',
+      status: 'deferred',
+      return_at: options?.returnAt ?? null,
       created_at: now,
       updated_at: now,
       attachments: [],
@@ -303,40 +314,20 @@ export function ItemProvider({ children }: { children: ReactNode }) {
         : null,
     };
 
-    // Upload files if provided
-    let uploadedAttachments: Attachment[] = [];
-    if (files.length > 0 && user && isPro) {
-      try {
-        const uploadPromises = files.map((file) =>
-          uploadAttachmentFile(file, itemId, user.id)
-        );
-        uploadedAttachments = await Promise.all(uploadPromises);
-        newItem.attachments = uploadedAttachments;
-      } catch (err) {
-        console.warn('[LaterBox] Attachment upload warning:', err);
-      }
-    }
+    // Commit file bytes locally before reporting capture success, including offline/guest captures.
+    newItem.attachments = await Promise.all(files.map(file => storeLocalAttachment(file, itemId, user?.id || null)));
 
     const updated = [newItem, ...items];
     setItems(updated);
     saveLocalData(updated);
+    queueCapture(newItem);
 
     if (user && isPro) {
       try {
         const supabase = getSupabaseClient();
-        await supabase.from('items').upsert({
-          id: newItem.id,
-          user_id: user.id,
-          url: newItem.url,
-          title: newItem.title,
-          text_content: newItem.text_content,
-          text_selector: newItem.text_selector,
-          type: newItem.type,
-          favorite: newItem.favorite,
-          status: newItem.status,
-          created_at: newItem.created_at,
-          updated_at: newItem.updated_at,
-        });
+        const { error: saveError } = await supabase.from('items').upsert(itemRow(newItem));
+        if (saveError) throw saveError;
+        await syncPendingCaptures(user.id);
 
         // Trigger enrichment via fast API & Edge function if it's a URL
         if (normalizedUrl) {
@@ -437,10 +428,11 @@ export function ItemProvider({ children }: { children: ReactNode }) {
     const updated = items.map((i) => (i.id === id ? { ...i, favorite, updated_at: new Date().toISOString() } : i));
     setItems(updated);
     saveLocalData(updated);
+    const changed = updated.find(item => item.id === id);
+    if (changed) queueCapture(changed);
 
     if (user && isPro) {
-      const supabase = getSupabaseClient();
-      await supabase.from('items').update({ favorite, updated_at: new Date().toISOString() }).eq('id', id);
+      try { await syncPendingCaptures(user.id); } catch { setSyncStatus('error'); }
     }
   };
 
@@ -448,26 +440,41 @@ export function ItemProvider({ children }: { children: ReactNode }) {
     const updated = items.map((i) => (i.id === id ? { ...i, status, updated_at: new Date().toISOString() } : i));
     setItems(updated);
     saveLocalData(updated);
+    const changed = updated.find(item => item.id === id);
+    if (changed) queueCapture(changed);
 
     if (user && isPro) {
-      const supabase = getSupabaseClient();
-      await supabase.from('items').update({ status, updated_at: new Date().toISOString() }).eq('id', id);
+      try { await syncPendingCaptures(user.id); } catch { setSyncStatus('error'); }
+    }
+  };
+
+  const reschedule = async (id: string, returnAt: string | null) => {
+    const timestamp = new Date().toISOString();
+    const updated = items.map(item => item.id === id
+      ? { ...item, status: 'deferred' as ItemStatus, return_at: returnAt, updated_at: timestamp } : item);
+    setItems(updated); saveLocalData(updated);
+
+    const changed = updated.find(item => item.id === id);
+    if (changed) queueCapture(changed);
+    if (user && isPro) {
+      try { await syncPendingCaptures(user.id); } catch { setSyncStatus('error'); }
     }
   };
 
   const keepItem = (id: string) => setStatus(id, 'saved');
   const archiveItem = (id: string) => setStatus(id, 'archived');
-  const markUnseen = (id: string) => setStatus(id, 'inbox');
+  const markUnseen = (id: string) => reschedule(id, new Date().toISOString());
 
   const deleteItem = async (id: string) => {
     const now = new Date().toISOString();
+    const deleted = items.find(item => item.id === id);
+    if (deleted) queueCapture({ ...deleted, deleted_at: now, updated_at: now });
     const updated = items.filter((i) => i.id !== id);
     setItems(updated);
     saveLocalData(updated);
 
     if (user && isPro) {
-      const supabase = getSupabaseClient();
-      await supabase.from('items').update({ deleted_at: now }).eq('id', id);
+      try { await syncPendingCaptures(user.id); } catch { setSyncStatus('error'); }
     }
   };
 
@@ -574,7 +581,24 @@ export function ItemProvider({ children }: { children: ReactNode }) {
 
   const getItemById = (id: string) => items.find((i) => i.id === id);
 
-  const inboxItems = useMemo(() => items.filter((i) => i.status === 'inbox'), [items]);
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout>;
+    const tick = () => {
+      const current = new Date(); setNow(current);
+      const midnight = new Date(current); midnight.setHours(24, 0, 0, 0);
+      let deadline = midnight.getTime();
+      for (const item of items) {
+        const time = item.return_at ? new Date(item.return_at).getTime() : 0;
+        if (isActive(item) && time > current.getTime()) deadline = Math.min(deadline, time);
+      }
+      clearTimeout(timer); timer = setTimeout(tick, Math.max(1, deadline - current.getTime()));
+    };
+    tick(); window.addEventListener('focus', tick); document.addEventListener('visibilitychange', tick);
+    return () => { clearTimeout(timer); window.removeEventListener('focus', tick); document.removeEventListener('visibilitychange', tick); };
+  }, [items]);
+
+  const inboxItems = useMemo(() => items.filter(i => isDue(i, now))
+    .sort((a, b) => new Date(a.return_at || a.created_at).getTime() - new Date(b.return_at || b.created_at).getTime()), [items, now]);
   const savedItems = useMemo(() => items.filter((i) => i.status === 'saved'), [items]);
   const archivedItems = useMemo(() => items.filter((i) => i.status === 'archived'), [items]);
   const starredItems = useMemo(() => items.filter((i) => i.favorite), [items]);
@@ -606,6 +630,8 @@ export function ItemProvider({ children }: { children: ReactNode }) {
     <ItemContext.Provider
       value={{
         items,
+        now,
+        reschedule,
         inboxItems,
         savedItems,
         archivedItems,

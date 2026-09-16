@@ -1,6 +1,6 @@
 export type ContentType = 'link' | 'article' | 'video' | 'music' | 'document' | 'note';
 
-export type ItemStatus = 'inbox' | 'saved' | 'archived';
+export type ItemStatus = 'inbox' | 'deferred' | 'saved' | 'archived';
 
 export interface TextSelector {
   before?: string | null;
@@ -91,6 +91,7 @@ export interface LaterBoxItem {
   type: string;
   favorite: boolean;
   status: ItemStatus;
+  return_at?: string | null;
   created_at: string;
   updated_at: string;
   deleted_at?: string | null;

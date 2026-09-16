@@ -54,7 +54,7 @@ class WelcomeScreen extends ConsumerWidget {
                   const SizedBox(height: 28),
                   ProPlans(
                     compact: compact,
-                    onContinueFree: () => context.go('/inbox'),
+                    onContinueFree: () => context.go('/home'),
                     onAuthenticationRequired: (interval) => context.go(
                       '/login?mode=signup&next=plans&interval=${interval.name}',
                     ),

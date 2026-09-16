@@ -10,6 +10,9 @@ import { useBilling } from '@/lib/store/BillingContext';
 import { presentEntitlement } from '@/lib/billing/types';
 import { CloudSyncIndicator } from '../ui/CloudSyncIndicator';
 import {
+  Home,
+  CalendarDays,
+  Clock,
   Inbox,
   Search,
   BookMarked,
@@ -45,12 +48,16 @@ export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
   }, [entitlement.phaseEndsAt]);
 
   const navLinks = [
+    { href: '/home', label: 'Home', icon: <Home className="w-4 h-4" /> },
     {
       href: '/inbox',
       label: 'Inbox',
       icon: <Inbox className="w-4 h-4" />,
       badge: inboxItems.length > 0 ? inboxItems.length : undefined,
     },
+    { href: '/today', label: 'Today', icon: <CalendarDays className="w-4 h-4" /> },
+    { href: '/upcoming', label: 'Upcoming', icon: <CalendarDays className="w-4 h-4" /> },
+    { href: '/someday', label: 'Someday', icon: <Clock className="w-4 h-4" /> },
     {
       href: '/search',
       label: 'Search',
@@ -85,7 +92,7 @@ export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
 
   return (
     <aside
-      className={`h-screen bg-[#f7f5ee] border-r border-[#e4e0d5] flex flex-col justify-between p-3.5 shrink-0 transition-all duration-200 ${
+      className={`h-screen overflow-y-auto bg-[#f7f5ee] border-r border-[#e4e0d5] flex flex-col justify-between p-3.5 shrink-0 transition-all duration-200 ${
         collapsed ? 'w-[76px]' : 'w-60'
       }`}
     >

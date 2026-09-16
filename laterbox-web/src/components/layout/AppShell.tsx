@@ -8,7 +8,7 @@ import { AppSidebar } from './AppSidebar';
 import { QuickCaptureModal } from '../inbox/QuickCaptureModal';
 import { CloudSyncIndicator } from '../ui/CloudSyncIndicator';
 import { useItems } from '@/lib/store/ItemContext';
-import { Inbox, Search, BookMarked, Settings, Plus } from 'lucide-react';
+import { Home, Inbox, BookMarked, Settings, Plus } from 'lucide-react';
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [captureOpen, setCaptureOpen] = useState(false);
@@ -32,8 +32,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }, []);
 
   const mobileNavItems = [
+    { href: '/home', label: 'Home', icon: <Home className="w-5 h-5" /> },
     { href: '/inbox', label: 'Inbox', icon: <Inbox className="w-5 h-5" />, badge: inboxItems.length || undefined },
-    { href: '/search', label: 'Search', icon: <Search className="w-5 h-5" /> },
+
     { href: '/library', label: 'Library', icon: <BookMarked className="w-5 h-5" /> },
     { href: '/settings', label: 'Settings', icon: <Settings className="w-5 h-5" /> },
   ];
@@ -49,7 +50,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden bg-[#f7f5ee]">
         {/* Mobile Top Header */}
         <header className="md:hidden flex items-center justify-between px-4 h-14 bg-[#f7f5ee] border-b border-[#e4e0d5] shrink-0 z-20">
-          <Link href="/inbox" className="flex items-center gap-2">
+          <Link href="/home" className="flex items-center gap-2">
             <div className="w-7 h-7 relative rounded-lg overflow-hidden bg-[#e6edb0] p-1">
               <Image src="/branding/laterbox-icon.png" alt="laterbox" fill sizes="28px" className="object-contain p-0.5" />
             </div>

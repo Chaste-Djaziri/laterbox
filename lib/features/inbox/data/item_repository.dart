@@ -46,17 +46,21 @@ class ItemRepository {
   }
 
   Stream<LaterBoxItem?> watchItem(String id) {
-    return _local.watchItemWithMetadata(id).map(
-      (row) => row == null ? null : LaterBoxItem.fromDriftRows(row.$1, row.$2),
-    );
+    return _local
+        .watchItemWithMetadata(id)
+        .map(
+          (row) =>
+              row == null ? null : LaterBoxItem.fromDriftRows(row.$1, row.$2),
+        );
   }
 
-  Future<void> save(
+  Future<String> save(
     String value, {
     String? id,
     String? title,
     String? type,
     DateTime? createdAt,
+    DateTime? returnAt,
     String? textContent,
     String? url,
   }) async {
@@ -68,7 +72,7 @@ class ItemRepository {
     }
 
     final itemId = id ?? _uuid.v4();
-    if (id != null && await _local.exists(itemId)) return;
+    if (id != null && await _local.exists(itemId)) return itemId;
 
     final targetUrl = (url != null && url.isNotEmpty)
         ? url
@@ -80,19 +84,22 @@ class ItemRepository {
     final bodyText = textContent?.trim().isNotEmpty == true
         ? textContent!.trim()
         : (normalizedUrl != null && normalizedUrl.contains(':~:text=')
-            ? () {
-                try {
-                  final raw =
-                      normalizedUrl.split(':~:text=').last.split('&').first;
-                  final decoded = Uri.decodeComponent(raw);
-                  return decoded
-                      .replaceAll(RegExp(r'^[^\-,]+-,'), '')
-                      .replaceAll(RegExp(r',-[^\-,]+$'), '');
-                } catch (_) {
-                  return null;
-                }
-              }()
-            : (isUrl ? null : normalized));
+              ? () {
+                  try {
+                    final raw = normalizedUrl
+                        .split(':~:text=')
+                        .last
+                        .split('&')
+                        .first;
+                    final decoded = Uri.decodeComponent(raw);
+                    return decoded
+                        .replaceAll(RegExp(r'^[^\-,]+-,'), '')
+                        .replaceAll(RegExp(r',-[^\-,]+$'), '');
+                  } catch (_) {
+                    return null;
+                  }
+                }()
+              : (isUrl ? null : normalized));
     final now = createdAt ?? DateTime.now();
 
     final existing = await _local.findActiveInboxItem(
@@ -101,10 +108,11 @@ class ItemRepository {
       textContent: bodyText,
     );
     if (existing != null) {
-      return;
+      return existing.id;
     }
 
-    final resolvedType = type ??
+    final resolvedType =
+        type ??
         (isUrl
             ? (bodyText != null && bodyText.isNotEmpty ? 'quote' : 'link')
             : 'text');
@@ -117,12 +125,15 @@ class ItemRepository {
         title: Value(title),
         textContent: Value(bodyText),
         type: Value(resolvedType),
+        status: const Value('deferred'),
+        returnAt: Value(returnAt?.toUtc()),
         createdAt: now,
         updatedAt: now,
         syncStatus: Value(SyncStatus.pending.databaseValue),
       ),
     );
     unawaited(_onSaved());
+    return itemId;
   }
 
   Future<void> setFavorite(String id, bool favorite) async {
@@ -141,7 +152,12 @@ class ItemRepository {
 
   Future<void> markSeen(String id) => archive(id);
 
-  Future<void> markUnseen(String id) => setStatus(id, ItemStatus.inbox);
+  Future<void> markUnseen(String id) => reschedule(id, DateTime.now());
+
+  Future<void> reschedule(String id, DateTime? returnAt) async {
+    await _local.updateSchedule(id, returnAt?.toUtc());
+    unawaited(_onSaved());
+  }
 
   Future<void> delete(String id) async {
     await _local.softDelete(id);
@@ -160,8 +176,8 @@ class ItemRepository {
       final key = item.url != null && item.url!.isNotEmpty
           ? 'url:${item.url}'
           : (item.textContent != null && item.textContent!.isNotEmpty
-              ? 'text:${item.textContent}'
-              : null);
+                ? 'text:${item.textContent}'
+                : null);
       if (key != null && !seenKeys.add(key)) {
         continue;
       }
@@ -170,4 +186,11 @@ class ItemRepository {
     }
     return items;
   }
+}
+
+class DuplicateCaptureException implements Exception {
+  const DuplicateCaptureException(this.itemId);
+  final String itemId;
+  @override
+  String toString() => 'This item is already in LaterBox.';
 }

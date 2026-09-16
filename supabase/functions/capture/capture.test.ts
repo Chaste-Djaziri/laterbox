@@ -79,7 +79,8 @@ Deno.test("capture inserts an authenticated browser item", async () => {
     text_selector: null,
     type: "link",
     favorite: false,
-    status: "inbox",
+    status: "deferred",
+      return_at: null,
     created_at: "2026-08-19T12:00:00.000Z",
     updated_at: "2026-08-19T12:00:00.000Z",
   });

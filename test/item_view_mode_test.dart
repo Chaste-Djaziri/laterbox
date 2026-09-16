@@ -27,9 +27,7 @@ void main() {
 
   test('itemViewModeProvider defaults to cards and toggles to list', () async {
     final container = ProviderContainer(
-      overrides: [
-        appDatabaseProvider.overrideWithValue(db),
-      ],
+      overrides: [appDatabaseProvider.overrideWithValue(db)],
     );
     addTearDown(container.dispose);
 
@@ -38,9 +36,10 @@ void main() {
     await container.read(itemViewModeProvider.notifier).toggle();
     expect(container.read(itemViewModeProvider), ItemViewMode.list);
 
-    final stored = await (db.select(db.appSettings)
-          ..where((tbl) => tbl.key.equals(itemViewModeSettingKey)))
-        .getSingleOrNull();
+    final stored =
+        await (db.select(db.appSettings)
+              ..where((tbl) => tbl.key.equals(itemViewModeSettingKey)))
+            .getSingleOrNull();
     expect(stored?.value, 'list');
 
     await container.read(itemViewModeProvider.notifier).toggle();
@@ -49,9 +48,7 @@ void main() {
 
   testWidgets('ViewModeToggle switches modes when tapped', (tester) async {
     final container = ProviderContainer(
-      overrides: [
-        appDatabaseProvider.overrideWithValue(db),
-      ],
+      overrides: [appDatabaseProvider.overrideWithValue(db)],
     );
     addTearDown(container.dispose);
 
@@ -59,11 +56,7 @@ void main() {
       UncontrolledProviderScope(
         container: container,
         child: const MaterialApp(
-          home: Scaffold(
-            body: Center(
-              child: ViewModeToggle(),
-            ),
-          ),
+          home: Scaffold(body: Center(child: ViewModeToggle())),
         ),
       ),
     );
@@ -83,59 +76,56 @@ void main() {
     expect(container.read(itemViewModeProvider), ItemViewMode.cards);
   });
 
-  testWidgets('ItemListRow renders item metadata and triggers favorite toggle', (
-    tester,
-  ) async {
-    final now = DateTime.utc(2026, 9, 14, 1, 0, 0);
-    await db.saveItem(
-      ItemsCompanion.insert(
+  testWidgets(
+    'ItemListRow renders item metadata and triggers favorite toggle',
+    (tester) async {
+      final now = DateTime.utc(2026, 9, 14, 1, 0, 0);
+      await db.saveItem(
+        ItemsCompanion.insert(
+          id: 'test-item-1',
+          title: const drift.Value('Flutter Architecture Guide'),
+          url: const drift.Value('https://docs.flutter.dev/arch'),
+          type: const drift.Value('article'),
+          status: const drift.Value('inbox'),
+          favorite: const drift.Value(false),
+          createdAt: now,
+          updatedAt: now,
+        ),
+      );
+
+      final item = LaterBoxItem(
         id: 'test-item-1',
-        title: const drift.Value('Flutter Architecture Guide'),
-        url: const drift.Value('https://docs.flutter.dev/arch'),
-        type: const drift.Value('article'),
-        status: const drift.Value('inbox'),
-        favorite: const drift.Value(false),
+        title: 'Flutter Architecture Guide',
+        url: 'https://docs.flutter.dev/arch',
+        type: 'article',
+        status: ItemStatus.inbox,
+        favorite: false,
         createdAt: now,
-        updatedAt: now,
-      ),
-    );
+      );
 
-    final item = LaterBoxItem(
-      id: 'test-item-1',
-      title: 'Flutter Architecture Guide',
-      url: 'https://docs.flutter.dev/arch',
-      type: 'article',
-      status: ItemStatus.inbox,
-      favorite: false,
-      createdAt: now,
-    );
-
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          appDatabaseProvider.overrideWithValue(db),
-        ],
-        child: MaterialApp(
-          home: Scaffold(
-            body: ItemListRow(item: item),
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [appDatabaseProvider.overrideWithValue(db)],
+          child: MaterialApp(
+            home: Scaffold(body: ItemListRow(item: item)),
           ),
         ),
-      ),
-    );
+      );
 
-    expect(find.text('Flutter Architecture Guide'), findsOneWidget);
-    expect(find.text('docs.flutter.dev'), findsOneWidget);
-    expect(find.byTooltip('Star'), findsOneWidget);
-    expect(find.byTooltip('Keep'), findsOneWidget);
+      expect(find.text('Flutter Architecture Guide'), findsOneWidget);
+      expect(find.textContaining('docs.flutter.dev'), findsOneWidget);
+      expect(find.byTooltip('Star'), findsOneWidget);
+      expect(find.byTooltip('Keep'), findsOneWidget);
 
-    await tester.tap(find.byTooltip('Star'));
-    await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('Star'));
+      await tester.pumpAndSettle();
 
-    final updated = await (db.select(db.items)
-          ..where((tbl) => tbl.id.equals('test-item-1')))
-        .getSingle();
-    expect(updated.favorite, isTrue);
-  });
+      final updated = await (db.select(
+        db.items,
+      )..where((tbl) => tbl.id.equals('test-item-1'))).getSingle();
+      expect(updated.favorite, isTrue);
+    },
+  );
 
   testWidgets('InboxScreen switches between ItemCard and ItemListRow', (
     tester,
@@ -163,9 +153,7 @@ void main() {
     await tester.pumpWidget(
       UncontrolledProviderScope(
         container: container,
-        child: const MaterialApp(
-          home: InboxScreen(),
-        ),
+        child: const MaterialApp(home: InboxScreen()),
       ),
     );
     await tester.pumpAndSettle();
@@ -185,7 +173,9 @@ void main() {
     expect(find.byIcon(Icons.add_circle_outline_rounded), findsNothing);
 
     // Switch view mode to list
-    await container.read(itemViewModeProvider.notifier).setViewMode(ItemViewMode.list);
+    await container
+        .read(itemViewModeProvider.notifier)
+        .setViewMode(ItemViewMode.list);
     await tester.pumpAndSettle();
 
     // In list mode -> renders ItemListRow

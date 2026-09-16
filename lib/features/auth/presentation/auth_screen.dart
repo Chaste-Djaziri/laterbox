@@ -152,7 +152,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     context.go(
       next == 'plans'
           ? '/plans${interval == null ? '' : '?interval=$interval'}'
-          : '/inbox',
+          : '/home',
     );
   }
 
@@ -391,7 +391,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                           ? null
                           : () {
                               ref.read(guestModeProvider.notifier).state = true;
-                              context.go('/inbox');
+                              context.go('/home');
                             },
                       child: const Text('Continue without account'),
                     ),

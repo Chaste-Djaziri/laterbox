@@ -607,10 +607,11 @@ class AppDelegate: FlutterAppDelegate {
         window.level = .statusBar
       } else {
         window.isOpaque = true
-        window.backgroundColor = .windowBackgroundColor
+        window.backgroundColor = .clear
         window.hasShadow = true
-        window.titleVisibility = .visible
-        window.titlebarAppearsTransparent = false
+        window.titleVisibility = .hidden
+        window.titlebarAppearsTransparent = true
+        window.styleMask.insert(.fullSizeContentView)
         window.standardWindowButton(.closeButton)?.isHidden = false
         window.standardWindowButton(.miniaturizeButton)?.isHidden = false
         window.standardWindowButton(.zoomButton)?.isHidden = false

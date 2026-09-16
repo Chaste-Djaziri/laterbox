@@ -373,8 +373,7 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
                                         color: theme
                                             .colorScheme
                                             .surfaceContainerHigh,
-                                        borderRadius:
-                                            BorderRadius.circular(12),
+                                        borderRadius: BorderRadius.circular(12),
                                       ),
                                       child: Text(
                                         '${list.length}',
@@ -410,11 +409,7 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
                                   const SizedBox(width: 8),
                                   ViewModeToggle(compact: !isDesktop),
                                   const SizedBox(width: 2),
-                                  _buildMenuButton(
-                                    context,
-                                    viewMode,
-                                    auth,
-                                  ),
+                                  _buildMenuButton(context, viewMode, auth),
                                 ],
                               ),
                             ],
@@ -441,54 +436,76 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
                       ? const SliverFillRemaining(child: _EmptyInbox())
                       : isDesktop
                       ? (viewMode.isCards
-                          ? SliverPadding(
-                              padding: const EdgeInsets.fromLTRB(32, 0, 32, 104),
-                              sliver: SliverGrid(
-                                delegate: SliverChildBuilderDelegate(
-                                  (context, index) =>
-                                      ItemCard(item: itemList[index], isGrid: true),
-                                  childCount: itemList.length,
+                            ? SliverPadding(
+                                padding: const EdgeInsets.fromLTRB(
+                                  32,
+                                  0,
+                                  32,
+                                  104,
                                 ),
-                                gridDelegate:
-                                    const SliverGridDelegateWithMaxCrossAxisExtent(
-                                      maxCrossAxisExtent: 320,
-                                      mainAxisSpacing: 16,
-                                      crossAxisSpacing: 16,
-                                      childAspectRatio: 0.72,
+                                sliver: SliverGrid(
+                                  delegate: SliverChildBuilderDelegate(
+                                    (context, index) => ItemCard(
+                                      item: itemList[index],
+                                      isGrid: true,
                                     ),
-                              ),
-                            )
-                          : SliverPadding(
-                              padding: const EdgeInsets.fromLTRB(32, 0, 32, 104),
-                              sliver: SliverList.separated(
-                                itemCount: itemList.length,
-                                separatorBuilder: (context, index) =>
-                                    const SizedBox(height: 10),
-                                itemBuilder: (context, index) =>
-                                    ItemListRow(item: itemList[index]),
-                              ),
-                            ))
+                                    childCount: itemList.length,
+                                  ),
+                                  gridDelegate:
+                                      const SliverGridDelegateWithMaxCrossAxisExtent(
+                                        maxCrossAxisExtent: 320,
+                                        mainAxisSpacing: 16,
+                                        crossAxisSpacing: 16,
+                                        childAspectRatio: 0.72,
+                                      ),
+                                ),
+                              )
+                            : SliverPadding(
+                                padding: const EdgeInsets.fromLTRB(
+                                  32,
+                                  0,
+                                  32,
+                                  104,
+                                ),
+                                sliver: SliverList.separated(
+                                  itemCount: itemList.length,
+                                  separatorBuilder: (context, index) =>
+                                      const SizedBox(height: 10),
+                                  itemBuilder: (context, index) =>
+                                      ItemListRow(item: itemList[index]),
+                                ),
+                              ))
                       : (viewMode.isCards
-                          ? SliverPadding(
-                              padding: const EdgeInsets.fromLTRB(20, 0, 20, 104),
-                              sliver: SliverList.separated(
-                                itemCount: itemList.length,
-                                separatorBuilder: (context, index) =>
-                                    const SizedBox(height: 14),
-                                itemBuilder: (context, index) =>
-                                    ItemCard(item: itemList[index]),
-                              ),
-                            )
-                          : SliverPadding(
-                              padding: const EdgeInsets.fromLTRB(20, 0, 20, 104),
-                              sliver: SliverList.separated(
-                                itemCount: itemList.length,
-                                separatorBuilder: (context, index) =>
-                                    const SizedBox(height: 10),
-                                itemBuilder: (context, index) =>
-                                    ItemListRow(item: itemList[index]),
-                              ),
-                            )),
+                            ? SliverPadding(
+                                padding: const EdgeInsets.fromLTRB(
+                                  20,
+                                  0,
+                                  20,
+                                  104,
+                                ),
+                                sliver: SliverList.separated(
+                                  itemCount: itemList.length,
+                                  separatorBuilder: (context, index) =>
+                                      const SizedBox(height: 14),
+                                  itemBuilder: (context, index) =>
+                                      ItemCard(item: itemList[index]),
+                                ),
+                              )
+                            : SliverPadding(
+                                padding: const EdgeInsets.fromLTRB(
+                                  20,
+                                  0,
+                                  20,
+                                  104,
+                                ),
+                                sliver: SliverList.separated(
+                                  itemCount: itemList.length,
+                                  separatorBuilder: (context, index) =>
+                                      const SizedBox(height: 10),
+                                  itemBuilder: (context, index) =>
+                                      ItemListRow(item: itemList[index]),
+                                ),
+                              )),
                 ),
               ],
             ),
@@ -517,13 +534,13 @@ class _EmptyInbox extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              'Nothing saved yet',
+              'You’re all clear',
               style: Theme.of(context).textTheme.titleLarge
                   ?.copyWith(fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 8),
             Text(
-              'Tap + to save a link or note for later.',
+              'Items appear here when their return time arrives.',
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,

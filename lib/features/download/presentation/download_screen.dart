@@ -1,11 +1,9 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/auth/auth_provider.dart';
-import '../../../core/web/web_file_downloader.dart';
 
 class DownloadScreen extends ConsumerStatefulWidget {
   const DownloadScreen({super.key});
@@ -31,32 +29,15 @@ class _DownloadScreenState extends ConsumerState<DownloadScreen> {
         'https://github.com/Chaste-Djaziri/laterbox/releases/latest/download/$filename');
 
     try {
-      if (kIsWeb) {
-        final downloaded =
-            await triggerBrowserDownload('/downloads/$filename', filename);
-        if (!downloaded) {
-          final launched = await launchUrl(
-            absoluteUri,
-            mode: LaunchMode.externalApplication,
-          );
-          if (!launched) {
-            await launchUrl(
-              githubUri,
-              mode: LaunchMode.externalApplication,
-            );
-          }
-        }
-      } else {
-        final launched = await launchUrl(
-          absoluteUri,
+      final launched = await launchUrl(
+        absoluteUri,
+        mode: LaunchMode.externalApplication,
+      );
+      if (!launched) {
+        await launchUrl(
+          githubUri,
           mode: LaunchMode.externalApplication,
         );
-        if (!launched) {
-          await launchUrl(
-            githubUri,
-            mode: LaunchMode.externalApplication,
-          );
-        }
       }
       messenger.showSnackBar(
         SnackBar(

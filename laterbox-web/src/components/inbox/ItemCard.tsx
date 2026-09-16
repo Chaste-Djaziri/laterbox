@@ -35,6 +35,7 @@ import {
   Puzzle,
   Globe,
 } from 'lucide-react';
+import { RescheduleAction } from '../scheduling/RescheduleAction';
 import { AddToCollectionModal } from '../collections/AddToCollectionModal';
 
 interface ItemCardProps {
@@ -96,7 +97,7 @@ function AttachmentMediaPreview({
       return;
     }
 
-    fetchAttachmentDownloadUrl(attachment.id).then((url) => {
+    fetchAttachmentDownloadUrl(attachment.id, attachment.user_id ?? null).then((url) => {
       if (active) {
         setDownloadUrl(url);
         setLoading(false);
@@ -106,7 +107,7 @@ function AttachmentMediaPreview({
     return () => {
       active = false;
     };
-  }, [attachment.id, attachment.local_path]);
+  }, [attachment.id, attachment.local_path, attachment.user_id]);
 
   // Render Image Preview
   if (category === 'image') {
@@ -571,7 +572,7 @@ export function ItemCard({ item }: ItemCardProps) {
               </button>
 
               {/* Status Change Buttons */}
-              {item.status === 'inbox' ? (
+              {(item.status === 'inbox' || item.status === 'deferred') ? (
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
@@ -657,8 +658,10 @@ export function ItemCard({ item }: ItemCardProps) {
                       className="absolute right-0 bottom-full mb-1 z-20 w-48 rounded-2xl bg-white border border-[#e4e0d5] shadow-xl py-1.5 text-xs font-semibold animate-in fade-in"
                       onClick={(e) => e.stopPropagation()}
                     >
+                      <RescheduleAction item={item} />
+                      {item.type === 'task' && item.status !== 'archived' && <button className="w-full px-3.5 py-2 text-left hover:bg-[#ebe7dc]/50" onClick={event => { event.stopPropagation(); setMenuOpen(false); void archiveItem(item.id); }}>✓ Done</button>}
                       {/* Keep / Status action in menu */}
-                      {item.status === 'inbox' ? (
+                      {(item.status === 'inbox' || item.status === 'deferred') ? (
                         <button
                           onClick={(e) => {
                             e.stopPropagation();

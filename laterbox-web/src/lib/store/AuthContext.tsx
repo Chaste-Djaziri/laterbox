@@ -72,7 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signInWithOtp = async (email: string) => {
     const supabase = getSupabaseClient();
-    const redirectTo = typeof window !== 'undefined' ? `${window.location.origin}/inbox` : undefined;
+    const redirectTo = typeof window !== 'undefined' ? `${window.location.origin}/home` : undefined;
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: { emailRedirectTo: redirectTo, shouldCreateUser: false },
@@ -96,7 +96,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const resendSignupOtp = async (email: string) => {
     const supabase = getSupabaseClient();
-    const redirectTo = typeof window !== 'undefined' ? `${window.location.origin}/inbox` : undefined;
+    const redirectTo = typeof window !== 'undefined' ? `${window.location.origin}/home` : undefined;
     const { error } = await supabase.auth.resend({
       type: 'signup',
       email,
@@ -117,7 +117,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signUpWithPassword = async (email: string, password: string) => {
     const supabase = getSupabaseClient();
-    const redirectTo = typeof window !== 'undefined' ? `${window.location.origin}/inbox` : undefined;
+    const redirectTo = typeof window !== 'undefined' ? `${window.location.origin}/home` : undefined;
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -132,7 +132,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signInWithOAuth = async (provider: 'google' | 'github') => {
     const supabase = getSupabaseClient();
-    const redirectTo = typeof window !== 'undefined' ? `${window.location.origin}/inbox` : undefined;
+    const redirectTo = typeof window !== 'undefined' ? `${window.location.origin}/home` : undefined;
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
       options: { redirectTo },
