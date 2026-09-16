@@ -18,6 +18,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
   - Removed hover background/color states on unselected sidebar items.
   - Removed sidebar collapse toggle chevron icon.
 - **Home Dashboard**: Summary cards now show "Waiting in Inbox" and "Returning today" side by side, with "Upcoming" stretching full width below.
+- **Home Dashboard**: Mobile AppBar title now shows the greeting (e.g. "Good morning.") instead of "Home".
 - **Settings**: Version display now reads the real device build version via PackageInfo instead of a hardcoded string.
 - **Settings**: App Icon section is now only visible on iOS devices.
 - **Item List Rows**: Show scheduled return time instead of relative timestamp when a return time is set.
