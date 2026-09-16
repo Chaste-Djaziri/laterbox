@@ -5,8 +5,8 @@ import 'package:laterbox/core/auth/auth_provider.dart';
 import 'package:laterbox/features/home/presentation/desktop_sidebar.dart';
 
 void main() {
-  testWidgets('DesktopSidebar renders web-style sidebar items, brand, and actions', (tester) async {
-    tester.view.physicalSize = const Size(1280, 800);
+  testWidgets('DesktopSidebar renders expanded sidebar items, brand, and actions with no collapse icon', (tester) async {
+    tester.view.physicalSize = const Size(1280, 1000);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(() {
       tester.view.resetPhysicalSize();
@@ -34,8 +34,18 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    // Verify width is 268
+    final containerFinder = find.byType(DesktopSidebar);
+    expect(containerFinder, findsOneWidget);
+    final size = tester.getSize(containerFinder);
+    expect(size.width, equals(DesktopSidebar.sidebarWidth));
+
     // Verify brand header
     expect(find.text('laterbox'), findsOneWidget);
+
+    // Verify collapse button is removed
+    expect(find.byTooltip('Collapse sidebar'), findsNothing);
+    expect(find.byTooltip('Expand sidebar'), findsNothing);
 
     // Verify Save Item button
     expect(find.text('Save Item'), findsOneWidget);
@@ -66,25 +76,5 @@ void main() {
     await tester.tap(find.text('Library'));
     await tester.pumpAndSettle();
     expect(tappedIndex, equals(5));
-
-    // Collapse sidebar
-    final collapseButton = find.byTooltip('Collapse sidebar');
-    expect(collapseButton, findsOneWidget);
-    await tester.tap(collapseButton);
-    await tester.pumpAndSettle();
-
-    // Text labels are hidden when collapsed
-    expect(find.text('laterbox'), findsNothing);
-    expect(find.text('Save Item'), findsNothing);
-
-    // Expand button is present
-    final expandButton = find.byTooltip('Expand sidebar');
-    expect(expandButton, findsOneWidget);
-    await tester.tap(expandButton);
-    await tester.pumpAndSettle();
-
-    // Text labels are visible again
-    expect(find.text('laterbox'), findsOneWidget);
-    expect(find.text('Save Item'), findsOneWidget);
   });
 }
