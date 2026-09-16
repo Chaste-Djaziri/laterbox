@@ -96,7 +96,7 @@ function AttachmentMediaPreview({
       return;
     }
 
-    fetchAttachmentDownloadUrl(attachment.id).then((url) => {
+    fetchAttachmentDownloadUrl(attachment.id, attachment.user_id ?? null).then((url) => {
       if (active) {
         setDownloadUrl(url);
         setLoading(false);
@@ -106,7 +106,7 @@ function AttachmentMediaPreview({
     return () => {
       active = false;
     };
-  }, [attachment.id, attachment.local_path]);
+  }, [attachment.id, attachment.local_path, attachment.user_id]);
 
   // Render Image Preview
   if (category === 'image') {
