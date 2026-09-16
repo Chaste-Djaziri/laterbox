@@ -152,18 +152,16 @@ class _IosClipboardCaptureOverlayState
       children: [
         widget.child,
         Positioned(
-          top: topPadding >= 51
-              ? 10.0
-              : (topPadding >= 40 ? 0.0 : topPadding + 6.0),
+          top: (topPadding > 0 ? topPadding : 20.0) + 8.0,
           left: 14,
           right: 14,
           child: AnimatedSlide(
-            offset: isVisible ? Offset.zero : const Offset(0, -1.2),
-            duration: const Duration(milliseconds: 280),
+            offset: isVisible ? Offset.zero : const Offset(0, -1.3),
+            duration: const Duration(milliseconds: 320),
             curve: Curves.easeOutCubic,
             child: AnimatedOpacity(
               opacity: isVisible ? 1.0 : 0.0,
-              duration: const Duration(milliseconds: 220),
+              duration: const Duration(milliseconds: 240),
               curve: Curves.easeOut,
               child: _DynamicIslandCard(
                 state: notchState,
@@ -200,11 +198,7 @@ class _DynamicIslandCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final borderRadius = topPadding >= 51
-        ? BorderRadius.circular(28)
-        : (topPadding >= 40
-            ? const BorderRadius.vertical(bottom: Radius.circular(22))
-            : BorderRadius.circular(20));
+    const borderRadius = BorderRadius.all(Radius.circular(24));
 
     return Material(
       color: Colors.transparent,
