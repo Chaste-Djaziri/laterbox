@@ -66,7 +66,8 @@ class _DesktopSidebarState extends ConsumerState<DesktopSidebar> {
                   ? MainAxisAlignment.center
                   : MainAxisAlignment.spaceBetween,
               children: [
-                Row(
+                Expanded(child: Row(
+                  mainAxisAlignment: isCompact ? MainAxisAlignment.center : MainAxisAlignment.start,
                   children: [
                     Container(
                       width: 34,
@@ -104,17 +105,18 @@ class _DesktopSidebarState extends ConsumerState<DesktopSidebar> {
                     ),
                     if (!isCompact) ...[
                       const SizedBox(width: 12),
-                      Text(
+                      Flexible(child: Text(
                         'laterbox',
+                        maxLines: 1, overflow: TextOverflow.ellipsis,
                         style: theme.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.w800,
                           letterSpacing: -0.5,
                           fontSize: 18,
                         ),
-                      ),
+                      )),
                     ],
                   ],
-                ),
+                )),
                 if (!isCompact)
                   IconButton(
                     icon: Icon(
