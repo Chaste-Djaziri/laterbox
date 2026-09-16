@@ -7,17 +7,7 @@ void main() {
   tearDown(() => debugDefaultTargetPlatformOverride = null);
 
   group('DesktopShortcut', () {
-    test('defaults to alt + space with a stable label', () {
-      final shortcut = DesktopShortcut.defaultQuickCapture();
-
-      expect(shortcut.keyId, PhysicalKeyboardKey.space.usbHidUsage);
-      expect(shortcut.modifiers, [DesktopModifier.alt]);
-      expect(shortcut.displayLabel, '⌥ Space');
-    });
-
-    test('uses a Windows safe default and native labels', () {
-      debugDefaultTargetPlatformOverride = TargetPlatform.windows;
-
+    test('defaults to control + alt + space with a stable label', () {
       final shortcut = DesktopShortcut.defaultQuickCapture();
 
       expect(shortcut.keyId, PhysicalKeyboardKey.space.usbHidUsage);
@@ -25,7 +15,20 @@ void main() {
         DesktopModifier.control,
         DesktopModifier.alt,
       ]);
-      expect(shortcut.displayLabel, 'Ctrl + Alt + Space');
+      expect(shortcut.displayLabel, '⌃ ⌥ Space');
+    });
+
+    test('uses a Windows safe default and native labels', () {
+      debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+
+      final shortcut = DesktopShortcut.defaultQuickCapture();
+
+      expect(shortcut.keyId, PhysicalKeyboardKey.keyL.usbHidUsage);
+      expect(shortcut.modifiers, [
+        DesktopModifier.control,
+        DesktopModifier.shift,
+      ]);
+      expect(shortcut.displayLabel, 'Ctrl + Shift + L');
     });
 
     test('round-trips through JSON', () {
@@ -60,7 +63,10 @@ void main() {
       final restored = DesktopShortcut.fromJson(const {'nonsense': true});
 
       expect(restored.keyId, PhysicalKeyboardKey.space.usbHidUsage);
-      expect(restored.modifiers, [DesktopModifier.alt]);
+      expect(restored.modifiers, [
+        DesktopModifier.control,
+        DesktopModifier.alt,
+      ]);
     });
   });
 }
