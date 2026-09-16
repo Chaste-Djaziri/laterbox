@@ -33,7 +33,7 @@
 
 LaterBox is a modern, high-speed save-for-later tool and personal knowledge vault. It is engineered for instant capture across desktop, mobile, and browser environments with zero-friction offline caching and automatic cloud sync.
 
-- ⚡ **Universal Quick Capture**: System-wide Spotlight bar (`⌥ Space` on macOS, `Ctrl+Alt+Space` on Windows, `Alt+Space` on Linux), mobile share sheets, and 1-click browser extension popups.
+- ⚡ **Universal Quick Capture**: System-wide Spotlight bar (`⌃ ⌥ Space` on macOS, `Ctrl+Shift+L` on Windows, `Alt+Space` on Linux), mobile share sheets, and 1-click browser extension popups.
 - 🔄 **Offline-First Resilience**: Local SQLite database with Drift ORM powering sub-10ms queries, full-text search, and real-time bidirectional Supabase replication.
 - 🎬 **Distraction-Free Media**: Watch YouTube videos and listen to audio without ads or tracking directly inside the vault.
 - 📖 **Distraction-Free Reader**: Clean distraction-free article reader with personal annotations and notes.
