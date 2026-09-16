@@ -7,8 +7,8 @@ import '../../features/attachments/presentation/attachment_providers.dart';
 import '../../features/enrichment/domain/content_type.dart';
 import '../../features/enrichment/domain/url_utils.dart';
 import '../../features/inbox/presentation/inbox_providers.dart';
-import '../models/item_status.dart';
 import '../models/laterbox_item.dart';
+import '../models/item_status.dart';
 import 'item_actions.dart';
 
 /// A compact list row representation of a saved item, mirroring the web
@@ -182,7 +182,7 @@ class _ItemListRowState extends ConsumerState<ItemListRow> {
                       onPressed: () =>
                           repository.setFavorite(widget.item.id, !isStarred),
                     ),
-                    if (widget.item.status == ItemStatus.inbox)
+                    if (widget.item.isActive)
                       IconButton(
                         iconSize: 18,
                         visualDensity: VisualDensity.compact,
