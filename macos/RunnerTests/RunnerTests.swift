@@ -74,4 +74,11 @@ class RunnerTests: XCTestCase {
     XCTAssertTrue(openedPlans)
     XCTAssertFalse(requestedCapture)
   }
+
+  func testAppIconImagesetsExist() {
+    let white = NSImage(named: "AppIconWhite") ?? NSImage(contentsOfFile: "assets/branding/laterbox-icon-white.png")
+    let black = NSImage(named: "AppIconBlack") ?? NSImage(contentsOfFile: "assets/branding/laterbox-icon.png")
+    XCTAssertNotNil(white)
+    XCTAssertNotNil(black)
+  }
 }
