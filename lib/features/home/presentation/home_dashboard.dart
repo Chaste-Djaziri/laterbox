@@ -32,11 +32,13 @@ class HomeDashboard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final width = MediaQuery.sizeOf(context).width;
     final platform = Theme.of(context).platform;
-    final isDesktop = !kIsWeb
-        ? (platform == TargetPlatform.macOS ||
-            platform == TargetPlatform.linux ||
-            platform == TargetPlatform.windows)
-        : width >= 900;
+    final isDesktopPlatform = switch (platform) {
+      TargetPlatform.macOS ||
+      TargetPlatform.linux ||
+      TargetPlatform.windows => true,
+      _ => false,
+    };
+    final isDesktop = isDesktopPlatform || width >= 900;
     final isMac = !kIsWeb && platform == TargetPlatform.macOS;
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
