@@ -118,7 +118,9 @@ class _ItemDetailBody extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final rawText = item.text?.trim();
-    final embeddedUrlMatch = rawText != null ? RegExp(r'(https?://[^\s]+)').firstMatch(rawText) : null;
+    final embeddedUrlMatch = rawText != null
+        ? RegExp(r'(https?://[^\s]+)').firstMatch(rawText)
+        : null;
     final effectiveUrl = item.url ?? embeddedUrlMatch?.group(0);
     final uri = effectiveUrl == null ? null : Uri.tryParse(effectiveUrl);
     final isFile = item.type == 'file';
@@ -126,15 +128,22 @@ class _ItemDetailBody extends ConsumerWidget {
         item.metadata?.domain ??
         uri?.host.replaceFirst('www.', '') ??
         (isFile ? 'File' : 'Note');
-    final cleanCapturedText = (rawText != null && effectiveUrl != null && rawText.contains(effectiveUrl))
-        ? rawText.replaceFirst(effectiveUrl, '').trim().replaceAll(RegExp(r'^["“”\s]+|["“”\s]+$'), '')
+    final cleanCapturedText =
+        (rawText != null &&
+            effectiveUrl != null &&
+            rawText.contains(effectiveUrl))
+        ? rawText
+              .replaceFirst(effectiveUrl, '')
+              .trim()
+              .replaceAll(RegExp(r'^["“”\s]+|["“”\s]+$'), '')
         : rawText;
-    final isCaptured = cleanCapturedText != null && cleanCapturedText.isNotEmpty;
+    final isCaptured =
+        cleanCapturedText != null && cleanCapturedText.isNotEmpty;
     final effectiveItem = (item.url == null && effectiveUrl != null)
         ? item.copyWith(url: effectiveUrl, text: cleanCapturedText)
         : (cleanCapturedText != null && cleanCapturedText != item.text
-            ? item.copyWith(text: cleanCapturedText)
-            : item);
+              ? item.copyWith(text: cleanCapturedText)
+              : item);
     final sourceTitle = item.metadata?.title ?? item.title;
     final title =
         item.metadata?.title ??
@@ -170,9 +179,12 @@ class _ItemDetailBody extends ConsumerWidget {
         final client = ref.read(supabaseClientProvider);
         if (client != null && attachment.r2ObjectKey != null) {
           try {
-            return await AttachmentStorageApi(client).prepareDownloadUrl(attachment.id);
+            return await AttachmentStorageApi(client)
+                .prepareDownloadUrl(attachment.id);
           } catch (error) {
-            debugPrint('[LaterBox Detail] resolve remote download failed: $error');
+            debugPrint(
+              '[LaterBox Detail] resolve remote download failed: $error',
+            );
             throw StateError('Attachment is not available for download.');
           }
         }
@@ -188,12 +200,24 @@ class _ItemDetailBody extends ConsumerWidget {
     return ListView(
       padding: const EdgeInsets.only(bottom: 40),
       children: [
-        Padding(padding: const EdgeInsets.all(24), child: ReturnTimePicker(
-          value: item.returnAt, onChanged: (time) => ref.read(itemRepositoryProvider).reschedule(item.id, time))),
+        Padding(
+          padding: const EdgeInsets.all(24),
+          child: ReturnTimePicker(
+            value: item.returnAt,
+            onChanged: (time) =>
+                ref.read(itemRepositoryProvider).reschedule(item.id, time),
+          ),
+        ),
         if (item.type == 'task' && item.isActive)
-          Padding(padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: FilledButton.icon(onPressed: () => ref.read(itemRepositoryProvider).archive(item.id),
-              icon: const Icon(Icons.task_alt), label: const Text('Done'))),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: FilledButton.icon(
+              onPressed: () =>
+                  ref.read(itemRepositoryProvider).archive(item.id),
+              icon: const Icon(Icons.task_alt),
+              label: const Text('Done'),
+            ),
+          ),
         if (hasAttachmentPreview)
           AttachmentDetailPreview(
             attachments: attachments,
@@ -369,7 +393,11 @@ class _ItemDetailBody extends ConsumerWidget {
                 ListTile(
                   leading: const Icon(Icons.link_rounded),
                   title: const Text('URL'),
-                  subtitle: Text(effectiveUrl, maxLines: 1, overflow: TextOverflow.ellipsis),
+                  subtitle: Text(
+                    effectiveUrl,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                   trailing: const Icon(Icons.open_in_new_rounded, size: 20),
                   onTap: () => openOriginalForItem(context, effectiveItem),
                 ),
