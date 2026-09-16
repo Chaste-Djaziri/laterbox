@@ -15,6 +15,7 @@ class AttachmentRepository {
     required String title,
     required String? textContent,
     required DateTime createdAt,
+    DateTime? returnAt,
     required List<StoredAttachment> attachments,
   }) {
     return _database.saveItemWithAttachments(
@@ -24,6 +25,8 @@ class AttachmentRepository {
         title: Value(title),
         textContent: Value(textContent),
         type: const Value('file'),
+        status: const Value('deferred'),
+        returnAt: Value(returnAt?.toUtc()),
         createdAt: createdAt,
         updatedAt: createdAt,
       ),
