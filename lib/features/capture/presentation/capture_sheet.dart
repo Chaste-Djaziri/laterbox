@@ -794,6 +794,7 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
                                 const SizedBox(height: 8),
                                 ReturnTimePicker(
                                   value: _returnAt,
+                                  textColor: Colors.white,
                                   onChanged: (time) {
                                     if (!_saving) {
                                       setState(() => _returnAt = time);
