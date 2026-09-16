@@ -16,6 +16,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
   - Taller 42px tab pills with 18px icons and bold typography.
   - Removed hover background/color states on unselected sidebar items.
   - Removed sidebar collapse toggle chevron icon.
+- **Settings**: App Icon section is now only visible on iOS devices.
 - **Item List Rows**: Show scheduled return time instead of relative timestamp when a return time is set.
 - **Item Cards**: Show scheduled return time instead of relative timestamp in card views when a return time is set.
 - **Home Dashboard**: Show next scheduled return time in the Upcoming summary card.
