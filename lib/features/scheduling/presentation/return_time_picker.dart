@@ -13,9 +13,11 @@ class ReturnTimePicker extends StatelessWidget {
     super.key,
     required this.value,
     required this.onChanged,
+    this.textColor,
   });
   final DateTime? value;
   final ValueChanged<DateTime?> onChanged;
+  final Color? textColor;
 
   @override
   Widget build(BuildContext context) => Column(
@@ -24,7 +26,9 @@ class ReturnTimePicker extends StatelessWidget {
     children: [
       Text(
         'Choose when · ${returnTimeLabel(context, value)}',
-        style: Theme.of(context).textTheme.titleSmall,
+        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+          color: textColor,
+        ),
       ),
       const SizedBox(height: 8),
       Wrap(
