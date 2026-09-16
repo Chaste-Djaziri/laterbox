@@ -122,7 +122,7 @@ void main() {
     current = current.add(const Duration(minutes: 5));
     await tester.pump(const Duration(minutes: 5)); await tester.pumpAndSettle();
     expect(find.text('1 due'), findsOneWidget);
-    await container.read(itemRepositoryProvider).reschedule('timed', current.add(const Duration(hours: 1)));
+    await tester.runAsync(() => container.read(itemRepositoryProvider).reschedule('timed', current.add(const Duration(hours: 1))));
     await tester.pumpAndSettle(); expect(find.text('0 due'), findsOneWidget);
     current = current.add(const Duration(hours: 2));
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
