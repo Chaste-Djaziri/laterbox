@@ -30,22 +30,35 @@ class HomeDashboard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final width = MediaQuery.sizeOf(context).width;
+    final platform = Theme.of(context).platform;
+    final isDesktop = !kIsWeb
+        ? (platform == TargetPlatform.macOS ||
+            platform == TargetPlatform.linux ||
+            platform == TargetPlatform.windows)
+        : width >= 900;
+    final isMac = !kIsWeb && platform == TargetPlatform.macOS;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     final all = ref.watch(allItemsProvider);
     final now =
         ref.watch(scheduleClockProvider).valueOrNull ??
         ref.watch(scheduleNowProvider)();
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Home'),
-        actions: [
-          IconButton(
-            tooltip: 'Search',
-            icon: const Icon(Icons.search),
-            onPressed: () => context.push('/search'),
-          ),
-          const SizedBox(width: 12),
-        ],
-      ),
+      appBar: isDesktop
+          ? null
+          : AppBar(
+              title: const Text('Home'),
+              actions: [
+                IconButton(
+                  tooltip: 'Search',
+                  icon: const Icon(Icons.search),
+                  onPressed: () => context.push('/search'),
+                ),
+                const SizedBox(width: 12),
+              ],
+            ),
       body: all.when(
         loading: () =>
             const Center(child: CircularProgressIndicator.adaptive()),
@@ -122,22 +135,55 @@ class HomeDashboard extends ConsumerWidget {
                 ],
               );
               return SingleChildScrollView(
-                padding: const EdgeInsets.all(24),
+                padding: EdgeInsets.fromLTRB(
+                  24,
+                  isDesktop ? (isMac ? 40 : 28) : 24,
+                  24,
+                  24,
+                ),
                 child: Center(
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 1400),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Text(
-                          greeting,
-                          style: Theme.of(context).textTheme.headlineLarge
-                              ?.copyWith(fontWeight: FontWeight.w800),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Drop it. Choose when. Forget about it. It comes back.',
-                          style: Theme.of(context).textTheme.bodyLarge,
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    greeting,
+                                    style: theme.textTheme.headlineLarge
+                                        ?.copyWith(
+                                          fontWeight: FontWeight.w800,
+                                          color: isDark
+                                              ? Colors.white
+                                              : const Color(0xFF171711),
+                                          letterSpacing: -0.5,
+                                        ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    'Drop it. Choose when. Forget about it. It comes back.',
+                                    style: theme.textTheme.bodyLarge?.copyWith(
+                                      color: isDark
+                                          ? const Color(0xFFA09E95)
+                                          : const Color(0xFF6C6B63),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            if (isDesktop) ...[
+                              const SizedBox(width: 16),
+                              _WebSearchButton(
+                                onTap: () => context.push('/search'),
+                              ),
+                            ],
+                          ],
                         ),
                         const SizedBox(height: 28),
                         Wrap(
@@ -442,3 +488,60 @@ class _QuickDropState extends State<_QuickDrop> {
     );
   }
 }
+
+class _WebSearchButton extends StatelessWidget {
+  const _WebSearchButton({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    final borderColor = isDark
+        ? Colors.white.withValues(alpha: 0.12)
+        : const Color(0xFFE4E0D5);
+    final bgColor = isDark
+        ? const Color(0xFF1F1F1C)
+        : Colors.white;
+    final iconColor = isDark
+        ? Colors.white
+        : const Color(0xFF171711);
+
+    return Tooltip(
+      message: 'Search (⌘K)',
+      child: Material(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(12),
+        child: InkWell(
+          canRequestFocus: false,
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(12),
+          hoverColor: isDark
+              ? Colors.white.withValues(alpha: 0.08)
+              : const Color(0xFFE6EDB0).withValues(alpha: 0.5),
+          child: Container(
+            key: const Key('home_search_button'),
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: borderColor,
+                width: 1,
+              ),
+            ),
+            alignment: Alignment.center,
+            child: Icon(
+              Icons.search_rounded,
+              size: 20,
+              color: iconColor,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
