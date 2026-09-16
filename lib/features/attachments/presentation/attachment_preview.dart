@@ -10,6 +10,7 @@ import '../../../core/database/app_database.dart';
 import '../../../core/database/database_providers.dart';
 import '../../../core/sync/sync_providers.dart';
 import '../data/attachment_storage.dart';
+import 'video_attachment_player.dart';
 
 class AttachmentCardPreview extends StatelessWidget {
   const AttachmentCardPreview({
@@ -101,10 +102,10 @@ class AttachmentDetailPreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (attachments.isEmpty) return const SizedBox.shrink();
     final images = attachments
         .where((attachment) => attachment.mimeType.startsWith('image/'))
         .toList();
+    final videos = attachments.where(isVideoAttachment).toList();
     final files = attachments
         .where((attachment) => !attachment.mimeType.startsWith('image/'))
         .toList();
@@ -112,6 +113,15 @@ class AttachmentDetailPreview extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        if (showGallery && videos.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+            child: VideoAttachmentPlayer(
+              videoAttachments: videos,
+              storage: storage,
+              resolveRemotePath: resolveRemotePath,
+            ),
+          ),
         if (showGallery && images.isNotEmpty)
           _ImageGallery(
             images: images,
@@ -586,7 +596,7 @@ class _FilePreviewSurface extends StatelessWidget {
               child: const Icon(
                 Icons.play_arrow_rounded,
                 size: 36,
-                color: Color(0xFFE11D48),
+                color: Color(0xFF34C759),
               ),
             ),
             Positioned(
