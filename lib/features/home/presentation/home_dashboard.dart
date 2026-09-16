@@ -188,35 +188,39 @@ class HomeDashboard extends ConsumerWidget {
                           ],
                         ),
                         const SizedBox(height: 28),
-                        Wrap(
-                          spacing: 12,
-                          runSpacing: 12,
+                        Row(
                           children: [
-                            _Summary(
-                              label: 'Waiting in Inbox',
-                              count: due.length,
-                              route: '/inbox',
-                              icon: Icons.inbox_outlined,
+                            Expanded(
+                              child: _Summary(
+                                label: 'Waiting in Inbox',
+                                count: due.length,
+                                route: '/inbox',
+                                icon: Icons.inbox_outlined,
+                              ),
                             ),
-                            _Summary(
-                              label: 'Returning today',
-                              count: today.length,
-                              route: '/today',
-                              icon: Icons.today_outlined,
-                              timeLabel: today.isNotEmpty && today.first.returnAt != null
-                                  ? 'Next: ${returnTimeLabel(context, today.first.returnAt)}'
-                                  : null,
-                            ),
-                            _Summary(
-                              label: 'Upcoming',
-                              count: upcoming.length,
-                              route: '/upcoming',
-                              icon: Icons.event_outlined,
-                              timeLabel: upcoming.isNotEmpty && upcoming.first.returnAt != null
-                                  ? 'Next: ${returnTimeLabel(context, upcoming.first.returnAt)}'
-                                  : null,
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: _Summary(
+                                label: 'Returning today',
+                                count: today.length,
+                                route: '/today',
+                                icon: Icons.today_outlined,
+                                timeLabel: today.isNotEmpty && today.first.returnAt != null
+                                    ? 'Next: ${returnTimeLabel(context, today.first.returnAt)}'
+                                    : null,
+                              ),
                             ),
                           ],
+                        ),
+                        const SizedBox(height: 12),
+                        _Summary(
+                          label: 'Upcoming',
+                          count: upcoming.length,
+                          route: '/upcoming',
+                          icon: Icons.event_outlined,
+                          timeLabel: upcoming.isNotEmpty && upcoming.first.returnAt != null
+                              ? 'Next: ${returnTimeLabel(context, upcoming.first.returnAt)}'
+                              : null,
                         ),
                         const SizedBox(height: 28),
                         if (wide)
@@ -305,9 +309,7 @@ class _Summary extends StatelessWidget {
   final IconData icon;
   final String? timeLabel;
   @override
-  Widget build(BuildContext context) => SizedBox(
-    width: 260,
-    child: Card(
+  Widget build(BuildContext context) => Card(
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
         onTap: () => context.go(route),
@@ -345,7 +347,6 @@ class _Summary extends StatelessWidget {
           ),
         ),
       ),
-    ),
   );
 }
 
