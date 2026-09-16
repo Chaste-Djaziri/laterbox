@@ -326,6 +326,29 @@ void main() {
       await database.close();
     },
   );
+
+  testWidgets(
+    'capture sheet displays Choose when text in white',
+    (tester) async {
+      final database = AppDatabase(NativeDatabase.memory());
+      addTearDown(database.close);
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            appDatabaseProvider.overrideWithValue(database),
+          ],
+          child: const MaterialApp(home: Scaffold(body: CaptureSheet())),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final textWidget = tester.widget<Text>(
+        find.textContaining('Choose when ·'),
+      );
+      expect(textWidget.style?.color, Colors.white);
+    },
+  );
 }
 
 class _FakeUrlEnhancer extends UrlEnhancer {
