@@ -43,11 +43,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   // The router must outlive authentication state changes. Recreating it while
   // a pointer event is in flight can dispose the active route's viewport
   // before hit testing completes.
-  final isMobile = !kIsWeb &&
+  final isMobile =
+      !kIsWeb &&
       (defaultTargetPlatform == TargetPlatform.iOS ||
           defaultTargetPlatform == TargetPlatform.android);
-  final initialLocation =
-      isMobile ? '/splash' : ref.read(initialLocationProvider);
+  final initialLocation = isMobile
+      ? '/splash'
+      : ref.read(initialLocationProvider);
   final router = GoRouter(
     initialLocation: initialLocation,
     routes: [
@@ -116,32 +118,51 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/capture',
         pageBuilder: (context, state) => NoTransitionPage(
           key: state.pageKey,
-          child: const Scaffold(
-            body: SafeArea(
-              child: CaptureSheet(),
-            ),
-          ),
+          child: const Scaffold(body: SafeArea(child: CaptureSheet())),
         ),
       ),
       ShellRoute(
         builder: (context, state, child) {
           final location = state.uri.path;
-          final selectedIndex = location.startsWith('/settings') ? 6
-            : location.startsWith('/library') || location.startsWith('/kept') ? 5
-            : location.startsWith('/someday') ? 4
-            : location.startsWith('/upcoming') ? 3
-            : location.startsWith('/today') ? 2
-            : location.startsWith('/inbox') || location.startsWith('/item') || location.startsWith('/search') ? 1 : 0;
+          final selectedIndex = location.startsWith('/settings')
+              ? 6
+              : location.startsWith('/library') || location.startsWith('/kept')
+              ? 5
+              : location.startsWith('/someday')
+              ? 4
+              : location.startsWith('/upcoming')
+              ? 3
+              : location.startsWith('/today')
+              ? 2
+              : location.startsWith('/inbox') ||
+                    location.startsWith('/item') ||
+                    location.startsWith('/search')
+              ? 1
+              : 0;
           return AuthGate(
             child: HomeShell(selectedIndex: selectedIndex, child: child),
           );
         },
         routes: [
-          GoRoute(path: '/home', pageBuilder: (context, state) => NoTransitionPage(
-            key: state.pageKey, child: const HomeDashboard())),
-          for (final entry in const {'/today': ScheduleView.today, '/upcoming': ScheduleView.upcoming, '/someday': ScheduleView.someday}.entries)
-            GoRoute(path: entry.key, pageBuilder: (context, state) => NoTransitionPage(
-              key: state.pageKey, child: ScheduleScreen(view: entry.value))),
+          GoRoute(
+            path: '/home',
+            pageBuilder: (context, state) => NoTransitionPage(
+              key: state.pageKey,
+              child: const HomeDashboard(),
+            ),
+          ),
+          for (final entry in const {
+            '/today': ScheduleView.today,
+            '/upcoming': ScheduleView.upcoming,
+            '/someday': ScheduleView.someday,
+          }.entries)
+            GoRoute(
+              path: entry.key,
+              pageBuilder: (context, state) => NoTransitionPage(
+                key: state.pageKey,
+                child: ScheduleScreen(view: entry.value),
+              ),
+            ),
           GoRoute(
             path: '/inbox',
             pageBuilder: (context, state) => NoTransitionPage(
