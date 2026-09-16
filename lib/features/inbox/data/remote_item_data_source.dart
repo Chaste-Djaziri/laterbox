@@ -59,7 +59,9 @@ class RemoteItem {
       status: json['status'] as String? ?? 'inbox',
       createdAt: DateTime.parse(json['created_at'] as String).toUtc(),
       updatedAt: DateTime.parse(json['updated_at'] as String).toUtc(),
-      returnAt: json['return_at'] == null ? null : DateTime.parse(json['return_at'] as String).toUtc(),
+      returnAt: json['return_at'] == null
+          ? null
+          : DateTime.parse(json['return_at'] as String).toUtc(),
       deletedAt: json['deleted_at'] == null
           ? null
           : DateTime.parse(json['deleted_at'] as String).toUtc(),
