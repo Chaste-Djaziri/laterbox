@@ -28,7 +28,7 @@ void main() {
       expect(prompting.value, 'https://laterbox.dev');
     });
 
-    test('updatePromptReturnAt updates selectedReturnAt', () {
+    test('updatePromptReturnAt updates selectedReturnAt and isCustom flag', () {
       final container = ProviderContainer();
       addTearDown(container.dispose);
 
@@ -36,16 +36,18 @@ void main() {
       notifier.showClipboardPrompt('test note');
 
       final futureDate = DateTime(2026, 9, 20, 14, 0);
-      notifier.updatePromptReturnAt(futureDate);
+      notifier.updatePromptReturnAt(futureDate, isCustom: true);
 
       final state =
           container.read(iosNotchCompanionProvider) as IosNotchClipboardPrompt;
       expect(state.selectedReturnAt, futureDate);
+      expect(state.isCustom, isTrue);
 
       notifier.updatePromptReturnAt(null);
       final stateInbox =
           container.read(iosNotchCompanionProvider) as IosNotchClipboardPrompt;
       expect(stateInbox.selectedReturnAt, isNull);
+      expect(stateInbox.isCustom, isFalse);
     });
 
     test('showSavedConfirmation transitions to IosNotchSavedConfirmation', () {
@@ -122,6 +124,7 @@ void main() {
         expect(find.text('flutter.dev'), findsOneWidget);
         expect(find.text('Inbox'), findsOneWidget);
         expect(find.text('Tomorrow'), findsOneWidget);
+        expect(find.text('Custom…'), findsOneWidget);
         expect(find.text('Save to LaterBox'), findsOneWidget);
         expect(find.text('Not now'), findsOneWidget);
 
@@ -170,7 +173,7 @@ void main() {
 
         expect(find.text('Saved to LaterBox'), findsOneWidget);
         expect(find.text('https://github.com/flutter/flutter'), findsOneWidget);
-        expect(find.text('Tomorrow'), findsOneWidget);
+        expect(find.textContaining('Tomorrow'), findsOneWidget);
 
         // Auto-dismisses after timeout
         await tester.pump(const Duration(seconds: 3));
@@ -179,6 +182,63 @@ void main() {
         debugDefaultTargetPlatformOverride = null;
       }
     });
+
+    testWidgets(
+      'renders custom scheduled return time in saved confirmation and prompt',
+      (tester) async {
+        debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+        final container = ProviderContainer();
+        addTearDown(container.dispose);
+
+        try {
+          await tester.pumpWidget(
+            UncontrolledProviderScope(
+              container: container,
+              child: const MaterialApp(
+                home: Scaffold(
+                  body: IosClipboardCaptureOverlay(
+                    child: Center(child: Text('Main Content')),
+                  ),
+                ),
+              ),
+            ),
+          );
+
+          // Prompt with custom time
+          container
+              .read(iosNotchCompanionProvider.notifier)
+              .showClipboardPrompt(
+                'https://laterbox.dev/docs',
+              );
+          final customDate = DateTime(2026, 10, 15, 14, 30);
+          container
+              .read(iosNotchCompanionProvider.notifier)
+              .updatePromptReturnAt(customDate, isCustom: true);
+          await tester.pumpAndSettle();
+
+          expect(find.textContaining('Oct 15 · 2:30 PM'), findsOneWidget);
+
+          // Confirmation with custom time
+          container
+              .read(iosNotchCompanionProvider.notifier)
+              .showSavedConfirmation(
+                title: 'Saved to LaterBox',
+                subtitle: 'Documentation',
+                returnAt: customDate,
+              );
+          await tester.pumpAndSettle();
+
+          expect(find.text('Saved to LaterBox'), findsOneWidget);
+          expect(find.text('Documentation'), findsOneWidget);
+          expect(find.textContaining('Oct 15 · 2:30 PM'), findsOneWidget);
+
+          // Let auto-dismiss timer complete
+          await tester.pump(const Duration(seconds: 3));
+        } finally {
+          debugDefaultTargetPlatformOverride = null;
+        }
+      },
+    );
 
     testWidgets('renders error card with dismiss button', (tester) async {
       debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
