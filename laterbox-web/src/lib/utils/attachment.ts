@@ -1,9 +1,14 @@
 import { getSupabaseClient } from '../supabase/client';
+import { localAttachmentUrl } from './local-attachments';
 import { Attachment } from '../supabase/types';
 
 const urlCache = new Map<string, { url: string; expiresAt: number }>();
 
-export async function fetchAttachmentDownloadUrl(attachmentId: string): Promise<string | null> {
+export async function fetchAttachmentDownloadUrl(attachmentId: string, ownerId: string | null = null): Promise<string | null> {
+  try {
+    const local = await localAttachmentUrl(attachmentId, ownerId);
+    if (local) return local;
+  } catch { /* Remote attachments can still be opened if IndexedDB is unavailable. */ }
   const cached = urlCache.get(attachmentId);
   if (cached && cached.expiresAt > Date.now() + 60000) {
     return cached.url;
