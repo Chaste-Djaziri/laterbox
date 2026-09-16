@@ -92,7 +92,7 @@ export async function uploadAttachmentFile(
 
       if (uploadRes.ok) {
         // 3. Complete and verify upload
-        const { data: compData } = await supabase.functions.invoke('attachment-storage', {
+        const { data: compData, error: completeError } = await supabase.functions.invoke('attachment-storage', {
           body: {
             action: 'complete-upload',
             attachmentId,
@@ -104,7 +104,8 @@ export async function uploadAttachmentFile(
             sha256,
           },
         });
-        r2ObjectKey = compData?.objectKey || prepData.objectKey;
+        if (completeError) throw completeError;
+        r2ObjectKey = compData?.objectKey || null;
       }
     }
   } catch (err) {
