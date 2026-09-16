@@ -85,6 +85,13 @@ void main() {
           expect(find.text('Good morning.'), findsOneWidget);
           expect(find.text('Ready for you'), findsOneWidget);
           expect(find.text('Finish portfolio'), findsOneWidget);
+          if (width >= 900) {
+            expect(find.byType(AppBar), findsNothing);
+            expect(find.byKey(const Key('home_search_button')), findsOneWidget);
+          } else {
+            expect(find.byType(AppBar), findsOneWidget);
+            expect(find.text('Home'), findsNWidgets(2));
+          }
           expect(tester.takeException(), isNull);
           const screenshots = String.fromEnvironment('QA_SCREENSHOTS');
           if (screenshots.isNotEmpty) {
