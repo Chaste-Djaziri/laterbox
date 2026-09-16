@@ -30,7 +30,7 @@ class _TutorialScreenState extends State<TutorialScreen> {
     if (Navigator.of(context).canPop()) {
       context.pop();
     } else {
-      context.go('/inbox');
+      context.go('/home');
     }
   }
 
