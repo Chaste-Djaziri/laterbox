@@ -60,7 +60,7 @@ class LaterBoxItem {
       favorite: item.favorite,
       status: ItemStatus.fromDatabase(item.status),
       createdAt: item.createdAt,
-      returnAt: item.returnAt,
+      returnAt: item.returnAt?.toUtc(),
       metadata: metadata == null ? null : EnrichedMetadata.fromDrift(metadata),
     );
   }
