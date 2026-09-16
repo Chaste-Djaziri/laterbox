@@ -9,7 +9,6 @@ import {
   Terminal,
   Puzzle,
   CheckCircle2,
-  Users,
   Copy,
   Check,
   ChevronDown,
@@ -20,7 +19,6 @@ import {
   ArrowRight,
   Search,
   Layers,
-  FileCode,
 } from 'lucide-react';
 
 type PlatformId = 'macos' | 'ios' | 'android' | 'windows' | 'linux' | 'extensions';
@@ -82,7 +80,6 @@ export default function DownloadPage() {
   const [detectedPlatform, setDetectedPlatform] = useState<PlatformId | null>(null);
   const [downloadingFile, setDownloadingFile] = useState<string | null>(null);
   const [isAndroidModalOpen, setIsAndroidModalOpen] = useState(false);
-  const [copiedCode, setCopiedCode] = useState(false);
   const [historyTab, setHistoryTab] = useState<HistoryTab>('all');
   const [expandedVersions, setExpandedVersions] = useState<Set<string>>(new Set());
   const [latestVersionTag, setLatestVersionTag] = useState<string>('');
@@ -209,20 +206,9 @@ export default function DownloadPage() {
     }, 3500);
   };
 
-  const handleCopyCode = (text: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedCode(true);
-    setTimeout(() => setCopiedCode(false), 2000);
-  };
-
   const scrollToReleases = () => {
     previousReleasesRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
-
-  const cliSnippet =
-    selectedPlatform === 'windows'
-      ? 'irm https://laterbox.dev/install.ps1 | iex'
-      : 'curl -fsSL https://laterbox.dev/install.sh | bash';
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-12 w-full flex-1">
