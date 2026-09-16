@@ -22,6 +22,7 @@ import 'features/attachments/presentation/attachment_providers.dart';
 import 'features/attachments/domain/attachment_import_result.dart';
 import 'features/capture/domain/capture_providers.dart';
 import 'features/capture/domain/capture_payload.dart';
+import 'core/ios/ios_live_activity_service.dart';
 import 'features/capture/domain/native_share_payload.dart';
 import 'features/capture/presentation/ios_clipboard_capture_overlay.dart';
 import 'features/capture/presentation/ios_notch_companion_controller.dart';
@@ -292,10 +293,21 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
                   (payload.filePaths.isEmpty
                       ? 'Shared item'
                       : payload.filePaths.first);
+              final returnSchedule = payload.returnAt != null
+                  ? _formatReturnSchedule(payload.returnAt!)
+                  : null;
               ref.read(iosNotchCompanionProvider.notifier).showSavedConfirmation(
                     title: _shareReceiptTitle(payload),
                     subtitle: value,
                     returnAt: payload.returnAt,
+                  );
+              ref.read(iosLiveActivityServiceProvider).startActivity(
+                    id: payload.id,
+                    title: _shareReceiptTitle(payload),
+                    subtitle: value,
+                    returnSchedule: returnSchedule,
+                    captureType: 'share',
+                    isCompleted: true,
                   );
             }
           } else if (Platform.isMacOS) {
@@ -308,11 +320,25 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
             ref.read(iosNotchCompanionProvider.notifier).showError(
                   'Could not save shared item to LaterBox.',
                 );
+            ref.read(iosLiveActivityServiceProvider).startActivity(
+                  id: payload.id,
+                  title: "Couldn't save item",
+                  subtitle: payload.text,
+                  isCompleted: false,
+                  isError: true,
+                );
           }
         } catch (error) {
           if (Platform.isIOS) {
             ref.read(iosNotchCompanionProvider.notifier).showError(
                   'Error saving shared item: $error',
+                );
+            ref.read(iosLiveActivityServiceProvider).startActivity(
+                  id: payload.id,
+                  title: "Couldn't save item",
+                  subtitle: error.toString(),
+                  isCompleted: false,
+                  isError: true,
                 );
           }
           rethrow;
@@ -330,6 +356,18 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
             );
       }
     }
+  }
+
+  String _formatReturnSchedule(DateTime d) {
+    final now = DateTime.now();
+    if (d.year == now.year && d.month == now.month && d.day == now.day) {
+      return 'Today';
+    }
+    final tomorrow = now.add(const Duration(days: 1));
+    if (d.year == tomorrow.year && d.month == tomorrow.month && d.day == tomorrow.day) {
+      return 'Tomorrow';
+    }
+    return '${d.month}/${d.day}';
   }
 
   String _shareReceiptTitle(NativeSharePayload payload) {
