@@ -95,10 +95,12 @@ class SettingsScreen extends ConsumerWidget {
               const _DesktopShortcutSettings(),
             ],
 
-            // 3. App Icon
-            const SizedBox(height: 12),
-            _SectionHeader('App Icon'),
-            const _AppIconSettingsTile(),
+            // 3. App Icon (iOS only)
+            if (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS) ...[
+              const SizedBox(height: 12),
+              _SectionHeader('App Icon'),
+              const _AppIconSettingsTile(),
+            ],
 
             // 4. Cloud Sync & Storage Diagnostics
             const SizedBox(height: 12),
