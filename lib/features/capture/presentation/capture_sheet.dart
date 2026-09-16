@@ -16,7 +16,9 @@ import '../../enrichment/domain/url_utils.dart';
 import '../domain/capture_payload.dart';
 import '../../scheduling/presentation/return_time_picker.dart';
 import '../../inbox/data/item_repository.dart';
+
 import 'package:go_router/go_router.dart';
+
 import '../domain/capture_providers.dart';
 
 class UrlPreviewItem {
@@ -44,7 +46,12 @@ class UrlPreviewItem {
 }
 
 class CaptureSheet extends ConsumerStatefulWidget {
-  const CaptureSheet({super.key, this.initialText, this.initialFiles = const [], this.browseFiles = false});
+  const CaptureSheet({
+    super.key,
+    this.initialText,
+    this.initialFiles = const [],
+    this.browseFiles = false,
+  });
 
   final String? initialText;
   final List<PickedAttachmentFile> initialFiles;
@@ -85,7 +92,8 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
     super.initState();
     _selectedFiles.addAll(widget.initialFiles);
     if (widget.initialFiles.isNotEmpty) _captureKind = 'file';
-    if (widget.browseFiles) WidgetsBinding.instance.addPostFrameCallback((_) => _chooseFiles());
+    if (widget.browseFiles)
+      WidgetsBinding.instance.addPostFrameCallback((_) => _chooseFiles());
     _controller.addListener(_onTextChanged);
     _sendAnimController = AnimationController(
       vsync: this,
@@ -95,14 +103,13 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
     // Input Bar animations: quickly slide down and fade away (0% - 22% of duration)
     _inputFadeAnimation = TweenSequence<double>([
       TweenSequenceItem(
-        tween: Tween<double>(begin: 1.0, end: 0.0)
-            .chain(CurveTween(curve: Curves.easeOut)),
+        tween: Tween<double>(
+          begin: 1.0,
+          end: 0.0,
+        ).chain(CurveTween(curve: Curves.easeOut)),
         weight: 22,
       ),
-      TweenSequenceItem(
-        tween: ConstantTween<double>(0.0),
-        weight: 78,
-      ),
+      TweenSequenceItem(tween: ConstantTween<double>(0.0), weight: 78),
     ]).animate(_sendAnimController);
 
     _inputSlideAnimation = TweenSequence<Offset>([
@@ -124,40 +131,34 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
     // 2. Rest prominently on the empty dimmed overlay (44% - 72% of duration)
     // 3. Float up and dissolve as overlay closes (72% - 100% of duration)
     _bubbleFadeAnimation = TweenSequence<double>([
+      TweenSequenceItem(tween: ConstantTween<double>(0.0), weight: 12),
       TweenSequenceItem(
-        tween: ConstantTween<double>(0.0),
-        weight: 12,
-      ),
-      TweenSequenceItem(
-        tween: Tween<double>(begin: 0.0, end: 1.0)
-            .chain(CurveTween(curve: Curves.easeOut)),
+        tween: Tween<double>(
+          begin: 0.0,
+          end: 1.0,
+        ).chain(CurveTween(curve: Curves.easeOut)),
         weight: 28,
       ),
+      TweenSequenceItem(tween: ConstantTween<double>(1.0), weight: 32),
       TweenSequenceItem(
-        tween: ConstantTween<double>(1.0),
-        weight: 32,
-      ),
-      TweenSequenceItem(
-        tween: Tween<double>(begin: 1.0, end: 0.0)
-            .chain(CurveTween(curve: Curves.easeIn)),
+        tween: Tween<double>(
+          begin: 1.0,
+          end: 0.0,
+        ).chain(CurveTween(curve: Curves.easeIn)),
         weight: 28,
       ),
     ]).animate(_sendAnimController);
 
     _bubbleScaleAnimation = TweenSequence<double>([
+      TweenSequenceItem(tween: ConstantTween<double>(0.65), weight: 12),
       TweenSequenceItem(
-        tween: ConstantTween<double>(0.65),
-        weight: 12,
-      ),
-      TweenSequenceItem(
-        tween: Tween<double>(begin: 0.65, end: 1.0)
-            .chain(CurveTween(curve: Curves.easeOutBack)),
+        tween: Tween<double>(
+          begin: 0.65,
+          end: 1.0,
+        ).chain(CurveTween(curve: Curves.easeOutBack)),
         weight: 32,
       ),
-      TweenSequenceItem(
-        tween: ConstantTween<double>(1.0),
-        weight: 56,
-      ),
+      TweenSequenceItem(tween: ConstantTween<double>(1.0), weight: 56),
     ]).animate(_sendAnimController);
 
     _bubbleSlideAnimation = TweenSequence<Offset>([
@@ -172,10 +173,7 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
         ).chain(CurveTween(curve: Curves.easeOutBack)),
         weight: 32,
       ),
-      TweenSequenceItem(
-        tween: ConstantTween<Offset>(Offset.zero),
-        weight: 28,
-      ),
+      TweenSequenceItem(tween: ConstantTween<Offset>(Offset.zero), weight: 28),
       TweenSequenceItem(
         tween: Tween<Offset>(
           begin: Offset.zero,
@@ -209,8 +207,9 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
     final activeUrls = urls.where((u) => !_dismissedUrls.contains(u)).toList();
 
     var changed = false;
-    final toRemove =
-        _urlPreviews.keys.where((u) => !activeUrls.contains(u)).toList();
+    final toRemove = _urlPreviews.keys
+        .where((u) => !activeUrls.contains(u))
+        .toList();
     for (final u in toRemove) {
       _urlPreviews.remove(u);
       changed = true;
@@ -278,7 +277,8 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
 
   Future<void> _chooseFiles({AttachmentPickerSource? initialSource}) async {
     final platform = Theme.of(context).platform;
-    final isMobile = !kIsWeb &&
+    final isMobile =
+        !kIsWeb &&
         (platform == TargetPlatform.iOS || platform == TargetPlatform.android);
 
     final AttachmentPickerSource? source;
@@ -312,9 +312,8 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
                   const SizedBox(height: 20),
                   Text(
                     'Choose attachment source',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w800,
-                        ),
+                    style: Theme.of(context).textTheme.titleMedium
+                        ?.copyWith(fontWeight: FontWeight.w800),
                   ),
                   const SizedBox(height: 16),
                   ListTile(
@@ -326,42 +325,44 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
                       ),
                       child: Icon(
                         Icons.folder_open_rounded,
-                        color:
-                            Theme.of(context).colorScheme.onPrimaryContainer,
+                        color: Theme.of(context).colorScheme.onPrimaryContainer,
                       ),
                     ),
                     title: const Text(
                       'Files',
                       style: TextStyle(fontWeight: FontWeight.w700),
                     ),
-                    subtitle:
-                        const Text('Browse PDFs, documents, archives & files'),
-                    onTap: () => Navigator.of(context)
-                        .pop(AttachmentPickerSource.files),
+                    subtitle: const Text(
+                      'Browse PDFs, documents, archives & files',
+                    ),
+                    onTap: () =>
+                        Navigator.of(context).pop(AttachmentPickerSource.files),
                   ),
                   const SizedBox(height: 8),
                   ListTile(
                     leading: Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color:
-                            Theme.of(context).colorScheme.secondaryContainer,
+                        color: Theme.of(context).colorScheme.secondaryContainer,
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Icon(
                         Icons.photo_library_rounded,
-                        color:
-                            Theme.of(context).colorScheme.onSecondaryContainer,
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onSecondaryContainer,
                       ),
                     ),
                     title: const Text(
                       'Photo & Video Gallery',
                       style: TextStyle(fontWeight: FontWeight.w700),
                     ),
-                    subtitle:
-                        const Text('Pick photos and videos from your gallery'),
-                    onTap: () => Navigator.of(context)
-                        .pop(AttachmentPickerSource.gallery),
+                    subtitle: const Text(
+                      'Pick photos and videos from your gallery',
+                    ),
+                    onTap: () =>
+                        Navigator.of(context)
+                            .pop(AttachmentPickerSource.gallery),
                   ),
                 ],
               ),
@@ -400,7 +401,15 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
 
   bool _isImageFile(String name) {
     final ext = name.split('.').last.toLowerCase();
-    return const {'png', 'jpg', 'jpeg', 'gif', 'webp', 'heic', 'svg'}.contains(ext);
+    return const {
+      'png',
+      'jpg',
+      'jpeg',
+      'gif',
+      'webp',
+      'heic',
+      'svg',
+    }.contains(ext);
   }
 
   bool _isMoreThanTwoLines(String text, double availableWidth) {
@@ -444,10 +453,7 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
                 child: Center(
                   child: Text(
                     'Choose files',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.transparent,
-                    ),
+                    style: TextStyle(fontSize: 14, color: Colors.transparent),
                   ),
                 ),
               ),
@@ -482,10 +488,7 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
         disabledBorder: InputBorder.none,
         filled: false,
         isDense: true,
-        contentPadding: const EdgeInsets.symmetric(
-          vertical: 6,
-          horizontal: 0,
-        ),
+        contentPadding: const EdgeInsets.symmetric(vertical: 6, horizontal: 0),
         hintText: 'Type your message...',
         hintStyle: TextStyle(
           color: isDark ? Colors.grey.shade500 : Colors.grey.shade500,
@@ -543,10 +546,14 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
       // If URL preview hasn't finished resolving yet, fetch it now so title & category are captured
       if (primaryMeta == null) {
         final urls = extractUrls(_controller.text);
-        final firstActiveUrl = urls.where((u) => !_dismissedUrls.contains(u)).firstOrNull;
+        final firstActiveUrl = urls
+            .where((u) => !_dismissedUrls.contains(u))
+            .firstOrNull;
         if (firstActiveUrl != null) {
           try {
-            primaryMeta = await ref.read(urlEnhancerProvider).enhance(firstActiveUrl);
+            primaryMeta = await ref
+                .read(urlEnhancerProvider)
+                .enhance(firstActiveUrl);
           } catch (_) {}
         }
       }
@@ -555,7 +562,11 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
         final result = kIsWeb
             ? await ref
                   .read(webAttachmentImportServiceProvider)
-                  .importFiles(files: _selectedFiles, text: _controller.text, returnAt: _returnAt)
+                  .importFiles(
+                    files: _selectedFiles,
+                    text: _controller.text,
+                    returnAt: _returnAt,
+                  )
             : await (await ref.read(attachmentImportServiceProvider.future))
                   .importFiles(
                     sourcePaths: _selectedFiles
@@ -606,11 +617,17 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
         _controller.text,
         id: itemId,
         title: primaryMeta?.title,
-        type: _captureKind == 'task' ? 'task' : _captureKind == 'idea' ? 'note' : primaryMeta?.classification?.type.value,
+        type: _captureKind == 'task'
+            ? 'task'
+            : _captureKind == 'idea'
+            ? 'note'
+            : primaryMeta?.classification?.type.value,
         returnAt: _returnAt,
         source: CaptureSource.manual,
       );
-      final savedId = await ref.read(captureServiceProvider).saveWithResult(payload);
+      final savedId = await ref
+          .read(captureServiceProvider)
+          .saveWithResult(payload);
       if (savedId != itemId) throw DuplicateCaptureException(savedId);
 
       if (primaryMeta != null) {
@@ -630,10 +647,23 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
     } on DuplicateCaptureException catch (error) {
       _sendAnimController.reverse();
       if (!mounted) return;
-      setState(() { _error = error.toString(); _saving = false; _sentMessageText = null; });
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(error.toString()), action: SnackBarAction(label: 'View item',
-          onPressed: () { Navigator.of(context).pop(); context.push('/item/${error.itemId}'); })));
+      setState(() {
+        _error = error.toString();
+        _saving = false;
+        _sentMessageText = null;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(error.toString()),
+          action: SnackBarAction(
+            label: 'View item',
+            onPressed: () {
+              Navigator.of(context).pop();
+              context.push('/item/${error.itemId}');
+            },
+          ),
+        ),
+      );
     } on FormatException catch (error) {
       _sendAnimController.reverse();
       setState(() {
@@ -719,407 +749,494 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
                   child: SafeArea(
                     top: false,
                     child: Padding(
-                      padding:
-                          EdgeInsets.fromLTRB(16, 8, 16, 16 + keyboardHeight),
+                      padding: EdgeInsets.fromLTRB(
+                        16,
+                        8,
+                        16,
+                        16 + keyboardHeight,
+                      ),
                       child: SlideTransition(
                         position: _inputSlideAnimation,
                         child: FadeTransition(
                           opacity: _inputFadeAnimation,
-                          child: SingleChildScrollView(child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Wrap(spacing: 8, runSpacing: 4, children: [
-                              for (final kind in const {'link': 'Link', 'file': 'File', 'task': 'Task', 'idea': 'Idea'}.entries)
-                                ChoiceChip(label: Text(kind.value), selected: _captureKind == kind.key,
-                                  onSelected: _saving ? null : (_) {
-                                    setState(() => _captureKind = kind.key);
-                                    if (kind.key == 'file') _chooseFiles();
-                                  }),
-                            ]),
-                            const SizedBox(height: 8),
-                            ReturnTimePicker(value: _returnAt,
-                              onChanged: (time) { if (!_saving) setState(() => _returnAt = time); }),
-                            const SizedBox(height: 12),
-                            // Attached files preview row (above pill)
-                            if (_selectedFiles.isNotEmpty) ...[
-                              Padding(
-                                padding: const EdgeInsets.only(bottom: 10),
-                                child: SingleChildScrollView(
-                                  scrollDirection: Axis.horizontal,
-                                  child: Row(
-                                    children: _selectedFiles.map((file) {
-                                      return Container(
-                                        margin: const EdgeInsets.only(right: 8),
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 12,
-                                          vertical: 7,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: isDark
-                                              ? const Color(0xFF333338)
-                                              : Colors.white,
-                                          borderRadius:
-                                              BorderRadius.circular(999),
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: Colors.black
-                                                  .withValues(alpha: 0.12),
-                                              blurRadius: 8,
-                                              offset: const Offset(0, 2),
+                          child: SingleChildScrollView(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                Wrap(
+                                  spacing: 8,
+                                  runSpacing: 4,
+                                  children: [
+                                    for (final kind in const {
+                                      'link': 'Link',
+                                      'file': 'File',
+                                      'task': 'Task',
+                                      'idea': 'Idea',
+                                    }.entries)
+                                      ChoiceChip(
+                                        label: Text(kind.value),
+                                        selected: _captureKind == kind.key,
+                                        onSelected: _saving
+                                            ? null
+                                            : (_) {
+                                                setState(
+                                                  () => _captureKind = kind.key,
+                                                );
+                                                if (kind.key == 'file')
+                                                  _chooseFiles();
+                                              },
+                                      ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                ReturnTimePicker(
+                                  value: _returnAt,
+                                  onChanged: (time) {
+                                    if (!_saving)
+                                      setState(() => _returnAt = time);
+                                  },
+                                ),
+                                const SizedBox(height: 12),
+                                // Attached files preview row (above pill)
+                                if (_selectedFiles.isNotEmpty) ...[
+                                  Padding(
+                                    padding: const EdgeInsets.only(bottom: 10),
+                                    child: SingleChildScrollView(
+                                      scrollDirection: Axis.horizontal,
+                                      child: Row(
+                                        children: _selectedFiles.map((file) {
+                                          return Container(
+                                            margin: const EdgeInsets.only(
+                                              right: 8,
                                             ),
-                                          ],
-                                        ),
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Icon(
-                                              _isImageFile(file.name)
-                                                  ? Icons.image_rounded
-                                                  : Icons.insert_drive_file_rounded,
-                                              size: 16,
-                                              color: theme.colorScheme.primary,
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 12,
+                                              vertical: 7,
                                             ),
-                                            const SizedBox(width: 6),
-                                            ConstrainedBox(
-                                              constraints: const BoxConstraints(
-                                                maxWidth: 160,
-                                              ),
-                                              child: Text(
-                                                file.name,
-                                                maxLines: 1,
-                                                overflow: TextOverflow.ellipsis,
-                                                style: theme
-                                                    .textTheme.labelMedium
-                                                    ?.copyWith(
-                                                  fontWeight: FontWeight.w600,
-                                                ),
-                                              ),
-                                            ),
-                                            const SizedBox(width: 6),
-                                            InkWell(
-                                              onTap: _saving
-                                                  ? null
-                                                  : () => setState(() {
-                                                        _selectedFiles
-                                                            .remove(file);
-                                                        _fileFailures =
-                                                            const [];
-                                                      }),
+                                            decoration: BoxDecoration(
+                                              color: isDark
+                                                  ? const Color(0xFF333338)
+                                                  : Colors.white,
                                               borderRadius:
                                                   BorderRadius.circular(999),
-                                              child: Icon(
-                                                Icons.close_rounded,
-                                                size: 15,
-                                                color: theme
-                                                    .colorScheme.onSurfaceVariant,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      );
-                                    }).toList(),
-                                  ),
-                                ),
-                              ),
-                            ],
-
-                            // Error banner (above pill)
-                            if (_error != null) ...[
-                              Padding(
-                                padding: const EdgeInsets.only(bottom: 10),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 14,
-                                    vertical: 8,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: theme.colorScheme.errorContainer,
-                                    borderRadius: BorderRadius.circular(999),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black
-                                            .withValues(alpha: 0.1),
-                                        blurRadius: 8,
-                                        offset: const Offset(0, 2),
-                                      ),
-                                    ],
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(
-                                        Icons.error_outline_rounded,
-                                        size: 16,
-                                        color: theme.colorScheme.error,
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Flexible(
-                                        child: Text(
-                                          _error!,
-                                          style: theme.textTheme.bodySmall
-                                              ?.copyWith(
-                                            color: theme
-                                                .colorScheme.onErrorContainer,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ],
-
-                            // Attachment failures list if any
-                            if (_fileFailures.isNotEmpty) ...[
-                              Padding(
-                                padding: const EdgeInsets.only(bottom: 10),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 14,
-                                    vertical: 8,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: theme.colorScheme.errorContainer,
-                                    borderRadius: BorderRadius.circular(16),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black
-                                            .withValues(alpha: 0.1),
-                                        blurRadius: 8,
-                                        offset: const Offset(0, 2),
-                                      ),
-                                    ],
-                                  ),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Text(
-                                        'Couldn’t add:',
-                                        style: theme.textTheme.labelMedium
-                                            ?.copyWith(
-                                          color: theme.colorScheme.error,
-                                          fontWeight: FontWeight.w700,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 2),
-                                      ..._fileFailures.map(
-                                        (failure) => Text(
-                                          '• ${failure.displayName} — ${_failureReason(failure.code)}',
-                                          style: theme.textTheme.bodySmall
-                                              ?.copyWith(
-                                            color: theme
-                                                .colorScheme.onErrorContainer,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ],
-
-                            // URL Preview Cards (matching reference screenshot)
-                            if (_urlPreviews.isNotEmpty) ...[
-                              Padding(
-                                padding: const EdgeInsets.only(bottom: 10),
-                                child: ConstrainedBox(
-                                  constraints:
-                                      const BoxConstraints(maxHeight: 200),
-                                  child: SingleChildScrollView(
-                                    child: Column(
-                                      mainAxisSize: MainAxisSize.min,
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.stretch,
-                                      children: _urlPreviews.values.map((item) {
-                                        return Padding(
-                                          padding:
-                                              const EdgeInsets.only(bottom: 8),
-                                          child: _buildUrlPreviewCard(item),
-                                        );
-                                      }).toList(),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-
-                            // The Chat Input Bar + Circular Send Button (Image 1 layout)
-                            LayoutBuilder(
-                              builder: (context, constraints) {
-                                final availableWidth =
-                                    constraints.maxWidth - 48 - 10 - 28;
-                                final isMoreThanTwoLines = _isMoreThanTwoLines(
-                                  _controller.text,
-                                  availableWidth > 50 ? availableWidth : 260,
-                                );
-                                final pillBorderRadius =
-                                    isMoreThanTwoLines ? 20.0 : 999.0;
-                                final pillMinHeight =
-                                    isMoreThanTwoLines ? 96.0 : 48.0;
-                                final pillMaxHeight =
-                                    isMoreThanTwoLines ? 160.0 : 64.0;
-
-                                return Row(
-                                  crossAxisAlignment: CrossAxisAlignment.end,
-                                  children: [
-                                    // Pill input bar
-                                    Expanded(
-                                      child: AnimatedContainer(
-                                        duration:
-                                            const Duration(milliseconds: 200),
-                                        curve: Curves.easeOutCubic,
-                                        clipBehavior: Clip.antiAlias,
-                                        constraints: BoxConstraints(
-                                          minHeight: pillMinHeight,
-                                          maxHeight: pillMaxHeight,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: pillBgColor,
-                                          borderRadius: BorderRadius.circular(
-                                              pillBorderRadius),
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: Colors.black
-                                                  .withValues(alpha: 0.12),
-                                              blurRadius: 16,
-                                              offset: const Offset(0, 4),
-                                            ),
-                                          ],
-                                        ),
-                                        child: Stack(
-                                          alignment: Alignment.topLeft,
-                                          children: [
-                                            // Text field: permanently mounted in the same slot to preserve IME connection & continuous typing
-                                            AnimatedPadding(
-                                              duration: const Duration(
-                                                  milliseconds: 200),
-                                              curve: Curves.easeOutCubic,
-                                              padding: isMoreThanTwoLines
-                                                  ? const EdgeInsets.fromLTRB(
-                                                      14, 10, 14, 42)
-                                                  : const EdgeInsets.fromLTRB(
-                                                      44, 6, 12, 6),
-                                              child: _buildTextField(isDark),
-                                            ),
-
-                                            // Plus button: smoothly glides between center-left and bottom-left
-                                            Positioned.fill(
-                                              child: AnimatedAlign(
-                                                duration: const Duration(
-                                                    milliseconds: 200),
-                                                curve: Curves.easeOutCubic,
-                                                alignment: isMoreThanTwoLines
-                                                    ? Alignment.bottomLeft
-                                                    : Alignment.centerLeft,
-                                                child: Padding(
-                                                  padding: isMoreThanTwoLines
-                                                      ? const EdgeInsets.only(
-                                                          left: 4, bottom: 4)
-                                                      : const EdgeInsets.only(
-                                                          left: 4),
-                                                  child:
-                                                      _buildPlusButton(isDark),
+                                              boxShadow: [
+                                                BoxShadow(
+                                                  color: Colors.black
+                                                      .withValues(alpha: 0.12),
+                                                  blurRadius: 8,
+                                                  offset: const Offset(0, 2),
                                                 ),
-                                              ),
+                                              ],
                                             ),
-                                          ],
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Icon(
+                                                  _isImageFile(file.name)
+                                                      ? Icons.image_rounded
+                                                      : Icons
+                                                            .insert_drive_file_rounded,
+                                                  size: 16,
+                                                  color:
+                                                      theme.colorScheme.primary,
+                                                ),
+                                                const SizedBox(width: 6),
+                                                ConstrainedBox(
+                                                  constraints:
+                                                      const BoxConstraints(
+                                                        maxWidth: 160,
+                                                      ),
+                                                  child: Text(
+                                                    file.name,
+                                                    maxLines: 1,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                    style: theme
+                                                        .textTheme
+                                                        .labelMedium
+                                                        ?.copyWith(
+                                                          fontWeight:
+                                                              FontWeight.w600,
+                                                        ),
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 6),
+                                                InkWell(
+                                                  onTap: _saving
+                                                      ? null
+                                                      : () => setState(() {
+                                                          _selectedFiles.remove(
+                                                            file,
+                                                          );
+                                                          _fileFailures =
+                                                              const [];
+                                                        }),
+                                                  borderRadius:
+                                                      BorderRadius.circular(
+                                                        999,
+                                                      ),
+                                                  child: Icon(
+                                                    Icons.close_rounded,
+                                                    size: 15,
+                                                    color: theme
+                                                        .colorScheme
+                                                        .onSurfaceVariant,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          );
+                                        }).toList(),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+
+                                // Error banner (above pill)
+                                if (_error != null) ...[
+                                  Padding(
+                                    padding: const EdgeInsets.only(bottom: 10),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 14,
+                                        vertical: 8,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: theme.colorScheme.errorContainer,
+                                        borderRadius: BorderRadius.circular(
+                                          999,
+                                        ),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.black.withValues(
+                                              alpha: 0.1,
+                                            ),
+                                            blurRadius: 8,
+                                            offset: const Offset(0, 2),
+                                          ),
+                                        ],
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(
+                                            Icons.error_outline_rounded,
+                                            size: 16,
+                                            color: theme.colorScheme.error,
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Flexible(
+                                            child: Text(
+                                              _error!,
+                                              style: theme.textTheme.bodySmall
+                                                  ?.copyWith(
+                                                    color: theme
+                                                        .colorScheme
+                                                        .onErrorContainer,
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ],
+
+                                // Attachment failures list if any
+                                if (_fileFailures.isNotEmpty) ...[
+                                  Padding(
+                                    padding: const EdgeInsets.only(bottom: 10),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 14,
+                                        vertical: 8,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: theme.colorScheme.errorContainer,
+                                        borderRadius: BorderRadius.circular(16),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.black.withValues(
+                                              alpha: 0.1,
+                                            ),
+                                            blurRadius: 8,
+                                            offset: const Offset(0, 2),
+                                          ),
+                                        ],
+                                      ),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Text(
+                                            'Couldn’t add:',
+                                            style: theme.textTheme.labelMedium
+                                                ?.copyWith(
+                                                  color:
+                                                      theme.colorScheme.error,
+                                                  fontWeight: FontWeight.w700,
+                                                ),
+                                          ),
+                                          const SizedBox(height: 2),
+                                          ..._fileFailures.map(
+                                            (failure) => Text(
+                                              '• ${failure.displayName} — ${_failureReason(failure.code)}',
+                                              style: theme.textTheme.bodySmall
+                                                  ?.copyWith(
+                                                    color: theme
+                                                        .colorScheme
+                                                        .onErrorContainer,
+                                                  ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ],
+
+                                // URL Preview Cards (matching reference screenshot)
+                                if (_urlPreviews.isNotEmpty) ...[
+                                  Padding(
+                                    padding: const EdgeInsets.only(bottom: 10),
+                                    child: ConstrainedBox(
+                                      constraints: const BoxConstraints(
+                                        maxHeight: 200,
+                                      ),
+                                      child: SingleChildScrollView(
+                                        child: Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.stretch,
+                                          children: _urlPreviews.values.map((
+                                            item,
+                                          ) {
+                                            return Padding(
+                                              padding: const EdgeInsets.only(
+                                                bottom: 8,
+                                              ),
+                                              child: _buildUrlPreviewCard(item),
+                                            );
+                                          }).toList(),
                                         ),
                                       ),
                                     ),
+                                  ),
+                                ],
 
-                                    const SizedBox(width: 10),
+                                // The Chat Input Bar + Circular Send Button (Image 1 layout)
+                                LayoutBuilder(
+                                  builder: (context, constraints) {
+                                    final availableWidth =
+                                        constraints.maxWidth - 48 - 10 - 28;
+                                    final isMoreThanTwoLines =
+                                        _isMoreThanTwoLines(
+                                          _controller.text,
+                                          availableWidth > 50
+                                              ? availableWidth
+                                              : 260,
+                                        );
+                                    final pillBorderRadius = isMoreThanTwoLines
+                                        ? 20.0
+                                        : 999.0;
+                                    final pillMinHeight = isMoreThanTwoLines
+                                        ? 96.0
+                                        : 48.0;
+                                    final pillMaxHeight = isMoreThanTwoLines
+                                        ? 160.0
+                                        : 64.0;
 
-                                    // Circular Send Button ("send being save", green-themed like app)
-                                    Material(
-                                      color: Colors.transparent,
-                                      child: InkWell(
-                                        onTap: _saving ? null : _save,
-                                        borderRadius:
-                                            BorderRadius.circular(999),
-                                        child: Container(
-                                          width: 48,
-                                          height: 48,
-                                          decoration: BoxDecoration(
-                                            color: sendBtnBgColor,
-                                            shape: BoxShape.circle,
-                                            border: Border.all(
-                                              color: theme.colorScheme.primary
-                                                  .withValues(alpha: 0.2),
-                                              width: 1,
+                                    return Row(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.end,
+                                      children: [
+                                        // Pill input bar
+                                        Expanded(
+                                          child: AnimatedContainer(
+                                            duration: const Duration(
+                                              milliseconds: 200,
                                             ),
-                                            boxShadow: [
-                                              BoxShadow(
-                                                color: Colors.black
-                                                    .withValues(alpha: 0.14),
-                                                blurRadius: 10,
-                                                offset: const Offset(0, 3),
-                                              ),
-                                            ],
-                                          ),
-                                          child: Center(
-                                            child: _saving
-                                                ? SizedBox.square(
-                                                    dimension: 18,
-                                                    child:
-                                                        CircularProgressIndicator(
-                                                      strokeWidth: 2,
-                                                      color: sendIconColor,
-                                                    ),
-                                                  )
-                                                : Stack(
-                                                    alignment:
-                                                        Alignment.center,
-                                                    children: [
-                                                      Transform.rotate(
-                                                        angle: -0.2,
-                                                        child: Icon(
-                                                          Icons.send_rounded,
-                                                          color: sendIconColor,
-                                                          size: 22,
+                                            curve: Curves.easeOutCubic,
+                                            clipBehavior: Clip.antiAlias,
+                                            constraints: BoxConstraints(
+                                              minHeight: pillMinHeight,
+                                              maxHeight: pillMaxHeight,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: pillBgColor,
+                                              borderRadius:
+                                                  BorderRadius.circular(
+                                                    pillBorderRadius,
+                                                  ),
+                                              boxShadow: [
+                                                BoxShadow(
+                                                  color: Colors.black
+                                                      .withValues(alpha: 0.12),
+                                                  blurRadius: 16,
+                                                  offset: const Offset(0, 4),
+                                                ),
+                                              ],
+                                            ),
+                                            child: Stack(
+                                              alignment: Alignment.topLeft,
+                                              children: [
+                                                // Text field: permanently mounted in the same slot to preserve IME connection & continuous typing
+                                                AnimatedPadding(
+                                                  duration: const Duration(
+                                                    milliseconds: 200,
+                                                  ),
+                                                  curve: Curves.easeOutCubic,
+                                                  padding: isMoreThanTwoLines
+                                                      ? const EdgeInsets.fromLTRB(
+                                                          14,
+                                                          10,
+                                                          14,
+                                                          42,
+                                                        )
+                                                      : const EdgeInsets.fromLTRB(
+                                                          44,
+                                                          6,
+                                                          12,
+                                                          6,
                                                         ),
+                                                  child: _buildTextField(
+                                                    isDark,
+                                                  ),
+                                                ),
+
+                                                // Plus button: smoothly glides between center-left and bottom-left
+                                                Positioned.fill(
+                                                  child: AnimatedAlign(
+                                                    duration: const Duration(
+                                                      milliseconds: 200,
+                                                    ),
+                                                    curve: Curves.easeOutCubic,
+                                                    alignment:
+                                                        isMoreThanTwoLines
+                                                        ? Alignment.bottomLeft
+                                                        : Alignment.centerLeft,
+                                                    child: Padding(
+                                                      padding:
+                                                          isMoreThanTwoLines
+                                                          ? const EdgeInsets.only(
+                                                              left: 4,
+                                                              bottom: 4,
+                                                            )
+                                                          : const EdgeInsets.only(
+                                                              left: 4,
+                                                            ),
+                                                      child: _buildPlusButton(
+                                                        isDark,
                                                       ),
-                                                      const SizedBox(
-                                                        width: 48,
-                                                        height: 48,
-                                                        child: Center(
-                                                          child: Text(
-                                                            'Save',
-                                                            style: TextStyle(
-                                                              fontSize: 14,
-                                                              color: Colors
-                                                                  .transparent,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+
+                                        const SizedBox(width: 10),
+
+                                        // Circular Send Button ("send being save", green-themed like app)
+                                        Material(
+                                          color: Colors.transparent,
+                                          child: InkWell(
+                                            onTap: _saving ? null : _save,
+                                            borderRadius: BorderRadius.circular(
+                                              999,
+                                            ),
+                                            child: Container(
+                                              width: 48,
+                                              height: 48,
+                                              decoration: BoxDecoration(
+                                                color: sendBtnBgColor,
+                                                shape: BoxShape.circle,
+                                                border: Border.all(
+                                                  color: theme
+                                                      .colorScheme
+                                                      .primary
+                                                      .withValues(alpha: 0.2),
+                                                  width: 1,
+                                                ),
+                                                boxShadow: [
+                                                  BoxShadow(
+                                                    color: Colors.black
+                                                        .withValues(
+                                                          alpha: 0.14,
+                                                        ),
+                                                    blurRadius: 10,
+                                                    offset: const Offset(0, 3),
+                                                  ),
+                                                ],
+                                              ),
+                                              child: Center(
+                                                child: _saving
+                                                    ? SizedBox.square(
+                                                        dimension: 18,
+                                                        child:
+                                                            CircularProgressIndicator(
+                                                              strokeWidth: 2,
+                                                              color:
+                                                                  sendIconColor,
+                                                            ),
+                                                      )
+                                                    : Stack(
+                                                        alignment:
+                                                            Alignment.center,
+                                                        children: [
+                                                          Transform.rotate(
+                                                            angle: -0.2,
+                                                            child: Icon(
+                                                              Icons
+                                                                  .send_rounded,
+                                                              color:
+                                                                  sendIconColor,
+                                                              size: 22,
                                                             ),
                                                           ),
-                                                        ),
+                                                          const SizedBox(
+                                                            width: 48,
+                                                            height: 48,
+                                                            child: Center(
+                                                              child: Text(
+                                                                'Save',
+                                                                style: TextStyle(
+                                                                  fontSize: 14,
+                                                                  color: Colors
+                                                                      .transparent,
+                                                                ),
+                                                              ),
+                                                            ),
+                                                          ),
+                                                        ],
                                                       ),
-                                                    ],
-                                                  ),
+                                              ),
+                                            ),
                                           ),
                                         ),
-                                      ),
-                                    ),
-                                  ],
-                                );
-                              },
+                                      ],
+                                    );
+                                  },
+                                ),
+                              ],
                             ),
-                          ],
-                        )),
+                          ),
+                        ),
                       ),
                     ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   Widget _buildSentMessageBubble() {
     final message = _sentMessageText ?? '';
@@ -1152,7 +1269,8 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
                     if (hasPreviews) ...[
                       ..._sentUrlPreviews.map((p) {
                         final meta = p.metadata;
-                        final domain = cleanMetaText(meta?.domain) ??
+                        final domain =
+                            cleanMetaText(meta?.domain) ??
                             extractDomain(p.url) ??
                             Uri.tryParse(p.url)?.host ??
                             p.url;
@@ -1190,8 +1308,9 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                       style: TextStyle(
-                                        color: Colors.white
-                                            .withValues(alpha: 0.75),
+                                        color: Colors.white.withValues(
+                                          alpha: 0.75,
+                                        ),
                                         fontSize: 11,
                                       ),
                                     ),
@@ -1207,9 +1326,11 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
                                     width: 44,
                                     height: 44,
                                     fit: BoxFit.cover,
-                                    errorBuilder:
-                                        (context, error, stackTrace) =>
-                                            const SizedBox.shrink(),
+                                    errorBuilder: (
+                                      context,
+                                      error,
+                                      stackTrace,
+                                    ) => const SizedBox.shrink(),
                                   ),
                                 ),
                               ],
@@ -1245,8 +1366,9 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
                                 ),
                                 const SizedBox(width: 4),
                                 ConstrainedBox(
-                                  constraints:
-                                      const BoxConstraints(maxWidth: 130),
+                                  constraints: const BoxConstraints(
+                                    maxWidth: 130,
+                                  ),
                                   child: Text(
                                     f.name,
                                     maxLines: 1,
@@ -1287,7 +1409,8 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
 
   Widget _buildUrlPreviewCard(UrlPreviewItem item) {
     final meta = item.metadata;
-    final domain = cleanMetaText(meta?.domain) ??
+    final domain =
+        cleanMetaText(meta?.domain) ??
         extractDomain(item.url) ??
         Uri.tryParse(item.url)?.host ??
         item.url;
@@ -1369,22 +1492,22 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
                           },
                         )
                       : item.isLoading
-                          ? const Center(
-                              child: SizedBox.square(
-                                dimension: 18,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.white70,
-                                ),
-                              ),
-                            )
-                          : Center(
-                              child: Icon(
-                                Icons.language_rounded,
-                                size: 26,
-                                color: Colors.grey.shade400,
-                              ),
+                      ? const Center(
+                          child: SizedBox.square(
+                            dimension: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white70,
                             ),
+                          ),
+                        )
+                      : Center(
+                          child: Icon(
+                            Icons.language_rounded,
+                            size: 26,
+                            color: Colors.grey.shade400,
+                          ),
+                        ),
                 ),
               ),
 
@@ -1476,10 +1599,7 @@ class SentChatBubbleClipper extends CustomClipper<Path> {
     // Top line
     path.lineTo(w - tailWidth - r, 0);
     // Top-right corner
-    path.arcToPoint(
-      Offset(w - tailWidth, r),
-      radius: const Radius.circular(r),
-    );
+    path.arcToPoint(Offset(w - tailWidth, r), radius: const Radius.circular(r));
     // Right line down towards tail
     path.lineTo(w - tailWidth, h - 14);
     // Outer curve sweeping to the tail tip
@@ -1489,17 +1609,11 @@ class SentChatBubbleClipper extends CustomClipper<Path> {
     // Bottom line
     path.lineTo(r, h);
     // Bottom-left corner
-    path.arcToPoint(
-      Offset(0, h - r),
-      radius: const Radius.circular(r),
-    );
+    path.arcToPoint(Offset(0, h - r), radius: const Radius.circular(r));
     // Left line
     path.lineTo(0, r);
     // Top-left corner
-    path.arcToPoint(
-      const Offset(r, 0),
-      radius: const Radius.circular(r),
-    );
+    path.arcToPoint(const Offset(r, 0), radius: const Radius.circular(r));
 
     path.close();
     return path;
@@ -1518,12 +1632,7 @@ class SentChatBubblePainter extends CustomPainter {
     const clipper = SentChatBubbleClipper();
     final path = clipper.getClip(size);
     // Subtle drop shadow for depth on dimmed overlay
-    canvas.drawShadow(
-      path,
-      Colors.black.withValues(alpha: 0.32),
-      8,
-      false,
-    );
+    canvas.drawShadow(path, Colors.black.withValues(alpha: 0.32), 8, false);
     final paint = Paint()..color = color;
     canvas.drawPath(path, paint);
   }
