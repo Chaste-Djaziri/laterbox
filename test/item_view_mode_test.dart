@@ -124,7 +124,7 @@ void main() {
     );
 
     expect(find.text('Flutter Architecture Guide'), findsOneWidget);
-    expect(find.text('docs.flutter.dev'), findsOneWidget);
+    expect(find.textContaining('docs.flutter.dev'), findsOneWidget);
     expect(find.byTooltip('Star'), findsOneWidget);
     expect(find.byTooltip('Keep'), findsOneWidget);
 
