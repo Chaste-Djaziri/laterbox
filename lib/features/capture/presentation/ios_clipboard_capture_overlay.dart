@@ -181,9 +181,9 @@ class _IosClipboardCaptureOverlayState
                 onSavePrompt: _savePrompt,
                 onDismiss: () =>
                     ref.read(iosNotchCompanionProvider.notifier).dismiss(),
-                onSelectReturnAt: (date) => ref
+                onSelectReturnAt: (date, {bool isCustom = false}) => ref
                     .read(iosNotchCompanionProvider.notifier)
-                    .updatePromptReturnAt(date),
+                    .updatePromptReturnAt(date, isCustom: isCustom),
               ),
             ),
           ),
@@ -192,6 +192,11 @@ class _IosClipboardCaptureOverlayState
     );
   }
 }
+
+typedef ReturnAtSelectionCallback = void Function(
+  DateTime? returnAt, {
+  bool isCustom,
+});
 
 class _DynamicIslandCard extends StatelessWidget {
   const _DynamicIslandCard({
@@ -206,7 +211,7 @@ class _DynamicIslandCard extends StatelessWidget {
   final double topPadding;
   final ValueChanged<IosNotchClipboardPrompt> onSavePrompt;
   final VoidCallback onDismiss;
-  final ValueChanged<DateTime?> onSelectReturnAt;
+  final ReturnAtSelectionCallback onSelectReturnAt;
 
   @override
   Widget build(BuildContext context) {
@@ -312,37 +317,42 @@ class _DynamicIslandCard extends StatelessWidget {
             children: [
               _WhenChip(
                 label: 'Inbox',
-                isSelected: prompt.selectedReturnAt == null,
-                onTap: () => onSelectReturnAt(null),
+                isSelected: !prompt.isCustom && prompt.selectedReturnAt == null,
+                onTap: () => onSelectReturnAt(null, isCustom: false),
               ),
               const SizedBox(width: 6),
               _WhenChip(
                 label: 'Later today',
-                isSelected: prompt.selectedReturnAt != null &&
+                isSelected: !prompt.isCustom &&
+                    prompt.selectedReturnAt != null &&
                     _isSameDay(prompt.selectedReturnAt!, DateTime.now()),
                 onTap: () {
                   final now = DateTime.now();
                   final target = now.hour < 18
                       ? DateTime(now.year, now.month, now.day, 18, 0)
                       : now.add(const Duration(hours: 3));
-                  onSelectReturnAt(target);
+                  onSelectReturnAt(target, isCustom: false);
                 },
               ),
               const SizedBox(width: 6),
               _WhenChip(
                 label: 'Tomorrow',
-                isSelected: prompt.selectedReturnAt != null &&
+                isSelected: !prompt.isCustom &&
+                    prompt.selectedReturnAt != null &&
                     _isTomorrow(prompt.selectedReturnAt!),
                 onTap: () {
                   final tomorrow = DateTime.now().add(const Duration(days: 1));
                   onSelectReturnAt(
-                      DateTime(tomorrow.year, tomorrow.month, tomorrow.day, 9, 0));
+                    DateTime(tomorrow.year, tomorrow.month, tomorrow.day, 9, 0),
+                    isCustom: false,
+                  );
                 },
               ),
               const SizedBox(width: 6),
               _WhenChip(
                 label: 'Weekend',
-                isSelected: prompt.selectedReturnAt != null &&
+                isSelected: !prompt.isCustom &&
+                    prompt.selectedReturnAt != null &&
                     _isWeekend(prompt.selectedReturnAt!),
                 onTap: () {
                   final now = DateTime.now();
@@ -350,8 +360,19 @@ class _DynamicIslandCard extends StatelessWidget {
                   final days = daysUntilSat == 0 ? 7 : daysUntilSat;
                   final sat = now.add(Duration(days: days));
                   onSelectReturnAt(
-                      DateTime(sat.year, sat.month, sat.day, 9, 0));
+                    DateTime(sat.year, sat.month, sat.day, 9, 0),
+                    isCustom: false,
+                  );
                 },
+              ),
+              const SizedBox(width: 6),
+              _WhenChip(
+                label: prompt.isCustom && prompt.selectedReturnAt != null
+                    ? _formatReturnTag(prompt.selectedReturnAt!)
+                    : 'Custom…',
+                icon: Icons.edit_calendar_rounded,
+                isSelected: prompt.isCustom && prompt.selectedReturnAt != null,
+                onTap: () => _pickCustomDateTime(context, prompt),
               ),
             ],
           ),
@@ -547,6 +568,76 @@ class _DynamicIslandCard extends StatelessWidget {
     );
   }
 
+  Future<void> _pickCustomDateTime(
+    BuildContext context,
+    IosNotchClipboardPrompt prompt,
+  ) async {
+    final now = DateTime.now();
+    final initial =
+        prompt.selectedReturnAt ?? now.add(const Duration(hours: 2));
+    final date = await showDatePicker(
+      context: context,
+      initialDate: initial.isAfter(now) ? initial : now,
+      firstDate: DateTime(now.year, now.month, now.day),
+      lastDate: DateTime(now.year + 5),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.dark(
+              primary: Color(0xFFE6EDB0),
+              onPrimary: Color(0xFF171711),
+              surface: Color(0xFF1C1C1E),
+              onSurface: Colors.white,
+            ),
+            dialogTheme: DialogThemeData(
+              backgroundColor: const Color(0xFF1C1C1E),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (date == null || !context.mounted) return;
+    final time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(initial),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.dark(
+              primary: Color(0xFFE6EDB0),
+              onPrimary: Color(0xFF171711),
+              surface: Color(0xFF1C1C1E),
+              onSurface: Colors.white,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (time == null || !context.mounted) return;
+    final combined = DateTime(
+      date.year,
+      date.month,
+      date.day,
+      time.hour,
+      time.minute,
+    );
+    if (!combined.isAfter(DateTime.now())) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please select a future date and time.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+    onSelectReturnAt(combined, isCustom: true);
+  }
+
   static bool _isSameDay(DateTime a, DateTime b) =>
       a.year == b.year && a.month == b.month && a.day == b.day;
 
@@ -558,11 +649,34 @@ class _DynamicIslandCard extends StatelessWidget {
   static bool _isWeekend(DateTime d) =>
       d.weekday == DateTime.saturday || d.weekday == DateTime.sunday;
 
+  static String _formatTime(DateTime d) {
+    final hour = d.hour == 0 ? 12 : (d.hour > 12 ? d.hour - 12 : d.hour);
+    final minute = d.minute.toString().padLeft(2, '0');
+    final period = d.hour >= 12 ? 'PM' : 'AM';
+    return '$hour:$minute $period';
+  }
+
   static String _formatReturnTag(DateTime d) {
     final now = DateTime.now();
-    if (_isSameDay(d, now)) return 'Today';
-    if (_isTomorrow(d)) return 'Tomorrow';
-    return '${d.month}/${d.day}';
+    final timeStr = _formatTime(d);
+    if (_isSameDay(d, now)) return 'Today · $timeStr';
+    if (_isTomorrow(d)) return 'Tomorrow · $timeStr';
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec'
+    ];
+    final monthStr = months[d.month - 1];
+    return '$monthStr ${d.day} · $timeStr';
   }
 }
 
@@ -571,11 +685,13 @@ class _WhenChip extends StatelessWidget {
     required this.label,
     required this.isSelected,
     required this.onTap,
+    this.icon,
   });
 
   final String label;
   final bool isSelected;
   final VoidCallback onTap;
+  final IconData? icon;
 
   @override
   Widget build(BuildContext context) {
@@ -592,13 +708,26 @@ class _WhenChip extends StatelessWidget {
                 : const Color(0x22FFFFFF),
             borderRadius: BorderRadius.circular(12),
           ),
-          child: Text(
-            label,
-            style: TextStyle(
-              color: isSelected ? const Color(0xFF171711) : Colors.white,
-              fontSize: 12,
-              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-            ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (icon != null) ...[
+                Icon(
+                  icon,
+                  size: 13,
+                  color: isSelected ? const Color(0xFF171711) : Colors.white70,
+                ),
+                const SizedBox(width: 4),
+              ],
+              Text(
+                label,
+                style: TextStyle(
+                  color: isSelected ? const Color(0xFF171711) : Colors.white,
+                  fontSize: 12,
+                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                ),
+              ),
+            ],
           ),
         ),
       ),
