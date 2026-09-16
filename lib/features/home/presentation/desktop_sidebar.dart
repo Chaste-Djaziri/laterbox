@@ -37,8 +37,8 @@ class _DesktopSidebarState extends ConsumerState<DesktopSidebar> {
     final authState = ref.watch(authStateProvider);
     final isGuest = ref.watch(guestModeProvider);
 
-    final String userEmail = authState.asData?.value.email ??
-        (isGuest ? 'Guest Mode' : 'Account');
+    final String userEmail =
+        authState.asData?.value.email ?? (isGuest ? 'Guest Mode' : 'Account');
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
@@ -66,57 +66,69 @@ class _DesktopSidebarState extends ConsumerState<DesktopSidebar> {
                   ? MainAxisAlignment.center
                   : MainAxisAlignment.spaceBetween,
               children: [
-                Expanded(child: Row(
-                  mainAxisAlignment: isCompact ? MainAxisAlignment.center : MainAxisAlignment.start,
-                  children: [
-                    Container(
-                      width: 34,
-                      height: 34,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(9),
-                        color: theme.brightness == Brightness.dark
-                            ? const Color(0xFF1E1E1E)
-                            : const Color(0xFFE6EDB0),
-                        border: theme.brightness == Brightness.dark
-                            ? Border.all(color: Colors.white.withValues(alpha: 0.12), width: 1)
-                            : null,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(
-                              alpha: theme.brightness == Brightness.dark ? 0.35 : 0.1,
+                Expanded(
+                  child: Row(
+                    mainAxisAlignment: isCompact
+                        ? MainAxisAlignment.center
+                        : MainAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: 34,
+                        height: 34,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(9),
+                          color: theme.brightness == Brightness.dark
+                              ? const Color(0xFF1E1E1E)
+                              : const Color(0xFFE6EDB0),
+                          border: theme.brightness == Brightness.dark
+                              ? Border.all(
+                                  color: Colors.white.withValues(alpha: 0.12),
+                                  width: 1,
+                                )
+                              : null,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(
+                                alpha: theme.brightness == Brightness.dark
+                                    ? 0.35
+                                    : 0.1,
+                              ),
+                              blurRadius: 3,
+                              offset: const Offset(0, 1),
                             ),
-                            blurRadius: 3,
-                            offset: const Offset(0, 1),
+                          ],
+                        ),
+                        padding: const EdgeInsets.all(4),
+                        child: Image.asset(
+                          theme.brightness == Brightness.dark
+                              ? 'assets/branding/laterbox-icon-white.png'
+                              : 'assets/branding/laterbox-icon.png',
+                          fit: BoxFit.contain,
+                          errorBuilder: (context, error, stackTrace) => Icon(
+                            Icons.bookmark_rounded,
+                            color: theme.colorScheme.primary,
+                            size: 20,
                           ),
-                        ],
-                      ),
-                      padding: const EdgeInsets.all(4),
-                      child: Image.asset(
-                        theme.brightness == Brightness.dark
-                            ? 'assets/branding/laterbox-icon-white.png'
-                            : 'assets/branding/laterbox-icon.png',
-                        fit: BoxFit.contain,
-                        errorBuilder: (context, error, stackTrace) => Icon(
-                          Icons.bookmark_rounded,
-                          color: theme.colorScheme.primary,
-                          size: 20,
                         ),
                       ),
-                    ),
-                    if (!isCompact) ...[
-                      const SizedBox(width: 12),
-                      Flexible(child: Text(
-                        'laterbox',
-                        maxLines: 1, overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: -0.5,
-                          fontSize: 18,
+                      if (!isCompact) ...[
+                        const SizedBox(width: 12),
+                        Flexible(
+                          child: Text(
+                            'laterbox',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: -0.5,
+                              fontSize: 18,
+                            ),
+                          ),
                         ),
-                      )),
+                      ],
                     ],
-                  ],
-                )),
+                  ),
+                ),
                 if (!isCompact)
                   IconButton(
                     icon: Icon(
@@ -187,15 +199,23 @@ class _DesktopSidebarState extends ConsumerState<DesktopSidebar> {
               padding: EdgeInsets.symmetric(horizontal: isCompact ? 8 : 12),
               children: [
                 for (final entry in const [
-                  ('Home', Icons.home_outlined), ('Inbox', Icons.inbox_outlined),
-                  ('Today', Icons.today_outlined), ('Upcoming', Icons.event_outlined),
-                  ('Someday', Icons.schedule), ('Library', Icons.auto_stories_outlined),
+                  ('Home', Icons.home_outlined),
+                  ('Inbox', Icons.inbox_outlined),
+                  ('Today', Icons.today_outlined),
+                  ('Upcoming', Icons.event_outlined),
+                  ('Someday', Icons.schedule),
+                  ('Library', Icons.auto_stories_outlined),
                   ('Settings', Icons.settings_outlined),
                 ].indexed)
-                  _SidebarTabItem(index: entry.$1, selectedIndex: widget.selectedIndex,
-                    isCompact: isCompact, label: entry.$2.$1, icon: entry.$2.$2,
+                  _SidebarTabItem(
+                    index: entry.$1,
+                    selectedIndex: widget.selectedIndex,
+                    isCompact: isCompact,
+                    label: entry.$2.$1,
+                    icon: entry.$2.$2,
                     selectedIcon: entry.$2.$2,
-                    onTap: () => widget.onDestinationSelected(entry.$1)),
+                    onTap: () => widget.onDestinationSelected(entry.$1),
+                  ),
               ],
             ),
           ),
@@ -219,7 +239,9 @@ class _DesktopSidebarState extends ConsumerState<DesktopSidebar> {
                             radius: 18,
                             backgroundColor: theme.colorScheme.primaryContainer,
                             child: Text(
-                              userEmail.isNotEmpty ? userEmail[0].toUpperCase() : 'U',
+                              userEmail.isNotEmpty
+                                  ? userEmail[0].toUpperCase()
+                                  : 'U',
                               style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.bold,
@@ -243,9 +265,12 @@ class _DesktopSidebarState extends ConsumerState<DesktopSidebar> {
                             children: [
                               CircleAvatar(
                                 radius: 16,
-                                backgroundColor: theme.colorScheme.primaryContainer,
+                                backgroundColor:
+                                    theme.colorScheme.primaryContainer,
                                 child: Text(
-                                  userEmail.isNotEmpty ? userEmail[0].toUpperCase() : 'U',
+                                  userEmail.isNotEmpty
+                                      ? userEmail[0].toUpperCase()
+                                      : 'U',
                                   style: TextStyle(
                                     fontSize: 13,
                                     fontWeight: FontWeight.bold,
@@ -263,17 +288,21 @@ class _DesktopSidebarState extends ConsumerState<DesktopSidebar> {
                                       userEmail,
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
-                                      style: theme.textTheme.bodyMedium?.copyWith(
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 13,
-                                      ),
+                                      style: theme.textTheme.bodyMedium
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.w600,
+                                            fontSize: 13,
+                                          ),
                                     ),
                                     Text(
                                       isGuest ? 'Local storage' : 'Synced',
-                                      style: theme.textTheme.labelSmall?.copyWith(
-                                        color: theme.colorScheme.onSurfaceVariant,
-                                        fontSize: 11,
-                                      ),
+                                      style: theme.textTheme.labelSmall
+                                          ?.copyWith(
+                                            color: theme
+                                                .colorScheme
+                                                .onSurfaceVariant,
+                                            fontSize: 11,
+                                          ),
                                     ),
                                   ],
                                 ),
@@ -304,7 +333,8 @@ class _PlanStatusCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final entitlement = ref.watch(entitlementProvider).valueOrNull ?? const Entitlement.free();
+    final entitlement =
+        ref.watch(entitlementProvider).valueOrNull ?? const Entitlement.free();
     final presentation = EntitlementPresentation.from(entitlement);
     final warning = presentation.severity == EntitlementSeverity.warning;
     final color = warning ? Colors.amber : const Color(0xFFD7FF27);
@@ -318,12 +348,19 @@ class _PlanStatusCard extends ConsumerWidget {
       },
       borderRadius: BorderRadius.circular(12),
       child: Container(
-        margin: EdgeInsets.fromLTRB(compact ? 10 : 14, 8, compact ? 10 : 14, 10),
+        margin: EdgeInsets.fromLTRB(
+          compact ? 10 : 14,
+          8,
+          compact ? 10 : 14,
+          10,
+        ),
         padding: EdgeInsets.all(compact ? 8 : 12),
         decoration: BoxDecoration(
           color: Colors.black,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: warning ? Colors.amber.shade700 : Colors.white12),
+          border: Border.all(
+            color: warning ? Colors.amber.shade700 : Colors.white12,
+          ),
         ),
         child: compact
             ? SizedBox(
@@ -339,7 +376,11 @@ class _PlanStatusCard extends ConsumerWidget {
                         color: color,
                         backgroundColor: Colors.white12,
                       ),
-                    Icon(Icons.workspace_premium_rounded, size: 17, color: color),
+                    Icon(
+                      Icons.workspace_premium_rounded,
+                      size: 17,
+                      color: color,
+                    ),
                   ],
                 ),
               )
@@ -348,14 +389,22 @@ class _PlanStatusCard extends ConsumerWidget {
                 children: [
                   Row(
                     children: [
-                      Icon(Icons.workspace_premium_rounded, size: 17, color: color),
+                      Icon(
+                        Icons.workspace_premium_rounded,
+                        size: 17,
+                        color: color,
+                      ),
                       const SizedBox(width: 7),
                       Expanded(
                         child: Text(
                           presentation.label,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w800),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w800,
+                          ),
                         ),
                       ),
                     ],
@@ -373,7 +422,11 @@ class _PlanStatusCard extends ConsumerWidget {
                   const SizedBox(height: 7),
                   Text(
                     presentation.actionLabel,
-                    style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w800),
+                    style: TextStyle(
+                      color: color,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                 ],
               ),
@@ -418,8 +471,8 @@ class _SidebarTabItemState extends State<_SidebarTabItem> {
     final backgroundColor = isSelected
         ? colorScheme.primaryContainer.withValues(alpha: 0.7)
         : (_isHovered
-            ? colorScheme.surfaceContainerHighest.withValues(alpha: 0.6)
-            : Colors.transparent);
+              ? colorScheme.surfaceContainerHighest.withValues(alpha: 0.6)
+              : Colors.transparent);
 
     final foregroundColor = isSelected
         ? colorScheme.primary
@@ -434,19 +487,12 @@ class _SidebarTabItemState extends State<_SidebarTabItem> {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 150),
           height: 44,
-          padding: EdgeInsets.symmetric(
-            horizontal: widget.isCompact ? 0 : 12,
-          ),
+          padding: EdgeInsets.symmetric(horizontal: widget.isCompact ? 0 : 12),
           decoration: BoxDecoration(
             color: backgroundColor,
             borderRadius: BorderRadius.circular(10),
             border: isSelected
-                ? Border(
-                    left: BorderSide(
-                      color: colorScheme.primary,
-                      width: 3,
-                    ),
-                  )
+                ? Border(left: BorderSide(color: colorScheme.primary, width: 3))
                 : null,
           ),
           child: Row(
@@ -465,8 +511,9 @@ class _SidebarTabItemState extends State<_SidebarTabItem> {
                   child: Text(
                     widget.label,
                     style: theme.textTheme.bodyMedium?.copyWith(
-                      fontWeight:
-                          isSelected ? FontWeight.w700 : FontWeight.w500,
+                      fontWeight: isSelected
+                          ? FontWeight.w700
+                          : FontWeight.w500,
                       color: isSelected
                           ? colorScheme.onSurface
                           : colorScheme.onSurfaceVariant,
@@ -482,10 +529,7 @@ class _SidebarTabItemState extends State<_SidebarTabItem> {
     );
 
     if (widget.isCompact) {
-      return Tooltip(
-        message: widget.label,
-        child: content,
-      );
+      return Tooltip(message: widget.label, child: content);
     }
 
     return content;
