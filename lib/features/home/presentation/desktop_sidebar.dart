@@ -325,7 +325,7 @@ class _NavEntry {
   final bool isExternal;
 }
 
-class _SidebarTabItem extends StatelessWidget {
+class _SidebarTabItem extends StatefulWidget {
   const _SidebarTabItem({
     required this.entry,
     required this.isSelected,
@@ -337,6 +337,13 @@ class _SidebarTabItem extends StatelessWidget {
   final bool isSelected;
   final bool isCompact;
   final VoidCallback onTap;
+
+  @override
+  State<_SidebarTabItem> createState() => _SidebarTabItemState();
+}
+
+class _SidebarTabItemState extends State<_SidebarTabItem> {
+  bool _isHovered = false;
 
   @override
   Widget build(BuildContext context) {
@@ -352,12 +359,22 @@ class _SidebarTabItem extends StatelessWidget {
         ? Colors.white.withValues(alpha: 0.1)
         : const Color(0xFFEBE7DC);
 
-    // No hover state: background is strictly active pill color or transparent
-    final backgroundColor = isSelected ? activePillBg : Colors.transparent;
-    final foregroundColor = isSelected ? activePillFg : inactivePillFg;
+    final isHovered = _isHovered;
+    final backgroundColor = widget.isSelected
+        ? activePillBg
+        : isHovered
+            ? (isDark ? Colors.white.withValues(alpha: 0.06) : Colors.black.withValues(alpha: 0.04))
+            : Colors.transparent;
+    final foregroundColor = widget.isSelected
+        ? activePillFg
+        : isHovered
+            ? (isDark ? Colors.white : const Color(0xFF171711))
+            : inactivePillFg;
 
     final content = MouseRegion(
       cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
@@ -366,17 +383,17 @@ class _SidebarTabItem extends StatelessWidget {
           hoverColor: Colors.transparent,
           highlightColor: Colors.transparent,
           splashColor: Colors.transparent,
-          onTap: onTap,
+          onTap: widget.onTap,
           child: Container(
           height: 42,
           margin: const EdgeInsets.only(bottom: 4),
-          padding: EdgeInsets.symmetric(horizontal: isCompact ? 0 : 14),
+          padding: EdgeInsets.symmetric(horizontal: widget.isCompact ? 0 : 14),
           decoration: BoxDecoration(
             color: backgroundColor,
             borderRadius: BorderRadius.circular(12),
           ),
           child: Row(
-            mainAxisAlignment: isCompact
+            mainAxisAlignment: widget.isCompact
                 ? MainAxisAlignment.center
                 : MainAxisAlignment.spaceBetween,
             children: [
@@ -384,19 +401,19 @@ class _SidebarTabItem extends StatelessWidget {
                 child: Row(
                   children: [
                     Icon(
-                      isSelected ? entry.selectedIcon : entry.icon,
+                      widget.isSelected ? widget.entry.selectedIcon : widget.entry.icon,
                       color: foregroundColor,
                       size: 18,
                     ),
-                    if (!isCompact) ...[
+                    if (!widget.isCompact) ...[
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
-                          entry.label,
+                          widget.entry.label,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
+                            fontWeight: widget.isSelected ? FontWeight.w700 : FontWeight.w600,
                             color: foregroundColor,
                             fontSize: 13.5,
                           ),
@@ -406,20 +423,20 @@ class _SidebarTabItem extends StatelessWidget {
                   ],
                 ),
               ),
-              if (!isCompact && (entry.badgeCount ?? 0) > 0)
+              if (!widget.isCompact && (widget.entry.badgeCount ?? 0) > 0)
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
                   decoration: BoxDecoration(
-                    color: isSelected ? badgeActiveBg : badgeInactiveBg,
+                    color: widget.isSelected ? badgeActiveBg : badgeInactiveBg,
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
-                    '${entry.badgeCount}',
+                    '${widget.entry.badgeCount}',
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w700,
                       fontFamily: 'monospace',
-                      color: isSelected ? activePillFg : inactivePillFg,
+                      color: widget.isSelected ? activePillFg : inactivePillFg,
                     ),
                   ),
                 ),
@@ -430,8 +447,8 @@ class _SidebarTabItem extends StatelessWidget {
     ),
     );
 
-    if (isCompact) {
-      return Tooltip(message: entry.label, child: content);
+    if (widget.isCompact) {
+      return Tooltip(message: widget.entry.label, child: content);
     }
 
     return content;
