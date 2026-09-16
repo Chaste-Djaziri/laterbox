@@ -16,6 +16,8 @@ All notable user-facing changes to LaterBox will be documented in this file.
   - Removed hover background/color states on unselected sidebar items.
   - Removed sidebar collapse toggle chevron icon.
 - **Item List Rows**: Show scheduled return time instead of relative timestamp when a return time is set.
+- **Item Cards**: Show scheduled return time instead of relative timestamp in card views when a return time is set.
+- **Home Dashboard**: Show next scheduled return time in the Upcoming summary card.
 - **macOS Notch Companion**: Custom collapsed pill shape with minimal top corners and full-round bottom corners.
 - **Desktop Sidebar**: Added hover state and pointer cursor on interactive sidebar links.
 - **macOS Home Header**: Removed redundant "Home" AppBar title on macOS and desktop platforms in favor of a clean greeting header.
