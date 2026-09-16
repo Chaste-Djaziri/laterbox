@@ -55,7 +55,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     final guestMode = ref.read(guestModeProvider);
 
     if (guestMode || authState.isAuthenticated) {
-      context.go('/inbox');
+      context.go('/home');
     } else {
       context.go('/welcome');
     }
