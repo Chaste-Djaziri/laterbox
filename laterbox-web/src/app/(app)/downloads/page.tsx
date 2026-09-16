@@ -22,7 +22,6 @@ import {
   Search,
   ChevronDown,
   ChevronUp,
-  FileCode,
   Calendar,
   Layers,
   ArrowRight,
@@ -200,12 +199,8 @@ export default function InAppDownloadsPage() {
 
     return list.map((rel) => {
       let filteredAssets = rel.assets;
-      if (historyTab === 'desktop') {
-        filteredAssets = rel.assets.filter((a) => /macos|windows|linux|\.dmg|\.pkg|\.exe|\.deb|\.AppImage/i.test(a.name));
-      } else if (historyTab === 'mobile') {
+      if (historyTab === 'mobile') {
         filteredAssets = rel.assets.filter((a) => /android|ios|\.apk|\.ipa/i.test(a.name));
-      } else if (historyTab === 'extensions') {
-        filteredAssets = rel.assets.filter((a) => /extension|\.crx|\.xpi/i.test(a.name));
       }
       return { ...rel, assets: filteredAssets };
     }).filter((r) => r.assets.length > 0);
