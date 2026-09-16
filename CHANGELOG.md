@@ -8,6 +8,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 - **Web-Styled Search Icon**: Added a rounded search button (`⌘K`) in the Home dashboard header matching the web interface.
 
 ### Changed
+- **macOS Title Bar**: Unified title bar and traffic light area into a single solid color by making the titlebar transparent with a matching background.
 - **Desktop Sidebar Redesign**:
   - Expanded sidebar width to 268px for a spacious desktop layout.
   - Aligned brand header, typography, and color tokens with web UI (`#F7F5EE` light, `#161614` dark).
