@@ -153,7 +153,9 @@ class DesktopSidebar extends ConsumerWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: isCompact
                     ? Tooltip(
-                        message: 'Save Item (⌥ Space)',
+                        message: defaultTargetPlatform == TargetPlatform.windows
+                            ? 'Save Item (Ctrl + Shift + L)'
+                            : 'Save Item (⌃ ⌥ Space)',
                         child: Material(
                           color: isDark ? const Color(0xFFE6EDB0) : const Color(0xFF171711),
                           borderRadius: BorderRadius.circular(12),
