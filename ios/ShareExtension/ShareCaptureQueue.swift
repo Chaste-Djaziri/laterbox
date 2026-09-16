@@ -7,6 +7,7 @@ struct PendingShareCapture: Codable {
     let source: String
     let createdAt: String
     let filePaths: [String]
+    let returnAt: String?
 
     init(
         id: String,
@@ -14,7 +15,8 @@ struct PendingShareCapture: Codable {
         kind: String,
         source: String,
         createdAt: String,
-        filePaths: [String] = []
+        filePaths: [String] = [],
+        returnAt: String? = nil
     ) {
         self.id = id
         self.value = value
@@ -22,10 +24,11 @@ struct PendingShareCapture: Codable {
         self.source = source
         self.createdAt = createdAt
         self.filePaths = filePaths
+        self.returnAt = returnAt
     }
 
     private enum CodingKeys: String, CodingKey {
-        case id, value, kind, source, createdAt, filePaths
+        case id, value, kind, source, createdAt, filePaths, returnAt
     }
 
     init(from decoder: Decoder) throws {
@@ -36,6 +39,7 @@ struct PendingShareCapture: Codable {
         source = try container.decode(String.self, forKey: .source)
         createdAt = try container.decode(String.self, forKey: .createdAt)
         filePaths = try container.decodeIfPresent([String].self, forKey: .filePaths) ?? []
+        returnAt = try container.decodeIfPresent(String.self, forKey: .returnAt)
     }
 
     var toDictionary: [String: Any] {
@@ -45,7 +49,25 @@ struct PendingShareCapture: Codable {
             "createdAt": createdAt,
         ]
         if let value { dictionary["text"] = value }
+        if let returnAt { dictionary["returnAt"] = returnAt }
         return dictionary
+    }
+}
+
+enum ShareQueueError: LocalizedError {
+    case appGroupUnavailable
+    case encodeFailed
+    case writeFailed(String)
+
+    var errorDescription: String? {
+        switch self {
+        case .appGroupUnavailable:
+            return "App Group container (group.pro.micorp.laterbox) is not available on this device. Please check App Group entitlements."
+        case .encodeFailed:
+            return "Failed to encode share item."
+        case .writeFailed(let reason):
+            return "Could not write to App Group storage: \(reason)"
+        }
     }
 }
 
@@ -131,18 +153,20 @@ final class ShareCaptureQueue {
         )
     }
 
-    @discardableResult
-    func enqueue(_ capture: PendingShareCapture) -> Bool {
+    func enqueueResult(_ capture: PendingShareCapture) -> Result<Void, ShareQueueError> {
         var captures = readAll()
         if captures.contains(where: { $0.id == capture.id }) {
-            return true
+            return .success(())
         }
         captures.append(capture)
 
-        guard let data = try? JSONEncoder().encode(captures) else { return false }
-        
+        guard let data = try? JSONEncoder().encode(captures) else {
+            return .failure(.encodeFailed)
+        }
+
         var sharedWriteSucceeded = false
         var fallbackWriteSucceeded = false
+        var lastError: Error?
 
         // 1. Write to App Group file container (accessible cross-process)
         if let group = groupContainerURL {
@@ -155,9 +179,13 @@ final class ShareCaptureQueue {
             } catch {
                 do {
                     try data.write(to: fileURL)
-                    try? FileManager.default.setAttributes([.protectionKey: FileProtectionType.completeUntilFirstUserAuthentication], ofItemAtPath: fileURL.path)
+                    try? FileManager.default.setAttributes(
+                        [.protectionKey: FileProtectionType.completeUntilFirstUserAuthentication],
+                        ofItemAtPath: fileURL.path
+                    )
                     sharedWriteSucceeded = true
                 } catch {
+                    lastError = error
                     NSLog("[LaterBox] Could not write to group queue file: \(error)")
                 }
             }
@@ -172,7 +200,7 @@ final class ShareCaptureQueue {
             }
         }
 
-        // 3. Write to fallback sandbox container (only used when running in standalone mode / unit tests)
+        // 3. Write to fallback sandbox container (used in unit tests / standalone previews)
         let fallbackURL = fallbackContainerURL.appendingPathComponent("pending-share-captures.json")
         let fallbackParent = fallbackURL.deletingLastPathComponent()
         ensureDirectoryExists(at: fallbackParent)
@@ -184,18 +212,37 @@ final class ShareCaptureQueue {
                 try data.write(to: fallbackURL)
                 fallbackWriteSucceeded = true
             } catch {
+                if lastError == nil { lastError = error }
                 NSLog("[LaterBox] Could not write to fallback queue file: \(error)")
             }
         }
 
-        // Cross-process sharing requires at least one App Group medium, OR fallback if App Group is intentionally not configured (e.g. unit tests)
-        let success = isAppGroupAvailable ? sharedWriteSucceeded : fallbackWriteSucceeded
-
-        if success {
-            notifyShareReceived()
+        if isAppGroupAvailable {
+            if sharedWriteSucceeded {
+                notifyShareReceived()
+                return .success(())
+            } else {
+                let message = lastError?.localizedDescription ?? "Failed to write data into App Group file or defaults."
+                return .failure(.writeFailed(message))
+            }
+        } else {
+            if fallbackWriteSucceeded {
+                notifyShareReceived()
+                return .success(())
+            } else {
+                return .failure(.appGroupUnavailable)
+            }
         }
+    }
 
-        return success
+    @discardableResult
+    func enqueue(_ capture: PendingShareCapture) -> Bool {
+        switch enqueueResult(capture) {
+        case .success:
+            return true
+        case .failure:
+            return false
+        }
     }
 
     func readAll() -> [PendingShareCapture] {
