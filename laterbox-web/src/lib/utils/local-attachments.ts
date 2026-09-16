@@ -38,3 +38,15 @@ export async function localAttachmentUrl(id: string, ownerId: string | null): Pr
     });
   } finally { db.close(); }
 }
+
+export async function readLocalAttachment(id: string, ownerId: string | null): Promise<File | null> {
+  const db = await openFiles();
+  try {
+    return await new Promise((resolve, reject) => {
+      const request = db.transaction('files').objectStore('files').get(id);
+      request.onsuccess = () => { const record = request.result as { userId: string | null; file: File } | undefined;
+        resolve(record && record.userId === ownerId ? record.file : null); };
+      request.onerror = () => reject(request.error);
+    });
+  } finally { db.close(); }
+}
