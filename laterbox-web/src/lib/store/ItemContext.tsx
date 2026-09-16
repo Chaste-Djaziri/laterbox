@@ -149,11 +149,12 @@ export function ItemProvider({ children }: { children: ReactNode }) {
         attachmentMap.set(att.item_id, list);
       });
 
+      const cachedItems = JSON.parse(localStorage.getItem(`${LOCAL_ITEMS_KEY}_${user.id}`) || '[]') as LaterBoxItem[];
       const mappedItems: LaterBoxItem[] = (itemRows || []).map((item) => ({
         ...migrateSchedule(item),
         metadata: metaMap.get(item.id) || null,
         note: noteMap.get(item.id) || null,
-        attachments: attachmentMap.get(item.id) || (JSON.parse(localStorage.getItem(`${LOCAL_ITEMS_KEY}_${user.id}`) || '[]') as LaterBoxItem[]).find(local => local.id === item.id)?.attachments || [],
+        attachments: [...new Map([...(cachedItems.find(local => local.id === item.id && local.user_id === user.id)?.attachments || []), ...(attachmentMap.get(item.id) || [])].filter(attachment => !attachment.deleted_at).map(attachment => [attachment.id, attachment])).values()],
       }));
 
       // Deduplicate items by ID and URL/text
