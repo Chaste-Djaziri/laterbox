@@ -443,8 +443,14 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
           content = child ?? const SizedBox.shrink();
         }
         return IosAppStoreUpdateOverlay(
-          child: IosClipboardCaptureOverlay(
-            child: content,
+          child: Overlay(
+            initialEntries: [
+              OverlayEntry(
+                builder: (context) => IosClipboardCaptureOverlay(
+                  child: content,
+                ),
+              ),
+            ],
           ),
         );
       },
