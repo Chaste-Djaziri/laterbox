@@ -66,9 +66,9 @@ void main() {
     await tester.pumpAndSettle();
     final stored = (await tester.runAsync(() => database.watchAllItemsWithMetadata(null).first))!;
     expect(stored, hasLength(1));
-    expect(stored.single.item.url, 'https://example.com/b');
-    expect(stored.single.item.status, 'deferred');
-    expect(stored.single.item.returnAt, isNull);
+    expect(stored.single.$1.url, 'https://example.com/b');
+    expect(stored.single.$1.status, 'deferred');
+    expect(stored.single.$1.returnAt, isNull);
     expect(find.text('https://example.com/b'), findsNothing);
 
     await tester.pumpWidget(const SizedBox.shrink());
@@ -167,9 +167,9 @@ void main() {
 
     await _pumpUntilFound(tester, find.text('https://example.com/live'));
     final stored = (await tester.runAsync(() => database.watchAllItemsWithMetadata(null).first))!;
-    expect(stored.single.item.url, 'https://example.com/live');
-    expect(stored.single.item.status, 'deferred');
-    expect(stored.single.item.returnAt, isNull);
+    expect(stored.single.$1.url, 'https://example.com/live');
+    expect(stored.single.$1.status, 'deferred');
+    expect(stored.single.$1.returnAt, isNull);
     expect(find.text('https://example.com/live'), findsNothing);
 
     await tester.pumpWidget(const SizedBox.shrink());
