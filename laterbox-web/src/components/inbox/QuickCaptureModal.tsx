@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useItems } from '@/lib/store/ItemContext';
+import Link from 'next/link';
+import { ReturnTimePicker } from '../scheduling/ReturnTimePicker';
 import {
   X,
   Link2,
@@ -19,6 +21,8 @@ import {
 interface QuickCaptureModalProps {
   isOpen: boolean;
   onClose: () => void;
+  initialFiles?: File[];
+  browseFiles?: boolean;
 }
 
 function formatBytes(bytes: number): string {
@@ -29,7 +33,10 @@ function formatBytes(bytes: number): string {
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
 }
 
-export function QuickCaptureModal({ isOpen, onClose }: QuickCaptureModalProps) {
+export function QuickCaptureModal({ isOpen, onClose, initialFiles, browseFiles = false }: QuickCaptureModalProps) {
+  const [returnAt, setReturnAt] = useState<string | null>(null);
+  const [kind, setKind] = useState('link');
+  const [duplicateId, setDuplicateId] = useState<string | null>(null);
   const { saveItem } = useItems();
   const [content, setContent] = useState('');
   const [files, setFiles] = useState<File[]>([]);
@@ -44,14 +51,16 @@ export function QuickCaptureModal({ isOpen, onClose }: QuickCaptureModalProps) {
   useEffect(() => {
     if (isOpen) {
       setContent('');
-      setFiles([]);
+      setFiles(initialFiles || []);
+      setReturnAt(null); setKind(initialFiles?.length ? 'file' : 'link'); setDuplicateId(null);
+      if (browseFiles) setTimeout(() => fileInputRef.current?.click(), 50);
       setIsDragging(false);
       setError(null);
       setSuccess(false);
       setSaving(false);
       setTimeout(() => textareaRef.current?.focus(), 50);
     }
-  }, [isOpen]);
+  }, [isOpen, initialFiles, browseFiles]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -113,7 +122,10 @@ export function QuickCaptureModal({ isOpen, onClose }: QuickCaptureModalProps) {
     setError(null);
 
     try {
-      await saveItem(content.trim(), { files });
+      const id = crypto.randomUUID();
+      const item = await saveItem(content.trim(), { id, files, returnAt,
+        type: files.length ? 'file' : kind === 'task' ? 'task' : kind === 'idea' ? 'note' : undefined });
+      if (item.id !== id) { setDuplicateId(item.id); setSaving(false); setError('This item is already in LaterBox.'); return; }
       setSuccess(true);
       setTimeout(() => {
         onClose();
@@ -134,7 +146,7 @@ export function QuickCaptureModal({ isOpen, onClose }: QuickCaptureModalProps) {
       onDrop={handleDrop}
     >
       <div
-        className={`w-full max-w-lg bg-[#f7f5ee] rounded-t-3xl sm:rounded-3xl shadow-2xl border transition-all duration-200 p-6 sm:p-7 relative scale-100 ${
+        className={`w-full max-w-lg max-h-[90dvh] overflow-y-auto bg-[#f7f5ee] rounded-t-3xl sm:rounded-3xl shadow-2xl border transition-all duration-200 p-6 sm:p-7 relative scale-100 ${
           isDragging ? 'border-[#171711] ring-4 ring-[#171711]/10 bg-[#ebe7dc]' : 'border-[#e4e0d5]'
         }`}
         onClick={(e) => e.stopPropagation()}
@@ -148,6 +160,13 @@ export function QuickCaptureModal({ isOpen, onClose }: QuickCaptureModalProps) {
           <X className="w-5 h-5" />
         </button>
 
+        <div className="mb-4 pr-10 flex flex-wrap gap-2">
+          {['link', 'file', 'task', 'idea'].map(option => <button type="button" key={option} disabled={saving}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold capitalize ${kind === option ? 'bg-[#e6edb0]' : 'border border-[#e4e0d5]'}`}
+            onClick={() => { setKind(option); if (option === 'file') fileInputRef.current?.click(); }}>{option}</button>)}
+        </div>
+        <div className="mb-5"><ReturnTimePicker value={returnAt} onChange={setReturnAt} disabled={saving} /></div>
+        {duplicateId && <Link href={`/item/${duplicateId}`} onClick={onClose} className="block mb-4 text-sm font-bold underline">View item and reschedule</Link>}
         {/* Hidden File Input */}
         <input
           ref={fileInputRef}
