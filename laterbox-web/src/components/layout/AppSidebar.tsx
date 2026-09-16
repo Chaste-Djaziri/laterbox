@@ -49,15 +49,15 @@ export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
 
   const navLinks = [
     { href: '/home', label: 'Home', icon: <Home className="w-4 h-4" /> },
-    { href: '/today', label: 'Today', icon: <CalendarDays className="w-4 h-4" /> },
-    { href: '/upcoming', label: 'Upcoming', icon: <CalendarDays className="w-4 h-4" /> },
-    { href: '/someday', label: 'Someday', icon: <Clock className="w-4 h-4" /> },
     {
       href: '/inbox',
       label: 'Inbox',
       icon: <Inbox className="w-4 h-4" />,
       badge: inboxItems.length > 0 ? inboxItems.length : undefined,
     },
+    { href: '/today', label: 'Today', icon: <CalendarDays className="w-4 h-4" /> },
+    { href: '/upcoming', label: 'Upcoming', icon: <CalendarDays className="w-4 h-4" /> },
+    { href: '/someday', label: 'Someday', icon: <Clock className="w-4 h-4" /> },
     {
       href: '/search',
       label: 'Search',
