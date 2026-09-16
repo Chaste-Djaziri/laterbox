@@ -92,8 +92,9 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
     super.initState();
     _selectedFiles.addAll(widget.initialFiles);
     if (widget.initialFiles.isNotEmpty) _captureKind = 'file';
-    if (widget.browseFiles)
+    if (widget.browseFiles) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _chooseFiles());
+    }
     _controller.addListener(_onTextChanged);
     _sendAnimController = AnimationController(
       vsync: this,
@@ -783,8 +784,9 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
                                                 setState(
                                                   () => _captureKind = kind.key,
                                                 );
-                                                if (kind.key == 'file')
+                                                if (kind.key == 'file') {
                                                   _chooseFiles();
+                                                }
                                               },
                                       ),
                                   ],
@@ -793,8 +795,9 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
                                 ReturnTimePicker(
                                   value: _returnAt,
                                   onChanged: (time) {
-                                    if (!_saving)
+                                    if (!_saving) {
                                       setState(() => _returnAt = time);
+                                    }
                                   },
                                 ),
                                 const SizedBox(height: 12),
