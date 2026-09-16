@@ -56,7 +56,6 @@ class DesktopSidebar extends ConsumerWidget {
       _NavEntry(label: 'Today', icon: Icons.calendar_today_outlined, selectedIcon: Icons.calendar_today_rounded, path: '/today', tabIndex: 2),
       _NavEntry(label: 'Upcoming', icon: Icons.event_outlined, selectedIcon: Icons.event_rounded, path: '/upcoming', tabIndex: 3),
       _NavEntry(label: 'Someday', icon: Icons.schedule_outlined, selectedIcon: Icons.schedule_rounded, path: '/someday', tabIndex: 4),
-      _NavEntry(label: 'Search', icon: Icons.search_rounded, selectedIcon: Icons.search_rounded, path: '/search'),
       _NavEntry(label: 'Library', icon: Icons.auto_stories_outlined, selectedIcon: Icons.auto_stories_rounded, path: '/library', tabIndex: 5),
       _NavEntry(label: 'Guide', icon: Icons.explore_outlined, selectedIcon: Icons.explore_rounded, path: '/tutorial'),
       _NavEntry(label: 'Apps', icon: Icons.download_rounded, selectedIcon: Icons.download_rounded, path: '/download'),
