@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { MediaEmbed } from '@/components/item/MediaEmbed';
 import { NoteEditor } from '@/components/item/NoteEditor';
 import { AddToCollectionModal } from '@/components/collections/AddToCollectionModal';
+import { ReturnTimePicker } from '@/components/scheduling/ReturnTimePicker';
 import { useItems } from '@/lib/store/ItemContext';
 import { extractDomain, formatTimeAgo, buildTextFragmentUrl } from '@/lib/utils/url';
 import { fetchAttachmentDownloadUrl } from '@/lib/utils/attachment';
@@ -211,6 +212,7 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
   const {
     getItemById,
     setFavorite,
+    reschedule,
     keepItem,
     archiveItem,
     markUnseen,
@@ -291,8 +293,9 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
               <Star className={`w-5 h-5 ${item.favorite ? 'fill-amber-500' : ''}`} />
             </button>
 
+            {item.type === 'task' && item.status !== 'archived' && <button onClick={() => archiveItem(item.id)} className="rounded-lg bg-[#e6edb0] px-3 py-2 text-xs font-bold">Done</button>}
             {/* Keep in Library / Archive / Move to Inbox Button */}
-            {item.status === 'inbox' ? (
+            {(item.status === 'inbox' || item.status === 'deferred') ? (
               <button
                 onClick={() => keepItem(item.id)}
                 title="Keep in Library"
@@ -368,6 +371,8 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
           </div>
         </div>
 
+        <ReturnTimePicker value={item.return_at ?? null} onChange={value => { void reschedule(item.id, value); }} />
+
         {/* Main Item Card */}
         <article className="p-6 sm:p-8 rounded-3xl bg-white border border-[#e4e0d5] shadow-xs space-y-6">
           {/* Metadata Top Bar */}
@@ -442,14 +447,14 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
               {/* Status Badge */}
               <span
                 className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider ${
-                  item.status === 'inbox'
+                  (item.status === 'inbox' || item.status === 'deferred')
                     ? 'bg-[#e0f2fe] text-[#0369a1]'
                     : item.status === 'saved'
                     ? 'bg-[#e6edb0] text-[#171711]'
                     : 'bg-[#f4f4f5] text-[#71717a]'
                 }`}
               >
-                {item.status === 'inbox' ? 'Inbox' : item.status === 'saved' ? 'Kept' : 'Archived'}
+                {(item.status === 'inbox' || item.status === 'deferred') ? 'Inbox' : item.status === 'saved' ? 'Kept' : 'Archived'}
               </span>
 
               {item.metadata?.content_type && (
