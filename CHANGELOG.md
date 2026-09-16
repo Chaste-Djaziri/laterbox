@@ -15,6 +15,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
   - Taller 42px tab pills with 18px icons and bold typography.
   - Removed hover background/color states on unselected sidebar items.
   - Removed sidebar collapse toggle chevron icon.
+- **macOS Notch Companion**: Reduced top corner radius for a sharper, tighter notch silhouette.
 - **Desktop Sidebar**: Added hover state and pointer cursor on interactive sidebar links.
 - **macOS Home Header**: Removed redundant "Home" AppBar title on macOS and desktop platforms in favor of a clean greeting header.
 - **Sidebar Navigation**: Removed redundant "Search" tab from sidebar navigation in favor of the header search button and `⌘K` shortcut.
