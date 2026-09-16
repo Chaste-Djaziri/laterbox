@@ -36,6 +36,7 @@ class WebAttachmentImportService {
   Future<AttachmentImportResult> importFiles({
     required List<PickedAttachmentFile> files,
     String? text,
+    DateTime? returnAt,
   }) async {
     final attachments = <AttachmentsCompanion>[];
     final attachmentIds = <String>[];
@@ -72,6 +73,7 @@ class WebAttachmentImportService {
             sha256: sha256.convert(bytes).toString(),
             localBytes: Value(bytes),
             createdAt: createdAt,
+
             updatedAt: createdAt,
           ),
         );
@@ -112,7 +114,10 @@ class WebAttachmentImportService {
                 : normalizedText,
           ),
           type: const Value('file'),
+          status: const Value('deferred'),
+          returnAt: Value(returnAt?.toUtc()),
           createdAt: createdAt,
+
           updatedAt: createdAt,
         ),
         rows,
