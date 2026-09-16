@@ -24,6 +24,7 @@ import 'features/capture/domain/capture_providers.dart';
 import 'features/capture/domain/capture_payload.dart';
 import 'features/capture/domain/native_share_payload.dart';
 import 'features/capture/presentation/ios_clipboard_capture_overlay.dart';
+import 'features/capture/presentation/ios_notch_companion_controller.dart';
 import 'features/quick_capture/presentation/quick_capture_screen.dart';
 
 class LaterBoxApp extends ConsumerStatefulWidget {
@@ -99,12 +100,16 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
       if (value != null && value.isNotEmpty) {
         final id = uri.queryParameters['id'] ??
             DateTime.now().microsecondsSinceEpoch.toString();
+        final returnAtStr = uri.queryParameters['returnAt'];
+        final returnAt =
+            returnAtStr != null ? DateTime.tryParse(returnAtStr) : null;
         unawaited(
           ref.read(captureServiceProvider).save(
                 CapturePayload.fromValue(
                   value,
                   id: id,
                   source: CaptureSource.iosShare,
+                  returnAt: returnAt,
                 ),
               ),
         );
@@ -248,6 +253,9 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
             '[LaterBox] WARNING: iOS App Group container is not accessible on this device. '
             'Check App Group entitlements and provisioning profile.',
           );
+          ref.read(iosNotchCompanionProvider.notifier).showError(
+                'App Group container not accessible. Shares cannot sync from extension.',
+              );
         }
       }
       final pending = await receiver.consumePendingShares();
@@ -278,6 +286,17 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
                 value: value,
                 kind: _shareReceiptKind(payload),
               );
+            } else if (Platform.isIOS) {
+              final value =
+                  payload.text ??
+                  (payload.filePaths.isEmpty
+                      ? 'Shared item'
+                      : payload.filePaths.first);
+              ref.read(iosNotchCompanionProvider.notifier).showSavedConfirmation(
+                    title: _shareReceiptTitle(payload),
+                    subtitle: value,
+                    returnAt: payload.returnAt,
+                  );
             }
           } else if (Platform.isMacOS) {
             await MacOSCompanion.reportCaptureFailed(
@@ -285,7 +304,18 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
               message:
                   'Could not import this shared item. Open LaterBox to retry.',
             );
+          } else if (Platform.isIOS) {
+            ref.read(iosNotchCompanionProvider.notifier).showError(
+                  'Could not save shared item to LaterBox.',
+                );
           }
+        } catch (error) {
+          if (Platform.isIOS) {
+            ref.read(iosNotchCompanionProvider.notifier).showError(
+                  'Error saving shared item: $error',
+                );
+          }
+          rethrow;
         } finally {
           _inFlightShareIds.remove(payload.id);
         }
@@ -294,6 +324,11 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
       debugPrint('[LaterBox] Share method channel not registered: $error');
     } on Object catch (error, stackTrace) {
       debugPrint('Failed to import Apple shares: $error\n$stackTrace');
+      if (!kIsWeb && Platform.isIOS) {
+        ref.read(iosNotchCompanionProvider.notifier).showError(
+              'Could not sync share from extension: $error',
+            );
+      }
     }
   }
 
@@ -352,6 +387,7 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
               id: payload.id,
               createdAt: payload.createdAt,
               source: source,
+              returnAt: payload.returnAt,
             ),
           );
       return true;
@@ -362,6 +398,7 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
       sourcePaths: filePaths,
       text: filePaths.length == payload.filePaths.length ? text : null,
       itemId: payload.id,
+      returnAt: payload.returnAt,
     );
     if (result.saved) return true;
     return !result.failures.any(
