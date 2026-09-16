@@ -84,7 +84,7 @@ class CapturePayload {
           url: finalUrl,
           text: remainingText,
           createdAt: createdAt,
-        returnAt: returnAt,
+          returnAt: returnAt,
           source: source,
         );
       } else {
@@ -95,7 +95,7 @@ class CapturePayload {
           url: matchedUrl,
           text: null,
           createdAt: createdAt,
-        returnAt: returnAt,
+          returnAt: returnAt,
           source: source,
         );
       }
