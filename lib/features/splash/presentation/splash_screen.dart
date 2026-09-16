@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../core/auth/auth_provider.dart';
+import '../../../core/router/app_router.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
@@ -51,14 +51,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   }
 
   void _navigateToTarget() {
-    final authState = ref.read(restoredAuthStateProvider);
-    final guestMode = ref.read(guestModeProvider);
-
-    if (guestMode || authState.isAuthenticated) {
-      context.go('/home');
-    } else {
-      context.go('/welcome');
-    }
+    context.go(ref.read(initialLocationProvider));
   }
 
   @override
