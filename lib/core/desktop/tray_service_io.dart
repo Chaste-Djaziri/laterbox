@@ -18,8 +18,8 @@ class TrayService {
   DesktopMenuState _menuState = DesktopMenuState(
     accountStatus: DesktopMenuAccountStatus.guest,
     quickCaptureShortcutLabel: Platform.isWindows
-        ? 'Ctrl + Alt + Space'
-        : '⌥ Space',
+        ? 'Ctrl + Shift + L'
+        : '⌃ ⌥ Space',
   );
   final _listener = _TrayListener();
 
