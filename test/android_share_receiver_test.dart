@@ -42,9 +42,11 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('EXAMPLE.COM'), findsOneWidget);
-    expect(find.text('https://example.com/a'), findsOneWidget);
-    expect(find.text('read this later'), findsOneWidget);
+    final stored = (await tester.runAsync(() => database.watchAllItemsWithMetadata(null).first))!;
+    expect(stored, hasLength(2));
+    expect(stored.every((row) => row.item.status == 'deferred' && row.item.returnAt == null), isTrue);
+    expect(find.text('https://example.com/a'), findsNothing);
+    expect(find.text('You’re all clear'), findsOneWidget);
 
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(milliseconds: 1));
@@ -74,7 +76,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Nothing saved yet'), findsOneWidget);
+    expect(find.text('You’re all clear'), findsOneWidget);
 
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(milliseconds: 1));
