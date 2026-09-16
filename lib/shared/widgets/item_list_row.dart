@@ -7,6 +7,7 @@ import '../../features/attachments/presentation/attachment_providers.dart';
 import '../../features/enrichment/domain/content_type.dart';
 import '../../features/enrichment/domain/url_utils.dart';
 import '../../features/inbox/presentation/inbox_providers.dart';
+import '../../features/scheduling/presentation/return_time_picker.dart';
 import '../models/laterbox_item.dart';
 import '../models/item_status.dart';
 import 'item_actions.dart';
@@ -122,7 +123,9 @@ class _ItemListRowState extends ConsumerState<ItemListRow> {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        '$eyebrow · ${timeago.format(widget.item.createdAt)}',
+                        widget.item.returnAt != null
+                            ? '$eyebrow · ${returnTimeLabel(context, widget.item.returnAt)}'
+                            : '$eyebrow · ${timeago.format(widget.item.createdAt)}',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: theme.textTheme.bodySmall?.copyWith(
