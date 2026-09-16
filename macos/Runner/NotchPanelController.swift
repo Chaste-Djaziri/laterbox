@@ -134,11 +134,29 @@ final class NotchPanelView: NSView {
     NSColor.black.setFill()
     let body = controller.isExpanded
       ? expandedBodyPath(notchHeight: controller.compactHeight)
-      : NSBezierPath(roundedRect: bounds, xRadius: controller.compactRadius, yRadius: controller.compactRadius)
+      : collapsedBodyPath()
     body.fill()
     guard controller.isExpanded else { return }
     let card = NSRect(x: 48, y: 54, width: bounds.width - 96, height: bounds.height - controller.compactHeight - 48)
     drawContent(controller, card: card)
+  }
+
+  private func collapsedBodyPath() -> NSBezierPath {
+    let path = NSBezierPath()
+    let r = controller?.compactRadius ?? 12
+    let topR: CGFloat = 3
+    let w = bounds.width, h = bounds.height
+    path.move(to: NSPoint(x: topR, y: h))
+    path.line(to: NSPoint(x: w - topR, y: h))
+    path.curve(to: NSPoint(x: w, y: h - topR), controlPoint1: NSPoint(x: w - topR * 0.55, y: h), controlPoint2: NSPoint(x: w, y: h - topR * 0.55))
+    path.line(to: NSPoint(x: w, y: r))
+    path.curve(to: NSPoint(x: w - r, y: 0), controlPoint1: NSPoint(x: w, y: r * 0.55), controlPoint2: NSPoint(x: w - r * 0.55, y: 0))
+    path.line(to: NSPoint(x: r, y: 0))
+    path.curve(to: NSPoint(x: 0, y: r), controlPoint1: NSPoint(x: r * 0.55, y: 0), controlPoint2: NSPoint(x: 0, y: r * 0.55))
+    path.line(to: NSPoint(x: 0, y: h - topR))
+    path.curve(to: NSPoint(x: topR, y: h), controlPoint1: NSPoint(x: 0, y: h - topR * 0.55), controlPoint2: NSPoint(x: topR * 0.55, y: h))
+    path.close()
+    return path
   }
 
   private func expandedBodyPath(notchHeight: CGFloat) -> NSBezierPath {
