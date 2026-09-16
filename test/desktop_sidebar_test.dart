@@ -56,7 +56,7 @@ void main() {
     expect(find.text('Today'), findsOneWidget);
     expect(find.text('Upcoming'), findsOneWidget);
     expect(find.text('Someday'), findsOneWidget);
-    expect(find.text('Search'), findsOneWidget);
+    expect(find.text('Search'), findsNothing);
     expect(find.text('Library'), findsOneWidget);
     expect(find.text('Guide'), findsOneWidget);
     expect(find.text('Apps'), findsOneWidget);
