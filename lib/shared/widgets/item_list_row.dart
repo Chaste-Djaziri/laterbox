@@ -14,10 +14,7 @@ import 'item_actions.dart';
 /// A compact list row representation of a saved item, mirroring the web
 /// `ItemListRow` component. Ideal for high-density reading and scanning.
 class ItemListRow extends ConsumerStatefulWidget {
-  const ItemListRow({
-    super.key,
-    required this.item,
-  });
+  const ItemListRow({super.key, required this.item});
 
   final LaterBoxItem item;
 
@@ -36,12 +33,18 @@ class _ItemListRowState extends ConsumerState<ItemListRow> {
     final isFile = widget.item.type == 'file';
     final isStarred = widget.item.favorite;
 
-    final rawEyebrow = widget.item.metadata?.domain ??
+    final rawEyebrow =
+        widget.item.metadata?.domain ??
         uri?.host.replaceFirst('www.', '') ??
-        (isFile ? 'File' : widget.item.type == 'task' ? 'Task' : 'Note');
+        (isFile
+            ? 'File'
+            : widget.item.type == 'task'
+            ? 'Task'
+            : 'Note');
     final eyebrow = cleanMetaText(rawEyebrow) ?? rawEyebrow;
 
-    final rawTitle = widget.item.metadata?.title ??
+    final rawTitle =
+        widget.item.metadata?.title ??
         widget.item.title ??
         widget.item.url ??
         widget.item.text ??
@@ -118,10 +121,15 @@ class _ItemListRowState extends ConsumerState<ItemListRow> {
                         ],
                       ),
                       const SizedBox(height: 2),
-                      Text('$eyebrow · ${timeago.format(widget.item.createdAt)}',
-                        maxLines: 1, overflow: TextOverflow.ellipsis,
+                      Text(
+                        '$eyebrow · ${timeago.format(widget.item.createdAt)}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant, fontSize: 11)),
+                          color: theme.colorScheme.onSurfaceVariant,
+                          fontSize: 11,
+                        ),
+                      ),
                       if (isFile) _FileAttachmentBadge(itemId: widget.item.id),
                     ],
                   ),
@@ -226,8 +234,10 @@ class _ItemTypeLeadingIcon extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isNote =
-        item.type == 'note' || (item.url == null && (item.text?.isNotEmpty ?? false));
-    final type = item.metadata?.classification?.type ??
+        item.type == 'note' ||
+        (item.url == null && (item.text?.isNotEmpty ?? false));
+    final type =
+        item.metadata?.classification?.type ??
         (isFile ? ContentType.file : (isNote ? null : ContentType.link));
 
     if (imageUrl != null && imageUrl!.isNotEmpty) {
@@ -287,7 +297,8 @@ class _ItemTypeLeadingIcon extends StatelessWidget {
     required bool isNote,
   }) {
     final theme = Theme.of(context);
-    if (item.type == 'task') return Icon(Icons.task_alt, size: 18, color: theme.colorScheme.primary);
+    if (item.type == 'task')
+      return Icon(Icons.task_alt, size: 18, color: theme.colorScheme.primary);
     if (isFile) {
       return Icon(
         Icons.attach_file_rounded,
@@ -304,25 +315,25 @@ class _ItemTypeLeadingIcon extends StatelessWidget {
     }
     return switch (type) {
       ContentType.video => const Icon(
-          Icons.play_circle_outline_rounded,
-          size: 18,
-          color: Colors.redAccent,
-        ),
+        Icons.play_circle_outline_rounded,
+        size: 18,
+        color: Colors.redAccent,
+      ),
       ContentType.music => const Icon(
-          Icons.music_note_rounded,
-          size: 18,
-          color: Colors.green,
-        ),
+        Icons.music_note_rounded,
+        size: 18,
+        color: Colors.green,
+      ),
       ContentType.article => Icon(
-          Icons.article_outlined,
-          size: 18,
-          color: theme.colorScheme.onSurface,
-        ),
+        Icons.article_outlined,
+        size: 18,
+        color: theme.colorScheme.onSurface,
+      ),
       _ => Icon(
-          Icons.link_rounded,
-          size: 18,
-          color: theme.colorScheme.onSurfaceVariant,
-        ),
+        Icons.link_rounded,
+        size: 18,
+        color: theme.colorScheme.onSurfaceVariant,
+      ),
     };
   }
 }
