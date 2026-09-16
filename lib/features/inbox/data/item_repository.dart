@@ -51,12 +51,13 @@ class ItemRepository {
     );
   }
 
-  Future<void> save(
+  Future<String> save(
     String value, {
     String? id,
     String? title,
     String? type,
     DateTime? createdAt,
+    DateTime? returnAt,
     String? textContent,
     String? url,
   }) async {
@@ -68,7 +69,7 @@ class ItemRepository {
     }
 
     final itemId = id ?? _uuid.v4();
-    if (id != null && await _local.exists(itemId)) return;
+    if (id != null && await _local.exists(itemId)) return itemId;
 
     final targetUrl = (url != null && url.isNotEmpty)
         ? url
@@ -101,7 +102,7 @@ class ItemRepository {
       textContent: bodyText,
     );
     if (existing != null) {
-      return;
+      return existing.id;
     }
 
     final resolvedType = type ??
@@ -117,12 +118,15 @@ class ItemRepository {
         title: Value(title),
         textContent: Value(bodyText),
         type: Value(resolvedType),
+        status: const Value('deferred'),
+        returnAt: Value(returnAt?.toUtc()),
         createdAt: now,
         updatedAt: now,
         syncStatus: Value(SyncStatus.pending.databaseValue),
       ),
     );
     unawaited(_onSaved());
+    return itemId;
   }
 
   Future<void> setFavorite(String id, bool favorite) async {
@@ -141,7 +145,13 @@ class ItemRepository {
 
   Future<void> markSeen(String id) => archive(id);
 
-  Future<void> markUnseen(String id) => setStatus(id, ItemStatus.inbox);
+  Future<void> markUnseen(String id) => reschedule(id, DateTime.now());
+
+  Future<void> reschedule(String id, DateTime? returnAt) async {
+    await _local.updateSchedule(id, returnAt?.toUtc());
+    unawaited(_onSaved());
+  }
+
 
   Future<void> delete(String id) async {
     await _local.softDelete(id);
@@ -170,4 +180,11 @@ class ItemRepository {
     }
     return items;
   }
+}
+
+class DuplicateCaptureException implements Exception {
+  const DuplicateCaptureException(this.itemId);
+  final String itemId;
+  @override
+  String toString() => 'This item is already in LaterBox.';
 }
