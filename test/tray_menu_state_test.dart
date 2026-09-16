@@ -6,7 +6,7 @@ void main() {
     test('synced shows the account lines', () {
       const state = DesktopMenuState(
         accountStatus: DesktopMenuAccountStatus.synced,
-        quickCaptureShortcutLabel: '⌥ Space',
+        quickCaptureShortcutLabel: '⌃ ⌥ Space',
         email: 'me@example.com',
       );
 
@@ -19,7 +19,7 @@ void main() {
     test('offline explains local saving', () {
       const state = DesktopMenuState(
         accountStatus: DesktopMenuAccountStatus.offline,
-        quickCaptureShortcutLabel: '⌥ Space',
+        quickCaptureShortcutLabel: '⌃ ⌥ Space',
       );
 
       expect(state.statusLines(), ['Offline — changes saved locally']);
@@ -28,7 +28,7 @@ void main() {
     test('guest mode has a single line', () {
       const state = DesktopMenuState(
         accountStatus: DesktopMenuAccountStatus.guest,
-        quickCaptureShortcutLabel: '⌥ Space',
+        quickCaptureShortcutLabel: '⌃ ⌥ Space',
       );
 
       expect(state.statusLines(), ['Guest mode']);
