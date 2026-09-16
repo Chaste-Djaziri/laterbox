@@ -725,7 +725,7 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
                         position: _inputSlideAnimation,
                         child: FadeTransition(
                           opacity: _inputFadeAnimation,
-                          child: Column(
+                          child: SingleChildScrollView(child: Column(
                           mainAxisSize: MainAxisSize.min,
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
@@ -1107,7 +1107,7 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
                               },
                             ),
                           ],
-                        ),
+                        )),
                       ),
                     ),
                   ),
