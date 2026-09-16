@@ -176,7 +176,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('EXAMPLE.COM'), findsNothing);
-      final captured = await tester.runAsync(() => database.watchAllItemsWithMetadata(null).first);
+      final captured = (await tester.runAsync(() => database.watchAllItemsWithMetadata(null).first))!;
       expect(captured, hasLength(1));
       expect(captured.single.$1.status, 'deferred');
       expect(captured.single.$1.returnAt, isNull);
