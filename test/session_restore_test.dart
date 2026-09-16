@@ -5,7 +5,7 @@ import 'package:laterbox/core/auth/auth_state.dart';
 import 'package:laterbox/core/router/app_router.dart';
 
 void main() {
-  test('a restored session opens the inbox after reload', () {
+  test('a restored session opens Home after reload', () {
     final container = ProviderContainer(
       overrides: [
         guestModeProvider.overrideWith((ref) => false),
@@ -19,7 +19,7 @@ void main() {
     );
     addTearDown(container.dispose);
 
-    expect(container.read(initialLocationProvider), '/inbox');
+    expect(container.read(initialLocationProvider), '/home');
   });
 
   test('a reload without a session opens welcome', () {
