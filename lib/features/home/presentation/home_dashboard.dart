@@ -203,12 +203,18 @@ class HomeDashboard extends ConsumerWidget {
                               count: today.length,
                               route: '/today',
                               icon: Icons.today_outlined,
+                              timeLabel: today.isNotEmpty && today.first.returnAt != null
+                                  ? 'Next: ${returnTimeLabel(context, today.first.returnAt)}'
+                                  : null,
                             ),
                             _Summary(
                               label: 'Upcoming',
                               count: upcoming.length,
                               route: '/upcoming',
                               icon: Icons.event_outlined,
+                              timeLabel: upcoming.isNotEmpty && upcoming.first.returnAt != null
+                                  ? 'Next: ${returnTimeLabel(context, upcoming.first.returnAt)}'
+                                  : null,
                             ),
                           ],
                         ),
@@ -291,11 +297,13 @@ class _Summary extends StatelessWidget {
     required this.count,
     required this.route,
     required this.icon,
+    this.timeLabel,
   });
   final String label;
   final int count;
   final String route;
   final IconData icon;
+  final String? timeLabel;
   @override
   Widget build(BuildContext context) => SizedBox(
     width: 260,
@@ -319,6 +327,17 @@ class _Summary extends StatelessWidget {
                       '$count items',
                       style: Theme.of(context).textTheme.titleLarge,
                     ),
+                    if (timeLabel != null) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        timeLabel!,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
                   ],
                 ),
               ),
