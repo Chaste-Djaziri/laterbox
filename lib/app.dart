@@ -18,8 +18,6 @@ import 'core/ios/ios_app_store_update_service.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/scroll_behavior.dart';
-import 'core/web/web_update_banner.dart';
-import 'core/web/web_update_service.dart';
 import 'features/attachments/presentation/attachment_providers.dart';
 import 'features/attachments/domain/attachment_import_result.dart';
 import 'features/capture/domain/capture_providers.dart';
@@ -151,9 +149,6 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
     if (state == AppLifecycleState.resumed) {
       ref.invalidate(entitlementProvider);
       _drainPendingShares();
-      if (kIsWeb) {
-        ref.read(webUpdateProvider.notifier).checkForUpdate();
-      }
       if (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS) {
         ref.read(iosAppStoreUpdateProvider.notifier).checkForUpdate();
       }
@@ -412,7 +407,7 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
         }
         return IosAppStoreUpdateOverlay(
           child: IosClipboardCaptureOverlay(
-            child: WebUpdateBannerOverlay(child: content),
+            child: content,
           ),
         );
       },
