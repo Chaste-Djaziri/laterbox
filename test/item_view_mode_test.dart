@@ -182,4 +182,33 @@ void main() {
     expect(find.byType(ItemListRow), findsOneWidget);
     expect(find.byType(ItemCard), findsNothing);
   });
+
+  testWidgets('ItemCard shows scheduled return time when returnAt is set', (
+    tester,
+  ) async {
+    final now = DateTime.utc(2026, 9, 14, 1, 0, 0);
+    final returnTime = DateTime.utc(2026, 9, 18, 14, 30, 0);
+    final scheduledItem = LaterBoxItem(
+      id: 'scheduled-item-1',
+      title: 'Scheduled Article',
+      url: 'https://example.com/article',
+      type: 'article',
+      status: ItemStatus.deferred,
+      favorite: false,
+      createdAt: now,
+      returnAt: returnTime,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: ItemCard(item: scheduledItem),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Scheduled Article'), findsOneWidget);
+    expect(find.textContaining('Sep 18'), findsOneWidget);
+  });
 }
