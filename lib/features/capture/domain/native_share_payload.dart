@@ -4,12 +4,14 @@ class NativeSharePayload {
     required this.filePaths,
     this.text,
     this.createdAt,
+    this.returnAt,
   });
 
   final String id;
   final String? text;
   final List<String> filePaths;
   final DateTime? createdAt;
+  final DateTime? returnAt;
 
   bool get hasFiles => filePaths.isNotEmpty;
 
@@ -52,6 +54,7 @@ class NativeSharePayload {
 
     if ((textValue == null || textValue.isEmpty) && paths.isEmpty) return null;
     final createdAtValue = map['createdAt'] as String?;
+    final returnAtValue = (map['returnAt'] as String?)?.trim();
     return NativeSharePayload(
       id: id,
       text: textValue == null || textValue.isEmpty ? null : textValue,
@@ -59,6 +62,9 @@ class NativeSharePayload {
       createdAt: createdAtValue == null
           ? null
           : DateTime.tryParse(createdAtValue),
+      returnAt: returnAtValue == null || returnAtValue.isEmpty
+          ? null
+          : DateTime.tryParse(returnAtValue),
     );
   }
 }
