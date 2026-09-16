@@ -5,6 +5,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- **Custom Return Time for Dynamic Island & Share Extension**: Added custom date and time scheduling to the iOS Dynamic Island companion modal and enhanced the custom time picker in the iOS Share Extension confirm modal.
 - **Native ActivityKit Live Activities**: Added native iOS Dynamic Island Live Activity support via ActivityKit with compact leading/trailing, minimal, and expanded interactive views for share receipts and captures.
 - **iOS Dynamic Island & Notch Companion**: Dynamic Island & Notch companion for iOS that expands to prompt user when copied content is detected (with quick "When" scheduling) and confirms saved items and share receipts directly from the Dynamic Island / Notch.
 - **iOS Share Extension 'Choose When' Picker**: iOS Share Extension now prompts the user to choose when to return the item (Inbox, Later today, Tomorrow, Weekend, Someday, or custom date/time) before confirming.
