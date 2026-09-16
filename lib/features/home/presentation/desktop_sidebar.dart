@@ -10,7 +10,7 @@ import '../../../core/billing/entitlement_presentation.dart';
 import '../../../shared/widgets/cloud_sync_indicator.dart';
 import '../../inbox/presentation/inbox_providers.dart';
 
-class DesktopSidebar extends ConsumerWidget {
+class DesktopSidebar extends ConsumerStatefulWidget {
   const DesktopSidebar({
     super.key,
     required this.selectedIndex,
@@ -25,7 +25,12 @@ class DesktopSidebar extends ConsumerWidget {
   static const double sidebarWidth = 268.0;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<DesktopSidebar> createState() => _DesktopSidebarState();
+}
+
+class _DesktopSidebarState extends ConsumerState<DesktopSidebar> {
+  @override
+  Widget build(BuildContext context) {
     final isMac = !kIsWeb && defaultTargetPlatform == TargetPlatform.macOS;
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
@@ -33,6 +38,8 @@ class DesktopSidebar extends ConsumerWidget {
     final authState = ref.watch(authStateProvider);
     final isGuest = ref.watch(guestModeProvider);
     final inboxCount = ref.watch(inboxItemsProvider).valueOrNull?.length ?? 0;
+    final entitlement =
+        ref.watch(entitlementProvider).valueOrNull ?? const Entitlement.free();
 
     final String userEmail =
         authState.asData?.value.email ?? (isGuest ? 'Guest Mode' : 'Account');
@@ -42,6 +49,11 @@ class DesktopSidebar extends ConsumerWidget {
     final sidebarBorder = isDark ? Colors.white.withValues(alpha: 0.08) : const Color(0xFFE4E0D5);
     final textPrimary = isDark ? Colors.white : const Color(0xFF171711);
     final dividerColor = isDark ? Colors.white.withValues(alpha: 0.08) : const Color(0xFFE4E0D5).withValues(alpha: 0.8);
+
+    String currentPath = '';
+    try {
+      currentPath = GoRouterState.of(context).uri.path;
+    } catch (_) {}
 
     final navEntries = [
       _NavEntry(label: 'Home', icon: Icons.home_outlined, selectedIcon: Icons.home_rounded, path: '/home', tabIndex: 0),
@@ -58,7 +70,7 @@ class DesktopSidebar extends ConsumerWidget {
     ];
 
     return Container(
-      width: sidebarWidth,
+      width: DesktopSidebar.sidebarWidth,
       decoration: BoxDecoration(
         color: sidebarBg,
         border: Border(
@@ -151,7 +163,8 @@ class DesktopSidebar extends ConsumerWidget {
                           color: isDark ? const Color(0xFFE6EDB0) : const Color(0xFF171711),
                           borderRadius: BorderRadius.circular(12),
                           child: InkWell(
-                            onTap: onOpenCapture,
+                            canRequestFocus: false,
+                            onTap: widget.onOpenCapture,
                             borderRadius: BorderRadius.circular(12),
                             hoverColor: Colors.transparent,
                             child: SizedBox(
@@ -171,7 +184,8 @@ class DesktopSidebar extends ConsumerWidget {
                         borderRadius: BorderRadius.circular(12),
                         elevation: 0,
                         child: InkWell(
-                          onTap: onOpenCapture,
+                          canRequestFocus: false,
+                          onTap: widget.onOpenCapture,
                           borderRadius: BorderRadius.circular(12),
                           hoverColor: Colors.transparent,
                           child: Container(
@@ -214,7 +228,7 @@ class DesktopSidebar extends ConsumerWidget {
                   itemCount: navEntries.length,
                   itemBuilder: (context, index) {
                     final entry = navEntries[index];
-                    final isSelected = _isEntrySelected(context, entry);
+                    final isSelected = _isEntrySelected(entry, currentPath);
 
                     return _SidebarTabItem(
                       entry: entry,
@@ -235,7 +249,10 @@ class DesktopSidebar extends ConsumerWidget {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    _PlanStatusCard(compact: isCompact),
+                    _PlanStatusCard(
+                      compact: isCompact,
+                      entitlement: entitlement,
+                    ),
                     const SizedBox(height: 8),
                     Center(
                       child: FittedBox(
@@ -263,24 +280,22 @@ class DesktopSidebar extends ConsumerWidget {
     );
   }
 
-  bool _isEntrySelected(BuildContext context, _NavEntry entry) {
-    try {
-      final currentPath = GoRouterState.of(context).uri.path;
+  bool _isEntrySelected(_NavEntry entry, String currentPath) {
+    if (entry.tabIndex != null) {
+      return entry.tabIndex == widget.selectedIndex;
+    }
+    if (currentPath.isNotEmpty) {
       if (entry.path == '/home') {
         return currentPath == '/home' || currentPath == '/';
       }
       return currentPath.startsWith(entry.path);
-    } catch (_) {
-      if (entry.tabIndex != null) {
-        return entry.tabIndex == selectedIndex;
-      }
-      return false;
     }
+    return false;
   }
 
   void _handleNavTap(BuildContext context, _NavEntry entry) {
     if (entry.tabIndex != null) {
-      onDestinationSelected(entry.tabIndex!);
+      widget.onDestinationSelected(entry.tabIndex!);
     } else if (entry.path == '/search') {
       context.go('/search');
     } else {
@@ -341,6 +356,7 @@ class _SidebarTabItem extends StatelessWidget {
     final content = Material(
       color: Colors.transparent,
       child: InkWell(
+        canRequestFocus: false,
         borderRadius: BorderRadius.circular(12),
         hoverColor: Colors.transparent,
         highlightColor: Colors.transparent,
@@ -416,20 +432,23 @@ class _SidebarTabItem extends StatelessWidget {
   }
 }
 
-class _PlanStatusCard extends ConsumerWidget {
-  const _PlanStatusCard({required this.compact});
+class _PlanStatusCard extends StatelessWidget {
+  const _PlanStatusCard({
+    required this.compact,
+    required this.entitlement,
+  });
 
   final bool compact;
+  final Entitlement entitlement;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final entitlement =
-        ref.watch(entitlementProvider).valueOrNull ?? const Entitlement.free();
+  Widget build(BuildContext context) {
     final presentation = EntitlementPresentation.from(entitlement);
     final warning = presentation.severity == EntitlementSeverity.warning;
     final color = warning ? Colors.amber : const Color(0xFFD7FF27);
 
     final card = InkWell(
+      canRequestFocus: false,
       onTap: () {
         if (entitlement.hasProAccess) {
           context.go('/settings');
@@ -558,6 +577,7 @@ class _UserCard extends StatelessWidget {
       return Tooltip(
         message: '$userEmail • ${isGuest ? "Sign In" : "Settings"}',
         child: InkWell(
+          canRequestFocus: false,
           onTap: () => isGuest ? context.push('/login') : context.go('/settings'),
           borderRadius: BorderRadius.circular(8),
           hoverColor: Colors.transparent,
@@ -644,6 +664,7 @@ class _UserCard extends StatelessWidget {
               color: isDark ? const Color(0xFFE6EDB0) : const Color(0xFF171711),
               borderRadius: BorderRadius.circular(8),
               child: InkWell(
+                canRequestFocus: false,
                 onTap: () => context.push('/login'),
                 borderRadius: BorderRadius.circular(8),
                 hoverColor: Colors.transparent,
@@ -737,6 +758,7 @@ class _UserCard extends StatelessWidget {
             ),
           ),
           InkWell(
+            canRequestFocus: false,
             onTap: () => context.go('/settings'),
             borderRadius: BorderRadius.circular(6),
             hoverColor: Colors.transparent,
