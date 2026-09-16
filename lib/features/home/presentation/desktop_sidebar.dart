@@ -276,6 +276,9 @@ class DesktopSidebar extends ConsumerWidget {
   }
 
   bool _isEntrySelected(_NavEntry entry, String currentPath) {
+    if (entry.isExternal) {
+      return false;
+    }
     if (entry.tabIndex != null) {
       return entry.tabIndex == selectedIndex;
     }
@@ -289,7 +292,10 @@ class DesktopSidebar extends ConsumerWidget {
   }
 
   void _handleNavTap(BuildContext context, _NavEntry entry) {
-    if (entry.tabIndex != null) {
+    if (entry.isExternal) {
+      final uri = Uri.parse(entry.path);
+      launchUrl(uri, mode: LaunchMode.externalApplication);
+    } else if (entry.tabIndex != null) {
       onDestinationSelected(entry.tabIndex!);
     } else if (entry.path == '/search') {
       context.go('/search');
@@ -307,6 +313,7 @@ class _NavEntry {
     required this.path,
     this.tabIndex,
     this.badgeCount,
+    this.isExternal = false,
   });
 
   final String label;
@@ -315,6 +322,7 @@ class _NavEntry {
   final String path;
   final int? tabIndex;
   final int? badgeCount;
+  final bool isExternal;
 }
 
 class _SidebarTabItem extends StatelessWidget {
