@@ -22,7 +22,9 @@ export async function syncPendingCaptures(userId: string) {
     const { data: remote, error: readError } = await client.from('items').select('updated_at,deleted_at').eq('id', item.id).eq('user_id', userId).maybeSingle();
     if (readError) throw readError;
     if (!remote || new Date(remote.updated_at) <= new Date(item.updated_at)) {
-      const { error } = await client.from('items').upsert(itemRow(item));
+      const { error } = remote
+        ? await client.from('items').update(itemRow(item)).eq('id', item.id).eq('user_id', userId).lte('updated_at', item.updated_at)
+        : await client.from('items').upsert(itemRow(item));
       if (error) throw error;
     }
     if (!item.deleted_at && !remote?.deleted_at) {
