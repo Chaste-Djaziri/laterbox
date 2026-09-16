@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/auth/auth_provider.dart';
@@ -1459,11 +1460,40 @@ class _ScreenRecordingTile extends ConsumerWidget {
 // About & Legal
 // ---------------------------------------------------------------------------
 
-class _AboutAndLegalCard extends ConsumerWidget {
+class _AboutAndLegalCard extends ConsumerStatefulWidget {
   const _AboutAndLegalCard();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_AboutAndLegalCard> createState() => _AboutAndLegalCardState();
+}
+
+class _AboutAndLegalCardState extends ConsumerState<_AboutAndLegalCard> {
+  String _versionText = 'Version …';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadVersion();
+  }
+
+  Future<void> _loadVersion() async {
+    try {
+      final info = await PackageInfo.fromPlatform();
+      if (!mounted) return;
+      setState(() {
+        _versionText =
+            'Version ${info.version} (Build ${info.buildNumber}) • ${_platformLabel()}';
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _versionText = 'Version unknown • ${_platformLabel()}';
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
     return Container(
@@ -1499,7 +1529,7 @@ class _AboutAndLegalCard extends ConsumerWidget {
                       ),
                     ),
                     Text(
-                      'Version 1.0.84 (Build 85) • ${_platformLabel()}',
+                      _versionText,
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                       ),
