@@ -127,7 +127,9 @@ void main() {
     current = current.add(const Duration(hours: 2));
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
     await tester.pumpAndSettle(); expect(find.text('1 due'), findsOneWidget);
-    await tester.pumpWidget(const SizedBox.shrink()); container.dispose(); await db.close();
+    await tester.pumpWidget(const SizedBox.shrink()); container.dispose();
+    await tester.pump(const Duration(milliseconds: 1));
+    await tester.runAsync(db.close);
   });
 
   testWidgets('picker defaults to Someday and displays resolved time', (tester) async {
