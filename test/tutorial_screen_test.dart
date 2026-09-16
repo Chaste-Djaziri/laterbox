@@ -14,7 +14,7 @@ void main() {
 
     expect(find.text('LaterBox guide'), findsOneWidget);
     expect(find.text('Set up LaterBox on your Mac'), findsOneWidget);
-    expect(find.text('⌥ Space'), findsOneWidget);
+    expect(find.text('⌃ ⌥ Space'), findsOneWidget);
     expect(find.text('Next step'), findsOneWidget);
 
     await tester.tap(find.text('Next step'));
@@ -31,7 +31,7 @@ void main() {
     );
 
     expect(find.text('Set up LaterBox on Windows'), findsOneWidget);
-    expect(find.text('Ctrl + Alt + Space'), findsOneWidget);
+    expect(find.text('Ctrl + Shift + L'), findsOneWidget);
     expect(find.text('Capture without changing programs'), findsOneWidget);
   });
 
