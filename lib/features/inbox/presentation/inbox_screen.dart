@@ -517,13 +517,13 @@ class _EmptyInbox extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              'Nothing saved yet',
+              'You’re all clear',
               style: Theme.of(context).textTheme.titleLarge
                   ?.copyWith(fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 8),
             Text(
-              'Tap + to save a link or note for later.',
+              'Items appear here when their return time arrives.',
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
