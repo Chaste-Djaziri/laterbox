@@ -178,8 +178,8 @@ void main() {
       expect(find.text('EXAMPLE.COM'), findsNothing);
       final captured = await tester.runAsync(() => database.watchAllItemsWithMetadata(null).first);
       expect(captured, hasLength(1));
-      expect(captured!.single.$1.status, 'deferred');
-      expect(captured!.single.$1.returnAt, isNull);
+      expect(captured.single.$1.status, 'deferred');
+      expect(captured.single.$1.returnAt, isNull);
       expect(consumeCallCount, greaterThanOrEqualTo(1));
 
       await tester.pumpWidget(const SizedBox.shrink());
