@@ -7,6 +7,7 @@ import '../../features/inbox/presentation/inbox_providers.dart';
 import '../models/item_status.dart';
 import '../models/laterbox_item.dart';
 import 'laterbox_extension.dart';
+import '../../features/scheduling/presentation/return_time_picker.dart';
 
 /// Opens the modal action sheet for an item. Used by the item card (long
 /// press) and the item detail screen. Every action writes to Drift first and
@@ -20,7 +21,7 @@ Future<void> showItemActions(
   final itemId = item.id;
 
   final (statusLabel, statusIcon, statusAction) = switch (item.status) {
-    ItemStatus.inbox => (
+    ItemStatus.inbox || ItemStatus.deferred => (
       'Keep',
       Icons.bookmark_add_outlined,
       () => repository.keep(itemId),
@@ -81,6 +82,25 @@ Future<void> showItemActions(
                 ],
               ),
             ),
+            ListTile(
+              leading: const Icon(Icons.schedule),
+              title: const Text('Choose return time'),
+              subtitle: Text(returnTimeLabel(sheetContext, item.returnAt)),
+              onTap: () async {
+                Navigator.of(sheetContext).pop();
+                await showModalBottomSheet<void>(context: context, useSafeArea: true,
+                  showDragHandle: true, builder: (pickerContext) => Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: ReturnTimePicker(value: item.returnAt, onChanged: (time) async {
+                      await repository.reschedule(itemId, time);
+                      if (pickerContext.mounted) Navigator.of(pickerContext).pop();
+                    }),
+                  ));
+              },
+            ),
+            if (item.type == 'task' && !item.isArchived)
+              ListTile(leading: const Icon(Icons.task_alt), title: const Text('Done'),
+                onTap: () { Navigator.of(sheetContext).pop(); repository.archive(itemId); }),
             ListTile(
               leading: Icon(
                 item.favorite
