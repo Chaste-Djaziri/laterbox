@@ -49,10 +49,10 @@ final class ShareViewController: UIViewController {
 
             statusView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             statusView.centerYAnchor.constraint(equalTo: view.centerYAnchor, constant: -10),
-            statusView.widthAnchor.constraint(greaterThanOrEqualToConstant: 280),
-            statusView.widthAnchor.constraint(lessThanOrEqualToConstant: 340),
-            statusView.leadingAnchor.constraint(greaterThanOrEqualTo: view.leadingAnchor, constant: 28),
-            statusView.trailingAnchor.constraint(lessThanOrEqualTo: view.trailingAnchor, constant: -28),
+            statusView.widthAnchor.constraint(greaterThanOrEqualToConstant: 300),
+            statusView.widthAnchor.constraint(lessThanOrEqualToConstant: 360),
+            statusView.leadingAnchor.constraint(greaterThanOrEqualTo: view.leadingAnchor, constant: 20),
+            statusView.trailingAnchor.constraint(lessThanOrEqualTo: view.trailingAnchor, constant: -20),
         ])
 
         actionStack.axis = .horizontal
@@ -144,7 +144,7 @@ final class ShareViewController: UIViewController {
             guard let self else { return }
             self.loadOptionalText(from: providers, fallback: initialText) { text in
                 DispatchQueue.main.async {
-                    self.save(
+                    self.showWhenPrompt(
                         captureId: captureId,
                         text: text,
                         filePaths: paths,
@@ -386,7 +386,7 @@ final class ShareViewController: UIViewController {
         return "\(cleanUrl)#:~:text=\(encodedDirective)"
     }
 
-    private func save(
+    private func showWhenPrompt(
         captureId: String,
         text: String?,
         filePaths: [String],
@@ -408,18 +408,70 @@ final class ShareViewController: UIViewController {
             captureKind = "text"
         }
 
+        let previewSubtitle: String?
+        if filePaths.isEmpty, let trimmed {
+            previewSubtitle = displaySubtitle(for: trimmed, kind: captureKind)
+        } else if failureCount > 0 && !filePaths.isEmpty {
+            previewSubtitle = "\(filePaths.count) items ready, \(failureCount) couldn't be read"
+        } else {
+            previewSubtitle = filePaths.count == 1
+                ? URL(fileURLWithPath: filePaths[0]).lastPathComponent
+                : "\(filePaths.count) files"
+        }
+
+        statusView.setState(
+            .promptWhen(
+                previewTitle: "Save to LaterBox",
+                previewSubtitle: previewSubtitle,
+                kind: captureKind,
+                onConfirm: { [weak self] returnDate in
+                    self?.statusView.setState(.saving)
+                    self?.executeSave(
+                        captureId: captureId,
+                        text: trimmed,
+                        filePaths: filePaths,
+                        failureCount: failureCount,
+                        captureKind: captureKind,
+                        returnDate: returnDate
+                    )
+                },
+                onCancel: { [weak self] in
+                    self?.queue.deleteStagingDirectory(id: captureId)
+                    self?.finishWithAnimation()
+                }
+            )
+        )
+    }
+
+    private func executeSave(
+        captureId: String,
+        text: String?,
+        filePaths: [String],
+        failureCount: Int,
+        captureKind: String,
+        returnDate: Date?
+    ) {
+        let returnAtIso: String? = returnDate.map { ISO8601DateFormatter().string(from: $0) }
         let capture = PendingShareCapture(
             id: captureId,
-            value: trimmed,
-            kind: filePaths.isEmpty ? (isUrl ? "url" : "text") : "attachments",
+            value: text,
+            kind: filePaths.isEmpty ? (captureKind == "url" ? "url" : "text") : "attachments",
             source: "iosShare",
             createdAt: ISO8601DateFormatter().string(from: Date()),
-            filePaths: filePaths
+            filePaths: filePaths,
+            returnAt: returnAtIso
         )
-        if queue.enqueue(capture) {
+
+        let result = queue.enqueueResult(capture)
+        switch result {
+        case .success:
             let subtitle: String?
-            if filePaths.isEmpty, let trimmed {
-                subtitle = displaySubtitle(for: trimmed, kind: captureKind)
+            if let returnDate {
+                let formatter = DateFormatter()
+                formatter.dateFormat = "EEE, MMM d · h:mm a"
+                subtitle = "Returns \(formatter.string(from: returnDate))"
+            } else if filePaths.isEmpty, let text {
+                subtitle = displaySubtitle(for: text, kind: captureKind)
             } else if failureCount > 0 && !filePaths.isEmpty {
                 subtitle = "\(filePaths.count) saved, \(failureCount) couldn't be read"
             } else {
@@ -428,20 +480,10 @@ final class ShareViewController: UIViewController {
                     : "\(filePaths.count) files"
             }
             showSuccess(subtitle: subtitle, kind: captureKind)
-        } else {
-            // If App Group is unavailable on this device build, fall back to direct deep-link save for web URLs/text
-            if !queue.isAppGroupAvailable, filePaths.isEmpty, let trimmed,
-               let encoded = trimmed.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
-               let deepLink = URL(string: "laterbox://share?value=\(encoded)&id=\(captureId)") {
-                openHostApp(url: deepLink)
-                showSuccess(subtitle: displaySubtitle(for: trimmed, kind: captureKind), kind: captureKind)
-                return
-            }
-            if !queue.isAppGroupAvailable {
-                showFailure("App Group container unavailable. Check device entitlements.")
-            } else {
-                showFailure("Could not save to LaterBox queue")
-            }
+
+        case .failure(let error):
+            // Strictly show the real error - NEVER claim saved when storage or sync fails!
+            showFailure(error.localizedDescription)
         }
     }
 
