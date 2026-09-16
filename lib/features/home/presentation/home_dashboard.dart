@@ -47,11 +47,17 @@ class HomeDashboard extends ConsumerWidget {
     final now =
         ref.watch(scheduleClockProvider).valueOrNull ??
         ref.watch(scheduleNowProvider)();
+    final hour = now.toLocal().hour;
+    final greeting = hour < 12
+        ? 'Good morning.'
+        : hour < 18
+        ? 'Good afternoon.'
+        : 'Good evening.';
     return Scaffold(
       appBar: isDesktop
           ? null
           : AppBar(
-              title: const Text('Home'),
+              title: Text(greeting),
               actions: [
                 IconButton(
                   tooltip: 'Search',
@@ -76,12 +82,6 @@ class HomeDashboard extends ConsumerWidget {
           final upcoming = scheduleItems(items, ScheduleView.upcoming, now);
           final today = scheduleItems(items, ScheduleView.today, now);
           final someday = scheduleItems(items, ScheduleView.someday, now);
-          final hour = now.toLocal().hour;
-          final greeting = hour < 12
-              ? 'Good morning.'
-              : hour < 18
-              ? 'Good afternoon.'
-              : 'Good evening.';
           return LayoutBuilder(
             builder: (context, constraints) {
               final wide = constraints.maxWidth >= 1000;
