@@ -297,8 +297,9 @@ class _ItemTypeLeadingIcon extends StatelessWidget {
     required bool isNote,
   }) {
     final theme = Theme.of(context);
-    if (item.type == 'task')
+    if (item.type == 'task') {
       return Icon(Icons.task_alt, size: 18, color: theme.colorScheme.primary);
+    }
     if (isFile) {
       return Icon(
         Icons.attach_file_rounded,
