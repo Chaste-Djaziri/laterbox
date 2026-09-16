@@ -144,7 +144,7 @@ class _Header extends ConsumerWidget {
               ),
             const SizedBox(width: 6),
             FilledButton(
-              onPressed: () => context.go('/inbox'),
+              onPressed: () => context.go('/home'),
               style: FilledButton.styleFrom(
                 backgroundColor: _green,
                 foregroundColor: Colors.white,
@@ -240,7 +240,7 @@ class _Hero extends ConsumerWidget {
           runSpacing: 12,
           children: [
             FilledButton.icon(
-              onPressed: () => context.go('/inbox'),
+              onPressed: () => context.go('/home'),
               style: _primaryButtonStyle(),
               icon: const Icon(Icons.arrow_forward_rounded, size: 19),
               label: const Text('Get Started Free'),
@@ -248,7 +248,7 @@ class _Hero extends ConsumerWidget {
             OutlinedButton.icon(
               onPressed: () {
                 ref.read(guestModeProvider.notifier).state = true;
-                context.go('/inbox');
+                context.go('/home');
               },
               style: _secondaryButtonStyle(),
               icon: const Icon(Icons.play_circle_outline_rounded, size: 19),
@@ -675,7 +675,7 @@ class _FinalCta extends StatelessWidget {
               const Text('Start saving in seconds. Your future self will thank you.', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFFD5E9DC), fontSize: 17)),
               const SizedBox(height: 28),
               FilledButton.icon(
-                onPressed: () => context.go('/inbox'),
+                onPressed: () => context.go('/home'),
                 style: FilledButton.styleFrom(backgroundColor: Colors.white, foregroundColor: _green, padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 18), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
                 icon: const Icon(Icons.arrow_forward_rounded, size: 19),
                 label: const Text('Create your laterbox', style: TextStyle(fontWeight: FontWeight.w700)),
