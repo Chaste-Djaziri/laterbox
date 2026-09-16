@@ -294,7 +294,6 @@ class _DynamicIslandCard extends StatelessWidget {
             IconButton(
               onPressed: onDismiss,
               icon: const Icon(Icons.close_rounded, color: Colors.white60, size: 20),
-              tooltip: 'Dismiss',
               visualDensity: VisualDensity.compact,
             ),
           ],
