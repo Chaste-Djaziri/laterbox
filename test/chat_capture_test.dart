@@ -53,9 +53,12 @@ void main() {
     await tester.tap(find.text('Save'));
     await tester.pumpAndSettle();
 
-    // Verify modal is dismissed and item appears in inbox
+    // Verify modal is dismissed and the unscheduled capture waits outside Inbox
     expect(find.text('Type your message...'), findsNothing);
-    expect(find.text('Remember to check out the new design'), findsOneWidget);
+    expect(find.text('Remember to check out the new design'), findsNothing);
+    final stored = await database.watchAllItemsWithMetadata(null).first;
+    expect(stored.single.$1.textContent, 'Remember to check out the new design');
+    expect(stored.single.$1.returnAt, isNull);
 
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(milliseconds: 1));
@@ -243,9 +246,13 @@ void main() {
       // 2. Settle the animation to completion
       await tester.pumpAndSettle();
 
-      // Bubble and sheet are dismissed, item is present in inbox
+      // Bubble and sheet are dismissed; an unscheduled capture waits in Someday.
       expect(find.byKey(const ValueKey('sent_chat_bubble')), findsNothing);
-      expect(find.text(message), findsOneWidget);
+      expect(find.text(message), findsNothing);
+      final stored = await database.watchAllItemsWithMetadata(null).first;
+      expect(stored.single.$1.textContent, message);
+      expect(stored.single.$1.status, 'deferred');
+      expect(stored.single.$1.returnAt, isNull);
 
       await tester.pumpWidget(const SizedBox.shrink());
       await tester.pump(const Duration(milliseconds: 1));
