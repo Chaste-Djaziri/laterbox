@@ -1,4 +1,5 @@
 import 'package:drift/native.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -15,6 +16,8 @@ import 'package:laterbox/features/settings/presentation/settings_screen.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  tearDown(() => debugDefaultTargetPlatformOverride = null);
 
   setUpAll(() {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
@@ -91,7 +94,7 @@ void main() {
 
     expect(find.text('Quick Capture'), findsOneWidget);
     expect(find.text('Shortcut'), findsOneWidget);
-    expect(find.text('⌥ Space'), findsOneWidget);
+    expect(find.text('⌃ ⌥ Space'), findsOneWidget);
     expect(find.text('Use selected text when available'), findsOneWidget);
     expect(find.text('Close Quick Capture when focus is lost'), findsOneWidget);
     expect(find.text('Keep LaterBox running when window closes'), findsOneWidget);
@@ -223,38 +226,43 @@ void main() {
   testWidgets('renders App Icon tile and opens dedicated AppIconScreen', (
     tester,
   ) async {
-    await pumpScreen(tester);
+    debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+    try {
+      await pumpScreen(tester);
 
-    final pageScrollable = find.byType(Scrollable).first;
-    final appIconHeader = find.text('App Icon');
-    await tester.scrollUntilVisible(
-      appIconHeader,
-      300,
-      scrollable: pageScrollable,
-    );
-    expect(appIconHeader, findsOneWidget);
+      final pageScrollable = find.byType(Scrollable).first;
+      final appIconHeader = find.text('App Icon');
+      await tester.scrollUntilVisible(
+        appIconHeader,
+        300,
+        scrollable: pageScrollable,
+      );
+      expect(appIconHeader, findsOneWidget);
 
-    final appIconTile = find.widgetWithText(ListTile, 'App Icon');
-    await tester.scrollUntilVisible(
-      appIconTile,
-      200,
-      scrollable: pageScrollable,
-    );
-    expect(appIconTile, findsOneWidget);
-    expect(find.text('Classic Light • Paper & Ink'), findsOneWidget);
+      final appIconTile = find.widgetWithText(ListTile, 'App Icon');
+      await tester.scrollUntilVisible(
+        appIconTile,
+        200,
+        scrollable: pageScrollable,
+      );
+      expect(appIconTile, findsOneWidget);
+      expect(find.text('Classic Light • Paper & Ink'), findsOneWidget);
 
-    await tester.tap(appIconTile);
-    await tester.pumpAndSettle();
+      await tester.tap(appIconTile);
+      await tester.pumpAndSettle();
 
-    // Now on dedicated AppIconScreen
-    expect(find.text('Available Variants'), findsOneWidget);
-    expect(find.text('Current Home Screen Icon'), findsOneWidget);
-    expect(find.text('Classic Light'), findsWidgets);
-    expect(find.text('Midnight Dark'), findsOneWidget);
-    expect(find.text('Neon Lime'), findsOneWidget);
-    expect(find.text('Emerald Forest'), findsOneWidget);
-    expect(find.text('Sunset Coral'), findsOneWidget);
-    expect(find.text('Monochrome'), findsOneWidget);
+      // Now on dedicated AppIconScreen
+      expect(find.text('Available Variants'), findsOneWidget);
+      expect(find.text('Current Home Screen Icon'), findsOneWidget);
+      expect(find.text('Classic Light'), findsWidgets);
+      expect(find.text('Midnight Dark'), findsOneWidget);
+      expect(find.text('Neon Lime'), findsOneWidget);
+      expect(find.text('Emerald Forest'), findsOneWidget);
+      expect(find.text('Sunset Coral'), findsOneWidget);
+      expect(find.text('Monochrome'), findsOneWidget);
+    } finally {
+      debugDefaultTargetPlatformOverride = null;
+    }
   });
 }
 
