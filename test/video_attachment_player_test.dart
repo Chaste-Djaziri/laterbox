@@ -13,6 +13,7 @@ void main() {
     mimeType: 'video/mp4',
     byteSize: 15 * 1024 * 1024,
     fileExtension: 'mp4',
+    sha256: 'a' * 64,
     createdAt: now,
     updatedAt: now,
   );
@@ -24,6 +25,7 @@ void main() {
     mimeType: 'video/quicktime',
     byteSize: 32 * 1024 * 1024,
     fileExtension: 'mov',
+    sha256: 'b' * 64,
     createdAt: now,
     updatedAt: now,
   );
@@ -35,6 +37,7 @@ void main() {
     mimeType: 'image/png',
     byteSize: 500 * 1024,
     fileExtension: 'png',
+    sha256: 'c' * 64,
     createdAt: now,
     updatedAt: now,
   );
