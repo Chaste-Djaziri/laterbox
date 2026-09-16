@@ -13,7 +13,9 @@ class Items extends Table {
   TextColumn get textSelector => text().nullable()();
   TextColumn get type => text().withDefault(const Constant('unknown'))();
   BoolColumn get favorite => boolean().withDefault(const Constant(false))();
+  // Legacy direct inserts stay immediately visible; capture pipelines explicitly use deferred.
   TextColumn get status => text().withDefault(const Constant('inbox'))();
+  DateTimeColumn get returnAt => dateTime().nullable()();
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
   TextColumn get syncStatus => text().withDefault(const Constant('pending'))();
@@ -216,7 +218,7 @@ class AppDatabase extends _$AppDatabase {
       );
 
   @override
-  int get schemaVersion => 13;
+  int get schemaVersion => 14;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -353,6 +355,12 @@ class AppDatabase extends _$AppDatabase {
         }
         await migrator.createTable(attachmentUploadParts);
       }
+      if (from < 14) {
+        if (!(await _columnNames('items')).contains('return_at')) {
+          await migrator.addColumn(items, items.returnAt);
+        }
+        await customStatement("UPDATE items SET status = 'deferred', return_at = created_at, sync_status = 'pending' WHERE status = 'inbox'");
+      }
     },
   );
 
@@ -365,7 +373,7 @@ class AppDatabase extends _$AppDatabase {
     return (select(items)
           ..where(
             (item) =>
-                item.status.equals('inbox') &
+                item.status.isIn(const ['inbox', 'deferred']) &
                 item.deletedAt.isNull() &
                 (userId == null
                     ? item.userId.isNull()
@@ -433,7 +441,7 @@ class AppDatabase extends _$AppDatabase {
       ..where(
         (item) =>
             item.deletedAt.isNull() &
-            item.status.equals('inbox') &
+            item.status.isIn(const ['inbox', 'deferred']) &
             (userId == null
                 ? item.userId.isNull()
                 : item.userId.equals(userId)) &
@@ -468,7 +476,7 @@ class AppDatabase extends _$AppDatabase {
     String? userId,
   ) {
     final query = _itemsWithMetadataQuery(userId)
-      ..where(items.status.equals('inbox'))
+      ..where(items.status.isIn(const ['inbox', 'deferred']))
       ..orderBy([OrderingTerm.desc(items.createdAt)]);
     return query.watch().map(_mapJoinedRows);
   }
