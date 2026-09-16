@@ -63,10 +63,13 @@ void main() {
         child: const LaterBoxApp(),
       ),
     );
-    await _pumpUntilFound(tester, find.text('EXAMPLE.COM'));
-
-    expect(find.text('EXAMPLE.COM'), findsOneWidget);
-    expect(find.text('https://example.com/b'), findsOneWidget);
+    await tester.pumpAndSettle();
+    final stored = (await tester.runAsync(() => database.watchAllItemsWithMetadata(null).first))!;
+    expect(stored, hasLength(1));
+    expect(stored.single.item.url, 'https://example.com/b');
+    expect(stored.single.item.status, 'deferred');
+    expect(stored.single.item.returnAt, isNull);
+    expect(find.text('https://example.com/b'), findsNothing);
 
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(milliseconds: 1));
@@ -99,7 +102,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Nothing saved yet'), findsOneWidget);
+    expect(find.text('You’re all clear'), findsOneWidget);
 
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(milliseconds: 1));
@@ -150,7 +153,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.text('Nothing saved yet'), findsOneWidget);
+    expect(find.text('You’re all clear'), findsOneWidget);
 
     returnShares = true;
     await TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
@@ -163,7 +166,11 @@ void main() {
         );
 
     await _pumpUntilFound(tester, find.text('https://example.com/live'));
-    expect(find.text('https://example.com/live'), findsOneWidget);
+    final stored = (await tester.runAsync(() => database.watchAllItemsWithMetadata(null).first))!;
+    expect(stored.single.item.url, 'https://example.com/live');
+    expect(stored.single.item.status, 'deferred');
+    expect(stored.single.item.returnAt, isNull);
+    expect(find.text('https://example.com/live'), findsNothing);
 
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(milliseconds: 1));
