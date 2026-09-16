@@ -66,16 +66,16 @@ function AttachmentRow({ attachment }: { attachment: Attachment }) {
       setMediaUrl(attachment.local_path);
       return;
     }
-    fetchAttachmentDownloadUrl(attachment.id).then((url) => {
+    fetchAttachmentDownloadUrl(attachment.id, attachment.user_id ?? null).then((url) => {
       if (url) setMediaUrl(url);
     });
-  }, [attachment.id, attachment.local_path]);
+  }, [attachment.id, attachment.local_path, attachment.user_id]);
 
   const handleDownload = async () => {
     if (downloading) return;
     setDownloading(true);
     try {
-      const url = mediaUrl || (await fetchAttachmentDownloadUrl(attachment.id));
+      const url = mediaUrl || (await fetchAttachmentDownloadUrl(attachment.id, attachment.user_id ?? null));
       if (url) {
         // Create download link to trigger file save
         const a = document.createElement('a');
