@@ -9,6 +9,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 - **Web-Styled Search Icon**: Added a rounded search button (`⌘K`) in the Home dashboard header matching the web interface.
 
 ### Changed
+- **Desktop Quick Capture Shortcut**: Updated default global capture shortcut to Control+Option on macOS (`⌃ ⌥ Space`) and `Ctrl + Shift + L` on Windows.
 - **macOS Title Bar**: Unified title bar and traffic light area into a single solid color by making the titlebar transparent with a matching background.
 - **Desktop Sidebar Redesign**:
   - Expanded sidebar width to 268px for a spacious desktop layout.
