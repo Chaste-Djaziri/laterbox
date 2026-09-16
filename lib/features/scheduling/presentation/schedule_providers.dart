@@ -27,8 +27,9 @@ final scheduleClockProvider = StreamProvider<DateTime>((ref) {
       if (item.isActive &&
           time != null &&
           time.isAfter(now) &&
-          time.isBefore(next))
+          time.isBefore(next)) {
         next = time;
+      }
     }
     timer?.cancel();
     timer = Timer(next.difference(now), tick);
