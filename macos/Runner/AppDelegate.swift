@@ -180,14 +180,18 @@ class AppDelegate: FlutterAppDelegate {
     shadow.set()
 
     let bgColor = isDark
-      ? NSColor(calibratedRed: 0.11, green: 0.11, blue: 0.10, alpha: 1.0)
+      ? NSColor.black
       : NSColor.white
     bgColor.setFill()
     path.fill()
 
     if isDark {
-      NSColor.white.withAlphaComponent(0.12).setStroke()
-      path.lineWidth = 1.5
+      NSColor.white.withAlphaComponent(0.15).setStroke()
+      path.lineWidth = 1.0
+      path.stroke()
+    } else {
+      NSColor.black.withAlphaComponent(0.08).setStroke()
+      path.lineWidth = 0.5
       path.stroke()
     }
 
@@ -203,15 +207,14 @@ class AppDelegate: FlutterAppDelegate {
 
     let logoImage = Self.resolveLogoImage(isDark: isDark)
     if let cg = logoImage?.cgImage(forProposedRect: nil, context: nil, hints: nil) {
-      if isDark {
-        context.cgContext.saveGState()
-        context.cgContext.clip(to: logoRect, mask: cg)
-        context.cgContext.setFillColor(CGColor(red: 1.0, green: 1.0, blue: 1.0, alpha: 1.0))
-        context.cgContext.fill(logoRect)
-        context.cgContext.restoreGState()
-      } else {
-        context.cgContext.draw(cg, in: logoRect)
-      }
+      context.cgContext.saveGState()
+      context.cgContext.clip(to: logoRect, mask: cg)
+      let fillColor = isDark
+        ? CGColor(red: 1.0, green: 1.0, blue: 1.0, alpha: 1.0)
+        : CGColor(red: 0.0, green: 0.0, blue: 0.0, alpha: 1.0)
+      context.cgContext.setFillColor(fillColor)
+      context.cgContext.fill(logoRect)
+      context.cgContext.restoreGState()
     }
 
     NSGraphicsContext.restoreGraphicsState()
@@ -229,6 +232,10 @@ class AppDelegate: FlutterAppDelegate {
       if let white = NSImage(named: "AppIconWhite"), white.isValid {
         return white
       }
+    } else {
+      if let black = NSImage(named: "AppIconBlack"), black.isValid {
+        return black
+      }
     }
     for bundle in Bundle.allFrameworks + Bundle.allBundles + [Bundle.main] {
       let assetName = isDark ? "laterbox-icon-white" : "laterbox-icon"
@@ -239,7 +246,7 @@ class AppDelegate: FlutterAppDelegate {
         }
       }
     }
-    return NSImage(named: "AppIcon") ?? NSApp.applicationIconImage
+    return NSImage(named: isDark ? "AppIconWhite" : "AppIconBlack") ?? NSImage(named: "AppIcon") ?? NSApp.applicationIconImage
   }
 
   private func registerShareCaptureChannel(controller: FlutterViewController) {
