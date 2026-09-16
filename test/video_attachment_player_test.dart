@@ -3,43 +3,57 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:laterbox/core/database/app_database.dart';
 import 'package:laterbox/features/attachments/presentation/video_attachment_player.dart';
 
-void main() {
-  final now = DateTime.utc(2026, 9, 17, 0, 0, 0);
-
-  final video1 = Attachment(
-    id: 'vid-1',
+Attachment _makeAttachment({
+  required String id,
+  required String name,
+  required String extension,
+  required String mimeType,
+  required int byteSize,
+}) {
+  final now = DateTime.utc(2026, 9, 17);
+  return Attachment(
+    id: id,
     itemId: 'item-1',
-    originalFileName: 'product_walkthrough.mp4',
+    originalFileName: name,
+    fileExtension: extension,
+    mimeType: mimeType,
+    byteSize: byteSize,
+    sha256: 'a' * 64,
+    uploadStatus: 'local',
+    uploadAttempts: 0,
+    downloadStatus: 'downloaded',
+    previewStatus: 'ready',
+    previewKind: extension == 'png' ? 'image' : 'video',
+    previewVersion: 1,
+    syncStatus: 'synced',
+    createdAt: now,
+    updatedAt: now,
+  );
+}
+
+void main() {
+  final video1 = _makeAttachment(
+    id: 'vid-1',
+    name: 'product_walkthrough.mp4',
+    extension: 'mp4',
     mimeType: 'video/mp4',
     byteSize: 15 * 1024 * 1024,
-    fileExtension: 'mp4',
-    sha256: 'a' * 64,
-    createdAt: now,
-    updatedAt: now,
   );
 
-  final video2 = Attachment(
+  final video2 = _makeAttachment(
     id: 'vid-2',
-    itemId: 'item-1',
-    originalFileName: 'design_review.mov',
+    name: 'design_review.mov',
+    extension: 'mov',
     mimeType: 'video/quicktime',
     byteSize: 32 * 1024 * 1024,
-    fileExtension: 'mov',
-    sha256: 'b' * 64,
-    createdAt: now,
-    updatedAt: now,
   );
 
-  final imageDoc = Attachment(
+  final imageDoc = _makeAttachment(
     id: 'img-1',
-    itemId: 'item-1',
-    originalFileName: 'screenshot.png',
+    name: 'screenshot.png',
+    extension: 'png',
     mimeType: 'image/png',
     byteSize: 500 * 1024,
-    fileExtension: 'png',
-    sha256: 'c' * 64,
-    createdAt: now,
-    updatedAt: now,
   );
 
   group('isVideoAttachment', () {
