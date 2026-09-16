@@ -359,7 +359,9 @@ class AppDatabase extends _$AppDatabase {
         if (!(await _columnNames('items')).contains('return_at')) {
           await migrator.addColumn(items, items.returnAt);
         }
-        await customStatement("UPDATE items SET status = 'deferred', return_at = created_at, sync_status = 'pending' WHERE status = 'inbox'");
+        await customStatement(
+          "UPDATE items SET status = 'deferred', return_at = created_at, sync_status = 'pending' WHERE status = 'inbox'",
+        );
       }
     },
   );
@@ -394,25 +396,25 @@ class AppDatabase extends _$AppDatabase {
               .map((row) => row.read(items.id)!)
               .get();
       if (guestItemIds.isNotEmpty) {
-        await (update(items)
-              ..where((item) => item.id.isIn(guestItemIds)))
+        await (update(items)..where((item) => item.id.isIn(guestItemIds)))
             .write(ItemsCompanion(userId: Value(userId)));
       }
-      
+
       await (update(attachments)
             ..where((attachment) => attachment.userId.isNull()))
           .write(AttachmentsCompanion(userId: Value(userId)));
     });
 
-    final unuploadedItemIds = await (selectOnly(attachments)
-          ..addColumns([attachments.itemId])
-          ..where(
-            attachments.userId.equals(userId) &
-                attachments.deletedAt.isNull() &
-                attachments.r2ObjectKey.isNull(),
-          ))
-        .map((row) => row.read(attachments.itemId)!)
-        .get();
+    final unuploadedItemIds =
+        await (selectOnly(attachments)
+              ..addColumns([attachments.itemId])
+              ..where(
+                attachments.userId.equals(userId) &
+                    attachments.deletedAt.isNull() &
+                    attachments.r2ObjectKey.isNull(),
+              ))
+            .map((row) => row.read(attachments.itemId)!)
+            .get();
 
     return (select(items)..where(
           (item) =>
@@ -811,7 +813,11 @@ class AppDatabase extends _$AppDatabase {
     );
   }
 
-  Future<void> markAttachmentUploaded(String id, String objectKey, String userId) {
+  Future<void> markAttachmentUploaded(
+    String id,
+    String objectKey,
+    String userId,
+  ) {
     return (update(attachments)..where((row) => row.id.equals(id))).write(
       AttachmentsCompanion(
         userId: Value(userId),
