@@ -48,6 +48,7 @@ void main() {
     final result = await service.importFiles(
       sourcePaths: [source.path, source.path, zipFile.path],
       text: 'Review with Alex',
+      returnAt: DateTime.utc(2026, 9, 20, 9),
     );
 
     expect(result.saved, isTrue);
@@ -56,6 +57,8 @@ void main() {
     expect(item?.title, 'Project Proposal');
     expect(item?.textContent, 'Review with Alex');
     expect(item?.type, 'file');
+    expect(item?.status, 'deferred');
+    expect(item?.returnAt?.toUtc(), DateTime.utc(2026, 9, 20, 9));
     final dbAttachments = await database.attachments.select().get();
     expect(dbAttachments, hasLength(2));
     expect(
