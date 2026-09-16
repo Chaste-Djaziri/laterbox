@@ -16,6 +16,7 @@ class CapturePayload {
     this.text,
     this.url,
     this.createdAt,
+    this.returnAt,
     this.source = CaptureSource.manual,
   }) : assert(text != null || url != null, 'A capture needs text or a URL.');
 
@@ -25,6 +26,7 @@ class CapturePayload {
     String? title,
     String? type,
     DateTime? createdAt,
+    DateTime? returnAt,
     CaptureSource source = CaptureSource.manual,
   }) {
     final trimmed = value.trim();
@@ -48,6 +50,7 @@ class CapturePayload {
         url: trimmed,
         text: quoteText,
         createdAt: createdAt,
+        returnAt: returnAt,
         source: source,
       );
     }
@@ -81,6 +84,7 @@ class CapturePayload {
           url: finalUrl,
           text: remainingText,
           createdAt: createdAt,
+        returnAt: returnAt,
           source: source,
         );
       } else {
@@ -91,6 +95,7 @@ class CapturePayload {
           url: matchedUrl,
           text: null,
           createdAt: createdAt,
+        returnAt: returnAt,
           source: source,
         );
       }
@@ -103,6 +108,7 @@ class CapturePayload {
       url: null,
       text: trimmed,
       createdAt: createdAt,
+      returnAt: returnAt,
       source: source,
     );
   }
@@ -113,6 +119,7 @@ class CapturePayload {
   final String? text;
   final String? url;
   final DateTime? createdAt;
+  final DateTime? returnAt;
   final CaptureSource source;
 
   String get value => url ?? text ?? '';
