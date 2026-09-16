@@ -571,7 +571,7 @@ export function ItemCard({ item }: ItemCardProps) {
               </button>
 
               {/* Status Change Buttons */}
-              {item.status === 'inbox' ? (
+              {(item.status === 'inbox' || item.status === 'deferred') ? (
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
@@ -658,7 +658,7 @@ export function ItemCard({ item }: ItemCardProps) {
                       onClick={(e) => e.stopPropagation()}
                     >
                       {/* Keep / Status action in menu */}
-                      {item.status === 'inbox' ? (
+                      {(item.status === 'inbox' || item.status === 'deferred') ? (
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
