@@ -57,7 +57,14 @@ class HomeDashboard extends ConsumerWidget {
       appBar: isDesktop
           ? null
           : AppBar(
-              title: Text(greeting),
+              title: Text(
+                greeting,
+                style: theme.textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  color: isDark ? Colors.white : const Color(0xFF171711),
+                  letterSpacing: -0.5,
+                ),
+              ),
               actions: [
                 IconButton(
                   tooltip: 'Search',
@@ -139,7 +146,7 @@ class HomeDashboard extends ConsumerWidget {
               return SingleChildScrollView(
                 padding: EdgeInsets.fromLTRB(
                   24,
-                  isDesktop ? (isMac ? 40 : 28) : 24,
+                  isDesktop ? (isMac ? 40 : 28) : 16,
                   24,
                   24,
                 ),
@@ -156,18 +163,20 @@ class HomeDashboard extends ConsumerWidget {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(
-                                    greeting,
-                                    style: theme.textTheme.headlineLarge
-                                        ?.copyWith(
-                                          fontWeight: FontWeight.w800,
-                                          color: isDark
-                                              ? Colors.white
-                                              : const Color(0xFF171711),
-                                          letterSpacing: -0.5,
-                                        ),
-                                  ),
-                                  const SizedBox(height: 8),
+                                  if (isDesktop) ...[
+                                    Text(
+                                      greeting,
+                                      style: theme.textTheme.headlineLarge
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.w800,
+                                            color: isDark
+                                                ? Colors.white
+                                                : const Color(0xFF171711),
+                                            letterSpacing: -0.5,
+                                          ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                  ],
                                   Text(
                                     'Drop it. Choose when. Forget about it. It comes back.',
                                     style: theme.textTheme.bodyLarge?.copyWith(
