@@ -86,6 +86,20 @@ export default function DownloadPage() {
   const [releases, setReleases] = useState<GitHubRelease[]>([]);
   const [loadingReleases, setLoadingReleases] = useState<boolean>(true);
   const [releaseSearchQuery, setReleaseSearchQuery] = useState<string>('');
+  const [copiedCode, setCopiedCode] = useState(false);
+
+  const handleCopyCode = (code: string) => {
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(code);
+    }
+    setCopiedCode(true);
+    setTimeout(() => setCopiedCode(false), 2000);
+  };
+
+  const cliSnippet =
+    selectedPlatform === 'windows'
+      ? 'irm https://laterbox.dev/install.ps1 | iex'
+      : 'curl -fsSL https://laterbox.dev/install.sh | bash';
 
   const previousReleasesRef = useRef<HTMLDivElement>(null);
 
