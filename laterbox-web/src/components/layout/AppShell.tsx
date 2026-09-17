@@ -49,18 +49,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden bg-[#f7f5ee]">
         {/* Mobile Top Header */}
-        <header className="md:hidden flex items-center justify-between px-4 h-14 bg-[#f7f5ee] border-b border-[#e4e0d5] shrink-0 z-20">
-          <Link href="/home" className="flex items-center gap-2">
-            <div className="w-7 h-7 relative rounded-lg overflow-hidden bg-[#e6edb0] p-1">
+        <header className="md:hidden flex items-center justify-between px-3.5 sm:px-4 h-[calc(3.5rem+env(safe-area-inset-top,0px))] pt-[env(safe-area-inset-top,0px)] bg-[#f7f5ee] border-b border-[#e4e0d5] shrink-0 z-20">
+          <Link href="/home" className="flex items-center gap-2 shrink-0">
+            <div className="w-7 h-7 relative rounded-lg overflow-hidden bg-[#e6edb0] p-1 shrink-0">
               <Image src="/branding/laterbox-icon.png" alt="laterbox" fill sizes="28px" className="object-contain p-0.5" />
             </div>
             <span className="text-lg font-black tracking-tight text-[#171711]">laterbox</span>
           </Link>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             <CloudSyncIndicator compact />
             <button
               onClick={() => setCaptureOpen(true)}
-              className="p-2 rounded-xl bg-[#171711] active:bg-black text-white font-bold"
+              className="p-2 rounded-xl bg-[#171711] active:bg-black text-white font-bold shrink-0 shadow-xs"
+              aria-label="Quick capture"
             >
               <Plus className="w-4 h-4" />
             </button>
@@ -68,10 +69,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </header>
 
         {/* Scrollable Page Content */}
-        <main className="flex-1 overflow-y-auto pb-20 md:pb-0">{children}</main>
+        <main className="flex-1 overflow-y-auto pb-[calc(5rem+env(safe-area-inset-bottom,0px))] md:pb-0">{children}</main>
 
         {/* Mobile Bottom Navigation Bar */}
-        <nav className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-[#f7f5ee]/95 backdrop-blur-lg border-t border-[#e4e0d5] flex items-center justify-around px-2 z-30">
+        <nav className="md:hidden fixed bottom-0 left-0 right-0 h-[calc(4rem+env(safe-area-inset-bottom,0px))] pb-[env(safe-area-inset-bottom,0px)] bg-[#f7f5ee]/95 backdrop-blur-lg border-t border-[#e4e0d5] flex items-center justify-around px-2 z-30">
           {mobileNavItems.map(({ href, label, icon, badge }) => {
             const isActive = pathname === href || pathname.startsWith(`${href}/`);
             return (
