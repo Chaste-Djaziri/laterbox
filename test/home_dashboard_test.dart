@@ -90,7 +90,7 @@ void main() {
             expect(find.byKey(const Key('home_search_button')), findsOneWidget);
           } else {
             expect(find.byType(AppBar), findsOneWidget);
-            expect(find.text('Home'), findsNWidgets(2));
+            expect(find.text('Home'), findsOneWidget);
           }
           expect(tester.takeException(), isNull);
           const screenshots = String.fromEnvironment('QA_SCREENSHOTS');
