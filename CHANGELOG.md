@@ -27,6 +27,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
   - Taller 42px tab pills with 18px icons and bold typography.
   - Removed hover background/color states on unselected sidebar items.
   - Removed sidebar collapse toggle chevron icon.
+- **Home Dashboard**: Removed duplicate greeting in mobile body to keep only the single bold greeting in the AppBar header.
 - **Home Dashboard**: Summary cards now show "Waiting in Inbox" and "Returning today" side by side, with "Upcoming" stretching full width below.
 - **Home Dashboard**: Mobile AppBar title now shows the greeting (e.g. "Good morning.") instead of "Home".
 - **Settings**: Version display now reads the real device build version via PackageInfo instead of a hardcoded string.
