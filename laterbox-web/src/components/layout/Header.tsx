@@ -43,30 +43,30 @@ export function Header() {
     <div
       className={`sticky z-40 w-full transition-all duration-300 ${
         isScrolled
-          ? 'top-3 sm:top-4 px-3.5 sm:px-6 lg:px-8 max-w-6xl mx-auto pointer-events-none'
-          : 'top-0 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto pointer-events-auto bg-transparent'
+          ? 'top-2 sm:top-4 px-3 sm:px-6 lg:px-8 max-w-6xl mx-auto'
+          : 'top-0 px-3 sm:px-6 lg:px-8 max-w-7xl mx-auto bg-transparent'
       }`}
     >
       <header
-        className={`w-full grid grid-cols-[1fr_auto_1fr] items-center transition-all duration-300 ${
+        className={`w-full flex items-center justify-between md:grid md:grid-cols-[1fr_auto_1fr] transition-all duration-300 ${
           isScrolled
-            ? 'pointer-events-auto bg-white/90 backdrop-blur-xl border border-[#e4e0d5] shadow-lg shadow-black/[0.03] rounded-2xl sm:rounded-3xl px-4 sm:px-6 py-2.5 sm:py-3'
-            : 'bg-transparent border-b border-transparent py-5 sm:py-6'
+            ? 'bg-white/95 backdrop-blur-xl border border-[#e4e0d5] shadow-lg shadow-black/[0.03] rounded-2xl sm:rounded-3xl px-3.5 sm:px-6 py-2 sm:py-3'
+            : 'bg-transparent border-b border-transparent py-3.5 sm:py-6 px-1 sm:px-0'
         }`}
       >
         {/* Brand Logo */}
-        <Link href="/" className="flex items-center gap-3 group justify-self-start">
-          <div className="w-[38px] h-[38px] sm:w-[42px] sm:h-[42px] relative rounded-xl overflow-hidden shadow-xs transition-transform group-hover:scale-105 bg-[#e6edb0] p-1.5 shrink-0">
+        <Link href="/" className="flex items-center gap-2 sm:gap-3 group shrink-0 md:justify-self-start">
+          <div className="w-[34px] h-[34px] sm:w-[42px] sm:h-[42px] relative rounded-xl overflow-hidden shadow-xs transition-transform group-hover:scale-105 bg-[#e6edb0] p-1 sm:p-1.5 shrink-0">
             <Image
               src="/branding/laterbox-icon.png"
               alt="laterbox"
               fill
-              sizes="42px"
+              sizes="(max-width: 640px) 34px, 42px"
               className="object-contain p-0.5"
               priority
             />
           </div>
-          <span className="text-xl sm:text-2xl font-black tracking-tight text-[#171711]">
+          <span className="text-lg sm:text-2xl font-black tracking-tight text-[#171711]">
             laterbox
           </span>
         </Link>
@@ -95,11 +95,11 @@ export function Header() {
         </nav>
 
         {/* Auth / Launch Actions & Mobile Toggle */}
-        <div className="flex items-center gap-2.5 sm:gap-3 justify-self-end">
+        <div className="flex items-center gap-1.5 sm:gap-3 shrink-0 md:justify-self-end">
           {user ? (
             <Link
               href="/inbox"
-              className="inline-flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 rounded-full text-xs sm:text-sm font-extrabold text-white bg-[#171711] hover:bg-[#282723] active:bg-[#0f0f0e] shadow-xs transition-all"
+              className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-1.5 sm:py-2.5 rounded-full text-xs sm:text-sm font-extrabold text-white bg-[#171711] hover:bg-[#282723] active:bg-[#0f0f0e] shadow-xs transition-all whitespace-nowrap shrink-0"
             >
               <Bolt className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               <span>Open Inbox</span>
@@ -108,7 +108,7 @@ export function Header() {
             <>
               <Link
                 href="/login"
-                className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-2 text-xs sm:text-sm font-bold text-[#171711] hover:bg-[#ebe7dc]/60 rounded-xl transition-colors"
+                className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-2 text-xs sm:text-sm font-bold text-[#171711] hover:bg-[#ebe7dc]/60 rounded-xl transition-colors shrink-0"
               >
                 <LogIn className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 <span>Sign In</span>
@@ -116,7 +116,7 @@ export function Header() {
               <Link
                 href="/inbox"
                 onClick={() => continueAsGuest()}
-                className="inline-flex items-center gap-1.5 sm:gap-2 px-4 sm:px-5 py-2 sm:py-2.5 rounded-full text-xs sm:text-sm font-extrabold text-white bg-[#171711] hover:bg-[#282723] active:bg-[#0f0f0e] shadow-xs transition-all cursor-pointer"
+                className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-1.5 sm:py-2.5 rounded-full text-xs sm:text-sm font-extrabold text-white bg-[#171711] hover:bg-[#282723] active:bg-[#0f0f0e] shadow-xs transition-all cursor-pointer whitespace-nowrap shrink-0"
               >
                 <Bolt className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 <span>Launch App</span>
@@ -128,7 +128,7 @@ export function Header() {
           <button
             type="button"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="md:hidden p-2 rounded-xl text-[#171711] hover:bg-[#ebe7dc]/70 transition-colors"
+            className="md:hidden p-1.5 sm:p-2 rounded-xl text-[#171711] hover:bg-[#ebe7dc]/70 active:bg-[#ebe7dc] transition-colors shrink-0"
             aria-label="Toggle navigation menu"
           >
             {isMobileMenuOpen ? (
@@ -142,7 +142,7 @@ export function Header() {
 
       {/* Mobile Navigation Drawer */}
       {isMobileMenuOpen && (
-        <div className="md:hidden mt-2 p-4 rounded-2xl bg-white border border-[#e4e0d5] shadow-xl pointer-events-auto animate-in fade-in slide-in-from-top-2 duration-150">
+        <div className="md:hidden mt-2 p-3.5 sm:p-4 rounded-2xl bg-white/95 backdrop-blur-xl border border-[#e4e0d5] shadow-xl shadow-black/[0.06] animate-in fade-in slide-in-from-top-2 duration-150">
           <div className="space-y-1">
             {navLinks.map((link) => {
               const isActive = pathname === link.href;
@@ -150,24 +150,27 @@ export function Header() {
                 <Link
                   key={link.href}
                   href={link.href}
-                  className={`block px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
+                  className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
                     isActive
-                      ? 'bg-[#f7f5ee] text-[#171711] font-bold'
+                      ? 'bg-[#e6edb0]/60 text-[#171711] font-bold'
                       : 'text-[#6c6b63] hover:text-[#171711] hover:bg-[#faf8f2]'
                   }`}
                 >
-                  {link.label}
+                  <span>{link.label}</span>
+                  {isActive && (
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#171711]" />
+                  )}
                 </Link>
               );
             })}
 
             {!user && (
-              <div className="pt-3 border-t border-[#f0ede4] mt-2">
+              <div className="pt-2.5 border-t border-[#f0ede4] mt-2 space-y-1">
                 <Link
                   href="/login"
-                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-[#171711] hover:bg-[#faf8f2] transition-colors"
+                  className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-sm font-bold text-[#171711] hover:bg-[#faf8f2] transition-colors"
                 >
-                  <LogIn className="w-4 h-4" />
+                  <LogIn className="w-4 h-4 text-[#6c6b63]" />
                   <span>Sign In</span>
                 </Link>
               </div>
