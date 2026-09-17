@@ -77,7 +77,12 @@ public final class LiveActivityManager {
     ) {
         guard #available(iOS 16.1, *), let activity = activeActivities[id] else { return }
 
-        let currentState = activity.content.state
+        let currentState: LaterBoxActivityAttributes.ContentState
+        if #available(iOS 16.2, *) {
+            currentState = activity.content.state
+        } else {
+            currentState = activity.contentState
+        }
         let updatedState = LaterBoxActivityAttributes.ContentState(
             title: title ?? currentState.title,
             subtitle: subtitle ?? currentState.subtitle,
