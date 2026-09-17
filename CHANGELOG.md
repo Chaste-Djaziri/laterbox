@@ -14,6 +14,8 @@ All notable user-facing changes to LaterBox will be documented in this file.
 - **Web-Styled Search Icon**: Added a rounded search button (`⌘K`) in the Home dashboard header matching the web interface.
 
 ### Fixed
+- **Web Mobile Layout**: Fixed mobile header layout in Next.js web app to be fully responsive, prevent overflowing action buttons, and fit mobile screens with safe-area insets.
+- **Web Downloads**: Fixed terminal CLI quick script snippet command and copy action on download page.
 - **iOS Dynamic Island Overlay**: Fixed a missing Overlay assertion error by removing the tooltip from the overlay close button and providing an Overlay widget ancestor.
 
 ### Changed
