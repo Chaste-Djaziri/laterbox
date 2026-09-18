@@ -10,6 +10,7 @@ import { WhenLaterBecomesNowSection } from '@/components/marketing/WhenLaterBeco
 import { NotAnotherTodoListSection } from '@/components/marketing/NotAnotherTodoListSection';
 import { SomedayVaultSection } from '@/components/marketing/SomedayVaultSection';
 import { DesignedToStayOutOfWaySection } from '@/components/marketing/DesignedToStayOutOfWaySection';
+import { YourLaterBoxYourRulesSection } from '@/components/marketing/YourLaterBoxYourRulesSection';
 import {
   Sparkles,
   ArrowRight,
@@ -462,6 +463,11 @@ export default function LandingPage() {
       {/* "Designed to stay out of your way." App Dashboard Showcase */}
       {/* ============================================================ */}
       <DesignedToStayOutOfWaySection />
+
+      {/* ============================================================ */}
+      {/* "Your LaterBox. Your rules." Preferences & Rules Showcase */}
+      {/* ============================================================ */}
+      <YourLaterBoxYourRulesSection />
 
       {/* ============================================================ */}
       {/* Pro Feature Matrix Grid */}
