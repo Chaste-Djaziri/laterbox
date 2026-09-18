@@ -11,6 +11,7 @@ import { NotAnotherTodoListSection } from '@/components/marketing/NotAnotherTodo
 import { SomedayVaultSection } from '@/components/marketing/SomedayVaultSection';
 import { DesignedToStayOutOfWaySection } from '@/components/marketing/DesignedToStayOutOfWaySection';
 import { YourLaterBoxYourRulesSection } from '@/components/marketing/YourLaterBoxYourRulesSection';
+import { OneShortcutAwaySection } from '@/components/marketing/OneShortcutAwaySection';
 import {
   Sparkles,
   ArrowRight,
@@ -468,6 +469,11 @@ export default function LandingPage() {
       {/* "Your LaterBox. Your rules." Preferences & Rules Showcase */}
       {/* ============================================================ */}
       <YourLaterBoxYourRulesSection />
+
+      {/* ============================================================ */}
+      {/* "LaterBox is always one shortcut away." Animated Capture */}
+      {/* ============================================================ */}
+      <OneShortcutAwaySection />
 
       {/* ============================================================ */}
       {/* Pro Feature Matrix Grid */}
