@@ -137,20 +137,23 @@ export function UltimateWindowsOrganizerSection() {
                   key={tab.id}
                   type="button"
                   onClick={() => setActiveTabId(tab.id)}
-                  className={`relative py-3 sm:py-3.5 px-6 sm:px-8 text-left transition-colors duration-150 cursor-pointer whitespace-nowrap text-[11px] sm:text-xs tracking-widest font-bold uppercase ${
+                  className={`relative py-3 sm:py-3.5 px-6 sm:px-8 text-left transition-colors duration-150 cursor-pointer whitespace-nowrap text-[11px] sm:text-xs tracking-widest font-bold uppercase flex items-center justify-between ${
                     isActive
-                      ? 'text-[#ff541c] font-black'
+                      ? 'text-[#171711] font-black bg-[#f7f5ee]/60'
                       : 'text-[#8c897f] hover:text-[#171711]'
                   }`}
                 >
-                  <span>{tab.label}</span>
+                  <div className="flex items-center gap-2">
+                    {isActive && <span className="w-1.5 h-1.5 rounded-full bg-[#b8cb46]" />}
+                    <span>{tab.label}</span>
+                  </div>
 
-                  {/* Active Orange Indicator Bar */}
+                  {/* Active Indicator Bar */}
                   {isActive && (
-                    <span className="hidden md:block absolute right-0 top-0 bottom-0 w-[3px] bg-[#ff541c]" />
+                    <span className="hidden md:block absolute right-0 top-0 bottom-0 w-[3px] bg-[#171711]" />
                   )}
                   {isActive && (
-                    <span className="block md:hidden absolute left-4 right-4 bottom-0 h-[2px] bg-[#ff541c]" />
+                    <span className="block md:hidden absolute left-4 right-4 bottom-0 h-[2px] bg-[#171711]" />
                   )}
                 </button>
               );
