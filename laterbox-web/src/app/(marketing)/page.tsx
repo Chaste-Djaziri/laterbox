@@ -218,6 +218,20 @@ export default function LandingPage() {
             </Link>
           </div>
 
+          {/* Meta Trust Badges */}
+          <div className="mt-8 text-xs text-[#6c6b63] space-y-1 font-medium">
+            <p className="flex items-center justify-center gap-2">
+              <span>Free</span>
+              <span>•</span>
+              <span>Offline</span>
+              <span>•</span>
+              <span>No account required</span>
+            </p>
+            <p className="text-[11px] text-[#9e9b92]">
+              Made by <span className="underline decoration-[#9e9b92]/50 hover:text-[#171711] cursor-pointer">Nexaura Dev</span>.
+            </p>
+          </div>
+
           {/* ============================================================ */}
           {/* Interactive Pro App Simulator Container */}
           {/* ============================================================ */}
