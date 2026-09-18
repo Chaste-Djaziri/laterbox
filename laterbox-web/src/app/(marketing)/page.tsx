@@ -13,6 +13,7 @@ import { DesignedToStayOutOfWaySection } from '@/components/marketing/DesignedTo
 import { YourLaterBoxYourRulesSection } from '@/components/marketing/YourLaterBoxYourRulesSection';
 import { OneShortcutAwaySection } from '@/components/marketing/OneShortcutAwaySection';
 import { YourThingsStaySection } from '@/components/marketing/YourThingsStaySection';
+import { LessMentalClutterSection } from '@/components/marketing/LessMentalClutterSection';
 import {
   Sparkles,
   ArrowRight,
@@ -480,6 +481,11 @@ export default function LandingPage() {
       {/* "Your things stay where they belong." Local-First Section */}
       {/* ============================================================ */}
       <YourThingsStaySection />
+
+      {/* ============================================================ */}
+      {/* "Less mental clutter. Not more software clutter." Section */}
+      {/* ============================================================ */}
+      <LessMentalClutterSection />
 
       {/* ============================================================ */}
       {/* Pro Feature Matrix Grid */}
