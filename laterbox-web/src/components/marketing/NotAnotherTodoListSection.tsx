@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 
-// Stylized LaterBox Inbox/Tray Icon matching the brand screenshots
+// Stylized LaterBox Inbox/Tray Icon adhering to the Web Theme palette
 function LaterBoxInboxSmallIcon({ className = 'w-6 h-6' }: { className?: string }) {
   return (
     <div className={`relative ${className} shrink-0 flex items-center justify-center select-none`}>
@@ -13,28 +13,28 @@ function LaterBoxInboxSmallIcon({ className = 'w-6 h-6' }: { className?: string 
         className="w-full h-full drop-shadow-2xs"
       >
         {/* Envelope back container */}
-        <rect x="12" y="14" width="48" height="40" rx="8" fill="#ff7a45" />
+        <rect x="12" y="14" width="48" height="40" rx="8" fill="#2e2e28" />
 
         {/* Paper sheet sticking out */}
-        <rect x="18" y="8" width="36" height="22" rx="4" fill="#fff9f5" />
-        <line x1="24" y1="14" x2="48" y2="14" stroke="#ffdec9" strokeWidth="2.5" strokeLinecap="round" />
-        <line x1="24" y1="20" x2="38" y2="20" stroke="#ffdec9" strokeWidth="2.5" strokeLinecap="round" />
+        <rect x="18" y="8" width="36" height="22" rx="4" fill="#faf8f2" />
+        <line x1="24" y1="14" x2="48" y2="14" stroke="#e4e0d5" strokeWidth="2.5" strokeLinecap="round" />
+        <line x1="24" y1="20" x2="38" y2="20" stroke="#e4e0d5" strokeWidth="2.5" strokeLinecap="round" />
 
         {/* Envelope front fold / pouch */}
         <path
           d="M12 28L36 43L60 28V46C60 50.4183 56.4183 54 52 54H20C15.5817 54 12 50.4183 12 46V28Z"
-          fill="#ff541c"
+          fill="#171711"
         />
 
         {/* Crease line */}
-        <path d="M12 48L26 36" stroke="#d9410f" strokeWidth="1.5" strokeOpacity="0.4" />
-        <path d="M60 48L46 36" stroke="#d9410f" strokeWidth="1.5" strokeOpacity="0.4" />
+        <path d="M12 48L26 36" stroke="#000000" strokeWidth="1.5" strokeOpacity="0.3" />
+        <path d="M60 48L46 36" stroke="#000000" strokeWidth="1.5" strokeOpacity="0.3" />
 
         {/* Circular Clock Badge in bottom right */}
-        <circle cx="52" cy="46" r="10.5" fill="#ff541c" stroke="#ffffff" strokeWidth="2.5" />
-        <circle cx="52" cy="46" r="1.5" fill="#ffffff" />
-        <line x1="52" y1="46" x2="52" y2="40.5" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" />
-        <line x1="52" y1="46" x2="56.5" y2="46" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" />
+        <circle cx="52" cy="46" r="10.5" fill="#e6edb0" stroke="#171711" strokeWidth="2" />
+        <circle cx="52" cy="46" r="1.5" fill="#171711" />
+        <line x1="52" y1="46" x2="52" y2="40.5" stroke="#171711" strokeWidth="2" strokeLinecap="round" />
+        <line x1="52" y1="46" x2="56.5" y2="46" stroke="#171711" strokeWidth="2" strokeLinecap="round" />
       </svg>
     </div>
   );
@@ -110,11 +110,11 @@ export function NotAnotherTodoListSection() {
             return (
               <div
                 key={row.category}
-                className="w-full rounded-2xl sm:rounded-3xl bg-white border border-[#e4e0d5] shadow-[0_2px_15px_rgba(0,0,0,0.02)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:border-[#cfcac0] transition-all px-5 sm:px-8 py-4 sm:py-5 flex items-center justify-between gap-3 sm:gap-6 group"
+                className="w-full rounded-2xl sm:rounded-3xl bg-white border border-[#e4e0d5] shadow-[0_2px_15px_rgba(0,0,0,0.02)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:border-[#171711] transition-all px-5 sm:px-8 py-4 sm:py-5 flex items-center justify-between gap-3 sm:gap-6 group"
               >
                 {/* Category Label */}
                 <div className="w-16 sm:w-24 shrink-0 text-left">
-                  <span className="text-[10px] sm:text-xs font-black tracking-widest uppercase text-[#9e9b92]">
+                  <span className="text-[10px] sm:text-xs font-black tracking-widest uppercase text-[#9e9b92] group-hover:text-[#171711] transition-colors">
                     {row.category}
                   </span>
                 </div>
@@ -164,8 +164,8 @@ export function NotAnotherTodoListSection() {
                     onClick={() => handleActionClick(idx)}
                     className={`px-3.5 sm:px-4 py-1.5 sm:py-2 rounded-full font-black text-[10px] sm:text-[11px] tracking-wider uppercase transition-all duration-200 cursor-pointer ${
                       isTriggered
-                        ? 'bg-[#ff541c] text-white shadow-xs'
-                        : 'bg-[#f4f2eb] hover:bg-[#ebe7dc] text-[#171711]'
+                        ? 'bg-[#171711] text-white shadow-xs'
+                        : 'bg-[#f4f2eb] hover:bg-[#171711] text-[#171711] hover:text-white'
                     }`}
                   >
                     {isTriggered ? row.feedback : row.action}
