@@ -82,26 +82,11 @@ export function OneShortcutAwaySection() {
 
         {/* Quick Capture Floating Card Stage */}
         <div className="w-full flex items-center justify-center min-h-[190px] sm:min-h-[220px] mb-12 sm:mb-16">
-          {phase === 'saved' ? (
-            /* Phase 3: "SAVED." Solid Green Accent Card */
-            <div
-              key="saved-card"
-              className="w-[240px] sm:w-[270px] h-[100px] sm:h-[112px] rounded-2xl sm:rounded-[24px] bg-[#e6edb0] border-2 border-[#171711] shadow-[0_20px_50px_rgba(230,237,176,0.5),0_8px_20px_rgba(23,23,17,0.08)] flex items-center justify-center animate-in zoom-in-95 fade-in duration-300 cursor-pointer transition-all hover:scale-102"
-              onClick={() => {
-                setPhase('empty');
-                setIsManualOverride(false);
-              }}
-            >
-              <span className="text-sm sm:text-base font-black tracking-widest text-[#171711] select-none">
-                SAVED.
-              </span>
-            </div>
-          ) : (
-            /* Phase 1 & 2: Quick Capture Input Card with Typewriter and Schedule Pills */
-            <div
-              key="input-card"
-              className="w-full max-w-[440px] sm:max-w-[480px] min-h-[155px] sm:min-h-[165px] rounded-2xl sm:rounded-[26px] bg-white border-2 border-[#171711] shadow-[0_20px_60px_rgba(230,237,176,0.35),0_6px_20px_rgba(0,0,0,0.04)] p-5 sm:p-6 flex flex-col justify-between text-left transition-all duration-300"
-            >
+          <div
+            className="relative w-full max-w-[440px] sm:max-w-[480px] min-h-[160px] sm:min-h-[170px] rounded-2xl sm:rounded-[26px] bg-white border-2 border-[#171711] shadow-[0_20px_60px_rgba(230,237,176,0.35),0_6px_20px_rgba(0,0,0,0.04)] overflow-hidden transition-all duration-300"
+          >
+            {/* Quick Capture Input & Schedule Content */}
+            <div className="p-5 sm:p-6 flex flex-col justify-between min-h-[160px] sm:min-h-[170px] text-left">
               <div>
                 {/* Top prompt label */}
                 <p className="text-[11px] sm:text-xs font-semibold text-[#8c897f] select-none mb-2">
@@ -143,7 +128,22 @@ export function OneShortcutAwaySection() {
                 })}
               </div>
             </div>
-          )}
+
+            {/* Slide-Up Green Color Fill Overlay (Revealing "SAVED.") */}
+            <div
+              onClick={() => {
+                setPhase('empty');
+                setIsManualOverride(false);
+              }}
+              className={`absolute inset-0 bg-[#e6edb0] flex flex-col items-center justify-center transition-transform duration-500 ease-out z-20 cursor-pointer select-none ${
+                phase === 'saved' ? 'translate-y-0' : 'translate-y-full pointer-events-none'
+              }`}
+            >
+              <span className="text-sm sm:text-base font-black tracking-widest text-[#171711]">
+                SAVED.
+              </span>
+            </div>
+          </div>
         </div>
 
         {/* Section Headline */}
