@@ -5,6 +5,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- **Web Landing Page 'Someday Vault' Showcase**: Added the "Some things don't need a deadline." showcase section with an interactive stacked deck of Someday cards (movies, books, courses, ideas) with zero deadline pressure.
 - **Web Landing Page 'Not Another To-Do List' Showcase**: Added the "Not another to-do list." capability section demonstrating LaterBox returning the actual items (PSD files, YouTube links, client project folders, tasks, and ideas) with direct launch action pills.
 - **Web Landing Page 'When Later Becomes Now' Showcase**: Added the dark statement section featuring the "When later becomes now." headline with serif italic typography and a dark returned-card notification mockup.
 - **Web Landing Page 'How It Works' 4-Step Workflow**: Added the 4-step workflow storytelling section (Drop it, Choose when, Forget about it, It comes back) with interactive mockups and scroll-active step highlighting.
