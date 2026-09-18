@@ -14,6 +14,7 @@ import { YourLaterBoxYourRulesSection } from '@/components/marketing/YourLaterBo
 import { OneShortcutAwaySection } from '@/components/marketing/OneShortcutAwaySection';
 import { YourThingsStaySection } from '@/components/marketing/YourThingsStaySection';
 import { LessMentalClutterSection } from '@/components/marketing/LessMentalClutterSection';
+import { UltimateWindowsOrganizerSection } from '@/components/marketing/UltimateWindowsOrganizerSection';
 import {
   Sparkles,
   ArrowRight,
@@ -486,6 +487,11 @@ export default function LandingPage() {
       {/* "Less mental clutter. Not more software clutter." Section */}
       {/* ============================================================ */}
       <LessMentalClutterSection />
+
+      {/* ============================================================ */}
+      {/* "The Ultimate Windows Productivity Organizer" Feature Tabs */}
+      {/* ============================================================ */}
+      <UltimateWindowsOrganizerSection />
 
       {/* ============================================================ */}
       {/* Pro Feature Matrix Grid */}
