@@ -18,7 +18,7 @@ import {
   Link2,
 } from 'lucide-react';
 
-// Stylized LaterBox Inbox/Tray Icon matching the brand screenshots
+// Stylized LaterBox Inbox/Tray Icon adhering to Web Theme palette
 function LaterBoxBrandLogo({ className = 'w-6 h-6' }: { className?: string }) {
   return (
     <div className={`relative ${className} shrink-0 flex items-center justify-center select-none`}>
@@ -29,28 +29,28 @@ function LaterBoxBrandLogo({ className = 'w-6 h-6' }: { className?: string }) {
         className="w-full h-full drop-shadow-2xs"
       >
         {/* Envelope back container */}
-        <rect x="12" y="14" width="48" height="40" rx="8" fill="#ff7a45" />
+        <rect x="12" y="14" width="48" height="40" rx="8" fill="#2e2e28" />
 
         {/* Paper sheet sticking out */}
-        <rect x="18" y="8" width="36" height="22" rx="4" fill="#fff9f5" />
-        <line x1="24" y1="14" x2="48" y2="14" stroke="#ffdec9" strokeWidth="2.5" strokeLinecap="round" />
-        <line x1="24" y1="20" x2="38" y2="20" stroke="#ffdec9" strokeWidth="2.5" strokeLinecap="round" />
+        <rect x="18" y="8" width="36" height="22" rx="4" fill="#faf8f2" />
+        <line x1="24" y1="14" x2="48" y2="14" stroke="#e4e0d5" strokeWidth="2.5" strokeLinecap="round" />
+        <line x1="24" y1="20" x2="38" y2="20" stroke="#e4e0d5" strokeWidth="2.5" strokeLinecap="round" />
 
         {/* Envelope front fold / pouch */}
         <path
           d="M12 28L36 43L60 28V46C60 50.4183 56.4183 54 52 54H20C15.5817 54 12 50.4183 12 46V28Z"
-          fill="#ff541c"
+          fill="#171711"
         />
 
         {/* Crease line */}
-        <path d="M12 48L26 36" stroke="#d9410f" strokeWidth="1.5" strokeOpacity="0.4" />
-        <path d="M60 48L46 36" stroke="#d9410f" strokeWidth="1.5" strokeOpacity="0.4" />
+        <path d="M12 48L26 36" stroke="#000000" strokeWidth="1.5" strokeOpacity="0.3" />
+        <path d="M60 48L46 36" stroke="#000000" strokeWidth="1.5" strokeOpacity="0.3" />
 
-        {/* Circular Clock Badge in bottom right */}
-        <circle cx="52" cy="46" r="10.5" fill="#ff541c" stroke="#ffffff" strokeWidth="2.5" />
-        <circle cx="52" cy="46" r="1.5" fill="#ffffff" />
-        <line x1="52" y1="46" x2="52" y2="40.5" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" />
-        <line x1="52" y1="46" x2="56.5" y2="46" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" />
+        {/* Circular Clock Badge in bottom right with web theme accent */}
+        <circle cx="52" cy="46" r="10.5" fill="#e6edb0" stroke="#171711" strokeWidth="2" />
+        <circle cx="52" cy="46" r="1.5" fill="#171711" />
+        <line x1="52" y1="46" x2="52" y2="40.5" stroke="#171711" strokeWidth="2" strokeLinecap="round" />
+        <line x1="52" y1="46" x2="56.5" y2="46" stroke="#171711" strokeWidth="2" strokeLinecap="round" />
       </svg>
     </div>
   );
@@ -97,15 +97,15 @@ export function DesignedToStayOutOfWaySection() {
               <div className="flex items-center gap-2.5 px-2 py-1 mb-5">
                 <LaterBoxBrandLogo className="w-6 h-6" />
                 <span className="font-black text-base tracking-tight text-[#171711]">
-                  Later<span className="text-[#ff541c]">Box</span>
+                  LaterBox
                 </span>
               </div>
 
-              {/* Primary Add Button */}
+              {/* Primary Add Button styled in Web Theme Primary (#171711) */}
               <button
                 type="button"
                 onClick={triggerAdd}
-                className="w-full bg-[#ff541c] hover:bg-[#e64610] text-white font-black text-xs py-3 px-3.5 rounded-xl shadow-xs tracking-wider flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer mb-6"
+                className="w-full bg-[#171711] hover:bg-black text-white font-black text-xs py-3 px-3.5 rounded-xl shadow-xs tracking-wider flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer mb-6"
               >
                 <span>+ ADD TO LATERBOX</span>
               </button>
@@ -121,21 +121,21 @@ export function DesignedToStayOutOfWaySection() {
                       key={item.name}
                       type="button"
                       onClick={() => setActiveTab(item.name)}
-                      className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition-all relative ${
+                      className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition-all relative cursor-pointer ${
                         isActive
                           ? 'bg-white border border-[#e4e0d5] text-[#171711] shadow-2xs'
                           : 'text-[#6c6b63] hover:text-[#171711] hover:bg-[#f0ede4]/60'
                       }`}
                     >
                       {isActive && (
-                        <span className="w-1 h-5 bg-[#ff541c] rounded-full absolute -left-0.5 top-1/2 -translate-y-1/2" />
+                        <span className="w-1 h-5 bg-[#171711] rounded-full absolute -left-0.5 top-1/2 -translate-y-1/2" />
                       )}
                       <div className="flex items-center gap-2.5">
                         <Icon className={`w-4 h-4 ${isActive ? 'text-[#171711]' : 'text-[#9e9b92]'}`} />
                         <span>{item.name}</span>
                       </div>
                       {item.count !== null && (
-                        <span className="w-5 h-5 rounded-full bg-[#ff541c]/15 text-[#ff541c] text-[10px] font-black flex items-center justify-center">
+                        <span className="w-5 h-5 rounded-full bg-[#e6edb0] text-[#171711] text-[10px] font-black flex items-center justify-center">
                           {item.count}
                         </span>
                       )}
@@ -152,7 +152,7 @@ export function DesignedToStayOutOfWaySection() {
                 <button
                   type="button"
                   onClick={() => setActiveTab('All Items')}
-                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all ${
+                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
                     activeTab === 'All Items'
                       ? 'bg-white border border-[#e4e0d5] text-[#171711]'
                       : 'text-[#6c6b63] hover:text-[#171711]'
@@ -171,7 +171,7 @@ export function DesignedToStayOutOfWaySection() {
                 <button
                   type="button"
                   onClick={() => setActiveTab('History')}
-                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all ${
+                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
                     activeTab === 'History'
                       ? 'bg-white border border-[#e4e0d5] text-[#171711]'
                       : 'text-[#6c6b63] hover:text-[#171711]'
@@ -227,7 +227,7 @@ export function DesignedToStayOutOfWaySection() {
                     RETURNED TODAY
                   </span>
                   <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-[#ff541c]" />
+                    <span className="w-2 h-2 rounded-full bg-[#171711]" />
                     <span className="font-black text-lg text-[#171711]">3 Items</span>
                   </div>
                 </div>
@@ -277,9 +277,9 @@ export function DesignedToStayOutOfWaySection() {
                   </span>
                   <div className="space-y-2">
                     {/* Item 1 */}
-                    <div className="p-3 sm:p-3.5 rounded-2xl bg-white border border-[#f0ede4] hover:border-[#e4e0d5] hover:shadow-2xs transition-all flex items-center justify-between gap-3">
+                    <div className="p-3 sm:p-3.5 rounded-2xl bg-white border border-[#f0ede4] hover:border-[#171711] hover:shadow-2xs transition-all flex items-center justify-between gap-3">
                       <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-8 h-8 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
+                        <div className="w-8 h-8 rounded-xl bg-[#faf8f2] text-[#171711] flex items-center justify-center shrink-0 border border-[#e4e0d5]">
                           <FileText className="w-4 h-4" />
                         </div>
                         <div className="min-w-0">
@@ -289,14 +289,14 @@ export function DesignedToStayOutOfWaySection() {
                           <p className="text-[11px] text-[#9e9b92]">PDF Document • Added 2 days ago</p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-1 text-[11px] font-semibold text-[#ff541c] shrink-0">
+                      <div className="flex items-center gap-1 text-[11px] font-semibold text-[#6c6b63] shrink-0">
                         <span>Tomorrow, 10:00 AM</span>
-                        <Clock className="w-3 h-3 text-[#ff541c]" />
+                        <Clock className="w-3 h-3 text-[#9e9b92]" />
                       </div>
                     </div>
 
                     {/* Item 2 */}
-                    <div className="p-3 sm:p-3.5 rounded-2xl bg-white border border-[#f0ede4] hover:border-[#e4e0d5] hover:shadow-2xs transition-all flex items-center justify-between gap-3">
+                    <div className="p-3 sm:p-3.5 rounded-2xl bg-white border border-[#f0ede4] hover:border-[#171711] hover:shadow-2xs transition-all flex items-center justify-between gap-3">
                       <div className="flex items-center gap-3 min-w-0">
                         <div className="w-8 h-8 rounded-xl bg-[#001e36] text-[#31a8ff] font-bold text-xs flex items-center justify-center shrink-0">
                           Ps
@@ -308,14 +308,14 @@ export function DesignedToStayOutOfWaySection() {
                           <p className="text-[11px] text-[#9e9b92]">PSD File • Added 3 days ago</p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-1 text-[11px] font-semibold text-[#ff541c] shrink-0">
+                      <div className="flex items-center gap-1 text-[11px] font-semibold text-[#6c6b63] shrink-0">
                         <span>Today, 03:00 PM</span>
-                        <Clock className="w-3 h-3 text-[#ff541c]" />
+                        <Clock className="w-3 h-3 text-[#9e9b92]" />
                       </div>
                     </div>
 
                     {/* Item 3 */}
-                    <div className="p-3 sm:p-3.5 rounded-2xl bg-white border border-[#f0ede4] hover:border-[#e4e0d5] hover:shadow-2xs transition-all flex items-center justify-between gap-3">
+                    <div className="p-3 sm:p-3.5 rounded-2xl bg-white border border-[#f0ede4] hover:border-[#171711] hover:shadow-2xs transition-all flex items-center justify-between gap-3">
                       <div className="flex items-center gap-3 min-w-0">
                         <div className="w-8 h-8 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
                           <Video className="w-4 h-4" />
@@ -327,9 +327,9 @@ export function DesignedToStayOutOfWaySection() {
                           <p className="text-[11px] text-[#9e9b92]">Link • Added 1 week ago</p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-1 text-[11px] font-semibold text-[#ff541c] shrink-0">
+                      <div className="flex items-center gap-1 text-[11px] font-semibold text-[#6c6b63] shrink-0">
                         <span>Sunday, 09:00 AM</span>
-                        <Clock className="w-3 h-3 text-[#ff541c]" />
+                        <Clock className="w-3 h-3 text-[#9e9b92]" />
                       </div>
                     </div>
                   </div>
@@ -342,7 +342,7 @@ export function DesignedToStayOutOfWaySection() {
                   </span>
                   <div className="space-y-2">
                     {/* Item 1 */}
-                    <div className="p-3 sm:p-3.5 rounded-2xl bg-white border border-[#f0ede4] hover:border-[#e4e0d5] hover:shadow-2xs transition-all flex items-center justify-between gap-3">
+                    <div className="p-3 sm:p-3.5 rounded-2xl bg-white border border-[#f0ede4] hover:border-[#171711] hover:shadow-2xs transition-all flex items-center justify-between gap-3">
                       <div className="flex items-center gap-3 min-w-0">
                         <div className="w-8 h-8 rounded-xl bg-neutral-100 text-[#171711] flex items-center justify-center shrink-0">
                           <CheckSquare className="w-4 h-4" />
@@ -354,14 +354,14 @@ export function DesignedToStayOutOfWaySection() {
                           <p className="text-[11px] text-[#9e9b92]">Task • Added 3 days ago</p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-1 text-[11px] font-semibold text-[#ff541c] shrink-0">
+                      <div className="flex items-center gap-1 text-[11px] font-semibold text-[#6c6b63] shrink-0">
                         <span>25 Jul, 10:00 AM</span>
-                        <Clock className="w-3 h-3 text-[#ff541c]" />
+                        <Clock className="w-3 h-3 text-[#9e9b92]" />
                       </div>
                     </div>
 
                     {/* Item 2 */}
-                    <div className="p-3 sm:p-3.5 rounded-2xl bg-white border border-[#f0ede4] hover:border-[#e4e0d5] hover:shadow-2xs transition-all flex items-center justify-between gap-3">
+                    <div className="p-3 sm:p-3.5 rounded-2xl bg-white border border-[#f0ede4] hover:border-[#171711] hover:shadow-2xs transition-all flex items-center justify-between gap-3">
                       <div className="flex items-center gap-3 min-w-0">
                         <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
                           <Link2 className="w-4 h-4" />
@@ -373,9 +373,9 @@ export function DesignedToStayOutOfWaySection() {
                           <p className="text-[11px] text-[#9e9b92]">Link • Added 5 days ago</p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-1 text-[11px] font-semibold text-[#ff541c] shrink-0">
+                      <div className="flex items-center gap-1 text-[11px] font-semibold text-[#6c6b63] shrink-0">
                         <span>26 Jul, 08:00 AM</span>
-                        <Clock className="w-3 h-3 text-[#ff541c]" />
+                        <Clock className="w-3 h-3 text-[#9e9b92]" />
                       </div>
                     </div>
                   </div>
@@ -390,7 +390,7 @@ export function DesignedToStayOutOfWaySection() {
                     QUICK DROP
                   </span>
                   <div className="p-5 rounded-2xl bg-[#faf8f5] border border-dashed border-[#e4e0d5] text-center space-y-2.5">
-                    <div className="w-8 h-8 mx-auto rounded-full bg-orange-50 text-[#ff541c] flex items-center justify-center">
+                    <div className="w-8 h-8 mx-auto rounded-full bg-[#e6edb0] text-[#171711] flex items-center justify-center">
                       <Upload className="w-4 h-4" />
                     </div>
                     <p className="font-bold text-xs text-[#171711]">Drop files or links here</p>
@@ -413,7 +413,7 @@ export function DesignedToStayOutOfWaySection() {
                     NEXT RETURN
                   </span>
                   <div className="p-3 rounded-2xl bg-[#faf8f5] border border-[#f0ede4] flex items-center gap-3">
-                    <div className="w-7 h-7 rounded-lg bg-red-50 text-[#ef4444] flex items-center justify-center shrink-0">
+                    <div className="w-7 h-7 rounded-lg bg-[#faf8f2] text-[#171711] border border-[#e4e0d5] flex items-center justify-center shrink-0">
                       <FileText className="w-3.5 h-3.5" />
                     </div>
                     <div className="min-w-0">
