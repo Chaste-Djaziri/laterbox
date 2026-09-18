@@ -19,6 +19,9 @@ All notable user-facing changes to LaterBox will be documented in this file.
 - **Web Downloads**: Fixed terminal CLI quick script snippet command and copy action on download page.
 - **iOS Dynamic Island Overlay**: Fixed a missing Overlay assertion error by removing the tooltip from the overlay close button and providing an Overlay widget ancestor.
 
+### Removed
+- **Web Landing Page Metrics Bar**: Removed the 4-item performance metrics bar (< 10ms SQLite, 100% Offline-First, 7 Platforms, 0 Trackers) from the landing page.
+
 ### Changed
 - **Landing Page 'Later' Quote Cards**: Added subtle tilt rotations to problem cards with smooth straighten-on-hover animation and luminous border highlight.
 - **Web Landing Page Hero**: Updated headline to "Drop it now. Deal with it later.", updated subtext, added "TRY IT ↓" preview indicator, and embedded a real live guest mode application sandbox adhering to the web theme palette.
