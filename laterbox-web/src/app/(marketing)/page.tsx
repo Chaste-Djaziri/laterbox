@@ -232,10 +232,24 @@ export default function LandingPage() {
             </p>
           </div>
 
+          {/* Floating Try It Badge Indicator */}
+          <div className="mt-12 sm:mt-16 max-w-4xl mx-auto flex justify-start pl-6 sm:pl-10 mb-[-12px] relative z-20">
+            <Link
+              href="/inbox"
+              className="inline-flex flex-col items-center group cursor-pointer"
+            >
+              <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#171711] group-hover:bg-[#282723] text-[#e6edb0] font-black text-xs tracking-wider uppercase shadow-md transition-all group-hover:scale-105">
+                <span>TRY IT</span>
+                <span className="text-xs leading-none font-black">↓</span>
+              </div>
+              <div className="w-0 h-0 border-x-4 border-x-transparent border-t-[5px] border-t-[#171711] group-hover:border-t-[#282723] transition-colors" />
+            </Link>
+          </div>
+
           {/* ============================================================ */}
           {/* Interactive Pro App Simulator Container */}
           {/* ============================================================ */}
-          <div className="mt-14 sm:mt-20 max-w-4xl mx-auto rounded-3xl bg-white border border-[#e4e0d5] shadow-xl overflow-hidden text-left">
+          <div className="max-w-4xl mx-auto rounded-3xl bg-white border border-[#e4e0d5] shadow-xl overflow-hidden text-left">
             {/* Window Top Bar & Interactive Tab Selector */}
             <div className="flex flex-wrap items-center justify-between gap-3 px-4 sm:px-6 py-3.5 border-b border-[#e4e0d5] bg-[#faf8f2]">
               <div className="flex items-center gap-2">
