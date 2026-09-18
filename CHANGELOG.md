@@ -5,6 +5,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- **Web Landing Page Scroll Convergence Section**: Added an interactive scroll-driven animation section where scattered digital items (YouTube links, PDFs, PSDs, invoices, screenshots, notes) converge into the center as 'Later shouldn't mean lost' transforms into 'One place for everything later.'
 - **Web Landing Page 'Later' Problem Section**: Added the "We all have a place called Later" problem statement section directly under the hero section, featuring behavioral cards for "Watch later", "Bookmarks", "Downloads", and "Open tabs".
 - **Custom Return Time for Dynamic Island & Share Extension**: Added custom date and time scheduling to the iOS Dynamic Island companion modal and enhanced the custom time picker in the iOS Share Extension confirm modal.
 - **Native ActivityKit Live Activities**: Added native iOS Dynamic Island Live Activity support via ActivityKit with compact leading/trailing, minimal, and expanded interactive views for share receipts and captures.
