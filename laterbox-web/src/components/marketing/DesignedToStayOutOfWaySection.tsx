@@ -123,12 +123,12 @@ export function DesignedToStayOutOfWaySection() {
                       onClick={() => setActiveTab(item.name)}
                       className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition-all relative cursor-pointer ${
                         isActive
-                          ? 'bg-white border border-[#e4e0d5] text-[#171711] shadow-2xs'
+                          ? 'bg-white border border-[#e4e0d5]/80 text-[#171711] shadow-2xs'
                           : 'text-[#6c6b63] hover:text-[#171711] hover:bg-[#f0ede4]/60'
                       }`}
                     >
                       {isActive && (
-                        <span className="w-1 h-5 bg-[#171711] rounded-full absolute -left-0.5 top-1/2 -translate-y-1/2" />
+                        <span className="w-1.5 h-6 bg-[#171711] rounded-r-md absolute left-0 top-1/2 -translate-y-1/2" />
                       )}
                       <div className="flex items-center gap-2.5">
                         <Icon className={`w-4 h-4 ${isActive ? 'text-[#171711]' : 'text-[#9e9b92]'}`} />
@@ -390,7 +390,7 @@ export function DesignedToStayOutOfWaySection() {
                     QUICK DROP
                   </span>
                   <div className="p-5 rounded-2xl bg-[#faf8f5] border border-dashed border-[#e4e0d5] text-center space-y-2.5">
-                    <div className="w-8 h-8 mx-auto rounded-full bg-[#e6edb0] text-[#171711] flex items-center justify-center">
+                    <div className="w-9 h-9 mx-auto rounded-xl bg-[#e6edb0] text-[#171711] flex items-center justify-center shadow-2xs">
                       <Upload className="w-4 h-4" />
                     </div>
                     <p className="font-bold text-xs text-[#171711]">Drop files or links here</p>
@@ -400,7 +400,7 @@ export function DesignedToStayOutOfWaySection() {
                     <button
                       type="button"
                       onClick={triggerAdd}
-                      className="px-4 py-1.5 rounded-xl bg-white border border-[#e4e0d5] hover:border-[#171711] text-[#171711] font-bold text-xs shadow-2xs transition-all cursor-pointer"
+                      className="px-4 py-1.5 rounded-full bg-white border border-[#e4e0d5] hover:border-[#171711] text-[#171711] font-bold text-xs shadow-2xs transition-all cursor-pointer"
                     >
                       Browse Files
                     </button>
