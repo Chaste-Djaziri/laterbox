@@ -10,31 +10,31 @@ function LaterBoxTrayLogo({ className = 'w-16 h-16' }: { className?: string }) {
         viewBox="0 0 72 64"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
-        className="w-full h-full drop-shadow-[0_12px_28px_rgba(255,84,28,0.28)]"
+        className="w-full h-full drop-shadow-[0_12px_28px_rgba(230,237,176,0.25)]"
       >
         {/* Envelope back paper sheet */}
         <rect x="16" y="8" width="40" height="30" rx="5" fill="#faf8f2" />
         <path d="M16 12L36 26L56 12" stroke="#e4e0d5" strokeWidth="2.5" strokeLinecap="round" />
 
-        {/* Orange folder/pouch container */}
+        {/* Charcoal folder/pouch container */}
         <path
           d="M10 24C10 20.6863 12.6863 18 16 18H28L34 23H56C59.3137 23 62 25.6863 62 29V46C62 50.4183 58.4183 54 54 54H18C13.5817 54 10 50.4183 10 46V24Z"
-          fill="#ff541c"
+          fill="#24231d"
         />
 
         {/* Crease / front pocket contour */}
         <path
           d="M10 32L36 46L62 32"
-          stroke="#e04610"
+          stroke="#000000"
           strokeWidth="1.5"
-          strokeOpacity="0.6"
+          strokeOpacity="0.3"
         />
 
-        {/* Circular Clock Badge in bottom right */}
-        <circle cx="53" cy="46" r="10.5" fill="#ffffff" stroke="#ff541c" strokeWidth="2.5" />
-        <circle cx="53" cy="46" r="1.5" fill="#ff541c" />
-        <line x1="53" y1="46" x2="53" y2="40.5" stroke="#ff541c" strokeWidth="2" strokeLinecap="round" />
-        <line x1="53" y1="46" x2="57.5" y2="46" stroke="#ff541c" strokeWidth="2" strokeLinecap="round" />
+        {/* Circular Clock Badge in bottom right with signature green accent */}
+        <circle cx="53" cy="46" r="10.5" fill="#e6edb0" stroke="#171711" strokeWidth="2.5" />
+        <circle cx="53" cy="46" r="1.5" fill="#171711" />
+        <line x1="53" y1="46" x2="53" y2="40.5" stroke="#171711" strokeWidth="2" strokeLinecap="round" />
+        <line x1="53" y1="46" x2="57.5" y2="46" stroke="#171711" strokeWidth="2" strokeLinecap="round" />
       </svg>
     </div>
   );
