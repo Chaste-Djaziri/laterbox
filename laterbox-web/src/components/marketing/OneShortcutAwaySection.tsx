@@ -83,16 +83,16 @@ export function OneShortcutAwaySection() {
         {/* Quick Capture Floating Card Stage */}
         <div className="w-full flex items-center justify-center min-h-[190px] sm:min-h-[220px] mb-12 sm:mb-16">
           {phase === 'saved' ? (
-            /* Phase 3: "SAVED." Solid Orange Card */
+            /* Phase 3: "SAVED." Solid Green Accent Card */
             <div
               key="saved-card"
-              className="w-[240px] sm:w-[270px] h-[100px] sm:h-[112px] rounded-2xl sm:rounded-[24px] bg-[#ff541c] border-2 border-[#ff541c] shadow-[0_20px_50px_rgba(255,84,28,0.35)] flex items-center justify-center animate-in zoom-in-95 fade-in duration-300 cursor-pointer transition-all hover:scale-102"
+              className="w-[240px] sm:w-[270px] h-[100px] sm:h-[112px] rounded-2xl sm:rounded-[24px] bg-[#e6edb0] border-2 border-[#171711] shadow-[0_20px_50px_rgba(230,237,176,0.5),0_8px_20px_rgba(23,23,17,0.08)] flex items-center justify-center animate-in zoom-in-95 fade-in duration-300 cursor-pointer transition-all hover:scale-102"
               onClick={() => {
                 setPhase('empty');
                 setIsManualOverride(false);
               }}
             >
-              <span className="text-sm sm:text-base font-black tracking-widest text-white select-none">
+              <span className="text-sm sm:text-base font-black tracking-widest text-[#171711] select-none">
                 SAVED.
               </span>
             </div>
@@ -100,7 +100,7 @@ export function OneShortcutAwaySection() {
             /* Phase 1 & 2: Quick Capture Input Card with Typewriter and Schedule Pills */
             <div
               key="input-card"
-              className="w-full max-w-[440px] sm:max-w-[480px] min-h-[155px] sm:min-h-[165px] rounded-2xl sm:rounded-[26px] bg-white border-2 border-[#ff541c] shadow-[0_20px_60px_rgba(255,84,28,0.13),0_6px_20px_rgba(0,0,0,0.04)] p-5 sm:p-6 flex flex-col justify-between text-left transition-all duration-300"
+              className="w-full max-w-[440px] sm:max-w-[480px] min-h-[155px] sm:min-h-[165px] rounded-2xl sm:rounded-[26px] bg-white border-2 border-[#171711] shadow-[0_20px_60px_rgba(230,237,176,0.35),0_6px_20px_rgba(0,0,0,0.04)] p-5 sm:p-6 flex flex-col justify-between text-left transition-all duration-300"
             >
               <div>
                 {/* Top prompt label */}
@@ -113,8 +113,8 @@ export function OneShortcutAwaySection() {
                   <span className="text-lg sm:text-xl font-medium text-[#171711] tracking-tight">
                     {displayedText}
                   </span>
-                  {/* Blinking Orange Caret */}
-                  <span className="inline-block w-[2px] h-5 sm:h-6 bg-[#ff541c] ml-1 animate-pulse" />
+                  {/* Blinking Caret */}
+                  <span className="inline-block w-[2px] h-5 sm:h-6 bg-[#171711] ml-1 animate-pulse" />
                 </div>
               </div>
 
@@ -133,7 +133,7 @@ export function OneShortcutAwaySection() {
                       onClick={() => handlePillClick(opt)}
                       className={`text-[11px] sm:text-xs font-semibold px-3 sm:px-3.5 py-1.5 rounded-full transition-all duration-200 cursor-pointer ${
                         isSelected
-                          ? 'bg-[#ff541c] text-white shadow-xs scale-102 font-bold'
+                          ? 'bg-[#e6edb0] text-[#171711] font-bold shadow-xs scale-102 border border-[#171711]/20'
                           : 'bg-[#f4f3ed] text-[#4a4940] hover:bg-[#e9e7df]'
                       }`}
                     >
