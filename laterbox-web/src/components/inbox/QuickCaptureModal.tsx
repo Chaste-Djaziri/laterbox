@@ -161,12 +161,37 @@ export function QuickCaptureModal({ isOpen, onClose, initialFiles, browseFiles =
         </button>
 
         <div className="mb-4 pr-10 flex flex-wrap gap-2">
-          {['link', 'file', 'task', 'idea'].map(option => <button type="button" key={option} disabled={saving}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold capitalize ${kind === option ? 'bg-[#e6edb0]' : 'border border-[#e4e0d5]'}`}
-            onClick={() => { setKind(option); if (option === 'file') fileInputRef.current?.click(); }}>{option}</button>)}
+          {['link', 'file', 'task', 'idea'].map((option) => (
+            <button
+              type="button"
+              key={option}
+              disabled={saving}
+              className={`px-3.5 py-1.5 rounded-full text-xs font-bold capitalize cursor-pointer transition-all ${
+                kind === option
+                  ? 'bg-[#e6edb0] border border-[#d0db84] text-[#171711] shadow-2xs'
+                  : 'bg-white border border-[#e4e0d5] text-[#6c6b63] hover:text-[#171711] hover:bg-[#faf8f5]'
+              }`}
+              onClick={() => {
+                setKind(option);
+                if (option === 'file') fileInputRef.current?.click();
+              }}
+            >
+              {option}
+            </button>
+          ))}
         </div>
-        <div className="mb-5"><ReturnTimePicker value={returnAt} onChange={setReturnAt} disabled={saving} /></div>
-        {duplicateId && <Link href={`/item/${duplicateId}`} onClick={onClose} className="block mb-4 text-sm font-bold underline">View item and reschedule</Link>}
+        <div className="mb-5">
+          <ReturnTimePicker value={returnAt} onChange={setReturnAt} disabled={saving} />
+        </div>
+        {duplicateId && (
+          <Link
+            href={`/item/${duplicateId}`}
+            onClick={onClose}
+            className="block mb-4 text-xs font-bold text-[#171711] underline hover:text-black"
+          >
+            View existing item and reschedule
+          </Link>
+        )}
         {/* Hidden File Input */}
         <input
           ref={fileInputRef}
@@ -187,9 +212,9 @@ export function QuickCaptureModal({ isOpen, onClose, initialFiles, browseFiles =
             <Link2 className="w-5 h-5" />
           </div>
           <div>
-            <h2 className="text-xl font-extrabold text-[#171711] tracking-tight">Save to laterbox</h2>
+            <h2 className="text-xl font-black text-[#171711] tracking-tight">Save to LaterBox</h2>
             <p className="text-xs text-[#6c6b63] font-medium">
-              Paste a URL, markdown snippet, or upload attachments
+              Save URLs, markdown notes, PDFs, or design attachments
             </p>
           </div>
         </div>
