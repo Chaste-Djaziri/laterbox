@@ -15,6 +15,7 @@ import { OneShortcutAwaySection } from '@/components/marketing/OneShortcutAwaySe
 import { YourThingsStaySection } from '@/components/marketing/YourThingsStaySection';
 import { LessMentalClutterSection } from '@/components/marketing/LessMentalClutterSection';
 import { UltimateWindowsOrganizerSection } from '@/components/marketing/UltimateWindowsOrganizerSection';
+import { WontForgetItLaterSection } from '@/components/marketing/WontForgetItLaterSection';
 import {
   Sparkles,
   ArrowRight,
@@ -492,6 +493,11 @@ export default function LandingPage() {
       {/* "The Ultimate Windows Productivity Organizer" Feature Tabs */}
       {/* ============================================================ */}
       <UltimateWindowsOrganizerSection />
+
+      {/* ============================================================ */}
+      {/* "You don't need to do everything now." Core Statement */}
+      {/* ============================================================ */}
+      <WontForgetItLaterSection />
 
       {/* ============================================================ */}
       {/* Pro Feature Matrix Grid */}
