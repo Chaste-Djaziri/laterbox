@@ -359,6 +359,75 @@ export default function LandingPage() {
       </section>
 
       {/* ============================================================ */}
+      {/* "We all have a place called Later" Problem Section */}
+      {/* ============================================================ */}
+      <section className="py-20 sm:py-28 px-4 sm:px-6 relative overflow-hidden bg-white border-b border-[#e4e0d5]">
+        <div className="max-w-4xl mx-auto text-center">
+          {/* Main Statement Heading */}
+          <h2 className="text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight text-[#171711] uppercase leading-tight">
+            We all have a place <br />
+            called <br />
+            <span className="font-serif italic font-normal text-4xl sm:text-6xl lg:text-7xl normal-case tracking-normal block mt-2">
+              &ldquo;LATER.&rdquo;
+            </span>
+          </h2>
+
+          {/* 2x2 Behavioral Quote Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6 max-w-2xl mx-auto mt-14 sm:mt-16">
+            {/* Card 1: Watch Later */}
+            <div className="rounded-2xl sm:rounded-3xl bg-white border border-[#e4e0d5] p-8 sm:p-10 text-center shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_12px_36px_rgb(0,0,0,0.08)] transition-all flex flex-col items-center justify-center space-y-3.5 group">
+              <p className="text-lg sm:text-xl font-bold text-[#171711]">
+                &ldquo;I&apos;ll watch it later.&rdquo;
+              </p>
+              <span className="px-3.5 py-1 rounded-full bg-[#f0ede4] text-[#6c6b63] text-[10px] sm:text-xs font-extrabold uppercase tracking-wider">
+                WATCH LATER
+              </span>
+            </div>
+
+            {/* Card 2: Bookmarks */}
+            <div className="rounded-2xl sm:rounded-3xl bg-white border border-[#e4e0d5] p-8 sm:p-10 text-center shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_12px_36px_rgb(0,0,0,0.08)] transition-all flex flex-col items-center justify-center space-y-3.5 group">
+              <p className="text-lg sm:text-xl font-bold text-[#171711]">
+                &ldquo;I&apos;ll read it later.&rdquo;
+              </p>
+              <span className="px-3.5 py-1 rounded-full bg-[#f0ede4] text-[#6c6b63] text-[10px] sm:text-xs font-extrabold uppercase tracking-wider">
+                BOOKMARKS
+              </span>
+            </div>
+
+            {/* Card 3: Downloads */}
+            <div className="rounded-2xl sm:rounded-3xl bg-white border border-[#e4e0d5] p-8 sm:p-10 text-center shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_12px_36px_rgb(0,0,0,0.08)] transition-all flex flex-col items-center justify-center space-y-3.5 group">
+              <p className="text-lg sm:text-xl font-bold text-[#171711]">
+                &ldquo;I&apos;ll finish it later.&rdquo;
+              </p>
+              <span className="px-3.5 py-1 rounded-full bg-[#f0ede4] text-[#6c6b63] text-[10px] sm:text-xs font-extrabold uppercase tracking-wider">
+                DOWNLOADS
+              </span>
+            </div>
+
+            {/* Card 4: Open Tabs */}
+            <div className="rounded-2xl sm:rounded-3xl bg-white border border-[#e4e0d5] p-8 sm:p-10 text-center shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_12px_36px_rgb(0,0,0,0.08)] transition-all flex flex-col items-center justify-center space-y-3.5 group">
+              <p className="text-lg sm:text-xl font-bold text-[#171711]">
+                &ldquo;I&apos;ll reply later.&rdquo;
+              </p>
+              <span className="px-3.5 py-1 rounded-full bg-[#f0ede4] text-[#6c6b63] text-[10px] sm:text-xs font-extrabold uppercase tracking-wider">
+                OPEN TABS
+              </span>
+            </div>
+          </div>
+
+          {/* Bottom Punchline */}
+          <div className="mt-14 sm:mt-18 text-center space-y-1">
+            <p className="text-xl sm:text-2xl text-[#171711] font-medium">
+              Most things we save for later
+            </p>
+            <p className="text-xl sm:text-2xl text-[#171711] font-black tracking-tight">
+              never find their way back.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* ============================================================ */}
       {/* Pro Metrics & Performance Bar */}
       {/* ============================================================ */}
       <section className="py-12 border-y border-[#e4e0d5] bg-white">
