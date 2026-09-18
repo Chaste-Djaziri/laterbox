@@ -47,6 +47,75 @@ interface ItemContextType {
 
 const ItemContext = createContext<ItemContextType | undefined>(undefined);
 
+const DEFAULT_GUEST_ITEMS: LaterBoxItem[] = [
+  {
+    id: 'guest-item-1',
+    user_id: null,
+    title: 'ClientFeedback.pdf',
+    type: 'document',
+    status: 'inbox',
+    is_favorite: false,
+    created_at: new Date(Date.now() - 2 * 86400000).toISOString(),
+    updated_at: new Date(Date.now() - 2 * 86400000).toISOString(),
+    return_at: new Date(Date.now() + 86400000).toISOString(),
+    metadata: {
+      item_id: 'guest-item-1',
+      title: 'ClientFeedback.pdf',
+      description: 'PDF Document • Added 2 days ago',
+      status: 'enriched',
+      attempt_count: 1,
+      content_type: 'document',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    },
+  },
+  {
+    id: 'guest-item-2',
+    user_id: null,
+    title: 'Design Inspiration.psd',
+    type: 'document',
+    status: 'inbox',
+    is_favorite: true,
+    created_at: new Date(Date.now() - 3 * 86400000).toISOString(),
+    updated_at: new Date(Date.now() - 3 * 86400000).toISOString(),
+    return_at: new Date(Date.now() + 14400000).toISOString(),
+    metadata: {
+      item_id: 'guest-item-2',
+      title: 'Design Inspiration.psd',
+      description: 'PSD File • Added 3 days ago',
+      status: 'enriched',
+      attempt_count: 1,
+      content_type: 'document',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    },
+  },
+  {
+    id: 'guest-item-3',
+    user_id: null,
+    title: 'Building Distributed Edge Apps with Cloudflare & Supabase',
+    url: 'https://youtube.com',
+    type: 'video',
+    status: 'inbox',
+    is_favorite: false,
+    created_at: new Date(Date.now() - 86400000).toISOString(),
+    updated_at: new Date(Date.now() - 86400000).toISOString(),
+    return_at: null,
+    metadata: {
+      item_id: 'guest-item-3',
+      title: 'Building Distributed Edge Apps with Cloudflare & Supabase',
+      domain: 'youtube.com',
+      site_name: 'YouTube',
+      description: 'Watch video in distraction-free player with zero ads',
+      status: 'enriched',
+      attempt_count: 1,
+      content_type: 'video',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    },
+  },
+];
+
 export function ItemProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const { isPro } = useBilling();
@@ -65,6 +134,9 @@ export function ItemProvider({ children }: { children: ReactNode }) {
       const stored = localStorage.getItem(`${LOCAL_ITEMS_KEY}_${user?.id || 'guest'}`) || localStorage.getItem(LOCAL_ITEMS_KEY);
       if (stored) {
         setItems((JSON.parse(stored) as LaterBoxItem[]).filter(item => (item.user_id || null) === (user?.id || null)).map(migrateSchedule));
+      } else if (!user) {
+        setItems(DEFAULT_GUEST_ITEMS);
+        localStorage.setItem(`${LOCAL_ITEMS_KEY}_guest`, JSON.stringify(DEFAULT_GUEST_ITEMS));
       }
       const storedCols = localStorage.getItem(`${LOCAL_COLLECTIONS_KEY}_${user?.id || 'guest'}`) || localStorage.getItem(LOCAL_COLLECTIONS_KEY);
       if (storedCols) {
