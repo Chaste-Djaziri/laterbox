@@ -26,6 +26,7 @@ import {
   User,
   ChevronsLeft,
   ChevronsRight,
+  ChevronRight,
   Crown,
   Archive,
 } from 'lucide-react';
@@ -124,6 +125,8 @@ export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
 
   const renderLinkItem = ({ href, label, icon, badge }: { href: string; label: string; icon: React.ReactNode; badge?: number }) => {
     const isActive = isLinkActive(href);
+    const isInboxActive = isActive && href === '/inbox';
+
     return (
       <Link
         key={href}
@@ -132,12 +135,14 @@ export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
         className={`relative flex items-center ${
           collapsed ? 'justify-center px-0' : 'justify-between px-3'
         } py-2.5 rounded-xl text-xs transition-all duration-150 ${
-          isActive
+          isInboxActive
+            ? 'bg-[#e6edb0] text-[#171711] font-bold shadow-2xs'
+            : isActive
             ? 'bg-white border border-[#e4e0d5]/80 text-[#171711] font-bold shadow-2xs'
             : 'text-[#6c6b63] font-medium hover:bg-[#ebe7dc]/50 hover:text-[#171711]'
         }`}
       >
-        {isActive && (
+        {isActive && !isInboxActive && (
           <span className="w-1.5 h-6 bg-[#171711] rounded-r-md absolute left-0 top-1/2 -translate-y-1/2" />
         )}
         <div className="flex items-center gap-2.5 min-w-0">
@@ -147,7 +152,13 @@ export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
           {!collapsed && <span className="truncate">{label}</span>}
         </div>
         {!collapsed && badge !== undefined && (
-          <span className="w-5 h-5 rounded-full bg-[#e6edb0] text-[#171711] text-[10px] font-black flex items-center justify-center shrink-0">
+          <span
+            className={`w-5 h-5 rounded-full text-[10px] font-black flex items-center justify-center shrink-0 ${
+              isInboxActive
+                ? 'bg-[#d8e09e] text-[#171711]'
+                : 'bg-[#e6edb0] text-[#171711]'
+            }`}
+          >
             {badge}
           </span>
         )}
@@ -177,8 +188,8 @@ export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
               />
             </div>
             {!collapsed && (
-              <span className="text-[17px] font-extrabold tracking-tight text-[#171711]">
-                LaterBox
+              <span className="text-[17px] font-black tracking-tight text-[#171711]">
+                laterbox
               </span>
             )}
           </Link>
@@ -201,11 +212,11 @@ export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
           onClick={onOpenCapture}
           className={`w-full flex items-center ${
             collapsed ? 'justify-center px-0' : 'justify-center px-3'
-          } py-2.5 rounded-xl bg-[#171711] hover:bg-black active:bg-[#0f0f0e] text-white font-black text-xs tracking-wider shadow-xs transition-all duration-150 group cursor-pointer`}
-          title="Add to LaterBox"
+          } py-2.5 rounded-xl bg-[#171711] hover:bg-black active:bg-[#0f0f0e] text-white font-bold text-xs tracking-wide shadow-xs transition-all duration-150 group cursor-pointer`}
+          title="Save Item"
         >
-          <Plus className="w-3.5 h-3.5 transition-transform group-hover:rotate-90 shrink-0 mr-1" />
-          {!collapsed && <span>+ ADD TO LATERBOX</span>}
+          <Plus className="w-3.5 h-3.5 transition-transform group-hover:rotate-90 shrink-0 mr-1.5" />
+          {!collapsed && <span>Save Item</span>}
         </button>
 
         {/* Main Navigation Items */}
@@ -239,23 +250,44 @@ export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
       </div>
 
       {/* Bottom Profile / Cloud Sync Section */}
-      <div className="pt-3 border-t border-[#e4e0d5] space-y-2">
-        <div className="rounded-xl bg-[#171711] p-2.5 text-white" title={collapsed ? plan.label : undefined}>
-          <div className={`flex items-center ${collapsed ? 'justify-center' : 'gap-2'}`}>
-            <Crown className={`size-4 shrink-0 ${plan.tone === 'warning' ? 'text-amber-300' : 'text-[#d7ff27]'}`} />
-            {!collapsed && <span className="min-w-0 flex-1 truncate text-[11px] font-black">{plan.label}</span>}
+      <div className="pt-3 border-t border-[#e4e0d5] space-y-2.5">
+        {/* Free Plan Card */}
+        <Link
+          href="/plans"
+          className="block p-3 rounded-2xl bg-white border border-[#e4e0d5] hover:border-[#171711]/40 transition-all shadow-2xs group"
+          title={collapsed ? plan.label : undefined}
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Crown className="w-4 h-4 text-amber-500 shrink-0" />
+              {!collapsed && (
+                <span className="text-xs font-bold text-[#171711]">{plan.label || 'Free Plan'}</span>
+              )}
+            </div>
+            {!collapsed && (
+              <ChevronRight className="w-3.5 h-3.5 text-[#9e9b92] group-hover:text-[#171711] transition-colors" />
+            )}
           </div>
-          {!collapsed && plan.progress !== null && <div className="mt-2 h-1 overflow-hidden rounded-full bg-white/15"><div className={`h-full ${plan.tone === 'warning' ? 'bg-amber-300' : 'bg-[#d7ff27]'}`} style={{ width: `${Math.round(plan.progress * 100)}%` }} /></div>}
-          {!collapsed && (isPro && entitlement.provider === 'paddle' ? <button type="button" onClick={() => void manage()} className={`mt-2 text-[10px] font-black ${plan.tone === 'warning' ? 'text-amber-300' : 'text-[#d7ff27]'}`}>{plan.actionLabel}</button> : <Link href="/plans" className="mt-2 block text-[10px] font-black text-[#d7ff27]">{plan.actionLabel}</Link>)}
-        </div>
+          {!collapsed && (
+            <p className="text-[10px] text-[#8e8d87] mt-1 pl-6 font-medium">
+              {plan.actionLabel || 'Upgrade for more space'}
+            </p>
+          )}
+        </Link>
+
+        {/* Local Mode Pill */}
         <div className="flex items-center justify-center">
-          <CloudSyncIndicator compact={collapsed} />
+          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white border border-[#e4e0d5] text-xs font-semibold text-[#171711] shadow-2xs w-full justify-center">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+            {!collapsed && <span>Local Mode</span>}
+          </div>
         </div>
 
+        {/* User / Guest Account Row */}
         {user ? (
-          <div className="flex items-center justify-between p-2 rounded-xl bg-[#ebe7dc]/50 border border-[#e4e0d5]/70">
+          <div className="flex items-center justify-between p-2 rounded-xl bg-white border border-[#e4e0d5] shadow-2xs">
             <div className="flex items-center gap-2 min-w-0">
-              <div className="w-7 h-7 rounded-lg bg-[#e6edb0] flex items-center justify-center text-[#171711] shrink-0 font-bold text-xs">
+              <div className="w-7 h-7 rounded-full bg-[#171711] flex items-center justify-center text-white shrink-0 font-bold text-xs">
                 {user.email?.[0].toUpperCase() || <User className="w-3.5 h-3.5" />}
               </div>
               {!collapsed && (
@@ -263,42 +295,43 @@ export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
                   <p className="text-xs font-bold text-[#171711] truncate">
                     {user.email}
                   </p>
-                  <p className="text-[10px] text-[#6c6b63] font-medium truncate">Account</p>
+                  <p className="text-[10px] text-[#8e8d87] font-medium truncate">Account</p>
                 </div>
               )}
             </div>
             {!collapsed && (
               <button
+                type="button"
                 onClick={() => signOut()}
                 title="Sign Out"
-                className="p-1 rounded-lg text-[#6c6b63] hover:text-[#171711] hover:bg-[#ebe7dc] transition-colors"
+                className="p-1 rounded-lg text-[#9e9b92] hover:text-[#171711] transition-colors cursor-pointer"
               >
                 <LogOut className="w-3.5 h-3.5" />
               </button>
             )}
           </div>
         ) : (
-          <div className="p-2.5 rounded-xl bg-[#ebe7dc]/50 border border-[#e4e0d5]/70 space-y-2">
+          <div className="flex items-center justify-between p-2 rounded-xl bg-white border border-[#e4e0d5] shadow-2xs">
             <div className="flex items-center gap-2 min-w-0">
-              <div className="w-7 h-7 rounded-lg bg-[#e6edb0] flex items-center justify-center text-[#171711] shrink-0 font-bold text-xs">
-                G
+              <div className="w-7 h-7 rounded-full bg-[#171711] flex items-center justify-center text-white shrink-0 font-bold text-xs">
+                N
               </div>
               {!collapsed && (
                 <div className="min-w-0">
                   <p className="text-xs font-bold text-[#171711] truncate">
                     Guest Mode
                   </p>
-                  <p className="text-[10px] text-[#6c6b63] font-medium truncate">Local storage</p>
+                  <p className="text-[10px] text-[#8e8d87] font-medium truncate">Local storage only</p>
                 </div>
               )}
             </div>
             {!collapsed && (
               <Link
-                href="/login"
-                className="w-full inline-flex items-center justify-center gap-1.5 py-1.5 px-2.5 rounded-lg bg-[#171711] hover:bg-[#282723] text-white font-bold text-[11px] shadow-sm transition-all"
+                href="/settings"
+                className="p-1 rounded-lg text-[#9e9b92] hover:text-[#171711] transition-colors"
+                title="Settings"
               >
-                <LogIn className="w-3 h-3" />
-                <span>Sign In / Sync</span>
+                <Settings className="w-3.5 h-3.5" />
               </Link>
             )}
           </div>
