@@ -179,14 +179,15 @@ export default function LandingPage() {
           </div>
 
           {/* Main Hero Heading */}
-          <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight text-[#171711] leading-[1.06] mb-6">
-            The save-for-later tool <br />
-            <span className="text-[#6c6b63]">designed for speed, media & focus.</span>
+          <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight text-[#171711] leading-[1.08] mb-6">
+            Drop it now. <br />
+            Deal with it <span className="font-serif italic font-normal">later.</span>
           </h1>
 
           {/* Subheading */}
           <p className="max-w-2xl mx-auto text-base sm:text-xl text-[#6c6b63] leading-relaxed mb-10">
-            One shortcut to capture anything from any browser, app, or clipboard. Automatic high-res covers, native video playback, clean distraction-free reading, and 0ms offline search.
+            Save files, links, tasks, and ideas for later. <br className="hidden sm:inline" />
+            We&apos;ll bring them back when you&apos;re ready.
           </p>
 
           {/* Action CTAs */}
