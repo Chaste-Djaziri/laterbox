@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useAuth } from '@/lib/store/AuthContext';
 import { ScrollConvergenceSection } from '@/components/marketing/ScrollConvergenceSection';
+import { HowItWorksStepsSection } from '@/components/marketing/HowItWorksStepsSection';
 import {
   Sparkles,
   ArrowRight,
@@ -432,6 +433,11 @@ export default function LandingPage() {
       {/* Scroll Convergence Animation Section ("Later shouldn't mean lost") */}
       {/* ============================================================ */}
       <ScrollConvergenceSection />
+
+      {/* ============================================================ */}
+      {/* 4-Step Workflow Storytelling Section (Drop it, Choose when, etc.) */}
+      {/* ============================================================ */}
+      <HowItWorksStepsSection />
 
       {/* ============================================================ */}
       {/* Pro Feature Matrix Grid */}
