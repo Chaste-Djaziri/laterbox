@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useAuth } from '@/lib/store/AuthContext';
+import { ScrollConvergenceSection } from '@/components/marketing/ScrollConvergenceSection';
 import {
   Sparkles,
   ArrowRight,
@@ -426,6 +427,11 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+
+      {/* ============================================================ */}
+      {/* Scroll Convergence Animation Section ("Later shouldn't mean lost") */}
+      {/* ============================================================ */}
+      <ScrollConvergenceSection />
 
       {/* ============================================================ */}
       {/* Pro Feature Matrix Grid */}
