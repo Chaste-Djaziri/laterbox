@@ -171,7 +171,7 @@ function AppPlansContent() {
             <div className="flex items-center gap-2">
               <Crown
                 className={`size-5 ${
-                  presentation.tone === 'warning' ? 'text-amber-300' : 'text-[#d7ff27]'
+                  presentation.tone === 'warning' ? 'text-amber-300' : 'text-[#e6edb0]'
                 }`}
               />
               <span className="font-extrabold text-sm sm:text-base text-white">
@@ -188,7 +188,7 @@ function AppPlansContent() {
               <div className="mt-2 h-1.5 max-w-md overflow-hidden rounded-full bg-white/15">
                 <div
                   className={`h-full ${
-                    presentation.tone === 'warning' ? 'bg-amber-300' : 'bg-[#d7ff27]'
+                    presentation.tone === 'warning' ? 'bg-amber-300' : 'bg-[#e6edb0]'
                   }`}
                   style={{ width: `${Math.round(presentation.progress * 100)}%` }}
                 />
@@ -230,7 +230,7 @@ function AppPlansContent() {
                   const target = document.getElementById('pro-plan-card');
                   target?.scrollIntoView({ behavior: 'smooth' });
                 }}
-                className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-[#d7ff27] hover:bg-[#cbf71e] text-black text-xs font-black transition-colors cursor-pointer shadow-sm"
+                className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-[#e6edb0] hover:bg-[#d8e09e] text-[#171711] text-xs font-black transition-colors cursor-pointer shadow-sm"
               >
                 <Sparkles className="w-3.5 h-3.5" />
                 <span>Upgrade to Pro</span>
@@ -341,15 +341,15 @@ function AppPlansContent() {
           id="pro-plan-card"
           className="p-6 sm:p-8 rounded-3xl bg-[#171711] border border-[#171711] text-white flex flex-col justify-between shadow-xl shadow-black/5 space-y-6 relative overflow-hidden"
         >
-          <div className="absolute top-0 right-0 w-32 h-32 bg-[#d7ff27]/10 rounded-full blur-2xl pointer-events-none" />
+          <div className="absolute top-0 right-0 w-32 h-32 bg-[#e6edb0]/10 rounded-full blur-2xl pointer-events-none" />
 
           <div className="space-y-4 relative z-10">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Crown className="w-5 h-5 text-[#d7ff27]" />
+                <Crown className="w-5 h-5 text-[#e6edb0]" />
                 <h3 className="text-xl font-black text-white">LaterBox Pro</h3>
               </div>
-              <span className="inline-flex rounded-full bg-[#d7ff27] px-2.5 py-0.5 text-[10px] font-black text-black">
+              <span className="inline-flex rounded-full bg-[#e6edb0] px-2.5 py-0.5 text-[10px] font-black text-[#171711]">
                 14-Day Free Trial
               </span>
             </div>
@@ -361,7 +361,7 @@ function AppPlansContent() {
                   {interval === 'month' ? '/month' : '/year'}
                 </span>
               </div>
-              <p className="text-xs font-semibold text-[#d7ff27] mt-0.5">
+              <p className="text-xs font-semibold text-[#e6edb0] mt-0.5">
                 {interval === 'year' ? '$3.33/mo billed annually · 14-day free trial' : '14-day free trial, cancel anytime'}
               </p>
             </div>
@@ -375,7 +375,7 @@ function AppPlansContent() {
               <ul className="space-y-2.5">
                 {proFeatures.map((feat) => (
                   <li key={feat} className="flex items-start gap-2.5 text-xs text-zinc-200">
-                    <Check className="w-4 h-4 text-[#d7ff27] shrink-0 mt-0.5" />
+                    <Check className="w-4 h-4 text-[#e6edb0] shrink-0 mt-0.5" />
                     <span>{feat}</span>
                   </li>
                 ))}
@@ -403,7 +403,7 @@ function AppPlansContent() {
                 type="button"
                 disabled={busy !== null}
                 onClick={() => handleAction(interval)}
-                className="w-full py-3 rounded-xl bg-[#d7ff27] hover:bg-[#cbf71e] text-black text-center text-xs font-black transition-colors disabled:opacity-50 cursor-pointer shadow-sm flex items-center justify-center gap-2"
+                className="w-full py-3 rounded-xl bg-[#e6edb0] hover:bg-[#d8e09e] text-[#171711] text-center text-xs font-black transition-colors disabled:opacity-50 cursor-pointer shadow-sm flex items-center justify-center gap-2"
               >
                 {busy === interval && <Loader2 className="w-4 h-4 animate-spin" />}
                 <span>Start 14-Day Free Trial</span>
