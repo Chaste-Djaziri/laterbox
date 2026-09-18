@@ -5,6 +5,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- **Web Landing Page 'Your LaterBox. Your rules.' Showcase**: Added the customization & preferences section showcasing user rules (Startup, System Tray, Themes, Quick Capture, Reminders, Local Data) paired with an isometric 3D perspective app composition and capture-funnel illustration.
 - **Web Landing Page 'Designed to stay out of your way' Showcase**: Added the desktop app showcase section featuring the "Designed to stay out of your way." headline and an interactive full dashboard app window mockup (sidebar counters, returned today metrics, quick drop zone, and item timeline).
 - **Web Landing Page 'Someday Vault' Showcase**: Added the "Some things don't need a deadline." showcase section with an interactive stacked deck of Someday cards (movies, books, courses, ideas) with zero deadline pressure.
 - **Web Landing Page 'Not Another To-Do List' Showcase**: Added the "Not another to-do list." capability section demonstrating LaterBox returning the actual items (PSD files, YouTube links, client project folders, tasks, and ideas) with direct launch action pills.
