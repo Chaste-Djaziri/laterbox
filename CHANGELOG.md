@@ -30,6 +30,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 - **Web Landing Page Metrics Bar**: Removed the 4-item performance metrics bar (< 10ms SQLite, 100% Offline-First, 7 Platforms, 0 Trackers) from the landing page.
 
 ### Changed
+- **Web Landing Page Theme Alignment**: Replaced orange color accents across marketing showcase sections and hover states (problem quote cards, 4-step workflow, statement sections, and dashboard mockups) with the native LaterBox web theme palette (deep graphite `#171711`, warm paper `#f7f5ee`, and lime/sage accent `#e6edb0`).
 - **Landing Page 'Later' Quote Cards**: Added subtle tilt rotations to problem cards with smooth straighten-on-hover animation and luminous border highlight.
 - **Web Landing Page Hero**: Updated headline to "Drop it now. Deal with it later.", updated subtext, added "TRY IT ↓" preview indicator, and embedded a real live guest mode application sandbox adhering to the web theme palette.
 - **Web Attribution**: Updated author attribution to MiCorp ([micorp.pro](https://micorp.pro)).
