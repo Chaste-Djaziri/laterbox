@@ -19,6 +19,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 - **iOS Dynamic Island Overlay**: Fixed a missing Overlay assertion error by removing the tooltip from the overlay close button and providing an Overlay widget ancestor.
 
 ### Changed
+- **Web Landing Page Hero**: Updated headline to "Drop it now. Deal with it later.", updated subtext, added "TRY IT ↓" preview indicator, and introduced a realistic dashboard app working state mockup adhering to the web theme palette.
 - **iOS Clipboard Capture Notification**: Positioned the clipboard capture notification and confirmation card directly under the notch and Dynamic Island.
 - **macOS App Icon**: Updated macOS app icon to use the white app icon with black icon in light mode, and pure black background with white icon in dark mode.
 - **Desktop Quick Capture Shortcut**: Updated default global capture shortcut to Control+Option on macOS (`⌃ ⌥ Space`) and `Ctrl + Shift + L` on Windows.
