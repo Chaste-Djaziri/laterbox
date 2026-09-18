@@ -421,34 +421,57 @@ export default function LandingPage() {
 
 
       {/* ============================================================ */}
-      {/* High-Converting Bottom Command Center CTA Banner */}
+      {/* Pre-Footer Final Download CTA Banner (Black Background) */}
       {/* ============================================================ */}
-      <section className="py-16 max-w-5xl mx-auto px-4 sm:px-6">
-        <div className="relative rounded-3xl bg-[#171711] p-8 sm:p-14 text-center text-white shadow-2xl overflow-hidden border border-[#2e2d28]">
-          <div className="relative z-10 max-w-2xl mx-auto space-y-6">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-xs font-mono text-[#ebe7dc]">
-              <span>v1.0 • Ready for Production</span>
+      <section className="py-20 sm:py-28 max-w-5xl mx-auto px-4 sm:px-6">
+        <div className="relative rounded-3xl sm:rounded-[36px] bg-[#171711] p-10 sm:p-16 lg:p-20 text-center text-white shadow-2xl overflow-hidden border border-[#2e2d28]">
+          {/* Subtle ambient bloom in green accent */}
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-64 bg-[#e6edb0]/10 rounded-full blur-3xl pointer-events-none" />
+
+          <div className="relative z-10 max-w-3xl mx-auto flex flex-col items-center">
+            {/* Main Headline */}
+            <div className="space-y-1 sm:space-y-2 mb-8 sm:mb-10">
+              <h2 className="text-4xl sm:text-6xl md:text-7xl lg:text-[76px] font-black tracking-tight leading-none text-white">
+                Drop it now.
+              </h2>
+              <p className="font-serif italic font-normal text-3xl sm:text-5xl md:text-6xl lg:text-[68px] leading-tight text-[#e6edb0]">
+                Deal with it later.
+              </p>
             </div>
-            <h2 className="text-3xl sm:text-5xl font-black tracking-tight leading-[1.1]">
-              Ready to tame your bookmark overload forever?
-            </h2>
-            <p className="text-sm sm:text-base text-[#c4c0b5]">
-              Get started in seconds. Use the web app immediately or download our lightweight native desktop and mobile clients.
+
+            {/* Action Buttons */}
+            <div className="flex flex-wrap items-center justify-center gap-3.5 sm:gap-4 w-full">
+              <Link
+                href="/download?platform=windows"
+                className="px-8 sm:px-9 py-4 rounded-full bg-[#e6edb0] text-[#171711] hover:bg-[#d8e09e] font-extrabold text-xs sm:text-sm tracking-wider uppercase shadow-md hover:scale-102 transition-all cursor-pointer"
+              >
+                Download for Windows
+              </Link>
+              <Link
+                href="/download?platform=macos"
+                className="px-8 sm:px-9 py-4 rounded-full bg-white/10 hover:bg-white/20 text-white font-bold text-xs sm:text-sm tracking-wider uppercase transition-all border border-white/10 hover:scale-102"
+              >
+                Download for Mac
+              </Link>
+            </div>
+
+            {/* Subtext */}
+            <p className="text-xs sm:text-sm text-[#9e9b92] tracking-wide mt-7 sm:mt-9 select-none font-medium">
+              Free • Offline • No account required
             </p>
-            <div className="flex flex-wrap items-center justify-center gap-3.5 pt-2">
-              <Link
-                href="/inbox"
-                className="px-8 py-4 rounded-full bg-[#e6edb0] text-[#171711] hover:bg-[#d8e09e] font-extrabold text-sm sm:text-base shadow-sm transition-all cursor-pointer"
+
+            {/* Attribution */}
+            <p className="text-[11px] sm:text-xs text-[#6c6b63] mt-3">
+              Made by{' '}
+              <a
+                href="https://micorp.pro"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[#9e9b92] hover:text-white underline decoration-dotted transition-colors"
               >
-                Launch Web App Free
-              </Link>
-              <Link
-                href="/download"
-                className="px-8 py-4 rounded-full bg-white/10 hover:bg-white/20 text-white font-bold text-sm sm:text-base transition-all"
-              >
-                Download All Apps
-              </Link>
-            </div>
+                Nexaura Dev
+              </a>
+            </p>
           </div>
         </div>
       </section>
