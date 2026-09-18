@@ -9,6 +9,7 @@ import { HowItWorksStepsSection } from '@/components/marketing/HowItWorksStepsSe
 import { WhenLaterBecomesNowSection } from '@/components/marketing/WhenLaterBecomesNowSection';
 import { NotAnotherTodoListSection } from '@/components/marketing/NotAnotherTodoListSection';
 import { SomedayVaultSection } from '@/components/marketing/SomedayVaultSection';
+import { DesignedToStayOutOfWaySection } from '@/components/marketing/DesignedToStayOutOfWaySection';
 import {
   Sparkles,
   ArrowRight,
@@ -456,6 +457,11 @@ export default function LandingPage() {
       {/* "Some things don't need a deadline." Someday Vault Section */}
       {/* ============================================================ */}
       <SomedayVaultSection />
+
+      {/* ============================================================ */}
+      {/* "Designed to stay out of your way." App Dashboard Showcase */}
+      {/* ============================================================ */}
+      <DesignedToStayOutOfWaySection />
 
       {/* ============================================================ */}
       {/* Pro Feature Matrix Grid */}
