@@ -8,6 +8,7 @@ import { useItems } from '@/lib/store/ItemContext';
 import { useAuth } from '@/lib/store/AuthContext';
 import { useBilling } from '@/lib/store/BillingContext';
 import { presentEntitlement } from '@/lib/billing/types';
+import { scheduleItems } from '@/lib/utils/schedule';
 import { CloudSyncIndicator } from '../ui/CloudSyncIndicator';
 import {
   Home,
@@ -26,6 +27,7 @@ import {
   ChevronsLeft,
   ChevronsRight,
   Crown,
+  Archive,
 } from 'lucide-react';
 
 interface AppSidebarProps {
@@ -34,7 +36,7 @@ interface AppSidebarProps {
 
 export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
   const pathname = usePathname();
-  const { inboxItems } = useItems();
+  const { inboxItems, items } = useItems();
   const { user, isGuest, signOut } = useAuth();
   const { entitlement, isPro, manage } = useBilling();
   const [collapsed, setCollapsed] = useState(false);
@@ -47,7 +49,11 @@ export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
     return () => window.clearInterval(timer);
   }, [entitlement.phaseEndsAt]);
 
-  const navLinks = [
+  const todayCount = useMemo(() => scheduleItems(items, 'today', now).length, [items, now]);
+  const upcomingCount = useMemo(() => scheduleItems(items, 'upcoming', now).length, [items, now]);
+  const somedayCount = useMemo(() => scheduleItems(items, 'someday', now).length, [items, now]);
+
+  const coreLinks = [
     { href: '/home', label: 'Home', icon: <Home className="w-4 h-4" /> },
     {
       href: '/inbox',
@@ -55,19 +61,40 @@ export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
       icon: <Inbox className="w-4 h-4" />,
       badge: inboxItems.length > 0 ? inboxItems.length : undefined,
     },
-    { href: '/today', label: 'Today', icon: <CalendarDays className="w-4 h-4" /> },
-    { href: '/upcoming', label: 'Upcoming', icon: <CalendarDays className="w-4 h-4" /> },
-    { href: '/someday', label: 'Someday', icon: <Clock className="w-4 h-4" /> },
+    {
+      href: '/today',
+      label: 'Today',
+      icon: <Clock className="w-4 h-4" />,
+      badge: todayCount > 0 ? todayCount : undefined,
+    },
+    {
+      href: '/upcoming',
+      label: 'Upcoming',
+      icon: <CalendarDays className="w-4 h-4" />,
+      badge: upcomingCount > 0 ? upcomingCount : undefined,
+    },
+    {
+      href: '/someday',
+      label: 'Someday',
+      icon: <Archive className="w-4 h-4" />,
+      badge: somedayCount > 0 ? somedayCount : undefined,
+    },
+  ];
+
+  const libraryLinks = [
+    {
+      href: '/library',
+      label: 'All Items',
+      icon: <BookMarked className="w-4 h-4" />,
+    },
     {
       href: '/search',
       label: 'Search',
       icon: <Search className="w-4 h-4" />,
     },
-    {
-      href: '/library',
-      label: 'Library',
-      icon: <BookMarked className="w-4 h-4" />,
-    },
+  ];
+
+  const systemLinks = [
     {
       href: '/tutorial',
       label: 'Guide',
@@ -90,9 +117,47 @@ export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
     },
   ];
 
+  const isLinkActive = (href: string) => {
+    if (href === '/home') return pathname === '/home' || pathname === '/';
+    return pathname === href || pathname.startsWith(`${href}/`);
+  };
+
+  const renderLinkItem = ({ href, label, icon, badge }: { href: string; label: string; icon: React.ReactNode; badge?: number }) => {
+    const isActive = isLinkActive(href);
+    return (
+      <Link
+        key={href}
+        href={href}
+        title={collapsed ? label : undefined}
+        className={`relative flex items-center ${
+          collapsed ? 'justify-center px-0' : 'justify-between px-3'
+        } py-2.5 rounded-xl text-xs transition-all duration-150 ${
+          isActive
+            ? 'bg-white border border-[#e4e0d5]/80 text-[#171711] font-bold shadow-2xs'
+            : 'text-[#6c6b63] font-medium hover:bg-[#ebe7dc]/50 hover:text-[#171711]'
+        }`}
+      >
+        {isActive && (
+          <span className="w-1.5 h-6 bg-[#171711] rounded-r-md absolute left-0 top-1/2 -translate-y-1/2" />
+        )}
+        <div className="flex items-center gap-2.5 min-w-0">
+          <span className={`shrink-0 ${isActive ? 'text-[#171711]' : 'text-[#8e8d87]'}`}>
+            {icon}
+          </span>
+          {!collapsed && <span className="truncate">{label}</span>}
+        </div>
+        {!collapsed && badge !== undefined && (
+          <span className="w-5 h-5 rounded-full bg-[#e6edb0] text-[#171711] text-[10px] font-black flex items-center justify-center shrink-0">
+            {badge}
+          </span>
+        )}
+      </Link>
+    );
+  };
+
   return (
     <aside
-      className={`h-screen overflow-y-auto bg-[#f7f5ee] border-r border-[#e4e0d5] flex flex-col justify-between p-3.5 shrink-0 transition-all duration-200 ${
+      className={`h-screen overflow-y-auto bg-[#faf8f5] border-r border-[#e4e0d5] flex flex-col justify-between p-3.5 shrink-0 transition-all duration-200 ${
         collapsed ? 'w-[76px]' : 'w-60'
       }`}
     >
@@ -113,7 +178,7 @@ export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
             </div>
             {!collapsed && (
               <span className="text-[17px] font-extrabold tracking-tight text-[#171711]">
-                laterbox
+                LaterBox
               </span>
             )}
           </Link>
@@ -135,53 +200,42 @@ export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
         <button
           onClick={onOpenCapture}
           className={`w-full flex items-center ${
-            collapsed ? 'justify-center px-0' : 'justify-start px-3.5'
-          } gap-2 py-2.5 rounded-xl bg-[#171711] hover:bg-[#282723] active:bg-[#0f0f0e] text-white font-bold text-xs shadow-sm transition-all duration-150 group cursor-pointer`}
-          title="Save Item"
+            collapsed ? 'justify-center px-0' : 'justify-center px-3'
+          } py-2.5 rounded-xl bg-[#171711] hover:bg-black active:bg-[#0f0f0e] text-white font-black text-xs tracking-wider shadow-xs transition-all duration-150 group cursor-pointer`}
+          title="Add to LaterBox"
         >
-          <Plus className="w-4 h-4 transition-transform group-hover:rotate-90 shrink-0" />
-          {!collapsed && <span>Save Item</span>}
+          <Plus className="w-3.5 h-3.5 transition-transform group-hover:rotate-90 shrink-0 mr-1" />
+          {!collapsed && <span>+ ADD TO LATERBOX</span>}
         </button>
 
-        {/* Divider */}
-        <div className="border-b border-[#e4e0d5]/80" />
-
-        {/* Navigation Items */}
+        {/* Main Navigation Items */}
         <nav className="space-y-1">
-          {navLinks.map(({ href, label, icon, badge }) => {
-            const isActive = pathname === href || pathname.startsWith(`${href}/`);
-            return (
-              <Link
-                key={href}
-                href={href}
-                title={collapsed ? label : undefined}
-                className={`flex items-center ${
-                  collapsed ? 'justify-center px-0' : 'justify-between px-3'
-                } py-2.5 rounded-xl text-xs font-semibold transition-all duration-150 ${
-                  isActive
-                    ? 'bg-[#e6edb0] text-[#171711] font-bold shadow-none'
-                    : 'text-[#6c6b63] hover:bg-[#ebe7dc]/70 hover:text-[#171711]'
-                }`}
-              >
-                <div className="flex items-center gap-2.5">
-                  {icon}
-                  {!collapsed && <span>{label}</span>}
-                </div>
-                {!collapsed && badge !== undefined && (
-                  <span
-                    className={`px-1.5 py-0.2 rounded-md text-[10px] font-mono font-bold ${
-                      isActive
-                        ? 'bg-[#d8e09e] text-[#171711]'
-                        : 'bg-[#ebe7dc] text-[#6c6b63]'
-                    }`}
-                  >
-                    {badge}
-                  </span>
-                )}
-              </Link>
-            );
-          })}
+          {coreLinks.map(renderLinkItem)}
         </nav>
+
+        {/* Library Section */}
+        <div className="pt-2">
+          {!collapsed && (
+            <span className="text-[10px] font-black tracking-widest uppercase text-[#9e9b92] px-3 block mb-1">
+              LIBRARY
+            </span>
+          )}
+          <nav className="space-y-1">
+            {libraryLinks.map(renderLinkItem)}
+          </nav>
+        </div>
+
+        {/* Activity / System Section */}
+        <div className="pt-2">
+          {!collapsed && (
+            <span className="text-[10px] font-black tracking-widest uppercase text-[#9e9b92] px-3 block mb-1">
+              ACTIVITY
+            </span>
+          )}
+          <nav className="space-y-1">
+            {systemLinks.map(renderLinkItem)}
+          </nav>
+        </div>
       </div>
 
       {/* Bottom Profile / Cloud Sync Section */}
