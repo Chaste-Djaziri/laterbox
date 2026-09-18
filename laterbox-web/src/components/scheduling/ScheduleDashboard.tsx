@@ -243,7 +243,7 @@ export function ScheduleDashboard({ view }: { view?: ScheduleView }) {
     inboxItems.length > 0
       ? inboxItems.slice(0, 4).map((item) => ({
           id: item.id,
-          title: item.title,
+          title: item.title || 'Untitled item',
           subtitle:
             item.metadata?.description ||
             `${item.type.charAt(0).toUpperCase() + item.type.slice(1)} • Added recently`,
@@ -257,7 +257,7 @@ export function ScheduleDashboard({ view }: { view?: ScheduleView }) {
     upcoming.length > 0
       ? upcoming.slice(0, 3).map((item) => ({
           id: item.id,
-          title: item.title,
+          title: item.title || 'Untitled item',
           subtitle:
             item.metadata?.description ||
             `${item.type.charAt(0).toUpperCase() + item.type.slice(1)} • Scheduled`,
