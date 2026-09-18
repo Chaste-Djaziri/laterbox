@@ -5,6 +5,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- **Web Landing Page Pre-Footer Download CTA**: Redesigned the final pre-footer CTA section with a sleek black-background command card featuring the "Drop it now. Deal with it later." headline, dual "DOWNLOAD FOR WINDOWS" and "DOWNLOAD FOR MAC" action buttons, "Free • Offline • No account required" guarantee, and Nexaura Dev attribution.
 - **Web Landing Page 2-Column FAQ Showcase**: Added the clean two-column FAQ section featuring 13 core questions (offline-first SQLite, privacy, file handling, scheduling, pricing, and cross-platform support) with interactive plus/close toggles matching the design mockup.
 - **Web Landing Page 'You don't need to do everything now.' Statement Showcase**: Added the core philosophy statement section featuring "You don't need to do everything now. You just need to know you won't forget it later.", tagline, and signature accent divider.
 - **Web Landing Page 'The Ultimate Windows Productivity Organizer' Showcase**: Added the interactive desktop organizer feature tour section featuring 8 capability tabs (Capture, Schedule, Return, Open & Do, Snooze, Search, History, Someday) with workflow details and interactive state switching.
