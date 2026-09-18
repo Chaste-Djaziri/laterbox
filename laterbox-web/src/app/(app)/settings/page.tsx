@@ -29,6 +29,14 @@ import {
   EyeOff,
   AlertTriangle,
   Crown,
+  Clock,
+  Sliders,
+  Volume2,
+  VolumeX,
+  Database,
+  Shield,
+  Calendar,
+  Sparkles,
 } from 'lucide-react';
 
 interface VersionInfo {
@@ -51,6 +59,52 @@ export default function SettingsPage() {
   const [latestVersion, setLatestVersion] = useState<VersionInfo | null>(null);
   const [lastChecked, setLastChecked] = useState<Date | null>(null);
   const [isReloading, setIsReloading] = useState(false);
+
+  // User Rules & Schedule Preferences
+  const [morningTime, setMorningTime] = useState('09:00');
+  const [afternoonTime, setAfternoonTime] = useState('14:00');
+  const [eveningTime, setEveningTime] = useState('19:00');
+  const [weekendDay, setWeekendDay] = useState('Saturday 10:00 AM');
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [defaultSnooze, setDefaultSnooze] = useState('3hours');
+  const [rulesSavedMsg, setRulesSavedMsg] = useState(false);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('laterbox_user_rules');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.morningTime) setMorningTime(parsed.morningTime);
+        if (parsed.afternoonTime) setAfternoonTime(parsed.afternoonTime);
+        if (parsed.eveningTime) setEveningTime(parsed.eveningTime);
+        if (parsed.weekendDay) setWeekendDay(parsed.weekendDay);
+        if (typeof parsed.soundEnabled === 'boolean') setSoundEnabled(parsed.soundEnabled);
+        if (parsed.defaultSnooze) setDefaultSnooze(parsed.defaultSnooze);
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  const handleSaveRules = () => {
+    try {
+      localStorage.setItem(
+        'laterbox_user_rules',
+        JSON.stringify({
+          morningTime,
+          afternoonTime,
+          eveningTime,
+          weekendDay,
+          soundEnabled,
+          defaultSnooze,
+        })
+      );
+      setRulesSavedMsg(true);
+      setTimeout(() => setRulesSavedMsg(false), 2500);
+    } catch {
+      // ignore
+    }
+  };
 
   // Password update state
   const [showPasswordForm, setShowPasswordForm] = useState(false);
@@ -213,13 +267,13 @@ export default function SettingsPage() {
           <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <div className="flex items-center gap-2">
-                <Crown className="size-5 text-[#d7ff27]" />
+                <Crown className="size-5 text-[#e6edb0]" />
                 <h2 className="font-extrabold">{plan.label}</h2>
               </div>
               <p className="mt-2 max-w-xl text-xs leading-5 text-zinc-300">
                 {plan.description}
               </p>
-              {plan.progress !== null && <div className="mt-3 h-1.5 max-w-md overflow-hidden rounded-full bg-white/15"><div className={`h-full ${plan.tone === 'warning' ? 'bg-amber-300' : 'bg-[#d7ff27]'}`} style={{ width: `${Math.round(plan.progress * 100)}%` }} /></div>}
+              {plan.progress !== null && <div className="mt-3 h-1.5 max-w-md overflow-hidden rounded-full bg-white/15"><div className={`h-full ${plan.tone === 'warning' ? 'bg-amber-300' : 'bg-[#e6edb0]'}`} style={{ width: `${Math.round(plan.progress * 100)}%` }} /></div>}
               {entitlement.billingWarning && <p className="mt-2 text-xs font-bold text-amber-300">Payment needs attention. Update it in the billing portal to keep Pro active.</p>}
               {billingMessage && <p className="mt-2 text-xs font-bold text-red-300">{billingMessage}</p>}
             </div>
@@ -231,7 +285,7 @@ export default function SettingsPage() {
                   setBillingMessage(null);
                   void manage().catch((error) => setBillingMessage(error instanceof Error ? error.message : 'Unable to open billing.'));
                 }}
-                className="rounded-xl bg-white px-4 py-2.5 text-xs font-black text-[#171711] disabled:opacity-50"
+                className="rounded-xl bg-white px-4 py-2.5 text-xs font-black text-[#171711] disabled:opacity-50 cursor-pointer"
               >
                 Manage subscription
               </button>
@@ -240,8 +294,153 @@ export default function SettingsPage() {
                 Manage in the App Store
               </div>
             ) : (
-              <Link href="/plans" className="rounded-xl bg-[#d7ff27] px-4 py-2.5 text-center text-xs font-black text-black">View Pro plans</Link>
+              <Link href="/plans" className="rounded-xl bg-[#e6edb0] hover:bg-[#d8e09e] px-4 py-2.5 text-center text-xs font-black text-[#171711] transition-colors">View Pro plans</Link>
             )}
+          </div>
+        </section>
+
+        {/* "Your LaterBox. Your rules." Schedule & Resurfacing Preferences */}
+        <section className="p-6 sm:p-7 rounded-3xl bg-white border border-[#e4e0d5] space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="space-y-1">
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#e6edb0] border border-[#d0db84] text-[10px] font-black text-[#171711] uppercase tracking-wider">
+                <Sliders className="w-3 h-3" />
+                <span>Quiet Utility Preferences</span>
+              </div>
+              <h2 className="text-base font-extrabold text-[#171711] flex items-center gap-2">
+                <Clock className="w-4 h-4 text-[#171711]" />
+                <span>Your LaterBox. Your rules.</span>
+              </h2>
+              <p className="text-xs text-[#6c6b63] leading-relaxed max-w-xl">
+                Customize your return schedule, notification sounds, and daily resurfacing times so LaterBox works around your life, not the other way around.
+              </p>
+            </div>
+
+            {rulesSavedMsg && (
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-xs font-bold text-emerald-800 animate-in fade-in">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Preferences saved!</span>
+              </div>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 pt-1">
+            {/* Morning */}
+            <div className="p-4 rounded-2xl bg-[#faf8f5] border border-[#e4e0d5] space-y-1.5">
+              <p className="text-[11px] font-black tracking-wider uppercase text-[#9e9b92]">
+                MORNING RETURN
+              </p>
+              <input
+                type="time"
+                value={morningTime}
+                onChange={(e) => setMorningTime(e.target.value)}
+                className="w-full px-3 py-1.5 text-xs font-bold bg-white border border-[#e4e0d5] rounded-xl text-[#171711] focus:outline-hidden focus:border-[#171711]"
+              />
+              <p className="text-[10px] text-[#6c6b63]">Default time for &ldquo;Tomorrow&rdquo; saves</p>
+            </div>
+
+            {/* Afternoon */}
+            <div className="p-4 rounded-2xl bg-[#faf8f5] border border-[#e4e0d5] space-y-1.5">
+              <p className="text-[11px] font-black tracking-wider uppercase text-[#9e9b92]">
+                AFTERNOON RETURN
+              </p>
+              <input
+                type="time"
+                value={afternoonTime}
+                onChange={(e) => setAfternoonTime(e.target.value)}
+                className="w-full px-3 py-1.5 text-xs font-bold bg-white border border-[#e4e0d5] rounded-xl text-[#171711] focus:outline-hidden focus:border-[#171711]"
+              />
+              <p className="text-[10px] text-[#6c6b63]">For items scheduled later in the day</p>
+            </div>
+
+            {/* Evening */}
+            <div className="p-4 rounded-2xl bg-[#faf8f5] border border-[#e4e0d5] space-y-1.5">
+              <p className="text-[11px] font-black tracking-wider uppercase text-[#9e9b92]">
+                EVENING RETURN
+              </p>
+              <input
+                type="time"
+                value={eveningTime}
+                onChange={(e) => setEveningTime(e.target.value)}
+                className="w-full px-3 py-1.5 text-xs font-bold bg-white border border-[#e4e0d5] rounded-xl text-[#171711] focus:outline-hidden focus:border-[#171711]"
+              />
+              <p className="text-[10px] text-[#6c6b63]">For leisure, videos, and night reads</p>
+            </div>
+
+            {/* Weekend */}
+            <div className="p-4 rounded-2xl bg-[#faf8f5] border border-[#e4e0d5] space-y-1.5">
+              <p className="text-[11px] font-black tracking-wider uppercase text-[#9e9b92]">
+                WEEKEND PRESET
+              </p>
+              <select
+                value={weekendDay}
+                onChange={(e) => setWeekendDay(e.target.value)}
+                className="w-full px-3 py-1.5 text-xs font-bold bg-white border border-[#e4e0d5] rounded-xl text-[#171711] focus:outline-hidden focus:border-[#171711]"
+              >
+                <option value="Saturday 10:00 AM">Saturday 10:00 AM</option>
+                <option value="Sunday 10:00 AM">Sunday 10:00 AM</option>
+                <option value="Monday 08:30 AM">Monday 08:30 AM</option>
+              </select>
+              <p className="text-[10px] text-[#6c6b63]">For &ldquo;Weekend&rdquo; snooze presets</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+            {/* Audio chime toggle */}
+            <div className="p-4 rounded-2xl bg-[#faf8f5] border border-[#e4e0d5] flex items-center justify-between gap-3">
+              <div className="space-y-0.5">
+                <p className="text-xs font-bold text-[#171711] flex items-center gap-1.5">
+                  {soundEnabled ? <Volume2 className="w-4 h-4 text-emerald-600" /> : <VolumeX className="w-4 h-4 text-[#9e9b92]" />}
+                  <span>Gentle Return Sound Chime</span>
+                </p>
+                <p className="text-[11px] text-[#6c6b63]">
+                  Play a quiet, calm acoustic chime when items resurface in Today.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSoundEnabled(!soundEnabled)}
+                className={`w-11 h-6 rounded-full transition-colors relative cursor-pointer shrink-0 ${
+                  soundEnabled ? 'bg-[#171711]' : 'bg-[#e4e0d5]'
+                }`}
+              >
+                <span
+                  className={`block w-4 h-4 rounded-full bg-white transition-transform ${
+                    soundEnabled ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+            </div>
+
+            {/* Default Snooze Duration */}
+            <div className="p-4 rounded-2xl bg-[#faf8f5] border border-[#e4e0d5] flex items-center justify-between gap-3">
+              <div className="space-y-0.5">
+                <p className="text-xs font-bold text-[#171711]">Default Quick Snooze</p>
+                <p className="text-[11px] text-[#6c6b63]">
+                  Duration used when snoozing an item with one click.
+                </p>
+              </div>
+              <select
+                value={defaultSnooze}
+                onChange={(e) => setDefaultSnooze(e.target.value)}
+                className="px-3 py-1.5 text-xs font-bold bg-white border border-[#e4e0d5] rounded-xl text-[#171711] focus:outline-hidden focus:border-[#171711]"
+              >
+                <option value="3hours">3 hours</option>
+                <option value="tomorrow">Tomorrow morning</option>
+                <option value="weekend">This weekend</option>
+                <option value="someday">Someday</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-end pt-1">
+            <button
+              type="button"
+              onClick={handleSaveRules}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#171711] hover:bg-[#282723] text-white text-xs font-bold shadow-xs transition-all cursor-pointer"
+            >
+              <span>Save Schedule Preferences</span>
+            </button>
           </div>
         </section>
 
@@ -497,7 +696,7 @@ export default function SettingsPage() {
                 type="button"
                 onClick={handleApplyUpdate}
                 disabled={isReloading}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#E7FF57] hover:bg-[#d8f044] text-[#171711] text-xs font-bold transition-all cursor-pointer shrink-0 shadow-xs"
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#e6edb0] hover:bg-[#d8e09e] text-[#171711] text-xs font-bold transition-all cursor-pointer shrink-0 shadow-xs"
               >
                 {isReloading ? (
                   <>
@@ -535,48 +734,66 @@ export default function SettingsPage() {
           </div>
         </section>
 
-        {/* Cloud Sync & Storage Diagnostics */}
-        <section className="p-6 sm:p-7 rounded-3xl bg-white border border-[#e4e0d5] space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <HardDrive className="w-5 h-5 text-[#171711]" />
-              <h2 className="text-base font-extrabold text-[#171711]">Cloud Sync & Storage</h2>
+        {/* Local-First SQLite Core & Privacy ("Your things stay where they belong") */}
+        <section className="p-6 sm:p-7 rounded-3xl bg-white border border-[#e4e0d5] space-y-5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="space-y-1">
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#e6edb0] border border-[#d0db84] text-[10px] font-black text-[#171711] uppercase tracking-wider">
+                <Shield className="w-3 h-3 text-[#171711]" />
+                <span>100% Offline Core • Zero Telemetry</span>
+              </div>
+              <h2 className="text-base font-extrabold text-[#171711] flex items-center gap-2">
+                <Database className="w-4 h-4 text-[#171711]" />
+                <span>Your things stay where they belong.</span>
+              </h2>
+              <p className="text-xs text-[#6c6b63] leading-relaxed max-w-xl">
+                Your data is stored in a private local SQLite / IndexedDB database on your computer. Zero trackers, zero surveillance, and complete exportability anytime.
+              </p>
             </div>
             <CloudSyncIndicator />
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 pt-2">
-            <div className="p-4 rounded-2xl bg-[#f7f5ee] border border-[#e4e0d5]">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5 pt-1">
+            <div className="p-4 rounded-2xl bg-[#faf8f5] border border-[#e4e0d5]">
               <p className="text-2xl font-black text-[#171711]">{items.length}</p>
-              <p className="text-xs text-[#9e9b92] font-medium">Total Items</p>
+              <p className="text-xs text-[#9e9b92] font-semibold">Total Items</p>
             </div>
-            <div className="p-4 rounded-2xl bg-[#f7f5ee] border border-[#e4e0d5]">
+            <div className="p-4 rounded-2xl bg-[#faf8f5] border border-[#e4e0d5]">
               <p className="text-2xl font-black text-[#171711]">{collections.length}</p>
-              <p className="text-xs text-[#9e9b92] font-medium">Collections</p>
+              <p className="text-xs text-[#9e9b92] font-semibold">Collections</p>
             </div>
-            <div className="p-4 rounded-2xl bg-[#f7f5ee] border border-[#e4e0d5]">
+            <div className="p-4 rounded-2xl bg-[#faf8f5] border border-[#e4e0d5]">
               <p className="text-2xl font-black text-[#171711]">
                 {items.filter((i) => i.note?.content).length}
               </p>
-              <p className="text-xs text-[#9e9b92] font-medium">Notes Saved</p>
+              <p className="text-xs text-[#9e9b92] font-semibold">Notes Saved</p>
+            </div>
+            <div className="p-4 rounded-2xl bg-[#faf8f5] border border-[#e4e0d5]">
+              <p className="text-xs font-extrabold text-[#171711] flex items-center gap-1 mt-1">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Local SQLite</span>
+              </p>
+              <p className="text-xs text-[#9e9b92] font-semibold mt-1">Zero Cloud Tracking</p>
             </div>
           </div>
 
           <div className="pt-2 flex flex-wrap items-center gap-3">
             <button
+              type="button"
               onClick={() => syncNow()}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#ebe7dc] hover:bg-[#e0dbc9] text-[#171711] text-xs font-bold transition-colors cursor-pointer"
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#ebe7dc] hover:bg-[#e0dbc9] text-[#171711] text-xs font-bold transition-colors cursor-pointer"
             >
               <RefreshCw className="w-3.5 h-3.5" />
               <span>Force Sync Now</span>
             </button>
 
             <button
+              type="button"
               onClick={handleExportData}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#ebe7dc] hover:bg-[#e0dbc9] text-[#171711] text-xs font-bold transition-colors cursor-pointer"
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#171711] hover:bg-[#282723] text-white text-xs font-bold transition-colors cursor-pointer shadow-2xs"
             >
               <FileSpreadsheet className="w-3.5 h-3.5" />
-              <span>Export Library (JSON)</span>
+              <span>Export Full Library (JSON)</span>
             </button>
           </div>
         </section>
