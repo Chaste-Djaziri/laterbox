@@ -19,6 +19,7 @@ import { WontForgetItLaterSection } from '@/components/marketing/WontForgetItLat
 import { LandingFaqSection } from '@/components/marketing/LandingFaqSection';
 import {
   Sparkles,
+  ArrowRight,
   Download,
   Compass,
   PlayCircle,
