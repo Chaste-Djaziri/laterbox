@@ -5,6 +5,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- **Web Landing Page 'When Later Becomes Now' Showcase**: Added the dark statement section featuring the "When later becomes now." headline with serif italic typography and a dark returned-card notification mockup.
 - **Web Landing Page 'How It Works' 4-Step Workflow**: Added the 4-step workflow storytelling section (Drop it, Choose when, Forget about it, It comes back) with interactive mockups and scroll-active step highlighting.
 - **Web Landing Page Scroll Convergence Section**: Added an interactive scroll-driven animation section where scattered digital items (YouTube links, PDFs, PSDs, invoices, screenshots, notes) converge into the center as 'Later shouldn't mean lost' transforms into 'One place for everything later.'
 - **Web Landing Page 'Later' Problem Section**: Added the "We all have a place called Later" problem statement section directly under the hero section, featuring behavioral cards for "Watch later", "Bookmarks", "Downloads", and "Open tabs".
