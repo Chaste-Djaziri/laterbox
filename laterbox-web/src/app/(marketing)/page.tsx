@@ -7,6 +7,7 @@ import { useAuth } from '@/lib/store/AuthContext';
 import { ScrollConvergenceSection } from '@/components/marketing/ScrollConvergenceSection';
 import { HowItWorksStepsSection } from '@/components/marketing/HowItWorksStepsSection';
 import { WhenLaterBecomesNowSection } from '@/components/marketing/WhenLaterBecomesNowSection';
+import { NotAnotherTodoListSection } from '@/components/marketing/NotAnotherTodoListSection';
 import {
   Sparkles,
   ArrowRight,
@@ -444,6 +445,11 @@ export default function LandingPage() {
       {/* "When later becomes now." Dark Section */}
       {/* ============================================================ */}
       <WhenLaterBecomesNowSection />
+
+      {/* ============================================================ */}
+      {/* "Not another to-do list." Capability Section */}
+      {/* ============================================================ */}
+      <NotAnotherTodoListSection />
 
       {/* ============================================================ */}
       {/* Pro Feature Matrix Grid */}
