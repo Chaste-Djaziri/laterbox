@@ -428,48 +428,6 @@ export default function LandingPage() {
       </section>
 
       {/* ============================================================ */}
-      {/* Pro Metrics & Performance Bar */}
-      {/* ============================================================ */}
-      <section className="py-12 border-y border-[#e4e0d5] bg-white">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center divide-y md:divide-y-0 md:divide-x divide-[#e4e0d5]">
-            <div className="pt-4 md:pt-0">
-              <div className="text-3xl sm:text-4xl font-black text-[#171711] mb-1 font-mono">
-                &lt; 10ms
-              </div>
-              <p className="text-xs sm:text-sm font-semibold text-[#6c6b63]">
-                Instant Local SQLite Search
-              </p>
-            </div>
-            <div className="pt-4 md:pt-0">
-              <div className="text-3xl sm:text-4xl font-black text-[#171711] mb-1 font-mono">
-                100%
-              </div>
-              <p className="text-xs sm:text-sm font-semibold text-[#6c6b63]">
-                Offline-First Resilience
-              </p>
-            </div>
-            <div className="pt-4 md:pt-0">
-              <div className="text-3xl sm:text-4xl font-black text-[#171711] mb-1 font-mono">
-                7 Platforms
-              </div>
-              <p className="text-xs sm:text-sm font-semibold text-[#6c6b63]">
-                Desktop, Mobile & Extensions
-              </p>
-            </div>
-            <div className="pt-4 md:pt-0">
-              <div className="text-3xl sm:text-4xl font-black text-[#171711] mb-1 font-mono">
-                0 Trackers
-              </div>
-              <p className="text-xs sm:text-sm font-semibold text-[#6c6b63]">
-                Total Privacy & Sovereignty
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ============================================================ */}
       {/* Pro Feature Matrix Grid */}
       {/* ============================================================ */}
       <section id="features" className="py-24 max-w-6xl mx-auto px-4 sm:px-6">
