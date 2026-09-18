@@ -506,7 +506,7 @@ export default function InAppDownloadsPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="p-6 rounded-2xl bg-white dark:bg-[#1e1e19] border border-[#e5e0d3] dark:border-[#2e2d27] shadow-xs space-y-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-orange-500/10 flex items-center justify-center text-orange-700 dark:text-orange-400">
+                <div className="w-10 h-10 rounded-xl bg-[#e6edb0] border border-[#d0db84] flex items-center justify-center text-[#171711]">
                   <Terminal className="w-5 h-5" />
                 </div>
                 <div>
@@ -527,9 +527,9 @@ export default function InAppDownloadsPage() {
                 >
                   <span className="flex items-center gap-2">
                     {downloadingFile === 'laterbox-linux.AppImage' ? (
-                      <RefreshCw className="w-4 h-4 animate-spin text-orange-400" />
+                      <RefreshCw className="w-4 h-4 animate-spin text-[#e6edb0]" />
                     ) : (
-                      <Download className="w-4 h-4 text-orange-400" />
+                      <Download className="w-4 h-4 text-[#e6edb0]" />
                     )}
                     <span>Download Linux AppImage</span>
                   </span>
@@ -777,7 +777,7 @@ export default function InAppDownloadsPage() {
 
             <div className="p-6 rounded-2xl bg-white dark:bg-[#1e1e19] border border-[#e5e0d3] dark:border-[#2e2d27] shadow-xs space-y-4">
               <div className="flex items-center gap-2 font-bold text-[#171711] dark:text-[#f4f2ea]">
-                <Puzzle className="w-5 h-5 text-orange-600" />
+                <Puzzle className="w-5 h-5 text-[#171711] dark:text-[#e6edb0]" />
                 <span>Mozilla Firefox</span>
               </div>
               <p className="text-xs text-[#6c6b63] dark:text-[#a09e94]">
