@@ -373,43 +373,43 @@ export default function LandingPage() {
           </h2>
 
           {/* 2x2 Behavioral Quote Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6 max-w-2xl mx-auto mt-14 sm:mt-16">
-            {/* Card 1: Watch Later */}
-            <div className="rounded-2xl sm:rounded-3xl bg-white border border-[#e4e0d5] p-8 sm:p-10 text-center shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_12px_36px_rgb(0,0,0,0.08)] transition-all flex flex-col items-center justify-center space-y-3.5 group">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-7 max-w-2xl mx-auto mt-14 sm:mt-16 p-2">
+            {/* Card 1: Watch Later (-2.5 deg tilt) */}
+            <div className="rounded-2xl sm:rounded-3xl bg-white border border-[#e4e0d5] p-8 sm:p-10 text-center shadow-[0_8px_30px_rgb(0,0,0,0.03)] -rotate-[2.5deg] hover:rotate-0 hover:scale-[1.02] hover:border-[#ff6422] hover:shadow-[0_12px_40px_rgba(255,100,34,0.16)] transition-all duration-300 ease-out flex flex-col items-center justify-center space-y-3.5 group cursor-pointer relative z-10 hover:z-20">
               <p className="text-lg sm:text-xl font-bold text-[#171711]">
                 &ldquo;I&apos;ll watch it later.&rdquo;
               </p>
-              <span className="px-3.5 py-1 rounded-full bg-[#f0ede4] text-[#6c6b63] text-[10px] sm:text-xs font-extrabold uppercase tracking-wider">
+              <span className="px-3.5 py-1 rounded-full bg-[#f0ede4] group-hover:bg-[#ff6422] text-[#6c6b63] group-hover:text-white text-[10px] sm:text-xs font-extrabold uppercase tracking-wider transition-colors duration-200">
                 WATCH LATER
               </span>
             </div>
 
-            {/* Card 2: Bookmarks */}
-            <div className="rounded-2xl sm:rounded-3xl bg-white border border-[#e4e0d5] p-8 sm:p-10 text-center shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_12px_36px_rgb(0,0,0,0.08)] transition-all flex flex-col items-center justify-center space-y-3.5 group">
+            {/* Card 2: Bookmarks (+2.5 deg tilt) */}
+            <div className="rounded-2xl sm:rounded-3xl bg-white border border-[#e4e0d5] p-8 sm:p-10 text-center shadow-[0_8px_30px_rgb(0,0,0,0.03)] rotate-[2.5deg] hover:rotate-0 hover:scale-[1.02] hover:border-[#ff6422] hover:shadow-[0_12px_40px_rgba(255,100,34,0.16)] transition-all duration-300 ease-out flex flex-col items-center justify-center space-y-3.5 group cursor-pointer relative z-10 hover:z-20">
               <p className="text-lg sm:text-xl font-bold text-[#171711]">
                 &ldquo;I&apos;ll read it later.&rdquo;
               </p>
-              <span className="px-3.5 py-1 rounded-full bg-[#f0ede4] text-[#6c6b63] text-[10px] sm:text-xs font-extrabold uppercase tracking-wider">
+              <span className="px-3.5 py-1 rounded-full bg-[#f0ede4] group-hover:bg-[#ff6422] text-[#6c6b63] group-hover:text-white text-[10px] sm:text-xs font-extrabold uppercase tracking-wider transition-colors duration-200">
                 BOOKMARKS
               </span>
             </div>
 
-            {/* Card 3: Downloads */}
-            <div className="rounded-2xl sm:rounded-3xl bg-white border border-[#e4e0d5] p-8 sm:p-10 text-center shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_12px_36px_rgb(0,0,0,0.08)] transition-all flex flex-col items-center justify-center space-y-3.5 group">
+            {/* Card 3: Downloads (-2 deg tilt) */}
+            <div className="rounded-2xl sm:rounded-3xl bg-white border border-[#e4e0d5] p-8 sm:p-10 text-center shadow-[0_8px_30px_rgb(0,0,0,0.03)] -rotate-[2deg] hover:rotate-0 hover:scale-[1.02] hover:border-[#ff6422] hover:shadow-[0_12px_40px_rgba(255,100,34,0.16)] transition-all duration-300 ease-out flex flex-col items-center justify-center space-y-3.5 group cursor-pointer relative z-10 hover:z-20">
               <p className="text-lg sm:text-xl font-bold text-[#171711]">
                 &ldquo;I&apos;ll finish it later.&rdquo;
               </p>
-              <span className="px-3.5 py-1 rounded-full bg-[#f0ede4] text-[#6c6b63] text-[10px] sm:text-xs font-extrabold uppercase tracking-wider">
+              <span className="px-3.5 py-1 rounded-full bg-[#f0ede4] group-hover:bg-[#ff6422] text-[#6c6b63] group-hover:text-white text-[10px] sm:text-xs font-extrabold uppercase tracking-wider transition-colors duration-200">
                 DOWNLOADS
               </span>
             </div>
 
-            {/* Card 4: Open Tabs */}
-            <div className="rounded-2xl sm:rounded-3xl bg-white border border-[#e4e0d5] p-8 sm:p-10 text-center shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_12px_36px_rgb(0,0,0,0.08)] transition-all flex flex-col items-center justify-center space-y-3.5 group">
+            {/* Card 4: Open Tabs (+2 deg tilt) */}
+            <div className="rounded-2xl sm:rounded-3xl bg-white border border-[#e4e0d5] p-8 sm:p-10 text-center shadow-[0_8px_30px_rgb(0,0,0,0.03)] rotate-[2deg] hover:rotate-0 hover:scale-[1.02] hover:border-[#ff6422] hover:shadow-[0_12px_40px_rgba(255,100,34,0.16)] transition-all duration-300 ease-out flex flex-col items-center justify-center space-y-3.5 group cursor-pointer relative z-10 hover:z-20">
               <p className="text-lg sm:text-xl font-bold text-[#171711]">
                 &ldquo;I&apos;ll reply later.&rdquo;
               </p>
-              <span className="px-3.5 py-1 rounded-full bg-[#f0ede4] text-[#6c6b63] text-[10px] sm:text-xs font-extrabold uppercase tracking-wider">
+              <span className="px-3.5 py-1 rounded-full bg-[#f0ede4] group-hover:bg-[#ff6422] text-[#6c6b63] group-hover:text-white text-[10px] sm:text-xs font-extrabold uppercase tracking-wider transition-colors duration-200">
                 OPEN TABS
               </span>
             </div>
