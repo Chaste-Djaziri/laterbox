@@ -196,8 +196,17 @@ export function ScheduleDashboard({ view }: { view?: ScheduleView }) {
     );
   }
 
+  interface DisplayItem {
+    id: string;
+    title: string;
+    subtitle: string;
+    time: string;
+    iconType?: string;
+    item?: LaterBoxItem;
+  }
+
   // Fallback items matching screenshot if empty store
-  const defaultWaitingItems = [
+  const defaultWaitingItems: DisplayItem[] = [
     {
       id: 'default-1',
       title: 'ClientFeedback.pdf',
@@ -221,7 +230,7 @@ export function ScheduleDashboard({ view }: { view?: ScheduleView }) {
     },
   ];
 
-  const defaultComingUpItems = [
+  const defaultComingUpItems: DisplayItem[] = [
     {
       id: 'default-4',
       title: 'Finish Portfolio',
@@ -239,7 +248,7 @@ export function ScheduleDashboard({ view }: { view?: ScheduleView }) {
   ];
 
   // Map real items or fallbacks
-  const waitingDisplayItems =
+  const waitingDisplayItems: DisplayItem[] =
     inboxItems.length > 0
       ? inboxItems.slice(0, 4).map((item) => ({
           id: item.id,
@@ -253,7 +262,7 @@ export function ScheduleDashboard({ view }: { view?: ScheduleView }) {
         }))
       : defaultWaitingItems;
 
-  const comingUpDisplayItems =
+  const comingUpDisplayItems: DisplayItem[] =
     upcoming.length > 0
       ? upcoming.slice(0, 3).map((item) => ({
           id: item.id,
