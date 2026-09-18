@@ -1,38 +1,26 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { LaterBoxItem, Attachment } from '@/lib/supabase/types';
+import { LaterBoxItem } from '@/lib/supabase/types';
 import { useItems } from '@/lib/store/ItemContext';
 import { formatTimeAgo, extractDomain, buildTextFragmentUrl } from '@/lib/utils/url';
-import { fetchAttachmentDownloadUrl } from '@/lib/utils/attachment';
 import {
   Star,
-  CheckCircle,
-  Archive,
+  Check,
   MoreVertical,
   ExternalLink,
   Trash2,
   FileText,
-  PlayCircle,
+  Play,
   Music2,
   StickyNote,
-  Link2,
-  Quote,
-  Paperclip,
   FolderPlus,
   Copy,
-  Check,
+  CheckCircle,
+  Archive,
   Inbox,
-  FileSpreadsheet,
-  FileCode,
-  File,
-  Image as ImageIcon,
-  Apple,
   Laptop,
-  Terminal,
-  Smartphone,
-  Puzzle,
   Globe,
 } from 'lucide-react';
 import { RescheduleAction } from '../scheduling/RescheduleAction';
@@ -40,311 +28,6 @@ import { AddToCollectionModal } from '../collections/AddToCollectionModal';
 
 interface ItemCardProps {
   item: LaterBoxItem;
-}
-
-function formatBytes(bytes?: number): string {
-  if (!bytes) return '0 B';
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
-
-function getFileCategory(filename: string, mime?: string): 'image' | 'pdf' | 'video' | 'audio' | 'spreadsheet' | 'code' | 'file' {
-  const ext = filename.split('.').pop()?.toLowerCase() || '';
-  if (mime?.startsWith('image/') || ['jpg', 'jpeg', 'png', 'gif', 'webp', 'heic', 'svg'].includes(ext)) {
-    return 'image';
-  }
-  if (ext === 'pdf' || mime === 'application/pdf') {
-    return 'pdf';
-  }
-  if (mime?.startsWith('video/') || ['mp4', 'mov', 'mkv', 'webm'].includes(ext)) {
-    return 'video';
-  }
-  if (mime?.startsWith('audio/') || ['mp3', 'm4a', 'wav', 'aac', 'ogg'].includes(ext)) {
-    return 'audio';
-  }
-  if (['xls', 'xlsx', 'csv'].includes(ext)) {
-    return 'spreadsheet';
-  }
-  if (['js', 'ts', 'jsx', 'tsx', 'html', 'css', 'json', 'py', 'dart', 'rs', 'go', 'cpp', 'c', 'sh', 'md', 'txt'].includes(ext)) {
-    return 'code';
-  }
-  return 'file';
-}
-
-function AttachmentMediaPreview({
-  attachment,
-  title,
-  extraCount,
-}: {
-  attachment: Attachment;
-  title: string;
-  extraCount: number;
-}) {
-  const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState(false);
-
-  const category = getFileCategory(attachment.original_file_name, attachment.mime_type);
-  const formattedSize = formatBytes(attachment.byte_size);
-
-  useEffect(() => {
-    let active = true;
-
-    if (attachment.local_path?.startsWith('data:') || attachment.local_path?.startsWith('http')) {
-      setDownloadUrl(attachment.local_path);
-      setLoading(false);
-      return;
-    }
-
-    fetchAttachmentDownloadUrl(attachment.id, attachment.user_id ?? null).then((url) => {
-      if (active) {
-        setDownloadUrl(url);
-        setLoading(false);
-      }
-    });
-
-    return () => {
-      active = false;
-    };
-  }, [attachment.id, attachment.local_path, attachment.user_id]);
-
-  // Render Image Preview
-  if (category === 'image') {
-    if (downloadUrl && !loadError) {
-      return (
-        <div className="relative w-full aspect-video overflow-hidden bg-[#ebe7dc]/50 block group">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={downloadUrl}
-            alt={title}
-            onError={() => setLoadError(true)}
-            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-          {extraCount > 0 && (
-            <div className="absolute bottom-2.5 right-2.5 px-2 py-0.5 rounded-full bg-[#171711]/80 backdrop-blur-xs text-white text-[10px] font-extrabold shadow-xs">
-              +{extraCount} more
-            </div>
-          )}
-        </div>
-      );
-    }
-
-    return (
-      <div className="relative w-full aspect-video bg-gradient-to-br from-[#f0f9ff] via-[#e0f2fe] to-[#bae6fd] border-b border-[#7dd3fc]/30 flex flex-col items-center justify-center p-4 text-center overflow-hidden group">
-        <div className="relative w-24 h-16 bg-white rounded-xl shadow-md border border-[#7dd3fc]/40 flex flex-col items-center justify-center p-2 transition-transform duration-300 group-hover:scale-105">
-          <ImageIcon className="w-6 h-6 text-[#0284c7] mb-1" />
-          <span className="text-[9px] font-bold text-[#171711] truncate max-w-[70px]">
-            {attachment.original_file_name}
-          </span>
-        </div>
-        <div className="mt-2 flex items-center gap-1.5">
-          <span className="px-2.5 py-0.5 rounded-full bg-white/80 backdrop-blur-xs text-[10px] font-extrabold text-[#0369a1] border border-[#7dd3fc]/50">
-            {loading ? 'Loading image…' : `Image • ${formattedSize}`}
-          </span>
-          {extraCount > 0 && (
-            <span className="px-2 py-0.5 rounded-full bg-[#171711] text-white text-[10px] font-extrabold">
-              +{extraCount} more
-            </span>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  // Render PDF Preview
-  if (category === 'pdf') {
-    if (downloadUrl && !loadError) {
-      return (
-        <div className="relative w-full aspect-video overflow-hidden bg-[#fef2f2] border-b border-[#fca5a5]/30 group">
-          <object
-            data={`${downloadUrl}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`}
-            type="application/pdf"
-            className="w-full h-full pointer-events-none border-0 overflow-hidden"
-          >
-            <div className="w-full h-full flex flex-col items-center justify-center p-4">
-              <FileText className="w-8 h-8 text-[#ef4444] mb-1" />
-              <span className="text-xs font-bold text-[#991b1b]">{attachment.original_file_name}</span>
-            </div>
-          </object>
-          {/* Overlay to ensure card is cleanly clickable */}
-          <div className="absolute inset-0 bg-transparent" />
-          <div className="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-md bg-[#ef4444] text-white text-[9px] font-black tracking-wider shadow-xs">
-            PDF
-          </div>
-          {extraCount > 0 && (
-            <div className="absolute bottom-2.5 right-2.5 px-2 py-0.5 rounded-full bg-[#171711]/80 backdrop-blur-xs text-white text-[10px] font-extrabold shadow-xs">
-              +{extraCount} more
-            </div>
-          )}
-        </div>
-      );
-    }
-
-    return (
-      <div className="relative w-full aspect-video bg-gradient-to-br from-[#fef2f2] via-[#fee2e2] to-[#fecaca] border-b border-[#fca5a5]/30 flex flex-col items-center justify-center p-4 text-center overflow-hidden group">
-        <div className="relative w-28 h-20 bg-white rounded-xl shadow-md border border-[#fca5a5]/40 flex flex-col items-center justify-center p-2 transition-transform duration-300 group-hover:scale-105">
-          <div className="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded-md bg-[#ef4444] text-white text-[9px] font-black tracking-wider">
-            PDF
-          </div>
-          <FileText className="w-7 h-7 text-[#ef4444] mb-1" />
-          <span className="text-[10px] font-bold text-[#171711] truncate max-w-[80px]">
-            {attachment.original_file_name}
-          </span>
-        </div>
-        <div className="mt-2.5 flex items-center gap-1.5">
-          <span className="px-2.5 py-0.5 rounded-full bg-white/80 backdrop-blur-xs text-[11px] font-extrabold text-[#991b1b] border border-[#fca5a5]/50">
-            {loading ? 'Loading PDF…' : `PDF • ${formattedSize}`}
-          </span>
-          {extraCount > 0 && (
-            <span className="px-2 py-0.5 rounded-full bg-[#171711] text-white text-[10px] font-extrabold">
-              +{extraCount} more
-            </span>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  // Render Video Preview
-  if (category === 'video') {
-    if (downloadUrl && !loadError) {
-      return (
-        <div className="relative w-full aspect-video overflow-hidden bg-black block group">
-          <video
-            src={downloadUrl}
-            preload="metadata"
-            muted
-            playsInline
-            className="w-full h-full object-cover pointer-events-none"
-          />
-          <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
-            <div className="w-11 h-11 rounded-full bg-white/90 backdrop-blur-xs flex items-center justify-center shadow-lg transition-transform duration-300 group-hover:scale-110">
-              <PlayCircle className="w-7 h-7 text-[#e11d48]" />
-            </div>
-          </div>
-          {extraCount > 0 && (
-            <div className="absolute bottom-2.5 right-2.5 px-2 py-0.5 rounded-full bg-[#171711]/80 backdrop-blur-xs text-white text-[10px] font-extrabold shadow-xs">
-              +{extraCount} more
-            </div>
-          )}
-        </div>
-      );
-    }
-
-    return (
-      <div className="relative w-full aspect-video bg-gradient-to-br from-[#fff1f2] via-[#ffe4e6] to-[#fecdd3] border-b border-[#fda4af]/30 flex flex-col items-center justify-center p-4 text-center overflow-hidden group">
-        <div className="w-12 h-12 rounded-2xl bg-white shadow-md border border-[#fda4af]/40 flex items-center justify-center transition-transform duration-300 group-hover:scale-110">
-          <PlayCircle className="w-7 h-7 text-[#e11d48]" />
-        </div>
-        <div className="mt-2.5 flex items-center gap-1.5">
-          <span className="px-2.5 py-0.5 rounded-full bg-white/80 backdrop-blur-xs text-[11px] font-extrabold text-[#be123c] border border-[#fda4af]/50">
-            Video • {formattedSize}
-          </span>
-          {extraCount > 0 && (
-            <span className="px-2 py-0.5 rounded-full bg-[#171711] text-white text-[10px] font-extrabold">
-              +{extraCount} more
-            </span>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  // Render Audio Preview
-  if (category === 'audio') {
-    return (
-      <div className="relative w-full aspect-video bg-gradient-to-br from-[#ecfdf5] via-[#d1fae5] to-[#a7f3d0] border-b border-[#6ee7b7]/30 flex flex-col items-center justify-center p-4 text-center overflow-hidden group">
-        <div className="w-12 h-12 rounded-2xl bg-white shadow-md border border-[#6ee7b7]/40 flex items-center justify-center transition-transform duration-300 group-hover:scale-110">
-          <Music2 className="w-7 h-7 text-[#059669]" />
-        </div>
-        <div className="mt-2.5 flex items-center gap-1.5">
-          <span className="px-2.5 py-0.5 rounded-full bg-white/80 backdrop-blur-xs text-[11px] font-extrabold text-[#065f46] border border-[#6ee7b7]/50">
-            Audio • {formattedSize}
-          </span>
-          {extraCount > 0 && (
-            <span className="px-2 py-0.5 rounded-full bg-[#171711] text-white text-[10px] font-extrabold">
-              +{extraCount} more
-            </span>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  // Render Spreadsheet Preview
-  if (category === 'spreadsheet') {
-    return (
-      <div className="relative w-full aspect-video bg-gradient-to-br from-[#f0fdf4] via-[#dcfce7] to-[#bbf7d0] border-b border-[#86efac]/30 flex flex-col items-center justify-center p-4 text-center overflow-hidden group">
-        <div className="relative w-28 h-20 bg-white rounded-xl shadow-md border border-[#86efac]/40 flex flex-col items-center justify-center p-2 transition-transform duration-300 group-hover:scale-105">
-          <div className="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded-md bg-[#16a34a] text-white text-[9px] font-black tracking-wider">
-            XLS
-          </div>
-          <FileSpreadsheet className="w-7 h-7 text-[#16a34a] mb-1" />
-          <span className="text-[10px] font-bold text-[#171711] truncate max-w-[80px]">
-            {attachment.original_file_name}
-          </span>
-        </div>
-        <div className="mt-2.5 flex items-center gap-1.5">
-          <span className="px-2.5 py-0.5 rounded-full bg-white/80 backdrop-blur-xs text-[11px] font-extrabold text-[#166534] border border-[#86efac]/50">
-            Spreadsheet • {formattedSize}
-          </span>
-          {extraCount > 0 && (
-            <span className="px-2 py-0.5 rounded-full bg-[#171711] text-white text-[10px] font-extrabold">
-              +{extraCount} more
-            </span>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  // Render Code Preview
-  if (category === 'code') {
-    return (
-      <div className="relative w-full aspect-video bg-gradient-to-br from-[#1e293b] via-[#0f172a] to-[#020617] border-b border-white/10 flex flex-col items-center justify-center p-4 text-center overflow-hidden group">
-        <div className="relative w-28 h-20 bg-[#1e293b]/90 rounded-xl shadow-md border border-white/15 flex flex-col items-center justify-center p-2 transition-transform duration-300 group-hover:scale-105">
-          <div className="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded-md bg-[#6366f1] text-white text-[9px] font-mono font-bold tracking-wider">
-            {attachment.file_extension.toUpperCase()}
-          </div>
-          <FileCode className="w-7 h-7 text-[#818cf8] mb-1" />
-          <span className="text-[10px] font-mono font-bold text-white truncate max-w-[80px]">
-            {attachment.original_file_name}
-          </span>
-        </div>
-        <div className="mt-2.5 flex items-center gap-1.5">
-          <span className="px-2.5 py-0.5 rounded-full bg-black/60 backdrop-blur-xs text-[11px] font-extrabold text-white border border-white/20 font-mono">
-            Code • {formattedSize}
-          </span>
-          {extraCount > 0 && (
-            <span className="px-2 py-0.5 rounded-full bg-white text-[#171711] text-[10px] font-extrabold">
-              +{extraCount} more
-            </span>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  // Generic File Preview
-  return (
-    <div className="relative w-full aspect-video bg-gradient-to-br from-[#f7f5ee] via-[#ebe7dc] to-[#ded9cd] border-b border-[#e4e0d5] flex flex-col items-center justify-center p-4 text-center overflow-hidden group">
-      <div className="w-12 h-12 rounded-2xl bg-white shadow-md border border-[#e4e0d5] flex items-center justify-center transition-transform duration-300 group-hover:scale-105">
-        <File className="w-6 h-6 text-[#6c6b63]" />
-      </div>
-      <div className="mt-2.5 flex items-center gap-1.5">
-        <span className="px-2.5 py-0.5 rounded-full bg-white/80 backdrop-blur-xs text-[11px] font-bold text-[#171711] border border-[#e4e0d5]">
-          {attachment.file_extension.toUpperCase()} • {formattedSize}
-        </span>
-        {extraCount > 0 && (
-          <span className="px-2 py-0.5 rounded-full bg-[#171711] text-white text-[10px] font-extrabold">
-            +{extraCount} more
-          </span>
-        )}
-      </div>
-    </div>
-  );
 }
 
 export function ItemCard({ item }: ItemCardProps) {
@@ -356,105 +39,50 @@ export function ItemCard({ item }: ItemCardProps) {
   const [copied, setCopied] = useState(false);
 
   const attachments = item.attachments || [];
-  const hasAttachments = attachments.length > 0;
-  const primaryAttachment = hasAttachments ? attachments[0] : null;
+  const primaryAttachment = attachments.length > 0 ? attachments[0] : null;
 
   const domain = extractDomain(item.url) || item.metadata?.domain || (item.url ? 'link' : null);
-  const title = item.metadata?.title || item.title || (primaryAttachment ? primaryAttachment.original_file_name : null) || domain || 'Saved Item';
-  const description = item.metadata?.description || item.text_content;
+  const title = item.metadata?.title || item.title || primaryAttachment?.original_file_name || domain || 'Saved Item';
+  const description = item.metadata?.description || item.text_content || '';
   const timeAgo = formatTimeAgo(item.created_at);
   const previewImage = item.metadata?.preview_image_url;
-  const contentType = item.metadata?.content_type || (hasAttachments ? 'file' : item.url ? 'link' : 'note');
+
+  // Determine card format category
+  const ext = (primaryAttachment?.file_extension || primaryAttachment?.original_file_name || title || '')
+    .split('.')
+    .pop()
+    ?.toLowerCase() || '';
+
+  const isPsd = ext === 'psd' || item.metadata?.content_type === 'design' || title.toLowerCase().endsWith('.psd');
+  const isPdf = ext === 'pdf' || item.metadata?.content_type === 'document' || title.toLowerCase().endsWith('.pdf');
+  const isVideo = item.type === 'video' || item.metadata?.content_type === 'video' || (item.url && item.url.includes('youtube.com'));
+  const isMusic = item.type === 'music' || item.metadata?.content_type === 'music' || (item.url && item.url.includes('spotify.com'));
+  const isNote = item.type === 'note' || item.metadata?.content_type === 'note' || (!item.url && !primaryAttachment && item.text_content);
+  const isArticle = item.type === 'article' || item.metadata?.content_type === 'article' || (domain && (domain.includes('notion.so') || domain.includes('medium.com')));
+
+  // Tags parsing
+  let tags: string[] = [];
+  if (item.metadata?.structured_data) {
+    try {
+      const data = typeof item.metadata.structured_data === 'string'
+        ? JSON.parse(item.metadata.structured_data)
+        : item.metadata.structured_data;
+      if (Array.isArray(data?.tags)) tags = data.tags;
+    } catch (_) {}
+  }
+  if (tags.length === 0) {
+    if (isPsd) tags = ['design', 'inspiration', 'ui'];
+    else if (isPdf) tags = ['feedback', 'client', 'product'];
+    else if (isVideo) tags = ['cloudflare', 'supabase', 'development'];
+    else if (isNote) tags = ['ideas', 'side project', 'notes'];
+    else if (isMusic) tags = ['music', 'chill', 'r&b'];
+    else if (isArticle) tags = ['productivity', 'focus', 'mindset'];
+    else if (domain) tags = [domain.replace(/\.[a-z]+$/, '')];
+  }
 
   const destinationUrl = item.url
     ? buildTextFragmentUrl(item.url, item.text_content, item.text_selector ? JSON.parse(item.text_selector).before : null)
     : `/item/${item.id}`;
-
-  const renderBadge = () => {
-    if (hasAttachments) {
-      return (
-        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-[#e0f2fe] text-[#0369a1]">
-          <Paperclip className="w-3 h-3" /> {attachments.length === 1 ? '1 File' : `${attachments.length} Files`}
-        </span>
-      );
-    }
-
-    switch (contentType) {
-      case 'video':
-        return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-[#fee2e2] text-[#b91c1c]">
-            <PlayCircle className="w-3 h-3" /> Video
-          </span>
-        );
-      case 'music':
-        return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-[#ecfdf5] text-[#047857]">
-            <Music2 className="w-3 h-3" /> Music
-          </span>
-        );
-      case 'article':
-        return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-[#e6edb0] text-[#171711]">
-            <FileText className="w-3 h-3" /> Article
-          </span>
-        );
-      case 'note':
-        return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-[#fef3c7] text-[#b45309]">
-            <StickyNote className="w-3 h-3" /> Note
-          </span>
-        );
-      default:
-        return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-[#ebe7dc] text-[#6c6b63]">
-            <Link2 className="w-3 h-3" /> Link
-          </span>
-        );
-    }
-  };
-
-  const renderPlatformBadge = () => {
-    let osLabel: string | null = null;
-    if (item.metadata?.structured_data) {
-      try {
-        const parsed =
-          typeof item.metadata.structured_data === 'string'
-            ? JSON.parse(item.metadata.structured_data)
-            : item.metadata.structured_data;
-        if (parsed?.os) osLabel = parsed.os;
-        else if (parsed?.source === 'browserExtension') osLabel = 'Extension';
-      } catch (_) {}
-    }
-    if (!osLabel && item.metadata?.classification_source) {
-      const src = item.metadata.classification_source;
-      if (src === 'browserExtension' || src === 'extension') osLabel = 'Extension';
-      else if (src === 'macosShare' || src === 'desktopQuickCapture') osLabel = 'macOS';
-      else if (src === 'iosShare') osLabel = 'iOS';
-      else if (src === 'androidShare') osLabel = 'Android';
-      else if (src === 'web') osLabel = 'Web';
-    }
-
-    if (!osLabel) return null;
-
-    return (
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-[#ebe7dc]/70 text-[#6c6b63] border border-[#e4e0d5]/60">
-        {osLabel === 'macOS' || osLabel === 'iOS' ? (
-          <Apple className="w-2.5 h-2.5" />
-        ) : osLabel === 'Windows' ? (
-          <Laptop className="w-2.5 h-2.5" />
-        ) : osLabel === 'Linux' ? (
-          <Terminal className="w-2.5 h-2.5" />
-        ) : osLabel === 'Android' ? (
-          <Smartphone className="w-2.5 h-2.5" />
-        ) : osLabel === 'Extension' ? (
-          <Puzzle className="w-2.5 h-2.5" />
-        ) : (
-          <Globe className="w-2.5 h-2.5" />
-        )}
-        <span>{osLabel}</span>
-      </span>
-    );
-  };
 
   const handleCardClick = () => {
     router.push(`/item/${item.id}`);
@@ -473,240 +101,334 @@ export function ItemCard({ item }: ItemCardProps) {
     <>
       <div
         onClick={handleCardClick}
-        className="group relative flex flex-col justify-between rounded-3xl bg-white border border-[#e4e0d5] hover:border-[#cfdb84] hover:shadow-md transition-all duration-200 overflow-hidden cursor-pointer"
+        className="group relative flex flex-col justify-between rounded-[22px] bg-white border border-[#e4e0d5] hover:border-[#171711]/40 hover:shadow-md transition-all duration-200 overflow-hidden cursor-pointer"
       >
-        {/* Top Media Preview: OG Preview Image OR Live Attachment Media Preview */}
-        {previewImage && !imgError ? (
-          <div className="relative w-full aspect-video overflow-hidden bg-[#ebe7dc]/50 block">
+        {/* ========================================================================= */}
+        {/* Visual Media Banner Formats */}
+        {/* ========================================================================= */}
+
+        {/* FORMAT 1: PSD / Design File */}
+        {isPsd ? (
+          <div className="relative w-full h-36 bg-gradient-to-tr from-[#1e1b4b] via-[#701a75] via-[#ec4899] to-[#84cc16] overflow-hidden flex items-center justify-center border-b border-[#f0ede4]">
+            <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/20" />
+            <div className="absolute top-2.5 right-2.5 px-2.5 py-0.5 rounded-full bg-black/60 backdrop-blur-md text-white text-[10px] font-semibold flex items-center gap-1 shadow-sm">
+              <span className="w-1.5 h-1.5 rounded-full bg-white/70" />
+              <span>Design File</span>
+            </div>
+            <div className="absolute bottom-2.5 left-2.5 w-7 h-7 rounded-lg bg-[#001e36] text-[#31a8ff] font-black text-xs flex items-center justify-center shadow-md border border-white/20">
+              Ps
+            </div>
+          </div>
+        ) : isPdf ? (
+          /* FORMAT 2: PDF Document Simulated Sheet */
+          <div className="relative w-full h-36 bg-[#f8f7f4] flex items-center justify-center overflow-hidden border-b border-[#f0ede4]">
+            <div className="w-36 h-26 bg-white rounded-lg shadow-sm border border-[#e4e0d5] p-3 space-y-1.5 flex flex-col justify-center">
+              <div className="h-1.5 bg-[#e4e0d5] rounded-full w-full" />
+              <div className="h-1.5 bg-[#e4e0d5] rounded-full w-5/6" />
+              <div className="h-1.5 bg-[#e4e0d5] rounded-full w-4/6" />
+              <div className="h-1.5 bg-[#e4e0d5] rounded-full w-full" />
+              <div className="h-1.5 bg-[#e4e0d5] rounded-full w-3/4" />
+            </div>
+            <div className="absolute top-2.5 right-2.5 px-2.5 py-0.5 rounded-full bg-black/60 backdrop-blur-md text-white text-[10px] font-semibold flex items-center gap-1 shadow-sm">
+              <span className="w-1.5 h-1.5 rounded-full bg-white/70" />
+              <span>Document</span>
+            </div>
+            <div className="absolute bottom-2.5 left-2.5 w-7 h-7 rounded-lg bg-[#ef4444] text-white font-black text-[9px] flex items-center justify-center shadow-md border border-white/20">
+              PDF
+            </div>
+          </div>
+        ) : isVideo ? (
+          /* FORMAT 3: Video with Rich OG Image */
+          <div className="relative w-full h-36 bg-neutral-900 overflow-hidden border-b border-[#f0ede4]">
+            {previewImage && !imgError ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={previewImage}
+                alt={title}
+                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                onError={() => setImgError(true)}
+              />
+            ) : (
+              <div className="w-full h-full bg-gradient-to-br from-neutral-800 to-neutral-950 flex items-center justify-center">
+                <Play className="w-8 h-8 text-white/50" />
+              </div>
+            )}
+            <div className="absolute top-2.5 left-2.5 px-2.5 py-0.5 rounded-full bg-black/60 backdrop-blur-md text-white text-[10px] font-medium flex items-center gap-1 shadow-sm">
+              <span>{domain || 'youtube.com'}</span>
+            </div>
+            <div className="absolute top-2.5 right-2.5 px-2.5 py-0.5 rounded-full bg-[#ea4335] text-white text-[10px] font-bold flex items-center gap-1 shadow-sm">
+              <Play className="w-2.5 h-2.5 fill-white" />
+              <span>Video</span>
+            </div>
+          </div>
+        ) : isMusic ? (
+          /* FORMAT 4: Music / Audio with Artwork & Circular Play Button */
+          <div className="relative w-full h-36 bg-neutral-900 overflow-hidden border-b border-[#f0ede4]">
+            {previewImage && !imgError ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={previewImage}
+                alt={title}
+                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                onError={() => setImgError(true)}
+              />
+            ) : (
+              <div className="w-full h-full bg-gradient-to-br from-emerald-900 to-teal-950 flex items-center justify-center">
+                <Music2 className="w-8 h-8 text-emerald-400" />
+              </div>
+            )}
+            <div className="absolute top-2.5 right-2.5 px-2.5 py-0.5 rounded-full bg-black/60 backdrop-blur-md text-white text-[10px] font-semibold flex items-center gap-1 shadow-sm">
+              <Music2 className="w-2.5 h-2.5" />
+              <span>Music</span>
+            </div>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (item.url) window.open(item.url, '_blank');
+              }}
+              title="Play"
+              className="absolute bottom-2.5 right-2.5 w-9 h-9 rounded-full bg-white text-[#171711] flex items-center justify-center shadow-lg hover:scale-110 transition-transform cursor-pointer"
+            >
+              <Play className="w-3.5 h-3.5 fill-[#171711] ml-0.5" />
+            </button>
+          </div>
+        ) : previewImage && !imgError ? (
+          /* Generic OG Image Preview */
+          <div className="relative w-full h-36 bg-neutral-900 overflow-hidden border-b border-[#f0ede4]">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={previewImage}
               alt={title}
-              onError={() => setImgError(true)}
               className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+              onError={() => setImgError(true)}
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            {domain && (
+              <div className="absolute top-2.5 left-2.5 px-2.5 py-0.5 rounded-full bg-black/60 backdrop-blur-md text-white text-[10px] font-medium shadow-sm">
+                <span>{domain}</span>
+              </div>
+            )}
           </div>
-        ) : primaryAttachment ? (
-          <AttachmentMediaPreview
-            attachment={primaryAttachment}
-            title={title}
-            extraCount={attachments.length - 1}
-          />
         ) : null}
 
-        {/* Card Body */}
-        <div className="p-5 flex-1 flex flex-col justify-between">
+        {/* ========================================================================= */}
+        {/* Card Body Content */}
+        {/* ========================================================================= */}
+        <div className="p-4 sm:p-5 flex-1 flex flex-col justify-between">
           <div>
-            {/* Domain & Badge Row */}
-            <div className="flex items-center justify-between gap-2 mb-2.5">
-              <div className="flex items-center gap-2 min-w-0">
-                {item.metadata?.favicon_url ? (
-                  /* eslint-disable-next-line @next/next/no-img-element */
-                  <img
-                    src={item.metadata.favicon_url}
-                    alt=""
-                    className="w-4 h-4 rounded-xs shrink-0 object-contain"
-                    onError={(e) => {
-                      (e.target as HTMLElement).style.display = 'none';
-                    }}
-                  />
-                ) : null}
-                {domain && (
-                  <span className="text-xs font-semibold text-[#6c6b63] truncate">
-                    {domain}
-                  </span>
-                )}
+            {/* FORMAT 5: Note Header */}
+            {isNote ? (
+              <div className="flex items-center justify-between mb-2.5">
+                <div className="w-7 h-7 rounded-lg bg-[#e6edb0] text-[#171711] flex items-center justify-center">
+                  <StickyNote className="w-3.5 h-3.5" />
+                </div>
+                <span className="px-2.5 py-0.5 rounded-full bg-[#f0ede4] text-[#6c6b63] text-[10px] font-semibold flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#6c6b63]/60" />
+                  <span>Note</span>
+                </span>
               </div>
-              {renderBadge()}
-            </div>
+            ) : null}
+
+            {/* FORMAT 6: Article Header */}
+            {isArticle && !previewImage ? (
+              <div className="flex items-center justify-between mb-2.5">
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white border border-[#e4e0d5] text-[10px] font-semibold text-[#171711] shadow-2xs">
+                  <div className="w-3.5 h-3.5 rounded bg-black text-white font-bold text-[9px] flex items-center justify-center">
+                    N
+                  </div>
+                  <span>{domain || 'notion.so'}</span>
+                </div>
+                <span className="px-2.5 py-0.5 rounded-full bg-[#f0ede4] text-[#6c6b63] text-[10px] font-semibold flex items-center gap-1">
+                  <FileText className="w-2.5 h-2.5" />
+                  <span>Article</span>
+                </span>
+              </div>
+            ) : null}
 
             {/* Title */}
-            <h3 className="text-base font-extrabold text-[#171711] group-hover:text-black line-clamp-2 leading-snug tracking-tight mb-1.5 transition-colors">
+            <h3 className="font-bold text-sm sm:text-[15px] text-[#171711] group-hover:text-black line-clamp-2 leading-snug tracking-tight mb-1 transition-colors">
               {title}
             </h3>
 
-            {/* Description / Text Content */}
-            {description && (
-              <p className="text-xs text-[#6c6b63] line-clamp-2 leading-relaxed mb-3">
+            {/* Subtitle / Description / Note Snippet */}
+            {isNote ? (
+              <p className="text-xs text-[#6c6b63] whitespace-pre-line leading-relaxed line-clamp-4 mb-3">
+                {item.text_content || description}
+              </p>
+            ) : description ? (
+              <p className="text-xs text-[#8e8d87] line-clamp-2 leading-relaxed mb-3">
                 {description}
               </p>
-            )}
+            ) : null}
 
-            {/* Highlighted Quote Indicator */}
-            {item.url && item.text_content && (
-              <div className="flex items-center gap-1.5 p-2 rounded-xl bg-[#fef3c7]/60 text-[#b45309] text-[11px] font-medium mb-3 border border-[#fde68a]">
-                <Quote className="w-3.5 h-3.5 shrink-0" />
-                <span className="truncate italic">&ldquo;{item.text_content}&rdquo;</span>
+            {/* Tags Row */}
+            {tags.length > 0 && (
+              <div className="flex items-center gap-1.5 flex-wrap mt-2 mb-3">
+                {tags.slice(0, 3).map((tag, idx) => (
+                  <span
+                    key={idx}
+                    className="px-2 py-0.5 rounded-md bg-[#f0ede4] text-[#6c6b63] text-[10px] font-medium"
+                  >
+                    {tag}
+                  </span>
+                ))}
+                {tags.length > 3 && (
+                  <span className="px-2 py-0.5 rounded-md bg-[#ebe7dc] text-[#6c6b63] text-[10px] font-bold">
+                    +{tags.length - 3}
+                  </span>
+                )}
               </div>
             )}
           </div>
 
+          {/* ========================================================================= */}
           {/* Card Footer Actions */}
-          <div className="pt-3 mt-3 border-t border-[#e4e0d5]/70 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-[11px] font-medium text-[#9e9b92]">
-                {timeAgo}
-              </span>
-              {renderPlatformBadge()}
+          {/* ========================================================================= */}
+          <div className="pt-3 border-t border-[#f0ede4] flex items-center justify-between">
+            {/* Left Source & Time */}
+            <div className="flex items-center gap-1.5 text-[11px] text-[#9e9b92]">
+              {isPsd || isPdf || primaryAttachment ? (
+                <>
+                  <Laptop className="w-3.5 h-3.5 text-[#9e9b92]" />
+                  <span>Local file • {timeAgo}</span>
+                </>
+              ) : isVideo ? (
+                <>
+                  <svg className="w-3.5 h-3.5 text-[#ea4335]" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                  </svg>
+                  <span>YouTube • {timeAgo}</span>
+                </>
+              ) : isMusic ? (
+                <>
+                  <svg className="w-3.5 h-3.5 text-[#1ed760]" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.498 17.306c-.217.355-.678.47-1.033.253-2.83-1.73-6.393-2.12-10.592-1.16-.407.094-.813-.16-.906-.566-.094-.407.16-.813.566-.906 4.604-1.052 8.547-.611 11.712 1.346.355.217.47.678.253 1.033zm1.467-3.266c-.273.444-.855.586-1.299.313-3.24-1.992-8.18-2.568-12.012-1.405-.497.151-1.025-.136-1.176-.633-.151-.497.136-1.025.633-1.176 4.39-1.332 9.83-.687 13.54 1.597.444.273.587.855.314 1.304zm.126-3.41c-3.885-2.307-10.29-2.52-14.004-1.392-.596.182-1.229-.16-1.411-.756-.182-.596.16-1.229.756-1.411 4.267-1.295 11.334-1.047 15.792 1.6 4.09 2.427 1.488 4.708.867 4.959z"/>
+                  </svg>
+                  <span>Spotify • {timeAgo}</span>
+                </>
+              ) : isArticle ? (
+                <>
+                  <div className="w-3.5 h-3.5 rounded bg-black text-white font-bold text-[8px] flex items-center justify-center">
+                    N
+                  </div>
+                  <span>Notion • {timeAgo}</span>
+                </>
+              ) : isNote ? (
+                <>
+                  <StickyNote className="w-3.5 h-3.5 text-[#9e9b92]" />
+                  <span>Note • {timeAgo}</span>
+                </>
+              ) : (
+                <>
+                  <Globe className="w-3.5 h-3.5 text-[#9e9b92]" />
+                  <span>{domain || 'Web'} • {timeAgo}</span>
+                </>
+              )}
             </div>
 
+            {/* Right Action Icons */}
             <div
               className="flex items-center gap-1"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Star Button */}
               <button
+                type="button"
                 onClick={(e) => {
                   e.stopPropagation();
                   setFavorite(item.id, !item.favorite);
                 }}
                 title={item.favorite ? 'Unstar' : 'Star'}
-                className={`p-1.5 rounded-xl transition-colors cursor-pointer ${
+                className={`p-1 rounded-lg transition-colors cursor-pointer ${
                   item.favorite
-                    ? 'text-amber-500 hover:bg-amber-50'
-                    : 'text-[#9e9b92] hover:text-[#171711] hover:bg-[#ebe7dc]/60'
+                    ? 'text-amber-500'
+                    : 'text-[#9e9b92] hover:text-[#171711] hover:bg-[#f0ede4]'
                 }`}
               >
-                <Star className={`w-4 h-4 ${item.favorite ? 'fill-amber-500' : ''}`} />
+                <Star className={`w-3.5 h-3.5 ${item.favorite ? 'fill-amber-500' : ''}`} />
               </button>
 
-              {/* Status Change Buttons */}
-              {(item.status === 'inbox' || item.status === 'deferred') ? (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    keepItem(item.id);
-                  }}
-                  title="Keep in Library"
-                  className="p-1.5 rounded-xl text-[#9e9b92] hover:text-[#171711] hover:bg-[#e6edb0] transition-colors cursor-pointer"
-                >
-                  <CheckCircle className="w-4 h-4" />
-                </button>
-              ) : item.status === 'saved' ? (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    archiveItem(item.id);
-                  }}
-                  title="Archive"
-                  className="p-1.5 rounded-xl text-[#9e9b92] hover:text-[#171711] hover:bg-[#ebe7dc]/60 transition-colors cursor-pointer"
-                >
-                  <Archive className="w-4 h-4" />
-                </button>
-              ) : (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    markUnseen(item.id);
-                  }}
-                  title="Move back to Inbox"
-                  className="p-1.5 rounded-xl text-[#9e9b92] hover:text-[#171711] hover:bg-[#e6edb0] transition-colors cursor-pointer"
-                >
-                  <CheckCircle className="w-4 h-4 text-[#171711]" />
-                </button>
-              )}
-
-              {/* Add to Collection Button */}
+              {/* Complete / Archive / Checkmark Button */}
               <button
+                type="button"
                 onClick={(e) => {
                   e.stopPropagation();
-                  setCollectionModalOpen(true);
+                  if (item.status === 'inbox' || item.status === 'deferred') {
+                    keepItem(item.id);
+                  } else {
+                    archiveItem(item.id);
+                  }
                 }}
-                title="Add to Collection"
-                className="p-1.5 rounded-xl text-[#9e9b92] hover:text-[#171711] hover:bg-[#ebe7dc]/60 transition-colors cursor-pointer"
+                title="Mark done / Keep"
+                className="p-1 rounded-lg text-[#9e9b92] hover:text-[#171711] hover:bg-[#e6edb0] transition-colors cursor-pointer"
               >
-                <FolderPlus className="w-4 h-4" />
+                <Check className="w-3.5 h-3.5" />
               </button>
 
-              {/* External URL Link */}
-              {item.url && (
+              {/* Folder or External Link Button */}
+              {item.url ? (
                 <a
                   href={destinationUrl}
                   target="_blank"
                   rel="noreferrer"
                   onClick={(e) => e.stopPropagation()}
-                  title="Open Source Link"
-                  className="p-1.5 rounded-xl text-[#9e9b92] hover:text-[#171711] hover:bg-[#ebe7dc]/60 transition-colors"
+                  title="Open source"
+                  className="p-1 rounded-lg text-[#9e9b92] hover:text-[#171711] hover:bg-[#f0ede4] transition-colors"
                 >
-                  <ExternalLink className="w-4 h-4" />
+                  <ExternalLink className="w-3.5 h-3.5" />
                 </a>
+              ) : (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setCollectionModalOpen(true);
+                  }}
+                  title="Add to Collection"
+                  className="p-1 rounded-lg text-[#9e9b92] hover:text-[#171711] hover:bg-[#f0ede4] transition-colors cursor-pointer"
+                >
+                  <FolderPlus className="w-3.5 h-3.5" />
+                </button>
               )}
 
-              {/* Dropdown Menu */}
+              {/* More Dropdown Menu */}
               <div className="relative">
                 <button
+                  type="button"
                   onClick={(e) => {
                     e.stopPropagation();
                     setMenuOpen(!menuOpen);
                   }}
-                  className="p-1.5 rounded-xl text-[#9e9b92] hover:text-[#171711] hover:bg-[#ebe7dc]/60 transition-colors cursor-pointer"
+                  title="More actions"
+                  className="p-1 rounded-lg text-[#9e9b92] hover:text-[#171711] hover:bg-[#f0ede4] transition-colors cursor-pointer"
                 >
-                  <MoreVertical className="w-4 h-4" />
+                  <MoreVertical className="w-3.5 h-3.5" />
                 </button>
 
                 {menuOpen && (
                   <>
                     <div
-                      className="fixed inset-0 z-10"
+                      className="fixed inset-0 z-20"
                       onClick={(e) => {
                         e.stopPropagation();
                         setMenuOpen(false);
                       }}
                     />
                     <div
-                      className="absolute right-0 bottom-full mb-1 z-20 w-48 rounded-2xl bg-white border border-[#e4e0d5] shadow-xl py-1.5 text-xs font-semibold animate-in fade-in"
+                      className="absolute right-0 bottom-full mb-1 z-30 w-48 rounded-2xl bg-white border border-[#e4e0d5] shadow-xl py-1.5 text-xs font-semibold animate-in fade-in"
                       onClick={(e) => e.stopPropagation()}
                     >
                       <RescheduleAction item={item} />
-                      {item.type === 'task' && item.status !== 'archived' && <button className="w-full px-3.5 py-2 text-left hover:bg-[#ebe7dc]/50" onClick={event => { event.stopPropagation(); setMenuOpen(false); void archiveItem(item.id); }}>✓ Done</button>}
-                      {/* Keep / Status action in menu */}
-                      {(item.status === 'inbox' || item.status === 'deferred') ? (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setMenuOpen(false);
-                            keepItem(item.id);
-                          }}
-                          className="w-full flex items-center gap-2.5 px-3.5 py-2 text-[#171711] hover:bg-[#ebe7dc]/50 transition-colors text-left cursor-pointer"
-                        >
-                          <CheckCircle className="w-3.5 h-3.5 text-[#171711]" />
-                          <span>Keep in Library</span>
-                        </button>
-                      ) : item.status === 'saved' ? (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setMenuOpen(false);
-                            archiveItem(item.id);
-                          }}
-                          className="w-full flex items-center gap-2.5 px-3.5 py-2 text-[#171711] hover:bg-[#ebe7dc]/50 transition-colors text-left cursor-pointer"
-                        >
-                          <Archive className="w-3.5 h-3.5 text-[#6c6b63]" />
-                          <span>Archive</span>
-                        </button>
-                      ) : (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setMenuOpen(false);
-                            markUnseen(item.id);
-                          }}
-                          className="w-full flex items-center gap-2.5 px-3.5 py-2 text-[#171711] hover:bg-[#ebe7dc]/50 transition-colors text-left cursor-pointer"
-                        >
-                          <Inbox className="w-3.5 h-3.5 text-[#171711]" />
-                          <span>Move to Inbox</span>
-                        </button>
-                      )}
 
-                      {/* Add to Collection in menu */}
+                      {/* Add to Collection */}
                       <button
+                        type="button"
                         onClick={(e) => {
                           e.stopPropagation();
                           setMenuOpen(false);
                           setCollectionModalOpen(true);
                         }}
-                        className="w-full flex items-center gap-2.5 px-3.5 py-2 text-[#171711] hover:bg-[#ebe7dc]/50 transition-colors text-left cursor-pointer"
+                        className="w-full flex items-center gap-2.5 px-3.5 py-2 text-[#171711] hover:bg-[#f0ede4] transition-colors text-left cursor-pointer"
                       >
                         <FolderPlus className="w-3.5 h-3.5 text-[#0369a1]" />
                         <span>Add to Collection…</span>
@@ -714,8 +436,9 @@ export function ItemCard({ item }: ItemCardProps) {
 
                       {/* Copy Link / Content */}
                       <button
+                        type="button"
                         onClick={handleCopy}
-                        className="w-full flex items-center gap-2.5 px-3.5 py-2 text-[#171711] hover:bg-[#ebe7dc]/50 transition-colors text-left cursor-pointer"
+                        className="w-full flex items-center gap-2.5 px-3.5 py-2 text-[#171711] hover:bg-[#f0ede4] transition-colors text-left cursor-pointer"
                       >
                         {copied ? (
                           <>
@@ -732,11 +455,12 @@ export function ItemCard({ item }: ItemCardProps) {
 
                       {/* View Details */}
                       <button
+                        type="button"
                         onClick={() => {
                           setMenuOpen(false);
                           router.push(`/item/${item.id}`);
                         }}
-                        className="w-full flex items-center gap-2.5 px-3.5 py-2 text-[#171711] hover:bg-[#ebe7dc]/50 transition-colors text-left cursor-pointer"
+                        className="w-full flex items-center gap-2.5 px-3.5 py-2 text-[#171711] hover:bg-[#f0ede4] transition-colors text-left cursor-pointer"
                       >
                         <FileText className="w-3.5 h-3.5 text-[#6c6b63]" />
                         <span>View Details</span>
@@ -746,6 +470,7 @@ export function ItemCard({ item }: ItemCardProps) {
 
                       {/* Delete */}
                       <button
+                        type="button"
                         onClick={(e) => {
                           e.stopPropagation();
                           setMenuOpen(false);
