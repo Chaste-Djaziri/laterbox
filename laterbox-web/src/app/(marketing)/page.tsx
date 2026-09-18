@@ -8,6 +8,7 @@ import { ScrollConvergenceSection } from '@/components/marketing/ScrollConvergen
 import { HowItWorksStepsSection } from '@/components/marketing/HowItWorksStepsSection';
 import { WhenLaterBecomesNowSection } from '@/components/marketing/WhenLaterBecomesNowSection';
 import { NotAnotherTodoListSection } from '@/components/marketing/NotAnotherTodoListSection';
+import { SomedayVaultSection } from '@/components/marketing/SomedayVaultSection';
 import {
   Sparkles,
   ArrowRight,
@@ -450,6 +451,11 @@ export default function LandingPage() {
       {/* "Not another to-do list." Capability Section */}
       {/* ============================================================ */}
       <NotAnotherTodoListSection />
+
+      {/* ============================================================ */}
+      {/* "Some things don't need a deadline." Someday Vault Section */}
+      {/* ============================================================ */}
+      <SomedayVaultSection />
 
       {/* ============================================================ */}
       {/* Pro Feature Matrix Grid */}
