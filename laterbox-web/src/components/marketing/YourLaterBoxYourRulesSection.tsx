@@ -8,10 +8,9 @@ import {
   Lightbulb,
   Clock,
   Search,
-  Upload,
 } from 'lucide-react';
 
-// Stylized LaterBox Inbox/Tray Icon matching the brand screenshots
+// Stylized LaterBox Inbox/Tray Icon adhering to the Web Theme palette
 function LaterBoxTrayLogo({ className = 'w-16 h-16' }: { className?: string }) {
   return (
     <div className={`relative ${className} shrink-0 flex items-center justify-center select-none`}>
@@ -22,28 +21,28 @@ function LaterBoxTrayLogo({ className = 'w-16 h-16' }: { className?: string }) {
         className="w-full h-full drop-shadow-md"
       >
         {/* Envelope back container */}
-        <rect x="12" y="14" width="48" height="40" rx="8" fill="#ff7a45" />
+        <rect x="12" y="14" width="48" height="40" rx="8" fill="#2e2e28" />
 
         {/* Paper sheet sticking out */}
-        <rect x="18" y="8" width="36" height="22" rx="4" fill="#fff9f5" />
-        <line x1="24" y1="14" x2="48" y2="14" stroke="#ffdec9" strokeWidth="2.5" strokeLinecap="round" />
-        <line x1="24" y1="20" x2="38" y2="20" stroke="#ffdec9" strokeWidth="2.5" strokeLinecap="round" />
+        <rect x="18" y="8" width="36" height="22" rx="4" fill="#faf8f2" />
+        <line x1="24" y1="14" x2="48" y2="14" stroke="#e4e0d5" strokeWidth="2.5" strokeLinecap="round" />
+        <line x1="24" y1="20" x2="38" y2="20" stroke="#e4e0d5" strokeWidth="2.5" strokeLinecap="round" />
 
         {/* Envelope front fold / pouch */}
         <path
           d="M12 28L36 43L60 28V46C60 50.4183 56.4183 54 52 54H20C15.5817 54 12 50.4183 12 46V28Z"
-          fill="#ff541c"
+          fill="#171711"
         />
 
         {/* Crease shadows */}
-        <path d="M12 48L26 36" stroke="#d9410f" strokeWidth="1.5" strokeOpacity="0.4" />
-        <path d="M60 48L46 36" stroke="#d9410f" strokeWidth="1.5" strokeOpacity="0.4" />
+        <path d="M12 48L26 36" stroke="#000000" strokeWidth="1.5" strokeOpacity="0.3" />
+        <path d="M60 48L46 36" stroke="#000000" strokeWidth="1.5" strokeOpacity="0.3" />
 
-        {/* Circular Clock Badge in bottom right */}
-        <circle cx="52" cy="46" r="10.5" fill="#ff541c" stroke="#ffffff" strokeWidth="2.5" />
-        <circle cx="52" cy="46" r="1.5" fill="#ffffff" />
-        <line x1="52" y1="46" x2="52" y2="40.5" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" />
-        <line x1="52" y1="46" x2="56.5" y2="46" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" />
+        {/* Circular Clock Badge in bottom right with web theme accent */}
+        <circle cx="52" cy="46" r="10.5" fill="#e6edb0" stroke="#171711" strokeWidth="2" />
+        <circle cx="52" cy="46" r="1.5" fill="#171711" />
+        <line x1="52" y1="46" x2="52" y2="40.5" stroke="#171711" strokeWidth="2" strokeLinecap="round" />
+        <line x1="52" y1="46" x2="56.5" y2="46" stroke="#171711" strokeWidth="2" strokeLinecap="round" />
       </svg>
     </div>
   );
@@ -91,7 +90,7 @@ export function YourLaterBoxYourRulesSection() {
                 >
                   <span
                     className={`w-2 h-2 rounded-full transition-colors ${
-                      isActive ? 'bg-[#ff541c]' : 'bg-[#c4c0b5] group-hover:bg-[#171711]'
+                      isActive ? 'bg-[#171711]' : 'bg-[#c4c0b5] group-hover:bg-[#171711]'
                     }`}
                   />
                   <span
@@ -124,7 +123,7 @@ export function YourLaterBoxYourRulesSection() {
             {/* Window Top Mini Bar */}
             <div className="flex items-center justify-between pb-3 border-b border-[#f0ede4] mb-3 text-[10px] text-[#9e9b92]">
               <div className="flex items-center gap-2">
-                <span className="font-bold text-[#ff541c]">LaterBox</span>
+                <span className="font-bold text-[#171711]">LaterBox</span>
               </div>
               <div className="px-3 py-1 rounded-full bg-[#faf8f5] border border-[#e4e0d5] flex items-center gap-1">
                 <Search className="w-2.5 h-2.5 text-[#9e9b92]" />
@@ -142,7 +141,7 @@ export function YourLaterBoxYourRulesSection() {
                 <div className="p-2 rounded-xl bg-[#faf8f5] border border-[#f0ede4]">
                   <span className="text-[8px] font-black text-[#9e9b92] block">RETURNED TODAY</span>
                   <span className="text-xs font-bold text-[#171711] flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#ff541c]" /> 3 Items
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#171711]" /> 3 Items
                   </span>
                 </div>
                 <div className="p-2 rounded-xl bg-[#faf8f5] border border-[#f0ede4]">
@@ -157,11 +156,11 @@ export function YourLaterBoxYourRulesSection() {
               <div className="space-y-1.5">
                 <div className="p-2 rounded-xl bg-white border border-[#f0ede4] flex items-center justify-between text-[10px]">
                   <span className="font-bold text-[#171711]">ClientFeedback.pdf</span>
-                  <span className="text-[#ff541c] font-semibold">Tomorrow, 10:00 AM</span>
+                  <span className="text-[#6c6b63] font-semibold">Tomorrow, 10:00 AM</span>
                 </div>
                 <div className="p-2 rounded-xl bg-white border border-[#f0ede4] flex items-center justify-between text-[10px]">
                   <span className="font-bold text-[#171711]">Design Inspiration.psd</span>
-                  <span className="text-[#ff541c] font-semibold">Today, 03:00 PM</span>
+                  <span className="text-[#6c6b63] font-semibold">Today, 03:00 PM</span>
                 </div>
               </div>
             </div>
@@ -174,26 +173,26 @@ export function YourLaterBoxYourRulesSection() {
             {/* 4 Floating Source Nodes */}
             <div className="relative w-40 h-28 mb-1">
               {/* Node 1: Links */}
-              <div className="absolute top-0 right-4 flex items-center gap-1 px-2 py-1 rounded-lg bg-[#faf8f2] border border-[#e4e0d5] text-[9px] font-bold text-[#6c6b63] shadow-xs">
-                <Link2 className="w-3 h-3 text-[#ff541c]" />
+              <div className="absolute top-0 right-4 flex items-center gap-1 px-2 py-1 rounded-lg bg-[#faf8f2] border border-[#e4e0d5] text-[9px] font-bold text-[#171711] shadow-xs">
+                <Link2 className="w-3 h-3 text-[#171711]" />
                 <span>Links</span>
               </div>
 
               {/* Node 2: Files */}
-              <div className="absolute top-8 left-0 flex items-center gap-1 px-2 py-1 rounded-lg bg-[#faf8f2] border border-[#e4e0d5] text-[9px] font-bold text-[#6c6b63] shadow-xs">
-                <FileText className="w-3 h-3 text-[#ef4444]" />
+              <div className="absolute top-8 left-0 flex items-center gap-1 px-2 py-1 rounded-lg bg-[#faf8f2] border border-[#e4e0d5] text-[9px] font-bold text-[#171711] shadow-xs">
+                <FileText className="w-3 h-3 text-[#171711]" />
                 <span>Files</span>
               </div>
 
               {/* Node 3: Tasks */}
-              <div className="absolute bottom-6 left-6 flex items-center gap-1 px-2 py-1 rounded-lg bg-[#faf8f2] border border-[#e4e0d5] text-[9px] font-bold text-[#6c6b63] shadow-xs">
-                <CheckSquare className="w-3 h-3 text-[#22c55e]" />
+              <div className="absolute bottom-6 left-6 flex items-center gap-1 px-2 py-1 rounded-lg bg-[#faf8f2] border border-[#e4e0d5] text-[9px] font-bold text-[#171711] shadow-xs">
+                <CheckSquare className="w-3 h-3 text-[#171711]" />
                 <span>Tasks</span>
               </div>
 
               {/* Node 4: Ideas */}
-              <div className="absolute bottom-0 right-2 flex items-center gap-1 px-2 py-1 rounded-lg bg-[#faf8f2] border border-[#e4e0d5] text-[9px] font-bold text-[#6c6b63] shadow-xs">
-                <Lightbulb className="w-3 h-3 text-[#f59e0b]" />
+              <div className="absolute bottom-0 right-2 flex items-center gap-1 px-2 py-1 rounded-lg bg-[#faf8f2] border border-[#e4e0d5] text-[9px] font-bold text-[#171711] shadow-xs">
+                <Lightbulb className="w-3 h-3 text-[#171711]" />
                 <span>Ideas</span>
               </div>
 
@@ -204,14 +203,11 @@ export function YourLaterBoxYourRulesSection() {
                 xmlns="http://www.w3.org/2000/svg"
                 className="absolute inset-0 w-full h-full pointer-events-none"
               >
-                {/* Curve from Links */}
-                <path d="M125 15 Q 100 60, 90 100" stroke="#ff7a45" strokeWidth="1.5" strokeDasharray="3 3" opacity="0.6" />
-                {/* Curve from Files */}
-                <path d="M40 45 Q 65 75, 80 100" stroke="#ff7a45" strokeWidth="1.5" strokeDasharray="3 3" opacity="0.6" />
-                {/* Curve from Tasks */}
-                <path d="M55 75 Q 70 90, 80 105" stroke="#ff7a45" strokeWidth="1.5" strokeDasharray="3 3" opacity="0.6" />
-                {/* Curve from Ideas */}
-                <path d="M110 95 Q 95 105, 90 105" stroke="#ff7a45" strokeWidth="1.5" strokeDasharray="3 3" opacity="0.6" />
+                {/* Curves connecting to tray */}
+                <path d="M125 15 Q 100 60, 90 100" stroke="#9e9b92" strokeWidth="1.5" strokeDasharray="3 3" opacity="0.6" />
+                <path d="M40 45 Q 65 75, 80 100" stroke="#9e9b92" strokeWidth="1.5" strokeDasharray="3 3" opacity="0.6" />
+                <path d="M55 75 Q 70 90, 80 105" stroke="#9e9b92" strokeWidth="1.5" strokeDasharray="3 3" opacity="0.6" />
+                <path d="M110 95 Q 95 105, 90 105" stroke="#9e9b92" strokeWidth="1.5" strokeDasharray="3 3" opacity="0.6" />
               </svg>
             </div>
 
@@ -222,7 +218,7 @@ export function YourLaterBoxYourRulesSection() {
 
             {/* Script Text Underneath */}
             <div className="text-center mt-2">
-              <p className="font-serif italic text-xs sm:text-sm text-[#ff541c] leading-tight">
+              <p className="font-serif italic text-xs sm:text-sm text-[#171711] leading-tight">
                 Capture now. <br />
                 Get it back later.
               </p>
@@ -232,11 +228,11 @@ export function YourLaterBoxYourRulesSection() {
           {/* Dotted Timeline Arc leading right */}
           <div className="absolute bottom-6 right-6 sm:right-12 pointer-events-none hidden sm:flex items-center gap-3">
             <svg width="120" height="30" viewBox="0 0 120 30" fill="none">
-              <path d="M10 20 Q 60 5, 110 20" stroke="#ff7a45" strokeWidth="1.5" strokeDasharray="3 3" opacity="0.5" />
-              <circle cx="60" cy="12" r="2.5" fill="#ff541c" />
+              <path d="M10 20 Q 60 5, 110 20" stroke="#9e9b92" strokeWidth="1.5" strokeDasharray="3 3" opacity="0.6" />
+              <circle cx="60" cy="12" r="2.5" fill="#171711" />
             </svg>
             <div className="w-6 h-6 rounded-full bg-white border border-[#e4e0d5] shadow-xs flex items-center justify-center">
-              <Clock className="w-3.5 h-3.5 text-[#ff541c]" />
+              <Clock className="w-3.5 h-3.5 text-[#171711]" />
             </div>
           </div>
         </div>
