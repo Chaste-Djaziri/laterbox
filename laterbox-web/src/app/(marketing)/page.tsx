@@ -12,6 +12,7 @@ import { SomedayVaultSection } from '@/components/marketing/SomedayVaultSection'
 import { DesignedToStayOutOfWaySection } from '@/components/marketing/DesignedToStayOutOfWaySection';
 import { YourLaterBoxYourRulesSection } from '@/components/marketing/YourLaterBoxYourRulesSection';
 import { OneShortcutAwaySection } from '@/components/marketing/OneShortcutAwaySection';
+import { YourThingsStaySection } from '@/components/marketing/YourThingsStaySection';
 import {
   Sparkles,
   ArrowRight,
@@ -474,6 +475,11 @@ export default function LandingPage() {
       {/* "LaterBox is always one shortcut away." Animated Capture */}
       {/* ============================================================ */}
       <OneShortcutAwaySection />
+
+      {/* ============================================================ */}
+      {/* "Your things stay where they belong." Local-First Section */}
+      {/* ============================================================ */}
+      <YourThingsStaySection />
 
       {/* ============================================================ */}
       {/* Pro Feature Matrix Grid */}
