@@ -5,6 +5,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- **Web Landing Page 'Less Mental Clutter' Dark Showcase**: Added the dark statement section featuring the "Less mental clutter. Not more software clutter." headline, quiet-utility philosophy subtitle, and visual comparison (Tabs, Bookmarks, Notes, Reminders, Desktop clutter vs LaterBox tray icon).
 - **Web Landing Page 'Your things stay where they belong.' Showcase**: Added the local-first privacy & offline core showcase section featuring "Your things stay where they belong." headline, the 'ON YOUR COMPUTER.' badge, 3 architecture cards (100% Offline Core, No Account, Local-First), and key guarantee pills.
 - **Web Landing Page 'One Shortcut Away' Animated Showcase**: Added the animated quick capture showcase section demonstrating keyboard-summoned capture with an interactive 3-phase typing, scheduling, and "SAVED." transition loop.
 - **Web Landing Page 'Your LaterBox. Your rules.' Showcase**: Added the customization & preferences section showcasing user rules (Startup, System Tray, Themes, Quick Capture, Reminders, Local Data) paired with an isometric 3D perspective app composition and capture-funnel illustration.
