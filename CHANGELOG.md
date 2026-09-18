@@ -5,6 +5,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- **Web Landing Page 'You don't need to do everything now.' Statement Showcase**: Added the core philosophy statement section featuring "You don't need to do everything now. You just need to know you won't forget it later.", tagline, and signature accent divider.
 - **Web Landing Page 'The Ultimate Windows Productivity Organizer' Showcase**: Added the interactive desktop organizer feature tour section featuring 8 capability tabs (Capture, Schedule, Return, Open & Do, Snooze, Search, History, Someday) with workflow details and interactive state switching.
 - **Web Landing Page 'Less Mental Clutter' Dark Showcase**: Added the dark statement section featuring the "Less mental clutter. Not more software clutter." headline, quiet-utility philosophy subtitle, and visual comparison (Tabs, Bookmarks, Notes, Reminders, Desktop clutter vs LaterBox tray icon).
 - **Web Landing Page 'Your things stay where they belong.' Showcase**: Added the local-first privacy & offline core showcase section featuring "Your things stay where they belong." headline, the 'ON YOUR COMPUTER.' badge, 3 architecture cards (100% Offline Core, No Account, Local-First), and key guarantee pills.
