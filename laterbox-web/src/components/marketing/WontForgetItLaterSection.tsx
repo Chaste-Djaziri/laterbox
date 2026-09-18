@@ -15,8 +15,8 @@ export function WontForgetItLaterSection() {
             do everything now.
           </h2>
 
-          {/* Orange Serif Italic lines */}
-          <p className="font-serif italic font-normal text-3xl sm:text-5xl md:text-6xl lg:text-[68px] leading-[1.12] text-[#ff541c] pt-1 sm:pt-2">
+          {/* Serif Italic lines */}
+          <p className="font-serif italic font-normal text-3xl sm:text-5xl md:text-6xl lg:text-[68px] leading-[1.12] text-[#171711] pt-1 sm:pt-2">
             You just need to know
             <br />
             you won&apos;t forget it later.
@@ -28,8 +28,8 @@ export function WontForgetItLaterSection() {
           That&apos;s what LaterBox is for.
         </p>
 
-        {/* Orange Accent Divider Bar */}
-        <div className="w-16 sm:w-20 h-[2px] bg-[#ff541c] rounded-full mx-auto mt-6 sm:mt-7" />
+        {/* Signature Green Accent Divider Bar */}
+        <div className="w-16 sm:w-20 h-[3px] bg-[#cfdb84] rounded-full mx-auto mt-6 sm:mt-7" />
       </div>
     </section>
   );
