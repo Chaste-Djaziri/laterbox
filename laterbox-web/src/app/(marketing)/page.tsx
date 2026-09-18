@@ -42,18 +42,11 @@ import {
   X,
   Home,
   Inbox,
-  Calendar,
-  Plus,
-  Menu,
-  UploadCloud,
-  ArrowUp,
 } from 'lucide-react';
-import { QuickCaptureModal } from '@/components/inbox/QuickCaptureModal';
 
 export default function LandingPage() {
   const { continueAsGuest } = useAuth();
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'quick-capture' | 'media' | 'reader' | 'collections'>('dashboard');
-  const [captureOpen, setCaptureOpen] = useState(false);
+  const [sandboxRoute, setSandboxRoute] = useState<'/home' | '/inbox'>('/home');
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
   const toggleFaq = (idx: number) => {
@@ -251,9 +244,9 @@ export default function LandingPage() {
           </div>
 
           {/* Floating Try It Badge Indicator */}
-          <div className="mt-12 sm:mt-16 max-w-4xl mx-auto flex justify-start pl-6 sm:pl-10 mb-[-12px] relative z-20">
-            <Link
-              href="/inbox"
+          <div className="mt-12 sm:mt-16 max-w-5xl mx-auto flex justify-start pl-6 sm:pl-10 mb-[-12px] relative z-20">
+            <a
+              href="#live-guest-sandbox"
               className="inline-flex flex-col items-center group cursor-pointer"
             >
               <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#171711] group-hover:bg-[#282723] text-[#e6edb0] font-black text-xs tracking-wider uppercase shadow-md transition-all group-hover:scale-105">
@@ -261,215 +254,105 @@ export default function LandingPage() {
                 <span className="text-xs leading-none font-black">↓</span>
               </div>
               <div className="w-0 h-0 border-x-4 border-x-transparent border-t-[5px] border-t-[#171711] group-hover:border-t-[#282723] transition-colors" />
-            </Link>
+            </a>
           </div>
 
           {/* ============================================================ */}
-          {/* Interactive Pro App Simulator Container */}
+          {/* Real Live Guest Mode App Sandbox Container */}
           {/* ============================================================ */}
-          <div className="max-w-4xl mx-auto rounded-3xl bg-white border border-[#e4e0d5] shadow-xl overflow-hidden text-left">
-            {/* Window Top Bar & Interactive Tab Selector */}
+          <div
+            id="live-guest-sandbox"
+            className="max-w-5xl mx-auto rounded-3xl bg-white border border-[#e4e0d5] shadow-2xl overflow-hidden text-left scroll-mt-24"
+          >
+            {/* Window Top Bar with macOS Traffic Lights & Live Route Controls */}
             <div className="flex flex-wrap items-center justify-between gap-3 px-4 sm:px-6 py-3.5 border-b border-[#e4e0d5] bg-[#faf8f2]">
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-[#ff5f56]" />
-                <div className="w-3 h-3 rounded-full bg-[#ffbd2e]" />
-                <div className="w-3 h-3 rounded-full bg-[#27c93f]" />
-                <span className="hidden sm:inline-block ml-3 text-xs font-mono text-[#9e9b92]">
-                  laterbox.app
-                </span>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-[#ff5f56]" />
+                  <div className="w-3 h-3 rounded-full bg-[#ffbd2e]" />
+                  <div className="w-3 h-3 rounded-full bg-[#27c93f]" />
+                </div>
+                <div className="hidden sm:flex items-center gap-2 px-2.5 py-1 rounded-lg bg-white border border-[#e4e0d5] text-xs font-mono text-[#6c6b63] shadow-2xs">
+                  <Globe2 className="w-3.5 h-3.5 text-[#9e9b92]" />
+                  <span>laterbox.app{sandboxRoute}</span>
+                </div>
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#e6edb0] border border-[#d0db84] text-[10px] font-black text-[#171711] tracking-wide uppercase shadow-2xs">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#27c93f] animate-pulse" />
+                  <span>Live Guest Sandbox</span>
+                </div>
               </div>
 
-              {/* Tab navigation */}
-              <div className="flex items-center gap-1 bg-[#ebe7dc]/70 p-1 rounded-xl text-xs font-bold text-[#6c6b63]">
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('quick-capture')}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${
-                    activeTab === 'quick-capture'
-                      ? 'bg-white text-[#171711] shadow-xs'
-                      : 'hover:text-[#171711]'
-                  }`}
+              {/* Sandbox Route View Switcher */}
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1 bg-[#ebe7dc]/70 p-1 rounded-xl text-xs font-bold text-[#6c6b63]">
+                  <button
+                    type="button"
+                    onClick={() => setSandboxRoute('/home')}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${
+                      sandboxRoute === '/home'
+                        ? 'bg-white text-[#171711] shadow-xs font-extrabold'
+                        : 'hover:text-[#171711]'
+                    }`}
+                  >
+                    <Home className="w-3.5 h-3.5" />
+                    <span>Home Dashboard</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSandboxRoute('/inbox')}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${
+                      sandboxRoute === '/inbox'
+                        ? 'bg-white text-[#171711] shadow-xs font-extrabold'
+                        : 'hover:text-[#171711]'
+                    }`}
+                  >
+                    <Inbox className="w-3.5 h-3.5" />
+                    <span>Inbox Reader</span>
+                  </button>
+                </div>
+
+                <Link
+                  href={sandboxRoute}
+                  target="_blank"
+                  className="hidden md:inline-flex items-center gap-1 text-xs font-bold text-[#6c6b63] hover:text-[#171711] px-2.5 py-1.5 rounded-lg hover:bg-white border border-transparent hover:border-[#e4e0d5] transition-all"
+                  title="Open live app in fullscreen tab"
                 >
-                  <Zap className="w-3.5 h-3.5" />
-                  <span>Quick Capture</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('media')}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${
-                    activeTab === 'media'
-                      ? 'bg-white text-[#171711] shadow-xs'
-                      : 'hover:text-[#171711]'
-                  }`}
-                >
-                  <PlayCircle className="w-3.5 h-3.5" />
-                  <span>Media & Video</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('reader')}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${
-                    activeTab === 'reader'
-                      ? 'bg-white text-[#171711] shadow-xs'
-                      : 'hover:text-[#171711]'
-                  }`}
-                >
-                  <BookOpen className="w-3.5 h-3.5" />
-                  <span>Reader & Notes</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('collections')}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${
-                    activeTab === 'collections'
-                      ? 'bg-white text-[#171711] shadow-xs'
-                      : 'hover:text-[#171711]'
-                  }`}
-                >
-                  <Folder className="w-3.5 h-3.5" />
-                  <span>Collections</span>
-                </button>
+                  <span>Fullscreen</span>
+                  <ExternalLink className="w-3 h-3" />
+                </Link>
               </div>
             </div>
 
-            {/* Interactive Preview Canvas */}
-            <div className="p-5 sm:p-7 bg-[#fbf9f4] min-h-[320px] flex items-center justify-center">
-              {/* TAB 1: QUICK CAPTURE SIMULATOR */}
-              {activeTab === 'quick-capture' && (
-                <div className="w-full max-w-xl mx-auto rounded-2xl bg-white border border-[#e4e0d5] p-5 shadow-lg space-y-4 animate-in fade-in duration-200">
-                  <div className="flex items-center justify-between border-b border-[#f0ede4] pb-3">
-                    <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 rounded-lg bg-[#e6edb0] flex items-center justify-center">
-                        <Command className="w-3.5 h-3.5 text-[#171711]" />
-                      </div>
-                      <span className="text-xs font-black tracking-tight text-[#171711]">
-                        LATERBOX QUICK CAPTURE
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1.5 text-[10px] font-mono text-[#9e9b92]">
-                      <span className="px-1.5 py-0.5 rounded bg-[#f0ede4] text-[#171711] font-bold">
-                        ⌃ ⌥ Space
-                      </span>
-                      <span>anywhere</span>
-                    </div>
-                  </div>
+            {/* Real Live Running App Sandbox Frame */}
+            <div className="w-full relative bg-[#f7f5ee]">
+              <iframe
+                key={sandboxRoute}
+                src={sandboxRoute}
+                title="LaterBox Live Guest Mode Sandbox"
+                className="w-full h-[620px] sm:h-[680px] border-0 bg-[#f7f5ee]"
+                loading="eager"
+              />
+            </div>
 
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 p-3 rounded-xl bg-[#f7f5ee] border border-[#e4e0d5] text-sm text-[#171711] font-mono select-all">
-                      <Code2 className="w-4 h-4 text-[#6c6b63] shrink-0" />
-                      <span className="truncate">https://github.com/flutter/flutter</span>
-                    </div>
-                    <div className="flex items-center justify-between pt-1">
-                      <div className="flex items-center gap-2 text-xs text-[#6c6b63]">
-                        <Sparkles className="w-3.5 h-3.5 text-[#171711]" />
-                        <span>Auto-detected: Repository • 165k stars</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[11px] text-[#9e9b92]">Press ⌘ Enter to save</span>
-                        <div className="px-3.5 py-1.5 rounded-full bg-[#171711] text-white text-xs font-bold shadow-2xs">
-                          Save Link
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* TAB 2: NATIVE MEDIA & VIDEO CARD */}
-              {activeTab === 'media' && (
-                <div className="w-full max-w-xl mx-auto rounded-2xl bg-white border border-[#e4e0d5] p-5 shadow-lg space-y-4 animate-in fade-in duration-200">
-                  <div className="relative aspect-video rounded-xl bg-[#171711] overflow-hidden flex items-center justify-center group cursor-pointer">
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-                    <div className="w-12 h-12 rounded-full bg-[#e6edb0] flex items-center justify-center text-[#171711] shadow-lg transition-transform group-hover:scale-110">
-                      <Play className="w-5 h-5 fill-current ml-0.5" />
-                    </div>
-                    <div className="absolute bottom-3 left-3 right-3 text-white">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-red-600 text-white flex items-center gap-1">
-                          <Video className="w-3 h-3" />
-                          <span>YouTube</span>
-                        </span>
-                      </div>
-                      <span className="text-xs font-bold truncate block">
-                        Building Distributed Edge Apps with Cloudflare & Supabase
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between text-xs text-[#6c6b63]">
-                    <div className="flex items-center gap-1.5">
-                      <PlayCircle className="w-3.5 h-3.5 text-[#171711]" />
-                      <span>Watch in distraction-free player</span>
-                    </div>
-                    <span className="font-semibold text-[#171711]">No ads • No tracking</span>
-                  </div>
-                </div>
-              )}
-
-              {/* TAB 3: READER & NOTES */}
-              {activeTab === 'reader' && (
-                <div className="w-full max-w-xl mx-auto rounded-2xl bg-white border border-[#e4e0d5] p-5 shadow-lg space-y-3.5 animate-in fade-in duration-200">
-                  <div className="flex items-center justify-between border-b border-[#f0ede4] pb-2">
-                    <div className="flex items-center gap-2">
-                      <BookOpen className="w-4 h-4 text-[#171711]" />
-                      <span className="text-xs font-bold text-[#171711]">Distraction-Free Reader</span>
-                    </div>
-                    <div className="flex items-center gap-1 text-[11px] text-[#6c6b63]">
-                      <Clock className="w-3 h-3" />
-                      <span>4 min read • 850 words</span>
-                    </div>
-                  </div>
-                  <h4 className="text-base font-black text-[#171711]">
-                    The Philosophy of Local-First Software Architecture
-                  </h4>
-                  <p className="text-xs text-[#6c6b63] leading-relaxed line-clamp-3">
-                    Local-first software combines the collaboration advantages of the cloud with the ownership, offline resilience, and blazing responsiveness of traditional desktop applications...
-                  </p>
-                  <div className="p-3 rounded-xl bg-[#e6edb0]/40 border border-[#d0db84] text-xs text-[#171711] font-medium flex items-start gap-2">
-                    <Bookmark className="w-3.5 h-3.5 text-[#171711] shrink-0 mt-0.5" />
-                    <span>Personal Note: Review Drift SQLite implementation for cross-platform replication.</span>
-                  </div>
-                </div>
-              )}
-
-              {/* TAB 4: COLLECTIONS & FILTERS */}
-              {activeTab === 'collections' && (
-                <div className="w-full max-w-xl mx-auto rounded-2xl bg-white border border-[#e4e0d5] p-5 shadow-lg space-y-4 animate-in fade-in duration-200">
-                  <div className="flex flex-wrap items-center gap-2 text-xs font-bold text-[#6c6b63] pb-1">
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#171711] text-white">
-                      <Layers className="w-3 h-3" />
-                      <span>All Items (142)</span>
-                    </span>
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#ebe7dc] text-[#171711]">
-                      <FileText className="w-3 h-3" />
-                      <span>Articles (68)</span>
-                    </span>
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#ebe7dc] text-[#171711]">
-                      <Video className="w-3 h-3" />
-                      <span>Videos (42)</span>
-                    </span>
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#ebe7dc] text-[#171711]">
-                      <Bookmark className="w-3 h-3" />
-                      <span>Starred (18)</span>
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                    <div className="p-3 rounded-xl bg-[#f7f5ee] border border-[#e4e0d5] font-semibold text-[#171711] flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Palette className="w-3.5 h-3.5 text-[#171711]" />
-                        <span>Design Inspiration</span>
-                      </div>
-                      <span className="text-[10px] font-mono text-[#9e9b92]">34 items</span>
-                    </div>
-                    <div className="p-3 rounded-xl bg-[#f7f5ee] border border-[#e4e0d5] font-semibold text-[#171711] flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Terminal className="w-3.5 h-3.5 text-[#171711]" />
-                        <span>Startups & Engineering</span>
-                      </div>
-                      <span className="text-[10px] font-mono text-[#9e9b92]">52 items</span>
-                    </div>
-                  </div>
-                </div>
-              )}
+            {/* Sandbox Bottom Live Status Bar */}
+            <div className="flex flex-wrap items-center justify-between gap-3 px-4 sm:px-6 py-3 bg-[#faf8f2] border-t border-[#e4e0d5] text-xs text-[#6c6b63]">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-3.5 h-3.5 text-[#171711]" />
+                <span className="font-semibold text-[#171711]">
+                  Fully functional local sandbox:
+                </span>
+                <span className="hidden sm:inline">
+                  Drag & drop files, capture links, or schedule returns right in this window.
+                </span>
+              </div>
+              <Link
+                href={sandboxRoute}
+                target="_blank"
+                className="inline-flex items-center gap-1 font-extrabold text-[#171711] hover:underline"
+              >
+                <span>Launch in full window</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
             </div>
           </div>
         </div>
