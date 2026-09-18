@@ -5,6 +5,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- **Web Landing Page 'One Shortcut Away' Animated Showcase**: Added the animated quick capture showcase section demonstrating keyboard-summoned capture with an interactive 3-phase typing, scheduling, and "SAVED." transition loop.
 - **Web Landing Page 'Your LaterBox. Your rules.' Showcase**: Added the customization & preferences section showcasing user rules (Startup, System Tray, Themes, Quick Capture, Reminders, Local Data) paired with an isometric 3D perspective app composition and capture-funnel illustration.
 - **Web Landing Page 'Designed to stay out of your way' Showcase**: Added the desktop app showcase section featuring the "Designed to stay out of your way." headline and an interactive full dashboard app window mockup (sidebar counters, returned today metrics, quick drop zone, and item timeline).
 - **Web Landing Page 'Someday Vault' Showcase**: Added the "Some things don't need a deadline." showcase section with an interactive stacked deck of Someday cards (movies, books, courses, ideas) with zero deadline pressure.
