@@ -19,21 +19,15 @@ import { WontForgetItLaterSection } from '@/components/marketing/WontForgetItLat
 import { LandingFaqSection } from '@/components/marketing/LandingFaqSection';
 import {
   Sparkles,
-  ArrowRight,
   Download,
   Compass,
   PlayCircle,
   Play,
   Layers,
-  Zap,
-  ShieldCheck,
   Globe2,
   Smartphone,
   Laptop,
   Puzzle,
-  CheckCircle2,
-  XCircle,
-  Command,
   Search,
   Bookmark,
   FileText,
@@ -43,16 +37,6 @@ import {
   Code2,
   Terminal,
   ExternalLink,
-  ChevronDown,
-  Check,
-  FolderHeart,
-  Folder,
-  Eye,
-  Keyboard,
-  Clock,
-  Palette,
-  CornerDownLeft,
-  X,
   Home,
   Inbox,
 } from 'lucide-react';
@@ -60,127 +44,6 @@ import {
 export default function LandingPage() {
   const { continueAsGuest } = useAuth();
   const [sandboxRoute, setSandboxRoute] = useState<'/home' | '/inbox'>('/home');
-  const [openFaq, setOpenFaq] = useState<number | null>(null);
-
-  const toggleFaq = (idx: number) => {
-    setOpenFaq(openFaq === idx ? null : idx);
-  };
-
-  const proFeatures = [
-    {
-      icon: <Command className="w-6 h-6 text-[#171711]" />,
-      badge: 'Spotlight Speed',
-      title: 'Global Quick Capture Hotkey',
-      description:
-        'Trigger LaterBox from anywhere with ⌃ ⌥ Space (macOS), Ctrl+Shift+L (Windows), or Alt+Space (Linux). Capture links, selected text, or attachments without interrupting your flow.',
-    },
-    {
-      icon: <Sparkles className="w-6 h-6 text-[#171711]" />,
-      badge: 'Autonomous AI',
-      title: 'Smart Enrichment & Covers',
-      description:
-        'Instantly extracts high-res video thumbnails, article titles, favicons, site authors, and schema classification without server delays or fragile scraping.',
-    },
-    {
-      icon: <PlayCircle className="w-6 h-6 text-[#171711]" />,
-      badge: 'Distraction-Free',
-      title: 'Native Media & Video Player',
-      description:
-        'Watch YouTube, Vimeo, and Twitch streams or stream Spotify and podcasts directly inside LaterBox with zero ads, tracking cookies, or suggested distractions.',
-    },
-    {
-      icon: <Zap className="w-6 h-6 text-[#171711]" />,
-      badge: '0ms Latency',
-      title: 'Offline-First SQLite Architecture',
-      description:
-        'Instantaneous UI updates powered by local SQLite & IndexedDB cache. Everything is available offline and syncs seamlessly in the background with Supabase.',
-    },
-    {
-      icon: <FolderHeart className="w-6 h-6 text-[#171711]" />,
-      badge: 'Custom Curation',
-      title: 'Collections, Tags & Markdown Notes',
-      description:
-        'Attach personal markdown notes, highlight takeaways, and organize items into custom color-coded collections, category filters, and starred vaults.',
-    },
-    {
-      icon: <ShieldCheck className="w-6 h-6 text-[#171711]" />,
-      badge: '100% Sovereign',
-      title: 'Zero Tracking & Complete Export',
-      description:
-        'Your knowledge vault belongs entirely to you. No tracking pixels, no behavioral profiling, and 1-click full JSON & Markdown export anytime.',
-    },
-  ];
-
-  const comparisonRows = [
-    {
-      feature: 'Global System Hotkey (Desktop)',
-      laterbox: 'Native ⌃ ⌥ Space / Ctrl+Shift+L popup',
-      others: 'Requires browser to be open & focused',
-      isPro: true,
-    },
-    {
-      feature: 'Embedded Media Player (YouTube/Spotify)',
-      laterbox: 'Ad-free embedded player in app',
-      others: 'Redirects to distracting external web pages',
-      isPro: true,
-    },
-    {
-      feature: 'Offline-First Local Storage',
-      laterbox: 'Local SQLite / IndexedDB with 0ms load',
-      others: 'Requires active connection for every tap',
-      isPro: true,
-    },
-    {
-      feature: 'Distraction-Free Reader & Markdown Notes',
-      laterbox: 'Clean typography + instant note taking',
-      others: 'Basic link saving with no markdown support',
-      isPro: true,
-    },
-    {
-      feature: 'Universal Cross-Platform Ecosystem',
-      laterbox: 'macOS, Windows, Linux, iOS, Android & Extensions',
-      others: 'Single browser or walled ecosystem lock-in',
-      isPro: true,
-    },
-    {
-      feature: 'Data Ownership & Privacy',
-      laterbox: 'Zero ads, zero telemetry, full 1-click export',
-      others: 'Algorithmic feed suggestions & data monetization',
-      isPro: true,
-    },
-  ];
-
-  const shortcuts = [
-    { keys: ['⌥', 'Space'], label: 'Summon Quick Capture (Mac/Linux)' },
-    { keys: ['Ctrl', 'Alt', 'Space'], label: 'Summon Quick Capture (Windows)' },
-    { keys: ['⌘ / Ctrl', 'Shift', 'S'], label: 'Save Current Browser Tab' },
-    { keys: ['⌘ / Ctrl', 'K'], label: 'Global Omnisearch & Filters' },
-    { keys: ['⌘ / Ctrl', 'Enter'], label: 'Submit & Save in Quick Capture' },
-    { keys: ['Esc'], label: 'Dismiss Quick Capture Window' },
-  ];
-
-  const faqs = [
-    {
-      q: 'How does the offline-first architecture work?',
-      a: 'LaterBox writes and queries all items directly to a local, high-speed database (SQLite on Desktop & Mobile, IndexedDB on Web). You get instant (<10ms) responses with no loading spinners. When you are connected, changes sync smoothly to your private Supabase cloud vault.',
-    },
-    {
-      q: 'Can I watch YouTube and listen to podcasts directly inside LaterBox?',
-      a: 'Yes! When you save a YouTube video, Vimeo link, or Spotify podcast, LaterBox enriches it with the media metadata and gives you an embedded native player. You can watch or listen directly without ads, sidebar recommendations, or comment distraction.',
-    },
-    {
-      q: 'What browser extensions and platforms are supported?',
-      a: 'LaterBox is available across macOS (Apple Silicon & Intel), Windows 10/11, Linux (Debian/Ubuntu/AppImage), iOS (App Store / TestFlight), Android (Google Play Closed Beta & APK), and Browser Extensions for Chrome, Brave, Edge, and Firefox.',
-    },
-    {
-      q: 'Is my data private and can I export it?',
-      a: 'Absolutely. We do not track your reading habits, sell advertising, or share data with third parties. You can export your entire collection to structured JSON or Markdown files at any time with a single click.',
-    },
-    {
-      q: 'Can I try LaterBox without creating an account?',
-      a: 'Yes! Click "Try Guest Mode" or "Launch Web App" to test drive the complete LaterBox experience locally in your browser sandbox without providing any email or credentials.',
-    },
-  ];
 
   return (
     <div className="selection:bg-[#171711] selection:text-white">
@@ -505,144 +368,7 @@ export default function LandingPage() {
       {/* ============================================================ */}
       <LandingFaqSection />
 
-      {/* ============================================================ */}
-      {/* Pro Feature Matrix Grid */}
-      {/* ============================================================ */}
-      <section id="features" className="py-24 max-w-6xl mx-auto px-4 sm:px-6">
-        <div className="text-center max-w-3xl mx-auto mb-16">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#ebe7dc] text-[#171711] text-xs font-bold mb-4">
-            <Zap className="w-3.5 h-3.5 text-[#171711]" />
-            <span>The Pro Toolkit</span>
-          </div>
-          <h2 className="text-3xl sm:text-5xl font-black tracking-tight text-[#171711] mb-5">
-            Engineered for power users who hate tab overload.
-          </h2>
-          <p className="text-base sm:text-lg text-[#6c6b63] leading-relaxed">
-            Stop losing articles, videos, and documentation in dozens of messy browser tabs. LaterBox gives you a unified, blazing-fast personal knowledge vault.
-          </p>
-        </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {proFeatures.map((feat, idx) => (
-            <div
-              key={idx}
-              className="p-7 rounded-3xl bg-white border border-[#e4e0d5] hover:border-[#cfdb84] hover:shadow-lg transition-all duration-300 flex flex-col justify-between group"
-            >
-              <div>
-                <div className="flex items-center justify-between mb-5">
-                  <div className="w-12 h-12 rounded-2xl bg-[#e6edb0] flex items-center justify-center transition-transform group-hover:scale-105">
-                    {feat.icon}
-                  </div>
-                  <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider bg-[#f7f5ee] border border-[#e4e0d5] text-[#6c6b63]">
-                    {feat.badge}
-                  </span>
-                </div>
-                <h3 className="text-lg font-extrabold text-[#171711] mb-2.5">
-                  {feat.title}
-                </h3>
-                <p className="text-sm text-[#6c6b63] leading-relaxed">
-                  {feat.description}
-                </p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ============================================================ */}
-      {/* Why LaterBox vs Others (Comparison Section) */}
-      {/* ============================================================ */}
-      <section className="py-20 bg-[#ebe7dc]/40 border-y border-[#e4e0d5]">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6">
-          <div className="text-center max-w-2xl mx-auto mb-14">
-            <h2 className="text-3xl sm:text-4xl font-black tracking-tight text-[#171711] mb-4">
-              Why LaterBox vs traditional bookmarks
-            </h2>
-            <p className="text-sm sm:text-base text-[#6c6b63]">
-              Browser bookmarks and open tabs were built in the 1990s. LaterBox is designed for the modern multimedia web.
-            </p>
-          </div>
-
-          <div className="rounded-3xl bg-white border border-[#e4e0d5] shadow-md overflow-hidden">
-            <div className="grid grid-cols-1 md:grid-cols-12 border-b border-[#e4e0d5] bg-[#faf8f2] p-4 sm:p-5 text-xs font-extrabold text-[#6c6b63] uppercase tracking-wider">
-              <div className="md:col-span-4">Capability</div>
-              <div className="md:col-span-4 text-[#171711] flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-[#171711]" />
-                <span>LaterBox Pro</span>
-              </div>
-              <div className="md:col-span-4 hidden md:block">Browser Tabs / Standard Tools</div>
-            </div>
-
-            <div className="divide-y divide-[#f0ede4]">
-              {comparisonRows.map((row, idx) => (
-                <div
-                  key={idx}
-                  className="grid grid-cols-1 md:grid-cols-12 p-4 sm:p-5 text-sm gap-2 md:gap-4 items-center hover:bg-[#faf8f2]/50 transition-colors"
-                >
-                  <div className="md:col-span-4 font-bold text-[#171711]">
-                    {row.feature}
-                  </div>
-                  <div className="md:col-span-4 flex items-center gap-2 text-[#171711] font-semibold">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                    <span>{row.laterbox}</span>
-                  </div>
-                  <div className="md:col-span-4 flex items-center gap-2 text-[#9e9b92] text-xs sm:text-sm">
-                    <XCircle className="w-4 h-4 text-rose-500 shrink-0" />
-                    <span>{row.others}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ============================================================ */}
-      {/* Keyboard Shortcuts Cheat Sheet */}
-      {/* ============================================================ */}
-      <section className="py-20 max-w-5xl mx-auto px-4 sm:px-6">
-        <div className="text-center max-w-2xl mx-auto mb-14">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#e6edb0] text-[#171711] text-xs font-bold mb-4">
-            <Keyboard className="w-3.5 h-3.5" />
-            <span>Keyboard-First Workflow</span>
-          </div>
-          <h2 className="text-3xl sm:text-4xl font-black tracking-tight text-[#171711] mb-3">
-            Navigate at the speed of thought.
-          </h2>
-          <p className="text-sm sm:text-base text-[#6c6b63]">
-            Never take your hands off the keyboard. LaterBox comes pre-configured with lightning-fast desktop and web hotkeys.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {shortcuts.map((sc, idx) => (
-            <div
-              key={idx}
-              className="p-4 rounded-2xl bg-white border border-[#e4e0d5] flex items-center justify-between shadow-xs hover:border-[#171711] transition-all"
-            >
-              <div className="flex items-center gap-2.5">
-                {idx === 0 && <Command className="w-4 h-4 text-[#171711] shrink-0" />}
-                {idx === 1 && <Laptop className="w-4 h-4 text-[#171711] shrink-0" />}
-                {idx === 2 && <Puzzle className="w-4 h-4 text-[#171711] shrink-0" />}
-                {idx === 3 && <Search className="w-4 h-4 text-[#171711] shrink-0" />}
-                {idx === 4 && <CornerDownLeft className="w-4 h-4 text-[#171711] shrink-0" />}
-                {idx === 5 && <X className="w-4 h-4 text-[#171711] shrink-0" />}
-                <span className="text-xs font-medium text-[#6c6b63]">{sc.label}</span>
-              </div>
-              <div className="flex items-center gap-1 shrink-0">
-                {sc.keys.map((k, kIdx) => (
-                  <kbd
-                    key={kIdx}
-                    className="px-2 py-1 rounded bg-[#ebe7dc] border border-[#d8d4c9] text-xs font-mono font-bold text-[#171711] shadow-2xs"
-                  >
-                    {k}
-                  </kbd>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
 
       {/* ============================================================ */}
       {/* All-Platform Ecosystem Showcase */}
