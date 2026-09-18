@@ -16,6 +16,7 @@ import { YourThingsStaySection } from '@/components/marketing/YourThingsStaySect
 import { LessMentalClutterSection } from '@/components/marketing/LessMentalClutterSection';
 import { UltimateWindowsOrganizerSection } from '@/components/marketing/UltimateWindowsOrganizerSection';
 import { WontForgetItLaterSection } from '@/components/marketing/WontForgetItLaterSection';
+import { LandingFaqSection } from '@/components/marketing/LandingFaqSection';
 import {
   Sparkles,
   ArrowRight,
@@ -500,6 +501,11 @@ export default function LandingPage() {
       <WontForgetItLaterSection />
 
       {/* ============================================================ */}
+      {/* 2-Column Landing FAQ Section */}
+      {/* ============================================================ */}
+      <LandingFaqSection />
+
+      {/* ============================================================ */}
       {/* Pro Feature Matrix Grid */}
       {/* ============================================================ */}
       <section id="features" className="py-24 max-w-6xl mx-auto px-4 sm:px-6">
@@ -686,46 +692,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ============================================================ */}
-      {/* Pro FAQ Accordion */}
-      {/* ============================================================ */}
-      <section className="py-20 max-w-4xl mx-auto px-4 sm:px-6">
-        <div className="text-center mb-14">
-          <h2 className="text-3xl sm:text-4xl font-black tracking-tight text-[#171711] mb-3">
-            Frequently asked questions
-          </h2>
-          <p className="text-sm text-[#6c6b63]">
-            Everything you need to know about LaterBox features and data architecture.
-          </p>
-        </div>
-
-        <div className="space-y-3">
-          {faqs.map((faq, idx) => (
-            <div
-              key={idx}
-              className="rounded-2xl bg-white border border-[#e4e0d5] overflow-hidden transition-all"
-            >
-              <button
-                type="button"
-                onClick={() => toggleFaq(idx)}
-                className="w-full p-5 text-left flex items-center justify-between font-bold text-[#171711] text-sm sm:text-base cursor-pointer hover:bg-[#faf8f2]"
-              >
-                <span>{faq.q}</span>
-                <ChevronDown
-                  className={`w-4 h-4 text-[#6c6b63] transition-transform duration-200 ${
-                    openFaq === idx ? 'rotate-180 text-[#171711]' : ''
-                  }`}
-                />
-              </button>
-              {openFaq === idx && (
-                <div className="px-5 pb-5 text-sm text-[#6c6b63] leading-relaxed border-t border-[#f0ede4] pt-3">
-                  {faq.a}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      </section>
 
       {/* ============================================================ */}
       {/* High-Converting Bottom Command Center CTA Banner */}
