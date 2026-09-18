@@ -6,17 +6,17 @@ import { WifiOff, UserX, Monitor } from 'lucide-react';
 export function YourThingsStaySection() {
   const cards = [
     {
-      icon: <WifiOff className="w-5 h-5 text-[#ff541c]" />,
+      icon: <WifiOff className="w-5 h-5 text-[#171711]" />,
       title: '100% OFFLINE CORE',
       description: 'LaterBox works without an internet connection.',
     },
     {
-      icon: <UserX className="w-5 h-5 text-[#ff541c]" />,
+      icon: <UserX className="w-5 h-5 text-[#171711]" />,
       title: 'NO ACCOUNT',
       description: 'Install it and start using it.',
     },
     {
-      icon: <Monitor className="w-5 h-5 text-[#ff541c]" />,
+      icon: <Monitor className="w-5 h-5 text-[#171711]" />,
       title: 'LOCAL-FIRST',
       description: 'Your tasks and references stay on your device.',
     },
@@ -57,8 +57,8 @@ export function YourThingsStaySection() {
               key={idx}
               className="rounded-3xl sm:rounded-[32px] bg-white border border-[#e8e4da] p-8 sm:p-9 text-left shadow-[0_4px_25px_rgba(0,0,0,0.03)] hover:shadow-[0_12px_36px_rgba(0,0,0,0.06)] hover:border-[#171711]/25 transition-all duration-300 flex flex-col justify-start group"
             >
-              {/* Icon Container with subtle peach/coral tint */}
-              <div className="w-12 h-12 rounded-2xl bg-[#fff2ec] flex items-center justify-center mb-6 transition-transform group-hover:scale-105 duration-200">
+              {/* Icon Container with signature green accent */}
+              <div className="w-12 h-12 rounded-2xl bg-[#e6edb0] flex items-center justify-center mb-6 transition-transform group-hover:scale-105 duration-200 shadow-xs">
                 {card.icon}
               </div>
 
