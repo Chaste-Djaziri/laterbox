@@ -40,11 +40,20 @@ import {
   Palette,
   CornerDownLeft,
   X,
+  Home,
+  Inbox,
+  Calendar,
+  Plus,
+  Menu,
+  UploadCloud,
+  ArrowUp,
 } from 'lucide-react';
+import { QuickCaptureModal } from '@/components/inbox/QuickCaptureModal';
 
 export default function LandingPage() {
   const { continueAsGuest } = useAuth();
-  const [activeTab, setActiveTab] = useState<'quick-capture' | 'media' | 'reader' | 'collections'>('quick-capture');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'quick-capture' | 'media' | 'reader' | 'collections'>('dashboard');
+  const [captureOpen, setCaptureOpen] = useState(false);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
   const toggleFaq = (idx: number) => {
@@ -228,7 +237,16 @@ export default function LandingPage() {
               <span>No account required</span>
             </p>
             <p className="text-[11px] text-[#9e9b92]">
-              Made by <span className="underline decoration-[#9e9b92]/50 hover:text-[#171711] cursor-pointer">Nexaura Dev</span>.
+              Made by{' '}
+              <a
+                href="https://micorp.pro"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline decoration-[#9e9b92]/50 hover:text-[#171711] font-semibold text-[#6c6b63] transition-colors"
+              >
+                MiCorp
+              </a>
+              .
             </p>
           </div>
 
