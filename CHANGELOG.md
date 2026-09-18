@@ -5,6 +5,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- **Web Landing Page 2-Column FAQ Showcase**: Added the clean two-column FAQ section featuring 13 core questions (offline-first SQLite, privacy, file handling, scheduling, pricing, and cross-platform support) with interactive plus/close toggles matching the design mockup.
 - **Web Landing Page 'You don't need to do everything now.' Statement Showcase**: Added the core philosophy statement section featuring "You don't need to do everything now. You just need to know you won't forget it later.", tagline, and signature accent divider.
 - **Web Landing Page 'The Ultimate Windows Productivity Organizer' Showcase**: Added the interactive desktop organizer feature tour section featuring 8 capability tabs (Capture, Schedule, Return, Open & Do, Snooze, Search, History, Someday) with workflow details and interactive state switching.
 - **Web Landing Page 'Less Mental Clutter' Dark Showcase**: Added the dark statement section featuring the "Less mental clutter. Not more software clutter." headline, quiet-utility philosophy subtitle, and visual comparison (Tabs, Bookmarks, Notes, Reminders, Desktop clutter vs LaterBox tray icon).
