@@ -20,6 +20,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 - **iOS Dynamic Island Overlay**: Fixed a missing Overlay assertion error by removing the tooltip from the overlay close button and providing an Overlay widget ancestor.
 
 ### Changed
+- **Landing Page 'Later' Quote Cards**: Added subtle tilt rotations to problem cards with smooth straighten-on-hover animation and luminous border highlight.
 - **Web Landing Page Hero**: Updated headline to "Drop it now. Deal with it later.", updated subtext, added "TRY IT ↓" preview indicator, and embedded a real live guest mode application sandbox adhering to the web theme palette.
 - **Web Attribution**: Updated author attribution to MiCorp ([micorp.pro](https://micorp.pro)).
 - **iOS Clipboard Capture Notification**: Positioned the clipboard capture notification and confirmation card directly under the notch and Dynamic Island.
