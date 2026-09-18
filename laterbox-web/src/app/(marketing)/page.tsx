@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { useAuth } from '@/lib/store/AuthContext';
 import { ScrollConvergenceSection } from '@/components/marketing/ScrollConvergenceSection';
 import { HowItWorksStepsSection } from '@/components/marketing/HowItWorksStepsSection';
+import { WhenLaterBecomesNowSection } from '@/components/marketing/WhenLaterBecomesNowSection';
 import {
   Sparkles,
   ArrowRight,
@@ -438,6 +439,11 @@ export default function LandingPage() {
       {/* 4-Step Workflow Storytelling Section (Drop it, Choose when, etc.) */}
       {/* ============================================================ */}
       <HowItWorksStepsSection />
+
+      {/* ============================================================ */}
+      {/* "When later becomes now." Dark Section */}
+      {/* ============================================================ */}
+      <WhenLaterBecomesNowSection />
 
       {/* ============================================================ */}
       {/* Pro Feature Matrix Grid */}
