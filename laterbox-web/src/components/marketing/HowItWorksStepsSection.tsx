@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 
-// Stylized LaterBox Inbox/Tray Icon matching the brand screenshots
+// Stylized LaterBox Inbox/Tray Icon adhering to the Web Theme palette (#171711, #e6edb0, #f7f5ee)
 function LaterBoxInboxIcon({ className = 'w-16 h-16' }: { className?: string }) {
   return (
     <div className={`relative ${className} flex items-center justify-center select-none`}>
@@ -13,30 +13,30 @@ function LaterBoxInboxIcon({ className = 'w-16 h-16' }: { className?: string }) 
         className="w-full h-full drop-shadow-sm"
       >
         {/* Envelope back container */}
-        <rect x="12" y="14" width="48" height="40" rx="8" fill="#ff7a45" />
+        <rect x="12" y="14" width="48" height="40" rx="8" fill="#2e2e28" />
 
         {/* Paper sheet sticking out */}
-        <rect x="18" y="8" width="36" height="22" rx="4" fill="#fff9f5" />
+        <rect x="18" y="8" width="36" height="22" rx="4" fill="#faf8f2" />
         {/* Paper note preview lines */}
-        <line x1="24" y1="14" x2="48" y2="14" stroke="#ffdec9" strokeWidth="2.5" strokeLinecap="round" />
-        <line x1="24" y1="20" x2="38" y2="20" stroke="#ffdec9" strokeWidth="2.5" strokeLinecap="round" />
+        <line x1="24" y1="14" x2="48" y2="14" stroke="#e4e0d5" strokeWidth="2.5" strokeLinecap="round" />
+        <line x1="24" y1="20" x2="38" y2="20" stroke="#e4e0d5" strokeWidth="2.5" strokeLinecap="round" />
 
         {/* Envelope front fold / pouch */}
         <path
           d="M12 28L36 43L60 28V46C60 50.4183 56.4183 54 52 54H20C15.5817 54 12 50.4183 12 46V28Z"
-          fill="#ff541c"
+          fill="#171711"
         />
 
         {/* Subtle crease shadows on bottom corners */}
-        <path d="M12 48L26 36" stroke="#d9410f" strokeWidth="1.5" strokeOpacity="0.4" />
-        <path d="M60 48L46 36" stroke="#d9410f" strokeWidth="1.5" strokeOpacity="0.4" />
+        <path d="M12 48L26 36" stroke="#000000" strokeWidth="1.5" strokeOpacity="0.3" />
+        <path d="M60 48L46 36" stroke="#000000" strokeWidth="1.5" strokeOpacity="0.3" />
 
-        {/* Circular Clock Badge in bottom right */}
-        <circle cx="52" cy="46" r="10.5" fill="#ff541c" stroke="#ffffff" strokeWidth="2.5" />
-        <circle cx="52" cy="46" r="1.5" fill="#ffffff" />
+        {/* Circular Clock Badge in bottom right with Web Theme Accent (#e6edb0) */}
+        <circle cx="52" cy="46" r="10.5" fill="#e6edb0" stroke="#171711" strokeWidth="2" />
+        <circle cx="52" cy="46" r="1.5" fill="#171711" />
         {/* Clock Hands at 10:10 */}
-        <line x1="52" y1="46" x2="52" y2="40.5" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" />
-        <line x1="52" y1="46" x2="56.5" y2="46" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" />
+        <line x1="52" y1="46" x2="52" y2="40.5" stroke="#171711" strokeWidth="2" strokeLinecap="round" />
+        <line x1="52" y1="46" x2="56.5" y2="46" stroke="#171711" strokeWidth="2" strokeLinecap="round" />
       </svg>
     </div>
   );
@@ -100,7 +100,7 @@ export function HowItWorksStepsSection() {
         >
           {/* Left Column Text */}
           <div className="md:col-span-6 space-y-4">
-            <span className="text-xs font-black tracking-widest uppercase text-[#ff541c] block">
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-[#e6edb0] text-[#171711] text-[10px] font-black tracking-widest uppercase">
               STEP 01
             </span>
             <h2 className="text-5xl sm:text-6xl lg:text-7xl font-black tracking-tight text-[#171711] leading-none">
@@ -120,9 +120,9 @@ export function HowItWorksStepsSection() {
             {/* Floating Invoice.pdf card */}
             <div className="rounded-2xl bg-white border border-[#e4e0d5] shadow-[0_15px_40px_rgba(0,0,0,0.07)] px-4 py-3 flex items-center gap-3 mb-8 -rotate-[3deg] hover:rotate-0 transition-transform duration-300 animate-bounce [animation-duration:3s]">
               {/* PDF Document Icon */}
-              <div className="w-8 h-8 rounded-lg bg-red-50 border border-red-100 flex items-center justify-center shrink-0">
+              <div className="w-8 h-8 rounded-lg bg-[#faf8f2] border border-[#e4e0d5] flex items-center justify-center shrink-0">
                 <svg
-                  className="w-4 h-4 text-[#ef4444]"
+                  className="w-4 h-4 text-[#171711]"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
@@ -161,7 +161,7 @@ export function HowItWorksStepsSection() {
         >
           {/* Left Column Text */}
           <div className="md:col-span-6 space-y-4">
-            <span className="text-xs font-black tracking-widest uppercase text-[#ff541c] block">
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-[#e6edb0] text-[#171711] text-[10px] font-black tracking-widest uppercase">
               STEP 02
             </span>
             <h2 className="text-5xl sm:text-6xl lg:text-7xl font-black tracking-tight text-[#171711] leading-none">
@@ -191,15 +191,15 @@ export function HowItWorksStepsSection() {
                       key={opt}
                       type="button"
                       onClick={() => setSelectedWhen(opt)}
-                      className={`w-full text-left px-3.5 py-2.5 rounded-xl transition-all flex items-center justify-between text-sm ${
+                      className={`w-full text-left px-3.5 py-2.5 rounded-xl transition-all flex items-center justify-between text-sm cursor-pointer ${
                         isSelected
-                          ? 'bg-[#ff541c] text-white font-bold shadow-md shadow-[#ff541c]/25'
-                          : 'text-[#6c6b63] font-semibold hover:bg-[#faf8f2]'
+                          ? 'bg-[#171711] text-white font-bold shadow-md'
+                          : 'text-[#6c6b63] font-semibold hover:bg-[#faf8f2] hover:text-[#171711]'
                       }`}
                     >
                       <span>{opt}</span>
                       {isSelected && (
-                        <span className="text-[10px] font-bold bg-white/20 text-white px-2 py-0.5 rounded-md tracking-wide">
+                        <span className="text-[10px] font-bold bg-[#e6edb0] text-[#171711] px-2 py-0.5 rounded-md tracking-wide">
                           Enter
                         </span>
                       )}
@@ -222,7 +222,7 @@ export function HowItWorksStepsSection() {
         >
           {/* Left Column Text */}
           <div className="md:col-span-6 space-y-4">
-            <span className="text-xs font-black tracking-widest uppercase text-[#ff541c] block">
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-[#e6edb0] text-[#171711] text-[10px] font-black tracking-widest uppercase">
               STEP 03
             </span>
             <h2 className="text-5xl sm:text-6xl lg:text-7xl font-black tracking-tight text-[#171711] leading-[1.05]">
@@ -236,14 +236,14 @@ export function HowItWorksStepsSection() {
 
           {/* Right Column Visual: Safely Stored Status */}
           <div className="md:col-span-6 flex flex-col items-center justify-center relative min-h-[220px]">
-            {/* Soft Ambient Glow */}
-            <div className="absolute w-28 h-28 bg-[#ff541c]/15 rounded-full blur-2xl pointer-events-none" />
+            {/* Soft Ambient Glow adhering to Web Theme (#e6edb0) */}
+            <div className="absolute w-28 h-28 bg-[#e6edb0]/35 rounded-full blur-2xl pointer-events-none" />
 
             {/* Inbox Icon */}
             <LaterBoxInboxIcon className="w-16 h-16 relative z-10" />
 
             {/* Floating Confirmation Pill */}
-            <div className="rounded-full bg-white border border-[#e4e0d5]/80 shadow-[0_8px_30px_rgba(0,0,0,0.06)] px-6 py-2.5 text-xs sm:text-sm font-semibold text-[#6c6b63] mt-6 relative z-10">
+            <div className="rounded-full bg-white border border-[#e4e0d5]/80 shadow-[0_8px_30px_rgba(0,0,0,0.06)] px-6 py-2.5 text-xs sm:text-sm font-semibold text-[#171711] mt-6 relative z-10">
               Safely stored for later.
             </div>
           </div>
@@ -260,7 +260,7 @@ export function HowItWorksStepsSection() {
         >
           {/* Left Column Text */}
           <div className="md:col-span-6 space-y-4">
-            <span className="text-xs font-black tracking-widest uppercase text-[#ff541c] block">
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-[#e6edb0] text-[#171711] text-[10px] font-black tracking-widest uppercase">
               STEP 04
             </span>
             <h2 className="text-5xl sm:text-6xl lg:text-7xl font-black tracking-tight text-[#171711] leading-[1.05]">
@@ -276,7 +276,7 @@ export function HowItWorksStepsSection() {
           <div className="md:col-span-6 flex items-center justify-center">
             <div className="rounded-3xl bg-white border border-[#f0ede4] p-6 sm:p-7 shadow-[0_25px_70px_-15px_rgba(0,0,0,0.08)] w-72 sm:w-80 space-y-4">
               <div>
-                <span className="text-[10px] font-black tracking-widest uppercase text-[#ff541c] block mb-2">
+                <span className="text-[10px] font-black tracking-widest uppercase text-[#6c6b63] block mb-2">
                   RETURNED FROM LATERBOX
                 </span>
                 <h3 className="text-base sm:text-lg font-black text-[#171711] tracking-tight">
@@ -287,12 +287,12 @@ export function HowItWorksStepsSection() {
                 </p>
               </div>
 
-              {/* Action Buttons */}
+              {/* Action Buttons styled in Web Theme Tokens */}
               <div className="flex items-center gap-2.5 pt-1">
                 <button
                   type="button"
                   onClick={() => setStep4Action('opened')}
-                  className="flex-1 bg-[#ff541c] hover:bg-[#e64610] text-white font-black text-xs py-2.5 px-3.5 rounded-xl shadow-xs transition-all active:scale-95 text-center cursor-pointer"
+                  className="flex-1 bg-[#171711] hover:bg-black text-white font-black text-xs py-2.5 px-3.5 rounded-xl shadow-xs transition-all active:scale-95 text-center cursor-pointer"
                 >
                   {step4Action === 'opened' ? 'OPENED ✓' : '[ OPEN & DO ]'}
                 </button>
