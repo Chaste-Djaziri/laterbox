@@ -1019,136 +1019,117 @@ class _ItemDetailBody extends ConsumerWidget {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                          if (isMusic) ...[
-                            Icon(
-                              Icons.music_note_rounded,
-                              size: 16,
-                              color: const Color(0xFF1db954),
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              'Spotify',
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w700,
+                            if (isMusic) ...[
+                              Icon(
+                                Icons.music_note_rounded,
+                                size: 16,
                                 color: const Color(0xFF1db954),
                               ),
-                            ),
-                          ] else if (isVideo) ...[
-                            Icon(
-                              Icons.play_circle_fill_rounded,
-                              size: 16,
-                              color: const Color(0xFFea4335),
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              'YouTube',
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w700,
+                              const SizedBox(width: 6),
+                            ] else if (isVideo) ...[
+                              Icon(
+                                Icons.play_circle_fill_rounded,
+                                size: 16,
                                 color: const Color(0xFFea4335),
                               ),
-                            ),
-                          ] else if (isPsd) ...[
-                            Container(
-                              width: 18,
-                              height: 18,
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF001e36),
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: const Center(
-                                child: Text(
-                                  'Ps',
-                                  style: TextStyle(
-                                    color: Color(0xFF31a8ff),
-                                    fontSize: 9,
-                                    fontWeight: FontWeight.w900,
+                              const SizedBox(width: 6),
+                            ] else if (isPsd) ...[
+                              Container(
+                                width: 18,
+                                height: 18,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF001e36),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: const Center(
+                                  child: Text(
+                                    'Ps',
+                                    style: TextStyle(
+                                      color: Color(0xFF31a8ff),
+                                      fontSize: 9,
+                                      fontWeight: FontWeight.w900,
+                                    ),
                                   ),
                                 ),
                               ),
-                            ),
-                            const SizedBox(width: 6),
-                            const Text(
-                              'Adobe Photoshop',
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ] else if (isPdf) ...[
-                            const Icon(
-                              Icons.picture_as_pdf_rounded,
-                              size: 16,
-                              color: Color(0xFFef4444),
-                            ),
-                            const SizedBox(width: 6),
-                            const Text(
-                              'PDF Document',
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w700,
+                              const SizedBox(width: 6),
+                            ] else if (isPdf) ...[
+                              const Icon(
+                                Icons.picture_as_pdf_rounded,
+                                size: 16,
                                 color: Color(0xFFef4444),
                               ),
-                            ),
-                          ] else if (isArticle) ...[
-                            Container(
-                              width: 18,
-                              height: 18,
-                              decoration: BoxDecoration(
-                                color: Colors.black,
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: const Center(
-                                child: Text(
-                                  'N',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w900,
+                              const SizedBox(width: 6),
+                            ] else if (isArticle) ...[
+                              Container(
+                                width: 18,
+                                height: 18,
+                                decoration: BoxDecoration(
+                                  color: Colors.black,
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: const Center(
+                                  child: Text(
+                                    'N',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w900,
+                                    ),
                                   ),
                                 ),
                               ),
-                            ),
-                            const SizedBox(width: 6),
-                            const Text(
-                              'Notion',
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w700,
+                              const SizedBox(width: 6),
+                            ] else ...[
+                              Icon(
+                                Icons.link_rounded,
+                                size: 16,
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                              ),
+                              const SizedBox(width: 6),
+                            ],
+                            Flexible(
+                              child: Text(
+                                isMusic
+                                    ? 'Spotify'
+                                    : isVideo
+                                        ? 'YouTube'
+                                        : isPsd
+                                            ? 'Adobe Photoshop'
+                                            : isPdf
+                                                ? 'PDF Document'
+                                                : isArticle
+                                                    ? 'Notion'
+                                                    : eyebrow,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  color: isMusic
+                                      ? const Color(0xFF1db954)
+                                      : isVideo
+                                          ? const Color(0xFFea4335)
+                                          : isPdf
+                                              ? const Color(0xFFef4444)
+                                              : Theme.of(context).colorScheme.onSurfaceVariant,
+                                ),
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
-                          ] else ...[
-                            Icon(
-                              Icons.link_rounded,
-                              size: 16,
-                              color: Theme.of(context).colorScheme.onSurfaceVariant,
-                            ),
-                            const SizedBox(width: 6),
+                            const SizedBox(width: 8),
                             Text(
-                              eyebrow,
+                              '·',
                               style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w700,
                                 color: Theme.of(context).colorScheme.onSurfaceVariant,
                               ),
                             ),
-                          ],
-                          const SizedBox(width: 8),
-                          Text(
-                            '·',
-                            style: TextStyle(
-                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            const SizedBox(width: 8),
+                            Text(
+                              timeago.format(item.createdAt),
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                              ),
                             ),
-                          ),
-                           const SizedBox(width: 8),
-                           Text(
-                             timeago.format(item.createdAt),
-                             style: TextStyle(
-                               fontSize: 13,
-                               color: Theme.of(context).colorScheme.onSurfaceVariant,
-                             ),
-                           ),
                           ],
                         ),
                       ),
