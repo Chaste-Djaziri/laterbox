@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import '../../../shared/models/laterbox_item.dart';
 import '../../../shared/widgets/item_list_row.dart';
 import '../../attachments/data/attachment_file_picker.dart';
+import '../../enrichment/domain/url_utils.dart';
 import '../../capture/presentation/capture_sheet.dart';
 import '../../inbox/presentation/inbox_providers.dart';
 import '../../library/presentation/library_providers.dart';
@@ -503,13 +504,137 @@ class _ItemSection extends StatelessWidget {
         if (items.isEmpty) Text(empty),
         for (final item in items)
           Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: _ScheduledRow(item: item),
+            padding: const EdgeInsets.only(bottom: 8),
+            child: _ItemCardRow(item: item),
           ),
         TextButton(onPressed: () => context.go(route), child: Text(action)),
       ],
     ),
   );
+}
+
+class _ItemCardRow extends StatelessWidget {
+  const _ItemCardRow({required this.item});
+  final LaterBoxItem item;
+
+  IconData get _typeIcon => switch (item.type) {
+    'file' => Icons.description_outlined,
+    'task' => Icons.check_circle_outline,
+    'note' => Icons.notes_outlined,
+    _ => Icons.link,
+  };
+
+  Color _iconBg(BuildContext context) => switch (item.type) {
+    'file' => const Color(0xFF001E36),
+    'task' => Theme.of(context).colorScheme.surfaceContainerHighest,
+    'note' => const Color(0xFFE8F5E9),
+    _ => Theme.of(context).colorScheme.primaryContainer,
+  };
+
+  Color _iconFg(BuildContext context) => switch (item.type) {
+    'file' => const Color(0xFF31A8FF),
+    'task' => Theme.of(context).colorScheme.onSurface,
+    'note' => const Color(0xFF2E7D32),
+    _ => Theme.of(context).colorScheme.onPrimaryContainer,
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final rawTitle =
+        item.metadata?.title ?? item.title ?? item.url ?? item.text ?? 'Untitled';
+    final title = cleanMetaText(rawTitle) ?? rawTitle;
+    final subtitle =
+        item.metadata?.domain ??
+        Uri.tryParse(item.url ?? '')?.host.replaceFirst('www.', '') ??
+        (item.type == 'file'
+            ? 'File'
+            : item.type == 'task'
+            ? 'Task'
+            : 'Note');
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () => context.push('/item/${item.id}'),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          decoration: BoxDecoration(
+            color: isDark
+                ? const Color(0xFF2A2A28)
+                : Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.08)
+                  : const Color(0xFFF0EDE4),
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: _iconBg(context),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                alignment: Alignment.center,
+                child: Icon(_typeIcon, size: 18, color: _iconFg(context)),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -0.2,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              if (item.returnAt != null) ...[
+                Icon(
+                  Icons.schedule_rounded,
+                  size: 13,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  returnTimeLabel(context, item.returnAt),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class _ScheduledRow extends ConsumerWidget {
