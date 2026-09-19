@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import '../../features/collections/data/local_collection_data_source.dart';
 import '../../features/collections/data/remote_collection_data_source.dart';
 import '../../features/attachments/domain/attachment_sync_service.dart';
@@ -22,7 +24,7 @@ class SyncService {
     LocalItemNoteDataSource? localNotes,
     RemoteItemNoteDataSource? remoteNotes,
     Future<AttachmentSyncService?> Function()? attachmentSync,
-    bool Function()? canSync,
+    FutureOr<bool> Function()? canSync,
   }) => SyncService._(
     local,
     remote,
@@ -61,7 +63,7 @@ class SyncService {
   final LocalItemNoteDataSource? _localNotes;
   final RemoteItemNoteDataSource? _remoteNotes;
   final Future<AttachmentSyncService?> Function()? _attachmentSync;
-  final bool Function() _canSync;
+  final FutureOr<bool> Function() _canSync;
   Future<SyncResult>? _activeSync;
   int _pushed = 0;
   int _pulled = 0;
@@ -72,7 +74,8 @@ class SyncService {
   }
 
   Future<SyncResult> _run() async {
-    if (!_canSync()) return const SyncResult.skipped();
+    final allowed = await _canSync();
+    if (!allowed) return const SyncResult.skipped();
     final userId = _currentUserId();
     final remote = _remote;
     if (userId == null || remote == null) return const SyncResult.skipped();

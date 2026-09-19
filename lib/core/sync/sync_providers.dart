@@ -73,9 +73,15 @@ final syncServiceProvider = Provider<SyncService>((ref) {
     localNotes: LocalItemNoteDataSource(ref.watch(appDatabaseProvider)),
     remoteNotes: ref.watch(remoteItemNoteDataSourceProvider),
     attachmentSync: () => ref.read(attachmentSyncServiceProvider.future),
-    canSync: () => ref.read(
-      proFeatureAccessProvider(ProFeature.cloudSync),
-    ),
+    canSync: () async {
+      if (!billingEnforcementEnabled) return true;
+      try {
+        final entitlement = await ref.read(entitlementProvider.future);
+        return entitlement.hasProAccess;
+      } catch (_) {
+        return ref.read(hasProAccessProvider);
+      }
+    },
   );
 });
 
@@ -88,6 +94,11 @@ final syncCoordinatorProvider = Provider<SyncCoordinator>((ref) {
       authChanges: client.auth.onAuthStateChange,
     );
   }
+  ref.listen<AsyncValue<Entitlement>>(entitlementProvider, (_, next) {
+    if (next.valueOrNull?.hasProAccess == true) {
+      coordinator.requestSync();
+    }
+  });
   ref.onDispose(() => unawaited(coordinator.dispose()));
   return coordinator;
 });
