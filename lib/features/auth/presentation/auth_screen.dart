@@ -20,7 +20,6 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   final _nameController = TextEditingController();
   bool _busy = false;
   bool _awaitingOtp = false;
-  bool _awaitingName = false;
   String? _message;
 
   @override
@@ -76,13 +75,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       await ref
           .read(authRepositoryProvider)
           .verifyEmailOtp(email: _emailController.text, token: token);
-      if (mounted) {
-        setState(() {
-          _awaitingOtp = false;
-          _awaitingName = true;
-          _message = null;
-        });
-      }
+      if (mounted) _showDisplayNameModal();
     } on AuthException catch (error) {
       if (mounted) setState(() => _message = error.message);
     } on StateError catch (error) {
@@ -92,12 +85,80 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     }
   }
 
-  Future<void> _saveDisplayName() async {
+  void _showDisplayNameModal() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(ctx).viewInsets.bottom,
+        ),
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Theme.of(ctx).colorScheme.surface,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'What should we call you?',
+                style: Theme.of(ctx)
+                    .textTheme
+                    .headlineSmall
+                    ?.copyWith(fontWeight: FontWeight.w900),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Optional — you can always set this later.',
+                style: TextStyle(
+                  color: Theme.of(ctx).colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 20),
+              TextField(
+                controller: _nameController,
+                textCapitalization: TextCapitalization.words,
+                textInputAction: TextInputAction.done,
+                decoration: const InputDecoration(labelText: 'Display name'),
+                onSubmitted: (_) => _submitDisplayName(ctx),
+              ),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: () => _submitDisplayName(ctx),
+                  child: const Text('Continue'),
+                ),
+              ),
+              const SizedBox(height: 10),
+              SizedBox(
+                width: double.infinity,
+                child: TextButton(
+                  onPressed: () => _submitDisplayName(ctx),
+                  child: const Text('Skip'),
+                ),
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        ),
+      ),
+    ).then((_) {
+      if (mounted) context.go('/home');
+    });
+  }
+
+  void _submitDisplayName(BuildContext ctx) async {
     final name = _nameController.text.trim();
     if (name.isNotEmpty) {
       await ref.read(displayNameProvider.notifier).set(name);
     }
-    if (mounted) context.go('/home');
+    if (mounted) Navigator.of(ctx).pop();
   }
 
   Future<void> _resendOtp() async {
@@ -120,7 +181,6 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (_awaitingName) return _buildNameScreen(context);
     if (_awaitingOtp) return _buildOtpScreen(context);
     return _buildEmailScreen(context);
   }
@@ -359,76 +419,6 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                     child: const Text('Use a different email'),
                   ),
                 ],
-              ),
-              const SizedBox(height: 16),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildNameScreen(BuildContext context) {
-    return Scaffold(
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Image.asset(
-                    'assets/branding/laterbox-logo.png',
-                    height: 40,
-                    fit: BoxFit.contain,
-                  ),
-                ],
-              ),
-              const Spacer(),
-              Text(
-                'What should we call you?',
-                style: Theme.of(context)
-                    .textTheme
-                    .headlineMedium
-                    ?.copyWith(fontWeight: FontWeight.w900),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Optional — we\'ll use your email if you skip this.',
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  fontSize: 16,
-                  height: 1.5,
-                ),
-              ),
-              const SizedBox(height: 24),
-              TextField(
-                controller: _nameController,
-                textCapitalization: TextCapitalization.words,
-                textInputAction: TextInputAction.done,
-                decoration: const InputDecoration(labelText: 'Display name'),
-                onSubmitted: (_) => _saveDisplayName(),
-              ),
-              const SizedBox(height: 28),
-              FilledButton(
-                onPressed: _saveDisplayName,
-                style: FilledButton.styleFrom(
-                  minimumSize: const Size.fromHeight(56),
-                ),
-                child: const Text(
-                  'Continue',
-                  style: TextStyle(fontSize: 17),
-                ),
-              ),
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                child: TextButton(
-                  onPressed: _saveDisplayName,
-                  child: const Text('Skip'),
-                ),
               ),
               const SizedBox(height: 16),
             ],
