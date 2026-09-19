@@ -73,3 +73,29 @@ Deno.test('clients cannot claim another device or replace another account regist
     const polled=await db.query('select * from claim_notification_deliveries($1)',[origin]); assertEquals(polled.rows.length,1);
   } finally { await db.close(); }
 });
+
+Deno.test('a claimed delivery is invalidated by a last-moment archive or revoked preference', async () => {
+  const db=await fixture();
+  try {
+    await db.query(`insert into items(id,user_id,status,origin_installation_id) values(gen_random_uuid(),$1,'inbox',$2)`,[a,origin]);
+    const claimed=(await db.query<{event_id:string;installation_id:string;lease_id:string}>('select * from claim_notification_deliveries()')).rows[0];
+    const params=[claimed.event_id,claimed.installation_id,claimed.lease_id];
+    const current=async()=> (await db.query<{valid:boolean}>('select notification_delivery_is_current($1,$2,$3) valid',params)).rows[0].valid;
+    assertEquals(await current(),true);
+    await db.exec(`update notification_installations set remote_saves=false;`); assertEquals(await current(),false);
+    await db.exec(`update notification_installations set remote_saves=true; update items set status='archived';`); assertEquals(await current(),false);
+  } finally { await db.close(); }
+});
+Deno.test('poll acknowledgements require the correct device owner and current lease', async () => {
+  const db=await fixture();
+  try {
+    await db.exec(`update notification_installations set transport='poll',platform='linux' where id='${other}';
+      select set_config('request.role','authenticated',false);`);
+    await db.query(`insert into items(id,user_id,status,origin_installation_id) values(gen_random_uuid(),$1,'inbox',$2)`,[a,origin]);
+    const row=(await db.query<{event_id:string;installation_id:string;lease_id:string}>('select * from claim_notification_deliveries($1)',[other])).rows[0];
+    await db.query('select ack_notification_delivery($1,$2,$3)',[row.event_id,other,origin]);
+    assertEquals((await db.query<{state:string}>('select state from notification_deliveries')).rows[0].state,'sending');
+    await db.query('select ack_notification_delivery($1,$2,$3)',[row.event_id,other,row.lease_id]);
+    assertEquals((await db.query<{state:string}>('select state from notification_deliveries')).rows[0].state,'sent');
+  } finally { await db.close(); }
+});
