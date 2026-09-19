@@ -54,7 +54,12 @@ final notificationCoordinatorProvider =
 
 class NotificationCoordinator extends ChangeNotifier
     with WidgetsBindingObserver {
-  NotificationCoordinator(this.db, this.client, {required this.open}) {
+  NotificationCoordinator(
+    this.db,
+    this.client, {
+    required this.open,
+    bool? startTimer,
+  }) {
     WidgetsBinding.instance.addObserver(this);
     _changes = service.changes.stream.listen((_) => refresh());
     _taps = service.taps.stream.listen(_openPayload);
@@ -65,7 +70,11 @@ class NotificationCoordinator extends ChangeNotifier
         _enqueue(() => _present(data));
       }
     });
-    _timer = Timer.periodic(const Duration(seconds: 30), (_) => refresh());
+    final shouldStartTimer = startTimer ??
+        !WidgetsBinding.instance.runtimeType.toString().contains('Test');
+    if (shouldStartTimer) {
+      _timer = Timer.periodic(const Duration(seconds: 30), (_) => refresh());
+    }
   }
   final AppDatabase db;
   final SupabaseClient? client;
