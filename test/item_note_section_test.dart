@@ -64,9 +64,12 @@ void main() {
     await tester.tap(find.text('Flutter notes'));
     await tester.pumpAndSettle();
 
+    await tester.scrollUntilVisible(
+      find.text('MY NOTE'),
+      150,
+      scrollable: find.byType(Scrollable).last,
+    );
     expect(find.text('MY NOTE'), findsOneWidget);
-    await tester.ensureVisible(find.text('Add a note'));
-    await tester.pumpAndSettle();
     expect(find.text('Add a note'), findsOneWidget);
 
     await disposeDatabase(tester, database);
@@ -78,8 +81,11 @@ void main() {
 
     await tester.tap(find.text('Flutter notes'));
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('Add a note'));
-    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('Add a note'),
+      150,
+      scrollable: find.byType(Scrollable).last,
+    );
     await tester.tap(find.text('Add a note'));
     await tester.pumpAndSettle();
 
@@ -101,8 +107,11 @@ void main() {
 
     await tester.tap(find.text('Flutter notes'));
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('Old thought'));
-    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('Old thought'),
+      150,
+      scrollable: find.byType(Scrollable).last,
+    );
     await tester.tap(find.text('Old thought'));
     await tester.pumpAndSettle();
 
