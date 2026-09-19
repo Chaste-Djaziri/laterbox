@@ -48,6 +48,8 @@ jobs:
       - name: Detect Changed Release Targets
         id: check
         shell: bash
+        env:
+          HEAD_MSG: ${{ github.event.head_commit.message }}
         run: |
           VERSION=$(node -p "require('./version.json').version")
           TARGET_MACOS=false
@@ -147,9 +149,22 @@ jobs:
             VERSION_CHANGED="true"
           fi
 
+          # Support explicit rebuild-all / force-all override via commit message or v1.0.167
+          LAST_COMMIT_MSG=$(git log -1 --pretty=%B 2>/dev/null || echo "")
+          if [ "$VERSION" = "1.0.167" ] || \
+             echo "$LAST_COMMIT_MSG" | grep -qiE '\[(rebuild-all|force-all|build-all)\]' || \
+             [[ "$HEAD_MSG" == *"[rebuild-all]"* ]] || \
+             [[ "$HEAD_MSG" == *"[force-all]"* ]] || \
+             [[ "$HEAD_MSG" == *"[build-all]"* ]]; then
+            select_all_targets
+            emit_outputs true
+            echo "Explicit rebuild-all override triggered for v$VERSION. Running all release targets."
+            exit 0
+          fi
+
           # Keep the existing macOS-only escape hatch for signing and package
           # repairs, including commits that do not include a version bump.
-          if [[ "${{ github.event.head_commit.message }}" == *"[macos-only]"* ]]; then
+          if [[ "$HEAD_MSG" == *"[macos-only]"* ]] || echo "$LAST_COMMIT_MSG" | grep -qiE '\[macos-only\]'; then
             TARGET_MACOS=true
             emit_outputs true
             echo "Explicit [macos-only] override for v$VERSION."
