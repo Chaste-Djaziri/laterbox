@@ -5,6 +5,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 ## [Unreleased]
 
 ### Changed
+- **Fix iOS Share Extension Release Signing**: iOS release builds can now be dispatched independently, allowing the app and Share Extension provisioning profiles to be validated and published together without triggering unrelated platform releases.
 - **Fix macOS Release CI Toolchain**: The macOS release workflow now uses the Xcode version supplied by the macOS 15 runner instead of forcing the older Xcode 16.2 toolchain, restoring compatibility with the current Flutter plugin sources used for App Store and TestFlight builds.
 - **Fix macOS Build — Xcode 16.2 Swift Compile Errors**: Added `SWIFT_STRICT_CONCURRENCY = minimal` and `SWIFT_VERSION = 5.0` to all Pods via the macOS Podfile `post_install` hook. Bumped `in_app_purchase_storekit` to `0.4.13` and `in_app_purchase` to `3.3.1`. Fixes SwiftCompile failures in `flutter_local_notifications` and `in_app_purchase_storekit` caused by Xcode 16.2's stricter Swift 6 concurrency enforcement.
 - **Fix iOS Share Extension — App Group Container**: Regenerated iOS App Store and Share Extension provisioning profiles with the `group.pro.micorp.laterbox` App Group capability enabled. Sharing items to LaterBox from other apps on iOS now correctly stores captures in the shared container so the main app can read them.

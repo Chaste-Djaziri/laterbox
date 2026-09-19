@@ -15,6 +15,7 @@ on:
         type: choice
         options:
           - macos
+          - ios
           - all
       tag_name:
         description: 'Release tag name (e.g. v1.0.0)'
@@ -90,12 +91,15 @@ jobs:
             TARGET_WEB=true
           }
 
-          # Manual workflow dispatches default to macos or user choice
+          # Manual workflow dispatches default to macOS or the selected platform.
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             DISPATCH_TARGET="${{ github.event.inputs.target }}"
             if [ -z "$DISPATCH_TARGET" ] || [ "$DISPATCH_TARGET" = "macos" ]; then
               TARGET_MACOS=true
               echo "Manual dispatch targeting macOS only for v$VERSION."
+            elif [ "$DISPATCH_TARGET" = "ios" ]; then
+              TARGET_IOS=true
+              echo "Manual dispatch targeting iOS only for v$VERSION."
             else
               select_all_targets
               echo "Manual dispatch targeting all platforms for v$VERSION."
