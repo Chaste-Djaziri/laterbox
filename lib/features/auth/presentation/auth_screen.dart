@@ -299,28 +299,28 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                 ],
               ),
               const Spacer(),
-              Text(
-                prefersSignup ? 'Create your account' : 'Welcome back',
-                style: Theme.of(context)
-                    .textTheme
-                    .headlineSmall
-                    ?.copyWith(fontWeight: FontWeight.w900),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Put it here. Find it later.',
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  height: 1.5,
-                ),
-              ),
-              if (!prefersSignup) ...[
-                const SizedBox(height: 24),
+              if (!prefersSignup)
                 Center(
                   child: Image.asset(
                     'assets/backgrounds/auth-signin.png',
-                    height: 240,
+                    height: 360,
                     fit: BoxFit.contain,
+                  ),
+                ),
+              if (prefersSignup) ...[
+                Text(
+                  'Create your account',
+                  style: Theme.of(context)
+                      .textTheme
+                      .headlineSmall
+                      ?.copyWith(fontWeight: FontWeight.w900),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Put it here. Find it later.',
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    height: 1.5,
                   ),
                 ),
               ],
