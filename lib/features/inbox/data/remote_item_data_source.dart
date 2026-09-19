@@ -28,10 +28,15 @@ class SupabaseRemoteItemDataSource implements RemoteItemDataSource {
   @override
   Future<void> upsertItem(Item item) async {
     await InboxNotificationService.instance.prepareUpload(item.id);
-    await _client.from('items').upsert({
-      ...item.toRemoteJson(),
-      'origin_installation_id': await NotificationIdentity.installationId(),
-    }, onConflict: 'id');
+    try {
+      await _client.from('items').upsert({
+        ...item.toRemoteJson(),
+        'origin_installation_id': await NotificationIdentity.installationId(),
+      }, onConflict: 'id');
+    } catch (_) {
+      await InboxNotificationService.instance.rollbackUpload(item.id);
+      rethrow;
+    }
   }
 }
 

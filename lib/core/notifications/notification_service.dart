@@ -24,6 +24,7 @@ class InboxNotificationService {
   bool _firebaseReady = false;
   bool cloudActive = false;
   bool suspended = false;
+  final Set<String> uploadCancellations = {};
   final Map<int, Timer> _timers = {};
   bool get usesPolling => Platform.isLinux || Platform.isWindows;
   String get platform => Platform.operatingSystem;
@@ -246,12 +247,24 @@ class InboxNotificationService {
     await plugin.cancelAll();
   }
 
+  Future<void> rollbackUpload(String itemId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final ids = prefs.getStringList('notification_handed_off') ?? [];
+    await prefs.setStringList(
+      'notification_handed_off',
+      ids.where((id) => id != itemId).toList(),
+    );
+    changes.add(null);
+  }
+
   /// Called before a local capture is uploaded. This closes the local/push race.
   Future<void> prepareUpload(String itemId) async {
     if (!cloudActive) return;
     await cancel(itemId);
+    uploadCancellations.add(itemId);
     final prefs = await SharedPreferences.getInstance();
     final handedOff = prefs.getStringList('notification_handed_off') ?? [];
+    changes.add(null);
     if (!handedOff.contains(itemId))
       await prefs.setStringList('notification_handed_off', [
         ...handedOff,

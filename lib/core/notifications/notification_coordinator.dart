@@ -230,6 +230,10 @@ class NotificationCoordinator extends ChangeNotifier
       await _unregister();
     }
     service.cloudActive = cloud;
+    for (final id in service.uploadCancellations) {
+      _scheduled.remove(id);
+    }
+    service.uploadCancellations.clear();
     final prefs = await SharedPreferences.getInstance();
     final handedOff = prefs.getStringList('notification_handed_off') ?? [];
     final now = DateTime.now();
@@ -252,7 +256,17 @@ class NotificationCoordinator extends ChangeNotifier
     final wanted = {for (final item in candidates.take(60)) item.id: item};
     for (final id in _scheduled.keys.toList()) {
       if (!wanted.containsKey(id)) {
-        await service.cancel(id);
+        // Leave an already delivered reminder in Notification Center. Cancel
+        // only if the item was removed, archived or its schedule changed.
+        final delivered = _items.any(
+          (item) =>
+              item.id == id &&
+              item.deletedAt == null &&
+              (item.status == 'inbox' || item.status == 'deferred') &&
+              item.returnAt?.toUtc().toIso8601String() == _scheduled[id] &&
+              !item.returnAt!.isAfter(now),
+        );
+        if (!delivered) await service.cancel(id);
         _scheduled.remove(id);
       }
     }
