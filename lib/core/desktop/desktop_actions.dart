@@ -134,8 +134,8 @@ class DesktopActions {
   /// Rebuilds the account/sync section of the menu-bar menu.
   Future<void> refreshTrayMenu() async {
     try {
-      final auth = ref.read(authStateProvider).asData?.value;
-      final isAuthenticated = auth?.isAuthenticated ?? false;
+      final auth = ref.read(currentAuthStateProvider);
+      final isAuthenticated = auth.isAuthenticated;
       final results = await Connectivity().checkConnectivity();
       final online = !results.contains(ConnectivityResult.none);
 
@@ -151,7 +151,7 @@ class DesktopActions {
       final state = DesktopMenuState(
         accountStatus: status,
         quickCaptureShortcutLabel: _settings.quickCaptureShortcut.displayLabel,
-        email: auth?.email,
+        email: auth.email,
       );
       await ref.read(trayServiceProvider).updateMenu(state);
     } on Object catch (error, stackTrace) {
