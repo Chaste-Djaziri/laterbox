@@ -277,7 +277,7 @@ export default function LandingPage() {
       {/* ============================================================ */}
       {/* All-Platform Ecosystem Showcase */}
       {/* ============================================================ */}
-      <section className="py-16 border-y border-[#e4e0d5] bg-white">
+      <section className="py-16 border-t border-[#e4e0d5] bg-white">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 text-center">
           <p className="text-xs font-bold uppercase tracking-widest text-[#9e9b92] mb-8">
             One Unified Vault Across All Your Devices
