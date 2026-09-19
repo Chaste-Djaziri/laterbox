@@ -30,8 +30,8 @@ import '../../features/tutorial/presentation/tutorial_screen.dart';
 
 final initialLocationProvider = Provider<String>((ref) {
   if (kIsWeb) return '/';
-  final authState = ref.watch(restoredAuthStateProvider);
-  final guestMode = ref.watch(guestModeProvider);
+  final authState = ref.watch(currentAuthStateProvider);
+  final guestMode = ref.watch(isGuestProvider);
 
   if (guestMode || authState.isAuthenticated) {
     return '/home';
