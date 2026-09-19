@@ -315,10 +315,18 @@ class NotificationCoordinator extends ChangeNotifier
     for (final item in wanted.values) {
       final revision = item.returnAt!.toUtc().toIso8601String();
       if (_scheduled[item.id] == revision) continue;
+      final itemTitle = item.title ??
+          item.url?.split('?').first.split('/').last.replaceAll('-', ' ') ??
+          'Saved item';
+      final itemBody = item.textContent?.isNotEmpty == true
+          ? item.textContent
+          : item.url;
       await service.schedule(
         item.id,
         item.returnAt!,
         jsonEncode({'item_id': item.id, 'user_id': _user}),
+        title: 'LaterBox · $itemTitle',
+        body: itemBody ?? 'Tap to view this item.',
       );
       _scheduled[item.id] = revision;
     }
