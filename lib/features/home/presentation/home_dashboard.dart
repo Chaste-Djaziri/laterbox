@@ -205,15 +205,7 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
                                     ),
                                     const SizedBox(height: 8),
                                   ],
-                                  Text(
-                                    'Drop it. Choose when. Forget about it. It comes back.',
-                                    style: theme.textTheme.bodyLarge?.copyWith(
-                                      color: isDark
-                                          ? const Color(0xFFA09E95)
-                                          : const Color(0xFF6C6B63),
-                                    ),
-                                  ),
-                                ],
+                                ),
                               ),
                             ),
                             if (isDesktop) ...[
