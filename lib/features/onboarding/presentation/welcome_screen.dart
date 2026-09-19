@@ -47,34 +47,47 @@ class WelcomeScreen extends StatelessWidget {
                     ],
                   ),
                   const Spacer(),
-                  const Text(
-                    'Save it now.\nRead it later.',
-                    style: TextStyle(
-                      fontSize: 32,
-                      fontWeight: FontWeight.w900,
-                      color: Colors.white,
-                      letterSpacing: -1.5,
-                      height: 1.08,
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.6),
+                      borderRadius: BorderRadius.circular(16),
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  const Text(
-                    'Your personal vault for articles, links, files, and notes.',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.white70,
-                      height: 1.5,
-                    ),
-                  ),
-                  const SizedBox(height: 28),
-                  FilledButton(
-                    onPressed: () => context.go('/login?mode=signup'),
-                    style: FilledButton.styleFrom(
-                      minimumSize: const Size.fromHeight(60),
-                    ),
-                    child: const Text(
-                      'Get started',
-                      style: TextStyle(fontSize: 17),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Save it now.\nRead it later.',
+                          style: TextStyle(
+                            fontSize: 32,
+                            fontWeight: FontWeight.w900,
+                            color: Colors.white,
+                            letterSpacing: -1.5,
+                            height: 1.08,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        const Text(
+                          'Your personal vault for articles, links, files, and notes.',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.white70,
+                            height: 1.5,
+                          ),
+                        ),
+                        const SizedBox(height: 28),
+                        FilledButton(
+                          onPressed: () => context.go('/login?mode=signup'),
+                          style: FilledButton.styleFrom(
+                            minimumSize: const Size.fromHeight(60),
+                          ),
+                          child: const Text(
+                            'Get started',
+                            style: TextStyle(fontSize: 17),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
