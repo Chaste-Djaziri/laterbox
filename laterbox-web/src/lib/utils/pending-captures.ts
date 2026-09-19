@@ -1,4 +1,4 @@
-import { installationId } from '../notifications/client';
+import { installationId, uploadWithNotificationHandoff } from '../notifications/client';
 import type { LaterBoxItem } from '../supabase/types';
 import { getSupabaseClient } from '../supabase/client';
 import { readLocalAttachment } from './local-attachments';
@@ -23,10 +23,12 @@ export async function syncPendingCaptures(userId: string) {
     const { data: remote, error: readError } = await client.from('items').select('updated_at,deleted_at').eq('id', item.id).eq('user_id', userId).maybeSingle();
     if (readError) throw readError;
     if (!remote || new Date(remote.updated_at) <= new Date(item.updated_at)) {
-      const { error } = remote
-        ? await client.from('items').update(itemRow(item)).eq('id', item.id).eq('user_id', userId).lte('updated_at', item.updated_at)
-        : await client.from('items').upsert(itemRow(item));
-      if (error) throw error;
+      await uploadWithNotificationHandoff(item.id, item.return_at, async () => {
+        const { error } = remote
+          ? await client.from('items').update(itemRow(item)).eq('id', item.id).eq('user_id', userId).lte('updated_at', item.updated_at)
+          : await client.from('items').upsert(itemRow(item));
+        if (error) throw error;
+      });
     }
     if (!item.deleted_at && !remote?.deleted_at) {
       for (const attachment of item.attachments || []) {

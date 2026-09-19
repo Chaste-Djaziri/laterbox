@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/store/AuthContext';
 import { useBilling } from '@/lib/store/BillingContext';
 import { useItems } from '@/lib/store/ItemContext';
-import { notificationWorker, preferences, refreshRegistration, savePreferences, supported, testNotification } from '@/lib/notifications/client';
+import { hasCloudRegistration, isNotificationHandedOff, withItemNotificationLock, notificationWorker, preferences, refreshRegistration, savePreferences, supported, testNotification } from '@/lib/notifications/client';
 
 export function InboxNotificationController() {
   const { user } = useAuth(); const { isPro } = useBilling(); const { items, loading, syncNow } = useItems();
@@ -17,9 +17,11 @@ export function InboxNotificationController() {
       running = true;
       try {
         const prefs = preferences(user?.id);
-        const state = await refreshRegistration(user?.id, isPro);
+        const state = await refreshRegistration(user?.id, isPro).catch((error) => ({
+          cloud: hasCloudRegistration(user?.id), message: error instanceof Error ? error.message : 'Notifications could not update.',
+        }));
         window.dispatchEvent(new CustomEvent('laterbox-notification-status', { detail: state.message }));
-        if (!prefs.enabled || !prefs.returns || !supported() || Notification.permission !== 'granted' || latest.current.loading) return;
+        if (!prefs.enabled || !prefs.returns || !supported() || Notification.permission !== 'granted' || latest.current.loading) { baseline = Date.now(); return; }
         const now = Date.now();
         for (const item of latest.current.items) {
           const due = item.return_at ? Date.parse(item.return_at) : 0;
@@ -29,13 +31,13 @@ export function InboxNotificationController() {
           const event = `local:${user?.id || 'guest'}:${item.id}:${item.return_at}`;
           const deliver = async () => {
             if (stopped || localStorage.getItem(event)) return;
+            if (state.cloud && isNotificationHandedOff(item.id, item.return_at)) return;
             const reg = await notificationWorker();
             await reg.showNotification('LaterBox', { body: 'An item is ready in your inbox.', tag: event, data: { item_id: item.id, user_id: user?.id || null } });
             localStorage.setItem(event, String(now));
           };
           // A cross-tab lock prevents two running tabs showing the same reminder.
-          if (navigator.locks) await navigator.locks.request(event, deliver);
-          else if (document.visibilityState === 'visible') await deliver();
+          if (navigator.locks || document.visibilityState === 'visible') await withItemNotificationLock(item.id, deliver);
         }
         baseline = now;
       } catch (error) {

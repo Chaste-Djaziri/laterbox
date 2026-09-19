@@ -40,7 +40,7 @@ final notificationCoordinatorProvider =
         ref.read(hasProAccessProvider),
       );
       ref.listen(activeUserIdProvider, (_, _) => configure());
-      ref.listen(hasProAccessProvider, (_, _) => configure());
+      ref.listen(entitlementProvider, (_, _) => configure());
       configure();
       return coordinator;
     });

@@ -8,6 +8,7 @@ import { useBilling } from './BillingContext';
 import { normalizeUrl, isUrl, extractDomain } from '../utils/url';
 import { storeLocalAttachment } from '../utils/local-attachments';
 import { itemRow, queueCapture, syncPendingCaptures } from '../utils/pending-captures';
+import { uploadWithNotificationHandoff } from '../notifications/client';
 import { isActive, isDue, migrateSchedule } from '../utils/schedule';
 
 const LOCAL_ITEMS_KEY = 'laterbox_local_items';
@@ -509,8 +510,10 @@ export function ItemProvider({ children }: { children: ReactNode }) {
     if (user && isPro) {
       try {
         const supabase = getSupabaseClient();
-        const { error: saveError } = await supabase.from('items').upsert(itemRow(newItem));
-        if (saveError) throw saveError;
+        await uploadWithNotificationHandoff(newItem.id, newItem.return_at, async () => {
+          const { error: saveError } = await supabase.from('items').upsert(itemRow(newItem));
+          if (saveError) throw saveError;
+        });
         await syncPendingCaptures(user.id);
 
         // Trigger enrichment via fast API & Edge function if it's a URL

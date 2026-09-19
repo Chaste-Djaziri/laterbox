@@ -1,5 +1,5 @@
 'use client';
-import { disableCloudNotifications } from '../notifications/client';
+import { disableCloudNotifications, suspendCloudNotifications, resumeCloudNotifications } from '../notifications/client';
 
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { User, Session, AuthError } from '@supabase/supabase-js';
@@ -69,6 +69,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (_event === 'SIGNED_IN') resumeCloudNotifications();
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
@@ -179,6 +180,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     const supabase = getSupabaseClient();
+    suspendCloudNotifications(user?.id);
     await disableCloudNotifications();
     await supabase.auth.signOut();
     setUser(null);
@@ -195,6 +197,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const deleteAccount = async () => {
     try {
+      suspendCloudNotifications(user?.id);
       await disableCloudNotifications();
       const supabase = getSupabaseClient();
       const {
