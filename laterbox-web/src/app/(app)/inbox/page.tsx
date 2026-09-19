@@ -31,7 +31,18 @@ import {
 
 export default function InboxPage() {
   const router = useRouter();
-  const { filteredInboxItems, items, inboxItems, starredItems, archivedItems, now, loading } = useItems();
+  const {
+    filteredInboxItems,
+    items,
+    inboxItems,
+    starredItems,
+    archivedItems,
+    now,
+    loading,
+    hasDemoItems,
+    clearDemoItems,
+    restoreDemoItems,
+  } = useItems();
   const { user, userName, setUserName } = useAuth();
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [searchQuery, setSearchQuery] = useState('');
@@ -244,6 +255,23 @@ export default function InboxPage() {
             <span>Local Mode</span>
           </div>
 
+          {/* Clear Demo Cards Button (Guest/Local Mode) */}
+          {hasDemoItems && (
+            <button
+              type="button"
+              onClick={() => {
+                if (window.confirm('Clear all demo cards to start fresh in Guest Mode?')) {
+                  clearDemoItems();
+                }
+              }}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#fbfaf6] hover:bg-[#ebe7dc] border border-[#e4e0d5] text-xs font-bold text-[#6c6b63] hover:text-[#171711] shadow-2xs transition-colors cursor-pointer"
+              title="Clear demo items to start fresh"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+              <span>Clear Demo Cards</span>
+            </button>
+          )}
+
           {/* Tutorial Link */}
           <Link
             href="/tutorial"
@@ -414,14 +442,26 @@ export default function InboxPage() {
                 : 'Items appear here when their return time arrives.'}
             </p>
           </div>
-          <button
-            type="button"
-            onClick={() => setCaptureOpen(true)}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#171711] hover:bg-black text-white text-xs font-bold shadow-xs transition-all cursor-pointer"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>Save Item</span>
-          </button>
+          <div className="flex items-center gap-3 pt-1">
+            <button
+              type="button"
+              onClick={() => setCaptureOpen(true)}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#171711] hover:bg-black text-white text-xs font-bold shadow-xs transition-all cursor-pointer"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Save Item</span>
+            </button>
+            {!hasDemoItems && (
+              <button
+                type="button"
+                onClick={() => restoreDemoItems()}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white hover:bg-[#faf8f5] border border-[#e4e0d5] text-xs font-bold text-[#6c6b63] hover:text-[#171711] shadow-2xs transition-all cursor-pointer"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                <span>Restore Demo Cards</span>
+              </button>
+            )}
+          </div>
         </div>
       ) : viewMode === 'grid' ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
