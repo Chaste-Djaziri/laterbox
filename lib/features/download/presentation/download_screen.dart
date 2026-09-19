@@ -131,7 +131,7 @@ class _DownloadHeader extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final auth = ref.watch(authStateProvider).asData?.value;
+    final auth = ref.watch(currentAuthStateProvider);
     final width = MediaQuery.sizeOf(context).width;
     final isMobile = width < 600;
 
@@ -214,7 +214,7 @@ class _DownloadHeader extends ConsumerWidget {
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  if (!(auth?.isAuthenticated ?? false)) ...[
+                  if (!auth.isAuthenticated) ...[
                     TextButton(
                       onPressed: () => context.go('/login'),
                       style: TextButton.styleFrom(
@@ -259,7 +259,7 @@ class _DownloadHeader extends ConsumerWidget {
                         ),
                         const SizedBox(width: 6),
                         Text(
-                          auth?.isAuthenticated ?? false
+                          auth.isAuthenticated
                               ? 'Open Inbox'
                               : 'Launch App',
                           style: TextStyle(
