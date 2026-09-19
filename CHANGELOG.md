@@ -5,6 +5,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 ## [Unreleased]
 
 ### Changed
+- **Web Landing Page Pre-Footer CTA Background**: Updated the "Drop it now. Deal with it later." pre-footer download section to remove the section background and ambient bloom overlay, keeping solely the clean black container card background.
 - **Web Landing Page Hero Dashboard Preview**: Replaced the live guest mode iframe in the landing page hero section with the native, interactive LaterBox dashboard mockup (sidebar navigation, + ADD TO LATERBOX trigger, omnibar with Ctrl+K, returned today metrics with Photoshop/PDF badges, timeline items with clock timestamps, quick drop zone, and next return preview).
 - **Web App Components & Design System Alignment**: Aligned remaining web application pages (/today, /upcoming, /someday, /library, /search, /settings, /plans) and shared modals with the signature LaterBox welcome page design reference and functional claims. Added the Someday Vault showcase view with rich format cards and filtering, the 'When later becomes now' Today view with direct return actions and quick snooze presets, an upgraded Library and Deep Search with format filter chips, and added 'Your LaterBox. Your rules.' custom return schedules and local-first SQLite status diagnostics to Settings.
 - **Marketing Header Static Top Layout**: Removed the scroll listener, floating shrink animation, and logo hover scale effect from the marketing header, making it stationary at the top of the page with a clean layout and no animations.
