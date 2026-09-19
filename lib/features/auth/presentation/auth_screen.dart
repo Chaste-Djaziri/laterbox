@@ -105,11 +105,12 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   Widget _buildEmailScreen(BuildContext context) {
     return Scaffold(
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              const SizedBox(height: 12),
               Row(
                 children: [
                   IconButton(
@@ -129,20 +130,19 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                   ),
                 ],
               ),
-              const SizedBox(height: 24),
-              Center(
-                child: Image.asset(
-                  'assets/backgrounds/auth-signin.png',
-                  height: 280,
-                  fit: BoxFit.contain,
+              Expanded(
+                child: Center(
+                  child: Image.asset(
+                    'assets/backgrounds/auth-signin.png',
+                    fit: BoxFit.contain,
+                  ),
                 ),
               ),
-              const SizedBox(height: 24),
               Text(
                 'Enter your email',
                 style: Theme.of(context)
                     .textTheme
-                    .headlineSmall
+                    .headlineMedium
                     ?.copyWith(fontWeight: FontWeight.w900),
               ),
               const SizedBox(height: 8),
@@ -150,6 +150,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                 'We\'ll send you a code to sign in or create your account.',
                 style: TextStyle(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  fontSize: 16,
                   height: 1.5,
                 ),
               ),
@@ -171,13 +172,16 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                   ),
                 ),
               ],
-              const SizedBox(height: 28),
+              const SizedBox(height: 24),
               FilledButton(
                 onPressed: _busy ? null : _sendOtp,
                 style: FilledButton.styleFrom(
-                  minimumSize: const Size.fromHeight(60),
+                  minimumSize: const Size.fromHeight(56),
                 ),
-                child: Text(_busy ? 'Please wait…' : 'Continue'),
+                child: Text(
+                  _busy ? 'Please wait…' : 'Continue',
+                  style: const TextStyle(fontSize: 17),
+                ),
               ),
               const SizedBox(height: 12),
               SizedBox(
@@ -192,6 +196,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                   child: const Text('Continue without account'),
                 ),
               ),
+              const SizedBox(height: 16),
             ],
           ),
         ),
@@ -202,11 +207,12 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   Widget _buildOtpScreen(BuildContext context) {
     return Scaffold(
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              const SizedBox(height: 12),
               Row(
                 children: [
                   IconButton(
@@ -224,12 +230,12 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                   ),
                 ],
               ),
-              const SizedBox(height: 48),
+              const Spacer(),
               Text(
                 'Check your email',
                 style: Theme.of(context)
                     .textTheme
-                    .headlineSmall
+                    .headlineMedium
                     ?.copyWith(fontWeight: FontWeight.w900),
               ),
               const SizedBox(height: 8),
@@ -237,10 +243,11 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                 'Enter the eight digit code sent to ${_emailController.text.trim()}.',
                 style: TextStyle(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  fontSize: 16,
                   height: 1.5,
                 ),
               ),
-              const SizedBox(height: 32),
+              const Spacer(),
               TextField(
                 controller: _otpController,
                 autofocus: true,
@@ -274,13 +281,16 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                   ),
                 ),
               ],
-              const SizedBox(height: 28),
+              const SizedBox(height: 24),
               FilledButton(
                 onPressed: _busy ? null : _verifyOtp,
                 style: FilledButton.styleFrom(
-                  minimumSize: const Size.fromHeight(60),
+                  minimumSize: const Size.fromHeight(56),
                 ),
-                child: Text(_busy ? 'Please wait…' : 'Verify code'),
+                child: Text(
+                  _busy ? 'Please wait…' : 'Verify code',
+                  style: const TextStyle(fontSize: 17),
+                ),
               ),
               const SizedBox(height: 12),
               Row(
@@ -303,6 +313,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                   ),
                 ],
               ),
+              const SizedBox(height: 16),
             ],
           ),
         ),
