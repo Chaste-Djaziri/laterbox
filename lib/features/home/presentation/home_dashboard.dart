@@ -589,76 +589,77 @@ class _WebSearchButton extends StatelessWidget {
       ),
     );
   }
+}
 
-  void _showDisplayNamePrompt(BuildContext context, WidgetRef ref) {
-    final controller = TextEditingController();
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom,
+void _showDisplayNamePrompt(BuildContext context, WidgetRef ref) {
+  final controller = TextEditingController();
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    useSafeArea: true,
+    backgroundColor: Colors.transparent,
+    builder: (context) => Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         ),
-        child: Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surface,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'What should we call you?',
-                style: Theme.of(context)
-                    .textTheme
-                    .headlineSmall
-                    ?.copyWith(fontWeight: FontWeight.w900),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'What should we call you?',
+              style: Theme.of(context)
+                  .textTheme
+                  .headlineSmall
+                  ?.copyWith(fontWeight: FontWeight.w900),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Optional — tap anywhere to dismiss.',
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
-              const SizedBox(height: 8),
-              Text(
-                'Optional — tap anywhere to dismiss.',
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-              ),
-              const SizedBox(height: 20),
-              TextField(
-                controller: controller,
-                textCapitalization: TextCapitalization.words,
-                textInputAction: TextInputAction.done,
-                decoration: const InputDecoration(labelText: 'Display name'),
-                onSubmitted: (value) {
-                  if (value.trim().isNotEmpty) {
-                    ref.read(displayNameProvider.notifier).set(value.trim());
+            ),
+            const SizedBox(height: 20),
+            TextField(
+              controller: controller,
+              textCapitalization: TextCapitalization.words,
+              textInputAction: TextInputAction.done,
+              decoration: const InputDecoration(labelText: 'Display name'),
+              onSubmitted: (value) {
+                if (value.trim().isNotEmpty) {
+                  ref.read(displayNameProvider.notifier).set(value.trim());
+                }
+                Navigator.of(context).pop();
+              },
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: () {
+                  if (controller.text.trim().isNotEmpty) {
+                    ref
+                        .read(displayNameProvider.notifier)
+                        .set(controller.text.trim());
                   }
                   Navigator.of(context).pop();
                 },
+                child: const Text('Save'),
               ),
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton(
-                  onPressed: () {
-                    if (controller.text.trim().isNotEmpty) {
-                      ref
-                          .read(displayNameProvider.notifier)
-                          .set(controller.text.trim());
-                    }
-                    Navigator.of(context).pop();
-                  },
-                  child: const Text('Save'),
-                ),
-              ),
-              const SizedBox(height: 8),
-            ],
-          ),
+            ),
+            const SizedBox(height: 8),
+          ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }
 
