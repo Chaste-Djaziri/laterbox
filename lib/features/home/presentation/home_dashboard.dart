@@ -12,6 +12,7 @@ import '../../inbox/presentation/inbox_providers.dart';
 import '../../library/presentation/library_providers.dart';
 import '../../scheduling/presentation/schedule_providers.dart';
 import '../../scheduling/presentation/return_time_picker.dart';
+import '../../../core/auth/auth_provider.dart';
 
 Future<void> openDashboardCapture(
   BuildContext context, {
@@ -48,21 +49,23 @@ class HomeDashboard extends ConsumerWidget {
         ref.watch(scheduleClockProvider).valueOrNull ??
         ref.watch(scheduleNowProvider)();
     final hour = now.toLocal().hour;
+    final email = ref.watch(authStateProvider).asData?.value.email;
+    final firstName = email?.split('@').first ?? '';
     final greeting = hour < 12
-        ? 'Good morning.'
+        ? 'Good morning, $firstName.'
         : hour < 18
-        ? 'Good afternoon.'
-        : 'Good evening.';
+        ? 'Good afternoon, $firstName.'
+        : 'Good evening, $firstName.';
     return Scaffold(
       appBar: isDesktop
           ? null
           : AppBar(
               title: Text(
                 greeting,
-                style: theme.textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w800,
+                style: theme.textTheme.headlineMedium?.copyWith(
+                  fontWeight: FontWeight.w900,
                   color: isDark ? Colors.white : const Color(0xFF171711),
-                  letterSpacing: -0.5,
+                  letterSpacing: -1,
                 ),
               ),
               actions: [
@@ -168,11 +171,11 @@ class HomeDashboard extends ConsumerWidget {
                                       greeting,
                                       style: theme.textTheme.headlineLarge
                                           ?.copyWith(
-                                            fontWeight: FontWeight.w800,
+                                            fontWeight: FontWeight.w900,
                                             color: isDark
                                                 ? Colors.white
                                                 : const Color(0xFF171711),
-                                            letterSpacing: -0.5,
+                                            letterSpacing: -1,
                                           ),
                                     ),
                                     const SizedBox(height: 8),
