@@ -253,6 +253,7 @@ export function ScheduleDashboard({ view }: { view?: ScheduleView }) {
               <Search className="w-3.5 h-3.5 text-[#9e9b92] absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
+                data-search-input="true"
                 value={filterSearch}
                 onChange={(e) => setFilterSearch(e.target.value)}
                 placeholder={`Filter ${view}...`}
@@ -486,7 +487,9 @@ export function ScheduleDashboard({ view }: { view?: ScheduleView }) {
         <div className="flex-1 max-w-xl mx-auto">
           <button
             type="button"
-            onClick={() => open()}
+            onClick={() => {
+              window.dispatchEvent(new CustomEvent('open-search-modal'));
+            }}
             className="w-full rounded-full bg-[#faf8f5] border border-[#e4e0d5] px-4 py-2.5 flex items-center justify-between text-xs text-[#9e9b92] shadow-2xs hover:border-[#171711]/40 transition-colors cursor-pointer"
           >
             <div className="flex items-center gap-2.5">
