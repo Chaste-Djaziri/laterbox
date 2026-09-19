@@ -23,7 +23,7 @@ class WelcomeScreen extends StatelessWidget {
                 end: Alignment.bottomCenter,
                 colors: [
                   Colors.transparent,
-                  Colors.black87,
+                  Colors.white,
                 ],
               ),
             ),
@@ -43,15 +43,11 @@ class WelcomeScreen extends StatelessWidget {
                         'assets/branding/laterbox-logo.png',
                         height: compact ? 40 : 48,
                         fit: BoxFit.contain,
-                        color: Colors.white,
                       ),
                       const Spacer(),
                       TextButton(
                         onPressed: () => context.go('/login?mode=signin'),
-                        child: const Text(
-                          'Sign in',
-                          style: TextStyle(color: Colors.white),
-                        ),
+                        child: const Text('Sign in'),
                       ),
                     ],
                   ),
@@ -61,17 +57,16 @@ class WelcomeScreen extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 32,
                       fontWeight: FontWeight.w900,
-                      color: Colors.white,
                       letterSpacing: -1.5,
                       height: 1.08,
                     ),
                   ),
                   const SizedBox(height: 12),
-                  const Text(
+                  Text(
                     'Your personal vault for articles, links, files, and notes.',
                     style: TextStyle(
                       fontSize: 16,
-                      color: Colors.white70,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                       height: 1.5,
                     ),
                   ),
