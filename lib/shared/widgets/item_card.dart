@@ -30,6 +30,45 @@ class ItemCard extends ConsumerStatefulWidget {
 class _ItemCardState extends ConsumerState<ItemCard> {
   bool _isHovered = false;
 
+  bool get _isPsd {
+    final ext = widget.item.url?.split('.').last.toLowerCase();
+    final title = (widget.item.metadata?.title ?? widget.item.title ?? '').toLowerCase();
+    return ext == 'psd' || ext == 'psb' || title.endsWith('.psd');
+  }
+
+  bool get _isPdf {
+    final ext = widget.item.url?.split('.').last.toLowerCase();
+    final title = (widget.item.metadata?.title ?? widget.item.title ?? '').toLowerCase();
+    return ext == 'pdf' || title.endsWith('.pdf');
+  }
+
+  bool get _isVideo {
+    final url = widget.item.url ?? '';
+    return widget.item.type == 'video' ||
+        url.contains('youtube.com') ||
+        url.contains('youtu.be') ||
+        url.contains('vimeo.com');
+  }
+
+  bool get _isMusic {
+    final url = widget.item.url ?? '';
+    return widget.item.type == 'music' ||
+        url.contains('spotify.com') ||
+        url.contains('music.apple.com');
+  }
+
+  bool get _isNote {
+    return widget.item.type == 'note' ||
+        (widget.item.url == null && widget.item.text != null && widget.item.text!.isNotEmpty);
+  }
+
+  bool get _isArticle {
+    final domain = widget.item.metadata?.domain ?? '';
+    return widget.item.type == 'article' ||
+        domain.contains('notion.so') ||
+        domain.contains('medium.com');
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDesktop = MediaQuery.sizeOf(context).width >= 700;
@@ -133,6 +172,16 @@ class _ItemCardState extends ConsumerState<ItemCard> {
                             attachments: attachments,
                             storage: attachmentStorage,
                             remoteImageUrl: remoteImageUrl,
+                          )
+                        else if (_isPsd || _isPdf || _isVideo || _isMusic)
+                          _ContentBanner(
+                            item: widget.item,
+                            isPsd: _isPsd,
+                            isPdf: _isPdf,
+                            isVideo: _isVideo,
+                            isMusic: _isMusic,
+                            isNote: _isNote,
+                            isArticle: _isArticle,
                           )
                         else if (coverUrl != null && coverUrl.isNotEmpty)
                           ItemCoverImage(url: coverUrl)
@@ -715,6 +764,373 @@ class _CardGlyph extends StatelessWidget {
                 fit: BoxFit.contain,
                 errorBuilder: (context, error, stackTrace) =>
                     const SizedBox.shrink(),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Rich content-type banner matching the web ItemCard visual style.
+class _ContentBanner extends StatelessWidget {
+  const _ContentBanner({
+    required this.item,
+    required this.isPsd,
+    required this.isPdf,
+    required this.isVideo,
+    required this.isMusic,
+    required this.isNote,
+    required this.isArticle,
+  });
+
+  final LaterBoxItem item;
+  final bool isPsd, isPdf, isVideo, isMusic, isNote, isArticle;
+
+  @override
+  Widget build(BuildContext context) {
+    if (isPsd) return _PsdBanner();
+    if (isPdf) return _PdfBanner();
+    if (isVideo) return _VideoBanner(item: item);
+    if (isMusic) return _MusicBanner(item: item);
+    return const SizedBox.shrink();
+  }
+}
+
+class _PsdBanner extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 140,
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFF1E1B4B),
+            Color(0xFF701A75),
+            Color(0xFFEC4899),
+            Color(0xFF84CC16),
+          ],
+        ),
+      ),
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Colors.black26, Colors.transparent, Colors.black26],
+                  stops: [0.0, 0.5, 1.0],
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            top: 10,
+            right: 10,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.6),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.circle, size: 6, color: Colors.white),
+                  SizedBox(width: 5),
+                  Text(
+                    'Design File',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: 10,
+            left: 10,
+            child: Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: const Color(0xFF001E36),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+              ),
+              alignment: Alignment.center,
+              child: const Text(
+                'Ps',
+                style: TextStyle(
+                  color: Color(0xFF31A8FF),
+                  fontSize: 14,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PdfBanner extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 140,
+      color: const Color(0xFFF8F7F4),
+      child: Stack(
+        children: [
+          Center(
+            child: Container(
+              width: 100,
+              height: 80,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFFE4E0D5)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.06),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  for (final w in [1.0, 0.83, 0.67, 1.0, 0.75])
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 5),
+                      child: FractionallySizedBox(
+                        widthFactor: w,
+                        child: Container(
+                          height: 5,
+                          color: const Color(0xFFE4E0D5),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+          Positioned(
+            top: 10,
+            right: 10,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.6),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.circle, size: 6, color: Colors.white),
+                  SizedBox(width: 5),
+                  Text(
+                    'Document',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: 10,
+            left: 10,
+            child: Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: const Color(0xFFEF4444),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              alignment: Alignment.center,
+              child: const Text(
+                'PDF',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _VideoBanner extends StatelessWidget {
+  const _VideoBanner({required this.item});
+  final LaterBoxItem item;
+
+  @override
+  Widget build(BuildContext context) {
+    final coverUrl = item.metadata?.previewImageUrl;
+    final domain = item.metadata?.domain ?? '';
+
+    return Container(
+      height: 140,
+      color: const Color(0xFF171714),
+      child: Stack(
+        children: [
+          if (coverUrl != null && coverUrl.isNotEmpty)
+            Positioned.fill(
+              child: Image.network(
+                coverUrl,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => const Center(
+                  child: Icon(Icons.play_circle_outline_rounded,
+                      color: Colors.white24, size: 48),
+                ),
+              ),
+            )
+          else
+            const Center(
+              child: Icon(Icons.play_circle_outline_rounded,
+                  color: Colors.white24, size: 48),
+            ),
+          if (domain.isNotEmpty)
+            Positioned(
+              top: 10,
+              left: 10,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.6),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  domain,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
+          Positioned(
+            top: 10,
+            right: 10,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: const Color(0xFFEA4335),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.play_arrow_rounded, size: 14, color: Colors.white),
+                  SizedBox(width: 3),
+                  Text(
+                    'Video',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MusicBanner extends StatelessWidget {
+  const _MusicBanner({required this.item});
+  final LaterBoxItem item;
+
+  @override
+  Widget build(BuildContext context) {
+    final coverUrl = item.metadata?.previewImageUrl;
+
+    return Container(
+      height: 140,
+      color: const Color(0xFF171714),
+      child: Stack(
+        children: [
+          if (coverUrl != null && coverUrl.isNotEmpty)
+            Positioned.fill(
+              child: Image.network(
+                coverUrl,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Container(
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [Color(0xFF065F46), Color(0xFF134E4A)],
+                    ),
+                  ),
+                  child: const Center(
+                    child: Icon(Icons.music_note_rounded,
+                        color: Color(0xFF34D399), size: 48),
+                  ),
+                ),
+              ),
+            )
+          else
+            Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Color(0xFF065F46), Color(0xFF134E4A)],
+                ),
+              ),
+              child: const Center(
+                child: Icon(Icons.music_note_rounded,
+                    color: Color(0xFF34D399), size: 48),
+              ),
+            ),
+          Positioned(
+            top: 10,
+            right: 10,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.6),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.music_note_rounded, size: 14, color: Colors.white),
+                  SizedBox(width: 5),
+                  Text(
+                    'Music',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
