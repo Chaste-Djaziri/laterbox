@@ -34,35 +34,23 @@ class WelcomeScreen extends StatelessWidget {
                 ],
               ),
               const Spacer(),
-              Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      'Save it now.\nRead it later.',
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: -1.5,
-                        height: 1.08,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 420),
-                      child: Text(
-                        'Your personal vault for articles, links, files, and notes.',
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                          height: 1.5,
-                        ),
-                      ),
-                    ),
-                  ],
+              Text(
+                'Save it now.\nRead it later.',
+                style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -1.5,
+                  height: 1.08,
                 ),
               ),
-              const Spacer(),
+              const SizedBox(height: 12),
+              Text(
+                'Your personal vault for articles, links, files, and notes.',
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 28),
               FilledButton(
                 onPressed: () => context.go('/login?mode=signup'),
                 style: FilledButton.styleFrom(
