@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -5,7 +7,9 @@ import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/auth/auth_provider.dart';
+import '../../../core/billing/billing_providers.dart';
 import '../../../core/settings/display_name_provider.dart';
+import '../../../core/sync/sync_providers.dart';
 
 class AuthScreen extends ConsumerStatefulWidget {
   const AuthScreen({super.key});
@@ -75,7 +79,26 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       await ref
           .read(authRepositoryProvider)
           .verifyEmailOtp(email: _emailController.text, token: token);
-      if (mounted) _showDisplayNameModal();
+
+      // Immediately fetch user info to know if display name exists
+      final name = await ref.read(displayNameProvider.notifier).refresh();
+
+      // Refresh entitlements so Pro/sync state is immediately resolved
+      ref.invalidate(entitlementProvider);
+      try {
+        await ref.read(entitlementProvider.future);
+      } catch (_) {}
+
+      // Immediately trigger full sync of items, collections, notes, metadata
+      unawaited(ref.read(syncCoordinatorProvider).syncNow());
+
+      if (!mounted) return;
+
+      if (name != null && name.trim().isNotEmpty) {
+        context.go('/home');
+      } else {
+        _showDisplayNameModal();
+      }
     } on AuthException catch (error) {
       if (mounted) setState(() => _message = error.message);
     } on StateError catch (error) {
@@ -158,6 +181,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     if (name.isNotEmpty) {
       await ref.read(displayNameProvider.notifier).set(name);
     }
+    unawaited(ref.read(syncCoordinatorProvider).syncNow());
     if (mounted) Navigator.of(ctx).pop();
   }
 
