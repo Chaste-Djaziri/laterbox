@@ -197,12 +197,19 @@ export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
         <button
           onClick={onOpenCapture}
           className={`w-full flex items-center ${
-            collapsed ? 'justify-center px-0' : 'justify-center px-3'
+            collapsed ? 'justify-center px-0' : 'justify-between px-3'
           } py-2.5 rounded-xl bg-[#171711] hover:bg-black active:bg-[#0f0f0e] text-white font-bold text-xs tracking-wide shadow-xs transition-all duration-150 group cursor-pointer`}
-          title="Save Item"
+          title="Save Item (⌃⌥L / Control+Option+L)"
         >
-          <Plus className="w-3.5 h-3.5 transition-transform group-hover:rotate-90 shrink-0 mr-1.5" />
-          {!collapsed && <span>Save Item</span>}
+          <div className="flex items-center">
+            <Plus className="w-3.5 h-3.5 transition-transform group-hover:rotate-90 shrink-0 mr-1.5" />
+            {!collapsed && <span>Save Item</span>}
+          </div>
+          {!collapsed && (
+            <kbd className="hidden sm:inline-flex items-center px-1.5 py-0.5 rounded bg-white/15 text-[9px] font-mono font-medium text-white/80 group-hover:text-white">
+              ⌃⌥L
+            </kbd>
+          )}
         </button>
 
         {/* Main Navigation Items */}
