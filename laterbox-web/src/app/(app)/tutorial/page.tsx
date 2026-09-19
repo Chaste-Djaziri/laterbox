@@ -39,37 +39,37 @@ const sharedFinishSteps: TutorialStep[] = [
 
 const guides: Record<DeviceId, DeviceGuide> = {
   macos: {
-    label: 'LaterBox for Mac', shortLabel: 'Mac', eyebrow: 'macOS desktop guide',
+    label: 'LaterBox for Mac', shortLabel: 'Mac', eyebrow: 'macOS desktop & web guide',
     intro: 'Capture from any Mac app, use the Safari or browser extension, and keep a local copy ready offline.',
-    requirement: 'macOS 12 Monterey or newer', primaryAction: 'Download for Mac', primaryHref: '/downloads',
-    captureLabel: 'Open Quick Capture', captureKeys: '⌃ ⌥ Space',
+    requirement: 'macOS 12 Monterey or newer, or modern Safari/Chrome', primaryAction: 'Download for Mac', primaryHref: '/downloads',
+    captureLabel: 'Open Quick Capture', captureKeys: '⌃ ⌥ L (Web) • ⌃ ⌥ Space (Desktop)',
     steps: [
       { title: 'Install and open LaterBox', description: 'Download the Apple Silicon or Intel build, open the DMG, then drag LaterBox into Applications.', detail: 'If macOS asks for permission, allow LaterBox to run in System Settings, Privacy & Security.', icon: <Download aria-hidden="true" /> },
-      { title: 'Save from anywhere', description: 'Press Control, Option, and Space together, paste a link or note, then press Return.', detail: 'The capture window works above your current app. Change the shortcut later in Settings if it conflicts with another app.', icon: <Command aria-hidden="true" /> },
+      { title: 'Save from anywhere', description: 'Press Control + Option + L in the web app (or ⌃ ⌥ Space on desktop) to summon Quick Capture.', detail: 'Choose whether you want the item to return Today, Tomorrow, Weekend, or the Someday Vault.', icon: <Command aria-hidden="true" /> },
       ...sharedFinishSteps,
     ],
-    tips: ['Use the Safari extension for one click saves', 'The menu bar icon keeps capture close', 'Press ⌘ K in the web app to search'],
+    tips: ['Press ⌘ K in LaterBox to search items, tags, and collections', 'Press ⌃ ⌥ L in the web app to open Quick Capture', 'Use the Safari extension for one-click tab saves'],
   },
   windows: {
     label: 'LaterBox for Windows', shortLabel: 'Windows', eyebrow: 'Windows 10 and 11 guide',
     intro: 'Install the native desktop app, capture without leaving your current window, and work from the system tray.',
     requirement: '64 bit Windows 10 or Windows 11', primaryAction: 'Download for Windows', primaryHref: '/downloads',
-    captureLabel: 'Open Quick Capture', captureKeys: 'Ctrl Shift L',
+    captureLabel: 'Open Quick Capture', captureKeys: 'Ctrl Alt L (Web) • Ctrl Shift L (Desktop)',
     steps: [
       { title: 'Run the Windows installer', description: 'Download LaterBox Setup, open the file, and follow the short installation wizard.', detail: 'Keep “Launch LaterBox” selected on the final screen. LaterBox will also appear in the Start menu.', icon: <Download aria-hidden="true" /> },
-      { title: 'Save from any program', description: 'Press Ctrl, Shift, and L together. Paste a URL or type a note, then press Enter.', detail: 'LaterBox can remain in the system tray, so Quick Capture stays available when the main window is closed.', icon: <Command aria-hidden="true" /> },
+      { title: 'Save from any program', description: 'Press Ctrl + Alt + L in the web app (or Ctrl + Shift + L on desktop). Paste a URL or note, then choose return time.', detail: 'LaterBox can remain in the system tray, so Quick Capture stays available when the main window is closed.', icon: <Command aria-hidden="true" /> },
       ...sharedFinishSteps,
     ],
-    tips: ['Pin LaterBox to the Start menu', 'Use the Edge or Chrome extension for web pages', 'Right click the tray icon for quick actions'],
+    tips: ['Press Ctrl K in LaterBox to open search or focus search bar', 'Press Ctrl Alt L in the web app to open Quick Capture', 'Right click the tray icon for quick actions'],
   },
   linux: {
     label: 'LaterBox for Linux', shortLabel: 'Linux', eyebrow: 'Linux desktop guide',
     intro: 'Use the desktop build or web app, save through your browser, and keep your reading queue available across devices.',
     requirement: 'A modern 64 bit Linux distribution', primaryAction: 'See Linux downloads', primaryHref: '/downloads',
-    captureLabel: 'Open Quick Capture', captureKeys: 'Alt Space',
+    captureLabel: 'Open Quick Capture', captureKeys: 'Ctrl Alt L (Web) • Alt Space (Desktop)',
     steps: [
       { title: 'Choose your package', description: 'Open Downloads and choose the package offered for your distribution, or continue with the web app.', detail: 'Your desktop environment may ask you to mark the downloaded file as executable before the first launch.', icon: <Download aria-hidden="true" /> },
-      { title: 'Capture a link or thought', description: 'Press Alt and Space together, enter your content, then press Enter to save.', detail: 'If your desktop already uses Alt Space, set a different global shortcut in LaterBox Settings.', icon: <Command aria-hidden="true" /> },
+      { title: 'Capture a link or thought', description: 'Press Ctrl + Alt + L in the web app (or Alt Space on desktop), enter your content, then choose return time.', detail: 'If your desktop already uses Alt Space, set a different global shortcut in LaterBox Settings.', icon: <Command aria-hidden="true" /> },
       ...sharedFinishSteps,
     ],
     tips: ['Install the Firefox or Chromium extension', 'Pin the web app when a native package is unavailable', 'Use Ctrl K in the web app to search'],
@@ -100,15 +100,15 @@ const guides: Record<DeviceId, DeviceGuide> = {
   },
   web: {
     label: 'LaterBox on the web', shortLabel: 'Web', eyebrow: 'Browser guide',
-    intro: 'Capture and organize from any modern browser without installing the desktop or mobile app.',
-    requirement: 'A current version of Chrome, Edge, Firefox, or Safari', primaryAction: 'Go to your inbox', primaryHref: '/inbox',
-    captureLabel: 'New capture', captureKeys: '⌘ N or Ctrl N',
+    intro: 'Capture, schedule returns, and search your private vault from any modern browser with zero friction.',
+    requirement: 'A current version of Chrome, Edge, Firefox, or Safari', primaryAction: 'Go to your dashboard', primaryHref: '/home',
+    captureLabel: 'Open Quick Capture', captureKeys: '⌃ ⌥ L (Mac) or Ctrl Alt L',
     steps: [
-      { title: 'Open Quick Capture', description: 'Select New capture in the sidebar. On Mac press Command N, or on Windows and Linux press Ctrl N.', detail: 'Paste a URL, write a plain note, or add supported files, then choose Save to inbox.', icon: <MousePointerClick aria-hidden="true" /> },
-      { title: 'Connect the browser extension', description: 'Install the LaterBox extension, open it on any page, and follow Connect to LaterBox.', detail: 'Once connected, use the toolbar button to save the current tab without opening the LaterBox app.', icon: <Puzzle aria-hidden="true" /> },
+      { title: 'Open Quick Capture', description: 'Press Control + Option + L on Mac, or Ctrl + Alt + L on Windows/Linux, or click Save Item in the sidebar.', detail: 'Paste a link, write a note, or drag files into the capture window, then pick when it should return.', icon: <Command aria-hidden="true" /> },
+      { title: 'Spotlight Search & Omnibar', description: 'Press ⌘ K on Mac or Ctrl K on Windows to open the Spotlight Search Modal or focus the page search bar.', detail: 'Instantly find any item by keyword, domain, or notes, or filter by Articles, Videos, Music, Notes, or Files.', icon: <Search aria-hidden="true" /> },
       ...sharedFinishSteps,
     ],
-    tips: ['Press / or ⌘ K to search', 'Use the extension to save the active page', 'The web app works well when installed as a PWA'],
+    tips: ['Press ⌘ K (Ctrl K) to search or focus input', 'Press ⌃ ⌥ L (Ctrl Alt L) to open Quick Capture', 'Use Clear Demo Cards in guest mode to start with a fresh vault'],
   },
 };
 
