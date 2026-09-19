@@ -186,16 +186,21 @@ class InboxNotificationService {
     String payload, {
     bool test = false,
     bool returned = true,
+    String? title,
+    String? body,
   }) async {
     await initialize();
+    final displayTitle = title ?? 'LaterBox';
+    final displayBody = test
+        ? 'Notifications are ready on this device.'
+        : body ??
+        (returned
+            ? 'An item is ready in your inbox.'
+            : 'An item was added to your inbox.');
     await plugin.show(
       id: idFor(key),
-      title: 'LaterBox',
-      body: test
-          ? 'Notifications are ready on this device.'
-          : returned
-          ? 'An item is ready in your inbox.'
-          : 'An item was added to your inbox.',
+      title: displayTitle,
+      body: displayBody,
       notificationDetails: details,
       payload: payload,
     );
