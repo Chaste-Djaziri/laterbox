@@ -38,7 +38,7 @@ interface AppSidebarProps {
 export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
   const pathname = usePathname();
   const { inboxItems, items } = useItems();
-  const { user, isGuest, signOut } = useAuth();
+  const { user, userName, isGuest, signOut } = useAuth();
   const { entitlement, isPro, manage } = useBilling();
   const [collapsed, setCollapsed] = useState(false);
   const [now, setNow] = useState(() => new Date());
@@ -288,14 +288,16 @@ export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
           <div className="flex items-center justify-between p-2 rounded-xl bg-white border border-[#e4e0d5] shadow-2xs">
             <div className="flex items-center gap-2 min-w-0">
               <div className="w-7 h-7 rounded-full bg-[#171711] flex items-center justify-center text-white shrink-0 font-bold text-xs">
-                {user.email?.[0].toUpperCase() || <User className="w-3.5 h-3.5" />}
+                {userName ? userName[0].toUpperCase() : user.email?.[0].toUpperCase() || <User className="w-3.5 h-3.5" />}
               </div>
               {!collapsed && (
                 <div className="min-w-0">
                   <p className="text-xs font-bold text-[#171711] truncate">
-                    {user.email}
+                    {userName || user.email}
                   </p>
-                  <p className="text-[10px] text-[#8e8d87] font-medium truncate">Account</p>
+                  <p className="text-[10px] text-[#8e8d87] font-medium truncate">
+                    {userName ? user.email : 'Account'}
+                  </p>
                 </div>
               )}
             </div>
@@ -314,14 +316,16 @@ export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
           <div className="flex items-center justify-between p-2 rounded-xl bg-white border border-[#e4e0d5] shadow-2xs">
             <div className="flex items-center gap-2 min-w-0">
               <div className="w-7 h-7 rounded-full bg-[#171711] flex items-center justify-center text-white shrink-0 font-bold text-xs">
-                N
+                {userName ? userName[0].toUpperCase() : 'G'}
               </div>
               {!collapsed && (
                 <div className="min-w-0">
                   <p className="text-xs font-bold text-[#171711] truncate">
-                    Guest Mode
+                    {userName || 'Guest Mode'}
                   </p>
-                  <p className="text-[10px] text-[#8e8d87] font-medium truncate">Local storage only</p>
+                  <p className="text-[10px] text-[#8e8d87] font-medium truncate">
+                    {userName ? 'Guest • Local storage' : 'Local storage only'}
+                  </p>
                 </div>
               )}
             </div>
