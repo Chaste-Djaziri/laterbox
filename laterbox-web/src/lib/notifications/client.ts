@@ -8,6 +8,12 @@ export function installationId(): string {
   if (!id) { id = crypto.randomUUID(); localStorage.setItem(key, id); }
   return id;
 }
+function revocationSecret(): string {
+  const key = 'laterbox_notification_revocation_secret';
+  let secret = localStorage.getItem(key);
+  if (!secret) { secret = crypto.randomUUID() + crypto.randomUUID(); localStorage.setItem(key, secret); }
+  return secret;
+}
 export function preferences(userId?: string): NotificationPreferences {
   try { return { ...defaultPreferences, ...JSON.parse(localStorage.getItem(`laterbox_notifications_${userId || 'guest'}`) || '{}') }; }
   catch { return defaultPreferences; }
@@ -63,6 +69,8 @@ export async function uploadWithNotificationHandoff<T>(itemId: string, returnAt:
 
 export async function refreshRegistration(userId: string | undefined, isPro: boolean) {
   const prefs = preferences(userId);
+  const previousUser = localStorage.getItem(registeredUserKey);
+  if (previousUser && previousUser !== userId) await disableCloudNotifications();
   if (userId && localStorage.getItem(suspendedUserKey) === userId) return { cloud: false, message: 'Notifications disconnected.' };
   if (!supported()) return { cloud: false, message: 'Install the web app on your Home Screen on iOS to enable notifications.' };
   if (!prefs.enabled || Notification.permission !== 'granted') {
@@ -82,7 +90,7 @@ export async function refreshRegistration(userId: string | undefined, isPro: boo
   const next = JSON.stringify([userId, prefs, subscription.toJSON()]);
   if (signature !== next) {
     const { error } = await getSupabaseClient().rpc('register_notification_installation', {
-      installation_id: installationId(), device_platform: 'web', delivery_transport: 'web',
+      installation_id: installationId(), revocation_secret: revocationSecret(), device_platform: 'web', delivery_transport: 'web',
       web_subscription: subscription.toJSON(), notifications_enabled: true, returns_enabled: prefs.returns, saves_enabled: prefs.saves,
     });
     if (error) throw new Error('Cloud notifications could not register. Check connection and server setup.');
@@ -101,10 +109,10 @@ export async function disableCloudNotifications() {
       for (const notification of await reg.getNotifications()) notification.close();
     }
   }
-  const client = getSupabaseClient();
-  const { data } = await client.auth.getSession();
-  if (data.session && hasCloudRegistration(data.session.user.id)) {
-    const { error } = await client.from('notification_installations').delete().eq('id', installationId());
+  if (localStorage.getItem(registeredUserKey)) {
+    const { error } = await getSupabaseClient().rpc('revoke_notification_installation', {
+      installation_id: installationId(), revocation_secret: revocationSecret(),
+    });
     if (error) throw new Error('Could not disconnect cloud notifications. Please retry.');
     localStorage.removeItem(registeredUserKey);
   }

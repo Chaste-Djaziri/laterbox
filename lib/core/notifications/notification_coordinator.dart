@@ -125,6 +125,19 @@ class NotificationCoordinator extends ChangeNotifier
           _registeredUser = user;
           _registeredId = await NotificationIdentity.installationId();
         }
+        if (prefs.getString('notification_registered_user') != null &&
+            prefs.getString('notification_registered_user') != user &&
+            client != null) {
+          await client!.rpc(
+            'revoke_notification_installation',
+            params: {
+              'installation_id': await NotificationIdentity.installationId(),
+              'revocation_secret':
+                  await NotificationIdentity.revocationSecret(),
+            },
+          );
+          await prefs.remove('notification_registered_user');
+        }
         final saved =
             jsonDecode(prefs.getString(_key) ?? '{}') as Map<String, dynamic>;
         enabled = saved['enabled'] == true;
@@ -150,12 +163,14 @@ class NotificationCoordinator extends ChangeNotifier
 
   Future<void> _unregister() async {
     service.cloudActive = false;
-    if (_registeredId != null &&
-        client?.auth.currentUser?.id == _registeredUser) {
-      await client!
-          .from('notification_installations')
-          .delete()
-          .eq('id', _registeredId!);
+    if (_registeredId != null && client != null) {
+      await client!.rpc(
+        'revoke_notification_installation',
+        params: {
+          'installation_id': _registeredId,
+          'revocation_secret': await NotificationIdentity.revocationSecret(),
+        },
+      );
       await (await SharedPreferences.getInstance()).remove(
         'notification_registered_user',
       );
@@ -223,6 +238,8 @@ class NotificationCoordinator extends ChangeNotifier
             'register_notification_installation',
             params: {
               'installation_id': id,
+              'revocation_secret':
+                  await NotificationIdentity.revocationSecret(),
               'device_platform': service.platform,
               'delivery_transport': service.transport,
               'device_token': token,

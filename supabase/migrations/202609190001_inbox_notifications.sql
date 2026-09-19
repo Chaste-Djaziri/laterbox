@@ -8,6 +8,7 @@ create table public.notification_installations (
   platform text not null check (platform in ('ios','android','macos','windows','linux','web')),
   transport text not null check (transport in ('apns','fcm','web','poll')),
   token text,
+  revoke_hash text,
   subscription jsonb,
   enabled boolean not null default false,
   scheduled_returns boolean not null default true,
@@ -23,20 +24,21 @@ grant select, delete on public.notification_installations to authenticated;
 -- Registration goes through an RPC: clients cannot backdate the baseline or change ownership.
 create function public.register_notification_installation(installation_id uuid, device_platform text,
   delivery_transport text, device_token text default null, web_subscription jsonb default null,
-  notifications_enabled boolean default false, returns_enabled boolean default true, saves_enabled boolean default true)
+  notifications_enabled boolean default false, returns_enabled boolean default true, saves_enabled boolean default true, revocation_secret text default null)
 returns void language plpgsql security definer set search_path = public as $$
 begin
   if auth.uid() is null or not public.has_pro_entitlement(auth.uid()) then raise exception 'Cloud sync required'; end if;
+  if revocation_secret is null or length(revocation_secret)<32 then raise exception 'Device revocation secret required'; end if;
   if exists(select 1 from notification_installations where id=installation_id and user_id<>auth.uid()) then raise exception 'Installation belongs to another account'; end if;
-  insert into notification_installations(id,user_id,platform,transport,token,subscription,enabled,scheduled_returns,remote_saves)
-  values(installation_id,auth.uid(),device_platform,delivery_transport,device_token,web_subscription,notifications_enabled,returns_enabled,saves_enabled)
+  insert into notification_installations(id,user_id,platform,transport,token,subscription,enabled,scheduled_returns,remote_saves,revoke_hash)
+  values(installation_id,auth.uid(),device_platform,delivery_transport,device_token,web_subscription,notifications_enabled,returns_enabled,saves_enabled,encode(sha256(convert_to(revocation_secret,'UTF8')),'hex'))
   on conflict(id) do update set platform=excluded.platform,transport=excluded.transport,token=excluded.token,
-    subscription=excluded.subscription,enabled=excluded.enabled,scheduled_returns=excluded.scheduled_returns,
+    subscription=excluded.subscription,revoke_hash=excluded.revoke_hash,enabled=excluded.enabled,scheduled_returns=excluded.scheduled_returns,
     remote_saves=excluded.remote_saves,updated_at=now(),
     enabled_at=case when not notification_installations.enabled and excluded.enabled then now() else notification_installations.enabled_at end;
 end $$;
-revoke all on function public.register_notification_installation(uuid,text,text,text,jsonb,boolean,boolean,boolean) from public;
-grant execute on function public.register_notification_installation(uuid,text,text,text,jsonb,boolean,boolean,boolean) to authenticated;
+revoke all on function public.register_notification_installation(uuid,text,text,text,jsonb,boolean,boolean,boolean,text) from public;
+grant execute on function public.register_notification_installation(uuid,text,text,text,jsonb,boolean,boolean,boolean,text) to authenticated;
 
 create table public.notification_events (
   id uuid primary key default gen_random_uuid(),
@@ -161,3 +163,14 @@ returns boolean language sql security definer set search_path=public as $$
 $$;
 revoke all on function public.notification_delivery_is_current(uuid,uuid,uuid) from public,anon,authenticated;
 grant execute on function public.notification_delivery_is_current(uuid,uuid,uuid) to service_role;
+
+-- A device may revoke its own registration even after its login expires. The
+-- independent 256-bit capability is stored only on that device; only its hash
+-- is persisted here. This RPC cannot read data or register a device.
+create function public.revoke_notification_installation(installation_id uuid, revocation_secret text)
+returns void language sql security definer set search_path=public as $$
+  delete from notification_installations where id=installation_id
+    and revoke_hash=encode(sha256(convert_to(revocation_secret,'UTF8')),'hex');
+$$;
+revoke all on function public.revoke_notification_installation(uuid,text) from public;
+grant execute on function public.revoke_notification_installation(uuid,text) to anon,authenticated;

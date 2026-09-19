@@ -129,13 +129,14 @@ class AuthRepository {
   Future<void> _disconnectNotifications() async {
     final prefs = await SharedPreferences.getInstance();
     await InboxNotificationService.instance.disconnect();
-    if (prefs.getString('notification_registered_user') ==
-            _requiredClient.auth.currentUser?.id &&
-        prefs.getString('notification_registered_user') != null) {
-      await _requiredClient
-          .from('notification_installations')
-          .delete()
-          .eq('id', await NotificationIdentity.installationId());
+    if (prefs.getString('notification_registered_user') != null) {
+      await _requiredClient.rpc(
+        'revoke_notification_installation',
+        params: {
+          'installation_id': await NotificationIdentity.installationId(),
+          'revocation_secret': await NotificationIdentity.revocationSecret(),
+        },
+      );
       await prefs.remove('notification_registered_user');
     }
     await prefs.remove('notification_handed_off');

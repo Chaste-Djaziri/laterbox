@@ -68,7 +68,7 @@ Deno.test('clients cannot claim another device or replace another account regist
     await db.exec(`select set_config('request.role','authenticated',false);`);
     await assertRejects(()=>db.query('select * from claim_notification_deliveries($1)',[unrelated]));
     await assertRejects(()=>db.query(`select register_notification_installation($1,'web','web')`,[unrelated]));
-    await db.query(`select register_notification_installation($1,'linux','poll',null,null,true,true,true)`,[origin]);
+    await db.query(`select register_notification_installation($1,'linux','poll',null,null,true,true,true,'test-revocation-secret-with-sufficient-entropy')`,[origin]);
     await db.query(`insert into items(id,user_id,status) values(gen_random_uuid(),$1,'inbox')`,[a]);
     const polled=await db.query('select * from claim_notification_deliveries($1)',[origin]); assertEquals(polled.rows.length,1);
   } finally { await db.close(); }
