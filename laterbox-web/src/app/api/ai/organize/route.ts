@@ -25,7 +25,7 @@ const FALLBACK_MODELS = [
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
+    const body = (await req.json()) as { items?: any[]; existingCollections?: string[] };
     const { items, existingCollections = [] } = body;
 
     if (!Array.isArray(items) || items.length === 0) {
@@ -115,7 +115,7 @@ Respond strictly in valid JSON format matching this schema:
         );
 
         if (res.ok) {
-          const data = await res.json();
+          const data = (await res.json()) as any;
           const candidate = data.candidates?.[0]?.content?.parts?.[0]?.text;
           if (candidate) {
             responseText = candidate;
@@ -123,7 +123,7 @@ Respond strictly in valid JSON format matching this schema:
             break;
           }
         } else {
-          const errData = await res.json().catch(() => ({}));
+          const errData = (await res.json().catch(() => ({}))) as any;
           lastError = errData?.error?.message || `HTTP ${res.status}`;
           console.warn(`[AI Organize] Model ${model} failed:`, lastError);
         }

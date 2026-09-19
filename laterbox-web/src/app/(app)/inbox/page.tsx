@@ -30,7 +30,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { AiOrganizeModal } from '@/components/inbox/AiOrganizeModal';
-import { OrganizeSuggestion } from '@/app/api/ai/organize/route';
+import { OrganizeSuggestion, OrganizeResponse } from '@/app/api/ai/organize/route';
 import { resolveReturnPreset } from '@/lib/utils/schedule';
 
 export default function InboxPage() {
@@ -88,7 +88,7 @@ export default function InboxPage() {
         }),
       });
 
-      const data = await res.json();
+      const data = (await res.json()) as OrganizeResponse;
       if (data.success && Array.isArray(data.suggestions)) {
         setAiSuggestions(data.suggestions);
         setAiSummary(data.summary || '');
