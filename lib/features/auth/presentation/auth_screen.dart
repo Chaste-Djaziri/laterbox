@@ -282,7 +282,13 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
               Row(
                 children: [
                   IconButton(
-                    onPressed: () => context.pop(),
+                    onPressed: () {
+                      if (context.canPop()) {
+                        context.pop();
+                      } else {
+                        context.go('/welcome');
+                      }
+                    },
                     icon: const Icon(Icons.arrow_back_ios_new_rounded),
                   ),
                   Image.asset(
