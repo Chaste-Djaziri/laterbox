@@ -24,8 +24,6 @@ import {
   LogIn,
   LogOut,
   User,
-  ChevronsLeft,
-  ChevronsRight,
   ChevronRight,
   Crown,
   Archive,
@@ -193,18 +191,6 @@ export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
               </span>
             )}
           </Link>
-
-          <button
-            onClick={() => setCollapsed(!collapsed)}
-            title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-            className="p-1 rounded-lg text-[#6c6b63] hover:text-[#171711] hover:bg-[#ebe7dc]/60 transition-colors"
-          >
-            {collapsed ? (
-              <ChevronsRight className="w-4 h-4" />
-            ) : (
-              <ChevronsLeft className="w-4 h-4" />
-            )}
-          </button>
         </div>
 
         {/* Quick Capture Button */}
