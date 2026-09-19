@@ -277,6 +277,9 @@ jobs:
         with:
           channel: 'stable'
 
+      - name: Disable Swift Package Manager
+        run: flutter config --no-enable-swift-package-manager
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -962,6 +965,9 @@ jobs:
         with:
           channel: 'stable'
           cache: true
+
+      - name: Disable Swift Package Manager
+        run: flutter config --no-enable-swift-package-manager
 
       - name: Install Dependencies
         run: |
