@@ -268,21 +268,24 @@ class _TypeFilterChips extends ConsumerWidget {
       data: (counts) {
         if (counts.isEmpty) return const SizedBox.shrink();
         return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-          child: Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              for (final (typeString, count) in counts)
-                _TypeChip(
-                  type: ContentType.fromString(typeString),
-                  count: count,
-                  selected: active == typeString,
-                  onTap: () => ref
-                      .read(searchContentTypeProvider.notifier)
-                      .state = active == typeString ? null : typeString,
-                ),
-            ],
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          height: 40,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            itemCount: counts.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 8),
+            itemBuilder: (context, index) {
+              final (typeString, count) = counts[index];
+              return _TypeChip(
+                type: ContentType.fromString(typeString),
+                count: count,
+                selected: active == typeString,
+                onTap: () => ref
+                    .read(searchContentTypeProvider.notifier)
+                    .state = active == typeString ? null : typeString,
+              );
+            },
           ),
         );
       },
