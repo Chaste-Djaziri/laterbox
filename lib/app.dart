@@ -24,6 +24,9 @@ import 'features/attachments/domain/attachment_import_result.dart';
 import 'features/capture/domain/capture_providers.dart';
 import 'features/capture/domain/capture_payload.dart';
 import 'core/ios/ios_live_activity_service.dart';
+import 'core/settings/display_name_provider.dart';
+import 'core/supabase/supabase_provider.dart';
+import 'core/sync/sync_providers.dart';
 import 'features/capture/domain/native_share_payload.dart';
 import 'features/capture/presentation/ios_clipboard_capture_overlay.dart';
 import 'features/capture/presentation/ios_notch_companion_controller.dart';
@@ -77,6 +80,11 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
       if (mounted) {
         ref.read(enrichmentCoordinatorProvider);
         ref.read(notificationCoordinatorProvider);
+        ref.read(syncCoordinatorProvider).requestSync();
+        final client = ref.read(supabaseClientProvider);
+        if (client?.auth.currentUser != null) {
+          unawaited(ref.read(displayNameProvider.notifier).refresh());
+        }
         _drainPendingShares();
       }
     });
@@ -161,6 +169,11 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       ref.invalidate(entitlementProvider);
+      ref.read(syncCoordinatorProvider).requestSync();
+      final client = ref.read(supabaseClientProvider);
+      if (client?.auth.currentUser != null) {
+        unawaited(ref.read(displayNameProvider.notifier).refresh());
+      }
       _drainPendingShares();
       if (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS) {
         ref.read(iosAppStoreUpdateProvider.notifier).checkForUpdate();
