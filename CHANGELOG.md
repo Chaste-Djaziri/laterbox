@@ -5,6 +5,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 ## [Unreleased]
 
 ### Changed
+- **Responsive Mobile Preview Scaling**: Added responsive proportional scaling to both marketing dashboard previews (Hero and 'Designed to stay out of your way' showcase). Mockups preserve their fixed desktop layout, side-by-side dimensions, and proportions on mobile screens, smoothly scaling down to fit viewport widths without reflowing.
 - **Web Landing Page Hero Dashboard Preview Alignment**: Aligned the hero dashboard preview dimensions and container styling to match the 'Designed to stay out of your way' showcase section (`max-w-6xl mx-auto rounded-[32px]`), removing the macOS traffic lights top bar and bottom status bars, while retaining the floating 'TRY IT ↓' indicator.
 - **Web Landing Page Pre-Footer Border**: Removed the dividing line border between the 'One Unified Vault Across All Your Devices' section and the 'Drop it now. Deal with it later.' pre-footer CTA section for a seamless white flow.
 - **Web Landing Page Pre-Footer CTA White Background**: Updated the pre-footer download CTA section to use a clean white section background (`bg-white`) matching the preceding section while keeping the dark container card background.
