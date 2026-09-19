@@ -225,7 +225,7 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
               return SingleChildScrollView(
                 padding: EdgeInsets.fromLTRB(
                   24,
-                  isDesktop ? (isMac ? 40 : 28) : 16,
+                  isDesktop ? (isMac ? 40 : 28) : 0,
                   24,
                   24,
                 ),
