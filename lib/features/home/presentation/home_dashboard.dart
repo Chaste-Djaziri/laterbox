@@ -225,7 +225,7 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
                               ],
                             ),
                           ),
-                        const SizedBox(height: 28),
+                        const SizedBox(height: 16),
                         if (!isDesktop)
                           GestureDetector(
                             onTap: () => context.push('/search'),
