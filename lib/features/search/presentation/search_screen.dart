@@ -267,25 +267,27 @@ class _TypeFilterChips extends ConsumerWidget {
       error: (error, stackTrace) => const SizedBox.shrink(),
       data: (counts) {
         if (counts.isEmpty) return const SizedBox.shrink();
-        return Container(
+        return Padding(
           padding: const EdgeInsets.symmetric(vertical: 8),
-          height: 48,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            itemCount: counts.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 8),
-            itemBuilder: (context, index) {
-              final (typeString, count) = counts[index];
-              return _TypeChip(
-                type: ContentType.fromString(typeString),
-                count: count,
-                selected: active == typeString,
-                onTap: () => ref
-                    .read(searchContentTypeProvider.notifier)
-                    .state = active == typeString ? null : typeString,
-              );
-            },
+          child: SizedBox(
+            height: 52,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              itemCount: counts.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 8),
+              itemBuilder: (context, index) {
+                final (typeString, count) = counts[index];
+                return _TypeChip(
+                  type: ContentType.fromString(typeString),
+                  count: count,
+                  selected: active == typeString,
+                  onTap: () => ref
+                      .read(searchContentTypeProvider.notifier)
+                      .state = active == typeString ? null : typeString,
+                );
+              },
+            ),
           ),
         );
       },
@@ -315,7 +317,7 @@ class _TypeChip extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
           color: selected
               ? (isDark ? Colors.white : const Color(0xFF171711))
