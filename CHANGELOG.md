@@ -5,6 +5,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 ## [Unreleased]
 
 ### Changed
+- **iOS TestFlight Build 170**: Incremented the iOS bundle build number so the App Group-enabled release can be uploaded after build 169.
 - **iOS-Only Release Trigger**: Release commits marked `[ios-only]` now build and submit only the iOS app, making TestFlight fixes faster without rebuilding unrelated platforms.
 - **Fix iOS Share Extension Release Signing**: iOS release builds can now be dispatched independently, allowing the app and Share Extension provisioning profiles to be validated and published together without triggering unrelated platform releases.
 - **Fix macOS Release CI Toolchain**: The macOS release workflow now uses the Xcode version supplied by the macOS 15 runner instead of forcing the older Xcode 16.2 toolchain, restoring compatibility with the current Flutter plugin sources used for App Store and TestFlight builds.
