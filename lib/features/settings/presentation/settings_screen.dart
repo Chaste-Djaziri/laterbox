@@ -49,11 +49,10 @@ class SettingsScreen extends ConsumerWidget {
               width >= 700)
         : width >= 900;
 
-    final auth = ref.watch(authStateProvider).asData?.value;
-    final isGuest =
-        ref.watch(guestModeProvider) || !(auth?.isAuthenticated ?? false);
-    final email = auth?.email;
-    final userId = auth?.userId;
+    final auth = ref.watch(currentAuthStateProvider);
+    final isGuest = ref.watch(isGuestProvider);
+    final email = auth.email;
+    final userId = auth.userId;
 
     return Scaffold(
       appBar: AppBar(
