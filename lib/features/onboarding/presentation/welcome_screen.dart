@@ -53,7 +53,15 @@ class WelcomeScreen extends StatelessWidget {
                   height: 1.5,
                 ),
               ),
-              const SizedBox(height: 28),
+              const SizedBox(height: 24),
+              Center(
+                child: Image.asset(
+                  'assets/backgrounds/onboarding-hero.png',
+                  height: compact ? 260 : 340,
+                  fit: BoxFit.contain,
+                ),
+              ),
+              const Spacer(),
               FilledButton(
                 onPressed: () => context.go('/login?mode=signup'),
                 style: FilledButton.styleFrom(
