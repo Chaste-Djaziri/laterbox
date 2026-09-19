@@ -1000,11 +1000,197 @@ class _ItemDetailBody extends ConsumerWidget {
                 ),
               ],
               if (effectiveUrl != null) ...[
-                const SizedBox(height: 20),
-                FilledButton.icon(
-                  onPressed: () => openOriginalForItem(context, effectiveItem),
-                  icon: const Icon(Icons.open_in_new_rounded, size: 18),
-                  label: const Text('Open original'),
+                const SizedBox(height: 24),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    border: Border(
+                      top: BorderSide(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .outlineVariant
+                            .withValues(alpha: 0.4),
+                      ),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          if (isMusic) ...[
+                            Icon(
+                              Icons.music_note_rounded,
+                              size: 16,
+                              color: const Color(0xFF1db954),
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Spotify',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: const Color(0xFF1db954),
+                              ),
+                            ),
+                          ] else if (isVideo) ...[
+                            Icon(
+                              Icons.play_circle_fill_rounded,
+                              size: 16,
+                              color: const Color(0xFFea4335),
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              'YouTube',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: const Color(0xFFea4335),
+                              ),
+                            ),
+                          ] else if (isPsd) ...[
+                            Container(
+                              width: 18,
+                              height: 18,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF001e36),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: const Center(
+                                child: Text(
+                                  'Ps',
+                                  style: TextStyle(
+                                    color: Color(0xFF31a8ff),
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            const Text(
+                              'Adobe Photoshop',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ] else if (isPdf) ...[
+                            const Icon(
+                              Icons.picture_as_pdf_rounded,
+                              size: 16,
+                              color: Color(0xFFef4444),
+                            ),
+                            const SizedBox(width: 6),
+                            const Text(
+                              'PDF Document',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFFef4444),
+                              ),
+                            ),
+                          ] else if (isArticle) ...[
+                            Container(
+                              width: 18,
+                              height: 18,
+                              decoration: BoxDecoration(
+                                color: Colors.black,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: const Center(
+                                child: Text(
+                                  'N',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            const Text(
+                              'Notion',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ] else ...[
+                            Icon(
+                              Icons.link_rounded,
+                              size: 16,
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              eyebrow,
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                          const SizedBox(width: 8),
+                          Text(
+                            '·',
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            timeago.format(item.createdAt),
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                      GestureDetector(
+                        onTap: () =>
+                            openOriginalForItem(context, effectiveItem),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 10,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF171711),
+                            borderRadius: BorderRadius.circular(24),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                isMusic
+                                    ? 'Open in Spotify'
+                                    : isVideo
+                                        ? 'Watch on YouTube'
+                                        : isArticle
+                                            ? 'Open in Notion'
+                                            : 'Open Link',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              const Icon(
+                                Icons.open_in_new_rounded,
+                                size: 12,
+                                color: Colors.white,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ],
