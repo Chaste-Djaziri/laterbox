@@ -998,7 +998,7 @@ class _VideoBanner extends StatelessWidget {
               child: Image.network(
                 coverUrl,
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => const Center(
+                errorBuilder: (_, _, _) => const Center(
                   child: Icon(Icons.play_circle_outline_rounded,
                       color: Colors.white24, size: 48),
                 ),
@@ -1079,7 +1079,7 @@ class _MusicBanner extends StatelessWidget {
               child: Image.network(
                 coverUrl,
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Container(
+                errorBuilder: (_, _, _) => Container(
                   decoration: const BoxDecoration(
                     gradient: LinearGradient(
                       begin: Alignment.topCenter,

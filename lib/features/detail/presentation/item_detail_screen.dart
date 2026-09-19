@@ -457,7 +457,7 @@ class _ItemDetailBody extends ConsumerWidget {
                       width: double.infinity,
                       height: 260,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Container(
+                      errorBuilder: (_, _, _) => Container(
                         width: double.infinity,
                         height: 260,
                         decoration: const BoxDecoration(
@@ -564,7 +564,7 @@ class _ItemDetailBody extends ConsumerWidget {
                       width: double.infinity,
                       height: 260,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Container(
+                      errorBuilder: (_, _, _) => Container(
                         width: double.infinity,
                         height: 260,
                         decoration: const BoxDecoration(
@@ -758,7 +758,7 @@ class _ItemDetailBody extends ConsumerWidget {
                         favicon,
                         width: 16,
                         height: 16,
-                        errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                        errorBuilder: (_, _, _) => const SizedBox.shrink(),
                       ),
                     ),
                   if (eyebrow.isNotEmpty)
