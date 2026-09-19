@@ -39,12 +39,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const supabase = getSupabaseClient();
 
-    // Check custom saved name
-    const savedName = localStorage.getItem(USER_NAME_KEY);
-    if (savedName) {
-      setUserNameState(savedName);
-    }
-
     // Check guest mode from localStorage
     const savedGuest = localStorage.getItem(GUEST_KEY);
     if (savedGuest === 'true') {
@@ -58,11 +52,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (session?.user) {
         setIsGuest(false);
         localStorage.removeItem(GUEST_KEY);
-        if (!localStorage.getItem(USER_NAME_KEY)) {
-          const derived =
-            session.user.user_metadata?.full_name?.split(' ')[0] ||
-            session.user.email?.split('@')[0] ||
-            '';
+        const metaName = session.user.user_metadata?.display_name as string;
+        if (metaName) {
+          setUserNameState(metaName);
+          localStorage.setItem(USER_NAME_KEY, metaName);
+        } else if (!localStorage.getItem(USER_NAME_KEY)) {
+          const derived = session.user.email?.split('@')[0] || '';
           if (derived) setUserNameState(derived);
         }
       }
@@ -78,11 +73,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (session?.user) {
         setIsGuest(false);
         localStorage.removeItem(GUEST_KEY);
-        if (!localStorage.getItem(USER_NAME_KEY)) {
-          const derived =
-            session.user.user_metadata?.full_name?.split(' ')[0] ||
-            session.user.email?.split('@')[0] ||
-            '';
+        const metaName = session.user.user_metadata?.display_name as string;
+        if (metaName) {
+          setUserNameState(metaName);
+          localStorage.setItem(USER_NAME_KEY, metaName);
+        } else if (!localStorage.getItem(USER_NAME_KEY)) {
+          const derived = session.user.email?.split('@')[0] || '';
           if (derived) setUserNameState(derived);
         }
       }
@@ -94,9 +90,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const setUserName = (name: string) => {
+  const setUserName = async (name: string) => {
     const trimmed = name.trim();
     setUserNameState(trimmed);
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      await supabase.auth.updateUser({
+        data: { display_name: trimmed || null },
+      });
+    }
     if (trimmed) {
       localStorage.setItem(USER_NAME_KEY, trimmed);
     } else {

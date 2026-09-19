@@ -21,6 +21,7 @@ function LoginContent() {
     signInWithOtp,
     verifyEmailOtp,
     continueAsGuest,
+    setUserName,
   } = useAuth();
 
   const [email, setEmail] = useState('');
@@ -83,9 +84,9 @@ function LoginContent() {
     router.push('/home');
   };
 
-  const handleSaveDisplayName = () => {
+  const handleSaveDisplayName = async () => {
     if (displayName.trim()) {
-      localStorage.setItem('laterbox_display_name', displayName.trim());
+      await setUserName(displayName.trim());
     }
     router.push(nextPath);
   };

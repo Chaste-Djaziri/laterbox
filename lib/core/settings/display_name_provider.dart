@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
-const _key = 'laterbox_display_name';
+import '../supabase/supabase_provider.dart';
 
 final displayNameProvider =
     NotifierProvider<DisplayNameNotifier, String?>(DisplayNameNotifier.new);
@@ -13,20 +13,29 @@ class DisplayNameNotifier extends Notifier<String?> {
     return null;
   }
 
-  Future<void> _load() async {
-    final prefs = await SharedPreferences.getInstance();
-    state = prefs.getString(_key);
+  void _load() {
+    final client = ref.read(supabaseClientProvider);
+    final user = client?.auth.currentUser;
+    state = user?.userMetadata?['display_name'] as String?;
   }
 
   Future<void> set(String name) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_key, name);
+    final client = ref.read(supabaseClientProvider);
+    if (client != null) {
+      await client.auth.updateUser(
+        UserAttributes(data: {'display_name': name}),
+      );
+    }
     state = name;
   }
 
   Future<void> clear() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_key);
+    final client = ref.read(supabaseClientProvider);
+    if (client != null) {
+      await client.auth.updateUser(
+        const UserAttributes(data: {'display_name': null}),
+      );
+    }
     state = null;
   }
 }
