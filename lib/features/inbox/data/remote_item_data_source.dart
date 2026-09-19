@@ -1,6 +1,8 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/database/app_database.dart';
+import '../../../core/notifications/notification_identity.dart';
+import '../../../core/notifications/notification_service.dart';
 
 abstract interface class RemoteItemDataSource {
   Future<List<RemoteItem>> fetchItems(String userId);
@@ -25,7 +27,11 @@ class SupabaseRemoteItemDataSource implements RemoteItemDataSource {
 
   @override
   Future<void> upsertItem(Item item) async {
-    await _client.from('items').upsert(item.toRemoteJson(), onConflict: 'id');
+    await InboxNotificationService.instance.prepareUpload(item.id);
+    await _client.from('items').upsert({
+      ...item.toRemoteJson(),
+      'origin_installation_id': await NotificationIdentity.installationId(),
+    }, onConflict: 'id');
   }
 }
 

@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/desktop/desktop_actions.dart';
+import 'core/notifications/notification_coordinator.dart';
 import 'core/billing/billing_providers.dart';
 import 'core/desktop/desktop_capabilities.dart';
 import 'core/desktop/desktop_providers.dart';
@@ -59,8 +60,8 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
         .read(iosShareReceiverProvider)
         .onShareAvailable
         .listen((_) {
-      _drainPendingShares();
-    });
+          _drainPendingShares();
+        });
     ref.listenManual(entitlementProvider, (_, next) {
       next.whenData((entitlement) {
         unawaited(
@@ -75,6 +76,7 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         ref.read(enrichmentCoordinatorProvider);
+        ref.read(notificationCoordinatorProvider);
         _drainPendingShares();
       }
     });
@@ -95,17 +97,22 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
 
   void _handleAppLink(Uri uri) {
     if (uri.scheme == 'laterbox' && uri.host == 'share') {
-      final value = uri.queryParameters['value'] ??
+      final value =
+          uri.queryParameters['value'] ??
           uri.queryParameters['url'] ??
           uri.queryParameters['text'];
       if (value != null && value.isNotEmpty) {
-        final id = uri.queryParameters['id'] ??
+        final id =
+            uri.queryParameters['id'] ??
             DateTime.now().microsecondsSinceEpoch.toString();
         final returnAtStr = uri.queryParameters['returnAt'];
-        final returnAt =
-            returnAtStr != null ? DateTime.tryParse(returnAtStr) : null;
+        final returnAt = returnAtStr != null
+            ? DateTime.tryParse(returnAtStr)
+            : null;
         unawaited(
-          ref.read(captureServiceProvider).save(
+          ref
+              .read(captureServiceProvider)
+              .save(
                 CapturePayload.fromValue(
                   value,
                   id: id,
@@ -254,7 +261,9 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
             '[LaterBox] WARNING: iOS App Group container is not accessible on this device. '
             'Check App Group entitlements and provisioning profile.',
           );
-          ref.read(iosNotchCompanionProvider.notifier).showError(
+          ref
+              .read(iosNotchCompanionProvider.notifier)
+              .showError(
                 'App Group container not accessible. Shares cannot sync from extension.',
               );
         }
@@ -296,12 +305,16 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
               final returnSchedule = payload.returnAt != null
                   ? _formatReturnSchedule(payload.returnAt!)
                   : null;
-              ref.read(iosNotchCompanionProvider.notifier).showSavedConfirmation(
+              ref
+                  .read(iosNotchCompanionProvider.notifier)
+                  .showSavedConfirmation(
                     title: _shareReceiptTitle(payload),
                     subtitle: value,
                     returnAt: payload.returnAt,
                   );
-              ref.read(iosLiveActivityServiceProvider).startActivity(
+              ref
+                  .read(iosLiveActivityServiceProvider)
+                  .startActivity(
                     id: payload.id,
                     title: _shareReceiptTitle(payload),
                     subtitle: value,
@@ -317,10 +330,12 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
                   'Could not import this shared item. Open LaterBox to retry.',
             );
           } else if (Platform.isIOS) {
-            ref.read(iosNotchCompanionProvider.notifier).showError(
-                  'Could not save shared item to LaterBox.',
-                );
-            ref.read(iosLiveActivityServiceProvider).startActivity(
+            ref
+                .read(iosNotchCompanionProvider.notifier)
+                .showError('Could not save shared item to LaterBox.');
+            ref
+                .read(iosLiveActivityServiceProvider)
+                .startActivity(
                   id: payload.id,
                   title: "Couldn't save item",
                   subtitle: payload.text,
@@ -330,10 +345,12 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
           }
         } catch (error) {
           if (Platform.isIOS) {
-            ref.read(iosNotchCompanionProvider.notifier).showError(
-                  'Error saving shared item: $error',
-                );
-            ref.read(iosLiveActivityServiceProvider).startActivity(
+            ref
+                .read(iosNotchCompanionProvider.notifier)
+                .showError('Error saving shared item: $error');
+            ref
+                .read(iosLiveActivityServiceProvider)
+                .startActivity(
                   id: payload.id,
                   title: "Couldn't save item",
                   subtitle: error.toString(),
@@ -351,9 +368,9 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
     } on Object catch (error, stackTrace) {
       debugPrint('Failed to import Apple shares: $error\n$stackTrace');
       if (!kIsWeb && Platform.isIOS) {
-        ref.read(iosNotchCompanionProvider.notifier).showError(
-              'Could not sync share from extension: $error',
-            );
+        ref
+            .read(iosNotchCompanionProvider.notifier)
+            .showError('Could not sync share from extension: $error');
       }
     }
   }
@@ -364,7 +381,9 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
       return 'Today';
     }
     final tomorrow = now.add(const Duration(days: 1));
-    if (d.year == tomorrow.year && d.month == tomorrow.month && d.day == tomorrow.day) {
+    if (d.year == tomorrow.year &&
+        d.month == tomorrow.month &&
+        d.day == tomorrow.day) {
       return 'Tomorrow';
     }
     return '${d.month}/${d.day}';
@@ -484,9 +503,8 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
           child: Overlay(
             initialEntries: [
               OverlayEntry(
-                builder: (context) => IosClipboardCaptureOverlay(
-                  child: content,
-                ),
+                builder: (context) =>
+                    IosClipboardCaptureOverlay(child: content),
               ),
             ],
           ),

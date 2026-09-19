@@ -9,6 +9,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/auth/auth_provider.dart';
+import '../../../core/notifications/notification_settings.dart';
 import '../../../core/billing/billing_providers.dart';
 import '../../../core/billing/entitlement.dart';
 import '../../../core/billing/entitlement_presentation.dart';
@@ -79,6 +80,9 @@ class SettingsScreen extends ConsumerWidget {
             vertical: 16,
           ),
           children: [
+            _SectionHeader('Notifications'),
+            const InboxNotificationSettings(),
+            const SizedBox(height: 12),
             _SectionHeader('Plan'),
             const _ProSubscriptionCard(),
             const SizedBox(height: 12),
