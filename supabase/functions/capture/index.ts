@@ -122,7 +122,7 @@ export const createCaptureHandler = (
     const row = {
       id: itemId,
       user_id: userId,
-      origin_installation_id: originInstallationId,
+      ...(originInstallationId ? { origin_installation_id: originInstallationId } : {}),
       url: capture.url,
       title: capture.title,
       text_content: capture.text,
