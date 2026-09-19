@@ -19,10 +19,19 @@ class WelcomeScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Image.asset(
-                'assets/branding/laterbox-logo.png',
-                height: compact ? 40 : 48,
-                fit: BoxFit.contain,
+              Row(
+                children: [
+                  Image.asset(
+                    'assets/branding/laterbox-logo.png',
+                    height: compact ? 40 : 48,
+                    fit: BoxFit.contain,
+                  ),
+                  const Spacer(),
+                  TextButton(
+                    onPressed: () => context.go('/login?mode=signin'),
+                    child: const Text('Sign in'),
+                  ),
+                ],
               ),
               const Spacer(),
               Center(
@@ -57,15 +66,11 @@ class WelcomeScreen extends StatelessWidget {
               FilledButton(
                 onPressed: () => context.go('/login?mode=signup'),
                 style: FilledButton.styleFrom(
-                  minimumSize: const Size.fromHeight(52),
+                  minimumSize: const Size.fromHeight(60),
                 ),
-                child: const Text('Get started'),
-              ),
-              const SizedBox(height: 12),
-              Center(
-                child: TextButton(
-                  onPressed: () => context.go('/login?mode=signin'),
-                  child: const Text('Sign in'),
+                child: const Text(
+                  'Get started',
+                  style: TextStyle(fontSize: 17),
                 ),
               ),
             ],
