@@ -33,7 +33,7 @@ class DisplayNameNotifier extends Notifier<String?> {
     final client = ref.read(supabaseClientProvider);
     if (client != null) {
       await client.auth.updateUser(
-        const UserAttributes(data: {'display_name': null}),
+        UserAttributes(data: {'display_name': null}),
       );
     }
     state = null;
