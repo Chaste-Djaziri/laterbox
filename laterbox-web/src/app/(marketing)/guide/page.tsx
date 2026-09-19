@@ -127,7 +127,8 @@ export default function GuidePage() {
   ];
 
   const shortcuts = [
-    { key: '⌘ + K  /  Ctrl + K', action: 'Open Quick Capture dialog from anywhere' },
+    { key: '⌃ + ⌥ + L  /  Ctrl + Alt + L', action: 'Open Quick Capture dialog from anywhere' },
+    { key: '⌘ + K  /  Ctrl + K', action: 'Open Search Modal or focus on-page search bar' },
     { key: '⌘ + Enter  /  Ctrl + Enter', action: 'Save and submit current capture item' },
     { key: '⌘ + F  /  /', action: 'Focus Deep Search input bar' },
     { key: 'Esc', action: 'Close reader modal, search drawer, or active dialog' },
