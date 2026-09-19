@@ -324,10 +324,10 @@ export default function LandingPage() {
 
 
       {/* ============================================================ */}
-      {/* Pre-Footer Final Download CTA Banner (Black Container Only) */}
+      {/* Pre-Footer Final Download CTA Banner (White Section, Black Container) */}
       {/* ============================================================ */}
-      <section className="bg-transparent py-20 sm:py-28 max-w-5xl mx-auto px-4 sm:px-6">
-        <div className="relative rounded-3xl sm:rounded-[36px] bg-[#171711] p-10 sm:p-16 lg:p-20 text-center text-white shadow-2xl overflow-hidden border border-[#2e2d28]">
+      <section className="bg-white py-20 sm:py-28 px-4 sm:px-6">
+        <div className="max-w-5xl mx-auto relative rounded-3xl sm:rounded-[36px] bg-[#171711] p-10 sm:p-16 lg:p-20 text-center text-white shadow-2xl overflow-hidden border border-[#2e2d28]">
           <div className="relative z-10 max-w-3xl mx-auto flex flex-col items-center">
             {/* Main Headline */}
             <div className="space-y-1 sm:space-y-2 mb-8 sm:mb-10">
