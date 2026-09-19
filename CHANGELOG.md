@@ -5,6 +5,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 ## [Unreleased]
 
 ### Changed
+- **Removed Sidebar Collapse Icon**: Removed the sidebar collapse chevron toggle button from the application sidebar header (`AppSidebar.tsx`), keeping the sidebar stably expanded with clean brand presentation.
 - **Multi-Platform Identification & Rich Previews on Item Details Page**: Upgraded the item details page (`/item/[id]`) with the same rich multi-platform identification and preview architecture found on item cards. Includes dedicated visual media banners for Photoshop/design files (vibrant gradient with Adobe `Ps` squircle and `• Design File` badge), PDF documents (simulated document sheet with red `PDF` badge and interactive viewer), Videos (hero cover thumbnail, `youtube.com` domain pill, and `▶ Video` badge), Music (Spotify album artwork with floating play button and `♪ Music` badge), Notes (paper squircle and `• Note` badge), and Articles (Notion branding with `Article` badge), complete with tag chips and platform actions.
 - **Expanded Spacing Between Search Bar and Greeting Title**: Added generous vertical breathing room between the top search omnibar and the greeting header on the home dashboard (`/home`), establishing a cleaner visual hierarchy and preventing compressed layout above the greeting title.
 
