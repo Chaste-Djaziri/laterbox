@@ -320,13 +320,10 @@ export default function LandingPage() {
 
 
       {/* ============================================================ */}
-      {/* Pre-Footer Final Download CTA Banner (Black Background) */}
+      {/* Pre-Footer Final Download CTA Banner (Black Container Only) */}
       {/* ============================================================ */}
-      <section className="py-20 sm:py-28 max-w-5xl mx-auto px-4 sm:px-6">
+      <section className="bg-transparent py-20 sm:py-28 max-w-5xl mx-auto px-4 sm:px-6">
         <div className="relative rounded-3xl sm:rounded-[36px] bg-[#171711] p-10 sm:p-16 lg:p-20 text-center text-white shadow-2xl overflow-hidden border border-[#2e2d28]">
-          {/* Subtle ambient bloom in green accent */}
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-64 bg-[#e6edb0]/10 rounded-full blur-3xl pointer-events-none" />
-
           <div className="relative z-10 max-w-3xl mx-auto flex flex-col items-center">
             {/* Main Headline */}
             <div className="space-y-1 sm:space-y-2 mb-8 sm:mb-10">
