@@ -116,9 +116,12 @@ export default function LandingPage() {
               .
             </p>
           </div>
+        </div>
 
+        {/* Hero Dashboard Preview Container with identical max-w-6xl dimensions as Designed to stay section */}
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           {/* Floating Try It Badge Indicator */}
-          <div className="mt-12 sm:mt-16 max-w-5xl mx-auto flex justify-start pl-6 sm:pl-10 mb-[-12px] relative z-20">
+          <div className="mt-12 sm:mt-16 flex justify-start pl-6 sm:pl-10 mb-[-12px] relative z-20">
             <a
               href="#live-guest-sandbox"
               className="inline-flex flex-col items-center group cursor-pointer"

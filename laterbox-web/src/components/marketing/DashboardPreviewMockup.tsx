@@ -17,10 +17,7 @@ import {
   Video,
   CheckSquare,
   Link2,
-  Globe2,
-  ExternalLink,
   ArrowRight,
-  Sparkles,
 } from 'lucide-react';
 
 // Stylized LaterBox Inbox/Tray Icon adhering to Web Theme palette
@@ -81,44 +78,12 @@ export function DashboardPreviewMockup() {
   return (
     <div
       id="live-guest-sandbox"
-      className="max-w-6xl mx-auto rounded-3xl sm:rounded-[32px] bg-white border border-[#e4e0d5] shadow-2xl overflow-hidden text-left scroll-mt-24 select-none"
+      className="max-w-6xl mx-auto rounded-[32px] bg-white border border-[#e4e0d5] shadow-2xl overflow-hidden text-left flex flex-col md:flex-row select-none scroll-mt-24"
     >
-      {/* Window Top Bar with macOS Traffic Lights & Controls */}
-      <div className="flex flex-wrap items-center justify-between gap-3 px-4 sm:px-6 py-3.5 border-b border-[#e4e0d5] bg-[#faf8f2]">
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-[#ff5f56]" />
-            <div className="w-3 h-3 rounded-full bg-[#ffbd2e]" />
-            <div className="w-3 h-3 rounded-full bg-[#27c93f]" />
-          </div>
-          <div className="hidden sm:flex items-center gap-2 px-2.5 py-1 rounded-lg bg-white border border-[#e4e0d5] text-xs font-mono text-[#6c6b63] shadow-2xs">
-            <Globe2 className="w-3.5 h-3.5 text-[#9e9b92]" />
-            <span>laterbox.app/{activeTab.toLowerCase().replace(' ', '')}</span>
-          </div>
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#e6edb0] border border-[#d0db84] text-[10px] font-black text-[#171711] tracking-wide uppercase shadow-2xs">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#27c93f] animate-pulse" />
-            <span>Interactive Preview</span>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <Link
-            href="/home"
-            className="inline-flex items-center gap-1.5 text-xs font-bold text-[#171711] bg-white border border-[#e4e0d5] hover:border-[#171711] px-3.5 py-1.5 rounded-xl shadow-2xs transition-all"
-            title="Open real web app in full window"
-          >
-            <span>Open Web App</span>
-            <ExternalLink className="w-3 h-3" />
-          </Link>
-        </div>
-      </div>
-
-      {/* Main Dashboard Window Body */}
-      <div className="flex flex-col md:flex-row bg-white min-h-[580px]">
-        {/* ============================================================ */}
-        {/* Left Sidebar */}
-        {/* ============================================================ */}
-        <aside className="w-full md:w-64 border-r border-[#f0ede4] p-5 bg-[#faf8f2] flex flex-col justify-between shrink-0">
+      {/* ============================================================ */}
+      {/* Left Sidebar */}
+      {/* ============================================================ */}
+      <aside className="w-full md:w-64 border-r border-[#f0ede4] p-5 bg-[#faf8f2] flex flex-col justify-between shrink-0">
           <div>
             {/* Brand Logo Header */}
             <div className="flex items-center gap-2.5 px-2 py-1 mb-5">
@@ -463,27 +428,6 @@ export function DashboardPreviewMockup() {
             </div>
           </div>
         </main>
-      </div>
-
-      {/* Sandbox Bottom Live Status Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 px-4 sm:px-6 py-3 bg-[#faf8f2] border-t border-[#e4e0d5] text-xs text-[#6c6b63]">
-        <div className="flex items-center gap-2">
-          <Sparkles className="w-3.5 h-3.5 text-[#171711]" />
-          <span className="font-semibold text-[#171711]">
-            Interactive desktop &amp; web preview:
-          </span>
-          <span className="hidden sm:inline">
-            Press ⌥ Space or ⌘ K anywhere to capture, schedule returns, and declutter your mind.
-          </span>
-        </div>
-        <Link
-          href="/home"
-          className="inline-flex items-center gap-1 font-extrabold text-[#171711] hover:underline"
-        >
-          <span>Launch in full window</span>
-          <ArrowRight className="w-3.5 h-3.5" />
-        </Link>
-      </div>
 
       {/* Interactive Toast */}
       {droppedToast && (
