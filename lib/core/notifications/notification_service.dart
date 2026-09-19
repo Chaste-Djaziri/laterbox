@@ -235,10 +235,12 @@ class InboxNotificationService {
     if (_initializing == null) return;
     await initialize();
     await cancelAll();
-    if (Platform.isAndroid && _firebaseReady)
+    if (Platform.isAndroid && _firebaseReady) {
       await FirebaseMessaging.instance.deleteToken();
-    if (Platform.isIOS || Platform.isMacOS)
+    }
+    if (Platform.isIOS || Platform.isMacOS) {
       await _apple.invokeMethod<void>('unregister');
+    }
   }
 
   Future<void> cancelAll() async {

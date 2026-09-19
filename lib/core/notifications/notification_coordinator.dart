@@ -104,7 +104,7 @@ class NotificationCoordinator extends ChangeNotifier
       final changed = !_configured || user != _user;
       if (!changed && pro == _pro) return;
       if (changed) {
-        await _unregister();
+        if (_configured) await _unregister();
         await _itemsSubscription?.cancel();
         await service.initialize();
         await service.cancelAll();
@@ -114,6 +114,11 @@ class NotificationCoordinator extends ChangeNotifier
         service.suspended = false;
         _configured = true;
         final prefs = await SharedPreferences.getInstance();
+        if (prefs.getString('notification_registered_user') == user &&
+            user != null) {
+          _registeredUser = user;
+          _registeredId = await NotificationIdentity.installationId();
+        }
         final saved =
             jsonDecode(prefs.getString(_key) ?? '{}') as Map<String, dynamic>;
         enabled = saved['enabled'] == true;
@@ -145,6 +150,9 @@ class NotificationCoordinator extends ChangeNotifier
           .from('notification_installations')
           .delete()
           .eq('id', _registeredId!);
+      await (await SharedPreferences.getInstance()).remove(
+        'notification_registered_user',
+      );
     }
     _registeredId = null;
     _registeredUser = null;
@@ -195,7 +203,7 @@ class NotificationCoordinator extends ChangeNotifier
       _notify();
       return;
     }
-    var cloud = false;
+    var cloud = _pro && _user != null && _registeredUser == _user;
     if (_user != null && _pro && client != null) {
       final token = await service.token();
       if (service.usesPolling || token != null) {
