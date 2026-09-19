@@ -1,15 +1,15 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useAuth } from '@/lib/store/AuthContext';
+import { DashboardPreviewMockup } from '@/components/marketing/DashboardPreviewMockup';
 import { ScrollConvergenceSection } from '@/components/marketing/ScrollConvergenceSection';
 import { HowItWorksStepsSection } from '@/components/marketing/HowItWorksStepsSection';
 import { WhenLaterBecomesNowSection } from '@/components/marketing/WhenLaterBecomesNowSection';
 import { NotAnotherTodoListSection } from '@/components/marketing/NotAnotherTodoListSection';
 import { SomedayVaultSection } from '@/components/marketing/SomedayVaultSection';
-import { DesignedToStayOutOfWaySection } from '@/components/marketing/DesignedToStayOutOfWaySection';
 import { YourLaterBoxYourRulesSection } from '@/components/marketing/YourLaterBoxYourRulesSection';
 import { OneShortcutAwaySection } from '@/components/marketing/OneShortcutAwaySection';
 import { YourThingsStaySection } from '@/components/marketing/YourThingsStaySection';
@@ -37,14 +37,10 @@ import {
   Music,
   Code2,
   Terminal,
-  ExternalLink,
-  Home,
-  Inbox,
 } from 'lucide-react';
 
 export default function LandingPage() {
   const { continueAsGuest } = useAuth();
-  const [sandboxRoute, setSandboxRoute] = useState<'/home' | '/inbox'>('/home');
 
   return (
     <div className="selection:bg-[#171711] selection:text-white">
@@ -135,103 +131,9 @@ export default function LandingPage() {
           </div>
 
           {/* ============================================================ */}
-          {/* Real Live Guest Mode App Sandbox Container */}
+          {/* Interactive Native Dashboard Preview */}
           {/* ============================================================ */}
-          <div
-            id="live-guest-sandbox"
-            className="max-w-5xl mx-auto rounded-3xl bg-white border border-[#e4e0d5] shadow-2xl overflow-hidden text-left scroll-mt-24"
-          >
-            {/* Window Top Bar with macOS Traffic Lights & Live Route Controls */}
-            <div className="flex flex-wrap items-center justify-between gap-3 px-4 sm:px-6 py-3.5 border-b border-[#e4e0d5] bg-[#faf8f2]">
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-[#ff5f56]" />
-                  <div className="w-3 h-3 rounded-full bg-[#ffbd2e]" />
-                  <div className="w-3 h-3 rounded-full bg-[#27c93f]" />
-                </div>
-                <div className="hidden sm:flex items-center gap-2 px-2.5 py-1 rounded-lg bg-white border border-[#e4e0d5] text-xs font-mono text-[#6c6b63] shadow-2xs">
-                  <Globe2 className="w-3.5 h-3.5 text-[#9e9b92]" />
-                  <span>laterbox.app{sandboxRoute}</span>
-                </div>
-                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#e6edb0] border border-[#d0db84] text-[10px] font-black text-[#171711] tracking-wide uppercase shadow-2xs">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#27c93f] animate-pulse" />
-                  <span>Live Guest Sandbox</span>
-                </div>
-              </div>
-
-              {/* Sandbox Route View Switcher */}
-              <div className="flex items-center gap-2">
-                <div className="flex items-center gap-1 bg-[#ebe7dc]/70 p-1 rounded-xl text-xs font-bold text-[#6c6b63]">
-                  <button
-                    type="button"
-                    onClick={() => setSandboxRoute('/home')}
-                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${
-                      sandboxRoute === '/home'
-                        ? 'bg-white text-[#171711] shadow-xs font-extrabold'
-                        : 'hover:text-[#171711]'
-                    }`}
-                  >
-                    <Home className="w-3.5 h-3.5" />
-                    <span>Home Dashboard</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setSandboxRoute('/inbox')}
-                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${
-                      sandboxRoute === '/inbox'
-                        ? 'bg-white text-[#171711] shadow-xs font-extrabold'
-                        : 'hover:text-[#171711]'
-                    }`}
-                  >
-                    <Inbox className="w-3.5 h-3.5" />
-                    <span>Inbox Reader</span>
-                  </button>
-                </div>
-
-                <Link
-                  href={sandboxRoute}
-                  target="_blank"
-                  className="hidden md:inline-flex items-center gap-1 text-xs font-bold text-[#6c6b63] hover:text-[#171711] px-2.5 py-1.5 rounded-lg hover:bg-white border border-transparent hover:border-[#e4e0d5] transition-all"
-                  title="Open live app in fullscreen tab"
-                >
-                  <span>Fullscreen</span>
-                  <ExternalLink className="w-3 h-3" />
-                </Link>
-              </div>
-            </div>
-
-            {/* Real Live Running App Sandbox Frame */}
-            <div className="w-full relative bg-[#f7f5ee]">
-              <iframe
-                key={sandboxRoute}
-                src={sandboxRoute}
-                title="LaterBox Live Guest Mode Sandbox"
-                className="w-full h-[620px] sm:h-[680px] border-0 bg-[#f7f5ee]"
-                loading="eager"
-              />
-            </div>
-
-            {/* Sandbox Bottom Live Status Bar */}
-            <div className="flex flex-wrap items-center justify-between gap-3 px-4 sm:px-6 py-3 bg-[#faf8f2] border-t border-[#e4e0d5] text-xs text-[#6c6b63]">
-              <div className="flex items-center gap-2">
-                <Sparkles className="w-3.5 h-3.5 text-[#171711]" />
-                <span className="font-semibold text-[#171711]">
-                  Fully functional local sandbox:
-                </span>
-                <span className="hidden sm:inline">
-                  Drag & drop files, capture links, or schedule returns right in this window.
-                </span>
-              </div>
-              <Link
-                href={sandboxRoute}
-                target="_blank"
-                className="inline-flex items-center gap-1 font-extrabold text-[#171711] hover:underline"
-              >
-                <span>Launch in full window</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </Link>
-            </div>
-          </div>
+          <DashboardPreviewMockup />
         </div>
       </section>
 
@@ -329,10 +231,7 @@ export default function LandingPage() {
       {/* ============================================================ */}
       <SomedayVaultSection />
 
-      {/* ============================================================ */}
-      {/* "Designed to stay out of your way." App Dashboard Showcase */}
-      {/* ============================================================ */}
-      <DesignedToStayOutOfWaySection />
+
 
       {/* ============================================================ */}
       {/* "Your LaterBox. Your rules." Preferences & Rules Showcase */}
