@@ -43,6 +43,9 @@ interface ItemContextType {
   removeItemFromCollection: (collectionId: string, itemId: string) => Promise<void>;
   syncNow: () => Promise<void>;
   getItemById: (id: string) => LaterBoxItem | undefined;
+  hasDemoItems: boolean;
+  clearDemoItems: () => void;
+  restoreDemoItems: () => void;
 }
 
 const ItemContext = createContext<ItemContextType | undefined>(undefined);
@@ -800,6 +803,25 @@ export function ItemProvider({ children }: { children: ReactNode }) {
     });
   }, [inboxItems, activeFilter]);
 
+  const hasDemoItems = items.some((item) => item.id.startsWith('guest-item-'));
+
+  const clearDemoItems = useCallback(() => {
+    setItems((prev) => {
+      const next = prev.filter((item) => !item.id.startsWith('guest-item-'));
+      saveLocalData(next);
+      return next;
+    });
+  }, [saveLocalData]);
+
+  const restoreDemoItems = useCallback(() => {
+    setItems((prev) => {
+      const userItems = prev.filter((item) => !item.id.startsWith('guest-item-'));
+      const combined = [...userItems, ...DEFAULT_GUEST_ITEMS];
+      saveLocalData(combined);
+      return combined;
+    });
+  }, [saveLocalData]);
+
   return (
     <ItemContext.Provider
       value={{
@@ -830,6 +852,9 @@ export function ItemProvider({ children }: { children: ReactNode }) {
         removeItemFromCollection,
         syncNow: fetchData,
         getItemById,
+        hasDemoItems,
+        clearDemoItems,
+        restoreDemoItems,
       }}
     >
       {children}
