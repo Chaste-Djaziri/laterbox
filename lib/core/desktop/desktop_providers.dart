@@ -93,14 +93,13 @@ final quickCaptureControllerProvider =
 
 final desktopMenuStateProvider = Provider<DesktopMenuState>((ref) {
   final settings = ref.watch(desktopSettingsProvider).valueOrNull ?? DesktopSettings.defaults();
-  final authAsync = ref.watch(authStateProvider);
-  final isGuest = ref.watch(guestModeProvider);
+  final authState = ref.watch(currentAuthStateProvider);
+  final isGuest = ref.watch(isGuestProvider);
 
-  final authState = authAsync.valueOrNull;
-  final email = authState?.email;
+  final email = authState.email;
 
   final DesktopMenuAccountStatus status;
-  if (authState != null && authState.isAuthenticated) {
+  if (authState.isAuthenticated) {
     status = DesktopMenuAccountStatus.synced;
   } else if (isGuest) {
     status = DesktopMenuAccountStatus.guest;
