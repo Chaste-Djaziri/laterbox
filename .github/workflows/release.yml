@@ -272,6 +272,20 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Select Xcode Version
+        run: |
+          if [ -d "/Applications/Xcode_16.2.app" ]; then
+            sudo xcode-select -s /Applications/Xcode_16.2.app/Contents/Developer
+            echo "DEVELOPER_DIR=/Applications/Xcode_16.2.app/Contents/Developer" >> "$GITHUB_ENV"
+          elif [ -d "/Applications/Xcode_16.app" ]; then
+            sudo xcode-select -s /Applications/Xcode_16.app/Contents/Developer
+            echo "DEVELOPER_DIR=/Applications/Xcode_16.app/Contents/Developer" >> "$GITHUB_ENV"
+          elif [ -n "$XCODE_16_DEVELOPER_DIR" ] && [ -d "$XCODE_16_DEVELOPER_DIR" ]; then
+            sudo xcode-select -s "$XCODE_16_DEVELOPER_DIR"
+            echo "DEVELOPER_DIR=$XCODE_16_DEVELOPER_DIR" >> "$GITHUB_ENV"
+          fi
+          xcodebuild -version
+
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
@@ -407,6 +421,7 @@ jobs:
       - name: Build macOS Application with Xcode
         run: |
           echo "Building Xcode Release target for macOS with derivedDataPath build/macos..."
+          set -o pipefail
           xcodebuild -workspace macos/Runner.xcworkspace \
             -scheme Runner \
             -configuration Release \
@@ -416,7 +431,12 @@ jobs:
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
             -destination 'generic/platform=macOS' \
-            build
+            build 2>&1 | tee xcodebuild_macos.log || {
+              echo "=== XCODEBUILD BUILD FAILURES ==="
+              grep -C 3 -i "error:" xcodebuild_macos.log | tail -n 100 || true
+              tail -n 100 xcodebuild_macos.log
+              exit 1
+            }
 
       - name: Package Mac App Store PKG
         shell: bash
@@ -959,6 +979,20 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+
+      - name: Select Xcode Version
+        run: |
+          if [ -d "/Applications/Xcode_16.2.app" ]; then
+            sudo xcode-select -s /Applications/Xcode_16.2.app/Contents/Developer
+            echo "DEVELOPER_DIR=/Applications/Xcode_16.2.app/Contents/Developer" >> "$GITHUB_ENV"
+          elif [ -d "/Applications/Xcode_16.app" ]; then
+            sudo xcode-select -s /Applications/Xcode_16.app/Contents/Developer
+            echo "DEVELOPER_DIR=/Applications/Xcode_16.app/Contents/Developer" >> "$GITHUB_ENV"
+          elif [ -n "$XCODE_16_DEVELOPER_DIR" ] && [ -d "$XCODE_16_DEVELOPER_DIR" ]; then
+            sudo xcode-select -s "$XCODE_16_DEVELOPER_DIR"
+            echo "DEVELOPER_DIR=$XCODE_16_DEVELOPER_DIR" >> "$GITHUB_ENV"
+          fi
+          xcodebuild -version
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
