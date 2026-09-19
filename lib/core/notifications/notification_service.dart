@@ -23,6 +23,7 @@ class InboxNotificationService {
   String? launchPayload;
   bool _firebaseReady = false;
   bool cloudActive = false;
+  bool suspended = false;
   final Map<int, Timer> _timers = {};
   bool get usesPolling => Platform.isLinux || Platform.isWindows;
   String get platform => Platform.operatingSystem;
@@ -222,6 +223,19 @@ class InboxNotificationService {
   Future<void> cancel(String itemId) async {
     _timers.remove(idFor(itemId))?.cancel();
     await plugin.cancel(id: idFor(itemId));
+  }
+
+  Future<void> disconnect() async {
+    suspended = true;
+    cloudActive = false;
+    // Nothing was initialized when notifications have never been used.
+    if (_initializing == null) return;
+    await initialize();
+    await cancelAll();
+    if (Platform.isAndroid && _firebaseReady)
+      await FirebaseMessaging.instance.deleteToken();
+    if (Platform.isIOS || Platform.isMacOS)
+      await _apple.invokeMethod<void>('unregister');
   }
 
   Future<void> cancelAll() async {

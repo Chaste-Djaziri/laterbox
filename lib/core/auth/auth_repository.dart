@@ -1,3 +1,8 @@
+import 'package:shared_preferences/shared_preferences.dart';
+
+import '../notifications/notification_identity.dart';
+import '../notifications/notification_service.dart';
+
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AuthRepository {
@@ -42,7 +47,9 @@ class AuthRepository {
       type: OtpType.email,
     );
     if (response.session == null) {
-      throw const AuthException('The verification code could not be confirmed.');
+      throw const AuthException(
+        'The verification code could not be confirmed.',
+      );
     }
   }
 
@@ -59,7 +66,10 @@ class AuthRepository {
     );
   }
 
-  Future<void> deleteAccount({Future<void> Function()? onClearLocalData}) async {
+  Future<void> deleteAccount({
+    Future<void> Function()? onClearLocalData,
+  }) async {
+    await _disconnectNotifications();
     final session = _requiredClient.auth.currentSession;
     if (session != null) {
       // 1. Try atomic PostgreSQL RPC deletion (Security Definer)
@@ -80,19 +90,29 @@ class AuthRepository {
               await _requiredClient.from('collection_items').delete();
             } catch (_) {}
             try {
-              await _requiredClient.from('item_notes').delete().match({'user_id': userId});
+              await _requiredClient.from('item_notes').delete().match({
+                'user_id': userId,
+              });
             } catch (_) {}
             try {
-              await _requiredClient.from('item_metadata').delete().match({'user_id': userId});
+              await _requiredClient.from('item_metadata').delete().match({
+                'user_id': userId,
+              });
             } catch (_) {}
             try {
-              await _requiredClient.from('attachments').delete().match({'user_id': userId});
+              await _requiredClient.from('attachments').delete().match({
+                'user_id': userId,
+              });
             } catch (_) {}
             try {
-              await _requiredClient.from('items').delete().match({'user_id': userId});
+              await _requiredClient.from('items').delete().match({
+                'user_id': userId,
+              });
             } catch (_) {}
             try {
-              await _requiredClient.from('collections').delete().match({'user_id': userId});
+              await _requiredClient.from('collections').delete().match({
+                'user_id': userId,
+              });
             } catch (_) {}
           }
         }
@@ -106,5 +126,23 @@ class AuthRepository {
     await _requiredClient.auth.signOut();
   }
 
-  Future<void> signOut() => _requiredClient.auth.signOut();
+  Future<void> _disconnectNotifications() async {
+    final prefs = await SharedPreferences.getInstance();
+    await InboxNotificationService.instance.disconnect();
+    if (prefs.getString('notification_registered_user') ==
+            _requiredClient.auth.currentUser?.id &&
+        prefs.getString('notification_registered_user') != null) {
+      await _requiredClient
+          .from('notification_installations')
+          .delete()
+          .eq('id', await NotificationIdentity.installationId());
+      await prefs.remove('notification_registered_user');
+    }
+    await prefs.remove('notification_handed_off');
+  }
+
+  Future<void> signOut() async {
+    await _disconnectNotifications();
+    await _requiredClient.auth.signOut();
+  }
 }

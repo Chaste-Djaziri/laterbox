@@ -275,6 +275,11 @@ private final class InboxPushBridge: NSObject, UNUserNotificationCenterDelegate 
         if center.delegate !== self { self.previousDelegate = center.delegate; center.delegate = self }
         result(self.pendingTap)
         self.pendingTap = nil
+      case "unregister":
+        UIApplication.shared.unregisterForRemoteNotifications()
+        UNUserNotificationCenter.current().removeAllDeliveredNotifications()
+        self.token = nil
+        result(nil)
       case "register":
         UIApplication.shared.registerForRemoteNotifications()
         result(self.token)

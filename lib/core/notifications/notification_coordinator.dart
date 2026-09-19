@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -111,6 +110,7 @@ class NotificationCoordinator extends ChangeNotifier
         _scheduled.clear();
         _items = [];
         _user = user;
+        service.suspended = false;
         _configured = true;
         final prefs = await SharedPreferences.getInstance();
         final saved =
@@ -181,6 +181,7 @@ class NotificationCoordinator extends ChangeNotifier
 
   void refresh() => _enqueue(_refresh);
   Future<void> _refresh() async {
+    if (service.suspended || client?.auth.currentUser?.id != _user) return;
     await service.initialize();
     final allowed = enabled && await service.permission();
     if (!allowed) {
@@ -214,6 +215,10 @@ class NotificationCoordinator extends ChangeNotifier
               'returns_enabled': returns,
               'saves_enabled': saves,
             },
+          );
+          await (await SharedPreferences.getInstance()).setString(
+            'notification_registered_user',
+            _user!,
           );
           _registeredId = id;
           _registeredUser = _user;

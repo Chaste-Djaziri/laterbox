@@ -1,4 +1,5 @@
 'use client';
+import { disableCloudNotifications } from '../notifications/client';
 
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { User, Session, AuthError } from '@supabase/supabase-js';
@@ -178,6 +179,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     const supabase = getSupabaseClient();
+    await disableCloudNotifications();
     await supabase.auth.signOut();
     setUser(null);
     setSession(null);
@@ -193,6 +195,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const deleteAccount = async () => {
     try {
+      await disableCloudNotifications();
       const supabase = getSupabaseClient();
       const {
         data: { session },
