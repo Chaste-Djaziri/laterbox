@@ -252,6 +252,461 @@ class _ItemDetailBody extends ConsumerWidget {
             resolveRemotePath: resolveRemotePath,
             remoteImageUrls: remoteImageUrls,
           )
+        else if (isPsd)
+          _ContentBanner(
+            child: Stack(
+              children: [
+                Container(
+                  width: double.infinity,
+                  height: 220,
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        Color(0xFF1e1b4b),
+                        Color(0xFF701a75),
+                        Color(0xFFec4899),
+                        Color(0xFF84cc16),
+                      ],
+                    ),
+                  ),
+                ),
+                Positioned.fill(
+                  child: Container(
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.bottomCenter,
+                        end: Alignment.topCenter,
+                        colors: [
+                          Colors.black54,
+                          Colors.transparent,
+                          Colors.black26,
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  top: 16,
+                  right: 16,
+                  child: _BannerBadge(
+                    icon: Icons.circle,
+                    iconSize: 8,
+                    label: 'Design File',
+                  ),
+                ),
+                Positioned(
+                  bottom: 16,
+                  left: 16,
+                  child: Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF001e36),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.white24),
+                      boxShadow: const [
+                        BoxShadow(blurRadius: 8, color: Colors.black26),
+                      ],
+                    ),
+                    child: const Center(
+                      child: Text(
+                        'Ps',
+                        style: TextStyle(
+                          color: Color(0xFF31a8ff),
+                          fontWeight: FontWeight.w900,
+                          fontSize: 18,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          )
+        else if (isPdf)
+          _ContentBanner(
+            child: Container(
+              width: double.infinity,
+              height: 220,
+              color: const Color(0xFFf8f7f4),
+              child: Stack(
+                children: [
+                  Center(
+                    child: Container(
+                      width: 220,
+                      height: 160,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFFe4e0d5)),
+                        boxShadow: const [
+                          BoxShadow(
+                            blurRadius: 12,
+                            color: Colors.black12,
+                            offset: Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: List.generate(
+                          5,
+                          (i) => Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: Container(
+                              height: 8,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFe4e0d5),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              width: switch (i) {
+                                0 => double.infinity,
+                                1 => 180,
+                                2 => 150,
+                                3 => double.infinity,
+                                _ => 160,
+                              },
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    top: 16,
+                    right: 16,
+                    child: _BannerBadge(
+                      icon: Icons.circle,
+                      iconSize: 8,
+                      label: 'PDF Document',
+                    ),
+                  ),
+                  Positioned(
+                    bottom: 16,
+                    left: 16,
+                    child: Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFef4444),
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: const [
+                          BoxShadow(blurRadius: 8, color: Colors.black26),
+                        ],
+                      ),
+                      child: const Center(
+                        child: Text(
+                          'PDF',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w900,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          )
+        else if (isVideo)
+          _ContentBanner(
+            child: Container(
+              width: double.infinity,
+              height: 260,
+              color: Colors.black,
+              child: Stack(
+                children: [
+                  if (item.metadata?.previewImageUrl case final img?)
+                    Image.network(
+                      img,
+                      width: double.infinity,
+                      height: 260,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => Container(
+                        width: double.infinity,
+                        height: 260,
+                        decoration: const BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [Color(0xFF262626), Color(0xFF0a0a0a)],
+                          ),
+                        ),
+                        child: const Icon(
+                          Icons.play_circle_outline_rounded,
+                          size: 48,
+                          color: Colors.white38,
+                        ),
+                      ),
+                    )
+                  else
+                    Container(
+                      width: double.infinity,
+                      height: 260,
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [Color(0xFF262626), Color(0xFF0a0a0a)],
+                        ),
+                      ),
+                      child: const Icon(
+                        Icons.play_circle_outline_rounded,
+                        size: 48,
+                        color: Colors.white38,
+                      ),
+                    ),
+                  Positioned.fill(
+                    child: Container(
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.bottomCenter,
+                          end: Alignment.topCenter,
+                          colors: [
+                            Colors.black54,
+                            Colors.transparent,
+                            Colors.black26,
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    top: 16,
+                    left: 16,
+                    child: _BannerBadge(
+                      icon: Icons.language_rounded,
+                      label: eyebrow,
+                    ),
+                  ),
+                  Positioned(
+                    top: 16,
+                    right: 16,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFea4335),
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: const [
+                          BoxShadow(blurRadius: 4, color: Colors.black26),
+                        ],
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.play_arrow_rounded, size: 14, color: Colors.white),
+                          SizedBox(width: 2),
+                          Text(
+                            'Video',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          )
+        else if (isMusic)
+          _ContentBanner(
+            child: Container(
+              width: double.infinity,
+              height: 260,
+              color: const Color(0xFF171717),
+              child: Stack(
+                children: [
+                  if (item.metadata?.previewImageUrl case final img?)
+                    Image.network(
+                      img,
+                      width: double.infinity,
+                      height: 260,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => Container(
+                        width: double.infinity,
+                        height: 260,
+                        decoration: const BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [Color(0xFF065f46), Color(0xFF134e4a)],
+                          ),
+                        ),
+                        child: const Icon(
+                          Icons.music_note_rounded,
+                          size: 48,
+                          color: Color(0xFF34d399),
+                        ),
+                      ),
+                    )
+                  else
+                    Container(
+                      width: double.infinity,
+                      height: 260,
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [Color(0xFF065f46), Color(0xFF134e4a)],
+                        ),
+                      ),
+                      child: const Icon(
+                        Icons.music_note_rounded,
+                        size: 48,
+                        color: Color(0xFF34d399),
+                      ),
+                    ),
+                  Positioned.fill(
+                    child: Container(
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.bottomCenter,
+                          end: Alignment.topCenter,
+                          colors: [
+                            Colors.black54,
+                            Colors.transparent,
+                            Colors.black26,
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    top: 16,
+                    right: 16,
+                    child: _BannerBadge(
+                      icon: Icons.music_note_rounded,
+                      label: 'Music',
+                    ),
+                  ),
+                  const Positioned.fill(
+                    child: Center(
+                      child: CircleAvatar(
+                        radius: 28,
+                        backgroundColor: Color(0xFFF2F2F2),
+                        child: Icon(
+                          Icons.play_arrow_rounded,
+                          size: 28,
+                          color: Color(0xFF171711),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          )
+        else if (isNote)
+          _ContentBanner(
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(24),
+              color: const Color(0xFFfbfaf6),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFe6edb0),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.black12),
+                    ),
+                    child: const Icon(
+                      Icons.sticky_note_2_rounded,
+                      color: Color(0xFF171711),
+                      size: 22,
+                    ),
+                  ),
+                  _BannerBadge(
+                    icon: Icons.circle,
+                    iconSize: 8,
+                    label: 'Note',
+                    filled: true,
+                  ),
+                ],
+              ),
+            ),
+          )
+        else if (isArticle)
+          _ContentBanner(
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(24),
+              color: const Color(0xFFfbfaf6),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: const Color(0xFFe4e0d5)),
+                      boxShadow: const [
+                        BoxShadow(blurRadius: 2, color: Colors.black12),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 18,
+                          height: 18,
+                          decoration: BoxDecoration(
+                            color: Colors.black,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: const Center(
+                            child: Text(
+                              'N',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          eyebrow,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF171711),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  _BannerBadge(
+                    icon: Icons.circle,
+                    iconSize: 8,
+                    label: 'Article',
+                    filled: true,
+                  ),
+                ],
+              ),
+            ),
+          )
         else if (embedInfo != null)
           MediaEmbedHero(
             embedInfo: embedInfo,
@@ -439,5 +894,60 @@ class _ItemDetailBody extends ConsumerWidget {
     String two(int value) => value.toString().padLeft(2, '0');
     return '${two(local.day)}/${two(local.month)}/${local.year} '
         '${two(local.hour)}:${two(local.minute)}';
+  }
+}
+
+class _ContentBanner extends StatelessWidget {
+  const _ContentBanner({required this.child});
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+      child: child,
+    );
+  }
+}
+
+class _BannerBadge extends StatelessWidget {
+  const _BannerBadge({
+    required this.label,
+    this.icon,
+    this.iconSize = 12,
+    this.filled = false,
+  });
+  final String label;
+  final IconData? icon;
+  final double iconSize;
+  final bool filled;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+      decoration: BoxDecoration(
+        color: filled ? const Color(0xFFebe7dc) : Colors.black54,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: filled ? null : const [BoxShadow(blurRadius: 4, color: Colors.black26)],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (icon != null) ...[
+            Icon(icon, size: iconSize, color: filled ? const Color(0xFF171711) : Colors.white),
+            const SizedBox(width: 5),
+          ],
+          Text(
+            label,
+            style: TextStyle(
+              color: filled ? const Color(0xFF171711) : Colors.white,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
