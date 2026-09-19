@@ -10,26 +10,66 @@ import { CloudSyncIndicator } from '../ui/CloudSyncIndicator';
 import { useItems } from '@/lib/store/ItemContext';
 import { Home, Inbox, BookMarked, Settings, Plus } from 'lucide-react';
 
+import { SearchModal } from '../search/SearchModal';
+
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [captureOpen, setCaptureOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   const pathname = usePathname();
   const { inboxItems } = useItems();
 
-  // Keyboard shortcut: meta+k or 'c' to open quick capture
+  // Listen to custom open-search-modal event (e.g. from omnibar buttons)
+  useEffect(() => {
+    const handleOpenSearchModal = () => {
+      setSearchOpen(true);
+    };
+    window.addEventListener('open-search-modal', handleOpenSearchModal);
+    return () => window.removeEventListener('open-search-modal', handleOpenSearchModal);
+  }, []);
+
+  // Keyboard shortcut: meta+k or ctrl+k opens Search Modal or focuses on-page search bar
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (
-        (e.metaKey || e.ctrlKey) &&
-        e.key.toLowerCase() === 'k' &&
-        !(e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement)
-      ) {
-        e.preventDefault();
-        setCaptureOpen(true);
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        // If search modal is already open, toggle it closed
+        if (searchOpen) {
+          e.preventDefault();
+          setSearchOpen(false);
+          return;
+        }
+
+        // Check if there is an active, visible on-page search bar available
+        const candidateInputs = Array.from(
+          document.querySelectorAll<HTMLInputElement>(
+            'input[data-search-input], input[type="text"][placeholder*="Search" i], input[type="text"][placeholder*="Filter" i], input[type="search"]'
+          )
+        );
+
+        const onPageSearchInput = candidateInputs.find((input) => {
+          if (input.disabled) return false;
+          const rect = input.getBoundingClientRect();
+          return (
+            rect.width > 0 &&
+            rect.height > 0 &&
+            window.getComputedStyle(input).visibility !== 'hidden' &&
+            window.getComputedStyle(input).display !== 'none'
+          );
+        });
+
+        if (onPageSearchInput) {
+          e.preventDefault();
+          onPageSearchInput.focus();
+          onPageSearchInput.select();
+          onPageSearchInput.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        } else {
+          e.preventDefault();
+          setSearchOpen(true);
+        }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [searchOpen]);
 
   const mobileNavItems = [
     { href: '/home', label: 'Home', icon: <Home className="w-5 h-5" /> },
@@ -102,6 +142,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* Quick Capture Floating Modal */}
       <QuickCaptureModal isOpen={captureOpen} onClose={() => setCaptureOpen(false)} />
+
+      {/* Global Spotlight Search Modal */}
+      <SearchModal isOpen={searchOpen} onClose={() => setSearchOpen(false)} />
     </div>
   );
 }
