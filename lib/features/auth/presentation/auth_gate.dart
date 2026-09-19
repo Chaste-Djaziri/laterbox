@@ -20,21 +20,24 @@ class AuthGate extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final auth = ref.watch(authStateProvider);
-    final guestMode = ref.watch(guestModeProvider);
+    final currentAuth = ref.watch(currentAuthStateProvider);
+    final isGuest = ref.watch(isGuestProvider);
 
+    if (currentAuth.isAuthenticated || isGuest) {
+      return child ??
+          HomeShell(
+            selectedIndex: navigationShell?.currentIndex ?? initialIndex,
+            navigationShell: navigationShell,
+          );
+    }
+
+    final auth = ref.watch(authStateProvider);
     return auth.when(
       loading: () => const Scaffold(
         body: Center(child: CircularProgressIndicator.adaptive()),
       ),
-      error: (error, stackTrace) => guestMode
-          ? (child ??
-              HomeShell(
-                selectedIndex: navigationShell?.currentIndex ?? initialIndex,
-                navigationShell: navigationShell,
-              ))
-          : const WelcomeScreen(),
-      data: (state) => state.isAuthenticated || guestMode
+      error: (error, stackTrace) => const WelcomeScreen(),
+      data: (state) => state.isAuthenticated
           ? (child ??
               HomeShell(
                 selectedIndex: navigationShell?.currentIndex ?? initialIndex,
