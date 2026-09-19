@@ -97,14 +97,6 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
                   ),
                 ),
               ),
-              actions: [
-                IconButton(
-                  tooltip: 'Search',
-                  icon: const Icon(Icons.search),
-                  onPressed: () => context.push('/search'),
-                ),
-                const SizedBox(width: 12),
-              ],
             ),
       body: all.when(
         loading: () =>
@@ -233,6 +225,44 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
                           ],
                         ),
                         const SizedBox(height: 28),
+                        if (!isDesktop)
+                          GestureDetector(
+                            onTap: () => context.push('/search'),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 14,
+                              ),
+                              decoration: BoxDecoration(
+                                color: isDark
+                                    ? const Color(0xFF2A2A28)
+                                    : const Color(0xFFF0EDE5),
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.search,
+                                    color: isDark
+                                        ? const Color(0xFFA09E95)
+                                        : const Color(0xFF6C6B63),
+                                    size: 20,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Text(
+                                    'Search your items…',
+                                    style: TextStyle(
+                                      color: isDark
+                                          ? const Color(0xFFA09E95)
+                                          : const Color(0xFF6C6B63),
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        if (!isDesktop) const SizedBox(height: 24),
                         Row(
                           children: [
                             Expanded(
