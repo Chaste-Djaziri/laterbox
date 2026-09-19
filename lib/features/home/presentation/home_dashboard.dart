@@ -372,6 +372,10 @@ class ScheduleScreen extends ConsumerWidget {
     final items = ref.watch(scheduledItemsProvider(view));
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded),
+          onPressed: () => context.go('/home'),
+        ),
         title: Text(title),
         actions: [
           IconButton(
