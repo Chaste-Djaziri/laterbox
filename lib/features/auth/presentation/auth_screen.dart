@@ -159,13 +159,37 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                 ),
               ),
               const SizedBox(height: 24),
-              TextField(
-                controller: _emailController,
-                keyboardType: TextInputType.emailAddress,
-                autofillHints: const [AutofillHints.email],
-                decoration: const InputDecoration(labelText: 'Email'),
-                textInputAction: TextInputAction.done,
-                onSubmitted: (_) => _sendOtp(),
+              ListenableBuilder(
+                listenable: _emailController,
+                builder: (context, _) {
+                  final hasAt = _emailController.text.contains('@');
+                  return TextField(
+                    controller: _emailController,
+                    keyboardType: TextInputType.emailAddress,
+                    autofillHints: const [AutofillHints.email],
+                    decoration: InputDecoration(
+                      labelText: 'Email',
+                      suffixIcon: hasAt
+                          ? null
+                          : Padding(
+                              padding: const EdgeInsets.only(right: 16),
+                              child: Text(
+                                '@gmail.com',
+                                style: TextStyle(
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant,
+                                  fontSize: 15,
+                                ),
+                              ),
+                            ),
+                      suffixIconConstraints:
+                          const BoxConstraints(maxHeight: 20),
+                    ),
+                    textInputAction: TextInputAction.done,
+                    onSubmitted: (_) => _sendOtp(),
+                  );
+                },
               ),
               if (_message != null) ...[
                 const SizedBox(height: 14),
