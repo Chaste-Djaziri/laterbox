@@ -84,9 +84,15 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
       const domain = (item.metadata?.domain || item.url || '').toLowerCase();
       const desc = (item.metadata?.description || item.text_content || '').toLowerCase();
       const note = (item.note?.content || '').toLowerCase();
-      const tags = (item.tags || []).join(' ').toLowerCase();
+      const collections = (item.collections || []).map((c) => c.name).join(' ').toLowerCase();
 
-      return title.includes(q) || domain.includes(q) || desc.includes(q) || note.includes(q) || tags.includes(q);
+      return (
+        title.includes(q) ||
+        domain.includes(q) ||
+        desc.includes(q) ||
+        note.includes(q) ||
+        collections.includes(q)
+      );
     });
   }, [items, query, formatFilter]);
 
