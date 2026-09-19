@@ -164,23 +164,24 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              IconButton(
-                onPressed: () => setState(() {
-                  _awaitingOtp = false;
-                  _otpController.clear();
-                  _message = null;
-                }),
-                icon: const Icon(Icons.arrow_back_ios_new_rounded),
+              Row(
+                children: [
+                  IconButton(
+                    onPressed: () => setState(() {
+                      _awaitingOtp = false;
+                      _otpController.clear();
+                      _message = null;
+                    }),
+                    icon: const Icon(Icons.arrow_back_ios_new_rounded),
+                  ),
+                  Image.asset(
+                    'assets/branding/laterbox-logo.png',
+                    height: 40,
+                    fit: BoxFit.contain,
+                  ),
+                ],
               ),
               const Spacer(),
-              Center(
-                child: Image.asset(
-                  'assets/branding/laterbox-logo.png',
-                  height: 58,
-                  fit: BoxFit.contain,
-                ),
-              ),
-              const SizedBox(height: 32),
               Text(
                 _otpForSignup ? 'Verify your account' : 'Check your email',
                 style: Theme.of(context)
@@ -196,7 +197,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                   height: 1.5,
                 ),
               ),
-              const SizedBox(height: 24),
+              const Spacer(),
               TextField(
                 controller: _otpController,
                 autofocus: true,
@@ -230,7 +231,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                   ),
                 ),
               ],
-              const Spacer(),
+              const SizedBox(height: 28),
               FilledButton(
                 onPressed: _busy ? null : _verifyOtp,
                 style: FilledButton.styleFrom(
@@ -278,19 +279,20 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              IconButton(
-                onPressed: () => context.pop(),
-                icon: const Icon(Icons.arrow_back_ios_new_rounded),
+              Row(
+                children: [
+                  IconButton(
+                    onPressed: () => context.pop(),
+                    icon: const Icon(Icons.arrow_back_ios_new_rounded),
+                  ),
+                  Image.asset(
+                    'assets/branding/laterbox-logo.png',
+                    height: 40,
+                    fit: BoxFit.contain,
+                  ),
+                ],
               ),
               const Spacer(),
-              Center(
-                child: Image.asset(
-                  'assets/branding/laterbox-logo.png',
-                  height: 58,
-                  fit: BoxFit.contain,
-                ),
-              ),
-              const SizedBox(height: 32),
               Text(
                 prefersSignup ? 'Create your account' : 'Welcome back',
                 style: Theme.of(context)
@@ -306,7 +308,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                   height: 1.5,
                 ),
               ),
-              const SizedBox(height: 32),
+              const Spacer(),
               Form(
                 key: _formKey,
                 child: Column(
@@ -362,7 +364,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                   ),
                 ),
               ],
-              const Spacer(),
+              const SizedBox(height: 28),
               FilledButton(
                 onPressed: _busy
                     ? null
@@ -397,6 +399,43 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                           context.go(
                             '/login?mode=${prefersSignup ? 'signin' : 'signup'}$nextQuery$intervalQuery',
                           );
+                        },
+                  child: Text(
+                    prefersSignup
+                        ? 'Already have an account? Sign in'
+                        : 'Create account',
+                  ),
+                ),
+              ),
+              if (!prefersSignup) ...[
+                const SizedBox(height: 4),
+                SizedBox(
+                  width: double.infinity,
+                  child: TextButton.icon(
+                    onPressed: _busy ? null : _requestSignInOtp,
+                    icon: const Icon(Icons.password_rounded),
+                    label: const Text('Email me a sign in code'),
+                  ),
+                ),
+              ],
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: TextButton(
+                  onPressed: _busy
+                      ? null
+                      : () {
+                          ref.read(guestModeProvider.notifier).state = true;
+                          context.go('/home');
+                        },
+                  child: const Text('Continue without account'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
                         },
                   child: Text(
                     prefersSignup
