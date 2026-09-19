@@ -86,6 +86,7 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
       appBar: isDesktop
           ? null
           : AppBar(
+              centerTitle: false,
               title: GestureDetector(
                 onTap: () => showDisplayNamePrompt(context, ref),
                 child: Column(
