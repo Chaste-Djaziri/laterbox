@@ -26,138 +26,235 @@ import {
   Share2,
   ExternalLink,
   BookOpen,
+  Clock,
+  CalendarDays,
+  Archive,
+  Inbox,
+  FileText,
+  Music2,
+  RotateCcw,
+  Check,
+  Command,
 } from 'lucide-react';
 
 export default function GuidePage() {
-  const [activeTab, setActiveTab] = useState<'basics' | 'platforms' | 'shortcuts' | 'faq'>('basics');
+  const [activeTab, setActiveTab] = useState<'workflow' | 'formats' | 'shortcuts' | 'platforms' | 'faq'>('workflow');
   const [openFaq, setOpenFaq] = useState<number | null>(0);
 
   const workflowSteps = [
     {
       step: '01',
-      title: '1-Tap Universal Capture',
-      badge: 'Capture Anywhere',
-      desc: 'Save any article, YouTube video, Spotify track, X/Twitter thread, PDF, image, or quick thought. Use our browser extension, mobile share sheet, desktop global hotkey, or web app.',
+      title: 'Drop it now (Universal Quick Capture)',
+      badge: 'Zero Friction',
+      desc: 'Capture links, design files, PDF documents, YouTube videos, Spotify music, or quick thoughts the millisecond they cross your mind. Use the global shortcut, browser extension, or drag & drop.',
       icon: <Zap className="w-6 h-6 text-[#171711]" />,
-      features: ['Browser Extension (Chrome, Firefox, Safari)', 'Native iOS & Android Share Sheet', 'Desktop Global Hotkeys (⌘+K)', 'Drag & Drop Attachments'],
+      features: [
+        'Web & Mac Shortcut: Control + Option + L (⌃⌥L)',
+        '1-Click Browser Extension (Chrome, Firefox, Safari)',
+        'Native iOS & Android System Share Sheet',
+        'Direct Drag & Drop Quick Drop Zone on Home Dashboard',
+      ],
     },
     {
       step: '02',
-      title: 'Autonomous AI Enrichment',
-      badge: 'Smart Metadata',
-      desc: 'LaterBox automatically extracts high-resolution preview covers, author info, estimated read time, favicons, structured summaries, and auto-tags your content for instant retrieval.',
-      icon: <Sparkles className="w-6 h-6 text-[#171711]" />,
-      features: ['Automatic Hero Cover Art Extraction', 'Clean Readability Content Extraction', 'Domain & Favicon Identification', 'Smart Type Detection (Article, Video, Audio, Note)'],
+      title: 'Choose when it should return',
+      badge: 'Intentional Scheduling',
+      desc: 'Never let saved items turn into an overwhelming, endless graveyard. Choose exactly when you want to deal with it: Later Today, Tomorrow morning, This Weekend, or the Someday Vault.',
+      icon: <Clock className="w-6 h-6 text-[#171711]" />,
+      features: [
+        'One-Click Schedule Presets (Later Today, Tomorrow, Weekend)',
+        'Someday Vault for zero-deadline reading & inspiration',
+        'Custom Date & Time Selector for precise deadlines',
+        'Auto-tags and metadata extraction for effortless context',
+      ],
     },
     {
       step: '03',
-      title: 'Distraction-Free Reader & Media Embeds',
-      badge: 'Pure Focus',
-      desc: 'Read articles in a clean, ad-free reader mode with adjustable typography. Watch YouTube videos and listen to Spotify podcasts directly inside LaterBox without tracking or distractions.',
-      icon: <PlayCircle className="w-6 h-6 text-[#171711]" />,
-      features: ['Clean Reader Mode with Dark/Light Themes', 'Native YouTube & Vimeo Inline Players', 'Embedded Spotify Audio & Podcasts', 'Markdown Annotations & Quotes'],
+      title: 'Forget about it (Out of Sight, Out of Mind)',
+      badge: 'Mental Clarity',
+      desc: 'Deferred items disappear from your daily view and are stored 100% locally in your private SQLite core. Close your browser tabs without fear of losing anything or cluttering your head.',
+      icon: <ShieldCheck className="w-6 h-6 text-[#171711]" />,
+      features: [
+        '100% Offline-First SQLite & Local Vault Storage',
+        'Zero Browser Tab Clutter & Zero Cognitive Drag',
+        'Works completely offline without mandatory accounts',
+        'Export your entire library as JSON anytime in Settings',
+      ],
     },
     {
       step: '04',
-      title: 'Deep Search & Smart Collections',
-      badge: 'Effortless Organization',
-      desc: 'Group items into custom collections for research, recipes, or projects. Find any saved item in milliseconds by title, URL, content body, notes, or category filters.',
-      icon: <FolderPlus className="w-6 h-6 text-[#171711]" />,
-      features: ['Custom Visual Collections & Folders', 'Instant Media Filters (Articles, Videos, Audio, Notes)', 'Real-Time Full-Text Deep Search', 'Starred & Read State Archiving'],
+      title: 'It comes back when you are ready',
+      badge: 'Calm Execution',
+      desc: 'Right on schedule, items return into Today and Waiting For You. Open the actual file or URL with native actions, write notes, complete the task, or snooze it with one click.',
+      icon: <RotateCcw className="w-6 h-6 text-[#171711]" />,
+      features: [
+        'Resurfaces in Today and Waiting For You dashboard timeline',
+        'Native Launch Actions for files, YouTube links, and Spotify tracks',
+        'Rich multi-platform visual previews (Photoshop, PDF, Video, Audio)',
+        'Quick 1-Click Snooze presets if you need more time',
+      ],
     },
+  ];
+
+  const formatCards = [
+    {
+      type: 'Design Files',
+      badge: '• Design File',
+      tagColor: 'bg-[#001e36] text-[#31a8ff]',
+      brand: 'Adobe Photoshop / Figma',
+      desc: 'Vibrant artwork canvas with Adobe Ps squircle, file size indicators, and one-click direct application opening.',
+      example: 'ClientLandingPage_v3.psd',
+      details: '14.2 MB • Design Asset',
+      tags: ['#design', '#ui', '#inspiration'],
+    },
+    {
+      type: 'PDF Documents',
+      badge: '• PDF Document',
+      tagColor: 'bg-red-100 text-red-600',
+      brand: 'Adobe Acrobat / Document Sheet',
+      desc: 'Simulated document preview with page lines, red PDF squircle, page count, and interactive in-app reader viewer.',
+      example: 'Q3_Financial_Review.pdf',
+      details: '8 Pages • Corporate Report',
+      tags: ['#feedback', '#product', '#finance'],
+    },
+    {
+      type: 'Video Links',
+      badge: '▶ Video',
+      tagColor: 'bg-red-50 text-red-600',
+      brand: 'YouTube / Vimeo',
+      desc: 'High-definition thumbnail cover art with play overlay, duration badge, domain pill, and distraction-free viewing.',
+      example: 'Distributed Edge Computing Architecture',
+      details: '24 min • youtube.com',
+      tags: ['#video', '#engineering', '#tech'],
+    },
+    {
+      type: 'Audio & Music',
+      badge: '♪ Music',
+      tagColor: 'bg-emerald-50 text-emerald-700',
+      brand: 'Spotify / Apple Podcasts',
+      desc: 'Album artwork canvas with floating circular play button, artist and track info, and direct Spotify integration.',
+      example: 'Good Days — SZA (SOS)',
+      details: 'Single • spotify.com',
+      tags: ['#music', '#chill', '#focus'],
+    },
+    {
+      type: 'Handwritten Notes',
+      badge: '• Note',
+      tagColor: 'bg-[#ebe7dc] text-[#171711]',
+      brand: 'Private Vault Note',
+      desc: 'Paper-textured note squircle, clean bullet formatting, and interactive markdown note editor with offline persistence.',
+      example: 'Ideas for Weekend Hackathon Project',
+      details: 'Personal Thought • 3 min read',
+      tags: ['#ideas', '#notes', '#sideproject'],
+    },
+    {
+      type: 'Curated Articles',
+      badge: 'Article',
+      tagColor: 'bg-[#ebe7dc] text-[#6c6b63]',
+      brand: 'Notion / Web Publications',
+      desc: 'Brand favicon, reading time estimation, author attribution, and clean reader mode without ads or cookie popups.',
+      example: 'The Power of a Focused Life',
+      details: 'Notion Publication • 7 min read',
+      tags: ['#productivity', '#mindset', '#reading'],
+    },
+  ];
+
+  const shortcuts = [
+    { key: '⌃ + ⌥ + L  /  Ctrl + Alt + L', action: 'Open Multi-Step Quick Capture dialog from anywhere' },
+    { key: '⌘ + K  /  Ctrl + K', action: 'Open Spotlight Search Modal or focus active page search bar' },
+    { key: '⌘ + Enter  /  Ctrl + Enter', action: 'Save and schedule current item immediately' },
+    { key: '↑  /  ↓', action: 'Navigate up and down between items in Search Modal' },
+    { key: 'Enter (↵)', action: 'Open highlighted item or navigate to destination view' },
+    { key: 'Esc', action: 'Close active modal, search drawer, or dismiss dialog' },
+    { key: '⌘ + F  /  /', action: 'Focus Deep Search input bar on the page' },
+    { key: '⌘ + Shift + S', action: 'Toggle Star / Favorite status on selected item' },
+    { key: '⌘ + Shift + A', action: 'Toggle Archive / Done state on selected item' },
+    { key: 'Space', action: 'Quick view or preview active item' },
   ];
 
   const platformGuides = [
     {
-      name: 'Mobile Apps (iOS & Android)',
-      icon: <Smartphone className="w-6 h-6 text-[#171711]" />,
-      tag: 'Share Sheet Support',
-      desc: 'Save articles, links, and documents straight from Safari, Chrome, Twitter, YouTube, or any app using the native OS share sheet.',
+      name: 'Web Application (PWA & Local Mode)',
+      icon: <Globe2 className="w-6 h-6 text-[#171711]" />,
+      tag: 'Zero Install Required',
+      desc: 'Instant, offline-capable application accessible in any modern browser. Supports guest mode with local IndexedDB/SQLite storage.',
       steps: [
-        'Open any link or media in your mobile browser or app.',
-        'Tap the native Share button (iOS Share Sheet / Android Share).',
-        'Select LaterBox from the list of apps.',
-        'The item is saved immediately to your inbox with full offline caching.',
+        'Open laterbox.dev in any modern web browser (Chrome, Safari, Edge, Firefox).',
+        'Press ⌃⌥L (Control+Option+L) on Mac or Ctrl+Alt+L on PC to capture anytime.',
+        'Press ⌘K (Ctrl+K) to launch the Spotlight Search Modal or focus the page search bar.',
+        'Install as a Progressive Web App (PWA) on your desktop for a native window feel.',
       ],
-      linkText: 'Get Mobile App',
-      linkUrl: '/download',
+      linkText: 'Launch Web App',
+      linkUrl: '/home',
     },
     {
       name: 'Browser Extensions (Chrome, Brave, Firefox, Safari)',
       icon: <Puzzle className="w-6 h-6 text-[#171711]" />,
       tag: '1-Click Tab Capture',
-      desc: 'Save active tabs, bookmarks, or highlighted text selections directly to LaterBox without opening the app.',
+      desc: 'Save tabs, articles, highlighted quotes, and media directly into your return queue without switching away from your workflow.',
       steps: [
-        'Install the extension from the download page.',
-        'Click the LaterBox puzzle icon in your browser toolbar to connect.',
-        'Press the extension icon or hotkey anytime to capture the active page.',
-        'Right-click any selected text to save it as a highlighted quote note.',
+        'Install the LaterBox Extension from the Downloads page.',
+        'Click the puzzle icon in your browser toolbar to link with LaterBox.',
+        'Click the LaterBox button anytime on any web page to stage it into your vault.',
+        'Right-click selected text to save it as a highlighted quote note.',
       ],
-      linkText: 'Install Extension',
+      linkText: 'Get Browser Extension',
       linkUrl: '/download',
     },
     {
       name: 'Desktop Apps (macOS, Windows, Linux)',
       icon: <Laptop className="w-6 h-6 text-[#171711]" />,
       tag: 'Native Performance',
-      desc: 'Fast desktop companion with menu bar / system tray integration, local SQLite database, and instant global hotkey access.',
+      desc: 'Blazing-fast desktop client with system tray/menu bar integration, local SQLite core, and global hotkeys across all windows.',
       steps: [
-        'Download and install the native desktop build for macOS, Windows, or Linux.',
-        'Use the global hotkey (⌘+K / Ctrl+K) to open the Quick Capture dialog anywhere.',
-        'Access your saved library offline with instant sub-millisecond search.',
-        'Keep in the menu bar/tray for background synchronization.',
+        'Download and run the installer for macOS (DMG), Windows (Setup.exe), or Linux.',
+        'Use the global hotkey to summon Quick Capture above whatever app you are working in.',
+        'Keep LaterBox minimized to the system tray for zero-drag background return alerts.',
+        'All data is stored directly on your hard drive with sub-10ms query speeds.',
       ],
-      linkText: 'Download Desktop',
+      linkText: 'Download Desktop Builds',
       linkUrl: '/download',
     },
     {
-      name: 'Web Application (PWA & Cloud)',
-      icon: <Globe2 className="w-6 h-6 text-[#171711]" />,
-      tag: 'Zero-Install Access',
-      desc: 'Fully featured progressive web app accessible from any modern browser with guest mode or Supabase account sync.',
+      name: 'Mobile Apps (iOS & Android)',
+      icon: <Smartphone className="w-6 h-6 text-[#171711]" />,
+      tag: 'Native Share Sheet',
+      desc: 'Send links, documents, and videos into LaterBox straight from Safari, YouTube, Twitter/X, or Reddit with native share sheets.',
       steps: [
-        'Visit laterbox.dev from any device or browser.',
-        'Click Launch App to use instant local storage or Sign In to sync across devices.',
-        'Install as a PWA on your home screen or desktop for a standalone app experience.',
-        'Enjoy full reading, searching, note-taking, and collection management.',
+        'Install the iOS app or Android build onto your smartphone or tablet.',
+        'When viewing any link, file, or photo, tap the native Share button.',
+        'Select LaterBox from the list of sharing destinations.',
+        'Pick when you want the item to return (Today, Tomorrow, Weekend, or Someday).',
       ],
-      linkText: 'Launch Web App',
-      linkUrl: '/inbox',
+      linkText: 'Set Up Mobile Companion',
+      linkUrl: '/download',
     },
-  ];
-
-  const shortcuts = [
-    { key: '⌃ + ⌥ + L  /  Ctrl + Alt + L', action: 'Open Quick Capture dialog from anywhere' },
-    { key: '⌘ + K  /  Ctrl + K', action: 'Open Search Modal or focus on-page search bar' },
-    { key: '⌘ + Enter  /  Ctrl + Enter', action: 'Save and submit current capture item' },
-    { key: '⌘ + F  /  /', action: 'Focus Deep Search input bar' },
-    { key: 'Esc', action: 'Close reader modal, search drawer, or active dialog' },
-    { key: '⌘ + Shift + S', action: 'Toggle Star / Favorite on selected item' },
-    { key: '⌘ + Shift + A', action: 'Toggle Read / Unread archive state' },
-    { key: 'J / K  or  ↓ / ↑', action: 'Navigate between inbox items' },
-    { key: 'Space', action: 'Open selected item in Reader Mode' },
   ];
 
   const faqs = [
     {
-      q: 'How does mobile sharing work with LaterBox?',
-      a: 'On both iOS and Android, LaterBox registers as a native share destination. Whenever you view an article, video, tweet, or PDF in any browser or app, tap Share and select LaterBox. The link and attachments are staged into LaterBox storage instantly and synced to your library.',
+      q: 'How does scheduling and resurfacing work in LaterBox?',
+      a: 'When you save an item, you choose when it should come back: Later Today (resurfaces in your afternoon review), Tomorrow morning (ready for your morning coffee), This Weekend (for longer reads or personal projects), or the Someday Vault (for reading lists and creative ideas with zero deadline pressure). Until that time arrives, the item is completely hidden from your daily view so you can focus on what is in front of you.',
     },
     {
-      q: 'Can I use LaterBox offline?',
-      a: 'Yes! LaterBox is built offline-first. Mobile, desktop, and web apps store your entire library and metadata locally. When an internet connection is restored, changes automatically synchronize via Supabase in the background.',
+      q: 'What is the difference between Command+K and Control+Option+L?',
+      a: 'Control + Option + L (⌃⌥L on Mac, Ctrl+Alt+L on Windows) is the dedicated shortcut to open the Quick Capture modal, allowing you to paste a link, write a note, attach a file, and choose its return schedule. Command + K (⌘K on Mac, Ctrl+K on Windows) is the dedicated Search shortcut: if an on-page search bar is present (in Inbox, Library, Today, Upcoming, or Deep Search), it focuses the input immediately; on views without a search bar (like the Home dashboard), it opens the global Spotlight Search Modal with real-time vault search and quick navigation.',
     },
     {
-      q: 'How do I connect the browser extension to my account?',
-      a: 'After installing the Chrome, Firefox, or Safari extension, open the web app at laterbox.dev/inbox or visit laterbox.dev/extension/connect. Click "Connect Extension" to link the extension in 1 second without typing complex API keys.',
+      q: 'How does Guest Mode work? Can I clear sample demo items?',
+      a: 'LaterBox is 100% offline-first and requires no account to use. In Guest Mode, your data is stored securely in your browser local storage. If you want to explore with a clean slate, click the "Clear Demo Cards (Start Fresh)" button on the Inbox or Home page. You can restore the sample items anytime with one click.',
     },
     {
-      q: 'Does LaterBox support media embeds like YouTube and Spotify?',
-      a: 'Yes. When you save a YouTube or Vimeo link, LaterBox renders a distraction-free player. For Spotify tracks and podcast episodes, LaterBox embeds an interactive audio player so you can listen while taking notes.',
+      q: 'Can I use LaterBox completely offline without an internet connection?',
+      a: 'Yes! LaterBox was designed from day one with an offline-first architecture. All your saved items, schedules, notes, and collections live in your local database. You can capture, search, read notes, and organize your vault on airplanes, trains, or off-grid. When internet connectivity is restored, cloud synchronization seamlessly updates.',
     },
     {
-      q: 'Where is my data stored and is it private?',
-      a: 'Your data is 100% yours. We do not sell your browsing habits or reading history. Data is stored on your device and synchronized securely through encrypted Supabase cloud databases. You can export your library anytime.',
+      q: 'Where are my files and private notes stored?',
+      a: 'Your data stays on your machine. We do not sell your reading habits, track your browsing history, or feed your notes to public AI models. All local storage is encrypted, and cloud synchronization (if you sign in) runs through secure, private Supabase databases.',
+    },
+    {
+      q: 'How do rich multi-platform card formats work?',
+      a: 'LaterBox automatically inspects the content you save and renders it using signature native formats: Photoshop (.psd) and design files get visual gradient art cards with Adobe Ps squircles; PDFs get realistic document previews with interactive readers; YouTube videos get thumbnail covers with inline players; Spotify tracks get album artwork with play buttons; and personal notes get warm paper squircles with structured checklists.',
     },
   ];
 
@@ -166,29 +263,30 @@ export default function GuidePage() {
       {/* Hero Header */}
       <section className="relative pt-12 sm:pt-16 pb-12 sm:pb-16 overflow-hidden border-b border-[#e4e0d5]/60 bg-gradient-to-b from-[#f7f5ee] to-[#ece7dc]/40">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 text-center">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#e6edb0] border border-[#d0db84] text-[#171711] text-xs font-extrabold mb-4 shadow-2xs">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#e6edb0] border border-[#d0db84] text-[#171711] text-xs font-black mb-4 shadow-2xs">
             <Compass className="w-3.5 h-3.5" />
-            <span>Complete User Guide & Knowledge Base</span>
+            <span>Complete LaterBox Guide & Knowledge Base</span>
           </div>
           <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight text-[#171711] mb-4">
             Master Every Feature in LaterBox
           </h1>
           <p className="text-sm sm:text-base text-[#6c6b63] font-medium max-w-2xl mx-auto leading-relaxed">
-            Everything you need to know about capturing from any device, AI enrichment, distraction-free reading, and organizing your personal knowledge base.
+            Drop it now. Choose when. Forget about it. Learn how to capture across any device, schedule intentional returns, search your vault with ⌘K, and keep a clean mind.
           </p>
 
           {/* Tab Navigation Switcher */}
-          <div className="flex flex-wrap items-center justify-center gap-2 mt-8 max-w-2xl mx-auto p-1.5 rounded-2xl bg-white/80 border border-[#e4e0d5] shadow-xs">
+          <div className="flex flex-wrap items-center justify-center gap-1.5 mt-8 max-w-3xl mx-auto p-1.5 rounded-2xl bg-white/80 border border-[#e4e0d5] shadow-xs">
             {[
-              { id: 'basics', label: 'How It Works', icon: <Sparkles className="w-4 h-4" /> },
-              { id: 'platforms', label: 'Platforms & Setup', icon: <Laptop className="w-4 h-4" /> },
+              { id: 'workflow', label: 'How It Works', icon: <Sparkles className="w-4 h-4" /> },
+              { id: 'formats', label: 'Rich Formats', icon: <Layers className="w-4 h-4" /> },
               { id: 'shortcuts', label: 'Keyboard Shortcuts', icon: <Keyboard className="w-4 h-4" /> },
-              { id: 'faq', label: 'FAQ & Tips', icon: <HelpCircle className="w-4 h-4" /> },
+              { id: 'platforms', label: 'Platforms & Setup', icon: <Laptop className="w-4 h-4" /> },
+              { id: 'faq', label: 'FAQ & Philosophy', icon: <HelpCircle className="w-4 h-4" /> },
             ].map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as any)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all ${
+                className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
                   activeTab === tab.id
                     ? 'bg-[#171711] text-white shadow-xs'
                     : 'text-[#6c6b63] hover:text-[#171711] hover:bg-[#f7f5ee]'
@@ -204,15 +302,18 @@ export default function GuidePage() {
 
       {/* Main Content Area */}
       <main className="max-w-5xl mx-auto px-4 sm:px-6 py-10 sm:py-14 w-full space-y-12">
-        {/* TAB 1: HOW IT WORKS */}
-        {activeTab === 'basics' && (
+        {/* TAB 1: THE 4 PILLARS WORKFLOW */}
+        {activeTab === 'workflow' && (
           <div className="space-y-10 animate-fade-in">
             <div>
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#e6edb0] border border-[#d0db84] text-[#171711] text-xs font-black mb-2">
+                <span>The Calm Return Philosophy</span>
+              </div>
               <h2 className="text-2xl sm:text-3xl font-black text-[#171711] tracking-tight mb-2">
                 The 4 Pillars of LaterBox
               </h2>
               <p className="text-sm text-[#6c6b63]">
-                Designed from the ground up to replace fragmented bookmarks and chaotic tabs with a permanent digital memory.
+                Designed from the ground up to replace open-tab clutter and neglected bookmark graveyards with a quiet, reliable return system.
               </p>
             </div>
 
@@ -255,11 +356,11 @@ export default function GuidePage() {
               ))}
             </div>
 
-            {/* Visual Action Banner */}
+            {/* Bottom Action Banner */}
             <div className="p-7 rounded-3xl bg-[#171711] text-white flex flex-col sm:flex-row items-center justify-between gap-6 shadow-md">
               <div className="space-y-1 text-center sm:text-left">
-                <h3 className="text-lg font-bold">Ready to try it out?</h3>
-                <p className="text-xs text-[#9e9b92]">Launch the web app in your browser or install on your devices.</p>
+                <h3 className="text-lg font-bold">Ready to declutter your mind?</h3>
+                <p className="text-xs text-[#9e9b92]">Launch LaterBox instantly in your browser or explore the desktop app.</p>
               </div>
               <div className="flex items-center gap-3 shrink-0">
                 <Link
@@ -269,10 +370,10 @@ export default function GuidePage() {
                   Download Apps
                 </Link>
                 <Link
-                  href="/inbox"
+                  href="/home"
                   className="px-5 py-2.5 rounded-xl bg-[#e6edb0] hover:bg-[#d9e29a] text-[#171711] text-xs font-extrabold transition-all shadow-xs flex items-center gap-1.5"
                 >
-                  <span>Launch Web App</span>
+                  <span>Open LaterBox</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </Link>
               </div>
@@ -280,15 +381,149 @@ export default function GuidePage() {
           </div>
         )}
 
-        {/* TAB 2: PLATFORMS & SETUP */}
+        {/* TAB 2: MULTI-PLATFORM RICH FORMATS */}
+        {activeTab === 'formats' && (
+          <div className="space-y-10 animate-fade-in">
+            <div>
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#e6edb0] border border-[#d0db84] text-[#171711] text-xs font-black mb-2">
+                <span>Tailored Card Experiences</span>
+              </div>
+              <h2 className="text-2xl sm:text-3xl font-black text-[#171711] tracking-tight mb-2">
+                Multi-Platform Visual Format System
+              </h2>
+              <p className="text-sm text-[#6c6b63]">
+                LaterBox identifies what you save and renders high-fidelity visual cards across Inbox, Today, Upcoming, and the Item Details page.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {formatCards.map((fmt, idx) => (
+                <div
+                  key={idx}
+                  className="p-6 rounded-3xl bg-white border border-[#e4e0d5] shadow-xs flex flex-col justify-between hover:border-[#171711]/40 transition-all"
+                >
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className={`text-[11px] font-black px-2.5 py-1 rounded-full ${fmt.tagColor}`}>
+                        {fmt.badge}
+                      </span>
+                      <span className="text-[10px] font-bold text-[#9e9b92] uppercase tracking-wider">
+                        {fmt.brand}
+                      </span>
+                    </div>
+
+                    <div>
+                      <h3 className="text-base font-bold text-[#171711]">{fmt.type}</h3>
+                      <p className="text-xs text-[#6c6b63] leading-relaxed mt-1">{fmt.desc}</p>
+                    </div>
+
+                    <div className="p-3.5 rounded-2xl bg-[#faf8f5] border border-[#e4e0d5] space-y-1">
+                      <span className="text-xs font-bold text-[#171711] truncate block">{fmt.example}</span>
+                      <span className="text-[11px] text-[#9e9b92] block">{fmt.details}</span>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 flex-wrap pt-1">
+                      {fmt.tags.map((tag) => (
+                        <span key={tag} className="text-[10px] font-mono text-[#6c6b63] bg-[#ebe7dc] px-2 py-0.5 rounded">
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="p-6 rounded-3xl bg-[#ebe7dc]/50 border border-[#e4e0d5] flex items-center gap-4">
+              <div className="w-10 h-10 rounded-2xl bg-[#e6edb0] border border-[#d0db84] flex items-center justify-center shrink-0">
+                <Sparkles className="w-5 h-5 text-[#171711]" />
+              </div>
+              <div className="text-xs text-[#6c6b63] leading-relaxed">
+                <strong className="text-[#171711]">Consistent Across All Views:</strong> Every item maintains its rich format preview whether you inspect it on the Home dashboard timeline, in your Inbox grid, or open its full details page at <code className="text-[#171711] bg-white px-1.5 py-0.5 rounded font-mono">/item/[id]</code>.
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 3: KEYBOARD SHORTCUTS */}
+        {activeTab === 'shortcuts' && (
+          <div className="space-y-10 animate-fade-in">
+            <div>
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#e6edb0] border border-[#d0db84] text-[#171711] text-xs font-black mb-2">
+                <span>Speed of Thought</span>
+              </div>
+              <h2 className="text-2xl sm:text-3xl font-black text-[#171711] tracking-tight mb-2">
+                Keyboard Shortcuts Cheat Sheet
+              </h2>
+              <p className="text-sm text-[#6c6b63]">
+                Control LaterBox without reaching for your mouse. Capture, schedule, search, and navigate in milliseconds.
+              </p>
+            </div>
+
+            {/* Main Shortcut Cards Showcase */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="p-5 rounded-2xl bg-white border-2 border-[#171711] shadow-xs space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-black uppercase tracking-wider text-[#9e9b92]">Universal Capture</span>
+                  <span className="px-2 py-0.5 rounded-full bg-[#e6edb0] text-[#171711] text-[10px] font-black">Summon Modal</span>
+                </div>
+                <h3 className="text-base font-bold text-[#171711]">Control + Option + L</h3>
+                <p className="text-xs text-[#6c6b63] leading-relaxed">
+                  Opens the multi-step Quick Capture modal from anywhere on web and Mac (<kbd className="px-1.5 py-0.5 rounded bg-[#ebe7dc] text-[10px] font-mono font-bold text-[#171711]">⌃⌥L</kbd>, or <kbd className="px-1.5 py-0.5 rounded bg-[#ebe7dc] text-[10px] font-mono font-bold text-[#171711]">Ctrl+Alt+L</kbd> on PC).
+                </p>
+              </div>
+
+              <div className="p-5 rounded-2xl bg-white border-2 border-[#171711] shadow-xs space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-black uppercase tracking-wider text-[#9e9b92]">Omnisearch & Focus</span>
+                  <span className="px-2 py-0.5 rounded-full bg-[#e6edb0] text-[#171711] text-[10px] font-black">Spotlight Palette</span>
+                </div>
+                <h3 className="text-base font-bold text-[#171711]">Command + K / Ctrl + K</h3>
+                <p className="text-xs text-[#6c6b63] leading-relaxed">
+                  Focuses the active on-page search bar if available (in Inbox, Library, Today, Deep Search), or summons the Spotlight Search Modal.
+                </p>
+              </div>
+            </div>
+
+            {/* Complete Shortcuts Table */}
+            <div className="rounded-3xl bg-white border border-[#e4e0d5] shadow-xs overflow-hidden">
+              <div className="p-5 bg-[#f7f5ee] border-b border-[#e4e0d5] flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Keyboard className="w-5 h-5 text-[#171711]" />
+                  <span className="text-sm font-bold text-[#171711]">Complete Keyboard Reference</span>
+                </div>
+                <span className="text-xs font-medium text-[#6c6b63]">Web, Desktop & PWA</span>
+              </div>
+
+              <div className="divide-y divide-[#f0ece1]">
+                {shortcuts.map((sc, idx) => (
+                  <div
+                    key={idx}
+                    className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 hover:bg-[#f7f5ee]/50 transition-colors"
+                  >
+                    <span className="text-sm text-[#171711] font-medium">{sc.action}</span>
+                    <kbd className="px-3 py-1.5 rounded-lg bg-[#ebe7dc] border border-[#d8d3c5] text-[#171711] font-mono text-xs font-bold shadow-2xs self-start sm:self-auto">
+                      {sc.key}
+                    </kbd>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 4: PLATFORMS & SETUP */}
         {activeTab === 'platforms' && (
           <div className="space-y-10 animate-fade-in">
             <div>
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#e6edb0] border border-[#d0db84] text-[#171711] text-xs font-black mb-2">
+                <span>Unified Ecosystem</span>
+              </div>
               <h2 className="text-2xl sm:text-3xl font-black text-[#171711] tracking-tight mb-2">
                 Available on All Your Devices
               </h2>
               <p className="text-sm text-[#6c6b63]">
-                Install LaterBox across your phone, tablet, computer, and web browser for unified real-time syncing.
+                Install LaterBox across your computer, phone, tablet, and browser for unified real-time syncing.
               </p>
             </div>
 
@@ -345,62 +580,18 @@ export default function GuidePage() {
           </div>
         )}
 
-        {/* TAB 3: KEYBOARD SHORTCUTS */}
-        {activeTab === 'shortcuts' && (
-          <div className="space-y-10 animate-fade-in">
-            <div>
-              <h2 className="text-2xl sm:text-3xl font-black text-[#171711] tracking-tight mb-2">
-                Keyboard Shortcuts Cheat Sheet
-              </h2>
-              <p className="text-sm text-[#6c6b63]">
-                Navigate and organize your inbox at the speed of thought with built-in desktop and web shortcuts.
-              </p>
-            </div>
-
-            <div className="rounded-3xl bg-white border border-[#e4e0d5] shadow-xs overflow-hidden">
-              <div className="p-5 bg-[#f7f5ee] border-b border-[#e4e0d5] flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Keyboard className="w-5 h-5 text-[#171711]" />
-                  <span className="text-sm font-bold text-[#171711]">Essential Navigation Keys</span>
-                </div>
-                <span className="text-xs font-medium text-[#6c6b63]">Works in Web & Desktop App</span>
-              </div>
-
-              <div className="divide-y divide-[#f0ece1]">
-                {shortcuts.map((sc, idx) => (
-                  <div
-                    key={idx}
-                    className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 hover:bg-[#f7f5ee]/50 transition-colors"
-                  >
-                    <span className="text-sm text-[#171711] font-medium">{sc.action}</span>
-                    <kbd className="px-3 py-1.5 rounded-lg bg-[#ebe7dc] border border-[#d8d3c5] text-[#171711] font-mono text-xs font-bold shadow-2xs self-start sm:self-auto">
-                      {sc.key}
-                    </kbd>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="p-6 rounded-3xl bg-[#ebe7dc]/50 border border-[#e4e0d5] flex items-center gap-4">
-              <div className="w-10 h-10 rounded-2xl bg-[#e6edb0] border border-[#d0db84] flex items-center justify-center shrink-0">
-                <Sparkles className="w-5 h-5 text-[#171711]" />
-              </div>
-              <div className="text-xs text-[#6c6b63] leading-relaxed">
-                <strong className="text-[#171711]">Pro Tip:</strong> On desktop, you can customize your global hotkey in Settings to trigger quick capture even when LaterBox is minimized in the background.
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* TAB 4: FAQ & TROUBLESHOOTING */}
+        {/* TAB 5: FAQ & TROUBLESHOOTING */}
         {activeTab === 'faq' && (
           <div className="space-y-10 animate-fade-in">
             <div>
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#e6edb0] border border-[#d0db84] text-[#171711] text-xs font-black mb-2">
+                <span>Frequently Asked Questions</span>
+              </div>
               <h2 className="text-2xl sm:text-3xl font-black text-[#171711] tracking-tight mb-2">
-                Frequently Asked Questions
+                Everything You Need to Know
               </h2>
               <p className="text-sm text-[#6c6b63]">
-                Answers to common questions about syncing, extensions, mobile setup, and security.
+                Learn about scheduling, offline storage, privacy, and how LaterBox keeps your data local.
               </p>
             </div>
 
@@ -414,7 +605,7 @@ export default function GuidePage() {
                   >
                     <button
                       onClick={() => setOpenFaq(isOpen ? null : idx)}
-                      className="w-full p-5 sm:p-6 text-left flex items-center justify-between gap-4 font-bold text-[#171711] text-sm sm:text-base"
+                      className="w-full p-5 sm:p-6 text-left flex items-center justify-between gap-4 font-bold text-[#171711] text-sm sm:text-base cursor-pointer"
                     >
                       <span>{faq.q}</span>
                       <ChevronDown
