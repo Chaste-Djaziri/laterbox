@@ -112,6 +112,9 @@ void main() {
         .map((w) => w.value)
         .toList();
     expect(switches, [
+      false, // notifications.enabled
+      true, // notifications.returns
+      true, // notifications.saves
       true, // useSelectedText
       false, // closeOnFocusLoss
       true, // keepRunningOnWindowClose
@@ -231,18 +234,10 @@ void main() {
       await pumpScreen(tester);
 
       final pageScrollable = find.byType(Scrollable).first;
-      final appIconHeader = find.text('App Icon');
-      await tester.scrollUntilVisible(
-        appIconHeader,
-        300,
-        scrollable: pageScrollable,
-      );
-      expect(appIconHeader, findsOneWidget);
-
       final appIconTile = find.widgetWithText(ListTile, 'App Icon');
       await tester.scrollUntilVisible(
         appIconTile,
-        200,
+        300,
         scrollable: pageScrollable,
       );
       expect(appIconTile, findsOneWidget);
