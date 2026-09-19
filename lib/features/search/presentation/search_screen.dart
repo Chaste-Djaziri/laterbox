@@ -56,7 +56,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                 16,
                 MediaQuery.of(context).padding.top + 8,
                 16,
-                12,
+                16,
               ),
               child: Row(
                 children: [
@@ -269,7 +269,7 @@ class _TypeFilterChips extends ConsumerWidget {
         if (counts.isEmpty) return const SizedBox.shrink();
         return Container(
           padding: const EdgeInsets.symmetric(vertical: 8),
-          height: 40,
+          height: 48,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 20),
