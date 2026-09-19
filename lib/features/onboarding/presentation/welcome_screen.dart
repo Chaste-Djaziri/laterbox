@@ -35,6 +35,14 @@ class WelcomeScreen extends StatelessWidget {
                 ],
               ),
               const Spacer(),
+              Center(
+                child: Image.asset(
+                  'assets/backgrounds/onboarding-hero.png',
+                  height: compact ? 260 : 340,
+                  fit: BoxFit.contain,
+                ),
+              ),
+              const SizedBox(height: 24),
               const Text(
                 'Save it now.\nRead it later.',
                 style: TextStyle(
@@ -51,14 +59,6 @@ class WelcomeScreen extends StatelessWidget {
                   fontSize: 16,
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                   height: 1.5,
-                ),
-              ),
-              const SizedBox(height: 24),
-              Center(
-                child: Image.asset(
-                  'assets/backgrounds/onboarding-hero.png',
-                  height: compact ? 260 : 340,
-                  fit: BoxFit.contain,
                 ),
               ),
               const Spacer(),
