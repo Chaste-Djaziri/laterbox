@@ -34,15 +34,14 @@ class WelcomeScreen extends StatelessWidget {
                   ),
                 ],
               ),
-              const Spacer(),
-              Center(
-                child: Image.asset(
-                  'assets/backgrounds/onboarding-hero.png',
-                  height: compact ? 260 : 340,
-                  fit: BoxFit.contain,
+              Expanded(
+                child: Center(
+                  child: Image.asset(
+                    'assets/backgrounds/onboarding-hero.png',
+                    fit: BoxFit.contain,
+                  ),
                 ),
               ),
-              const SizedBox(height: 24),
               const Text(
                 'Save it now.\nRead it later.',
                 style: TextStyle(
@@ -61,7 +60,7 @@ class WelcomeScreen extends StatelessWidget {
                   height: 1.5,
                 ),
               ),
-              const Spacer(),
+              const SizedBox(height: 28),
               FilledButton(
                 onPressed: () => context.go('/login?mode=signup'),
                 style: FilledButton.styleFrom(
