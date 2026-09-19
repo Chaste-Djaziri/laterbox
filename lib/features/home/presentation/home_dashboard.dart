@@ -88,27 +88,13 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
           : AppBar(
               title: GestureDetector(
                 onTap: () => showDisplayNamePrompt(context, ref),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      timeGreeting,
-                      style: theme.textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w900,
-                        color: isDark ? Colors.white : const Color(0xFF171711),
-                        letterSpacing: -0.5,
-                      ),
-                    ),
-                    Text(
-                      firstName,
-                      style: theme.textTheme.headlineMedium?.copyWith(
-                        fontWeight: FontWeight.w900,
-                        color: isDark ? Colors.white : const Color(0xFF171711),
-                        letterSpacing: -1,
-                      ),
-                    ),
-                  ],
+                child: Text(
+                  '$timeGreeting $firstName',
+                  style: theme.textTheme.headlineMedium?.copyWith(
+                    fontWeight: FontWeight.w900,
+                    color: isDark ? Colors.white : const Color(0xFF171711),
+                    letterSpacing: -1,
+                  ),
                 ),
               ),
             ),
@@ -194,51 +180,20 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        if (!isDesktop)
+                        if (isDesktop)
                           GestureDetector(
-                            onTap: () => showDisplayNamePrompt(context, ref),
+                            onTap: () =>
+                                showDisplayNamePrompt(context, ref),
                             child: Text(
-                              '$timeGreeting\n$firstName',
-                              style: theme.textTheme.headlineMedium?.copyWith(
+                              '$timeGreeting $firstName',
+                              style:
+                                  theme.textTheme.headlineLarge?.copyWith(
                                 fontWeight: FontWeight.w900,
                                 color: isDark
                                     ? Colors.white
                                     : const Color(0xFF171711),
                                 letterSpacing: -1,
-                                height: 1.2,
                               ),
-                            ),
-                          ),
-                        if (isDesktop)
-                          GestureDetector(
-                            onTap: () =>
-                                showDisplayNamePrompt(context, ref),
-                            child: Column(
-                              crossAxisAlignment:
-                                  CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  timeGreeting,
-                                  style: theme.textTheme.titleLarge?.copyWith(
-                                    fontWeight: FontWeight.w900,
-                                    color: isDark
-                                        ? Colors.white
-                                        : const Color(0xFF171711),
-                                    letterSpacing: -0.5,
-                                  ),
-                                ),
-                                Text(
-                                  firstName,
-                                  style:
-                                      theme.textTheme.headlineLarge?.copyWith(
-                                    fontWeight: FontWeight.w900,
-                                    color: isDark
-                                        ? Colors.white
-                                        : const Color(0xFF171711),
-                                    letterSpacing: -1,
-                                  ),
-                                ),
-                              ],
                             ),
                           ),
                         const SizedBox(height: 28),
@@ -600,62 +555,6 @@ class _QuickDropState extends State<_QuickDrop> {
               child: const Text('Browse Files'),
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _WebSearchButton extends StatelessWidget {
-  const _WebSearchButton({required this.onTap});
-
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
-    final borderColor = isDark
-        ? Colors.white.withValues(alpha: 0.12)
-        : const Color(0xFFE4E0D5);
-    final bgColor = isDark
-        ? const Color(0xFF1F1F1C)
-        : Colors.white;
-    final iconColor = isDark
-        ? Colors.white
-        : const Color(0xFF171711);
-
-    return Tooltip(
-      message: 'Search (⌘K)',
-      child: Material(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(12),
-        child: InkWell(
-          canRequestFocus: false,
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(12),
-          hoverColor: isDark
-              ? Colors.white.withValues(alpha: 0.08)
-              : const Color(0xFFE6EDB0).withValues(alpha: 0.5),
-          child: Container(
-            key: const Key('home_search_button'),
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: borderColor,
-                width: 1,
-              ),
-            ),
-            alignment: Alignment.center,
-            child: Icon(
-              Icons.search_rounded,
-              size: 20,
-              color: iconColor,
-            ),
-          ),
         ),
       ),
     );
