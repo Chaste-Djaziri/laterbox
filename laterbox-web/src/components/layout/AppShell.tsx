@@ -25,8 +25,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       setSearchOpen(true);
     };
     window.addEventListener('open-search-modal', handleOpenSearchModal);
-    return () =>
-      <InboxNotificationController /> window.removeEventListener('open-search-modal', handleOpenSearchModal);
+    return () => window.removeEventListener('open-search-modal', handleOpenSearchModal);
   }, []);
 
   // Keyboard shortcut: Control + Option + L (on Mac) / Ctrl + Alt + L (on PC) to open quick capture
@@ -100,6 +99,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex h-screen w-full bg-[#f7f5ee] overflow-hidden text-[#171711]">
+      <InboxNotificationController />
       {/* Desktop Sidebar */}
       <div className="hidden md:flex shrink-0">
         <AppSidebar onOpenCapture={() => setCaptureOpen(true)} />
