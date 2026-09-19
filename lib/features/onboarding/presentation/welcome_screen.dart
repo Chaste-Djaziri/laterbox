@@ -29,7 +29,7 @@ class WelcomeScreen extends StatelessWidget {
                   ),
                   const Spacer(),
                   TextButton(
-                    onPressed: () => context.go('/login?mode=signin'),
+                    onPressed: () => context.push('/login?mode=signin'),
                     child: const Text('Sign in'),
                   ),
                 ],
@@ -62,7 +62,7 @@ class WelcomeScreen extends StatelessWidget {
               ),
               const SizedBox(height: 28),
               FilledButton(
-                onPressed: () => context.go('/login?mode=signup'),
+                onPressed: () => context.push('/login?mode=signup'),
                 style: FilledButton.styleFrom(
                   minimumSize: const Size.fromHeight(60),
                 ),

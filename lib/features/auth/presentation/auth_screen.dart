@@ -268,6 +268,14 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: IconButton(
+                        onPressed: () => context.pop(),
+                        icon: const Icon(Icons.arrow_back_ios_new_rounded),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
                     Image.asset(
                       'assets/branding/laterbox-logo.png',
                       height: 72,
