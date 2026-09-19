@@ -196,7 +196,7 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
   Widget _buildSearchInput(BuildContext context, ThemeData theme) {
     return InkWell(
       key: const Key('home_search_input'),
-      onTap: () => context.go('/search'),
+      onTap: () => context.push('/search', extra: '/inbox'),
       borderRadius: BorderRadius.circular(14),
       child: IgnorePointer(
         child: TextField(
