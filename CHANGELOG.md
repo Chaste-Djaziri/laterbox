@@ -5,6 +5,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 ## [Unreleased]
 
 ### Changed
+- **iOS-Only Release Trigger**: Release commits marked `[ios-only]` now build and submit only the iOS app, making TestFlight fixes faster without rebuilding unrelated platforms.
 - **Fix iOS Share Extension Release Signing**: iOS release builds can now be dispatched independently, allowing the app and Share Extension provisioning profiles to be validated and published together without triggering unrelated platform releases.
 - **Fix macOS Release CI Toolchain**: The macOS release workflow now uses the Xcode version supplied by the macOS 15 runner instead of forcing the older Xcode 16.2 toolchain, restoring compatibility with the current Flutter plugin sources used for App Store and TestFlight builds.
 - **Fix macOS Build — Xcode 16.2 Swift Compile Errors**: Added `SWIFT_STRICT_CONCURRENCY = minimal` and `SWIFT_VERSION = 5.0` to all Pods via the macOS Podfile `post_install` hook. Bumped `in_app_purchase_storekit` to `0.4.13` and `in_app_purchase` to `3.3.1`. Fixes SwiftCompile failures in `flutter_local_notifications` and `in_app_purchase_storekit` caused by Xcode 16.2's stricter Swift 6 concurrency enforcement.

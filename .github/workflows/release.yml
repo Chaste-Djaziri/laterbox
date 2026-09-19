@@ -175,6 +175,13 @@ jobs:
             exit 0
           fi
 
+          if [[ "$HEAD_MSG" == *"[ios-only]"* ]] || echo "$LAST_COMMIT_MSG" | grep -qiE '\[ios-only\]'; then
+            TARGET_IOS=true
+            emit_outputs true
+            echo "Explicit [ios-only] override for v$VERSION."
+            exit 0
+          fi
+
           if [ "$VERSION_CHANGED" != "true" ]; then
             emit_outputs false
             echo "No version bump in pushed range. Skipping product release builds."
