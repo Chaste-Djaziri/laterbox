@@ -15,6 +15,7 @@ import '../../scheduling/presentation/schedule_providers.dart';
 import '../../scheduling/presentation/return_time_picker.dart';
 import '../../../core/auth/auth_provider.dart';
 import '../../../core/settings/display_name_provider.dart';
+import '../../../core/sync/sync_providers.dart';
 
 Future<void> openDashboardCapture(
   BuildContext context, {
@@ -36,22 +37,6 @@ class HomeDashboard extends ConsumerStatefulWidget {
 }
 
 class _HomeDashboardState extends ConsumerState<HomeDashboard> {
-  bool _namePromptShown = false;
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (!_namePromptShown) {
-      _namePromptShown = true;
-      final name = ref.read(displayNameProvider);
-      if (name == null || name.isEmpty) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) showDisplayNamePrompt(context, ref);
-        });
-      }
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.sizeOf(context).width;
@@ -78,11 +63,12 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
         displayName?.isNotEmpty == true
             ? displayName!
             : email?.split('@').first ?? '';
+    final hasName = firstName.trim().isNotEmpty;
     final timeGreeting = hour < 12
-        ? 'Good morning,'
+        ? (hasName ? 'Good morning,' : 'Good morning.')
         : hour < 18
-        ? 'Good afternoon,'
-        : 'Good evening,';
+        ? (hasName ? 'Good afternoon,' : 'Good afternoon.')
+        : (hasName ? 'Good evening,' : 'Good evening.');
     return Scaffold(
       appBar: isDesktop
           ? null
@@ -127,16 +113,17 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
                                     : const Color(0xFF171711),
                               ),
                             ),
-                            Text(
-                              firstName,
-                              style: theme.textTheme.headlineMedium?.copyWith(
-                                fontWeight: FontWeight.w900,
-                                color: isDark
-                                    ? Colors.white
-                                    : const Color(0xFF171711),
-                                letterSpacing: -1,
+                            if (hasName)
+                              Text(
+                                firstName,
+                                style: theme.textTheme.headlineMedium?.copyWith(
+                                  fontWeight: FontWeight.w900,
+                                  color: isDark
+                                      ? Colors.white
+                                      : const Color(0xFF171711),
+                                  letterSpacing: -1,
+                                ),
                               ),
-                            ),
                           ],
                         ),
                       ),
@@ -222,13 +209,16 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
                   ),
                 ],
               );
-              return SingleChildScrollView(
-                padding: EdgeInsets.fromLTRB(
-                  24,
-                  isDesktop ? (isMac ? 40 : 28) : 0,
-                  24,
-                  24,
-                ),
+              return RefreshIndicator.adaptive(
+                onRefresh: () => ref.read(syncCoordinatorProvider).syncNow(),
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: EdgeInsets.fromLTRB(
+                    24,
+                    isDesktop ? (isMac ? 40 : 28) : 0,
+                    24,
+                    24,
+                  ),
                 child: Center(
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 1400),
@@ -255,18 +245,19 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
                                             : const Color(0xFF171711),
                                       ),
                                     ),
-                                    Text(
-                                      firstName,
-                                      style: theme
-                                          .textTheme.headlineLarge
-                                          ?.copyWith(
-                                        fontWeight: FontWeight.w900,
-                                        color: isDark
-                                            ? Colors.white
-                                            : const Color(0xFF171711),
-                                        letterSpacing: -1,
+                                    if (hasName)
+                                      Text(
+                                        firstName,
+                                        style: theme
+                                            .textTheme.headlineLarge
+                                            ?.copyWith(
+                                          fontWeight: FontWeight.w900,
+                                          color: isDark
+                                              ? Colors.white
+                                              : const Color(0xFF171711),
+                                          letterSpacing: -1,
+                                        ),
                                       ),
-                                    ),
                                   ],
                                 ),
                               ),
@@ -310,13 +301,17 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
                                     size: 20,
                                   ),
                                   const SizedBox(width: 12),
-                                  Text(
-                                    'Search your items…',
-                                    style: TextStyle(
-                                      color: isDark
-                                          ? const Color(0xFFA09E95)
-                                          : const Color(0xFF6C6B63),
-                                      fontSize: 16,
+                                  Expanded(
+                                    child: Text(
+                                      'Search your items…',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        color: isDark
+                                            ? const Color(0xFFA09E95)
+                                            : const Color(0xFF6C6B63),
+                                        fontSize: 16,
+                                      ),
                                     ),
                                   ),
                                 ],
@@ -380,7 +375,8 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
                     ),
                   ),
                 ),
-              );
+              ),
+            );
             },
           );
         },
@@ -532,13 +528,14 @@ class _ItemSection extends StatelessWidget {
       children: [
         Row(
           children: [
-            Text(
-              title,
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w700,
+            Expanded(
+              child: Text(
+                title,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
-            const Spacer(),
             TextButton(
               onPressed: () => context.go(route),
               child: Text(action),
@@ -664,20 +661,25 @@ class _ItemCardRow extends StatelessWidget {
                 ],
               ),
             ),
-            const SizedBox(width: 8),
             if (item.returnAt != null) ...[
+              const SizedBox(width: 8),
               Icon(
                 Icons.schedule_rounded,
                 size: 13,
                 color: theme.colorScheme.onSurfaceVariant,
               ),
               const SizedBox(width: 4),
-              Text(
-                returnTimeLabel(context, item.returnAt),
-                style: theme.textTheme.bodySmall?.copyWith(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: theme.colorScheme.onSurfaceVariant,
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 80),
+                child: Text(
+                  returnTimeLabel(context, item.returnAt),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
                 ),
               ),
             ],

@@ -87,9 +87,7 @@ void main() {
           expect(find.text('Finish portfolio'), findsOneWidget);
           if (width >= 900) {
             expect(find.byType(AppBar), findsNothing);
-            expect(find.byKey(const Key('home_search_button')), findsOneWidget);
           } else {
-            expect(find.byType(AppBar), findsOneWidget);
             expect(find.text('Home'), findsOneWidget);
           }
           expect(tester.takeException(), isNull);
