@@ -7,6 +7,7 @@ import '../../capture/presentation/capture_sheet.dart';
 import '../../../core/billing/billing_providers.dart';
 import '../../../core/billing/entitlement.dart';
 import '../../../core/billing/entitlement_presentation.dart';
+import '../../inbox/presentation/inbox_providers.dart';
 import '../../inbox/presentation/inbox_screen.dart';
 import '../../library/presentation/library_screen.dart';
 import '../../settings/presentation/settings_screen.dart';
@@ -65,6 +66,9 @@ class HomeShell extends ConsumerWidget {
         .clamp(0, _paths.length - 1);
     final Widget bodyContent =
         child ?? navigationShell ?? _screens[effectiveIndex];
+    final inboxCount = ref.watch(inboxItemsProvider).whenOrNull(
+          data: (items) => items.length,
+        ) ?? 0;
 
     void handleDestinationSelected(int index) {
       if (navigationShell != null) {
@@ -106,23 +110,31 @@ class HomeShell extends ConsumerWidget {
                       : 0,
                   onDestinationSelected: (index) =>
                       handleDestinationSelected(const [0, 1, 5, 6][index]),
-                  destinations: const [
-                    NavigationDestination(
+                  destinations: [
+                    const NavigationDestination(
                       icon: Icon(Icons.home_outlined),
                       selectedIcon: Icon(Icons.home),
                       label: 'Home',
                     ),
                     NavigationDestination(
-                      icon: Icon(Icons.inbox_outlined),
-                      selectedIcon: Icon(Icons.inbox_rounded),
+                      icon: Badge(
+                        isLabelVisible: inboxCount > 0,
+                        label: Text('$inboxCount'),
+                        child: const Icon(Icons.inbox_outlined),
+                      ),
+                      selectedIcon: Badge(
+                        isLabelVisible: inboxCount > 0,
+                        label: Text('$inboxCount'),
+                        child: const Icon(Icons.inbox_rounded),
+                      ),
                       label: 'Inbox',
                     ),
-                    NavigationDestination(
+                    const NavigationDestination(
                       icon: Icon(Icons.auto_stories_outlined),
                       selectedIcon: Icon(Icons.auto_stories_rounded),
                       label: 'Library',
                     ),
-                    NavigationDestination(
+                    const NavigationDestination(
                       icon: Icon(Icons.settings_outlined),
                       selectedIcon: Icon(Icons.settings_rounded),
                       label: 'Settings',
