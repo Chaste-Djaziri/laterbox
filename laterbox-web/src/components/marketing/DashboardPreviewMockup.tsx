@@ -19,6 +19,7 @@ import {
   Link2,
   ArrowRight,
 } from 'lucide-react';
+import { ResponsivePreviewContainer } from '@/components/marketing/ResponsivePreviewContainer';
 
 // Stylized LaterBox Inbox/Tray Icon adhering to Web Theme palette
 function LaterBoxBrandLogo({ className = 'w-6 h-6' }: { className?: string }) {
@@ -76,14 +77,17 @@ export function DashboardPreviewMockup() {
   ];
 
   return (
-    <div
-      id="live-guest-sandbox"
-      className="max-w-6xl mx-auto rounded-[32px] bg-white border border-[#e4e0d5] shadow-2xl overflow-hidden text-left flex flex-col md:flex-row select-none scroll-mt-24"
-    >
-      {/* ============================================================ */}
-      {/* Left Sidebar */}
-      {/* ============================================================ */}
-      <aside className="w-full md:w-64 border-r border-[#f0ede4] p-5 bg-[#faf8f2] flex flex-col justify-between shrink-0">
+    <>
+      <ResponsivePreviewContainer
+        id="live-guest-sandbox"
+        baseWidth={1080}
+        className="max-w-6xl mx-auto scroll-mt-24"
+      >
+        <div className="w-full rounded-[32px] bg-white border border-[#e4e0d5] shadow-2xl overflow-hidden text-left flex flex-row select-none">
+          {/* ============================================================ */}
+          {/* Left Sidebar */}
+          {/* ============================================================ */}
+          <aside className="w-64 border-r border-[#f0ede4] p-5 bg-[#faf8f2] flex flex-col justify-between shrink-0">
           <div>
             {/* Brand Logo Header */}
             <div className="flex items-center gap-2.5 px-2 py-1 mb-5">
@@ -179,7 +183,7 @@ export function DashboardPreviewMockup() {
         {/* ============================================================ */}
         {/* Main Dashboard Panel */}
         {/* ============================================================ */}
-        <main className="flex-1 p-6 sm:p-8 bg-white min-w-0">
+        <main className="flex-1 p-8 bg-white min-w-0">
           {/* Top Search Omnibar */}
           <div className="flex items-center justify-between gap-4 mb-8">
             <div className="max-w-md w-full mx-auto rounded-full bg-[#faf8f5] border border-[#e4e0d5] px-4 py-2 flex items-center justify-between text-xs text-[#9e9b92] shadow-2xs">
@@ -202,16 +206,16 @@ export function DashboardPreviewMockup() {
 
           {/* Greeting Header */}
           <div className="mb-6">
-            <h3 className="text-2xl sm:text-3xl font-black text-[#171711] tracking-tight">
+            <h3 className="text-3xl font-black text-[#171711] tracking-tight">
               Good morning, Abhishek.
             </h3>
-            <p className="text-xs sm:text-sm text-[#8e8d87] font-medium mt-0.5">
+            <p className="text-sm text-[#8e8d87] font-medium mt-0.5">
               Here is what needs your attention.
             </p>
           </div>
 
           {/* Top Metric Cards Row */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+          <div className="grid grid-cols-2 gap-4 mb-8">
             {/* Metric 1: Returned Today */}
             <div className="p-4 rounded-2xl bg-[#faf8f5] border border-[#f0ede4] flex items-center justify-between">
               <div>
@@ -259,9 +263,9 @@ export function DashboardPreviewMockup() {
           </div>
 
           {/* Two-Column Work Area */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div className="grid grid-cols-12 gap-6">
             {/* Left Column: WAITING FOR YOU & COMING UP */}
-            <div className="lg:col-span-8 space-y-6">
+            <div className="col-span-8 space-y-6">
               {/* Section: WAITING FOR YOU */}
               <div>
                 <span className="text-[10px] font-black tracking-widest uppercase text-[#9e9b92] block mb-3">
@@ -269,13 +273,13 @@ export function DashboardPreviewMockup() {
                 </span>
                 <div className="space-y-2">
                   {/* Item 1 */}
-                  <div className="p-3 sm:p-3.5 rounded-2xl bg-white border border-[#f0ede4] hover:border-[#171711] hover:shadow-2xs transition-all flex items-center justify-between gap-3">
+                  <div className="p-3.5 rounded-2xl bg-white border border-[#f0ede4] hover:border-[#171711] hover:shadow-2xs transition-all flex items-center justify-between gap-3">
                     <div className="flex items-center gap-3 min-w-0">
                       <div className="w-8 h-8 rounded-xl bg-[#faf8f2] text-[#171711] flex items-center justify-center shrink-0 border border-[#e4e0d5]">
                         <FileText className="w-4 h-4" />
                       </div>
                       <div className="min-w-0">
-                        <p className="font-bold text-xs sm:text-sm text-[#171711] truncate">
+                        <p className="font-bold text-sm text-[#171711] truncate">
                           ClientFeedback.pdf
                         </p>
                         <p className="text-[11px] text-[#9e9b92]">PDF Document • Added 2 days ago</p>
@@ -288,13 +292,13 @@ export function DashboardPreviewMockup() {
                   </div>
 
                   {/* Item 2 */}
-                  <div className="p-3 sm:p-3.5 rounded-2xl bg-white border border-[#f0ede4] hover:border-[#171711] hover:shadow-2xs transition-all flex items-center justify-between gap-3">
+                  <div className="p-3.5 rounded-2xl bg-white border border-[#f0ede4] hover:border-[#171711] hover:shadow-2xs transition-all flex items-center justify-between gap-3">
                     <div className="flex items-center gap-3 min-w-0">
                       <div className="w-8 h-8 rounded-xl bg-[#001e36] text-[#31a8ff] font-bold text-xs flex items-center justify-center shrink-0">
                         Ps
                       </div>
                       <div className="min-w-0">
-                        <p className="font-bold text-xs sm:text-sm text-[#171711] truncate">
+                        <p className="font-bold text-sm text-[#171711] truncate">
                           Design Inspiration.psd
                         </p>
                         <p className="text-[11px] text-[#9e9b92]">PSD File • Added 3 days ago</p>
@@ -307,13 +311,13 @@ export function DashboardPreviewMockup() {
                   </div>
 
                   {/* Item 3 */}
-                  <div className="p-3 sm:p-3.5 rounded-2xl bg-white border border-[#f0ede4] hover:border-[#171711] hover:shadow-2xs transition-all flex items-center justify-between gap-3">
+                  <div className="p-3.5 rounded-2xl bg-white border border-[#f0ede4] hover:border-[#171711] hover:shadow-2xs transition-all flex items-center justify-between gap-3">
                     <div className="flex items-center gap-3 min-w-0">
                       <div className="w-8 h-8 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
                         <Video className="w-4 h-4" />
                       </div>
                       <div className="min-w-0">
-                        <p className="font-bold text-xs sm:text-sm text-[#171711] truncate">
+                        <p className="font-bold text-sm text-[#171711] truncate">
                           YouTube Video
                         </p>
                         <p className="text-[11px] text-[#9e9b92]">Link • Added 1 week ago</p>
@@ -334,13 +338,13 @@ export function DashboardPreviewMockup() {
                 </span>
                 <div className="space-y-2">
                   {/* Item 1 */}
-                  <div className="p-3 sm:p-3.5 rounded-2xl bg-white border border-[#f0ede4] hover:border-[#171711] hover:shadow-2xs transition-all flex items-center justify-between gap-3">
+                  <div className="p-3.5 rounded-2xl bg-white border border-[#f0ede4] hover:border-[#171711] hover:shadow-2xs transition-all flex items-center justify-between gap-3">
                     <div className="flex items-center gap-3 min-w-0">
                       <div className="w-8 h-8 rounded-xl bg-neutral-100 text-[#171711] flex items-center justify-center shrink-0">
                         <CheckSquare className="w-4 h-4" />
                       </div>
                       <div className="min-w-0">
-                        <p className="font-bold text-xs sm:text-sm text-[#171711] truncate">
+                        <p className="font-bold text-sm text-[#171711] truncate">
                           Finish Portfolio
                         </p>
                         <p className="text-[11px] text-[#9e9b92]">Task • Added 3 days ago</p>
@@ -353,13 +357,13 @@ export function DashboardPreviewMockup() {
                   </div>
 
                   {/* Item 2 */}
-                  <div className="p-3 sm:p-3.5 rounded-2xl bg-white border border-[#f0ede4] hover:border-[#171711] hover:shadow-2xs transition-all flex items-center justify-between gap-3">
+                  <div className="p-3.5 rounded-2xl bg-white border border-[#f0ede4] hover:border-[#171711] hover:shadow-2xs transition-all flex items-center justify-between gap-3">
                     <div className="flex items-center gap-3 min-w-0">
                       <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
                         <Link2 className="w-4 h-4" />
                       </div>
                       <div className="min-w-0">
-                        <p className="font-bold text-xs sm:text-sm text-[#171711] truncate">
+                        <p className="font-bold text-sm text-[#171711] truncate">
                           Read Article – Design Trends
                         </p>
                         <p className="text-[11px] text-[#9e9b92]">Link • Added 5 days ago</p>
@@ -375,7 +379,7 @@ export function DashboardPreviewMockup() {
             </div>
 
             {/* Right Column: QUICK DROP & NEXT RETURN */}
-            <div className="lg:col-span-4 space-y-4">
+            <div className="col-span-4 space-y-4">
               {/* Quick Drop Box */}
               <div>
                 <span className="text-[10px] font-black tracking-widest uppercase text-[#9e9b92] block mb-3">
@@ -428,6 +432,8 @@ export function DashboardPreviewMockup() {
             </div>
           </div>
         </main>
+      </div>
+    </ResponsivePreviewContainer>
 
       {/* Interactive Toast */}
       {droppedToast && (
@@ -435,6 +441,6 @@ export function DashboardPreviewMockup() {
           {droppedToast}
         </div>
       )}
-    </div>
+    </>
   );
 }
