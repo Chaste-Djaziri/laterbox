@@ -111,6 +111,17 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
                   ],
                 ),
               ),
+              actions: [
+                IconButton(
+                  tooltip: 'Sign out',
+                  icon: const Icon(Icons.logout_rounded),
+                  onPressed: () async {
+                    await ref.read(authRepositoryProvider).signOut();
+                    if (context.mounted) context.go('/welcome');
+                  },
+                ),
+                const SizedBox(width: 8),
+              ],
             ),
       body: all.when(
         loading: () =>
@@ -195,35 +206,54 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         if (isDesktop)
-                          GestureDetector(
-                            onTap: () =>
-                                showDisplayNamePrompt(context, ref),
-                            child: Column(
-                              crossAxisAlignment:
-                                  CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  timeGreeting,
-                                  style: theme.textTheme.titleMedium?.copyWith(
-                                    fontWeight: FontWeight.w600,
-                                    color: isDark
-                                        ? Colors.white
-                                        : const Color(0xFF171711),
-                                  ),
+                          Row(
+                            children: [
+                              GestureDetector(
+                                onTap: () =>
+                                    showDisplayNamePrompt(context, ref),
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      timeGreeting,
+                                      style:
+                                          theme.textTheme.titleMedium?.copyWith(
+                                        fontWeight: FontWeight.w600,
+                                        color: isDark
+                                            ? Colors.white
+                                            : const Color(0xFF171711),
+                                      ),
+                                    ),
+                                    Text(
+                                      firstName,
+                                      style: theme
+                                          .textTheme.headlineLarge
+                                          ?.copyWith(
+                                        fontWeight: FontWeight.w900,
+                                        color: isDark
+                                            ? Colors.white
+                                            : const Color(0xFF171711),
+                                        letterSpacing: -1,
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                                Text(
-                                  firstName,
-                                  style:
-                                      theme.textTheme.headlineLarge?.copyWith(
-                                    fontWeight: FontWeight.w900,
-                                    color: isDark
-                                        ? Colors.white
-                                        : const Color(0xFF171711),
-                                    letterSpacing: -1,
-                                  ),
-                                ),
-                              ],
-                            ),
+                              ),
+                              const Spacer(),
+                              IconButton(
+                                tooltip: 'Sign out',
+                                icon: const Icon(Icons.logout_rounded),
+                                onPressed: () async {
+                                  await ref
+                                      .read(authRepositoryProvider)
+                                      .signOut();
+                                  if (context.mounted) {
+                                    context.go('/welcome');
+                                  }
+                                },
+                              ),
+                            ],
                           ),
                         const SizedBox(height: 16),
                         if (!isDesktop)
