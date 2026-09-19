@@ -107,8 +107,4 @@ class AuthRepository {
   }
 
   Future<void> signOut() => _requiredClient.auth.signOut();
-
-  Future<void> resetPassword(String email) async {
-    await _requiredClient.auth.resetPasswordForEmail(email.trim());
-  }
 }
