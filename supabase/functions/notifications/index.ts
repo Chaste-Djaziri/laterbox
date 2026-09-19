@@ -14,6 +14,15 @@ Deno.serve(async (request) => {
   for (let i = 0; i < rows.length; i += 10) {
     await Promise.all(rows.slice(i, i + 10).map(async (delivery) => {
       try {
+        const check = await db.rpc('notification_delivery_is_current', {
+          p_event: delivery.event_id, p_installation: delivery.installation_id, p_lease: delivery.lease_id,
+        });
+        if (check.error) throw check.error;
+        if (!check.data) {
+          await db.from('notification_deliveries').update({ state: 'discarded' })
+            .eq('event_id', delivery.event_id).eq('installation_id', delivery.installation_id).eq('lease_id', delivery.lease_id);
+          return;
+        }
         await sendDelivery(delivery);
         const result = await db.from('notification_deliveries').update({ state: 'sent', last_error: null })
           .eq('event_id', delivery.event_id).eq('installation_id', delivery.installation_id).eq('lease_id', delivery.lease_id);
@@ -22,7 +31,14 @@ Deno.serve(async (request) => {
       } catch (error) {
         failed++;
         const expired = error instanceof DeliveryError && error.expired;
-        if (expired) await db.from('notification_installations').update({ enabled: false, token: null, subscription: null }).eq('id', delivery.installation_id);
+        if (expired) {
+          let disable = db.from('notification_installations').update({ enabled: false, token: null, subscription: null }).eq('id', delivery.installation_id);
+          // A response for an old token must not disable a newly rotated token.
+          disable = delivery.transport === 'web'
+            ? disable.eq('subscription->>endpoint', delivery.subscription?.endpoint || '')
+            : disable.eq('token', delivery.token || '');
+          await disable;
+        }
         await db.from('notification_deliveries').update({ state: expired || delivery.attempts >= 8 ? 'discarded' : 'pending',
           retry_at: new Date(Date.now() + Math.min(3600, 2 ** delivery.attempts * 15) * 1000).toISOString(),
           // Do not log tokens, payloads, subscriptions or provider response bodies.

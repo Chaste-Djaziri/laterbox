@@ -129,9 +129,9 @@ begin
     select d.event_id,d.installation_id from notification_deliveries d join notification_installations n on n.id=d.installation_id
     where d.state in ('pending','sending') and d.retry_at<=now() and d.attempts<8
       and ((p_installation is null and n.transport<>'poll') or n.id=p_installation)
-    order by d.retry_at limit 100 for update of d skip locked
+    order by d.retry_at limit 40 for update of d skip locked
   ), claimed as (
-    update notification_deliveries d set state='sending',attempts=d.attempts+1,retry_at=now()+interval '2 minutes',lease_id=gen_random_uuid()
+    update notification_deliveries d set state='sending',attempts=d.attempts+1,retry_at=now()+interval '5 minutes',lease_id=gen_random_uuid()
     from candidates c where d.event_id=c.event_id and d.installation_id=c.installation_id returning d.*
   ) select c.event_id,c.installation_id,c.lease_id,e.item_id,e.user_id,e.kind,n.platform,n.transport,n.token,n.subscription,c.attempts
   from claimed c join notification_events e on e.id=c.event_id join notification_installations n on n.id=c.installation_id;
@@ -146,3 +146,18 @@ returns void language sql security definer set search_path=public as $$
 $$;
 revoke all on function public.ack_notification_delivery(uuid,uuid,uuid) from public;
 grant execute on function public.ack_notification_delivery(uuid,uuid,uuid) to authenticated;
+
+-- Validate immediately before provider I/O, including changes after a claim.
+create function public.notification_delivery_is_current(p_event uuid,p_installation uuid,p_lease uuid)
+returns boolean language sql security definer set search_path=public as $$
+  select exists(select 1 from notification_deliveries d
+    join notification_events e on e.id=d.event_id
+    join notification_installations n on n.id=d.installation_id
+    join items i on i.id=e.item_id
+    where d.event_id=p_event and d.installation_id=p_installation and d.lease_id=p_lease and d.state='sending'
+      and n.enabled and public.has_pro_entitlement(n.user_id) and i.deleted_at is null
+      and i.status in ('inbox','deferred') and i.notification_revision=e.revision and e.due_at>=n.enabled_at
+      and ((e.kind='return' and n.scheduled_returns) or (e.kind='save' and n.remote_saves and n.id is distinct from e.origin_installation_id)));
+$$;
+revoke all on function public.notification_delivery_is_current(uuid,uuid,uuid) from public,anon,authenticated;
+grant execute on function public.notification_delivery_is_current(uuid,uuid,uuid) to service_role;

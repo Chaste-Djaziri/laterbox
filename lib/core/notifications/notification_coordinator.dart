@@ -35,10 +35,16 @@ final notificationCoordinatorProvider =
               .go(available ? '/item/${item.id}' : '/inbox');
         },
       );
-      void configure() => coordinator.configure(
-        ref.read(activeUserIdProvider),
-        ref.read(hasProAccessProvider),
-      );
+      void configure() {
+        if (ref.read(activeUserIdProvider) != null &&
+            ref.read(entitlementProvider).isLoading)
+          return;
+        coordinator.configure(
+          ref.read(activeUserIdProvider),
+          ref.read(hasProAccessProvider),
+        );
+      }
+
       ref.listen(activeUserIdProvider, (_, _) => configure());
       ref.listen(entitlementProvider, (_, _) => configure());
       configure();
