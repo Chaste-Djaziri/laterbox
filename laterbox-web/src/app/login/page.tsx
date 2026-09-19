@@ -29,6 +29,8 @@ function LoginContent() {
   const [message, setMessage] = useState<string | null>(null);
   const [otp, setOtp] = useState('');
   const [awaitingOtp, setAwaitingOtp] = useState(false);
+  const [awaitingName, setAwaitingName] = useState(false);
+  const [displayName, setDisplayName] = useState('');
   const requestedNext = searchParams.get('next');
   const nextPath = requestedNext?.startsWith('/') && !requestedNext.startsWith('//')
     ? requestedNext
@@ -59,7 +61,10 @@ function LoginContent() {
     setMessage(null);
     const { error: err } = await verifyEmailOtp(email.trim(), otp);
     if (err) setError(err.message);
-    else router.push(nextPath);
+    else {
+      setAwaitingOtp(false);
+      setAwaitingName(true);
+    }
     setLoading(false);
   };
 
@@ -77,6 +82,24 @@ function LoginContent() {
     continueAsGuest();
     router.push('/home');
   };
+
+  const handleSaveDisplayName = () => {
+    if (displayName.trim()) {
+      localStorage.setItem('laterbox_display_name', displayName.trim());
+    }
+    router.push(nextPath);
+  };
+
+  if (awaitingName) {
+    return (
+      <DisplayNameInput
+        displayName={displayName}
+        onChange={setDisplayName}
+        onSave={() => handleSaveDisplayName()}
+        onSkip={() => handleSaveDisplayName()}
+      />
+    );
+  }
 
   if (awaitingOtp) {
     return (
@@ -254,6 +277,66 @@ function OtpVerification({
               Use a different email
             </button>
           </div>
+        </form>
+      </section>
+    </main>
+  );
+}
+
+function DisplayNameInput({
+  displayName,
+  onChange,
+  onSave,
+  onSkip,
+}: {
+  displayName: string;
+  onChange: (value: string) => void;
+  onSave: () => void;
+  onSkip: () => void;
+}) {
+  return (
+    <main className="flex min-h-screen items-center justify-center bg-[#f7f5ee] px-4">
+      <section className="flex w-full max-w-md flex-col items-center gap-8">
+        <Image
+          src="/laterbox-icon.png"
+          alt="LaterBox logo"
+          width={64}
+          height={64}
+          className="h-16 w-auto rounded-2xl"
+          priority
+        />
+        <div className="flex w-full flex-col items-start gap-2">
+          <h1 className="text-3xl font-black tracking-tight text-[#181816]">
+            What should we call you?
+          </h1>
+          <p className="text-[15px] text-[#6b6961]">
+            Optional — we&#39;ll use your email if you skip this.
+          </p>
+        </div>
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            onSave();
+          }}
+          className="flex w-full flex-col gap-4"
+        >
+          <label htmlFor="display-name" className="sr-only">Display name</label>
+          <input
+            id="display-name"
+            type="text"
+            autoComplete="name"
+            autoFocus
+            value={displayName}
+            onChange={(event) => onChange(event.target.value)}
+            placeholder="Your name"
+            className="h-16 w-full rounded-[18px] border border-[#d8d3c7] bg-white px-5 text-[17px] font-semibold text-[#181816] placeholder:text-[#9e9b92] focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-900/10"
+          />
+          <button type="submit" className="flex h-14 w-full items-center justify-center rounded-[18px] bg-[#181816] text-[15px] font-bold text-white cursor-pointer">
+            Continue
+          </button>
+          <button type="button" onClick={onSkip} className="flex h-12 w-full items-center justify-center rounded-[18px] border border-[#d8d3c7] bg-transparent text-[15px] font-semibold text-[#6b6961] cursor-pointer">
+            Skip
+          </button>
         </form>
       </section>
     </main>
