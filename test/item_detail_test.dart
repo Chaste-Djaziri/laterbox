@@ -68,7 +68,7 @@ void main() {
     expect(find.text('Collection'), findsOneWidget);
     expect(find.text('Saved'), findsOneWidget);
     expect(find.text('URL'), findsOneWidget);
-    expect(find.text('Open original'), findsOneWidget);
+    expect(find.text('Open Link'), findsOneWidget);
 
     await disposeDatabase(tester, database);
   });
