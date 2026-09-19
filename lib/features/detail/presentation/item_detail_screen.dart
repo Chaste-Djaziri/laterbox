@@ -152,6 +152,32 @@ class _ItemDetailBody extends ConsumerWidget {
         cleanCapturedText ??
         'Untitled';
     final description = item.metadata?.description;
+
+    final ext = (effectiveUrl ?? '').split('.').last.toLowerCase();
+    final titleLower = title.toLowerCase();
+    final isPsd =
+        ext == 'psd' || ext == 'psb' || titleLower.endsWith('.psd');
+    final isPdf =
+        ext == 'pdf' || titleLower.endsWith('.pdf');
+    final isVideo =
+        item.type == 'video' ||
+        (effectiveUrl != null &&
+            (effectiveUrl.contains('youtube.com') ||
+                effectiveUrl.contains('youtu.be') ||
+                effectiveUrl.contains('vimeo.com')));
+    final isMusic =
+        item.type == 'music' ||
+        (effectiveUrl != null &&
+            (effectiveUrl.contains('spotify.com') ||
+                effectiveUrl.contains('music.apple.com')));
+    final isNote =
+        item.type == 'note' ||
+        (item.url == null &&
+            item.text != null &&
+            item.text!.isNotEmpty);
+    final isArticle =
+        item.type == 'article' ||
+        (eyebrow.contains('notion.so') || eyebrow.contains('medium.com'));
     final collections = ref.watch(collectionsForItemProvider(item.id)).value;
     final embedInfo = MediaEmbedHelper.parse(effectiveUrl);
     final attachmentsState = isFile
