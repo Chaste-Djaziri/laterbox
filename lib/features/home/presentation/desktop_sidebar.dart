@@ -8,6 +8,7 @@ import '../../../core/auth/auth_provider.dart';
 import '../../../core/billing/billing_providers.dart';
 import '../../../core/billing/entitlement.dart';
 import '../../../core/billing/entitlement_presentation.dart';
+import '../../../core/settings/display_name_provider.dart';
 import '../../../shared/widgets/cloud_sync_indicator.dart';
 import '../../inbox/presentation/inbox_providers.dart';
 
@@ -31,14 +32,15 @@ class DesktopSidebar extends ConsumerWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    final authState = ref.watch(authStateProvider);
-    final isGuest = ref.watch(guestModeProvider);
+    final authState = ref.watch(currentAuthStateProvider);
+    final isGuest = ref.watch(isGuestProvider);
+    final displayName = ref.watch(displayNameProvider);
     final inboxCount = ref.watch(inboxItemsProvider).valueOrNull?.length ?? 0;
     final entitlement =
         ref.watch(entitlementProvider).valueOrNull ?? const Entitlement.free();
 
     final String userEmail =
-        authState.asData?.value.email ?? (isGuest ? 'Guest Mode' : 'Account');
+        authState.email ?? (isGuest ? 'Guest Mode' : 'Account');
 
     // Palette aligned with laterbox-web design tokens (globals.css & AppSidebar.tsx)
     final sidebarBg = isDark ? const Color(0xFF161614) : const Color(0xFFF7F5EE);
@@ -264,6 +266,7 @@ class DesktopSidebar extends ConsumerWidget {
                         userEmail: userEmail,
                         isGuest: isGuest,
                         compact: isCompact,
+                        displayName: displayName,
                       ),
                     ),
                     const SizedBox(height: 14),
@@ -577,11 +580,13 @@ class _UserCard extends StatelessWidget {
     required this.userEmail,
     required this.isGuest,
     required this.compact,
+    this.displayName,
   });
 
   final String userEmail;
   final bool isGuest;
   final bool compact;
+  final String? displayName;
 
   @override
   Widget build(BuildContext context) {
@@ -597,13 +602,21 @@ class _UserCard extends StatelessWidget {
     final textPrimary = isDark ? Colors.white : const Color(0xFF171711);
     final textMuted = isDark ? const Color(0xFFA09E95) : const Color(0xFF6C6B63);
 
+    final effectiveName = (displayName != null && displayName!.trim().isNotEmpty)
+        ? displayName!.trim()
+        : null;
     final avatarText = isGuest
         ? 'G'
-        : (userEmail.isNotEmpty ? userEmail[0].toUpperCase() : 'U');
+        : (effectiveName?.isNotEmpty ?? false)
+            ? effectiveName![0].toUpperCase()
+            : (userEmail.isNotEmpty ? userEmail[0].toUpperCase() : 'U');
 
     if (compact) {
+      final tooltipMessage = isGuest
+          ? 'Guest Mode • Sign In'
+          : (effectiveName != null ? '$effectiveName ($userEmail) • Settings' : '$userEmail • Settings');
       return Tooltip(
-        message: '$userEmail • ${isGuest ? "Sign In" : "Settings"}',
+        message: tooltipMessage,
         child: MouseRegion(
           cursor: SystemMouseCursors.click,
           child: InkWell(
@@ -612,24 +625,24 @@ class _UserCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(8),
             hoverColor: Colors.transparent,
             child: Container(
-            width: 34,
-            height: 34,
-            decoration: BoxDecoration(
-              color: const Color(0xFFE6EDB0),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            alignment: Alignment.center,
-            child: Text(
-              avatarText,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w800,
-                color: Color(0xFF171711),
+              width: 34,
+              height: 34,
+              decoration: BoxDecoration(
+                color: const Color(0xFFE6EDB0),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              alignment: Alignment.center,
+              child: Text(
+                avatarText,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF171711),
+                ),
               ),
             ),
           ),
         ),
-      ),
       );
     }
 
@@ -771,7 +784,7 @@ class _UserCard extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  userEmail,
+                  effectiveName ?? userEmail,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
@@ -781,7 +794,9 @@ class _UserCard extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  'Account',
+                  effectiveName != null ? userEmail : 'Account',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w500,

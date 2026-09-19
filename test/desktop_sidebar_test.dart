@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:laterbox/core/auth/auth_provider.dart';
+import 'package:laterbox/core/auth/auth_state.dart';
 import 'package:laterbox/features/home/presentation/desktop_sidebar.dart';
 
 void main() {
@@ -76,5 +77,47 @@ void main() {
     await tester.tap(find.text('Library'));
     await tester.pumpAndSettle();
     expect(tappedIndex, equals(5));
+  });
+
+  testWidgets('DesktopSidebar renders authenticated user card when logged in', (tester) async {
+    tester.view.physicalSize = const Size(1280, 1000);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          restoredAuthStateProvider.overrideWith(
+            (ref) => const LaterBoxAuthState(
+              userId: 'user-123',
+              email: 'chaste@laterbox.dev',
+            ),
+          ),
+          guestModeProvider.overrideWith((ref) => false),
+        ],
+        child: MaterialApp(
+          home: Scaffold(
+            body: DesktopSidebar(
+              selectedIndex: 0,
+              onDestinationSelected: (_) {},
+              onOpenCapture: () {},
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Verify authenticated user details
+    expect(find.text('chaste@laterbox.dev'), findsOneWidget);
+    expect(find.text('Account'), findsOneWidget);
+    expect(find.text('C'), findsOneWidget);
+
+    // Ensure Guest Mode and Sign In / Sync are NOT present
+    expect(find.text('Guest Mode'), findsNothing);
+    expect(find.text('Sign In / Sync'), findsNothing);
   });
 }
