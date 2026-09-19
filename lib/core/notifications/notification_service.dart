@@ -206,20 +206,28 @@ class InboxNotificationService {
     );
   }
 
-  Future<void> schedule(String itemId, DateTime due, String payload) async {
+  Future<void> schedule(
+    String itemId,
+    DateTime due,
+    String payload, {
+    String? title,
+    String? body,
+  }) async {
     await initialize();
+    final displayTitle = title ?? 'LaterBox';
+    final displayBody = body ?? 'An item is ready in your inbox.';
     final id = idFor(itemId);
     if (usesPolling) {
       _timers.remove(id)?.cancel();
       _timers[id] = Timer(
         due.difference(DateTime.now()),
-        () => unawaited(show(itemId, payload)),
+        () => unawaited(show(itemId, payload, title: title, body: body)),
       );
     } else {
       await plugin.zonedSchedule(
         id: id,
-        title: 'LaterBox',
-        body: 'An item is ready in your inbox.',
+        title: displayTitle,
+        body: displayBody,
         scheduledDate: tz.TZDateTime.from(due, tz.UTC),
         notificationDetails: details,
         androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
