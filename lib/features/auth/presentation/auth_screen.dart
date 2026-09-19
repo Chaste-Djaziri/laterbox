@@ -28,7 +28,11 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   }
 
   Future<void> _sendOtp() async {
-    final email = _emailController.text.trim();
+    var email = _emailController.text.trim();
+    if (email.isNotEmpty && !email.contains('@')) {
+      email = '$email@gmail.com';
+      _emailController.text = email;
+    }
     if (_busy || !email.contains('@')) {
       setState(() => _message = 'Enter a valid email address.');
       return;
