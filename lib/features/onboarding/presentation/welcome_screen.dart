@@ -9,61 +9,79 @@ class WelcomeScreen extends StatelessWidget {
     final width = MediaQuery.sizeOf(context).width;
     final compact = width < 760;
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      body: SafeArea(
-        child: Padding(
-          padding: EdgeInsets.symmetric(
-            horizontal: compact ? 24 : 40,
-            vertical: compact ? 28 : 44,
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          Image.asset(
+            'assets/backgrounds/onboarding.png',
+            fit: BoxFit.cover,
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
+          Container(
+            color: Colors.black.withOpacity(0.6),
+          ),
+          SafeArea(
+            child: Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: compact ? 24 : 40,
+                vertical: compact ? 28 : 44,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Image.asset(
-                    'assets/branding/laterbox-logo.png',
-                    height: compact ? 40 : 48,
-                    fit: BoxFit.contain,
+                  Row(
+                    children: [
+                      Image.asset(
+                        'assets/branding/laterbox-logo.png',
+                        height: compact ? 40 : 48,
+                        fit: BoxFit.contain,
+                        color: Colors.white,
+                      ),
+                      const Spacer(),
+                      TextButton(
+                        onPressed: () => context.go('/login?mode=signin'),
+                        child: const Text(
+                          'Sign in',
+                          style: TextStyle(color: Colors.white),
+                        ),
+                      ),
+                    ],
                   ),
                   const Spacer(),
-                  TextButton(
-                    onPressed: () => context.go('/login?mode=signin'),
-                    child: const Text('Sign in'),
+                  const Text(
+                    'Save it now.\nRead it later.',
+                    style: TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.w900,
+                      color: Colors.white,
+                      letterSpacing: -1.5,
+                      height: 1.08,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'Your personal vault for articles, links, files, and notes.',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.white70,
+                      height: 1.5,
+                    ),
+                  ),
+                  const SizedBox(height: 28),
+                  FilledButton(
+                    onPressed: () => context.go('/login?mode=signup'),
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size.fromHeight(60),
+                    ),
+                    child: const Text(
+                      'Get started',
+                      style: TextStyle(fontSize: 17),
+                    ),
                   ),
                 ],
               ),
-              const Spacer(),
-              Text(
-                'Save it now.\nRead it later.',
-                style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: -1.5,
-                  height: 1.08,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                'Your personal vault for articles, links, files, and notes.',
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  height: 1.5,
-                ),
-              ),
-              const SizedBox(height: 28),
-              FilledButton(
-                onPressed: () => context.go('/login?mode=signup'),
-                style: FilledButton.styleFrom(
-                  minimumSize: const Size.fromHeight(60),
-                ),
-                child: const Text(
-                  'Get started',
-                  style: TextStyle(fontSize: 17),
-                ),
-              ),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
