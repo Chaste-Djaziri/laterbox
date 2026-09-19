@@ -194,61 +194,53 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  if (isDesktop) ...[
-                                    GestureDetector(
-                                      onTap: () =>
-                                          showDisplayNamePrompt(context, ref),
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            timeGreeting,
-                                            style: theme
-                                                .textTheme.titleLarge
-                                                ?.copyWith(
-                                                  fontWeight: FontWeight.w900,
-                                                  color: isDark
-                                                      ? Colors.white
-                                                      : const Color(0xFF171711),
-                                                  letterSpacing: -0.5,
-                                                ),
-                                          ),
-                                          Text(
-                                            firstName,
-                                            style: theme
-                                                .textTheme.headlineLarge
-                                                ?.copyWith(
-                                                  fontWeight: FontWeight.w900,
-                                                  color: isDark
-                                                      ? Colors.white
-                                                      : const Color(0xFF171711),
-                                                  letterSpacing: -1,
-                                                ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    const SizedBox(height: 8),
-                                  ],
-                                ),
+                        if (!isDesktop)
+                          GestureDetector(
+                            onTap: () => showDisplayNamePrompt(context, ref),
+                            child: Text(
+                              '$timeGreeting\n$firstName',
+                              style: theme.textTheme.headlineMedium?.copyWith(
+                                fontWeight: FontWeight.w900,
+                                color: isDark
+                                    ? Colors.white
+                                    : const Color(0xFF171711),
+                                letterSpacing: -1,
+                                height: 1.2,
                               ),
                             ),
-                            if (isDesktop) ...[
-                              const SizedBox(width: 16),
-                              _WebSearchButton(
-                                onTap: () => context.push('/search'),
-                              ),
-                            ],
-                          ],
-                        ),
+                          ),
+                        if (isDesktop)
+                          GestureDetector(
+                            onTap: () =>
+                                showDisplayNamePrompt(context, ref),
+                            child: Column(
+                              crossAxisAlignment:
+                                  CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  timeGreeting,
+                                  style: theme.textTheme.titleLarge?.copyWith(
+                                    fontWeight: FontWeight.w900,
+                                    color: isDark
+                                        ? Colors.white
+                                        : const Color(0xFF171711),
+                                    letterSpacing: -0.5,
+                                  ),
+                                ),
+                                Text(
+                                  firstName,
+                                  style:
+                                      theme.textTheme.headlineLarge?.copyWith(
+                                    fontWeight: FontWeight.w900,
+                                    color: isDark
+                                        ? Colors.white
+                                        : const Color(0xFF171711),
+                                    letterSpacing: -1,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         const SizedBox(height: 28),
                         if (!isDesktop)
                           GestureDetector(
@@ -289,6 +281,7 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
                           ),
                         if (!isDesktop) const SizedBox(height: 24),
                         Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Expanded(
                               child: _Summary(
@@ -305,7 +298,8 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
                                 count: today.length,
                                 route: '/today',
                                 icon: Icons.today_outlined,
-                                timeLabel: today.isNotEmpty && today.first.returnAt != null
+                                timeLabel: today.isNotEmpty &&
+                                        today.first.returnAt != null
                                     ? 'Next: ${returnTimeLabel(context, today.first.returnAt)}'
                                     : null,
                               ),
@@ -318,7 +312,8 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
                           count: upcoming.length,
                           route: '/upcoming',
                           icon: Icons.event_outlined,
-                          timeLabel: upcoming.isNotEmpty && upcoming.first.returnAt != null
+                          timeLabel: upcoming.isNotEmpty &&
+                                  upcoming.first.returnAt != null
                               ? 'Next: ${returnTimeLabel(context, upcoming.first.returnAt)}'
                               : null,
                         ),
