@@ -8,7 +8,6 @@ import '../../../features/library/presentation/library_providers.dart';
 import '../../../shared/models/laterbox_item.dart';
 import '../../../shared/widgets/item_card.dart';
 import '../../../shared/widgets/item_list_row.dart';
-import '../../../shared/widgets/view_mode_toggle.dart';
 import 'search_providers.dart';
 
 class SearchScreen extends ConsumerStatefulWidget {
@@ -44,61 +43,89 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     final recent = ref.watch(allItemsProvider);
     final viewMode = ref.watch(itemViewModeProvider);
 
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded),
-          tooltip: 'Back',
-          onPressed: () {
-            if (context.canPop()) {
-              context.pop();
-            } else {
-              context.go('/inbox');
-            }
-          },
-        ),
-        title: const Text(
-          'Search',
-          style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: -0.6),
-        ),
-        actions: const [
-          ViewModeToggle(compact: true),
-          SizedBox(width: 8),
-        ],
-      ),
       body: SafeArea(
         top: false,
         child: Column(
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
-              child: TextField(
-                controller: _controller,
-                autofocus: true,
-                onChanged: _setQuery,
-                textInputAction: TextInputAction.search,
-                decoration: InputDecoration(
-                  hintText: 'Search laterbox',
-                  prefixIcon: const Icon(Icons.search_rounded),
-                  suffixIcon: query.isEmpty
-                      ? null
-                      : IconButton(
-                          tooltip: 'Clear search',
-                          icon: const Icon(Icons.close_rounded),
-                          onPressed: () {
-                            _controller.clear();
-                            _setQuery('');
-                          },
+              padding: EdgeInsets.fromLTRB(
+                16,
+                MediaQuery.of(context).padding.top + 8,
+                16,
+                12,
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _controller,
+                      autofocus: true,
+                      onChanged: _setQuery,
+                      textInputAction: TextInputAction.search,
+                      style: const TextStyle(fontSize: 16),
+                      decoration: InputDecoration(
+                        hintText: 'Search your items…',
+                        hintStyle: TextStyle(
+                          color: isDark
+                              ? const Color(0xFFA09E95)
+                              : const Color(0xFF6C6B63),
                         ),
-                  filled: true,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: BorderSide.none,
+                        prefixIcon: Icon(
+                          Icons.search,
+                          color: isDark
+                              ? const Color(0xFFA09E95)
+                              : const Color(0xFF6C6B63),
+                          size: 20,
+                        ),
+                        prefixIconConstraints: const BoxConstraints(
+                          minWidth: 40,
+                          minHeight: 0,
+                        ),
+                        suffixIcon: query.isEmpty
+                            ? null
+                            : IconButton(
+                                tooltip: 'Clear',
+                                icon: const Icon(Icons.close_rounded, size: 20),
+                                onPressed: () {
+                                  _controller.clear();
+                                  _setQuery('');
+                                },
+                              ),
+                        filled: true,
+                        fillColor: isDark
+                            ? const Color(0xFF2A2A28)
+                            : const Color(0xFFF0EDE5),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: BorderSide.none,
+                        ),
+                      ),
+                    ),
                   ),
-                ),
-                ),
-             ),
-             _TypeFilterChips(),
+                  const SizedBox(width: 8),
+                  IconButton(
+                    tooltip: 'Back',
+                    icon: const Icon(Icons.close_rounded),
+                    onPressed: () {
+                      if (context.canPop()) {
+                        context.pop();
+                      } else {
+                        context.go('/home');
+                      }
+                    },
+                  ),
+                ],
+              ),
+            ),
+            _TypeFilterChips(),
               Expanded(
                 child: query.trim().isEmpty
                     ? _RecentList(items: recent, viewMode: viewMode)
