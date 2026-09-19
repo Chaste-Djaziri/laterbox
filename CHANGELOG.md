@@ -5,6 +5,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 ## [Unreleased]
 
 ### Changed
+- **Personalized User Name for Local & Guest Mode**: Replaced the hardcoded 'Abhishek' greeting on `/home` and `/inbox` with an interactive user name prompt and persistent local storage (`laterbox_user_name`). Users in Guest Mode and local users can now enter and edit what LaterBox calls them directly inline from the greeting header, with real-time synchronization across `/home`, `/inbox`, and the sidebar profile card.
 - **Sticky Marketing Header on Scroll**: Made the marketing header stick to the top of the viewport during page scroll with a frosted glassmorphism backdrop blur (`bg-[#f7f5ee]/90 backdrop-blur-md`) and a subtle lower border, ensuring navigation links and launch actions remain accessible across long landing page content without obstructing page readability.
 - **Responsive Mobile Preview Scaling**: Added responsive proportional scaling to both marketing dashboard previews (Hero and 'Designed to stay out of your way' showcase). Mockups preserve their fixed desktop layout, side-by-side dimensions, and proportions on mobile screens, smoothly scaling down to fit viewport widths without reflowing.
 - **Web Landing Page Hero Dashboard Preview Alignment**: Aligned the hero dashboard preview dimensions and container styling to match the 'Designed to stay out of your way' showcase section (`max-w-6xl mx-auto rounded-[32px]`), removing the macOS traffic lights top bar and bottom status bars, while retaining the floating 'TRY IT ↓' indicator.
