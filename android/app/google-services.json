@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "742276864633",
+    "project_id": "laterbox-9210c",
+    "storage_bucket": "laterbox-9210c.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:742276864633:android:b34aeb0326d1a81b6912a8",
+        "android_client_info": {
+          "package_name": "pro.micorp.laterbox"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyADL2jLcBO1iIVytvHJOx4kr5MMJkzdNes"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
