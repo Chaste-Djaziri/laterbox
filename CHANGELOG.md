@@ -5,6 +5,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 ## [Unreleased]
 
 ### Changed
+- **Web Landing Page Pre-Footer Border**: Removed the dividing line border between the 'One Unified Vault Across All Your Devices' section and the 'Drop it now. Deal with it later.' pre-footer CTA section for a seamless white flow.
 - **Web Landing Page Pre-Footer CTA White Background**: Updated the pre-footer download CTA section to use a clean white section background (`bg-white`) matching the preceding section while keeping the dark container card background.
 - **Web Landing Page 'Designed to stay out of your way' Section**: Restored the 'Designed to stay out of your way.' app dashboard showcase section on the marketing landing page alongside the hero interactive preview.
 - **Web Landing Page Pre-Footer CTA Background**: Updated the "Drop it now. Deal with it later." pre-footer download section to remove the section background and ambient bloom overlay, keeping solely the clean black container card background.
