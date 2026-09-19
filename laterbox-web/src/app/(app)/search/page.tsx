@@ -139,6 +139,7 @@ export default function SearchPage() {
         <SearchIcon className="w-5 h-5 text-[#9e9b92] absolute left-4 top-1/2 -translate-y-1/2" />
         <input
           type="text"
+          data-search-input="true"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Type to search titles, keywords, domains, personal notes..."
