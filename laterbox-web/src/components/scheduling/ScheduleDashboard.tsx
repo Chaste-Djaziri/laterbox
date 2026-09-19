@@ -37,7 +37,6 @@ import {
   Pencil,
   Check,
   X,
-  Sparkles,
 } from 'lucide-react';
 
 function ScheduledRow({ item }: { item: LaterBoxItem }) {
