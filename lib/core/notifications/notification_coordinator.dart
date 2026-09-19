@@ -14,6 +14,7 @@ import '../router/app_router.dart';
 import '../supabase/supabase_provider.dart';
 import '../sync/sync_providers.dart';
 import 'notification_identity.dart';
+import 'notification_plan.dart';
 import 'notification_service.dart';
 
 final notificationCoordinatorProvider =
@@ -237,34 +238,23 @@ class NotificationCoordinator extends ChangeNotifier
     final prefs = await SharedPreferences.getInstance();
     final handedOff = prefs.getStringList('notification_handed_off') ?? [];
     final now = DateTime.now();
-    final candidates =
-        _items
-            .where(
-              (item) =>
-                  returns &&
-                  item.deletedAt == null &&
-                  (item.status == 'inbox' || item.status == 'deferred') &&
-                  item.returnAt != null &&
-                  item.returnAt!.isAfter(now) &&
-                  !(cloud &&
-                      (item.lastSyncedAt != null ||
-                          handedOff.contains(item.id))),
-            )
-            .toList()
-          ..sort((a, b) => a.returnAt!.compareTo(b.returnAt!));
-    // iOS has a finite OS queue. Refill the earliest 60 when the app runs.
-    final wanted = {for (final item in candidates.take(60)) item.id: item};
+    final planned = planLocalReminders(
+      _items,
+      now: now,
+      enabled: returns,
+      cloudActive: cloud,
+      handedOff: handedOff.toSet(),
+    );
+    final wanted = {for (final item in planned) item.id: item};
     for (final id in _scheduled.keys.toList()) {
       if (!wanted.containsKey(id)) {
         // Leave an already delivered reminder in Notification Center. Cancel
         // only if the item was removed, archived or its schedule changed.
-        final delivered = _items.any(
-          (item) =>
-              item.id == id &&
-              item.deletedAt == null &&
-              (item.status == 'inbox' || item.status == 'deferred') &&
-              item.returnAt?.toUtc().toIso8601String() == _scheduled[id] &&
-              !item.returnAt!.isAfter(now),
+        final delivered = retainDeliveredReminder(
+          _items,
+          id,
+          _scheduled[id]!,
+          now,
         );
         if (!delivered) await service.cancel(id);
         _scheduled.remove(id);
