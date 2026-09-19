@@ -37,8 +37,9 @@ final notificationCoordinatorProvider =
       );
       void configure() {
         if (ref.read(activeUserIdProvider) != null &&
-            ref.read(entitlementProvider).isLoading)
+            ref.read(entitlementProvider).isLoading) {
           return;
+        }
         coordinator.configure(
           ref.read(activeUserIdProvider),
           ref.read(hasProAccessProvider),
@@ -110,7 +111,16 @@ class NotificationCoordinator extends ChangeNotifier
       final changed = !_configured || user != _user;
       if (!changed && pro == _pro) return;
       if (changed) {
-        if (_configured) await _unregister();
+        if (_configured) {
+          try {
+            await _unregister();
+          } catch (_) {
+            // Retry revocation with the saved capability after connectivity returns.
+            _registeredUser = null;
+            _registeredId = null;
+            _registrationSignature = null;
+          }
+        }
         await _itemsSubscription?.cancel();
         await service.initialize();
         await service.cancelAll();
@@ -124,19 +134,6 @@ class NotificationCoordinator extends ChangeNotifier
             user != null) {
           _registeredUser = user;
           _registeredId = await NotificationIdentity.installationId();
-        }
-        if (prefs.getString('notification_registered_user') != null &&
-            prefs.getString('notification_registered_user') != user &&
-            client != null) {
-          await client!.rpc(
-            'revoke_notification_installation',
-            params: {
-              'installation_id': await NotificationIdentity.installationId(),
-              'revocation_secret':
-                  await NotificationIdentity.revocationSecret(),
-            },
-          );
-          await prefs.remove('notification_registered_user');
         }
         final saved =
             jsonDecode(prefs.getString(_key) ?? '{}') as Map<String, dynamic>;
@@ -215,9 +212,15 @@ class NotificationCoordinator extends ChangeNotifier
     await service.initialize();
     final allowed = enabled && await service.permission();
     if (!allowed) {
-      await _unregister();
       await service.cancelAll();
       _scheduled.clear();
+      try {
+        await _unregister();
+      } catch (_) {
+        status = 'Local notifications are off. Cloud disconnect will retry when online.';
+        _notify();
+        return;
+      }
       status = enabled
           ? 'Notifications are blocked in device settings.'
           : 'Notifications are off on this device.';
@@ -225,41 +228,59 @@ class NotificationCoordinator extends ChangeNotifier
       return;
     }
     var cloud = _pro && _user != null && _registeredUser == _user;
-    if (_user != null && _pro && client != null) {
-      final token = await service.token();
-      if (service.usesPolling || token != null) {
-        // Clear local schedules before enabling any server-owned reminders.
-        final id = await NotificationIdentity.installationId();
-        final signature = '$_user/$id/$token/$returns/$saves';
-        if (_registrationSignature != signature) {
-          await service.cancelAll();
-          _scheduled.clear();
+    String? cloudFailure;
+    try {
+      if (_user != null && _pro && client != null) {
+        final prefs = await SharedPreferences.getInstance();
+        final priorUser = prefs.getString('notification_registered_user');
+        if (priorUser != null && priorUser != _user) {
           await client!.rpc(
-            'register_notification_installation',
+            'revoke_notification_installation',
             params: {
-              'installation_id': id,
+              'installation_id': await NotificationIdentity.installationId(),
               'revocation_secret':
                   await NotificationIdentity.revocationSecret(),
-              'device_platform': service.platform,
-              'delivery_transport': service.transport,
-              'device_token': token,
-              'notifications_enabled': true,
-              'returns_enabled': returns,
-              'saves_enabled': saves,
             },
           );
-          await (await SharedPreferences.getInstance()).setString(
-            'notification_registered_user',
-            _user!,
-          );
-          _registeredId = id;
-          _registeredUser = _user;
-          _registrationSignature = signature;
+          await prefs.remove('notification_registered_user');
         }
-        cloud = true;
+        final token = await service.token();
+        if (service.usesPolling || token != null) {
+          // Clear local schedules before enabling any server-owned reminders.
+          final id = await NotificationIdentity.installationId();
+          final signature = '$_user/$id/$token/$returns/$saves';
+          if (_registrationSignature != signature) {
+            await service.cancelAll();
+            _scheduled.clear();
+            await client!.rpc(
+              'register_notification_installation',
+              params: {
+                'installation_id': id,
+                'revocation_secret':
+                    await NotificationIdentity.revocationSecret(),
+                'device_platform': service.platform,
+                'delivery_transport': service.transport,
+                'device_token': token,
+                'notifications_enabled': true,
+                'returns_enabled': returns,
+                'saves_enabled': saves,
+              },
+            );
+            await (await SharedPreferences.getInstance()).setString(
+              'notification_registered_user',
+              _user!,
+            );
+            _registeredId = id;
+            _registeredUser = _user;
+            _registrationSignature = signature;
+          }
+          cloud = true;
+        }
+      } else {
+        await _unregister();
       }
-    } else {
-      await _unregister();
+    } catch (_) {
+      cloudFailure = 'Local reminders remain active. Cloud notifications will retry when online or configured.';
     }
     service.cloudActive = cloud;
     for (final id in service.uploadCancellations) {
@@ -319,13 +340,15 @@ class NotificationCoordinator extends ChangeNotifier
         );
       }
     }
-    status = cloud
-        ? (service.usesPolling
-              ? 'Active while LaterBox is running or in the tray.'
-              : 'Cloud delivery and local-only reminders are enabled.')
-        : (_pro
-              ? 'Local reminders enabled. Cloud push needs provider setup.'
-              : 'Local reminders enabled on this device.');
+    status =
+        cloudFailure ??
+        (cloud
+            ? (service.usesPolling
+                  ? 'Active while LaterBox is running or in the tray.'
+                  : 'Cloud delivery and local-only reminders are enabled.')
+            : (_pro
+                  ? 'Local reminders enabled. Cloud push needs provider setup.'
+                  : 'Local reminders enabled on this device.'));
     _notify();
   }
 
