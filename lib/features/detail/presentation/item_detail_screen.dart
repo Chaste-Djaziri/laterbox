@@ -876,65 +876,77 @@ class _ItemDetailBody extends ConsumerWidget {
                 ),
               ],
               if (isCaptured) ...[
-                Text(
-                  'Selected text',
-                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 1.2,
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFfef3c7).withValues(alpha: 0.6),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: const Color(0xFFfde68a)),
                   ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  '“$cleanCapturedText”',
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: -0.4,
-                    height: 1.35,
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Text(
-                  'Source',
-                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 1.2,
-                  ),
-                ),
-                if (sourceTitle != null) ...[
-                  const SizedBox(height: 6),
-                  Text(
-                    sourceTitle,
-                    style: Theme.of(context).textTheme.titleMedium
-                        ?.copyWith(fontWeight: FontWeight.w700),
-                  ),
-                ],
-                if (effectiveUrl != null) ...[
-                  const SizedBox(height: 4),
-                  InkWell(
-                    onTap: () => openOriginalForItem(context, effectiveItem),
-                    borderRadius: BorderRadius.circular(6),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 2),
-                      child: Text(
-                        effectiveUrl,
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Theme.of(context).colorScheme.primary,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.format_quote_rounded,
+                            size: 16,
+                            color: Colors.amber.shade800,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            'CAPTURED HIGHLIGHT',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 1.2,
+                              color: Colors.amber.shade800,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        '\u201c$cleanCapturedText\u201d',
+                        style: TextStyle(
+                          fontSize: 15,
                           fontWeight: FontWeight.w600,
+                          fontStyle: FontStyle.italic,
+                          height: 1.5,
+                          color: Colors.amber.shade900,
                         ),
                       ),
-                    ),
+                      if (effectiveUrl != null) ...[
+                        const SizedBox(height: 12),
+                        GestureDetector(
+                          onTap: () =>
+                              openOriginalForItem(context, effectiveItem),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                'View in source context',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.amber.shade800,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              Icon(
+                                Icons.open_in_new_rounded,
+                                size: 12,
+                                color: Colors.amber.shade800,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
-                ] else if (sourceTitle == null) ...[
-                  const SizedBox(height: 6),
-                  Text(
-                    'laterbox note',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ],
+                ),
+                const SizedBox(height: 16),
               ] else ...[
                 Text(
                   title,
