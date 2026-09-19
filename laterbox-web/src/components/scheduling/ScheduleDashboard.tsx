@@ -450,38 +450,33 @@ export function ScheduleDashboard({ view }: { view?: ScheduleView }) {
     },
   ];
 
-  // Map real items or fallbacks
-  const waitingDisplayItems: DisplayItem[] =
-    inboxItems.length > 0
-      ? inboxItems.slice(0, 4).map((item) => ({
-          id: item.id,
-          title: item.title || 'Untitled item',
-          subtitle:
-            item.metadata?.description ||
-            `${item.type.charAt(0).toUpperCase() + item.type.slice(1)} • Added recently`,
-          time: item.return_at ? returnLabel(item.return_at) : 'Waiting in inbox',
-          iconType: item.type,
-          item,
-        }))
-      : defaultWaitingItems;
+  // Map real items dynamically from actual schedule collections
+  const activeWaitingList = today.length > 0 ? today : inboxItems;
+  const waitingDisplayItems: DisplayItem[] = activeWaitingList.slice(0, 4).map((item) => ({
+    id: item.id,
+    title: item.title || 'Untitled item',
+    subtitle:
+      item.metadata?.description ||
+      `${item.type.charAt(0).toUpperCase() + item.type.slice(1)} • ${item.return_at ? 'Returned' : 'In inbox'}`,
+    time: item.return_at ? returnLabel(item.return_at) : 'Waiting in inbox',
+    iconType: item.type,
+    item,
+  }));
 
-  const comingUpDisplayItems: DisplayItem[] =
-    upcoming.length > 0
-      ? upcoming.slice(0, 3).map((item) => ({
-          id: item.id,
-          title: item.title || 'Untitled item',
-          subtitle:
-            item.metadata?.description ||
-            `${item.type.charAt(0).toUpperCase() + item.type.slice(1)} • Scheduled`,
-          time: returnLabel(item.return_at),
-          iconType: item.type,
-          item,
-        }))
-      : defaultComingUpItems;
+  const comingUpDisplayItems: DisplayItem[] = upcoming.slice(0, 3).map((item) => ({
+    id: item.id,
+    title: item.title || 'Untitled item',
+    subtitle:
+      item.metadata?.description ||
+      `${item.type.charAt(0).toUpperCase() + item.type.slice(1)} • Scheduled`,
+    time: returnLabel(item.return_at),
+    iconType: item.type,
+    item,
+  }));
 
-  const returnedTodayCount = today.length > 0 ? today.length : 3;
-  const waitingInboxCount = inboxItems.length > 0 ? inboxItems.length : 2;
-  const somedayCount = someday.length > 0 ? someday.length : 7;
+  const returnedTodayCount = today.length;
+  const waitingInboxCount = inboxItems.length;
+  const somedayCount = someday.length;
   const nextReturn = upcoming.length > 0 ? upcoming[0] : null;
 
   return (
@@ -705,22 +700,28 @@ export function ScheduleDashboard({ view }: { view?: ScheduleView }) {
               </Link>
             </div>
             <div className="space-y-2">
-              {waitingDisplayItems.map((item) => (
-                <ItemCardRow
-                  key={item.id}
-                  title={item.title}
-                  subtitle={item.subtitle}
-                  time={item.time}
-                  iconType={item.iconType}
-                  onClick={() => {
-                    if ('item' in item && item.item) {
-                      router.push(`/item/${item.item.id}`);
-                    } else {
-                      open();
-                    }
-                  }}
-                />
-              ))}
+              {waitingDisplayItems.length > 0 ? (
+                waitingDisplayItems.map((item) => (
+                  <ItemCardRow
+                    key={item.id}
+                    title={item.title}
+                    subtitle={item.subtitle}
+                    time={item.time}
+                    iconType={item.iconType}
+                    onClick={() => {
+                      if ('item' in item && item.item) {
+                        router.push(`/item/${item.item.id}`);
+                      } else {
+                        open();
+                      }
+                    }}
+                  />
+                ))
+              ) : (
+                <div className="p-4 rounded-2xl bg-[#faf8f5] border border-[#e4e0d5] text-center text-xs text-[#8e8d87]">
+                  All caught up! No items waiting for your attention right now.
+                </div>
+              )}
             </div>
           </div>
 
@@ -739,22 +740,28 @@ export function ScheduleDashboard({ view }: { view?: ScheduleView }) {
               </Link>
             </div>
             <div className="space-y-2">
-              {comingUpDisplayItems.map((item) => (
-                <ItemCardRow
-                  key={item.id}
-                  title={item.title}
-                  subtitle={item.subtitle}
-                  time={item.time}
-                  iconType={item.iconType}
-                  onClick={() => {
-                    if ('item' in item && item.item) {
-                      router.push(`/item/${item.item.id}`);
-                    } else {
-                      open();
-                    }
-                  }}
-                />
-              ))}
+              {comingUpDisplayItems.length > 0 ? (
+                comingUpDisplayItems.map((item) => (
+                  <ItemCardRow
+                    key={item.id}
+                    title={item.title}
+                    subtitle={item.subtitle}
+                    time={item.time}
+                    iconType={item.iconType}
+                    onClick={() => {
+                      if ('item' in item && item.item) {
+                        router.push(`/item/${item.item.id}`);
+                      } else {
+                        open();
+                      }
+                    }}
+                  />
+                ))
+              ) : (
+                <div className="p-4 rounded-2xl bg-[#faf8f5] border border-[#e4e0d5] text-center text-xs text-[#8e8d87]">
+                  No upcoming returns scheduled yet.
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -821,12 +828,12 @@ export function ScheduleDashboard({ view }: { view?: ScheduleView }) {
               </Link>
             ) : (
               <div className="p-3 rounded-2xl bg-[#faf8f5] border border-[#f0ede4] flex items-center gap-3">
-                <div className="w-7 h-7 rounded-lg bg-white text-[#171711] border border-[#e4e0d5] flex items-center justify-center shrink-0">
-                  <FileText className="w-3.5 h-3.5" />
+                <div className="w-7 h-7 rounded-lg bg-white text-[#9e9b92] border border-[#e4e0d5] flex items-center justify-center shrink-0">
+                  <Clock className="w-3.5 h-3.5" />
                 </div>
                 <div className="min-w-0">
-                  <p className="font-bold text-xs text-[#171711] truncate">ClientBrief.pdf</p>
-                  <p className="text-[10px] text-[#9e9b92]">Tomorrow, 10:00 AM</p>
+                  <p className="font-bold text-xs text-[#171711] truncate">No scheduled returns</p>
+                  <p className="text-[10px] text-[#9e9b92]">Choose a return time when capturing</p>
                 </div>
               </div>
             )}
