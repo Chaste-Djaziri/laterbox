@@ -29,7 +29,10 @@ export function scheduleItems(items: LaterBoxItem[], view: ScheduleView, now: Da
     : new Date(a.return_at!).getTime() - new Date(b.return_at!).getTime());
 }
 export function migrateSchedule(item: LaterBoxItem): LaterBoxItem {
-  return item.status === 'inbox' ? { ...item, status: 'deferred', return_at: item.created_at } : item;
+  if (item.status === 'inbox' && !item.return_at) {
+    return { ...item, status: 'deferred', return_at: item.created_at };
+  }
+  return item;
 }
 export function returnLabel(value?: string | null): string {
   return value ? new Date(value).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) : 'Someday';
