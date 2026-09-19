@@ -1,5 +1,7 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class WelcomeScreen extends StatelessWidget {
   const WelcomeScreen({super.key});
@@ -60,6 +62,43 @@ class WelcomeScreen extends StatelessWidget {
                 child: const Text(
                   'Get started',
                   style: TextStyle(fontSize: 17),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Center(
+                child: Text.rich(
+                  TextSpan(
+                    text: 'By continuing, you agree to our ',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                    children: [
+                      TextSpan(
+                        text: 'Terms',
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurface,
+                          decoration: TextDecoration.underline,
+                        ),
+                        recognizer: TapGestureRecognizer()
+                          ..onTap = () => launchUrl(
+                                Uri.parse('https://laterbox.dev/terms'),
+                              ),
+                      ),
+                      const TextSpan(text: ' and '),
+                      TextSpan(
+                        text: 'Privacy Policy',
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurface,
+                          decoration: TextDecoration.underline,
+                        ),
+                        recognizer: TapGestureRecognizer()
+                          ..onTap = () => launchUrl(
+                                Uri.parse('https://laterbox.dev/privacy'),
+                              ),
+                      ),
+                      const TextSpan(text: '.'),
+                    ],
+                  ),
                 ),
               ),
             ],
