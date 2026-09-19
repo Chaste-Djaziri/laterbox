@@ -19,8 +19,8 @@ class CloudSyncIndicator extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final auth = ref.watch(authStateProvider).asData?.value;
-    final isAuthenticated = auth?.isAuthenticated ?? false;
+    final auth = ref.watch(currentAuthStateProvider);
+    final isAuthenticated = auth.isAuthenticated;
     final isPro = ref.watch(hasProAccessProvider);
     final statsAsync = ref.watch(syncStatsProvider);
 
@@ -197,8 +197,8 @@ class _CloudSyncDetailSheet extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
-    final auth = ref.watch(authStateProvider).asData?.value;
-    final isAuthenticated = auth?.isAuthenticated ?? false;
+    final auth = ref.watch(currentAuthStateProvider);
+    final isAuthenticated = auth.isAuthenticated;
     final isPro = ref.watch(hasProAccessProvider);
     final statsAsync = ref.watch(syncStatsProvider);
 
