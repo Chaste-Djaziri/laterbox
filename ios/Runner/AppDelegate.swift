@@ -17,10 +17,10 @@ import UIKit
 
   override func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
     inboxNotifications.receiveToken(deviceToken)
-    super.application(application, didRegisterForRemoteNotificationsWithDeviceToken: deviceToken)
+    // APNs is owned by this bridge; Firebase is initialized only on Android.
   }
   override func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
-    super.application(application, didFailToRegisterForRemoteNotificationsWithError: error)
+    // Local reminders remain available when APNs registration is unavailable.
   }
 
   override func application(
