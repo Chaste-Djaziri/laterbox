@@ -9,6 +9,8 @@ interface AuthContextType {
   session: Session | null;
   loading: boolean;
   isGuest: boolean;
+  userName: string;
+  setUserName: (name: string) => void;
   signInWithOtp: (email: string) => Promise<{ error: AuthError | null }>;
   verifyEmailOtp: (email: string, token: string) => Promise<{ error: AuthError | null }>;
   resendSignupOtp: (email: string) => Promise<{ error: AuthError | null }>;
@@ -25,15 +27,23 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const GUEST_KEY = 'laterbox_guest_mode';
+const USER_NAME_KEY = 'laterbox_user_name';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [isGuest, setIsGuest] = useState(false);
+  const [userName, setUserNameState] = useState<string>('');
 
   useEffect(() => {
     const supabase = getSupabaseClient();
+
+    // Check custom saved name
+    const savedName = localStorage.getItem(USER_NAME_KEY);
+    if (savedName) {
+      setUserNameState(savedName);
+    }
 
     // Check guest mode from localStorage
     const savedGuest = localStorage.getItem(GUEST_KEY);
@@ -48,6 +58,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (session?.user) {
         setIsGuest(false);
         localStorage.removeItem(GUEST_KEY);
+        if (!localStorage.getItem(USER_NAME_KEY)) {
+          const derived =
+            session.user.user_metadata?.full_name?.split(' ')[0] ||
+            session.user.email?.split('@')[0] ||
+            '';
+          if (derived) setUserNameState(derived);
+        }
       }
       setLoading(false);
     });
@@ -61,6 +78,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (session?.user) {
         setIsGuest(false);
         localStorage.removeItem(GUEST_KEY);
+        if (!localStorage.getItem(USER_NAME_KEY)) {
+          const derived =
+            session.user.user_metadata?.full_name?.split(' ')[0] ||
+            session.user.email?.split('@')[0] ||
+            '';
+          if (derived) setUserNameState(derived);
+        }
       }
       setLoading(false);
     });
@@ -69,6 +93,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       subscription.unsubscribe();
     };
   }, []);
+
+  const setUserName = (name: string) => {
+    const trimmed = name.trim();
+    setUserNameState(trimmed);
+    if (trimmed) {
+      localStorage.setItem(USER_NAME_KEY, trimmed);
+    } else {
+      localStorage.removeItem(USER_NAME_KEY);
+    }
+  };
 
   const signInWithOtp = async (email: string) => {
     const supabase = getSupabaseClient();
@@ -219,6 +253,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         session,
         loading,
         isGuest,
+        userName,
+        setUserName,
         signInWithOtp,
         verifyEmailOtp,
         resendSignupOtp,
