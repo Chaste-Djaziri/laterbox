@@ -91,7 +91,7 @@ class _Header extends ConsumerWidget {
     final width = MediaQuery.sizeOf(context).width;
     final compact = width < 760;
     final authenticated =
-        ref.watch(authStateProvider).asData?.value.isAuthenticated ?? false;
+        ref.watch(currentAuthStateProvider).isAuthenticated;
 
     return Container(
       decoration: const BoxDecoration(
