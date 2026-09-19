@@ -1,5 +1,6 @@
 'use client';
 
+import { InboxNotificationSettings } from '@/components/notifications/InboxNotifications';
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/lib/store/AuthContext';
@@ -229,7 +230,7 @@ export default function SettingsPage() {
       }
       if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
         const registrations = await navigator.serviceWorker.getRegistrations();
-        await Promise.all(registrations.map((reg) => reg.unregister()));
+        await Promise.all(registrations.filter((reg) => ![reg.active, reg.waiting, reg.installing].some((worker) => worker?.scriptURL.endsWith('/notifications-sw.js'))).map((reg) => reg.unregister()));
       }
     } catch {
       // Proceed with reload
@@ -253,6 +254,7 @@ export default function SettingsPage() {
 
   return (
     <>
+      <InboxNotificationSettings />
       <div className="max-w-4xl mx-auto px-6 sm:px-8 py-7 sm:py-9 space-y-8">
         <div>
           <h1 className="text-3xl font-black text-[#171711] tracking-tight">

@@ -1,10 +1,11 @@
+import { installationId } from '../notifications/client';
 import type { LaterBoxItem } from '../supabase/types';
 import { getSupabaseClient } from '../supabase/client';
 import { readLocalAttachment } from './local-attachments';
 import { uploadAttachmentFile } from './attachment';
 
 export function itemRow(item: LaterBoxItem) {
-  return { id: item.id, user_id: item.user_id, url: item.url, title: item.title,
+  return { origin_installation_id: installationId(), id: item.id, user_id: item.user_id, url: item.url, title: item.title,
     text_content: item.text_content, text_selector: item.text_selector, type: item.type,
     favorite: item.favorite, status: item.status, return_at: item.return_at ?? null,
     created_at: item.created_at, updated_at: item.updated_at, deleted_at: item.deleted_at ?? null };

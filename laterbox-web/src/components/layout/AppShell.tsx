@@ -10,6 +10,7 @@ import { CloudSyncIndicator } from '../ui/CloudSyncIndicator';
 import { useItems } from '@/lib/store/ItemContext';
 import { Home, Inbox, BookMarked, Settings, Plus } from 'lucide-react';
 
+import { InboxNotificationController } from '../notifications/InboxNotifications';
 import { SearchModal } from '../search/SearchModal';
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -24,7 +25,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       setSearchOpen(true);
     };
     window.addEventListener('open-search-modal', handleOpenSearchModal);
-    return () => window.removeEventListener('open-search-modal', handleOpenSearchModal);
+    return () =>
+      <InboxNotificationController /> window.removeEventListener('open-search-modal', handleOpenSearchModal);
   }, []);
 
   // Keyboard shortcut: Control + Option + L (on Mac) / Ctrl + Alt + L (on PC) to open quick capture

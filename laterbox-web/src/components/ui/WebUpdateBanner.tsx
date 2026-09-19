@@ -94,7 +94,7 @@ export function WebUpdateBanner() {
       // 2. Unregister service workers if any
       if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
         const registrations = await navigator.serviceWorker.getRegistrations();
-        await Promise.all(registrations.map((reg) => reg.unregister()));
+        await Promise.all(registrations.filter((reg) => ![reg.active, reg.waiting, reg.installing].some((worker) => worker?.scriptURL.endsWith('/notifications-sw.js'))).map((reg) => reg.unregister()));
       }
     } catch {
       // Proceed with reload even if clearing caches fails
