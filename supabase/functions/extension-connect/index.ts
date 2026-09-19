@@ -21,6 +21,7 @@ type Dependencies = {
 
 type ConnectionBody = {
   action?: unknown;
+  origin_installation_id?: unknown;
   request_id?: unknown;
   request_secret?: unknown;
 };
@@ -90,6 +91,7 @@ export const createConnectionHandler = (
           requestId,
           requestSecret,
           dependencies,
+          typeof body.origin_installation_id === "string" ? body.origin_installation_id : null,
         );
       }
       if (action === "exchange") {
@@ -145,6 +147,7 @@ async function approveRequest(
   requestId: string,
   requestSecret: string,
   dependencies: Dependencies,
+  originInstallationId: string | null,
 ): Promise<Response> {
   const token = bearerToken(request.headers.get("authorization"));
   if (token === null) return json({ error: "Authentication required" }, 401);
@@ -169,7 +172,7 @@ async function approveRequest(
     {
       method: "PATCH",
       headers: { prefer: "return=minimal" },
-      body: JSON.stringify({ user_id: userId, approved_at: dependencies.now().toISOString() }),
+      body: JSON.stringify({ user_id: userId, origin_installation_id: originInstallationId && /^[0-9a-f-]{36}$/i.test(originInstallationId) ? originInstallationId : null, approved_at: dependencies.now().toISOString() }),
     },
   );
   if (!response.ok) return json({ error: "Could not approve request" }, 502);
@@ -204,6 +207,7 @@ async function exchangeRequest(
       body: JSON.stringify({
         id: dependencies.createId(),
         user_id: connection.user_id,
+        origin_installation_id: connection.origin_installation_id ?? null,
         token_hash: await hash(token),
         created_at: now.toISOString(),
         expires_at: new Date(now.getTime() + SESSION_TTL_MS).toISOString(),
@@ -300,9 +304,10 @@ async function findRequest(
   user_id: string | null;
   expires_at: string;
   used_at: string | null;
+  origin_installation_id?: string | null;
 } | null> {
   const response = await adminFetch(
-    `/rest/v1/extension_connection_requests?select=user_id,expires_at,used_at,secret_hash&request_id=eq.${encodeURIComponent(requestId)}`,
+    `/rest/v1/extension_connection_requests?select=user_id,expires_at,used_at,secret_hash,origin_installation_id&request_id=eq.${encodeURIComponent(requestId)}`,
     dependencies,
   );
   if (!response.ok) return null;

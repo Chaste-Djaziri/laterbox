@@ -26,6 +26,7 @@ type CaptureBody = {
   platform?: unknown;
   selector?: unknown;
   source?: unknown;
+  origin_installation_id?: unknown;
 };
 
 type CaptureDependencies = {
@@ -105,10 +106,23 @@ export const createCaptureHandler = (
     }
 
     const itemId = dependencies.createId();
+    let originInstallationId: string | null = null;
+    if (token.startsWith("lb_ext_")) {
+      const identity = await dependencies.fetch(`${dependencies.supabaseUrl}/rest/v1/extension_sessions?select=origin_installation_id&token_hash=eq.${await hash(token)}&revoked_at=is.null`, {
+        headers: { apikey: dependencies.serviceRoleKey, authorization: `Bearer ${dependencies.serviceRoleKey}` },
+      });
+      if (identity.ok) {
+        const sessions = await identity.json();
+        originInstallationId = sessions[0]?.origin_installation_id ?? null;
+      }
+    } else if (typeof body.origin_installation_id === "string" && /^[0-9a-f-]{36}$/i.test(body.origin_installation_id)) {
+      originInstallationId = body.origin_installation_id;
+    }
     const timestamp = dependencies.now().toISOString();
     const row = {
       id: itemId,
       user_id: userId,
+      origin_installation_id: originInstallationId,
       url: capture.url,
       title: capture.title,
       text_content: capture.text,

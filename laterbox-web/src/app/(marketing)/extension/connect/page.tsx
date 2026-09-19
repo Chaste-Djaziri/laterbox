@@ -1,4 +1,5 @@
 'use client';
+import { installationId } from '@/lib/notifications/client';
 
 import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
@@ -76,6 +77,7 @@ function ExtensionConnectContent() {
       const response = await supabase.functions.invoke('extension-connect', {
         body: {
           action: 'approve',
+          origin_installation_id: installationId(),
           request_id: requestId.trim(),
           request_secret: requestSecret.trim(),
         },

@@ -1,3 +1,5 @@
+import '../../../core/notifications/notification_identity.dart';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -110,9 +112,8 @@ class _ExtensionConnectScreenState
                       const SizedBox(height: 20),
                       Text(
                         'Connect browser extension',
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w700,
-                        ),
+                        style: Theme.of(context).textTheme.titleLarge
+                            ?.copyWith(fontWeight: FontWeight.w700),
                       ),
                       const SizedBox(height: 8),
                       Text(
@@ -142,7 +143,10 @@ class _ExtensionConnectScreenState
                         onPressed: _busy
                             ? null
                             : () => redirectTo(
-                                _redirectUri.isNotEmpty ? _redirectUri : '/inbox'),
+                                _redirectUri.isNotEmpty
+                                    ? _redirectUri
+                                    : '/inbox',
+                              ),
                         child: const Text('Cancel'),
                       ),
                       if (!_validRequest)
@@ -183,6 +187,7 @@ class _ExtensionConnectScreenState
         'extension-connect',
         body: {
           'action': 'approve',
+          'origin_installation_id': await NotificationIdentity.installationId(),
           'request_id': _requestId,
           'request_secret': _requestSecret,
         },
@@ -195,20 +200,24 @@ class _ExtensionConnectScreenState
         if (mounted) setState(() => _error = msg);
         return;
       }
-      final redirectBase = _redirectUri.isNotEmpty ? _redirectUri : '/extension/connected';
+      final redirectBase = _redirectUri.isNotEmpty
+          ? _redirectUri
+          : '/extension/connected';
       final redirectParsed = Uri.tryParse(redirectBase);
-      final callback = (redirectParsed ?? Uri.parse('/extension/connected')).replace(
-        queryParameters: {
-          ...redirectParsed?.queryParameters ?? {},
-          'request_id': _requestId,
-          'status': 'approved',
-        },
-      );
+      final callback = (redirectParsed ?? Uri.parse('/extension/connected'))
+          .replace(
+            queryParameters: {
+              ...redirectParsed?.queryParameters ?? {},
+              'request_id': _requestId,
+              'status': 'approved',
+            },
+          );
       redirectTo(callback.toString());
     } catch (error) {
       if (mounted) {
-        setState(() => _error =
-            'Could not connect this extension. Please click Connect in the extension to create a fresh link.');
+        setState(
+          () => _error = 'Could not connect this extension. Please click Connect in the extension to create a fresh link.',
+        );
       }
     } finally {
       if (mounted) setState(() => _busy = false);
