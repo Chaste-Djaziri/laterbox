@@ -86,43 +86,72 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
     return Scaffold(
       appBar: isDesktop
           ? null
-          : AppBar(
-              centerTitle: false,
-              title: GestureDetector(
-                onTap: () => showDisplayNamePrompt(context, ref),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
+          : PreferredSize(
+              preferredSize: const Size.fromHeight(140),
+              child: Container(
+                padding: EdgeInsets.fromLTRB(
+                  16,
+                  MediaQuery.of(context).padding.top + 8,
+                  16,
+                  0,
+                ),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      isDark ? const Color(0xFF171711) : const Color(0xFFF7F5EE),
+                      isDark ? const Color(0xFF171711) : const Color(0xFFF7F5EE),
+                      isDark
+                          ? const Color(0xFF171711).withValues(alpha: 0.0)
+                          : const Color(0xFFF7F5EE).withValues(alpha: 0.0),
+                    ],
+                    stops: const [0.0, 0.6, 1.0],
+                  ),
+                ),
+                child: Row(
                   children: [
-                    Text(
-                      timeGreeting,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: isDark ? Colors.white : const Color(0xFF171711),
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => showDisplayNamePrompt(context, ref),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              timeGreeting,
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.w600,
+                                color: isDark
+                                    ? Colors.white
+                                    : const Color(0xFF171711),
+                              ),
+                            ),
+                            Text(
+                              firstName,
+                              style: theme.textTheme.headlineMedium?.copyWith(
+                                fontWeight: FontWeight.w900,
+                                color: isDark
+                                    ? Colors.white
+                                    : const Color(0xFF171711),
+                                letterSpacing: -1,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                    Text(
-                      firstName,
-                      style: theme.textTheme.headlineMedium?.copyWith(
-                        fontWeight: FontWeight.w900,
-                        color: isDark ? Colors.white : const Color(0xFF171711),
-                        letterSpacing: -1,
-                      ),
+                    IconButton(
+                      tooltip: 'Sign out',
+                      icon: const Icon(Icons.logout_rounded),
+                      onPressed: () async {
+                        await ref.read(authRepositoryProvider).signOut();
+                        if (context.mounted) context.go('/welcome');
+                      },
                     ),
                   ],
                 ),
               ),
-              actions: [
-                IconButton(
-                  tooltip: 'Sign out',
-                  icon: const Icon(Icons.logout_rounded),
-                  onPressed: () async {
-                    await ref.read(authRepositoryProvider).signOut();
-                    if (context.mounted) context.go('/welcome');
-                  },
-                ),
-                const SizedBox(width: 8),
-              ],
             ),
       body: all.when(
         loading: () =>
