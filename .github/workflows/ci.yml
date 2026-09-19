@@ -33,3 +33,29 @@ jobs:
       - name: Run Unit & Widget Tests
         run: |
           flutter test
+
+  notification-contracts:
+    name: Web and Notification Contracts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: laterbox-web/package-lock.json
+      - name: Install web dependencies
+        working-directory: laterbox-web
+        run: npm ci
+      - name: Check web types and behavior
+        working-directory: laterbox-web
+        run: |
+          npx tsc --noEmit
+          npm test
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Check notification dispatcher
+        run: deno check supabase/functions/notifications/index.ts
+      - name: Test notification SQL, providers and capture compatibility
+        run: deno test -A supabase/tests/notifications.test.ts supabase/functions/notifications/providers.test.ts supabase/functions/capture/capture.test.ts supabase/functions/extension-connect/extension-connect.test.ts
