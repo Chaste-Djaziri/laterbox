@@ -18,10 +18,9 @@ class WelcomeScreen extends StatelessWidget {
             vertical: compact ? 28 : 44,
           ),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Image.asset(
                     'assets/branding/laterbox-logo.png',
@@ -38,7 +37,6 @@ class WelcomeScreen extends StatelessWidget {
               const Spacer(),
               const Text(
                 'Save it now.\nRead it later.',
-                textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 32,
                   fontWeight: FontWeight.w900,
@@ -49,7 +47,6 @@ class WelcomeScreen extends StatelessWidget {
               const SizedBox(height: 12),
               Text(
                 'Your personal vault for articles, links, files, and notes.',
-                textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 16,
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -60,7 +57,7 @@ class WelcomeScreen extends StatelessWidget {
               FilledButton(
                 onPressed: () => context.go('/login?mode=signup'),
                 style: FilledButton.styleFrom(
-                  minimumSize: const Size(240, 60),
+                  minimumSize: const Size.fromHeight(60),
                 ),
                 child: const Text(
                   'Get started',
@@ -68,38 +65,40 @@ class WelcomeScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 16),
-              Text.rich(
-                TextSpan(
-                  text: 'By continuing, you agree to our ',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+              Center(
+                child: Text.rich(
+                  TextSpan(
+                    text: 'By continuing, you agree to our ',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                    children: [
+                      TextSpan(
+                        text: 'Terms',
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurface,
+                          decoration: TextDecoration.underline,
+                        ),
+                        recognizer: TapGestureRecognizer()
+                          ..onTap = () => launchUrl(
+                                Uri.parse('https://laterbox.dev/terms'),
+                              ),
+                      ),
+                      const TextSpan(text: ' and '),
+                      TextSpan(
+                        text: 'Privacy Policy',
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurface,
+                          decoration: TextDecoration.underline,
+                        ),
+                        recognizer: TapGestureRecognizer()
+                          ..onTap = () => launchUrl(
+                                Uri.parse('https://laterbox.dev/privacy'),
+                              ),
+                      ),
+                      const TextSpan(text: '.'),
+                    ],
                   ),
-                  children: [
-                    TextSpan(
-                      text: 'Terms',
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.onSurface,
-                        decoration: TextDecoration.underline,
-                      ),
-                      recognizer: TapGestureRecognizer()
-                        ..onTap = () => launchUrl(
-                              Uri.parse('https://laterbox.dev/terms'),
-                            ),
-                    ),
-                    const TextSpan(text: ' and '),
-                    TextSpan(
-                      text: 'Privacy Policy',
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.onSurface,
-                        decoration: TextDecoration.underline,
-                      ),
-                      recognizer: TapGestureRecognizer()
-                        ..onTap = () => launchUrl(
-                              Uri.parse('https://laterbox.dev/privacy'),
-                            ),
-                    ),
-                    const TextSpan(text: '.'),
-                  ],
                 ),
               ),
             ],
