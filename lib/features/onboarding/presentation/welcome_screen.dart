@@ -65,7 +65,8 @@ class WelcomeScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 16),
-              Center(
+              SizedBox(
+                width: double.infinity,
                 child: Text.rich(
                   TextSpan(
                     text: 'By continuing, you agree to our ',
@@ -99,6 +100,7 @@ class WelcomeScreen extends StatelessWidget {
                       const TextSpan(text: '.'),
                     ],
                   ),
+                  textAlign: TextAlign.center,
                 ),
               ),
             ],
