@@ -66,7 +66,7 @@ class HomeDashboard extends ConsumerWidget {
           ? null
           : AppBar(
               title: GestureDetector(
-                onTap: () => _showDisplayNamePrompt(context, ref),
+                onTap: () => showDisplayNamePrompt(context, ref),
                 child: Text(
                   greeting,
                   style: theme.textTheme.headlineMedium?.copyWith(
@@ -177,7 +177,7 @@ class HomeDashboard extends ConsumerWidget {
                                   if (isDesktop) ...[
                                     GestureDetector(
                                       onTap: () =>
-                                          _showDisplayNamePrompt(context, ref),
+                                          showDisplayNamePrompt(context, ref),
                                       child: Text(
                                         greeting,
                                         style: theme.textTheme.headlineLarge
@@ -591,7 +591,7 @@ class _WebSearchButton extends StatelessWidget {
   }
 }
 
-void _showDisplayNamePrompt(BuildContext context, WidgetRef ref) {
+void showDisplayNamePrompt(BuildContext context, WidgetRef ref) {
   final controller = TextEditingController();
   showModalBottomSheet(
     context: context,
@@ -661,5 +661,5 @@ void _showDisplayNamePrompt(BuildContext context, WidgetRef ref) {
     ),
   );
 }
-}
+
 
