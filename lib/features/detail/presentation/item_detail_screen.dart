@@ -799,6 +799,53 @@ class _ItemDetailBody extends ConsumerWidget {
                   ),
                 ],
               ),
+              if (collections != null && collections.isNotEmpty) ...[
+                const SizedBox(height: 14),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(right: 2),
+                      child: Icon(
+                        Icons.folder_outlined,
+                        size: 14,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    ),
+                    for (final col in collections)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFe0f2fe),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          col.name,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF0369a1),
+                          ),
+                        ),
+                      ),
+                    GestureDetector(
+                      onTap: () => showCollectionPicker(context, ref, item.id),
+                      child: Text(
+                        '+ Edit',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
               if (isCaptured) ...[
                 Text(
                   'Selected text',
