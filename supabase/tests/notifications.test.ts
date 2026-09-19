@@ -99,3 +99,16 @@ Deno.test('poll acknowledgements require the correct device owner and current le
     assertEquals((await db.query<{state:string}>('select state from notification_deliveries')).rows[0].state,'sent');
   } finally { await db.close(); }
 });
+Deno.test('expired sessions can revoke only with their independent device capability', async () => {
+  const db=await fixture();
+  try {
+    await db.exec(`select set_config('request.role','authenticated',false);`);
+    await db.query(`select register_notification_installation($1,'linux','poll',null,null,true,true,true,$2)`,[origin,'test-capability-with-more-than-32-characters']);
+    await db.exec(`select set_config('request.role','anon',false); select set_config('request.sub','',false);`);
+    await db.query(`select revoke_notification_installation($1,$2)`,[origin,'wrong-secret']);
+    assertEquals((await db.query('select id from notification_installations where id=$1',[origin])).rows.length,1);
+    await db.query(`select revoke_notification_installation($1,$2)`,[origin,'test-capability-with-more-than-32-characters']);
+    assertEquals((await db.query('select id from notification_installations where id=$1',[origin])).rows.length,0);
+    assertEquals((await db.query('select id from notification_installations where id=$1',[unrelated])).rows.length,1);
+  } finally { await db.close(); }
+});
