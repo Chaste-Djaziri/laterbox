@@ -47,7 +47,7 @@ Deno.test('history is silent; scheduled return invalidates on reschedule and arc
     const result=await claim(db); assertEquals(result.length,2); assertEquals(new Set(result.map(x=>x.event_id)).size,1);
     await db.exec(`update items set status='archived'; update notification_deliveries set retry_at=now()-interval '1 second';`);
     assertEquals(await claim(db),[]);
-    assertEquals((await db.query(`select state from notification_deliveries`)).rows.every((r)=>r.state==='discarded'),true);
+    assertEquals((await db.query<{state: string}>(`select state from notification_deliveries`)).rows.every((r)=>r.state==='discarded'),true);
   } finally { await db.close(); }
 });
 Deno.test('permissions, entitlement loss and activation baseline prevent delivery', async () => {

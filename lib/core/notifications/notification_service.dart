@@ -85,8 +85,9 @@ class InboxNotificationService {
     if (Platform.isIOS || Platform.isMacOS) {
       _apple.setMethodCallHandler((call) async {
         if (call.method == 'tokenChanged') changes.add(null);
-        if (call.method == 'notificationTap' && call.arguments is String)
+        if (call.method == 'notificationTap' && call.arguments is String) {
           taps.add(call.arguments as String);
+        }
       });
       final pending = await _apple.invokeMethod<String>('initialize');
       launchPayload ??= pending;
@@ -162,8 +163,9 @@ class InboxNotificationService {
   Future<String?> token() async {
     await initialize();
     if (usesPolling) return null;
-    if (Platform.isAndroid)
+    if (Platform.isAndroid) {
       return _firebaseReady ? FirebaseMessaging.instance.getToken() : null;
+    }
     return _apple.invokeMethod<String>('register');
   }
 
@@ -264,11 +266,12 @@ class InboxNotificationService {
     uploadCancellations.add(itemId);
     final prefs = await SharedPreferences.getInstance();
     final handedOff = prefs.getStringList('notification_handed_off') ?? [];
-    changes.add(null);
-    if (!handedOff.contains(itemId))
+    if (!handedOff.contains(itemId)) {
       await prefs.setStringList('notification_handed_off', [
         ...handedOff,
         itemId,
       ]);
+    }
+    changes.add(null);
   }
 }

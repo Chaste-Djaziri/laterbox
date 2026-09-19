@@ -908,7 +908,7 @@ private final class InboxPushBridge: NSObject, UNUserNotificationCenterDelegate 
         self.token = nil
         result(nil)
       case "register":
-        NSApplication.shared.registerForRemoteNotifications()
+        if self.token == nil { NSApplication.shared.registerForRemoteNotifications() }
         result(self.token)
       default: result(FlutterMethodNotImplemented)
       }
@@ -918,7 +918,9 @@ private final class InboxPushBridge: NSObject, UNUserNotificationCenterDelegate 
     center.delegate = self
   }
   func receiveToken(_ data: Data) {
-    token = data.map { String(format: "%02x", $0) }.joined()
+    let next = data.map { String(format: "%02x", $0) }.joined()
+    guard next != token else { return }
+    token = next
     channel?.invokeMethod("tokenChanged", arguments: nil)
   }
   func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification,
