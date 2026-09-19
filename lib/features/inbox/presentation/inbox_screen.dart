@@ -33,7 +33,7 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
     _searchFocusNode.addListener(() {
       if (_searchFocusNode.hasFocus) {
         _searchFocusNode.unfocus();
-        context.push('/search');
+        context.push('/search', extra: '/inbox');
       }
     });
   }

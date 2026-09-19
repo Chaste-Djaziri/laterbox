@@ -300,7 +300,7 @@ class DesktopSidebar extends ConsumerWidget {
     } else if (entry.tabIndex != null) {
       onDestinationSelected(entry.tabIndex!);
     } else if (entry.path == '/search') {
-      context.push('/search');
+      context.push('/search', extra: '/home');
     } else {
       context.push(entry.path);
     }

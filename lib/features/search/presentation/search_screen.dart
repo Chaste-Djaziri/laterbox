@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/settings/item_view_mode.dart';
 import '../../../features/enrichment/domain/content_type.dart';
@@ -114,7 +115,14 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                     tooltip: 'Back',
                     icon: const Icon(Icons.close_rounded),
                     onPressed: () {
-                      Navigator.of(context).maybePop();
+                      final source = GoRouterState.of(context).extra as String?;
+                      if (source != null) {
+                        context.go(source);
+                      } else if (context.canPop()) {
+                        context.pop();
+                      } else {
+                        context.go('/home');
+                      }
                     },
                   ),
                 ],

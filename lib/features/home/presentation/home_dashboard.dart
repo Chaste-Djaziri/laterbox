@@ -288,7 +288,7 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
                         const SizedBox(height: 16),
                         if (!isDesktop)
                           GestureDetector(
-                            onTap: () => context.push('/search'),
+                            onTap: () => context.push('/search', extra: '/home'),
                             child: Container(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 16,
