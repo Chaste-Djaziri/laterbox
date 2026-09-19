@@ -27,6 +27,23 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener('open-search-modal', handleOpenSearchModal);
   }, []);
 
+  // Keyboard shortcut: Control + Option + L (on Mac) / Ctrl + Alt + L (on PC) to open quick capture
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const isCtrlOptL =
+        e.ctrlKey &&
+        e.altKey &&
+        (e.code === 'KeyL' || e.key.toLowerCase() === 'l' || e.key === '¬');
+
+      if (isCtrlOptL) {
+        e.preventDefault();
+        setCaptureOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   // Keyboard shortcut: meta+k or ctrl+k opens Search Modal or focuses on-page search bar
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
