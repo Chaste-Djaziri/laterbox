@@ -308,12 +308,76 @@ class _TypeChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChoiceChip(
-      avatar: Icon(type.icon, size: 18),
-      label: Text('${type.label} ($count)'),
-      selected: selected,
-      onSelected: (_) => onTap(),
-      visualDensity: VisualDensity.compact,
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: selected
+              ? (isDark ? Colors.white : const Color(0xFF171711))
+              : (isDark ? const Color(0xFF2A2A28) : const Color(0xFFF0EDE5)),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: selected
+                ? (isDark ? Colors.white : const Color(0xFF171711))
+                : (isDark
+                    ? Colors.white.withValues(alpha: 0.08)
+                    : const Color(0xFFE4E0D5)),
+            width: 1,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              type.icon,
+              size: 16,
+              color: selected
+                  ? (isDark ? const Color(0xFF171711) : Colors.white)
+                  : theme.colorScheme.onSurfaceVariant,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              type.label,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: selected
+                    ? (isDark ? const Color(0xFF171711) : Colors.white)
+                    : theme.colorScheme.onSurface,
+              ),
+            ),
+            const SizedBox(width: 4),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+              decoration: BoxDecoration(
+                color: selected
+                    ? (isDark
+                        ? const Color(0xFF171711).withValues(alpha: 0.2)
+                        : Colors.white.withValues(alpha: 0.2))
+                    : (isDark
+                        ? Colors.white.withValues(alpha: 0.08)
+                        : const Color(0xFFE4E0D5)),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                '$count',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: selected
+                      ? (isDark ? const Color(0xFF171711) : Colors.white)
+                      : theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
