@@ -263,7 +263,7 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
     final rawItems = ref.watch(inboxItemsProvider);
     final filteredItems = ref.watch(filteredInboxItemsProvider);
     final viewMode = ref.watch(itemViewModeProvider);
-    final auth = ref.watch(authStateProvider).asData?.value;
+    final auth = ref.watch(currentAuthStateProvider);
     final theme = Theme.of(context);
     final isMac = !kIsWeb && platform == TargetPlatform.macOS;
 
