@@ -80,6 +80,8 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
           .read(authRepositoryProvider)
           .verifyEmailOtp(email: _emailController.text, token: token);
 
+      ref.read(guestModeProvider.notifier).state = false;
+
       // Immediately fetch user info to know if display name exists
       final name = await ref.read(displayNameProvider.notifier).refresh();
 
