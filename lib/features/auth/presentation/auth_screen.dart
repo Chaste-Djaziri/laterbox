@@ -436,42 +436,5 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
         ),
       ),
     );
-                        },
-                  child: Text(
-                    prefersSignup
-                        ? 'Already have an account? Sign in'
-                        : 'Create account',
-                  ),
-                ),
-              ),
-              if (!prefersSignup) ...[
-                const SizedBox(height: 4),
-                SizedBox(
-                  width: double.infinity,
-                  child: TextButton.icon(
-                    onPressed: _busy ? null : _requestSignInOtp,
-                    icon: const Icon(Icons.password_rounded),
-                    label: const Text('Email me a sign in code'),
-                  ),
-                ),
-              ],
-              const SizedBox(height: 8),
-              SizedBox(
-                width: double.infinity,
-                child: TextButton(
-                  onPressed: _busy
-                      ? null
-                      : () {
-                          ref.read(guestModeProvider.notifier).state = true;
-                          context.go('/home');
-                        },
-                  child: const Text('Continue without account'),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
   }
 }
