@@ -145,7 +145,6 @@ class _ItemDetailBody extends ConsumerWidget {
         : (cleanCapturedText != null && cleanCapturedText != item.text
               ? item.copyWith(text: cleanCapturedText)
               : item);
-    final sourceTitle = item.metadata?.title ?? item.title;
     final title =
         item.metadata?.title ??
         item.title ??
@@ -182,7 +181,7 @@ class _ItemDetailBody extends ConsumerWidget {
 
     List<String> tags = [];
     final sd = item.metadata?.classification?.structuredData;
-    if (sd != null && sd is Map) {
+    if (sd != null) {
       try {
         final data = Map<String, dynamic>.from(sd as Map);
         if (data['tags'] is List) {
