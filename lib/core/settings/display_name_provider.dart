@@ -9,14 +9,9 @@ final displayNameProvider =
 class DisplayNameNotifier extends Notifier<String?> {
   @override
   String? build() {
-    _load();
-    return null;
-  }
-
-  void _load() {
     final client = ref.read(supabaseClientProvider);
     final user = client?.auth.currentUser;
-    state = user?.userMetadata?['display_name'] as String?;
+    return user?.userMetadata?['display_name'] as String?;
   }
 
   Future<void> set(String name) async {
