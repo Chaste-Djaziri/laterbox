@@ -367,10 +367,28 @@ class NotificationCoordinator extends ChangeNotifier
     final seen = prefs.getStringList(key) ?? [];
     final event = data['event_id'] as String;
     if (seen.contains(event)) return;
+    final itemId = data['item_id'] as String?;
+    String? title;
+    String? body;
+    if (itemId != null) {
+      final item = await db.itemById(itemId);
+      if (item != null) {
+        title = item.title ??
+            item.url?.split('?').first.split('/').last.replaceAll('-', ' ') ??
+            'Saved item';
+        body = item.textContent?.isNotEmpty == true
+            ? item.textContent
+            : item.url;
+      }
+    }
     await service.show(
       event,
       jsonEncode(data),
       returned: data['kind'] == 'return',
+      title: title != null ? 'LaterBox · $title' : null,
+      body: body ?? (data['kind'] == 'return'
+          ? 'An item is ready in your inbox.'
+          : 'An item was added to your inbox.'),
     );
     await prefs.setStringList(key, [
       ...seen.skip(seen.length > 499 ? seen.length - 499 : 0),
