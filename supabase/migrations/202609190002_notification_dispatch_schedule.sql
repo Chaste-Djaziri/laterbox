@@ -26,3 +26,36 @@ select cron.schedule('laterbox-notification-retention','17 3 * * *',
 
 alter table public.extension_connection_requests add column origin_installation_id uuid;
 alter table public.extension_sessions add column origin_installation_id uuid;
+
+-- Provision Vault configuration for the notification dispatcher
+do $$
+begin
+  if exists (select 1 from pg_tables where schemaname = 'vault' and tablename = 'secrets') then
+    if exists (select 1 from vault.secrets where name = 'notification_dispatch_url') then
+      perform vault.update_secret(
+        (select id from vault.secrets where name = 'notification_dispatch_url' limit 1),
+        'https://ltjisrgldssqskcylcbj.supabase.co/functions/v1/notifications',
+        'notification_dispatch_url'
+      );
+    else
+      perform vault.create_secret(
+        'https://ltjisrgldssqskcylcbj.supabase.co/functions/v1/notifications',
+        'notification_dispatch_url'
+      );
+    end if;
+
+    if exists (select 1 from vault.secrets where name = 'notification_dispatch_secret') then
+      perform vault.update_secret(
+        (select id from vault.secrets where name = 'notification_dispatch_secret' limit 1),
+        '787e5fe4035b93021e2232e1e5e223f30b123454c96441358146b313e1b2dbf6',
+        'notification_dispatch_secret'
+      );
+    else
+      perform vault.create_secret(
+        '787e5fe4035b93021e2232e1e5e223f30b123454c96441358146b313e1b2dbf6',
+        'notification_dispatch_secret'
+      );
+    end if;
+  end if;
+end $$;
+
