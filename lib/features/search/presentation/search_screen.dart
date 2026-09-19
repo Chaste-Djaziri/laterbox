@@ -88,7 +88,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                         suffixIcon: query.isEmpty
                             ? null
                             : IconButton(
-                                tooltip: 'Clear',
+                                tooltip: 'Clear search',
                                 icon: const Icon(Icons.close_rounded, size: 20),
                                 onPressed: () {
                                   _controller.clear();
