@@ -39,8 +39,8 @@ class ProPlans extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final auth = ref.watch(authStateProvider).valueOrNull;
-    final authenticated = auth?.isAuthenticated ?? false;
+    final auth = ref.watch(currentAuthStateProvider);
+    final authenticated = auth.isAuthenticated;
     final apple = isAppleAppStoreBuild
         ? ref.watch(applePurchaseServiceProvider)
         : null;
@@ -69,7 +69,9 @@ class ProPlans extends ConsumerWidget {
         ],
         action: 'Continue free',
         onPressed: () {
-          ref.read(guestModeProvider.notifier).state = true;
+          if (!authenticated) {
+            ref.read(guestModeProvider.notifier).state = true;
+          }
           onContinueFree?.call();
         },
       ),
@@ -90,7 +92,7 @@ class ProPlans extends ConsumerWidget {
           context,
           ref,
           authenticated: authenticated,
-          accountId: auth?.userId,
+          accountId: auth.userId,
           apple: apple,
           interval: preferredInterval,
         ),
