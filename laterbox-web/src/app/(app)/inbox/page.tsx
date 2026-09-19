@@ -211,6 +211,7 @@ export default function InboxPage() {
             <Search className="w-3.5 h-3.5 text-[#9e9b92] absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
+              data-search-input="true"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search your inbox..."
