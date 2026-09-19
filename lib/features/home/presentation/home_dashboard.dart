@@ -582,7 +582,20 @@ class _ItemCardRow extends StatelessWidget {
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
         onTap: () => context.push('/item/${item.id}'),
-        child: Row(
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          decoration: BoxDecoration(
+            color: theme.brightness == Brightness.dark
+                ? const Color(0xFF2A2A28)
+                : Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: theme.brightness == Brightness.dark
+                  ? Colors.white.withValues(alpha: 0.08)
+                  : const Color(0xFFF0EDE4),
+            ),
+          ),
+          child: Row(
           children: [
             Container(
               width: 36,
@@ -642,6 +655,7 @@ class _ItemCardRow extends StatelessWidget {
           ],
         ),
       ),
+    ),
     );
   }
 }
