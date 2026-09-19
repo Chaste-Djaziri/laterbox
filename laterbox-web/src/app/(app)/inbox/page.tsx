@@ -27,7 +27,11 @@ import {
   Package,
   Plus,
   Pencil,
+  RefreshCw,
 } from 'lucide-react';
+import { AiOrganizeModal } from '@/components/inbox/AiOrganizeModal';
+import { OrganizeSuggestion } from '@/app/api/ai/organize/route';
+import { resolveReturnPreset } from '@/lib/utils/schedule';
 
 export default function InboxPage() {
   const router = useRouter();
@@ -42,15 +46,120 @@ export default function InboxPage() {
     hasDemoItems,
     clearDemoItems,
     restoreDemoItems,
+    saveNote,
+    createCollection,
+    addItemToCollection,
+    reschedule,
+    collections,
   } = useItems();
   const { user, userName, setUserName } = useAuth();
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortOrder, setSortOrder] = useState<'latest' | 'oldest'>('latest');
   const [captureOpen, setCaptureOpen] = useState(false);
-  const [aiSuggestionsActive, setAiSuggestionsActive] = useState(false);
   const [isEditingName, setIsEditingName] = useState(false);
   const [nameInput, setNameInput] = useState('');
+
+  // AI Organize Gemini State
+  const [aiModalOpen, setAiModalOpen] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiSummary, setAiSummary] = useState('');
+  const [aiModel, setAiModel] = useState('');
+  const [aiSuggestions, setAiSuggestions] = useState<OrganizeSuggestion[]>([]);
+  const [appliedItems, setAppliedItems] = useState<Set<string>>(new Set());
+  const [appliedCollections, setAppliedCollections] = useState<Record<string, string>>({});
+  const [appliedNotes, setAppliedNotes] = useState<Set<string>>(new Set());
+  const [appliedSchedules, setAppliedSchedules] = useState<Record<string, string>>({});
+
+  const handleGetAiSuggestions = async () => {
+    if (aiSuggestions.length > 0 && !aiLoading) {
+      setAiModalOpen(true);
+      return;
+    }
+
+    try {
+      setAiLoading(true);
+      const res = await fetch('/api/ai/organize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          items: inboxItems,
+          existingCollections: collections.map((c) => c.name),
+        }),
+      });
+
+      const data = await res.json();
+      if (data.success && Array.isArray(data.suggestions)) {
+        setAiSuggestions(data.suggestions);
+        setAiSummary(data.summary || '');
+        setAiModel(data.model || 'Gemini 3.5 Flash Lite');
+        setAiModalOpen(true);
+      }
+    } catch (err) {
+      console.error('Failed to get AI suggestions:', err);
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const handleApplyCollection = async (itemId: string, collectionName: string) => {
+    let targetCol = collections.find((c) => c.name.toLowerCase() === collectionName.toLowerCase());
+    if (!targetCol) {
+      targetCol = await createCollection(collectionName);
+    }
+    if (targetCol) {
+      await addItemToCollection(targetCol.id, itemId);
+    }
+    setAppliedCollections((prev) => ({ ...prev, [itemId]: collectionName }));
+  };
+
+  const handleApplyNextStep = async (itemId: string, nextStep: string) => {
+    const item = items.find((i) => i.id === itemId);
+    const existing = item?.note?.content ? `${item.note.content}\n\n` : '';
+    const newContent = `${existing}• Next step: ${nextStep}`;
+    await saveNote(itemId, newContent);
+    setAppliedNotes((prev) => new Set(prev).add(itemId));
+  };
+
+  const handleApplySchedule = async (
+    itemId: string,
+    schedule: 'today' | 'tomorrow' | 'weekend' | 'someday'
+  ) => {
+    const preset =
+      schedule === 'today'
+        ? 'laterToday'
+        : schedule === 'tomorrow'
+        ? 'tomorrow'
+        : schedule === 'weekend'
+        ? 'weekend'
+        : 'someday';
+    const returnAt = resolveReturnPreset(preset, now);
+    await reschedule(itemId, returnAt);
+    setAppliedSchedules((prev) => ({ ...prev, [itemId]: schedule }));
+  };
+
+  const handleApplyTags = async (itemId: string, tags: string[]) => {
+    const item = items.find((i) => i.id === itemId);
+    const existing = item?.note?.content ? `${item.note.content}\n` : '';
+    const tagsText = tags.join(' ');
+    if (!item?.note?.content?.includes(tagsText)) {
+      await saveNote(itemId, `${existing}${tagsText}`);
+    }
+  };
+
+  const handleApplyItem = async (suggestion: OrganizeSuggestion) => {
+    await handleApplyCollection(suggestion.itemId, suggestion.collection);
+    await handleApplyNextStep(suggestion.itemId, suggestion.nextStep);
+    await handleApplySchedule(suggestion.itemId, suggestion.recommendedSchedule);
+    await handleApplyTags(suggestion.itemId, suggestion.tags);
+    setAppliedItems((prev) => new Set(prev).add(suggestion.itemId));
+  };
+
+  const handleApplyAll = async () => {
+    for (const suggestion of aiSuggestions) {
+      await handleApplyItem(suggestion);
+    }
+  };
 
   const todayCount = useMemo(() => scheduleItems(items, 'today', now).length, [items, now]);
 
@@ -405,11 +514,26 @@ export default function InboxPage() {
 
           <button
             type="button"
-            onClick={() => setAiSuggestionsActive(!aiSuggestionsActive)}
-            className="w-full bg-[#e6edb0] hover:bg-[#d8e09e] text-[#171711] font-bold text-xs py-2 px-3 rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-2xs cursor-pointer active:scale-98"
+            onClick={handleGetAiSuggestions}
+            disabled={aiLoading}
+            className="w-full bg-[#e6edb0] hover:bg-[#d8e09e] text-[#171711] font-bold text-xs py-2 px-3 rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-2xs cursor-pointer active:scale-98 disabled:opacity-75"
           >
-            <Sparkles className="w-3 h-3 text-[#171711]" />
-            <span>{aiSuggestionsActive ? 'Tags Analyzed ✓' : 'Get suggestions'}</span>
+            {aiLoading ? (
+              <>
+                <RefreshCw className="w-3 h-3 text-[#171711] animate-spin" />
+                <span>Thinking with Gemini...</span>
+              </>
+            ) : aiSuggestions.length > 0 ? (
+              <>
+                <Sparkles className="w-3 h-3 text-[#171711]" />
+                <span>Review Suggestions ({aiSuggestions.length})</span>
+              </>
+            ) : (
+              <>
+                <Sparkles className="w-3 h-3 text-[#171711]" />
+                <span>Get suggestions</span>
+              </>
+            )}
           </button>
         </div>
       </div>
@@ -479,6 +603,27 @@ export default function InboxPage() {
       )}
 
       <QuickCaptureModal isOpen={captureOpen} onClose={() => setCaptureOpen(false)} />
+
+      {/* AI Organize Suggestions Modal */}
+      <AiOrganizeModal
+        isOpen={aiModalOpen}
+        onClose={() => setAiModalOpen(false)}
+        suggestions={aiSuggestions}
+        summary={aiSummary}
+        model={aiModel || 'Gemini 3.5 Flash Lite'}
+        onApplyAll={handleApplyAll}
+        onApplyItem={handleApplyItem}
+        onApplyTags={handleApplyTags}
+        onApplyCollection={handleApplyCollection}
+        onApplyNextStep={handleApplyNextStep}
+        onApplySchedule={handleApplySchedule}
+        appliedItems={appliedItems}
+        appliedCollections={appliedCollections}
+        appliedNotes={appliedNotes}
+        appliedSchedules={appliedSchedules}
+        onRefresh={handleGetAiSuggestions}
+        isRefreshing={aiLoading}
+      />
     </div>
   );
 }
