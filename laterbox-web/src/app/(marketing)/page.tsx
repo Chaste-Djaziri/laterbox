@@ -10,6 +10,7 @@ import { HowItWorksStepsSection } from '@/components/marketing/HowItWorksStepsSe
 import { WhenLaterBecomesNowSection } from '@/components/marketing/WhenLaterBecomesNowSection';
 import { NotAnotherTodoListSection } from '@/components/marketing/NotAnotherTodoListSection';
 import { SomedayVaultSection } from '@/components/marketing/SomedayVaultSection';
+import { DesignedToStayOutOfWaySection } from '@/components/marketing/DesignedToStayOutOfWaySection';
 import { YourLaterBoxYourRulesSection } from '@/components/marketing/YourLaterBoxYourRulesSection';
 import { OneShortcutAwaySection } from '@/components/marketing/OneShortcutAwaySection';
 import { YourThingsStaySection } from '@/components/marketing/YourThingsStaySection';
@@ -231,7 +232,10 @@ export default function LandingPage() {
       {/* ============================================================ */}
       <SomedayVaultSection />
 
-
+      {/* ============================================================ */}
+      {/* "Designed to stay out of your way." App Dashboard Showcase */}
+      {/* ============================================================ */}
+      <DesignedToStayOutOfWaySection />
 
       {/* ============================================================ */}
       {/* "Your LaterBox. Your rules." Preferences & Rules Showcase */}
