@@ -34,6 +34,9 @@ import {
   Music2,
   PlayCircle,
   CheckCircle2,
+  Pencil,
+  Check,
+  X,
 } from 'lucide-react';
 
 function ScheduledRow({ item }: { item: LaterBoxItem }) {
@@ -129,12 +132,14 @@ function ItemCardRow({
 
 export function ScheduleDashboard({ view }: { view?: ScheduleView }) {
   const { items, inboxItems, now, loading, syncStatus } = useItems();
-  const { user } = useAuth();
+  const { user, userName, setUserName } = useAuth();
   const router = useRouter();
   const [capture, setCapture] = useState(false);
   const [files, setFiles] = useState<File[] | undefined>();
   const [browse, setBrowse] = useState(false);
   const [dragging, setDragging] = useState(false);
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [nameInput, setNameInput] = useState('');
 
   // Filtered view state
   const [filterSearch, setFilterSearch] = useState('');
@@ -153,8 +158,7 @@ export function ScheduleDashboard({ view }: { view?: ScheduleView }) {
 
   const hour = now.getHours();
   const greetingTime = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
-  const userName = user?.user_metadata?.full_name?.split(' ')[0] || user?.email?.split('@')[0] || 'Abhishek';
-  const greetingTitle = `${greetingTime}, ${userName}.`;
+  const effectiveUserName = userName || user?.user_metadata?.full_name?.split(' ')[0] || user?.email?.split('@')[0] || '';
 
   const selected = view ? scheduleItems(items, view, now) : [];
 
@@ -510,9 +514,98 @@ export function ScheduleDashboard({ view }: { view?: ScheduleView }) {
 
       {/* Greeting Header */}
       <div>
-        <h1 className="text-2xl sm:text-3xl font-black text-[#171711] tracking-tight">
-          {greetingTitle}
-        </h1>
+        {!effectiveUserName ? (
+          <div className="space-y-2">
+            <h1 className="text-2xl sm:text-3xl font-black text-[#171711] tracking-tight">
+              {greetingTime}! What should we call you?
+            </h1>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (nameInput.trim()) {
+                  setUserName(nameInput.trim());
+                  setNameInput('');
+                }
+              }}
+              className="flex items-center gap-2 max-w-sm"
+            >
+              <input
+                type="text"
+                value={nameInput}
+                onChange={(e) => setNameInput(e.target.value)}
+                placeholder="Enter your name..."
+                autoFocus
+                className="flex-1 px-3.5 py-2 rounded-xl bg-white border border-[#e4e0d5] focus:border-[#171711] text-sm font-bold text-[#171711] placeholder:text-[#9e9b92] shadow-2xs focus:outline-none transition-colors"
+              />
+              <button
+                type="submit"
+                className="px-4 py-2 rounded-xl bg-[#171711] text-white text-xs font-black shadow-xs hover:bg-black transition-all cursor-pointer shrink-0"
+              >
+                Save
+              </button>
+              <button
+                type="button"
+                onClick={() => setUserName('Friend')}
+                className="px-2.5 py-2 text-xs font-semibold text-[#8e8d87] hover:text-[#171711] transition-colors cursor-pointer shrink-0"
+              >
+                Skip
+              </button>
+            </form>
+          </div>
+        ) : isEditingName ? (
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (nameInput.trim()) {
+                setUserName(nameInput.trim());
+              }
+              setIsEditingName(false);
+            }}
+            className="flex items-center gap-2 max-w-md flex-wrap sm:flex-nowrap"
+          >
+            <span className="text-2xl sm:text-3xl font-black text-[#171711] tracking-tight shrink-0">
+              {greetingTime},
+            </span>
+            <input
+              type="text"
+              value={nameInput}
+              onChange={(e) => setNameInput(e.target.value)}
+              placeholder="Your name"
+              autoFocus
+              className="flex-1 min-w-[140px] px-3 py-1 rounded-xl bg-white border border-[#171711] text-xl sm:text-2xl font-black text-[#171711] shadow-2xs focus:outline-none"
+            />
+            <button
+              type="submit"
+              className="px-3 py-1.5 rounded-xl bg-[#171711] text-white text-xs font-bold shadow-xs hover:bg-black transition-all cursor-pointer shrink-0"
+            >
+              Save
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsEditingName(false)}
+              className="px-2.5 py-1.5 rounded-xl bg-[#faf8f5] text-[#6c6b63] hover:text-[#171711] text-xs font-semibold transition-colors cursor-pointer shrink-0"
+            >
+              Cancel
+            </button>
+          </form>
+        ) : (
+          <div className="flex items-center gap-2 group">
+            <h1 className="text-2xl sm:text-3xl font-black text-[#171711] tracking-tight">
+              {greetingTime}, {effectiveUserName}.
+            </h1>
+            <button
+              type="button"
+              onClick={() => {
+                setNameInput(effectiveUserName);
+                setIsEditingName(true);
+              }}
+              title="Edit your name"
+              className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-lg hover:bg-white text-[#9e9b92] hover:text-[#171711] cursor-pointer"
+            >
+              <Pencil className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
         <p className="text-xs sm:text-sm text-[#8e8d87] font-medium mt-0.5">
           Here is what needs your attention.
         </p>
