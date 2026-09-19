@@ -27,11 +27,32 @@ Future<void> openDashboardCapture(
   builder: (_) => CaptureSheet(browseFiles: browseFiles, initialFiles: files),
 );
 
-class HomeDashboard extends ConsumerWidget {
+class HomeDashboard extends ConsumerStatefulWidget {
   const HomeDashboard({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<HomeDashboard> createState() => _HomeDashboardState();
+}
+
+class _HomeDashboardState extends ConsumerState<HomeDashboard> {
+  bool _namePromptShown = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_namePromptShown) {
+      _namePromptShown = true;
+      final name = ref.read(displayNameProvider);
+      if (name == null || name.isEmpty) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) showDisplayNamePrompt(context, ref);
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final width = MediaQuery.sizeOf(context).width;
     final platform = Theme.of(context).platform;
     final isDesktopPlatform = switch (platform) {
