@@ -7,6 +7,7 @@ import { FilterBar } from '@/components/inbox/FilterBar';
 import { ItemCard } from '@/components/inbox/ItemCard';
 import { ItemListRow } from '@/components/inbox/ItemListRow';
 import { useItems } from '@/lib/store/ItemContext';
+import { useAuth } from '@/lib/store/AuthContext';
 import { QuickCaptureModal } from '@/components/inbox/QuickCaptureModal';
 import { scheduleItems } from '@/lib/utils/schedule';
 import {
@@ -25,16 +26,20 @@ import {
   Play,
   Package,
   Plus,
+  Pencil,
 } from 'lucide-react';
 
 export default function InboxPage() {
   const router = useRouter();
   const { filteredInboxItems, items, inboxItems, starredItems, archivedItems, now, loading } = useItems();
+  const { user, userName, setUserName } = useAuth();
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortOrder, setSortOrder] = useState<'latest' | 'oldest'>('latest');
   const [captureOpen, setCaptureOpen] = useState(false);
   const [aiSuggestionsActive, setAiSuggestionsActive] = useState(false);
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [nameInput, setNameInput] = useState('');
 
   const todayCount = useMemo(() => scheduleItems(items, 'today', now).length, [items, now]);
 
@@ -82,9 +87,108 @@ export default function InboxPage() {
             <ArrowLeft className="w-4 h-4" />
           </button>
           <div>
-            <h1 className="text-3xl font-black text-[#171711] tracking-tight">Inbox</h1>
+            <div className="flex items-center gap-2.5">
+              <h1 className="text-3xl font-black text-[#171711] tracking-tight">Inbox</h1>
+              {userName ? (
+                isEditingName ? (
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      if (nameInput.trim()) setUserName(nameInput.trim());
+                      setIsEditingName(false);
+                    }}
+                    className="flex items-center gap-1.5"
+                  >
+                    <input
+                      type="text"
+                      value={nameInput}
+                      onChange={(e) => setNameInput(e.target.value)}
+                      autoFocus
+                      placeholder="Name"
+                      className="px-2.5 py-0.5 text-xs font-bold bg-white border border-[#171711] rounded-full text-[#171711] shadow-2xs focus:outline-none w-28"
+                    />
+                    <button
+                      type="submit"
+                      className="px-2 py-0.5 rounded-full bg-[#171711] text-white text-[10px] font-bold shadow-xs hover:bg-black transition-all cursor-pointer"
+                    >
+                      Save
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIsEditingName(false)}
+                      className="text-[10px] text-[#8e8d87] hover:text-[#171711] transition-colors cursor-pointer px-1"
+                    >
+                      ✕
+                    </button>
+                  </form>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setNameInput(userName);
+                      setIsEditingName(true);
+                    }}
+                    title="Click to edit what LaterBox calls you"
+                    className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#faf8f5] hover:bg-[#ebe7dc] border border-[#e4e0d5] text-xs font-bold text-[#171711] shadow-2xs transition-colors cursor-pointer group"
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                    <span>{userName}</span>
+                    <Pencil className="w-2.5 h-2.5 text-[#9e9b92] group-hover:text-[#171711]" />
+                  </button>
+                )
+              ) : (
+                isEditingName ? (
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      if (nameInput.trim()) {
+                        setUserName(nameInput.trim());
+                        setNameInput('');
+                      }
+                      setIsEditingName(false);
+                    }}
+                    className="flex items-center gap-1.5"
+                  >
+                    <input
+                      type="text"
+                      value={nameInput}
+                      onChange={(e) => setNameInput(e.target.value)}
+                      autoFocus
+                      placeholder="Your name..."
+                      className="px-2.5 py-0.5 text-xs font-bold bg-white border border-[#171711] rounded-full text-[#171711] shadow-2xs focus:outline-none w-32"
+                    />
+                    <button
+                      type="submit"
+                      className="px-2 py-0.5 rounded-full bg-[#171711] text-white text-[10px] font-bold shadow-xs hover:bg-black transition-all cursor-pointer"
+                    >
+                      Save
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIsEditingName(false)}
+                      className="text-[10px] text-[#8e8d87] hover:text-[#171711] transition-colors cursor-pointer px-1"
+                    >
+                      ✕
+                    </button>
+                  </form>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setNameInput('');
+                      setIsEditingName(true);
+                    }}
+                    className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#e6edb0]/70 hover:bg-[#e6edb0] border border-[#d0db84] text-[11px] font-bold text-[#171711] shadow-2xs transition-colors cursor-pointer"
+                  >
+                    <span>+ What&apos;s your name?</span>
+                  </button>
+                )
+              )}
+            </div>
             <p className="text-xs sm:text-sm text-[#8e8d87] font-medium mt-0.5">
-              Capture everything. Review when it matters.
+              {userName
+                ? `Welcome back, ${userName}. Capture everything. Review when it matters.`
+                : 'Capture everything. Review when it matters.'}
             </p>
           </div>
         </div>
