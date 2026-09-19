@@ -179,6 +179,35 @@ class _ItemDetailBody extends ConsumerWidget {
     final isArticle =
         item.type == 'article' ||
         (eyebrow.contains('notion.so') || eyebrow.contains('medium.com'));
+
+    List<String> tags = [];
+    final sd = item.metadata?.classification?.structuredData;
+    if (sd != null && sd is Map) {
+      try {
+        final data = Map<String, dynamic>.from(sd as Map);
+        if (data['tags'] is List) {
+          tags = (data['tags'] as List).cast<String>();
+        }
+      } catch (_) {}
+    }
+    if (tags.isEmpty) {
+      if (isPsd) {
+        tags = ['design', 'inspiration', 'ui'];
+      } else if (isPdf) {
+        tags = ['feedback', 'client', 'product'];
+      } else if (isVideo) {
+        tags = ['video', 'watch later'];
+      } else if (isNote) {
+        tags = ['ideas', 'notes'];
+      } else if (isMusic) {
+        tags = ['music', 'chill'];
+      } else if (isArticle) {
+        tags = ['productivity', 'reading'];
+      } else if (eyebrow.isNotEmpty) {
+        tags = [eyebrow.replaceAll(RegExp(r'\.[a-z]+$'), '')];
+      }
+    }
+
     final collections = ref.watch(collectionsForItemProvider(item.id)).value;
     final embedInfo = MediaEmbedHelper.parse(effectiveUrl);
     final attachmentsState = isFile
@@ -924,6 +953,39 @@ class _ItemDetailBody extends ConsumerWidget {
                     ),
                   ),
                 ],
+              ],
+              if (tags.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [
+                    const Padding(
+                      padding: EdgeInsets.only(right: 2),
+                      child: Icon(Icons.tag, size: 14, color: Color(0xFF9e9b92)),
+                    ),
+                    for (final t in tags)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFf4f3ed),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: const Color(0xFFe4e0d5)),
+                        ),
+                        child: Text(
+                          '#$t',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF6c6b63),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
               ],
               if (effectiveUrl != null) ...[
                 const SizedBox(height: 20),
