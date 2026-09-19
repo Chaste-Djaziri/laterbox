@@ -88,13 +88,26 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
           : AppBar(
               title: GestureDetector(
                 onTap: () => showDisplayNamePrompt(context, ref),
-                child: Text(
-                  '$timeGreeting $firstName',
-                  style: theme.textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.w900,
-                    color: isDark ? Colors.white : const Color(0xFF171711),
-                    letterSpacing: -1,
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      timeGreeting,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: isDark ? Colors.white : const Color(0xFF171711),
+                      ),
+                    ),
+                    Text(
+                      firstName,
+                      style: theme.textTheme.headlineMedium?.copyWith(
+                        fontWeight: FontWeight.w900,
+                        color: isDark ? Colors.white : const Color(0xFF171711),
+                        letterSpacing: -1,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -184,16 +197,31 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
                           GestureDetector(
                             onTap: () =>
                                 showDisplayNamePrompt(context, ref),
-                            child: Text(
-                              '$timeGreeting $firstName',
-                              style:
-                                  theme.textTheme.headlineLarge?.copyWith(
-                                fontWeight: FontWeight.w900,
-                                color: isDark
-                                    ? Colors.white
-                                    : const Color(0xFF171711),
-                                letterSpacing: -1,
-                              ),
+                            child: Column(
+                              crossAxisAlignment:
+                                  CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  timeGreeting,
+                                  style: theme.textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                    color: isDark
+                                        ? Colors.white
+                                        : const Color(0xFF171711),
+                                  ),
+                                ),
+                                Text(
+                                  firstName,
+                                  style:
+                                      theme.textTheme.headlineLarge?.copyWith(
+                                    fontWeight: FontWeight.w900,
+                                    color: isDark
+                                        ? Colors.white
+                                        : const Color(0xFF171711),
+                                    letterSpacing: -1,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         const SizedBox(height: 28),
