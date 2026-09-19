@@ -1362,17 +1362,6 @@ jobs:
           cache: 'npm'
           cache-dependency-path: laterbox-web/package-lock.json
 
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          channel: 'stable'
-          cache: true
-
-      - name: Build Flutter Web
-        run: |
-          flutter pub get
-          flutter build web --release
-
       - name: Build Next.js Web App
         run: |
           cd laterbox-web
@@ -1400,7 +1389,6 @@ jobs:
         with:
           name: laterbox-web-dist
           path: |
-            build/web/
             laterbox-web/.open-next/
           if-no-files-found: warn
 
