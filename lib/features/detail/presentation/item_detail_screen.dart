@@ -1015,8 +1015,10 @@ class _ItemDetailBody extends ConsumerWidget {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Row(
-                        children: [
+                      Flexible(
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
                           if (isMusic) ...[
                             Icon(
                               Icons.music_note_rounded,
@@ -1139,15 +1141,16 @@ class _ItemDetailBody extends ConsumerWidget {
                               color: Theme.of(context).colorScheme.onSurfaceVariant,
                             ),
                           ),
-                          const SizedBox(width: 8),
-                          Text(
-                            timeago.format(item.createdAt),
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: Theme.of(context).colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                        ],
+                           const SizedBox(width: 8),
+                           Text(
+                             timeago.format(item.createdAt),
+                             style: TextStyle(
+                               fontSize: 13,
+                               color: Theme.of(context).colorScheme.onSurfaceVariant,
+                             ),
+                           ),
+                          ],
+                        ),
                       ),
                       GestureDetector(
                         onTap: () =>
