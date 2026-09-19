@@ -8,6 +8,7 @@ import '../../../core/database/app_database.dart';
 import '../../../core/supabase/supabase_provider.dart';
 import '../../../core/sync/sync_providers.dart';
 import '../../../shared/models/laterbox_item.dart';
+import '../../../shared/models/item_status.dart';
 import '../../../shared/utils/media_embed_helper.dart';
 import '../../../shared/widgets/item_actions.dart';
 import '../../../shared/widgets/item_card.dart';
@@ -719,15 +720,85 @@ class _ItemDetailBody extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                eyebrow.toUpperCase(),
-                style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 1.2,
-                ),
+              // Metadata top bar
+              Row(
+                children: [
+                  if (item.metadata?.faviconUrl case final favicon?)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 6),
+                      child: Image.network(
+                        favicon,
+                        width: 16,
+                        height: 16,
+                        errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                      ),
+                    ),
+                  if (eyebrow.isNotEmpty)
+                    Text(
+                      eyebrow,
+                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.8,
+                      ),
+                    ),
+                  if (eyebrow.isNotEmpty) ...[
+                    const SizedBox(width: 8),
+                    Text(
+                      '·',
+                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                  ],
+                  Icon(
+                    Icons.schedule_rounded,
+                    size: 14,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    timeago.format(item.createdAt),
+                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const Spacer(),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: item.status == ItemStatus.inbox || item.status == ItemStatus.deferred
+                          ? const Color(0xFFe0f2fe)
+                          : item.status == ItemStatus.saved
+                              ? const Color(0xFFe6edb0)
+                              : const Color(0xFFF4f4f5),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      item.status == ItemStatus.inbox
+                          ? 'Inbox'
+                          : item.status == ItemStatus.deferred
+                              ? item.returnAt != null ? 'Scheduled' : 'Someday'
+                              : item.status == ItemStatus.saved
+                                  ? 'Kept'
+                                  : 'Archived',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        color: item.status == ItemStatus.inbox || item.status == ItemStatus.deferred
+                            ? const Color(0xFF0369a1)
+                            : item.status == ItemStatus.saved
+                                ? const Color(0xFF171711)
+                                : const Color(0xFF71717a),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 10),
               if (isCaptured) ...[
                 Text(
                   'Selected text',
