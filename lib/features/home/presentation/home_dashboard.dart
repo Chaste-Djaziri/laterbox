@@ -57,7 +57,7 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
         ref.watch(scheduleClockProvider).valueOrNull ??
         ref.watch(scheduleNowProvider)();
     final hour = now.toLocal().hour;
-    final email = ref.watch(authStateProvider).asData?.value.email;
+    final email = ref.watch(currentAuthStateProvider).email;
     final displayName = ref.watch(displayNameProvider);
     final firstName =
         displayName?.isNotEmpty == true
