@@ -17,6 +17,7 @@ import '../../features/notes/data/local_item_note_data_source.dart';
 import '../../features/notes/data/remote_item_note_data_source.dart';
 import '../database/database_providers.dart';
 import '../billing/billing_providers.dart';
+import '../billing/entitlement.dart';
 import '../supabase/supabase_provider.dart';
 import 'sync_coordinator.dart';
 import 'sync_service.dart';
