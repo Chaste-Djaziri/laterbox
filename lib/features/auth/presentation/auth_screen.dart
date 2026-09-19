@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/auth/auth_provider.dart';
+import '../../../core/settings/display_name_provider.dart';
 
 class AuthScreen extends ConsumerStatefulWidget {
   const AuthScreen({super.key});
@@ -16,14 +17,17 @@ class AuthScreen extends ConsumerStatefulWidget {
 class _AuthScreenState extends ConsumerState<AuthScreen> {
   final _emailController = TextEditingController();
   final _otpController = TextEditingController();
+  final _nameController = TextEditingController();
   bool _busy = false;
   bool _awaitingOtp = false;
+  bool _awaitingName = false;
   String? _message;
 
   @override
   void dispose() {
     _emailController.dispose();
     _otpController.dispose();
+    _nameController.dispose();
     super.dispose();
   }
 
@@ -72,7 +76,13 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       await ref
           .read(authRepositoryProvider)
           .verifyEmailOtp(email: _emailController.text, token: token);
-      if (mounted) context.go('/home');
+      if (mounted) {
+        setState(() {
+          _awaitingOtp = false;
+          _awaitingName = true;
+          _message = null;
+        });
+      }
     } on AuthException catch (error) {
       if (mounted) setState(() => _message = error.message);
     } on StateError catch (error) {
@@ -80,6 +90,14 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     } finally {
       if (mounted) setState(() => _busy = false);
     }
+  }
+
+  Future<void> _saveDisplayName() async {
+    final name = _nameController.text.trim();
+    if (name.isNotEmpty) {
+      await ref.read(displayNameProvider.notifier).set(name);
+    }
+    if (mounted) context.go('/home');
   }
 
   Future<void> _resendOtp() async {
@@ -102,6 +120,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_awaitingName) return _buildNameScreen(context);
     if (_awaitingOtp) return _buildOtpScreen(context);
     return _buildEmailScreen(context);
   }
@@ -340,6 +359,76 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                     child: const Text('Use a different email'),
                   ),
                 ],
+              ),
+              const SizedBox(height: 16),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNameScreen(BuildContext context) {
+    return Scaffold(
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Image.asset(
+                    'assets/branding/laterbox-logo.png',
+                    height: 40,
+                    fit: BoxFit.contain,
+                  ),
+                ],
+              ),
+              const Spacer(),
+              Text(
+                'What should we call you?',
+                style: Theme.of(context)
+                    .textTheme
+                    .headlineMedium
+                    ?.copyWith(fontWeight: FontWeight.w900),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Optional — we\'ll use your email if you skip this.',
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  fontSize: 16,
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 24),
+              TextField(
+                controller: _nameController,
+                textCapitalization: TextCapitalization.words,
+                textInputAction: TextInputAction.done,
+                decoration: const InputDecoration(labelText: 'Display name'),
+                onSubmitted: (_) => _saveDisplayName(),
+              ),
+              const SizedBox(height: 28),
+              FilledButton(
+                onPressed: _saveDisplayName,
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size.fromHeight(56),
+                ),
+                child: const Text(
+                  'Continue',
+                  style: TextStyle(fontSize: 17),
+                ),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: TextButton(
+                  onPressed: _saveDisplayName,
+                  child: const Text('Skip'),
+                ),
               ),
               const SizedBox(height: 16),
             ],
