@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/database/app_database.dart';
+import '../../../core/sync/sync_providers.dart';
 import '../../enrichment/domain/content_type.dart';
 import '../../collections/presentation/collection_providers.dart';
 import 'library_providers.dart';
@@ -29,8 +30,11 @@ class LibraryScreen extends ConsumerWidget {
       ),
       body: SafeArea(
         top: false,
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(20, 18, 20, 104),
+        child: RefreshIndicator.adaptive(
+          onRefresh: () => ref.read(syncCoordinatorProvider).syncNow(),
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(20, 18, 20, 104),
           children: [
             Text(
               'Library',
@@ -139,6 +143,7 @@ class LibraryScreen extends ConsumerWidget {
             ),
           ],
         ),
+      ),
       ),
     );
   }
