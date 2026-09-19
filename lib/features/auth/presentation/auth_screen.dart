@@ -314,6 +314,16 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                   height: 1.5,
                 ),
               ),
+              if (!prefersSignup) ...[
+                const SizedBox(height: 24),
+                Center(
+                  child: Image.asset(
+                    'assets/backgrounds/auth-signin.png',
+                    height: 240,
+                    fit: BoxFit.contain,
+                  ),
+                ),
+              ],
               const Spacer(),
               Form(
                 key: _formKey,
