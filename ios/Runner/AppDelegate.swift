@@ -1,8 +1,10 @@
 import Flutter
+import UserNotifications
 import UIKit
 
 @main
 @objc class AppDelegate: FlutterAppDelegate, FlutterStreamHandler {
+  private let inboxNotifications = InboxPushBridge()
   private let queue = ShareCaptureQueue(appGroupId: "group.pro.micorp.laterbox")
   private var shareChannel: FlutterMethodChannel?
   private var clipboardEventChannel: FlutterEventChannel?
@@ -12,6 +14,14 @@ import UIKit
   private var liveActivityChannel: FlutterMethodChannel?
 
   private var darwinObserverRegistered = false
+
+  override func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+    inboxNotifications.receiveToken(deviceToken)
+    super.application(application, didRegisterForRemoteNotificationsWithDeviceToken: deviceToken)
+  }
+  override func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
+    super.application(application, didFailToRegisterForRemoteNotificationsWithError: error)
+  }
 
   override func application(
     _ application: UIApplication,
@@ -37,6 +47,7 @@ import UIKit
       return registrar(forPlugin: "LaterBoxPlugin")?.messenger()
     }()
     guard let messenger else { return }
+    inboxNotifications.attach(messenger)
     registerShareChannel(with: messenger)
     registerClipboardChannel(with: messenger)
     registerAppIconChannel(with: messenger)
@@ -241,5 +252,61 @@ import UIKit
       }
     }
     self.liveActivityChannel = channel
+  }
+}
+
+
+/// Owns APNs registration while forwarding local-notification callbacks to the plugin.
+private final class InboxPushBridge: NSObject, UNUserNotificationCenterDelegate {
+  private var channel: FlutterMethodChannel?
+  private var token: String?
+  private var pendingTap: String?
+  private weak var previousDelegate: UNUserNotificationCenterDelegate?
+
+  func attach(_ messenger: FlutterBinaryMessenger) {
+    guard channel == nil else { return }
+    let channel = FlutterMethodChannel(name: "laterbox/notifications", binaryMessenger: messenger)
+    self.channel = channel
+    channel.setMethodCallHandler { [weak self] call, result in
+      guard let self = self else { result(nil); return }
+      switch call.method {
+      case "initialize":
+        let center = UNUserNotificationCenter.current()
+        if center.delegate !== self { self.previousDelegate = center.delegate; center.delegate = self }
+        result(self.pendingTap)
+        self.pendingTap = nil
+      case "register":
+        UIApplication.shared.registerForRemoteNotifications()
+        result(self.token)
+      default: result(FlutterMethodNotImplemented)
+      }
+    }
+    let center = UNUserNotificationCenter.current()
+    previousDelegate = center.delegate
+    center.delegate = self
+  }
+  func receiveToken(_ data: Data) {
+    token = data.map { String(format: "%02x", $0) }.joined()
+    channel?.invokeMethod("tokenChanged", arguments: nil)
+  }
+  func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification,
+    withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
+    if notification.request.content.userInfo["item_id"] != nil {
+      completionHandler([.banner, .sound])
+    } else if let previous = previousDelegate {
+      previous.userNotificationCenter?(center, willPresent: notification, withCompletionHandler: completionHandler)
+    } else { completionHandler([.banner, .sound]) }
+  }
+  func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse,
+    withCompletionHandler completionHandler: @escaping () -> Void) {
+    let info = response.notification.request.content.userInfo
+    if info["item_id"] != nil, JSONSerialization.isValidJSONObject(info),
+      let data = try? JSONSerialization.data(withJSONObject: info), let json = String(data: data, encoding: .utf8) {
+      pendingTap = json
+      channel?.invokeMethod("notificationTap", arguments: json)
+      completionHandler()
+    } else if let previous = previousDelegate {
+      previous.userNotificationCenter?(center, didReceive: response, withCompletionHandler: completionHandler)
+    } else { completionHandler() }
   }
 }
