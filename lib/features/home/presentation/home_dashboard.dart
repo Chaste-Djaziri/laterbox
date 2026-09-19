@@ -77,24 +77,38 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
         displayName?.isNotEmpty == true
             ? displayName!
             : email?.split('@').first ?? '';
-    final greeting = hour < 12
-        ? 'Good morning, $firstName.'
+    final timeGreeting = hour < 12
+        ? 'Good morning,'
         : hour < 18
-        ? 'Good afternoon, $firstName.'
-        : 'Good evening, $firstName.';
+        ? 'Good afternoon,'
+        : 'Good evening,';
     return Scaffold(
       appBar: isDesktop
           ? null
           : AppBar(
               title: GestureDetector(
                 onTap: () => showDisplayNamePrompt(context, ref),
-                child: Text(
-                  greeting,
-                  style: theme.textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.w900,
-                    color: isDark ? Colors.white : const Color(0xFF171711),
-                    letterSpacing: -1,
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      timeGreeting,
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w900,
+                        color: isDark ? Colors.white : const Color(0xFF171711),
+                        letterSpacing: -0.5,
+                      ),
+                    ),
+                    Text(
+                      firstName,
+                      style: theme.textTheme.headlineMedium?.copyWith(
+                        fontWeight: FontWeight.w900,
+                        color: isDark ? Colors.white : const Color(0xFF171711),
+                        letterSpacing: -1,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -191,16 +205,35 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
                                     GestureDetector(
                                       onTap: () =>
                                           showDisplayNamePrompt(context, ref),
-                                      child: Text(
-                                        greeting,
-                                        style: theme.textTheme.headlineLarge
-                                            ?.copyWith(
-                                              fontWeight: FontWeight.w900,
-                                              color: isDark
-                                                  ? Colors.white
-                                                  : const Color(0xFF171711),
-                                              letterSpacing: -1,
-                                            ),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            timeGreeting,
+                                            style: theme
+                                                .textTheme.titleLarge
+                                                ?.copyWith(
+                                                  fontWeight: FontWeight.w900,
+                                                  color: isDark
+                                                      ? Colors.white
+                                                      : const Color(0xFF171711),
+                                                  letterSpacing: -0.5,
+                                                ),
+                                          ),
+                                          Text(
+                                            firstName,
+                                            style: theme
+                                                .textTheme.headlineLarge
+                                                ?.copyWith(
+                                                  fontWeight: FontWeight.w900,
+                                                  color: isDark
+                                                      ? Colors.white
+                                                      : const Color(0xFF171711),
+                                                  letterSpacing: -1,
+                                                ),
+                                          ),
+                                        ],
                                       ),
                                     ),
                                     const SizedBox(height: 8),
