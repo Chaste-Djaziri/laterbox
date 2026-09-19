@@ -38,5 +38,11 @@ end
 post_install do |installer|
   installer.pods_project.targets.each do |target|
     flutter_additional_ios_build_settings(target)
+
+    target.build_configurations.each do |configuration|
+      configuration.build_settings['SWIFT_VERSION'] = '5.0'
+      configuration.build_settings['SWIFT_STRICT_CONCURRENCY'] = 'minimal'
+      configuration.build_settings['SWIFT_UPCOMING_FEATURE_6_0'] = 'NO'
+    end
   end
 end

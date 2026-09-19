@@ -40,11 +40,13 @@ post_install do |installer|
     flutter_additional_macos_build_settings(target)
 
     target.build_configurations.each do |configuration|
-      # Force Swift 5 mode across all pods to prevent Xcode 16+ Swift 6
-      # strict-concurrency errors in flutter_local_notifications, in_app_purchase_storekit, etc.
       configuration.build_settings['SWIFT_VERSION'] = '5.0'
       configuration.build_settings['SWIFT_STRICT_CONCURRENCY'] = 'minimal'
       configuration.build_settings['SWIFT_UPCOMING_FEATURE_6_0'] = 'NO'
+      if configuration.name == 'Release'
+        configuration.build_settings['ONLY_ACTIVE_ARCH'] = 'YES'
+        configuration.build_settings['EXCLUDED_ARCHS'] = 'x86_64'
+      end
     end
 
     next unless target.name == 'HotKey'
