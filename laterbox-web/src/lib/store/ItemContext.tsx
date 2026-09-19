@@ -56,11 +56,11 @@ const DEFAULT_GUEST_ITEMS: LaterBoxItem[] = [
     user_id: null,
     title: 'Design Inspiration.psd',
     type: 'document',
-    status: 'inbox',
+    status: 'deferred',
     favorite: false,
     created_at: new Date(Date.now() - 3 * 86400000).toISOString(),
     updated_at: new Date(Date.now() - 3 * 86400000).toISOString(),
-    return_at: new Date(Date.now() + 14400000).toISOString(),
+    return_at: null, // Someday Vault (no deadline)
     metadata: {
       item_id: 'guest-item-1',
       title: 'Design Inspiration.psd',
@@ -94,7 +94,7 @@ const DEFAULT_GUEST_ITEMS: LaterBoxItem[] = [
     favorite: false,
     created_at: new Date(Date.now() - 2 * 86400000).toISOString(),
     updated_at: new Date(Date.now() - 2 * 86400000).toISOString(),
-    return_at: new Date(Date.now() + 86400000).toISOString(),
+    return_at: new Date(Date.now() - 2 * 3600000).toISOString(), // Returned today (2 hours ago)
     metadata: {
       item_id: 'guest-item-2',
       title: 'ClientFeedback.pdf',
@@ -125,11 +125,11 @@ const DEFAULT_GUEST_ITEMS: LaterBoxItem[] = [
     title: 'Building Distributed Edge Apps with Cloudflare & Supabase',
     url: 'https://youtube.com/watch?v=edge-apps',
     type: 'video',
-    status: 'inbox',
+    status: 'deferred',
     favorite: false,
     created_at: new Date(Date.now() - 86400000).toISOString(),
     updated_at: new Date(Date.now() - 86400000).toISOString(),
-    return_at: new Date(Date.now() + 2 * 86400000).toISOString(),
+    return_at: new Date(Date.now() + 86400000).toISOString(), // Upcoming (Tomorrow)
     metadata: {
       item_id: 'guest-item-3',
       title: 'Building Distributed Edge Apps with Cloudflare & Supabase',
@@ -150,12 +150,12 @@ const DEFAULT_GUEST_ITEMS: LaterBoxItem[] = [
     user_id: null,
     title: 'Ideas for side project',
     type: 'note',
-    status: 'inbox',
+    status: 'deferred',
     favorite: false,
     text_content: 'Some quick ideas I want to explore:\n• A minimal reading app\n• Browser extension for saving tweets\n• Maybe a weekly newsletter?\n...',
     created_at: new Date(Date.now() - 86400000).toISOString(),
     updated_at: new Date(Date.now() - 86400000).toISOString(),
-    return_at: new Date(Date.now() + 3 * 86400000).toISOString(),
+    return_at: null, // Someday Vault (no deadline)
     metadata: {
       item_id: 'guest-item-4',
       title: 'Ideas for side project',
@@ -174,11 +174,11 @@ const DEFAULT_GUEST_ITEMS: LaterBoxItem[] = [
     title: 'Good Days',
     url: 'https://open.spotify.com/track/good-days',
     type: 'music',
-    status: 'inbox',
+    status: 'deferred',
     favorite: false,
     created_at: new Date(Date.now() - 2 * 86400000).toISOString(),
     updated_at: new Date(Date.now() - 2 * 86400000).toISOString(),
-    return_at: new Date(Date.now() + 4 * 86400000).toISOString(),
+    return_at: new Date(Date.now() + 2 * 86400000).toISOString(), // Upcoming (Weekend)
     metadata: {
       item_id: 'guest-item-5',
       title: 'Good Days',
@@ -204,7 +204,7 @@ const DEFAULT_GUEST_ITEMS: LaterBoxItem[] = [
     favorite: true,
     created_at: new Date(Date.now() - 3 * 86400000).toISOString(),
     updated_at: new Date(Date.now() - 3 * 86400000).toISOString(),
-    return_at: new Date(Date.now() + 5 * 86400000).toISOString(),
+    return_at: new Date(Date.now() - 4 * 3600000).toISOString(), // Returned today (inbox active)
     metadata: {
       item_id: 'guest-item-6',
       title: 'The Power of a Focused Life',
@@ -238,7 +238,14 @@ export function ItemProvider({ children }: { children: ReactNode }) {
     try {
       const stored = localStorage.getItem(`${LOCAL_ITEMS_KEY}_${user?.id || 'guest'}`) || localStorage.getItem(LOCAL_ITEMS_KEY);
       if (stored) {
-        setItems((JSON.parse(stored) as LaterBoxItem[]).filter(item => (item.user_id || null) === (user?.id || null)).map(migrateSchedule));
+        const parsed = (JSON.parse(stored) as LaterBoxItem[]).filter(item => (item.user_id || null) === (user?.id || null));
+        const isLegacyGuestAllInbox = !user && parsed.length > 0 && parsed.every(i => i.id.startsWith('guest-item-')) && parsed.every(i => i.status === 'inbox');
+        if (isLegacyGuestAllInbox) {
+          setItems(DEFAULT_GUEST_ITEMS);
+          localStorage.setItem(`${LOCAL_ITEMS_KEY}_guest`, JSON.stringify(DEFAULT_GUEST_ITEMS));
+        } else {
+          setItems(parsed.map(migrateSchedule));
+        }
       } else if (!user) {
         setItems(DEFAULT_GUEST_ITEMS);
         localStorage.setItem(`${LOCAL_ITEMS_KEY}_guest`, JSON.stringify(DEFAULT_GUEST_ITEMS));
