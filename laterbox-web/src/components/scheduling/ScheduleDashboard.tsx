@@ -487,7 +487,7 @@ export function ScheduleDashboard({ view }: { view?: ScheduleView }) {
   return (
     <div className="max-w-6xl mx-auto p-6 sm:p-8 space-y-6">
       {/* Top Search Omnibar */}
-      <div className="flex items-center justify-between gap-4 mb-2">
+      <div className="flex items-center justify-between gap-4 mb-8 sm:mb-12">
         <div className="flex-1 max-w-xl mx-auto">
           <button
             type="button"
@@ -513,7 +513,7 @@ export function ScheduleDashboard({ view }: { view?: ScheduleView }) {
       </div>
 
       {/* Greeting Header */}
-      <div>
+      <div className="pt-2 sm:pt-4">
         {!effectiveUserName ? (
           <div className="space-y-2">
             <h1 className="text-2xl sm:text-3xl font-black text-[#171711] tracking-tight">
