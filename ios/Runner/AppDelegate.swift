@@ -261,7 +261,6 @@ private final class InboxPushBridge: NSObject, UNUserNotificationCenterDelegate 
   private var channel: FlutterMethodChannel?
   private var token: String?
   private var pendingTap: String?
-  private weak var previousDelegate: UNUserNotificationCenterDelegate?
 
   func attach(_ messenger: FlutterBinaryMessenger) {
     guard channel == nil else { return }
@@ -272,7 +271,7 @@ private final class InboxPushBridge: NSObject, UNUserNotificationCenterDelegate 
       switch call.method {
       case "initialize":
         let center = UNUserNotificationCenter.current()
-        if center.delegate !== self { self.previousDelegate = center.delegate; center.delegate = self }
+        if center.delegate !== self { center.delegate = self }
         result(self.pendingTap)
         self.pendingTap = nil
       case "unregister":
@@ -287,7 +286,6 @@ private final class InboxPushBridge: NSObject, UNUserNotificationCenterDelegate 
       }
     }
     let center = UNUserNotificationCenter.current()
-    previousDelegate = center.delegate
     center.delegate = self
   }
   func receiveToken(_ data: Data) {
@@ -300,9 +298,9 @@ private final class InboxPushBridge: NSObject, UNUserNotificationCenterDelegate 
     withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
     if notification.request.content.userInfo["item_id"] != nil {
       completionHandler([.banner, .sound])
-    } else if let previous = previousDelegate {
-      previous.userNotificationCenter?(center, willPresent: notification, withCompletionHandler: completionHandler)
-    } else { completionHandler([.banner, .sound]) }
+    } else {
+      completionHandler([.banner, .sound])
+    }
   }
   func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse,
     withCompletionHandler completionHandler: @escaping () -> Void) {
@@ -312,8 +310,8 @@ private final class InboxPushBridge: NSObject, UNUserNotificationCenterDelegate 
       pendingTap = json
       channel?.invokeMethod("notificationTap", arguments: json)
       completionHandler()
-    } else if let previous = previousDelegate {
-      previous.userNotificationCenter?(center, didReceive: response, withCompletionHandler: completionHandler)
-    } else { completionHandler() }
+    } else {
+      completionHandler()
+    }
   }
 }
