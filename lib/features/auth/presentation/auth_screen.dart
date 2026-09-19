@@ -105,82 +105,78 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   Widget _buildEmailScreen(BuildContext context) {
     return Scaffold(
       body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            return SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
-              child: ConstrainedBox(
-                constraints: BoxConstraints(minHeight: constraints.maxHeight - 56),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        IconButton(
-                          onPressed: () {
-                            if (context.canPop()) {
-                              context.pop();
-                            } else {
-                              context.go('/welcome');
-                            }
-                          },
-                          icon: const Icon(Icons.arrow_back_ios_new_rounded),
-                        ),
-                        Image.asset(
-                          'assets/branding/laterbox-logo.png',
-                          height: 40,
-                          fit: BoxFit.contain,
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 24),
-                    Center(
-                      child: Image.asset(
-                        'assets/backgrounds/auth-signin.png',
-                        height: 280,
-                        fit: BoxFit.contain,
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    Text(
-                      'Enter your email',
-                      style: Theme.of(context)
-                          .textTheme
-                          .headlineSmall
-                          ?.copyWith(fontWeight: FontWeight.w900),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'We\'ll send you a code to sign in or create your account.',
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        height: 1.5,
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    TextField(
-                      controller: _emailController,
-                      keyboardType: TextInputType.emailAddress,
-                      autofillHints: const [AutofillHints.email],
-                      decoration: const InputDecoration(labelText: 'Email'),
-                      textInputAction: TextInputAction.done,
-                      onSubmitted: (_) => _sendOtp(),
-                    ),
-                    if (_message != null) ...[
-                      const SizedBox(height: 14),
-                      Text(
-                        _message!,
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.error,
-                        ),
-                      ),
-                    ],
-                    const SizedBox(height: 28),
-                    FilledButton(
-                      onPressed: _busy ? null : _sendOtp,
-                      style: FilledButton.styleFrom(
-                        minimumSize: const Size.fromHeight(60),
-                      ),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  IconButton(
+                    onPressed: () {
+                      if (context.canPop()) {
+                        context.pop();
+                      } else {
+                        context.go('/welcome');
+                      }
+                    },
+                    icon: const Icon(Icons.arrow_back_ios_new_rounded),
+                  ),
+                  Image.asset(
+                    'assets/branding/laterbox-logo.png',
+                    height: 40,
+                    fit: BoxFit.contain,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              Center(
+                child: Image.asset(
+                  'assets/backgrounds/auth-signin.png',
+                  height: 280,
+                  fit: BoxFit.contain,
+                ),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                'Enter your email',
+                style: Theme.of(context)
+                    .textTheme
+                    .headlineSmall
+                    ?.copyWith(fontWeight: FontWeight.w900),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'We\'ll send you a code to sign in or create your account.',
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 24),
+              TextField(
+                controller: _emailController,
+                keyboardType: TextInputType.emailAddress,
+                autofillHints: const [AutofillHints.email],
+                decoration: const InputDecoration(labelText: 'Email'),
+                textInputAction: TextInputAction.done,
+                onSubmitted: (_) => _sendOtp(),
+              ),
+              if (_message != null) ...[
+                const SizedBox(height: 14),
+                Text(
+                  _message!,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.error,
+                  ),
+                ),
+              ],
+              const SizedBox(height: 28),
+              FilledButton(
+                onPressed: _busy ? null : _sendOtp,
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size.fromHeight(60),
+                ),
                 child: Text(_busy ? 'Please wait…' : 'Continue'),
               ),
               const SizedBox(height: 12),
@@ -206,7 +202,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   Widget _buildOtpScreen(BuildContext context) {
     return Scaffold(
       body: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -228,7 +224,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                   ),
                 ],
               ),
-              const Spacer(),
+              const SizedBox(height: 48),
               Text(
                 'Check your email',
                 style: Theme.of(context)
@@ -244,7 +240,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                   height: 1.5,
                 ),
               ),
-              const Spacer(),
+              const SizedBox(height: 32),
               TextField(
                 controller: _otpController,
                 autofocus: true,
