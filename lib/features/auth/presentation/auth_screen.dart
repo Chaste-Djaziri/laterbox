@@ -159,79 +159,94 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   Widget _buildOtpScreen(BuildContext context) {
     return Scaffold(
       body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 440),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Image.asset(
-                    'assets/branding/laterbox-logo.png',
-                    height: 72,
-                    fit: BoxFit.contain,
-                  ),
-                  const SizedBox(height: 28),
-                  Text(
-                    _otpForSignup ? 'Verify your account' : 'Check your email',
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.headlineSmall
-                        ?.copyWith(fontWeight: FontWeight.w900),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Enter the eight digit code sent to ${_emailController.text.trim()}.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  TextField(
-                    controller: _otpController,
-                    autofocus: true,
-                    keyboardType: TextInputType.number,
-                    textInputAction: TextInputAction.done,
-                    autofillHints: const [AutofillHints.oneTimeCode],
-                    inputFormatters: [
-                      FilteringTextInputFormatter.digitsOnly,
-                      LengthLimitingTextInputFormatter(8),
-                    ],
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              IconButton(
+                onPressed: () => setState(() {
+                  _awaitingOtp = false;
+                  _otpController.clear();
+                  _message = null;
+                }),
+                icon: const Icon(Icons.arrow_back_ios_new_rounded),
+              ),
+              const Spacer(),
+              Center(
+                child: Image.asset(
+                  'assets/branding/laterbox-logo.png',
+                  height: 58,
+                  fit: BoxFit.contain,
+                ),
+              ),
+              const SizedBox(height: 32),
+              Text(
+                _otpForSignup ? 'Verify your account' : 'Check your email',
+                style: Theme.of(context)
+                    .textTheme
+                    .headlineSmall
+                    ?.copyWith(fontWeight: FontWeight.w900),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Enter the eight digit code sent to ${_emailController.text.trim()}.',
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 24),
+              TextField(
+                controller: _otpController,
+                autofocus: true,
+                keyboardType: TextInputType.number,
+                textInputAction: TextInputAction.done,
+                autofillHints: const [AutofillHints.oneTimeCode],
+                inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                  LengthLimitingTextInputFormatter(8),
+                ],
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                       fontWeight: FontWeight.w800,
                       letterSpacing: 10,
                     ),
-                    decoration: const InputDecoration(
-                      labelText: 'Verification code',
-                      counterText: '',
-                    ),
-                    maxLength: 8,
-                    onSubmitted: (_) => _verifyOtp(),
+                decoration: const InputDecoration(
+                  labelText: 'Verification code',
+                  counterText: '',
+                ),
+                maxLength: 8,
+                onSubmitted: (_) => _verifyOtp(),
+              ),
+              if (_message != null) ...[
+                const SizedBox(height: 12),
+                Text(
+                  _message!,
+                  style: TextStyle(
+                    color: _message == 'A new code was sent.'
+                        ? Theme.of(context).colorScheme.primary
+                        : Theme.of(context).colorScheme.error,
                   ),
-                  if (_message != null) ...[
-                    const SizedBox(height: 12),
-                    Text(
-                      _message!,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: _message == 'A new code was sent.'
-                            ? Theme.of(context).colorScheme.primary
-                            : Theme.of(context).colorScheme.error,
-                      ),
-                    ),
-                  ],
-                  const SizedBox(height: 20),
-                  FilledButton(
-                    onPressed: _busy ? null : _verifyOtp,
-                    child: Text(_busy ? 'Please wait…' : 'Verify code'),
-                  ),
-                  const SizedBox(height: 8),
+                ),
+              ],
+              const Spacer(),
+              FilledButton(
+                onPressed: _busy ? null : _verifyOtp,
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size.fromHeight(60),
+                ),
+                child: Text(_busy ? 'Please wait…' : 'Verify code'),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
                   TextButton(
                     onPressed: _busy ? null : _resendOtp,
                     child: const Text('Send a new code'),
                   ),
+                  const Text('·'),
                   TextButton(
                     onPressed: _busy
                         ? null
@@ -244,7 +259,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                   ),
                 ],
               ),
-            ),
+            ],
           ),
         ),
       ),
@@ -258,45 +273,44 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     if (_awaitingOtp) return _buildOtpScreen(context);
     return Scaffold(
       body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 440),
-              child: Form(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              IconButton(
+                onPressed: () => context.pop(),
+                icon: const Icon(Icons.arrow_back_ios_new_rounded),
+              ),
+              const Spacer(),
+              Center(
+                child: Image.asset(
+                  'assets/branding/laterbox-logo.png',
+                  height: 58,
+                  fit: BoxFit.contain,
+                ),
+              ),
+              const SizedBox(height: 32),
+              Text(
+                prefersSignup ? 'Create your account' : 'Welcome back',
+                style: Theme.of(context)
+                    .textTheme
+                    .headlineSmall
+                    ?.copyWith(fontWeight: FontWeight.w900),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Put it here. Find it later.',
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 32),
+              Form(
                 key: _formKey,
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: IconButton(
-                        onPressed: () => context.pop(),
-                        icon: const Icon(Icons.arrow_back_ios_new_rounded),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Image.asset(
-                      'assets/branding/laterbox-logo.png',
-                      height: 72,
-                      fit: BoxFit.contain,
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Put it here. Find it later.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                    const SizedBox(height: 40),
-                    Text(
-                      prefersSignup ? 'Create your account' : 'Welcome back',
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.headlineSmall
-                          ?.copyWith(fontWeight: FontWeight.w900),
-                    ),
-                    const SizedBox(height: 18),
                     TextFormField(
                       controller: _emailController,
                       keyboardType: TextInputType.emailAddress,
@@ -304,8 +318,8 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                       decoration: const InputDecoration(labelText: 'Email'),
                       validator: (value) =>
                           value == null || !value.contains('@')
-                          ? 'Enter a valid email address.'
-                          : null,
+                              ? 'Enter a valid email address.'
+                              : null,
                     ),
                     const SizedBox(height: 14),
                     TextFormField(
@@ -336,77 +350,86 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                       onFieldSubmitted: (_) =>
                           _submit(createAccount: prefersSignup),
                     ),
-                    if (_message != null) ...[
-                      const SizedBox(height: 14),
-                      Text(
-                        _message!,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.error,
-                        ),
-                      ),
-                    ],
-                    const SizedBox(height: 20),
-                    FilledButton(
-                      onPressed: _busy
-                          ? null
-                          : () => _submit(createAccount: prefersSignup),
-                      child: Text(
-                        _busy
-                            ? 'Please wait…'
-                            : prefersSignup
-                            ? 'Create account'
-                            : 'Sign in',
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    OutlinedButton(
-                      onPressed: _busy
-                          ? null
-                          : () {
-                              final query = GoRouterState.of(context)
-                                  .uri
-                                  .queryParameters;
-                              final next = query['next'];
-                              final interval = query['interval'];
-                              final nextQuery = next == null
-                                  ? ''
-                                  : '&next=$next';
-                              final intervalQuery = interval == null
-                                  ? ''
-                                  : '&interval=$interval';
-                              context.go(
-                                '/login?mode=${prefersSignup ? 'signin' : 'signup'}$nextQuery$intervalQuery',
-                              );
-                            },
-                      child: Text(
-                        prefersSignup
-                            ? 'Already have an account? Sign in'
-                            : 'Create account',
-                      ),
-                    ),
-                    if (!prefersSignup) ...[
-                      const SizedBox(height: 10),
-                      TextButton.icon(
-                        onPressed: _busy ? null : _requestSignInOtp,
-                        icon: const Icon(Icons.password_rounded),
-                        label: const Text('Email me a sign in code'),
-                      ),
-                    ],
-                    const SizedBox(height: 18),
-                    TextButton(
-                      onPressed: _busy
-                          ? null
-                          : () {
-                              ref.read(guestModeProvider.notifier).state = true;
-                              context.go('/home');
-                            },
-                      child: const Text('Continue without account'),
-                    ),
                   ],
                 ),
               ),
-            ),
+              if (_message != null) ...[
+                const SizedBox(height: 14),
+                Text(
+                  _message!,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.error,
+                  ),
+                ),
+              ],
+              const Spacer(),
+              FilledButton(
+                onPressed: _busy
+                    ? null
+                    : () => _submit(createAccount: prefersSignup),
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size.fromHeight(60),
+                ),
+                child: Text(
+                  _busy
+                      ? 'Please wait…'
+                      : prefersSignup
+                          ? 'Create account'
+                          : 'Sign in',
+                ),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: TextButton(
+                  onPressed: _busy
+                      ? null
+                      : () {
+                          final query = GoRouterState.of(context)
+                              .uri
+                              .queryParameters;
+                          final next = query['next'];
+                          final interval = query['interval'];
+                          final nextQuery =
+                              next == null ? '' : '&next=$next';
+                          final intervalQuery =
+                              interval == null ? '' : '&interval=$interval';
+                          context.go(
+                            '/login?mode=${prefersSignup ? 'signin' : 'signup'}$nextQuery$intervalQuery',
+                          );
+                        },
+                  child: Text(
+                    prefersSignup
+                        ? 'Already have an account? Sign in'
+                        : 'Create account',
+                  ),
+                ),
+              ),
+              if (!prefersSignup) ...[
+                const SizedBox(height: 4),
+                SizedBox(
+                  width: double.infinity,
+                  child: TextButton.icon(
+                    onPressed: _busy ? null : _requestSignInOtp,
+                    icon: const Icon(Icons.password_rounded),
+                    label: const Text('Email me a sign in code'),
+                  ),
+                ),
+              ],
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: TextButton(
+                  onPressed: _busy
+                      ? null
+                      : () {
+                          ref.read(guestModeProvider.notifier).state = true;
+                          context.go('/home');
+                        },
+                  child: const Text('Continue without account'),
+                ),
+              ),
+            ],
           ),
         ),
       ),
