@@ -421,7 +421,8 @@ When navigating the LaterBox web dashboard or desktop main window:
 
 | Action | Shortcut | Description |
 |---|---|---|
-| **Omnisearch** | \`/\` or \`⌘ K\` | Focuses the instant search input immediately |
+| **Quick Capture** | \`⌃ ⌥ L\` (Control+Option+L) / \`Ctrl + Alt + L\` | Opens the Quick Capture modal from anywhere |
+| **Omnisearch** | \`⌘ K\` / \`Ctrl + K\` or \`/\` | Focuses on-page search or opens Search Modal |
 | **New Item** | \`C\` or \`N\` | Opens the manual item creation modal |
 | **Filter Articles** | \`1\` | Switches category filter to Articles |
 | **Filter Videos** | \`2\` | Switches category filter to Videos |
