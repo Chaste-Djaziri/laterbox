@@ -87,13 +87,13 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
       appBar: isDesktop
           ? null
           : PreferredSize(
-              preferredSize: const Size.fromHeight(140),
+              preferredSize: const Size.fromHeight(170),
               child: Container(
                 padding: EdgeInsets.fromLTRB(
                   16,
                   MediaQuery.of(context).padding.top + 8,
                   16,
-                  0,
+                  32,
                 ),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
