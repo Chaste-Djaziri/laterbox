@@ -7,6 +7,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:laterbox/firebase_options.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/data/latest.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
@@ -92,15 +93,9 @@ class InboxNotificationService {
       final pending = await _apple.invokeMethod<String>('initialize');
       launchPayload ??= pending;
     }
-    if (Platform.isAndroid &&
-        const String.fromEnvironment('FIREBASE_APP_ID').isNotEmpty) {
+    if (Platform.isAndroid && !_firebaseReady) {
       await Firebase.initializeApp(
-        options: const FirebaseOptions(
-          apiKey: String.fromEnvironment('FIREBASE_API_KEY'),
-          appId: String.fromEnvironment('FIREBASE_APP_ID'),
-          messagingSenderId: String.fromEnvironment('FIREBASE_SENDER_ID'),
-          projectId: String.fromEnvironment('FIREBASE_PROJECT_ID'),
-        ),
+        options: DefaultFirebaseOptions.currentPlatform,
       );
       _firebaseReady = true;
       FirebaseMessaging.instance.onTokenRefresh.listen(
