@@ -182,7 +182,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       await ref.read(displayNameProvider.notifier).set(name);
     }
     unawaited(ref.read(syncCoordinatorProvider).syncNow());
-    if (mounted) Navigator.of(ctx).pop();
+    if (ctx.mounted) Navigator.of(ctx).pop();
   }
 
   Future<void> _resendOtp() async {
