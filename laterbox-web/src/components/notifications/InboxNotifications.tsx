@@ -7,10 +7,11 @@ import { useItems } from '@/lib/store/ItemContext';
 import { hasCloudRegistration, isNotificationHandedOff, withItemNotificationLock, notificationWorker, preferences, refreshRegistration, savePreferences, supported, testNotification } from '@/lib/notifications/client';
 
 export function InboxNotificationController() {
-  const { user } = useAuth(); const { isPro } = useBilling(); const { items, loading, syncNow } = useItems();
+  const { user, loading: authLoading } = useAuth(); const { isPro, loading: billingLoading } = useBilling(); const { items, loading, syncNow } = useItems();
   const router = useRouter();
   const latest = useRef({ items, loading, syncNow }); latest.current = { items, loading, syncNow };
   useEffect(() => {
+    if (authLoading || billingLoading) return;
     let stopped = false; let running = false; let baseline = Date.now();
     const tick = async () => {
       if (running || stopped) return;
@@ -49,10 +50,10 @@ export function InboxNotificationController() {
     const refresh = () => void tick();
     window.addEventListener('laterbox-notifications', refresh); window.addEventListener('storage', refresh); window.addEventListener('focus', refresh);
     return () => { stopped = true; clearInterval(timer); window.removeEventListener('laterbox-notifications', refresh); window.removeEventListener('storage', refresh); window.removeEventListener('focus', refresh); };
-  }, [user?.id, isPro]);
+  }, [user?.id, isPro, authLoading, billingLoading]);
   useEffect(() => {
     const itemId = new URLSearchParams(window.location.search).get('notificationItem');
-    if (!itemId || loading) return;
+    if (!itemId || loading || authLoading) return;
     let stopped = false;
     void syncNow().finally(() => {
       if (stopped) return;
@@ -60,7 +61,7 @@ export function InboxNotificationController() {
       router.replace(item ? `/item/${item.id}` : '/inbox');
     });
     return () => { stopped = true; };
-  }, [loading, router, syncNow, user?.id]);
+  }, [loading, authLoading, router, syncNow, user?.id]);
   return null;
 }
 

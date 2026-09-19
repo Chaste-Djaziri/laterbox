@@ -165,7 +165,7 @@ revoke all on function public.notification_delivery_is_current(uuid,uuid,uuid) f
 grant execute on function public.notification_delivery_is_current(uuid,uuid,uuid) to service_role;
 
 -- A device may revoke its own registration even after its login expires. The
--- independent 256-bit capability is stored only on that device; only its hash
+-- independent high-entropy capability is stored only on that device; only its hash
 -- is persisted here. This RPC cannot read data or register a device.
 create function public.revoke_notification_installation(installation_id uuid, revocation_secret text)
 returns void language sql security definer set search_path=public as $$
