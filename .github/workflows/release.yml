@@ -274,7 +274,9 @@ jobs:
           npm run build:safari
 
       - name: Install Flutter Dependencies
-        run: flutter pub get
+        run: |
+          mkdir -p build/ios/SourcePackages build/macos/SourcePackages
+          flutter pub get
 
       - name: Install Apple Certificates & Provisioning Profiles
         shell: bash
@@ -380,7 +382,9 @@ jobs:
           security find-identity -v "$KEYCHAIN_PATH" || true
 
       - name: Configure macOS Project
-        run: flutter build macos --release --config-only
+        run: |
+          mkdir -p build/ios/SourcePackages build/macos/SourcePackages
+          flutter build macos --release --config-only
 
       - name: Build macOS Application with Xcode
         run: |
@@ -945,7 +949,9 @@ jobs:
           cache: true
 
       - name: Install Dependencies
-        run: flutter pub get
+        run: |
+          mkdir -p build/ios/SourcePackages build/macos/SourcePackages
+          flutter pub get
 
       - name: Install Apple Certificate & Provisioning Profiles
         if: env.APPLE_CERTIFICATE_BASE64 != ''
@@ -1025,7 +1031,9 @@ jobs:
           APPLE_SHARE_EXTENSION_PROVISIONING_PROFILE_BASE64: ${{ secrets.APPLE_SHARE_EXTENSION_PROVISIONING_PROFILE_BASE64 }}
 
       - name: Build Flutter iOS Bundle (no initial codesign)
-        run: flutter build ios --release --no-codesign --dart-define=LATERBOX_DISTRIBUTION=app-store
+        run: |
+          mkdir -p build/ios/SourcePackages build/macos/SourcePackages
+          flutter build ios --release --no-codesign --dart-define=LATERBOX_DISTRIBUTION=app-store
 
       - name: Archive and Sign iOS IPA
         if: env.APPLE_CERTIFICATE_BASE64 != ''
