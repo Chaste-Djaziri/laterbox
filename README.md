@@ -44,3 +44,7 @@ See [extension setup](laterbox-extension/README.md), [deployment](docs/deploymen
 See [CHANGELOG.md](CHANGELOG.md) for notable updates.
 
 See [LICENSE](LICENSE), [SECURITY.md](SECURITY.md), [SUPPORT.md](SUPPORT.md), and [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
+
+## Native setup guides
+
+Use [Android setup](laterbox-android/README.md), [Apple CI](laterbox-ios/ci/README.md), and [web setup](laterbox-web/README.md) for project-specific build and test instructions.
