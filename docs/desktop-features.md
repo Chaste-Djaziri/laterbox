@@ -5,3 +5,5 @@ Apple-specific source is maintained in `laterbox-ios/`, including macOS companio
 The current Apple release scheme targets iOS. Before distributing a native macOS application, establish its build target, entitlements, signing, and release checks. Validate capture shortcuts, clipboard consent, menu-bar actions, window restoration, launch at login, local reminders, share input, and StoreKit on the actual target.
 
 Windows and Linux native clients and system integrations are future work. Their old platform runners have been removed; browser access remains available through the web application.
+
+See the [capability matrix](capability-matrix.md) for verification requirements and the [macOS release checklist](macos-release-checklist.md) before claiming desktop release readiness.
