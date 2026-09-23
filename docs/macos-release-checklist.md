@@ -12,7 +12,7 @@ Complete this checklist for each macOS submission. Record the build number, hard
 
 ## Clean-device acceptance
 
-- [ ] On a clean macOS 12.3+ Apple Silicon Mac and Intel Mac: install, sign in, and finish onboarding.
+- [ ] Establish supported macOS versions and architectures from the configured native target, then install, sign in, and finish onboarding on clean supported devices.
 - [ ] Save URL, selected text, note, file, clipboard candidate, Service input, Share Extension input, and Safari extension input; verify each can be scheduled, returned, opened, archived, and retried after an offline save.
 - [ ] Verify tray/menu-bar actions, global hotkey, launch-at-login, window restoration, notifications, Screen Recording/Watch Mode permission recovery, and notch/no-notch behavior.
 - [ ] Purchase monthly and annual subscriptions in StoreKit sandbox, cancel, restore, refresh entitlement, and open subscription management. Verify the free tier retains local data.
