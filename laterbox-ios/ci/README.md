@@ -19,3 +19,7 @@ Release metadata comes from root `version.json`. If App Store versions are alrea
 Uploads are serialized and Apple processing must reach `VALID` within 20 minutes. A timeout means an upload may exist but is not yet confirmed; inspect App Store Connect before retrying. CI retains IPA, dSYMs and test results. Upload does not submit for App Store review or automatically invite testers.
 
 Local preflight: `python -m unittest discover -s laterbox-ios/ci -p 'test_*.py'` after installing `requirements.txt`. `signing.py` mutates signing settings only in the ephemeral release checkout. `verify_archive.py` validates signed identities, versions and App Group before export.
+
+## Native test locations
+
+Swift unit and migration tests live in `laterbox-ios/laterbox-iosTests/`; capture UI tests live in `laterbox-ios/laterbox-iosUITests/`. Paths are relative to the repository root. Use the native Xcode test targets when changing app behavior, alongside the Python release-tooling preflight.
