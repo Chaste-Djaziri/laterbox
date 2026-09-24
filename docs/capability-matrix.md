@@ -4,15 +4,15 @@ This is the release contract for product parity. macOS entries are verification 
 
 | Capability | macOS target | iOS | Android | Windows | Web | Extension | Access | Data contract |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Save URL, text, note, and file | Verification required | Parity target | Parity target | Parity target | Parity target | Verification required | Free | Platform-local persistence succeeds offline; sync is idempotent when Pro returns online. |
+| Save URL, text, note, and file | Verification required | Parity target | Parity target | Parity target | Parity target | Ready | Free | Platform-local persistence succeeds offline; sync is idempotent when Pro returns online. |
 | Schedule and return | Verification required | Parity target | Parity target | Parity target | Parity target | N/A | Free | One canonical return timestamp and item lifecycle across clients. |
 | Search, reader, collections, export | Verification required | Parity target | Parity target | Parity target | Parity target | N/A | Free | Local data remains available without an account. |
-| Account sync and cloud attachments | Verification required | Parity target | Parity target | Parity target | Verification required | Ready | Pro | Authenticated data is account-scoped and conflict-safe. |
+| Account sync and cloud attachments | Verification required | Parity target | Parity target | Parity target | Ready | Ready | Pro | Authenticated data is account-scoped and conflict-safe. |
 | Paid access | StoreKit target | StoreKit | Play Billing | Deferred | Paddle | N/A | Pro | Entitlement is account-bound; restore and refresh never create duplicate access. |
 | Global quick capture | Verification required | N/A | N/A | Parity target | In-app only | N/A | Free | Failed launches retain the capture draft. |
 | Menu bar / system tray | Verification required | N/A | N/A | Parity target | N/A | N/A | Free | Open and Quick Capture are always recoverable actions. |
 | Native sharing / Services | Verification required | Parity target | Parity target | Parity target | N/A | Browser share | Free | Failed deliveries stay queued until retried or discarded. |
-| Safari / browser capture | Verification required | Safari target | Chrome target | Browser target | N/A | Verification required | Pro for connected sync | Browser sends only explicit user-selected content. |
+| Safari / browser capture | Verification required | Safari target | Chrome target | Browser target | N/A | Ready | Pro for connected sync | Browser sends only explicit user-selected content. |
 | Clipboard monitoring | Verification required | Opt-in target | Opt-in target | Parity target | N/A | N/A | Pro automation | Candidates are never persisted or uploaded before confirmation. |
 | Watch Mode / screen context | Verification required | N/A | N/A | Deferred | N/A | N/A | Pro automation | Requires explicit Screen Recording permission and an obvious active state. |
 | Notch companion | Verification required on supported Macs | Dynamic Island target | N/A | N/A | N/A | N/A | Pro automation | No-op on hardware without a notch; captures still work. |
