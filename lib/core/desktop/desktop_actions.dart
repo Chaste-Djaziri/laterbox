@@ -29,6 +29,8 @@ class DesktopActions {
   DesktopSettings _settings = DesktopSettings.defaults();
 
   DesktopSettings get settings => _settings;
+  bool get _usesFloatingQuickCapture =>
+      defaultTargetPlatform != TargetPlatform.macOS;
 
   /// One-time desktop startup: apply persisted settings, then register the
   /// hotkey, tray and window-close policy. Hides the main window when the app
@@ -42,12 +44,14 @@ class DesktopActions {
     final controller = ref.read(quickCaptureControllerProvider);
     controller.enableBlurClose = _settings.closeOnFocusLoss;
 
-    await ref
-        .read(globalHotkeyServiceProvider)
-        .register(
-          _settings.quickCaptureShortcut,
-          onTriggered: openQuickCapture,
-        );
+    if (_usesFloatingQuickCapture) {
+      await ref
+          .read(globalHotkeyServiceProvider)
+          .register(
+            _settings.quickCaptureShortcut,
+            onTriggered: openQuickCapture,
+          );
+    }
 
     if (_settings.showInMenuBar) {
       await ref
@@ -76,9 +80,16 @@ class DesktopActions {
           // are verified, copied to the app support store, and linked to a new item.
           // This mirrors ShareExtension / _importNativeShare logic in app.dart.
           try {
-            final service = await ref.read(attachmentImportServiceProvider.future);
-            final result = await service.importFiles(sourcePaths: filePaths, text: text);
-            debugPrint('[LaterBox Desktop] notch drop imported ${result.attachmentIds.length} files, ${result.failures.length} failures');
+            final service = await ref.read(
+              attachmentImportServiceProvider.future,
+            );
+            final result = await service.importFiles(
+              sourcePaths: filePaths,
+              text: text,
+            );
+            debugPrint(
+              '[LaterBox Desktop] notch drop imported ${result.attachmentIds.length} files, ${result.failures.length} failures',
+            );
           } catch (e, st) {
             debugPrint('[LaterBox Desktop] notch drop import failed: $e\n$st');
           }
@@ -96,11 +107,13 @@ class DesktopActions {
       await desktop.hideMainWindow();
     }
 
-    if (defaultTargetPlatform == TargetPlatform.macOS && _settings.enableNotchMode) {
+    if (defaultTargetPlatform == TargetPlatform.macOS &&
+        _settings.enableNotchMode) {
       await dockToNotch();
     }
 
-    if (defaultTargetPlatform == TargetPlatform.macOS && _settings.watchActiveScreen) {
+    if (defaultTargetPlatform == TargetPlatform.macOS &&
+        _settings.watchActiveScreen) {
       ref.read(screenWatcherServiceProvider).startWatching();
     }
 
@@ -155,7 +168,9 @@ class DesktopActions {
 
       final state = DesktopMenuState(
         accountStatus: status,
-        quickCaptureShortcutLabel: _settings.quickCaptureShortcut.displayLabel,
+        quickCaptureShortcutLabel: _usesFloatingQuickCapture
+            ? _settings.quickCaptureShortcut.displayLabel
+            : null,
         email: auth.email,
       );
       await ref.read(trayServiceProvider).updateMenu(state);
@@ -168,6 +183,10 @@ class DesktopActions {
   /// ⌥Space / tray “Quick Capture”: resolve the capture context, enter capture
   /// mode, then show the window.
   Future<void> openQuickCapture() async {
+    if (!_usesFloatingQuickCapture) {
+      await openLaterBox();
+      return;
+    }
     debugPrint('[LaterBox Desktop] openQuickCapture requested');
 
     try {
@@ -265,6 +284,7 @@ class DesktopActions {
   /// (and persists) once the new one is confirmed. On failure the existing
   /// shortcut keeps working untouched.
   Future<bool> changeQuickCaptureShortcut(DesktopShortcut shortcut) async {
+    if (!_usesFloatingQuickCapture) return false;
     final hotkey = ref.read(globalHotkeyServiceProvider);
     if (hotkey.isRegistered && hotkey.current.isSameAs(shortcut)) {
       return true;
@@ -407,7 +427,9 @@ class DesktopActions {
 
   Future<void> setAutoCopyWordReferences(bool enabled) async {
     _settings = _settings.copyWith(autoCopyWordReferences: enabled);
-    await ref.read(desktopSettingsStoreProvider).setAutoCopyWordReferences(enabled);
+    await ref
+        .read(desktopSettingsStoreProvider)
+        .setAutoCopyWordReferences(enabled);
   }
 }
 

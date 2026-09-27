@@ -69,10 +69,11 @@ class TrayService {
     final statusLines = state.statusLines();
     final items = <MenuItem>[
       MenuItem(key: 'title', label: 'laterbox', disabled: true),
-      MenuItem(
-        key: 'quick_capture',
-        label: 'Quick Capture   ${state.quickCaptureShortcutLabel}',
-      ),
+      if (state.quickCaptureShortcutLabel != null)
+        MenuItem(
+          key: 'quick_capture',
+          label: 'Quick Capture   ${state.quickCaptureShortcutLabel}',
+        ),
       MenuItem(key: 'open_laterbox', label: 'Open laterbox'),
       MenuItem.separator(),
       for (final line in statusLines)

@@ -12,7 +12,8 @@ class DesktopMenuState {
   final DesktopMenuAccountStatus accountStatus;
 
   /// Display label of the current quick capture shortcut (e.g. `⌥ Space`).
-  final String quickCaptureShortcutLabel;
+  /// Null omits floating Quick Capture from the platform tray menu.
+  final String? quickCaptureShortcutLabel;
 
   /// Signed-in email, shown under the sync status when present.
   final String? email;

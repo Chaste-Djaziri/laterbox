@@ -501,7 +501,8 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
       scrollBehavior: const LaterBoxScrollBehavior(),
       builder: (context, child) {
         final Widget content;
-        if (quickCaptureActive) {
+        if (quickCaptureActive &&
+            (kIsWeb || defaultTargetPlatform != TargetPlatform.macOS)) {
           content = Material(
             child: Overlay(
               initialEntries: [
