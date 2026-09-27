@@ -60,24 +60,15 @@ export function ItemCard({ item }: ItemCardProps) {
   const isNote = item.type === 'note' || item.metadata?.content_type === 'note' || (!item.url && !primaryAttachment && item.text_content);
   const isArticle = item.type === 'article' || item.metadata?.content_type === 'article' || (domain && (domain.includes('notion.so') || domain.includes('medium.com')));
 
-  // Tags parsing
+  // Tags: only use real keywords from enriched metadata — no fake fallbacks
   let tags: string[] = [];
   if (item.metadata?.structured_data) {
     try {
       const data = typeof item.metadata.structured_data === 'string'
         ? JSON.parse(item.metadata.structured_data)
         : item.metadata.structured_data;
-      if (Array.isArray(data?.tags)) tags = data.tags;
+      if (Array.isArray(data?.tags)) tags = (data.tags as string[]).slice(0, 5);
     } catch (_) {}
-  }
-  if (tags.length === 0) {
-    if (isPsd) tags = ['design', 'inspiration', 'ui'];
-    else if (isPdf) tags = ['feedback', 'client', 'product'];
-    else if (isVideo) tags = ['cloudflare', 'supabase', 'development'];
-    else if (isNote) tags = ['ideas', 'side project', 'notes'];
-    else if (isMusic) tags = ['music', 'chill', 'r&b'];
-    else if (isArticle) tags = ['productivity', 'focus', 'mindset'];
-    else if (domain) tags = [domain.replace(/\.[a-z]+$/, '')];
   }
 
   const destinationUrl = item.url
