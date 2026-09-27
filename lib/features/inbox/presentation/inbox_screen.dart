@@ -728,44 +728,8 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
                   ViewModeToggle(compact: !isDesktop),
                   const SizedBox(width: 6),
 
-                  // Local Mode Pill
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.surface,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: theme.colorScheme.outlineVariant.withValues(
-                          alpha: 0.5,
-                        ),
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          width: 6,
-                          height: 6,
-                          decoration: const BoxDecoration(
-                            color: Color(0xFF10B981),
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          'Local Mode',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            color: theme.colorScheme.onSurface,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                  // Cloud Sync Indicator (Pro Mode)
+                  const CloudSyncIndicator(compact: true),
                   const SizedBox(width: 6),
 
                   if (isMac) ...[
