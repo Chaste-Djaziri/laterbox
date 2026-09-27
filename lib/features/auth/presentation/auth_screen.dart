@@ -636,126 +636,102 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   }) {
     final colors = Theme.of(context).colorScheme;
     return Scaffold(
-      backgroundColor: colors.surfaceContainerLowest,
+      backgroundColor: colors.surface,
       body: SafeArea(
-        minimum: const EdgeInsets.all(28),
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 1040, maxHeight: 640),
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                color: colors.surface,
-                borderRadius: BorderRadius.circular(32),
-                border: Border.all(
-                  color: colors.outlineVariant.withValues(alpha: .65),
+        child: Row(
+          children: [
+            Expanded(
+              flex: 11,
+              child: Container(
+                padding: const EdgeInsets.fromLTRB(48, 42, 52, 42),
+                decoration: BoxDecoration(
+                  color: colors.secondaryContainer.withValues(alpha: .36),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Image.asset(
+                      'assets/branding/laterbox-logo.png',
+                      height: 40,
+                      fit: BoxFit.contain,
+                    ),
+                    const Spacer(),
+                    Text(
+                      eyebrow,
+                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                        color: colors.primary,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    Text(
+                      title,
+                      style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -1.6,
+                        height: 1.02,
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+                    Text(
+                      detail,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: colors.onSurfaceVariant,
+                        height: 1.45,
+                      ),
+                    ),
+                    const Spacer(),
+                    Text(
+                      'Private by default · Available offline',
+                      style: Theme.of(context).textTheme.bodySmall
+                          ?.copyWith(color: colors.onSurfaceVariant),
+                    ),
+                  ],
                 ),
               ),
-              child: Row(
-                children: [
-                  Expanded(
-                    flex: 11,
-                    child: Container(
-                      padding: const EdgeInsets.fromLTRB(48, 42, 52, 42),
-                      decoration: BoxDecoration(
-                        color: colors.secondaryContainer.withValues(alpha: .36),
-                        borderRadius: const BorderRadius.horizontal(
-                          left: Radius.circular(31),
-                        ),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Image.asset(
-                            'assets/branding/laterbox-logo.png',
-                            height: 40,
-                            fit: BoxFit.contain,
-                          ),
-                          const Spacer(),
-                          Text(
-                            eyebrow,
-                            style: Theme.of(context).textTheme.labelMedium
-                                ?.copyWith(
-                                  color: colors.primary,
-                                  fontWeight: FontWeight.w800,
-                                  letterSpacing: 1.2,
-                                ),
-                          ),
-                          const SizedBox(height: 14),
-                          Text(
-                            title,
-                            style: Theme.of(context).textTheme.displaySmall
-                                ?.copyWith(
-                                  fontWeight: FontWeight.w900,
-                                  letterSpacing: -1.6,
-                                  height: 1.02,
-                                ),
-                          ),
-                          const SizedBox(height: 18),
-                          Text(
-                            detail,
-                            style: Theme.of(context).textTheme.titleMedium
-                                ?.copyWith(
-                                  color: colors.onSurfaceVariant,
-                                  height: 1.45,
-                                ),
-                          ),
-                          const Spacer(),
-                          Text(
-                            'Private by default · Available offline',
-                            style: Theme.of(context).textTheme.bodySmall
-                                ?.copyWith(color: colors.onSurfaceVariant),
-                          ),
-                        ],
+            ),
+            Expanded(
+              flex: 10,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 64,
+                  vertical: 48,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton.icon(
+                        onPressed: () {
+                          if (_awaitingOtp) {
+                            setState(() {
+                              _awaitingOtp = false;
+                              _otpController.clear();
+                              _message = null;
+                            });
+                          } else if (context.canPop()) {
+                            context.pop();
+                          } else {
+                            context.go('/welcome');
+                          }
+                        },
+                        icon: const Icon(Icons.arrow_back_rounded, size: 18),
+                        label: const Text('Back'),
                       ),
                     ),
-                  ),
-                  Expanded(
-                    flex: 10,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 64,
-                        vertical: 48,
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Align(
-                            alignment: Alignment.centerRight,
-                            child: TextButton.icon(
-                              onPressed: () {
-                                if (_awaitingOtp) {
-                                  setState(() {
-                                    _awaitingOtp = false;
-                                    _otpController.clear();
-                                    _message = null;
-                                  });
-                                } else if (context.canPop()) {
-                                  context.pop();
-                                } else {
-                                  context.go('/welcome');
-                                }
-                              },
-                              icon: const Icon(
-                                Icons.arrow_back_rounded,
-                                size: 18,
-                              ),
-                              label: const Text('Back'),
-                            ),
-                          ),
-                          const Spacer(),
-                          ConstrainedBox(
-                            constraints: const BoxConstraints(maxWidth: 340),
-                            child: form,
-                          ),
-                          const Spacer(),
-                        ],
-                      ),
+                    const Spacer(),
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 340),
+                      child: form,
                     ),
-                  ),
-                ],
+                    const Spacer(),
+                  ],
+                ),
               ),
             ),
-          ),
+          ],
         ),
       ),
     );
