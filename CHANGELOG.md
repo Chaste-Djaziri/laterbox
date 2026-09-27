@@ -9,6 +9,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 - **[macOS] System Status**: Settings now provides a single readiness view for Mac integrations, permissions, sync, notifications, and StoreKit billing, with retry guidance and copyable diagnostics.
 
 ### Fixed
+- **[macOS] Light connected window chrome**: Restored the light desktop palette and removed the native title-bar separator so the traffic-light area and sidebar read as one continuous surface.
 - **[macOS] Connected title bar and sidebar**: The native traffic-light bar and desktop sidebar now use the same charcoal surface in light mode, eliminating the visible color break between them.
 - **[macOS] Database connection safety**: Native SQLite access now routes through one shared Drift database server across app isolates, preventing competing database lifecycles during capture, sync, and shutdown.
 - **[Web] Card action menus**: The three-dot menu now renders above card boundaries and stays visible on small cards or near viewport edges.
