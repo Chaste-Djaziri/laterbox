@@ -85,8 +85,18 @@ class _DesktopNotchIslandState extends ConsumerState<DesktopNotchIsland>
     final isExpanded = notchService.isIslandExpanded;
 
     final borderRadius = isExpanded
-        ? const BorderRadius.vertical(bottom: Radius.circular(22))
-        : const BorderRadius.vertical(bottom: Radius.circular(18));
+        ? const BorderRadius.only(
+            bottomLeft: Radius.circular(22),
+            bottomRight: Radius.circular(22),
+            topLeft: Radius.circular(4),
+            topRight: Radius.circular(4),
+          )
+        : const BorderRadius.only(
+            bottomLeft: Radius.circular(18),
+            bottomRight: Radius.circular(18),
+            topLeft: Radius.circular(2.5),
+            topRight: Radius.circular(2.5),
+          );
 
     return Material(
       color: Colors.transparent,
