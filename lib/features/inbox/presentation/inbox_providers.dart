@@ -117,10 +117,13 @@ final inboxItemsProvider = StreamProvider<List<LaterBoxItem>>((ref) {
     final due = deduplicateInboxItems(
       items.where((item) => item.isDue(now)).toList(),
     );
-    due.sort(
-      (a, b) =>
-          (a.returnAt ?? a.createdAt).compareTo(b.returnAt ?? b.createdAt),
-    );
+    due.sort((a, b) {
+      final aDate = a.returnAt ?? a.createdAt;
+      final bDate = b.returnAt ?? b.createdAt;
+      final cmp = aDate.compareTo(bDate);
+      if (cmp != 0) return cmp;
+      return a.createdAt.compareTo(b.createdAt);
+    });
     return due;
   });
 });
@@ -138,7 +141,7 @@ final archivedItemsProvider = StreamProvider<List<LaterBoxItem>>((ref) {
 });
 
 final inboxSearchQueryProvider = StateProvider<String>((ref) => '');
-final inboxSortOrderProvider = StateProvider<String>((ref) => 'latest');
+final inboxSortOrderProvider = StateProvider<String>((ref) => 'fifo');
 
 final inboxFilterProvider = StateProvider<InboxFilterType>(
   (ref) => InboxFilterType.all,
@@ -150,7 +153,6 @@ final filteredInboxItemsProvider = Provider<AsyncValue<List<LaterBoxItem>>>((
   final itemsAsync = ref.watch(inboxItemsProvider);
   final filter = ref.watch(inboxFilterProvider);
   final searchQuery = ref.watch(inboxSearchQueryProvider).trim().toLowerCase();
-  final sortOrder = ref.watch(inboxSortOrderProvider);
 
   return itemsAsync.whenData((items) {
     var result = filter == InboxFilterType.all
@@ -178,11 +180,14 @@ final filteredInboxItemsProvider = Provider<AsyncValue<List<LaterBoxItem>>>((
       }).toList();
     }
 
-    if (sortOrder == 'latest') {
-      result.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-    } else if (sortOrder == 'oldest') {
-      result.sort((a, b) => a.createdAt.compareTo(b.createdAt));
-    }
+    // First-come, first-served (FIFO) by arrival date (returnAt ?? createdAt)
+    result.sort((a, b) {
+      final aDate = a.returnAt ?? a.createdAt;
+      final bDate = b.returnAt ?? b.createdAt;
+      final cmp = aDate.compareTo(bDate);
+      if (cmp != 0) return cmp;
+      return a.createdAt.compareTo(b.createdAt);
+    });
 
     return result;
   });
