@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../shared/models/laterbox_item.dart';
+import '../../../shared/widgets/item_card.dart';
 import '../../../shared/widgets/item_list_row.dart';
 import '../../attachments/data/attachment_file_picker.dart';
 import '../../enrichment/domain/url_utils.dart';
@@ -26,7 +27,8 @@ Future<void> openDashboardCapture(
     return showDialog<void>(
       context: context,
       barrierColor: Colors.black.withValues(alpha: 0.65),
-      builder: (_) => CaptureSheet(browseFiles: browseFiles, initialFiles: files),
+      builder: (_) =>
+          CaptureSheet(browseFiles: browseFiles, initialFiles: files),
     );
   }
   return showModalBottomSheet<void>(
@@ -68,10 +70,9 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
     final hour = now.toLocal().hour;
     final email = ref.watch(currentAuthStateProvider).email;
     final displayName = ref.watch(displayNameProvider);
-    final firstName =
-        displayName?.isNotEmpty == true
-            ? displayName!
-            : email?.split('@').first ?? '';
+    final firstName = displayName?.isNotEmpty == true
+        ? displayName!
+        : email?.split('@').first ?? '';
     final hasName = firstName.trim().isNotEmpty;
     final timeGreeting = hour < 12
         ? (hasName ? 'Good morning,' : 'Good morning.')
@@ -95,8 +96,12 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                     colors: [
-                      isDark ? const Color(0xFF171711) : const Color(0xFFF7F5EE),
-                      isDark ? const Color(0xFF171711) : const Color(0xFFF7F5EE),
+                      isDark
+                          ? const Color(0xFF171711)
+                          : const Color(0xFFF7F5EE),
+                      isDark
+                          ? const Color(0xFF171711)
+                          : const Color(0xFFF7F5EE),
                       isDark
                           ? const Color(0xFF171711).withValues(alpha: 0.0)
                           : const Color(0xFFF7F5EE).withValues(alpha: 0.0),
@@ -228,164 +233,166 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
                     24,
                     24,
                   ),
-                child: Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 1400),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        if (isDesktop)
-                          Row(
-                            children: [
-                              GestureDetector(
-                                onTap: () =>
-                                    showDisplayNamePrompt(context, ref),
-                                child: Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      timeGreeting,
-                                      style:
-                                          theme.textTheme.titleMedium?.copyWith(
-                                        fontWeight: FontWeight.w600,
-                                        color: isDark
-                                            ? Colors.white
-                                            : const Color(0xFF171711),
-                                      ),
-                                    ),
-                                    if (hasName)
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 1400),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          if (isDesktop)
+                            Row(
+                              children: [
+                                GestureDetector(
+                                  onTap: () =>
+                                      showDisplayNamePrompt(context, ref),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
                                       Text(
-                                        firstName,
-                                        style: theme
-                                            .textTheme.headlineLarge
+                                        timeGreeting,
+                                        style: theme.textTheme.titleMedium
                                             ?.copyWith(
-                                          fontWeight: FontWeight.w900,
+                                              fontWeight: FontWeight.w600,
+                                              color: isDark
+                                                  ? Colors.white
+                                                  : const Color(0xFF171711),
+                                            ),
+                                      ),
+                                      if (hasName)
+                                        Text(
+                                          firstName,
+                                          style: theme.textTheme.headlineLarge
+                                              ?.copyWith(
+                                                fontWeight: FontWeight.w900,
+                                                color: isDark
+                                                    ? Colors.white
+                                                    : const Color(0xFF171711),
+                                                letterSpacing: -1,
+                                              ),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                                const Spacer(),
+                                IconButton(
+                                  tooltip: 'Sign out',
+                                  icon: const Icon(Icons.logout_rounded),
+                                  onPressed: () async {
+                                    await ref
+                                        .read(authRepositoryProvider)
+                                        .signOut();
+                                    if (context.mounted) {
+                                      context.go('/welcome');
+                                    }
+                                  },
+                                ),
+                              ],
+                            ),
+                          const SizedBox(height: 16),
+                          if (!isDesktop)
+                            GestureDetector(
+                              onTap: () =>
+                                  context.push('/search', extra: '/home'),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 14,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: isDark
+                                      ? const Color(0xFF2A2A28)
+                                      : const Color(0xFFF0EDE5),
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.search,
+                                      color: isDark
+                                          ? const Color(0xFFA09E95)
+                                          : const Color(0xFF6C6B63),
+                                      size: 20,
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Text(
+                                        'Search your items…',
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
                                           color: isDark
-                                              ? Colors.white
-                                              : const Color(0xFF171711),
-                                          letterSpacing: -1,
+                                              ? const Color(0xFFA09E95)
+                                              : const Color(0xFF6C6B63),
+                                          fontSize: 16,
                                         ),
                                       ),
+                                    ),
                                   ],
                                 ),
                               ),
-                              const Spacer(),
-                              IconButton(
-                                tooltip: 'Sign out',
-                                icon: const Icon(Icons.logout_rounded),
-                                onPressed: () async {
-                                  await ref
-                                      .read(authRepositoryProvider)
-                                      .signOut();
-                                  if (context.mounted) {
-                                    context.go('/welcome');
-                                  }
-                                },
-                              ),
-                            ],
-                          ),
-                        const SizedBox(height: 16),
-                        if (!isDesktop)
-                          GestureDetector(
-                            onTap: () => context.push('/search', extra: '/home'),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 14,
-                              ),
-                              decoration: BoxDecoration(
-                                color: isDark
-                                    ? const Color(0xFF2A2A28)
-                                    : const Color(0xFFF0EDE5),
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    Icons.search,
-                                    color: isDark
-                                        ? const Color(0xFFA09E95)
-                                        : const Color(0xFF6C6B63),
-                                    size: 20,
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Text(
-                                      'Search your items…',
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(
-                                        color: isDark
-                                            ? const Color(0xFFA09E95)
-                                            : const Color(0xFF6C6B63),
-                                        fontSize: 16,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
                             ),
-                          ),
-                        if (!isDesktop) const SizedBox(height: 24),
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              child: _Summary(
-                                label: 'Waiting in Inbox',
-                                count: due.length,
-                                route: '/inbox',
-                                icon: Icons.inbox_outlined,
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: _Summary(
-                                label: 'Returning today',
-                                count: today.length,
-                                route: '/today',
-                                icon: Icons.today_outlined,
-                                timeLabel: today.isNotEmpty &&
-                                        today.first.returnAt != null
-                                    ? 'Next: ${returnTimeLabel(context, today.first.returnAt)}'
-                                    : null,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        _Summary(
-                          label: 'Upcoming',
-                          count: upcoming.length,
-                          route: '/upcoming',
-                          icon: Icons.event_outlined,
-                          timeLabel: upcoming.isNotEmpty &&
-                                  upcoming.first.returnAt != null
-                              ? 'Next: ${returnTimeLabel(context, upcoming.first.returnAt)}'
-                              : null,
-                        ),
-                        const SizedBox(height: 28),
-                        if (wide)
+                          if (!isDesktop) const SizedBox(height: 24),
                           Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Expanded(flex: 2, child: main),
-                              const SizedBox(width: 24),
-                              Expanded(child: side),
+                              Expanded(
+                                child: _Summary(
+                                  label: 'Waiting in Inbox',
+                                  count: due.length,
+                                  route: '/inbox',
+                                  icon: Icons.inbox_outlined,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: _Summary(
+                                  label: 'Returning today',
+                                  count: today.length,
+                                  route: '/today',
+                                  icon: Icons.today_outlined,
+                                  timeLabel:
+                                      today.isNotEmpty &&
+                                          today.first.returnAt != null
+                                      ? 'Next: ${returnTimeLabel(context, today.first.returnAt)}'
+                                      : null,
+                                ),
+                              ),
                             ],
-                          )
-                        else ...[
-                          main,
-                          const SizedBox(height: 24),
-                          side,
+                          ),
+                          const SizedBox(height: 12),
+                          _Summary(
+                            label: 'Upcoming',
+                            count: upcoming.length,
+                            route: '/upcoming',
+                            icon: Icons.event_outlined,
+                            timeLabel:
+                                upcoming.isNotEmpty &&
+                                    upcoming.first.returnAt != null
+                                ? 'Next: ${returnTimeLabel(context, upcoming.first.returnAt)}'
+                                : null,
+                          ),
+                          const SizedBox(height: 28),
+                          if (wide)
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(flex: 2, child: main),
+                                const SizedBox(width: 24),
+                                Expanded(child: side),
+                              ],
+                            )
+                          else ...[
+                            main,
+                            const SizedBox(height: 24),
+                            side,
+                          ],
                         ],
-                      ],
+                      ),
                     ),
                   ),
                 ),
-              ),
-            );
+              );
             },
           );
         },
@@ -394,53 +401,329 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
   }
 }
 
-class ScheduleScreen extends ConsumerWidget {
+class ScheduleScreen extends ConsumerStatefulWidget {
   const ScheduleScreen({super.key, required this.view});
   final ScheduleView view;
+
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final title = switch (view) {
+  ConsumerState<ScheduleScreen> createState() => _ScheduleScreenState();
+}
+
+class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
+  final _searchController = TextEditingController();
+  InboxFilterType _filter = InboxFilterType.all;
+  bool _grid = true;
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final title = switch (widget.view) {
       ScheduleView.today => 'Today',
       ScheduleView.upcoming => 'Upcoming',
       ScheduleView.someday => 'Someday',
     };
-    final items = ref.watch(scheduledItemsProvider(view));
-    return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded),
-          onPressed: () => context.go('/home'),
-        ),
-        title: Text(title),
-        actions: [
-          IconButton(
-            tooltip: 'Drop something',
-            icon: const Icon(Icons.add),
-            onPressed: () => openDashboardCapture(context),
-          ),
-        ],
+    final config = switch (widget.view) {
+      ScheduleView.today => (
+        '⚡ Returned Today',
+        'When later becomes now.',
+        'LaterBox brings your saved items back right on schedule.',
+        'Drop item',
+        'No items due today',
+        'Nothing scheduled for today yet. Relax, or pick something from your Inbox or Someday Vault.',
       ),
-      body: items.when(
-        loading: () =>
-            const Center(child: CircularProgressIndicator.adaptive()),
-        error: (_, _) => const Center(child: Text('Could not load items.')),
-        data: (items) => items.isEmpty
-            ? Center(
-                child: Text(
-                  view == ScheduleView.someday
-                      ? 'Items without a return time will wait here.'
-                      : 'No returns scheduled here yet.',
-                ),
-              )
-            : ListView.separated(
-                padding: const EdgeInsets.all(24),
-                itemCount: items.length,
-                separatorBuilder: (_, _) => const SizedBox(height: 12),
-                itemBuilder: (_, index) => _ScheduledRow(item: items[index]),
+      ScheduleView.upcoming => (
+        '📅 Scheduled Timeline',
+        'Returning on schedule.',
+        'Everything you’ve postponed, arranged by when it returns.',
+        'Schedule item',
+        'No upcoming returns scheduled',
+        'Postponed items with future return times will appear here chronologically.',
+      ),
+      ScheduleView.someday => (
+        '✦ Someday Vault',
+        'Some things don’t need a deadline.',
+        'Keep ideas and references safe without cluttering your daily view.',
+        'Save to Someday',
+        'Someday Vault is clear',
+        'Items saved without a specific return date will wait here safely until you feel like exploring them.',
+      ),
+    };
+    final scheduled = ref.watch(scheduledItemsProvider(widget.view));
+    final isDesktop = MediaQuery.sizeOf(context).width >= 700;
+    return scheduled.when(
+      loading: () => const Scaffold(
+        body: Center(child: CircularProgressIndicator.adaptive()),
+      ),
+      error: (_, _) =>
+          const Scaffold(body: Center(child: Text('Could not load items.'))),
+      data: (items) {
+        final query = _searchController.text.trim().toLowerCase();
+        final visible = items.where((item) {
+          if (_filter != InboxFilterType.all && !_filter.matches(item)) {
+            return false;
+          }
+          if (query.isEmpty) return true;
+          return [
+            item.title,
+            item.text,
+            item.url,
+            item.metadata?.title,
+            item.metadata?.description,
+            item.metadata?.domain,
+          ].whereType<String>().any(
+            (text) => text.toLowerCase().contains(query),
+          );
+        }).toList();
+        return Scaffold(
+          body: SafeArea(
+            child: ListView(
+              padding: EdgeInsets.symmetric(
+                horizontal: isDesktop ? 40 : 20,
+                vertical: isDesktop ? 32 : 20,
               ),
-      ),
+              children: [
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 1120),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          IconButton(
+                            tooltip: 'Back to Dashboard',
+                            onPressed: () => context.go('/home'),
+                            icon: const Icon(Icons.arrow_back_rounded),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: TextField(
+                              controller: _searchController,
+                              onChanged: (_) => setState(() {}),
+                              decoration: InputDecoration(
+                                prefixIcon: const Icon(
+                                  Icons.search_rounded,
+                                  size: 18,
+                                ),
+                                hintText: 'Filter ${title.toLowerCase()}...',
+                                isDense: true,
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(999),
+                                ),
+                              ),
+                            ),
+                          ),
+                          if (isDesktop) ...[
+                            const SizedBox(width: 12),
+                            SegmentedButton<bool>(
+                              segments: const [
+                                ButtonSegment(
+                                  value: true,
+                                  icon: Icon(Icons.grid_view_rounded),
+                                  tooltip: 'Grid view',
+                                ),
+                                ButtonSegment(
+                                  value: false,
+                                  icon: Icon(Icons.view_list_rounded),
+                                  tooltip: 'List view',
+                                ),
+                              ],
+                              selected: {_grid},
+                              onSelectionChanged: (value) =>
+                                  setState(() => _grid = value.first),
+                            ),
+                          ],
+                        ],
+                      ),
+                      const SizedBox(height: 34),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 7,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.primaryContainer,
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Text(
+                          config.$1,
+                          style: Theme.of(context).textTheme.labelLarge
+                              ?.copyWith(fontWeight: FontWeight.w800),
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  config.$2,
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .headlineMedium
+                                      ?.copyWith(
+                                        fontWeight: FontWeight.w900,
+                                        letterSpacing: -1,
+                                      ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  config.$3,
+                                  style: Theme.of(context).textTheme.bodyLarge
+                                      ?.copyWith(
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onSurfaceVariant,
+                                        height: 1.45,
+                                      ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          FilledButton.icon(
+                            onPressed: () => openDashboardCapture(context),
+                            icon: const Icon(Icons.add_rounded),
+                            label: Text(config.$4),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: [
+                            for (final filter in const [
+                              InboxFilterType.all,
+                              InboxFilterType.articles,
+                              InboxFilterType.videos,
+                              InboxFilterType.music,
+                              InboxFilterType.notes,
+                              InboxFilterType.files,
+                            ])
+                              Padding(
+                                padding: const EdgeInsets.only(right: 8),
+                                child: FilterChip(
+                                  label: Text(
+                                    filter == InboxFilterType.all
+                                        ? 'All (${items.length})'
+                                        : filter.label,
+                                  ),
+                                  avatar: Icon(filter.icon, size: 16),
+                                  selected: _filter == filter,
+                                  onSelected: (_) =>
+                                      setState(() => _filter = filter),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 28),
+                      if (visible.isEmpty)
+                        _ScheduleEmptyState(
+                          title:
+                              query.isNotEmpty || _filter != InboxFilterType.all
+                              ? 'No matching items'
+                              : config.$5,
+                          detail:
+                              query.isNotEmpty || _filter != InboxFilterType.all
+                              ? 'Try clearing your search or selecting another format.'
+                              : config.$6,
+                          onAdd: () => openDashboardCapture(context),
+                        )
+                      else if (_grid && isDesktop)
+                        LayoutBuilder(
+                          builder: (context, constraints) => GridView.builder(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            gridDelegate:
+                                SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: constraints.maxWidth >= 960
+                                      ? 3
+                                      : 2,
+                                  mainAxisExtent: 270,
+                                  crossAxisSpacing: 16,
+                                  mainAxisSpacing: 16,
+                                ),
+                            itemCount: visible.length,
+                            itemBuilder: (_, index) =>
+                                ItemCard(item: visible[index], isGrid: true),
+                          ),
+                        )
+                      else
+                        ListView.separated(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: visible.length,
+                          separatorBuilder: (_, _) =>
+                              const SizedBox(height: 12),
+                          itemBuilder: (_, index) =>
+                              _ScheduledRow(item: visible[index]),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
+}
+
+class _ScheduleEmptyState extends StatelessWidget {
+  const _ScheduleEmptyState({
+    required this.title,
+    required this.detail,
+    required this.onAdd,
+  });
+  final String title, detail;
+  final VoidCallback onAdd;
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.all(48),
+    decoration: BoxDecoration(
+      border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+      borderRadius: BorderRadius.circular(24),
+    ),
+    child: Column(
+      children: [
+        Icon(
+          Icons.schedule_rounded,
+          size: 34,
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
+        const SizedBox(height: 14),
+        Text(
+          title,
+          style: Theme.of(context).textTheme.titleLarge
+              ?.copyWith(fontWeight: FontWeight.w800),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          detail,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: 20),
+        FilledButton.icon(
+          onPressed: onAdd,
+          icon: const Icon(Icons.add_rounded),
+          label: const Text('Add Item to LaterBox'),
+        ),
+      ],
+    ),
+  );
 }
 
 class _Summary extends StatelessWidget {
@@ -458,43 +741,43 @@ class _Summary extends StatelessWidget {
   final String? timeLabel;
   @override
   Widget build(BuildContext context) => Card(
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: () => context.go(route),
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Row(
-            children: [
-              Icon(icon, color: Theme.of(context).colorScheme.primary),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(label),
-                    const SizedBox(height: 6),
+    child: InkWell(
+      borderRadius: BorderRadius.circular(12),
+      onTap: () => context.go(route),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Row(
+          children: [
+            Icon(icon, color: Theme.of(context).colorScheme.primary),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(label),
+                  const SizedBox(height: 6),
+                  Text(
+                    '$count items',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  if (timeLabel != null) ...[
+                    const SizedBox(height: 4),
                     Text(
-                      '$count items',
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
-                    if (timeLabel != null) ...[
-                      const SizedBox(height: 4),
-                      Text(
-                        timeLabel!,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                      timeLabel!,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
-                    ],
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ],
-                ),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
+    ),
   );
 }
 
@@ -545,10 +828,7 @@ class _ItemSection extends StatelessWidget {
                 ),
               ),
             ),
-            TextButton(
-              onPressed: () => context.go(route),
-              child: Text(action),
-            ),
+            TextButton(onPressed: () => context.go(route), child: Text(action)),
           ],
         ),
         const SizedBox(height: 8),
@@ -557,9 +837,7 @@ class _ItemSection extends StatelessWidget {
             padding: const EdgeInsets.symmetric(vertical: 16),
             child: Text(
               empty,
-              style: TextStyle(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
+              style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
             ),
           ),
         for (final item in items)
@@ -601,7 +879,11 @@ class _ItemCardRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final rawTitle =
-        item.metadata?.title ?? item.title ?? item.url ?? item.text ?? 'Untitled';
+        item.metadata?.title ??
+        item.title ??
+        item.url ??
+        item.text ??
+        'Untitled';
     final title = cleanMetaText(rawTitle) ?? rawTitle;
     final subtitle =
         item.metadata?.domain ??
@@ -631,71 +913,71 @@ class _ItemCardRow extends StatelessWidget {
             ),
           ),
           child: Row(
-          children: [
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: _iconBg(context),
-                borderRadius: BorderRadius.circular(8),
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: _iconBg(context),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                alignment: Alignment.center,
+                child: Icon(_typeIcon, size: 18, color: _iconFg(context)),
               ),
-              alignment: Alignment.center,
-              child: Icon(_typeIcon, size: 18, color: _iconFg(context)),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: -0.2,
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -0.2,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    subtitle,
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (item.returnAt != null) ...[
+                const SizedBox(width: 8),
+                Icon(
+                  Icons.schedule_rounded,
+                  size: 13,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+                const SizedBox(width: 4),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 80),
+                  child: Text(
+                    returnTimeLabel(context, item.returnAt),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
                       fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: theme.colorScheme.onSurfaceVariant,
                     ),
                   ),
-                ],
-              ),
-            ),
-            if (item.returnAt != null) ...[
-              const SizedBox(width: 8),
-              Icon(
-                Icons.schedule_rounded,
-                size: 13,
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-              const SizedBox(width: 4),
-              ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 80),
-                child: Text(
-                  returnTimeLabel(context, item.returnAt),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
                 ),
-              ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
-    ),
     );
   }
 }
@@ -835,9 +1117,7 @@ void showDisplayNamePrompt(BuildContext context, WidgetRef ref) {
           children: [
             Text(
               'What should we call you?',
-              style: Theme.of(context)
-                  .textTheme
-                  .headlineSmall
+              style: Theme.of(context).textTheme.headlineSmall
                   ?.copyWith(fontWeight: FontWeight.w900),
             ),
             const SizedBox(height: 8),
@@ -882,4 +1162,3 @@ void showDisplayNamePrompt(BuildContext context, WidgetRef ref) {
     ),
   );
 }
-
