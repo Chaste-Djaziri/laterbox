@@ -287,13 +287,33 @@ export function ItemProvider({ children }: { children: ReactNode }) {
 
       await syncPendingCaptures(user.id);
 
-      // Fetch items
-      const { data: itemRows, error: itemError } = await supabase
+      // Fetch items with 401 session recovery
+      let { data: itemRows, error: itemError } = await supabase
         .from('items')
         .select('*')
         .eq('user_id', user.id)
         .is('deleted_at', null)
         .order('created_at', { ascending: false });
+
+      if (itemError && ((itemError as any).status === 401 || (itemError as any).code === 'PGRST301')) {
+        const { data: refreshed, error: refreshError } = await supabase.auth.refreshSession();
+        if (!refreshError && refreshed?.session) {
+          const retry = await supabase
+            .from('items')
+            .select('*')
+            .eq('user_id', user.id)
+            .is('deleted_at', null)
+            .order('created_at', { ascending: false });
+          itemRows = retry.data;
+          itemError = retry.error;
+        } else {
+          await supabase.auth.signOut();
+          loadLocalData();
+          setSyncStatus('offline');
+          setLoading(false);
+          return;
+        }
+      }
 
       if (itemError) throw itemError;
 
@@ -325,6 +345,26 @@ export function ItemProvider({ children }: { children: ReactNode }) {
         .is('deleted_at', null)
         .order('created_at', { ascending: false });
 
+      // Fetch collection items join
+      const { data: colItemRows } = await supabase
+        .from('collection_items')
+        .select('*')
+        .eq('user_id', user.id)
+        .is('deleted_at', null);
+
+      const colMap = new Map((colRows || []).map((c) => [c.id, c]));
+      const itemColsMap = new Map<string, Collection[]>();
+      (colItemRows || []).forEach((ci) => {
+        const col = colMap.get(ci.collection_id);
+        if (col) {
+          const list = itemColsMap.get(ci.item_id) || [];
+          if (!list.some(existing => existing.id === col.id)) {
+            list.push(col);
+          }
+          itemColsMap.set(ci.item_id, list);
+        }
+      });
+
       const metaMap = new Map((metaRows || []).map((m) => [m.item_id, m]));
       const noteMap = new Map((noteRows || []).map((n) => [n.item_id, n]));
       const attachmentMap = new Map<string, Attachment[]>();
@@ -335,12 +375,22 @@ export function ItemProvider({ children }: { children: ReactNode }) {
       });
 
       const cachedItems = JSON.parse(localStorage.getItem(`${LOCAL_ITEMS_KEY}_${user.id}`) || '[]') as LaterBoxItem[];
-      const mappedItems: LaterBoxItem[] = (itemRows || []).map((item) => ({
-        ...migrateSchedule(item),
-        metadata: metaMap.get(item.id) || null,
-        note: noteMap.get(item.id) || null,
-        attachments: [...new Map([...(cachedItems.find(local => local.id === item.id && local.user_id === user.id)?.attachments || []), ...(attachmentMap.get(item.id) || [])].filter(attachment => !attachment.deleted_at).map(attachment => [attachment.id, attachment])).values()],
-      }));
+      const mappedItems: LaterBoxItem[] = (itemRows || []).map((item) => {
+        const localCached = cachedItems.find(local => local.id === item.id && local.user_id === user.id);
+        const remoteCols = itemColsMap.get(item.id) || [];
+        const combinedCols = [...remoteCols];
+        (localCached?.collections || []).forEach(lc => {
+          if (!combinedCols.some(c => c.id === lc.id)) combinedCols.push(lc);
+        });
+
+        return {
+          ...migrateSchedule(item),
+          metadata: metaMap.get(item.id) || null,
+          note: noteMap.get(item.id) || null,
+          collections: combinedCols,
+          attachments: [...new Map([...(localCached?.attachments || []), ...(attachmentMap.get(item.id) || [])].filter(attachment => !attachment.deleted_at).map(attachment => [attachment.id, attachment])).values()],
+        };
+      });
 
       // Deduplicate items by ID and URL/text
       const seenIds = new Set<string>();
