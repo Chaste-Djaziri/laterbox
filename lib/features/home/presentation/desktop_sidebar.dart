@@ -32,7 +32,9 @@ class DesktopSidebar extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final isMac = !kIsWeb && defaultTargetPlatform == TargetPlatform.macOS;
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    // macOS uses a persistent charcoal navigation rail so it visually joins
+    // the native title bar and its traffic-light controls in either app theme.
+    final isDark = isMac || theme.brightness == Brightness.dark;
 
     final authState = ref.watch(currentAuthStateProvider);
     final isGuest = ref.watch(isGuestProvider);
@@ -46,7 +48,7 @@ class DesktopSidebar extends ConsumerWidget {
 
     // Palette aligned with laterbox-web design tokens (globals.css & AppSidebar.tsx)
     final sidebarBg = isDark
-        ? const Color(0xFF161614)
+        ? (isMac ? const Color(0xFF2B2B2B) : const Color(0xFF161614))
         : const Color(0xFFF7F5EE);
     final sidebarBorder = isDark
         ? Colors.white.withValues(alpha: 0.08)
