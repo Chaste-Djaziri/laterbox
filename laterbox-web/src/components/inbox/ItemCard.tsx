@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { LaterBoxItem } from '@/lib/supabase/types';
 import { useItems } from '@/lib/store/ItemContext';
 import { formatTimeAgo, extractDomain, buildTextFragmentUrl } from '@/lib/utils/url';
+import { PortalMenu } from '@/components/ui/PortalMenu';
 import {
   Star,
   Check,
@@ -37,6 +38,7 @@ export function ItemCard({ item }: ItemCardProps) {
   const [imgError, setImgError] = useState(false);
   const [collectionModalOpen, setCollectionModalOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
 
   const attachments = item.attachments || [];
   const primaryAttachment = attachments.length > 0 ? attachments[0] : null;
@@ -382,102 +384,91 @@ export function ItemCard({ item }: ItemCardProps) {
                 </button>
               )}
 
-              {/* More Dropdown Menu */}
-              <div className="relative">
+              {/* More Menu — rendered in a portal so it is never clipped by overflow:hidden */}
+              <button
+                ref={menuButtonRef}
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setMenuOpen(!menuOpen);
+                }}
+                title="More actions"
+                className="p-1 rounded-lg text-[#9e9b92] hover:text-[#171711] hover:bg-[#f0ede4] transition-colors cursor-pointer"
+              >
+                <MoreVertical className="w-3.5 h-3.5" />
+              </button>
+
+              <PortalMenu
+                open={menuOpen}
+                onClose={() => setMenuOpen(false)}
+                triggerRef={menuButtonRef}
+              >
+                <RescheduleAction item={item} />
+
+                {/* Add to Collection */}
                 <button
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation();
-                    setMenuOpen(!menuOpen);
+                    setMenuOpen(false);
+                    setCollectionModalOpen(true);
                   }}
-                  title="More actions"
-                  className="p-1 rounded-lg text-[#9e9b92] hover:text-[#171711] hover:bg-[#f0ede4] transition-colors cursor-pointer"
+                  className="w-full flex items-center gap-2.5 px-3.5 py-2 text-[#171711] hover:bg-[#f0ede4] transition-colors text-left cursor-pointer"
                 >
-                  <MoreVertical className="w-3.5 h-3.5" />
+                  <FolderPlus className="w-3.5 h-3.5 text-[#0369a1]" />
+                  <span>Add to Collection…</span>
                 </button>
 
-                {menuOpen && (
-                  <>
-                    <div
-                      className="fixed inset-0 z-20"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setMenuOpen(false);
-                      }}
-                    />
-                    <div
-                      className="absolute right-0 bottom-full mb-1 z-30 w-48 rounded-2xl bg-white border border-[#e4e0d5] shadow-xl py-1.5 text-xs font-semibold animate-in fade-in"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <RescheduleAction item={item} />
+                {/* Copy Link / Content */}
+                <button
+                  type="button"
+                  onClick={handleCopy}
+                  className="w-full flex items-center gap-2.5 px-3.5 py-2 text-[#171711] hover:bg-[#f0ede4] transition-colors text-left cursor-pointer"
+                >
+                  {copied ? (
+                    <>
+                      <Check className="w-3.5 h-3.5 text-emerald-600" />
+                      <span className="text-emerald-600">Copied!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3.5 h-3.5 text-[#6c6b63]" />
+                      <span>Copy {item.url ? 'Link' : 'Text'}</span>
+                    </>
+                  )}
+                </button>
 
-                      {/* Add to Collection */}
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setMenuOpen(false);
-                          setCollectionModalOpen(true);
-                        }}
-                        className="w-full flex items-center gap-2.5 px-3.5 py-2 text-[#171711] hover:bg-[#f0ede4] transition-colors text-left cursor-pointer"
-                      >
-                        <FolderPlus className="w-3.5 h-3.5 text-[#0369a1]" />
-                        <span>Add to Collection…</span>
-                      </button>
+                {/* View Details */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    router.push(`/item/${item.id}`);
+                  }}
+                  className="w-full flex items-center gap-2.5 px-3.5 py-2 text-[#171711] hover:bg-[#f0ede4] transition-colors text-left cursor-pointer"
+                >
+                  <FileText className="w-3.5 h-3.5 text-[#6c6b63]" />
+                  <span>View Details</span>
+                </button>
 
-                      {/* Copy Link / Content */}
-                      <button
-                        type="button"
-                        onClick={handleCopy}
-                        className="w-full flex items-center gap-2.5 px-3.5 py-2 text-[#171711] hover:bg-[#f0ede4] transition-colors text-left cursor-pointer"
-                      >
-                        {copied ? (
-                          <>
-                            <Check className="w-3.5 h-3.5 text-emerald-600" />
-                            <span className="text-emerald-600">Copied!</span>
-                          </>
-                        ) : (
-                          <>
-                            <Copy className="w-3.5 h-3.5 text-[#6c6b63]" />
-                            <span>Copy {item.url ? 'Link' : 'Text'}</span>
-                          </>
-                        )}
-                      </button>
+                <div className="my-1 border-t border-[#e4e0d5]" />
 
-                      {/* View Details */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setMenuOpen(false);
-                          router.push(`/item/${item.id}`);
-                        }}
-                        className="w-full flex items-center gap-2.5 px-3.5 py-2 text-[#171711] hover:bg-[#f0ede4] transition-colors text-left cursor-pointer"
-                      >
-                        <FileText className="w-3.5 h-3.5 text-[#6c6b63]" />
-                        <span>View Details</span>
-                      </button>
-
-                      <div className="my-1 border-t border-[#e4e0d5]" />
-
-                      {/* Delete */}
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setMenuOpen(false);
-                          if (confirm('Delete this item?')) {
-                            deleteItem(item.id);
-                          }
-                        }}
-                        className="w-full flex items-center gap-2.5 px-3.5 py-2 text-red-600 hover:bg-red-50 transition-colors text-left cursor-pointer"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                        <span>Delete</span>
-                      </button>
-                    </div>
-                  </>
-                )}
-              </div>
+                {/* Delete */}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setMenuOpen(false);
+                    if (confirm('Delete this item?')) {
+                      deleteItem(item.id);
+                    }
+                  }}
+                  className="w-full flex items-center gap-2.5 px-3.5 py-2 text-red-600 hover:bg-red-50 transition-colors text-left cursor-pointer"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Delete</span>
+                </button>
+              </PortalMenu>
             </div>
           </div>
         </div>
