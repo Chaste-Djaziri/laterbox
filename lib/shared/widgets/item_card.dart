@@ -10,6 +10,7 @@ import '../../features/enrichment/domain/content_type.dart';
 import '../../features/enrichment/domain/url_utils.dart';
 import '../../features/inbox/presentation/inbox_providers.dart';
 import '../../features/scheduling/presentation/return_time_picker.dart';
+import '../models/item_status.dart';
 import '../models/laterbox_item.dart';
 import 'item_actions.dart';
 
@@ -163,47 +164,85 @@ class _ItemCardState extends ConsumerState<ItemCard> {
                             ]
                           : null,
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (attachments != null && attachments.isNotEmpty)
-                          AttachmentCardPreview(
-                            attachments: attachments,
-                            storage: attachmentStorage,
-                            remoteImageUrl: remoteImageUrl,
+                    child: widget.isGrid
+                        ? SizedBox(
+                            height: double.infinity,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                SizedBox(
+                                  height: 140,
+                                  width: double.infinity,
+                                  child: _buildBanner(
+                                    coverUrl,
+                                    attachments,
+                                    attachmentStorage,
+                                    remoteImageUrl,
+                                    eyebrow,
+                                  ),
+                                ),
+                                Expanded(
+                                  child: Padding(
+                                    padding: const EdgeInsets.fromLTRB(
+                                      14,
+                                      12,
+                                      14,
+                                      10,
+                                    ),
+                                    child: _GridCardContent(
+                                      eyebrow: eyebrow,
+                                      faviconUrl: faviconUrl,
+                                      imageUrl: coverUrl,
+                                      title: title,
+                                      description: description,
+                                      isCaptured: isCaptured,
+                                      item: widget.item,
+                                      isHovered: _isHovered,
+                                      isPsd: _isPsd,
+                                      isPdf: _isPdf,
+                                      isVideo: _isVideo,
+                                      isMusic: _isMusic,
+                                      isNote: _isNote,
+                                      isArticle: _isArticle,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
                           )
-                        else if (_isPsd || _isPdf || _isVideo || _isMusic)
-                          _ContentBanner(
-                            item: widget.item,
-                            isPsd: _isPsd,
-                            isPdf: _isPdf,
-                            isVideo: _isVideo,
-                            isMusic: _isMusic,
-                            isNote: _isNote,
-                            isArticle: _isArticle,
-                          )
-                        else if (coverUrl != null && coverUrl.isNotEmpty)
-                          ItemCoverImage(url: coverUrl)
-                        else if (widget.isGrid)
-                          const AspectRatio(
-                            aspectRatio: 16 / 9,
-                            child: _LaterBoxLogoPlaceholder(),
-                          ),
-                        Padding(
-                          padding: EdgeInsets.all(cardPadding),
-                          child: widget.isGrid
-                              ? _GridCardContent(
-                                  eyebrow: eyebrow,
-                                  faviconUrl: faviconUrl,
-                                  imageUrl: coverUrl,
-                                  title: title,
-                                  description: description,
-                                  isCaptured: isCaptured,
-                                  item: widget.item,
-                                  isHovered: _isHovered,
+                        : Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (attachments != null &&
+                                  attachments.isNotEmpty)
+                                AttachmentCardPreview(
+                                  attachments: attachments,
+                                  storage: attachmentStorage,
+                                  remoteImageUrl: remoteImageUrl,
                                 )
-                              : _ListCardContent(
+                              else if (_isPsd ||
+                                  _isPdf ||
+                                  _isVideo ||
+                                  _isMusic ||
+                                  _isNote ||
+                                  _isArticle)
+                                _ContentBanner(
+                                  item: widget.item,
+                                  eyebrow: eyebrow,
+                                  isPsd: _isPsd,
+                                  isPdf: _isPdf,
+                                  isVideo: _isVideo,
+                                  isMusic: _isMusic,
+                                  isNote: _isNote,
+                                  isArticle: _isArticle,
+                                )
+                              else if (coverUrl != null &&
+                                  coverUrl.isNotEmpty)
+                                ItemCoverImage(url: coverUrl),
+                              Padding(
+                                padding: EdgeInsets.all(cardPadding),
+                                child: _ListCardContent(
                                   eyebrow: eyebrow,
                                   faviconUrl: faviconUrl,
                                   imageUrl: coverUrl,
@@ -214,12 +253,89 @@ class _ItemCardState extends ConsumerState<ItemCard> {
                                   isDesktop: isDesktop,
                                   isHovered: _isHovered,
                                 ),
-                        ),
-                      ],
-                    ),
+                              ),
+                            ],
+                          ),
                   ),
                 ),
               ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBanner(
+    String? coverUrl,
+    dynamic attachments,
+    dynamic attachmentStorage,
+    String? remoteImageUrl,
+    String eyebrow,
+  ) {
+    if (attachments != null && attachments.isNotEmpty) {
+      return AttachmentCardPreview(
+        attachments: attachments,
+        storage: attachmentStorage,
+        remoteImageUrl: remoteImageUrl,
+      );
+    }
+    if (_isPsd) return _PsdBanner();
+    if (_isPdf) return _PdfBanner();
+    if (_isVideo) return _VideoBanner(item: widget.item);
+    if (_isMusic) return _MusicBanner(item: widget.item);
+    if (_isNote) return _NoteBanner();
+    if (_isArticle) return _ArticleBanner(eyebrow: eyebrow);
+    if (coverUrl != null && coverUrl.isNotEmpty) {
+      return Stack(
+        fit: StackFit.expand,
+        children: [
+          ItemCoverImage(url: coverUrl),
+          if (eyebrow.isNotEmpty && eyebrow != 'File' && eyebrow != 'Note')
+            Positioned(
+              top: 10,
+              left: 10,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.6),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  eyebrow,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
+        ],
+      );
+    }
+    return Container(
+      color: const Color(0xFFF7F5EE),
+      child: Center(
+        child: Container(
+          width: 40,
+          height: 40,
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: const Color(0xFFE4E0D5)),
+            boxShadow: const [
+              BoxShadow(color: Color(0x0A000000), blurRadius: 4),
+            ],
+          ),
+          child: Image.asset(
+            'assets/branding/laterbox-icon.png',
+            fit: BoxFit.contain,
+            errorBuilder: (_, _, _) => const Icon(
+              Icons.bookmark_rounded,
+              color: Color(0xFF171711),
+              size: 20,
             ),
           ),
         ),
@@ -267,7 +383,7 @@ class _LaterBoxLogoPlaceholder extends StatelessWidget {
   }
 }
 
-class _GridCardContent extends StatelessWidget {
+class _GridCardContent extends ConsumerWidget {
   const _GridCardContent({
     required this.eyebrow,
     this.faviconUrl,
@@ -277,6 +393,12 @@ class _GridCardContent extends StatelessWidget {
     required this.isCaptured,
     required this.item,
     required this.isHovered,
+    required this.isPsd,
+    required this.isPdf,
+    required this.isVideo,
+    required this.isMusic,
+    required this.isNote,
+    required this.isArticle,
   });
 
   final String eyebrow;
@@ -287,116 +409,289 @@ class _GridCardContent extends StatelessWidget {
   final bool isCaptured;
   final LaterBoxItem item;
   final bool isHovered;
+  final bool isPsd;
+  final bool isPdf;
+  final bool isVideo;
+  final bool isMusic;
+  final bool isNote;
+  final bool isArticle;
+
+  List<String> _extractTags() {
+    List<String> tags = [];
+    final sd = item.metadata?.classification?.structuredData;
+    if (sd != null && sd['tags'] is List) {
+      tags = (sd['tags'] as List).map((e) => e.toString()).toList();
+    }
+    if (tags.isEmpty) {
+      if (isPsd) {
+        tags = ['design', 'inspiration', 'ui'];
+      } else if (isPdf) {
+        tags = ['feedback', 'client', 'product'];
+      } else if (isVideo) {
+        tags = ['cloudflare', 'supabase', 'development'];
+      } else if (isNote) {
+        tags = ['ideas', 'side project', 'notes'];
+      } else if (isMusic) {
+        tags = ['music', 'chill', 'r&b'];
+      } else if (isArticle) {
+        tags = ['productivity', 'focus', 'mindset'];
+      } else if (eyebrow.isNotEmpty && eyebrow != 'File' && eyebrow != 'Note') {
+        tags = [eyebrow.replaceAll(RegExp(r'\.[a-z]+$'), '')];
+      }
+    }
+    return tags;
+  }
+
+  Widget _buildSourceIcon() {
+    if (isPsd || isPdf || item.type == 'file') {
+      return const Icon(Icons.laptop_mac_rounded,
+          size: 13, color: Color(0xFF9E9B92));
+    }
+    if (isVideo) {
+      return const Icon(Icons.play_circle_fill_rounded,
+          size: 13, color: Color(0xFFEA4335));
+    }
+    if (isMusic) {
+      return const Icon(Icons.music_note_rounded,
+          size: 13, color: Color(0xFF1ED760));
+    }
+    if (isArticle) {
+      return Container(
+        width: 13,
+        height: 13,
+        decoration: BoxDecoration(
+          color: Colors.black,
+          borderRadius: BorderRadius.circular(2),
+        ),
+        alignment: Alignment.center,
+        child: const Text(
+          'N',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 8,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+      );
+    }
+    if (isNote) {
+      return const Icon(Icons.sticky_note_2_rounded,
+          size: 13, color: Color(0xFF9E9B92));
+    }
+    return const Icon(Icons.public_rounded,
+        size: 13, color: Color(0xFF9E9B92));
+  }
+
+  String get _sourceName {
+    if (isPsd || isPdf || item.type == 'file') return 'Local file';
+    if (isVideo) return 'YouTube';
+    if (isMusic) return 'Spotify';
+    if (isArticle) return eyebrow.isNotEmpty ? eyebrow : 'Notion';
+    if (isNote) return 'Note';
+    return eyebrow.isNotEmpty ? eyebrow : 'Web';
+  }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final hasDescription =
         description != null && description!.trim().isNotEmpty;
     final displayDescription = hasDescription
         ? (isCaptured ? '“$description”' : description!.trim())
         : null;
+    final tags = _extractTags();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Row(
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _CardGlyph(
-              eyebrow: eyebrow,
-              faviconUrl: faviconUrl,
-              imageUrl: imageUrl,
-              size: 22,
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                eyebrow.toUpperCase(),
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                  fontWeight: FontWeight.w800,
-                  fontSize: 10,
-                  letterSpacing: 0.8,
+            Row(
+              children: [
+                _CardGlyph(
+                  eyebrow: eyebrow,
+                  faviconUrl: faviconUrl,
+                  imageUrl: imageUrl,
+                  size: 18,
                 ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    eyebrow.toUpperCase(),
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 10,
+                      letterSpacing: 0.8,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(
+              title,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF171711),
+                height: 1.25,
+                letterSpacing: -0.2,
               ),
             ),
-            if (isHovered)
-              Consumer(
-                builder: (context, ref, _) => Row(
+            if (displayDescription != null) ...[
+              const SizedBox(height: 4),
+              Text(
+                displayDescription,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: Color(0xFF8E8D87),
+                  height: 1.3,
+                ),
+              ),
+            ],
+            if (tags.isNotEmpty) ...[
+              const SizedBox(height: 6),
+              Wrap(
+                spacing: 4,
+                runSpacing: 4,
+                children: [
+                  for (final t in tags.take(3))
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF0EDE4),
+                        borderRadius: BorderRadius.circular(5),
+                      ),
+                      child: Text(
+                        '#$t',
+                        style: const TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF6C6B63),
+                        ),
+                      ),
+                    ),
+                  if (tags.length > 3)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 5,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEBE7DC),
+                        borderRadius: BorderRadius.circular(5),
+                      ),
+                      child: Text(
+                        '+${tags.length - 3}',
+                        style: const TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF6C6B63),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ],
+          ],
+        ),
+        Container(
+          padding: const EdgeInsets.only(top: 8),
+          decoration: const BoxDecoration(
+            border: Border(
+              top: BorderSide(color: Color(0xFFF0EDE4)),
+            ),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Flexible(
+                child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    IconButton(
-                      icon: Icon(
-                        item.isArchived
-                            ? Icons.mark_email_unread_outlined
-                            : Icons.check_circle_outline_rounded,
-                        size: 16,
-                      ),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                      visualDensity: VisualDensity.compact,
-                      tooltip: item.isArchived
-                          ? 'Mark as unseen'
-                          : 'Mark as seen',
-                      onPressed: () {
-                        final repo = ref.read(itemRepositoryProvider);
-                        if (item.isArchived) {
-                          repo.markUnseen(item.id);
-                        } else {
-                          repo.markSeen(item.id);
-                        }
-                      },
-                    ),
+                    _buildSourceIcon(),
                     const SizedBox(width: 4),
-                    IconButton(
-                      icon: const Icon(Icons.more_horiz_rounded, size: 16),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                      visualDensity: VisualDensity.compact,
-                      tooltip: 'More actions',
-                      onPressed: () => showItemActions(context, ref, item),
+                    Flexible(
+                      child: Text(
+                        '$_sourceName • ${timeago.format(item.createdAt)}',
+                        style: const TextStyle(
+                          fontSize: 10,
+                          color: Color(0xFF9E9B92),
+                          fontWeight: FontWeight.w500,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                   ],
                 ),
               ),
-          ],
-        ),
-        ItemTypeBadge(item: item),
-        const SizedBox(height: 4),
-        Text(
-          title,
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-          style: theme.textTheme.titleSmall?.copyWith(
-            fontWeight: FontWeight.w700,
-            fontSize: 13,
-            height: 1.2,
-          ),
-        ),
-        if (displayDescription != null) ...[
-          const SizedBox(height: 3),
-          Text(
-            displayDescription,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-              fontSize: 11,
-              height: 1.25,
-            ),
-          ),
-        ],
-        const SizedBox(height: 6),
-        Text(
-          item.returnAt != null
-              ? returnTimeLabel(context, item.returnAt)
-              : timeago.format(item.createdAt),
-          style: theme.textTheme.labelSmall?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
-            fontSize: 10,
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _CardActionButton(
+                    icon: item.favorite
+                        ? Icons.star_rounded
+                        : Icons.star_border_rounded,
+                    iconColor: item.favorite
+                        ? const Color(0xFFF59E0B)
+                        : const Color(0xFF9E9B92),
+                    tooltip: item.favorite ? 'Unstar' : 'Star',
+                    onTap: () {
+                      ref
+                          .read(itemRepositoryProvider)
+                          .setFavorite(item.id, !item.favorite);
+                    },
+                  ),
+                  const SizedBox(width: 2),
+                  _CardActionButton(
+                    icon: item.isArchived
+                        ? Icons.inbox_rounded
+                        : Icons.check_rounded,
+                    iconColor: const Color(0xFF9E9B92),
+                    tooltip: item.isArchived ? 'Move to Inbox' : 'Keep',
+                    onTap: () {
+                      final repo = ref.read(itemRepositoryProvider);
+                      if (item.status == ItemStatus.inbox ||
+                          item.status == ItemStatus.deferred) {
+                        repo.keep(item.id);
+                      } else {
+                        repo.archive(item.id);
+                      }
+                    },
+                  ),
+                  if (item.url != null) ...[
+                    const SizedBox(width: 2),
+                    _CardActionButton(
+                      icon: Icons.open_in_new_rounded,
+                      iconColor: const Color(0xFF9E9B92),
+                      tooltip: 'Open in browser',
+                      onTap: () => openOriginalForItem(context, item),
+                    ),
+                  ],
+                  const SizedBox(width: 2),
+                  _CardActionButton(
+                    icon: Icons.more_horiz_rounded,
+                    iconColor: const Color(0xFF9E9B92),
+                    tooltip: 'More actions',
+                    onTap: () => showItemActions(context, ref, item),
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
       ],
@@ -777,6 +1072,7 @@ class _CardGlyph extends StatelessWidget {
 class _ContentBanner extends StatelessWidget {
   const _ContentBanner({
     required this.item,
+    this.eyebrow = '',
     required this.isPsd,
     required this.isPdf,
     required this.isVideo,
@@ -786,6 +1082,7 @@ class _ContentBanner extends StatelessWidget {
   });
 
   final LaterBoxItem item;
+  final String eyebrow;
   final bool isPsd, isPdf, isVideo, isMusic, isNote, isArticle;
 
   @override
@@ -794,6 +1091,8 @@ class _ContentBanner extends StatelessWidget {
     if (isPdf) return _PdfBanner();
     if (isVideo) return _VideoBanner(item: item);
     if (isMusic) return _MusicBanner(item: item);
+    if (isNote) return _NoteBanner();
+    if (isArticle) return _ArticleBanner(eyebrow: eyebrow);
     return const SizedBox.shrink();
   }
 }
@@ -1182,3 +1481,167 @@ class ItemTypeBadge extends StatelessWidget {
     );
   }
 }
+
+class _NoteBanner extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 140,
+      color: const Color(0xFFFBFAF6),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: const Color(0xFFE6EDB0),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: const Color(0xFF171711).withValues(alpha: 0.15),
+              ),
+            ),
+            child: const Icon(
+              Icons.sticky_note_2_rounded,
+              color: Color(0xFF171711),
+              size: 20,
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: const Color(0xFFEBE7DC),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.circle, size: 6, color: Color(0xFF171711)),
+                SizedBox(width: 5),
+                Text(
+                  'Note',
+                  style: TextStyle(
+                    color: Color(0xFF171711),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ArticleBanner extends StatelessWidget {
+  const _ArticleBanner({required this.eyebrow});
+  final String eyebrow;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 140,
+      color: const Color(0xFFFBFAF6),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: const Color(0xFFE4E0D5)),
+              boxShadow: const [
+                BoxShadow(color: Color(0x0A000000), blurRadius: 2),
+              ],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 16,
+                  height: 16,
+                  decoration: BoxDecoration(
+                    color: Colors.black,
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                  alignment: Alignment.center,
+                  child: const Text(
+                    'N',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 9,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  eyebrow.isNotEmpty ? eyebrow : 'notion.so',
+                  style: const TextStyle(
+                    color: Color(0xFF171711),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: const Color(0xFFEBE7DC),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: const Text(
+              'Article',
+              style: TextStyle(
+                color: Color(0xFF171711),
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CardActionButton extends StatelessWidget {
+  const _CardActionButton({
+    required this.icon,
+    required this.iconColor,
+    required this.tooltip,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final Color iconColor;
+  final String tooltip;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: tooltip,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(6),
+          hoverColor: const Color(0xFFF0EDE4),
+          child: Padding(
+            padding: const EdgeInsets.all(4),
+            child: Icon(icon, size: 15, color: iconColor),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
