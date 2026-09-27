@@ -14,6 +14,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 - **[Web] Music source labels**: Music cards and item actions now identify the originating service (including Apple Music and Spotify) and avoid presenting a Spotify label or icon for unrelated music links.
 
 ### Added
+- **[macOS] Unified desktop window chrome**: The native traffic-light header and LaterBox sidebar now share one continuous desktop surface, separating the app workspace cleanly below it.
 - **[macOS] Transparent inactive Companion**: The notch companion no longer draws an inactive pill; it stays visually transparent until a copied item, save state, prompt, or drag interaction needs attention.
 - **[macOS] Companion copied action bar**: Eligible clipboard captures now animate into a shallow, wide action bar below the menu bar, with Save on the left, a clear copied status, and a copy control on the right instead of a view-blocking notch prompt.
 - **[macOS] Web-parity scheduled views**: Today, Upcoming, and Someday now share the web app’s focused header, search, format filters, grid/list switcher, richer empty states, and direct capture actions.
