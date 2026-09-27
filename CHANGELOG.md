@@ -17,6 +17,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 - **[Web] Music source labels**: Music cards and item actions now identify the originating service (including Apple Music and Spotify) and avoid presenting a Spotify label or icon for unrelated music links.
 
 ### Added
+- **[iOS] Returns hub and spaced tab bar**: The Returns tab now opens a focused hub for Today, Upcoming, Someday, and Inbox; the native tab bar has a breathing gap above it for a clearer mobile hierarchy.
 - **[iOS] Native tab navigation**: iPhone navigation now uses a platform-native five-tab bar for Home, Inbox, returns, Library, and Settings, with the return views grouped under one clear destination.
 - **[macOS] Unified desktop window chrome**: The native traffic-light header and LaterBox sidebar now share one continuous desktop surface, separating the app workspace cleanly below it.
 - **[macOS] Transparent inactive Companion**: The notch companion no longer draws an inactive pill; it stays visually transparent until a copied item, save state, prompt, or drag interaction needs attention.
