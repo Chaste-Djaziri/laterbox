@@ -10,6 +10,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/auth/auth_provider.dart';
 import '../../../core/notifications/notification_settings.dart';
+import '../../../core/notifications/notification_coordinator.dart';
 import '../../../core/billing/billing_providers.dart';
 import '../../../core/billing/entitlement.dart';
 import '../../../core/billing/entitlement_presentation.dart';
@@ -99,6 +100,12 @@ class SettingsScreen extends ConsumerWidget {
               const _DesktopShortcutSettings(),
             ],
 
+            if (!kIsWeb && defaultTargetPlatform == TargetPlatform.macOS) ...[
+              const SizedBox(height: 12),
+              _SectionHeader('macOS System Status'),
+              const _MacSystemStatusCard(),
+            ],
+
             // 3. App Icon (iOS only)
             if (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS) ...[
               const SizedBox(height: 12),
@@ -141,6 +148,134 @@ class _SectionHeader extends StatelessWidget {
           letterSpacing: 0.2,
         ),
       ),
+    );
+  }
+}
+
+class _MacSystemStatusCard extends ConsumerWidget {
+  const _MacSystemStatusCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final settings = ref.watch(desktopSettingsProvider).valueOrNull ??
+        DesktopSettings.defaults();
+    final accessibility = ref.watch(accessibilityTrustedProvider);
+    final notifications = ref.watch(notificationCoordinatorProvider);
+    final watcher = ref.watch(screenWatcherServiceProvider);
+    final entitlement = ref.watch(entitlementProvider).valueOrNull ??
+        const Entitlement.free();
+    final isStoreBuild = isAppleAppStoreBuild;
+    final rows = <_MacStatusRowData>[
+      _MacStatusRowData('Quick Capture', settings.quickCaptureShortcut.displayLabel,
+          true, Icons.keyboard_command_key_rounded),
+      _MacStatusRowData('Menu bar', settings.showInMenuBar ? 'Enabled' : 'Disabled',
+          settings.showInMenuBar, Icons.menu_open_rounded),
+      _MacStatusRowData('Launch at login', settings.launchAtLogin ? 'Enabled' : 'Disabled',
+          settings.launchAtLogin, Icons.power_settings_new_rounded),
+      _MacStatusRowData('Accessibility / Services',
+          accessibility.valueOrNull == true ? 'Allowed' : 'Needs permission',
+          accessibility.valueOrNull == true, Icons.accessibility_new_rounded,
+          action: accessibility.valueOrNull == true ? null : 'Open Settings'),
+      _MacStatusRowData('Clipboard monitoring', settings.useSelectedText ? 'Enabled' : 'Disabled',
+          settings.useSelectedText, Icons.content_paste_search_rounded),
+      _MacStatusRowData('Watch Mode', watcher.isWatching ? 'Watching' :
+          (watcher.statusMessage ?? (settings.watchActiveScreen ? 'Waiting for permission' : 'Disabled')),
+          watcher.isWatching, Icons.visibility_outlined),
+      _MacStatusRowData('Notch companion', settings.enableNotchMode ? 'Enabled when supported' : 'Disabled',
+          settings.enableNotchMode, Icons.web_asset_rounded),
+      _MacStatusRowData('Notifications', notifications.status ??
+          (notifications.enabled ? 'Enabled' : 'Disabled'),
+          notifications.enabled, Icons.notifications_outlined),
+      _MacStatusRowData('Cloud sync', entitlement.hasProAccess ? 'Pro access active' : 'Sign in and upgrade to sync',
+          entitlement.hasProAccess, Icons.cloud_sync_rounded),
+      _MacStatusRowData('App Store billing', isStoreBuild ? 'StoreKit active' : 'Available in App Store builds',
+          isStoreBuild, Icons.workspace_premium_rounded),
+      const _MacStatusRowData('Share Extension', 'Available from macOS Share menu', true,
+          Icons.ios_share_rounded),
+      const _MacStatusRowData('Safari extension', 'Connect it from the Extensions page', true,
+          Icons.extension_rounded),
+    ];
+
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.6)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Mac readiness', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+          const SizedBox(height: 4),
+          Text('Review permissions and integrations before relying on them.',
+              style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+          const SizedBox(height: 12),
+          ...rows.map((row) => _MacStatusRow(
+                row: row,
+                onAction: row.action == 'Open Settings'
+                    ? () => launchUrl(Uri.parse(_accessibilitySettingsUrl))
+                    : null,
+              )),
+          const SizedBox(height: 10),
+          Wrap(spacing: 8, runSpacing: 8, children: [
+            OutlinedButton.icon(
+              onPressed: () {
+                ref.invalidate(accessibilityTrustedProvider);
+                notifications.refresh();
+                ref.invalidate(entitlementProvider);
+              },
+              icon: const Icon(Icons.refresh_rounded, size: 16),
+              label: const Text('Refresh status'),
+            ),
+            OutlinedButton.icon(
+              onPressed: () async {
+                final report = rows.map((row) => '${row.title}: ${row.detail}').join('\n');
+                await Clipboard.setData(ClipboardData(text: 'LaterBox macOS diagnostics\n$report'));
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Diagnostics copied to clipboard')),
+                  );
+                }
+              },
+              icon: const Icon(Icons.content_copy_rounded, size: 16),
+              label: const Text('Copy diagnostics'),
+            ),
+          ]),
+        ],
+      ),
+    );
+  }
+}
+
+class _MacStatusRowData {
+  const _MacStatusRowData(this.title, this.detail, this.ready, this.icon, {this.action});
+  final String title;
+  final String detail;
+  final bool ready;
+  final IconData icon;
+  final String? action;
+}
+
+class _MacStatusRow extends StatelessWidget {
+  const _MacStatusRow({required this.row, this.onAction});
+  final _MacStatusRowData row;
+  final VoidCallback? onAction;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return ListTile(
+      dense: true,
+      contentPadding: EdgeInsets.zero,
+      leading: Icon(row.icon, color: row.ready ? colors.primary : colors.onSurfaceVariant),
+      title: Text(row.title),
+      subtitle: Text(row.detail, maxLines: 2, overflow: TextOverflow.ellipsis),
+      trailing: row.action == null
+          ? Icon(row.ready ? Icons.check_circle_rounded : Icons.info_outline_rounded,
+              color: row.ready ? Colors.green : colors.onSurfaceVariant, size: 20)
+          : TextButton(onPressed: onAction, child: Text(row.action!)),
     );
   }
 }
