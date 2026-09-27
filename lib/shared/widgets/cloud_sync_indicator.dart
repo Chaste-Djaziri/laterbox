@@ -37,22 +37,16 @@ class CloudSyncIndicator extends ConsumerWidget {
 
     final isSyncing = stats.pendingCount > 0;
 
+    if (!isAuthenticated || !isPro) {
+      return const SizedBox.shrink();
+    }
+
     final IconData icon;
     final Color backgroundColor;
     final Color foregroundColor;
     final String labelText;
 
-    if (!isAuthenticated) {
-      icon = Icons.cloud_off_rounded;
-      backgroundColor = colors.surfaceContainerHighest;
-      foregroundColor = colors.onSurfaceVariant;
-      labelText = compact ? 'Local' : 'Local Mode';
-    } else if (!isPro) {
-      icon = Icons.workspace_premium_outlined;
-      backgroundColor = colors.surfaceContainerHighest;
-      foregroundColor = colors.onSurfaceVariant;
-      labelText = compact ? 'Pro' : 'Pro Sync';
-    } else if (isSyncing) {
+    if (isSyncing) {
       icon = Icons.cloud_sync_rounded;
       backgroundColor = colors.primaryContainer;
       foregroundColor = colors.onPrimaryContainer;
