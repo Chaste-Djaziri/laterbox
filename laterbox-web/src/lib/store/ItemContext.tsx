@@ -40,7 +40,7 @@ interface ItemContextType {
   saveNote: (itemId: string, content: string) => Promise<void>;
   createCollection: (name: string) => Promise<Collection>;
   deleteCollection: (id: string) => Promise<void>;
-  addItemToCollection: (collectionId: string, itemId: string) => Promise<void>;
+  addItemToCollection: (collectionId: string, itemId: string, colOverride?: Collection) => Promise<void>;
   removeItemFromCollection: (collectionId: string, itemId: string) => Promise<void>;
   syncNow: () => Promise<void>;
   getItemById: (id: string) => LaterBoxItem | undefined;
@@ -742,7 +742,21 @@ export function ItemProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const addItemToCollection = async (collectionId: string, itemId: string) => {
+  const addItemToCollection = async (collectionId: string, itemId: string, colOverride?: Collection) => {
+    const col = colOverride || collections.find((c) => c.id === collectionId);
+    setItems((prev) => {
+      const updated = prev.map((i) => {
+        if (i.id !== itemId) return i;
+        const currentCols = i.collections || [];
+        if (col && !currentCols.some((c) => c.id === collectionId)) {
+          return { ...i, collections: [...currentCols, col] };
+        }
+        return i;
+      });
+      saveLocalData(updated, collections);
+      return updated;
+    });
+
     if (user && isPro) {
       const supabase = getSupabaseClient();
       await supabase.from('collection_items').upsert({
@@ -756,6 +770,16 @@ export function ItemProvider({ children }: { children: ReactNode }) {
   };
 
   const removeItemFromCollection = async (collectionId: string, itemId: string) => {
+    setItems((prev) => {
+      const updated = prev.map((i) => {
+        if (i.id !== itemId) return i;
+        const currentCols = i.collections || [];
+        return { ...i, collections: currentCols.filter((c) => c.id !== collectionId) };
+      });
+      saveLocalData(updated, collections);
+      return updated;
+    });
+
     if (user && isPro) {
       const supabase = getSupabaseClient();
       await supabase

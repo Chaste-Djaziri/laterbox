@@ -48,7 +48,7 @@ export function AddToCollectionModal({ item, isOpen, onClose }: AddToCollectionM
     setCreating(true);
     try {
       const newCol = await createCollection(newColName.trim());
-      await addItemToCollection(newCol.id, item.id);
+      await addItemToCollection(newCol.id, item.id, newCol);
       setAddedCols((prev) => new Set(prev).add(newCol.id));
       setNewColName('');
     } finally {

@@ -108,7 +108,7 @@ export default function InboxPage() {
       targetCol = await createCollection(collectionName);
     }
     if (targetCol) {
-      await addItemToCollection(targetCol.id, itemId);
+      await addItemToCollection(targetCol.id, itemId, targetCol);
     }
     setAppliedCollections((prev) => ({ ...prev, [itemId]: collectionName }));
   };
