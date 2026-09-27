@@ -12,30 +12,67 @@ interface MediaEmbedProps {
   embedHeight?: number | null;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Lyrica lyrics panel
-// ─────────────────────────────────────────────────────────────────────────────
+// ── Lyrica API response types ─────────────────────────────────────────────────
+interface LyricaLine {
+  text: string;
+  time?: number;
+  endTime?: number;
+}
+
+interface LyricaSection {
+  label: string;
+  lines: LyricaLine[];
+}
+
+interface LyricaApiResponse {
+  song?: {
+    title?: string;
+    artist?: { name?: string };
+  };
+  lyrics?: {
+    plainText?: string;
+    sections?: LyricaSection[];
+    isSynced?: boolean;
+    isVerified?: boolean;
+  };
+}
+
+// ── Lyrics panel ──────────────────────────────────────────────────────────────
 function LyricaLyricsPanel({ slug }: { slug: string }) {
   const [loading, setLoading] = useState(false);
   const [loaded, setLoaded] = useState(false);
-  const [lines, setLines] = useState<string[]>([]);
+  const [sections, setSections] = useState<LyricaSection[]>([]);
+  const [plainText, setPlainText] = useState('');
+  const [songInfo, setSongInfo] = useState<{ title?: string; artist?: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
   const load = async () => {
     if (loaded || loading) return;
     setLoading(true);
+    setError(null);
     try {
       const res = await fetch(`https://lyricarw.com/api/public/songs/${slug}/lyrics`);
-      if (!res.ok) throw new Error(`${res.status}`);
-      const data = await res.json() as { synced?: Array<{ text: string }>; plain?: string; lyrics?: string };
-      const synced = data?.synced ?? [];
-      if (synced.length > 0) {
-        setLines(synced.map((l) => l.text));
-      } else {
-        const plain: string = data?.plain ?? data?.lyrics ?? '';
-        setLines(plain ? plain.split('\n') : []);
+      if (!res.ok) throw new Error(`Could not load lyrics (${res.status})`);
+      const data = await res.json() as LyricaApiResponse;
+
+      setSongInfo({
+        title: data.song?.title,
+        artist: data.song?.artist?.name,
+      });
+
+      const apiSections = data.lyrics?.sections;
+      if (Array.isArray(apiSections) && apiSections.length > 0) {
+        setSections(apiSections);
+      } else if (data.lyrics?.plainText) {
+        // Fallback: wrap plain text as a single section
+        const lines = data.lyrics.plainText
+          .split(/\r?\n/)
+          .map((text) => ({ text }));
+        setSections([{ label: '', lines }]);
       }
+
+      setPlainText(data.lyrics?.plainText ?? '');
       setLoaded(true);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Failed to load lyrics');
@@ -45,20 +82,32 @@ function LyricaLyricsPanel({ slug }: { slug: string }) {
   };
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(lines.join('\n'));
+    navigator.clipboard.writeText(plainText || sections.flatMap((s) => s.lines.map((l) => l.text)).join('\n'));
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
   };
 
+  const totalLines = sections.reduce((n, s) => n + s.lines.length, 0);
+
   return (
     <div className="mt-3 rounded-2xl border border-purple-200 bg-purple-50/60 overflow-hidden">
+      {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 bg-purple-100/60 border-b border-purple-200">
         <span className="text-xs font-bold text-purple-800 flex items-center gap-1.5">
           <Music2 className="w-3.5 h-3.5" />
-          Lyrics
+          {songInfo?.title ? (
+            <span>
+              {songInfo.title}
+              {songInfo.artist && (
+                <span className="font-normal text-purple-600"> — {songInfo.artist}</span>
+              )}
+            </span>
+          ) : (
+            'Lyrics'
+          )}
         </span>
         <div className="flex items-center gap-2">
-          {loaded && lines.length > 0 && (
+          {loaded && totalLines > 0 && (
             <button
               type="button"
               onClick={handleCopy}
@@ -80,31 +129,47 @@ function LyricaLyricsPanel({ slug }: { slug: string }) {
         </div>
       </div>
 
+      {/* Loading */}
       {loading && (
-        <div className="flex items-center justify-center py-8 text-purple-600">
-          <Loader2 className="w-5 h-5 animate-spin" />
+        <div className="flex items-center justify-center gap-2 py-8 text-purple-600">
+          <Loader2 className="w-4 h-4 animate-spin" />
+          <span className="text-xs font-medium">Loading lyrics…</span>
         </div>
       )}
 
+      {/* Error */}
       {error && (
         <p className="px-4 py-3 text-xs text-red-600 font-medium">{error}</p>
       )}
 
-      {loaded && lines.length === 0 && (
+      {/* Empty */}
+      {loaded && totalLines === 0 && (
         <p className="px-4 py-3 text-xs text-purple-600 font-medium">No lyrics available.</p>
       )}
 
-      {loaded && lines.length > 0 && (
-        <div className="px-4 py-4 space-y-1 max-h-80 overflow-y-auto">
-          {lines.map((line, i) => (
-            <p
-              key={i}
-              className={`text-sm leading-relaxed font-medium ${
-                line.trim() === '' ? 'h-3' : 'text-purple-950'
-              }`}
-            >
-              {line || '\u00A0'}
-            </p>
+      {/* Lyrics */}
+      {loaded && totalLines > 0 && (
+        <div className="px-4 py-4 space-y-5 max-h-96 overflow-y-auto scroll-smooth">
+          {sections.map((section, si) => (
+            <div key={si} className="space-y-1">
+              {section.label && (
+                <p className="text-[10px] font-black uppercase tracking-widest text-purple-400 pb-1">
+                  {section.label}
+                </p>
+              )}
+              {section.lines.map((line, li) =>
+                line.text.trim() === '' ? (
+                  <div key={li} className="h-2" />
+                ) : (
+                  <p
+                    key={li}
+                    className="text-sm leading-relaxed font-medium text-purple-950"
+                  >
+                    {line.text}
+                  </p>
+                )
+              )}
+            </div>
           ))}
         </div>
       )}
