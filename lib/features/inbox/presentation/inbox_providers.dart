@@ -125,6 +125,21 @@ final inboxItemsProvider = StreamProvider<List<LaterBoxItem>>((ref) {
   });
 });
 
+final starredItemsProvider = StreamProvider<List<LaterBoxItem>>((ref) {
+  return ref.watch(itemRepositoryProvider).watchFavorites();
+});
+
+final keptItemsProvider = StreamProvider<List<LaterBoxItem>>((ref) {
+  return ref.watch(itemRepositoryProvider).watchKeptItems();
+});
+
+final archivedItemsProvider = StreamProvider<List<LaterBoxItem>>((ref) {
+  return ref.watch(itemRepositoryProvider).watchArchived();
+});
+
+final inboxSearchQueryProvider = StateProvider<String>((ref) => '');
+final inboxSortOrderProvider = StateProvider<String>((ref) => 'latest');
+
 final inboxFilterProvider = StateProvider<InboxFilterType>(
   (ref) => InboxFilterType.all,
 );
@@ -134,9 +149,41 @@ final filteredInboxItemsProvider = Provider<AsyncValue<List<LaterBoxItem>>>((
 ) {
   final itemsAsync = ref.watch(inboxItemsProvider);
   final filter = ref.watch(inboxFilterProvider);
+  final searchQuery = ref.watch(inboxSearchQueryProvider).trim().toLowerCase();
+  final sortOrder = ref.watch(inboxSortOrderProvider);
 
   return itemsAsync.whenData((items) {
-    if (filter == InboxFilterType.all) return items;
-    return items.where(filter.matches).toList();
+    var result = filter == InboxFilterType.all
+        ? items
+        : items.where(filter.matches).toList();
+
+    if (searchQuery.isNotEmpty) {
+      result = result.where((item) {
+        final title = (item.title ?? '').toLowerCase();
+        final url = (item.url ?? '').toLowerCase();
+        final text = (item.text ?? '').toLowerCase();
+        final domain = (item.metadata?.domain ?? '').toLowerCase();
+        final desc = (item.metadata?.description ?? '').toLowerCase();
+        final tags =
+            (item.metadata?.classification?.structuredData?['tags'] as List?)
+                ?.map((e) => e.toString().toLowerCase())
+                .join(' ') ??
+            '';
+        return title.contains(searchQuery) ||
+            url.contains(searchQuery) ||
+            text.contains(searchQuery) ||
+            domain.contains(searchQuery) ||
+            desc.contains(searchQuery) ||
+            tags.contains(searchQuery);
+      }).toList();
+    }
+
+    if (sortOrder == 'latest') {
+      result.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    } else if (sortOrder == 'oldest') {
+      result.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+    }
+
+    return result;
   });
 });
