@@ -214,6 +214,13 @@ class AppDatabase extends _$AppDatabase {
                       driftWorker: Uri.parse('drift_worker.dart.js'),
                     )
                   : null,
+              // Capture, sync, and desktop callbacks can originate from
+              // different isolates. Sharing one native Drift server gives them
+              // a single SQLite lifecycle instead of independent connections
+              // that can be torn down while another isolate is reading.
+              native: kIsWeb
+                  ? null
+                  : const DriftNativeOptions(shareAcrossIsolates: true),
             ),
       );
 
