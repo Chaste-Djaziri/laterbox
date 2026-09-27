@@ -34,6 +34,26 @@ jobs:
         run: |
           flutter test
 
+  macos-release-contract:
+    name: macOS Release Contract
+    runs-on: macos-15
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Verify App Store metadata and entitlements
+        run: tool/verify_macos_release.sh
+
+      - name: Build Mac App Store release candidate
+        run: flutter build macos --release --dart-define=LATERBOX_DISTRIBUTION=app-store
+
   notification-contracts:
     name: Web and Notification Contracts
     runs-on: ubuntu-latest
