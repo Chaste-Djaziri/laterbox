@@ -73,9 +73,7 @@ class HomeShell extends ConsumerWidget {
     final isMacDesktop =
         !kIsWeb && defaultTargetPlatform == TargetPlatform.macOS;
     final theme = Theme.of(context);
-    final desktopChromeColor = isMacDesktop
-        ? const Color(0xFF2B2B2B)
-        : theme.brightness == Brightness.dark
+    final desktopChromeColor = theme.brightness == Brightness.dark
         ? const Color(0xFF161614)
         : const Color(0xFFF7F5EE);
     final effectiveIndex = (navigationShell?.currentIndex ?? selectedIndex)
