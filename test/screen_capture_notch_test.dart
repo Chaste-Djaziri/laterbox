@@ -218,6 +218,20 @@ void main() {
   });
 
   group('MacOSCompanion capture receipts', () {
+    test('ties native clipboard monitoring to the Watch Mode preference', () async {
+      MethodCall? received;
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(macosCompanionChannel, (call) async {
+        received = call;
+        return true;
+      });
+
+      await MacOSCompanion.setClipboardMonitoringEnabled(false);
+
+      expect(received?.method, 'setClipboardMonitoringEnabled');
+      expect(received?.arguments, {'enabled': false});
+    }, skip: !Platform.isMacOS);
+
     test('sends a typed successful capture receipt to the native notch', () async {
       MethodCall? received;
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger

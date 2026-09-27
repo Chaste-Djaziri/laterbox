@@ -179,6 +179,23 @@ class MacOSCompanion {
     }
   }
 
+  /// Enables clipboard observation for the native Companion. This is kept
+  /// separate from the Pro entitlement so turning Watch Mode off immediately
+  /// stops clipboard reads.
+  static Future<bool> setClipboardMonitoringEnabled(bool enabled) async {
+    if (kIsWeb || !Platform.isMacOS) return false;
+    try {
+      return await _channel.invokeMethod<bool>(
+            'setClipboardMonitoringEnabled',
+            {'enabled': enabled},
+          ) ??
+          false;
+    } catch (e) {
+      debugPrint('[MacOSCompanion] clipboard monitoring update failed: $e');
+      return false;
+    }
+  }
+
   /// Starts the continuous ScreenCaptureKit + Vision OCR screen watcher.
   static Future<bool> startWatching() async {
     if (kIsWeb || !Platform.isMacOS) return false;

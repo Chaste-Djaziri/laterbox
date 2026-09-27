@@ -84,6 +84,11 @@ class DesktopActions {
           }
         },
       );
+      // Clipboard observation is a Watch Mode capability, never an implicit
+      // side effect of showing the Companion.
+      await MacOSCompanion.setClipboardMonitoringEnabled(
+        _settings.watchActiveScreen,
+      );
     }
 
     // The window only needs to hide when the user was started by the login item.
@@ -366,6 +371,9 @@ class DesktopActions {
     _settings = _settings.copyWith(watchActiveScreen: enabled);
     await ref.read(desktopSettingsStoreProvider).setWatchActiveScreen(enabled);
     final watcher = ref.read(screenWatcherServiceProvider);
+    if (defaultTargetPlatform == TargetPlatform.macOS) {
+      await MacOSCompanion.setClipboardMonitoringEnabled(enabled);
+    }
     if (enabled) {
       watcher.startWatching();
       // Also attempt native ScreenCaptureKit watcher if on macOS and trusted.

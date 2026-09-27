@@ -23,6 +23,9 @@ struct NotchSaveReceipt {
 
 enum NotchPanelState {
   case locked, idle, dragTarget
+  /// A copy acknowledgement deliberately stays in the compact notch. It is
+  /// promoted to a save prompt only after an intentional hover or click.
+  case clipboardReceipt(NotchCaptureCandidate)
   case clipboardPrompt(NotchCaptureCandidate)
   case watchCandidate(NotchCaptureCandidate)
   case saving(NotchCaptureCandidate)
@@ -32,7 +35,7 @@ enum NotchPanelState {
   var preventsCollapse: Bool {
     switch self {
     case .clipboardPrompt, .watchCandidate, .saving, .failed, .dragTarget: return true
-    case .locked, .idle, .saved: return false
+    case .locked, .idle, .clipboardReceipt, .saved: return false
     }
   }
 }
@@ -75,7 +78,7 @@ final class NotchPanelView: NSView {
   }
   override func mouseDown(with event: NSEvent) {
     guard let controller else { return }
-    if !controller.isExpanded { controller.expand(); return }
+    if !controller.isExpanded { controller.revealClipboardPrompt(); return }
     let point = convert(event.locationInWindow, from: nil)
     if primary.contains(point) { controller.performPrimaryAction() }
     else if secondary.contains(point) { controller.dismissCurrentState() }
@@ -117,6 +120,7 @@ final class NotchPanelView: NSView {
   override func accessibilityLabel() -> String? {
     guard let controller else { return "LaterBox notch" }
     switch controller.state {
+    case .clipboardReceipt(let item): return "LaterBox notch — copied \(item.kind.rawValue), \(item.title). Hover or press Enter to review and save."
     case .clipboardPrompt(let item): return "LaterBox notch — copied \(item.kind.rawValue), \(item.title). Press Enter to save, Escape to dismiss."
     case .watchCandidate(let item): return "LaterBox notch — watch found \(item.kind.rawValue), \(item.title)"
     case .saving(let item): return "Saving \(item.title)"
@@ -136,9 +140,27 @@ final class NotchPanelView: NSView {
       ? expandedBodyPath(notchHeight: controller.compactHeight)
       : collapsedBodyPath()
     body.fill()
-    guard controller.isExpanded else { return }
+    guard controller.isExpanded else {
+      drawCompactReceipt(controller)
+      return
+    }
     let card = NSRect(x: 22, y: 54, width: bounds.width - 44, height: bounds.height - controller.compactHeight - 48)
     drawContent(controller, card: card)
+  }
+
+  private func drawCompactReceipt(_ controller: NotchPanelController) {
+    guard case .clipboardReceipt(let item) = controller.state else { return }
+    let label = "COPIED \(item.kind.rawValue.uppercased())"
+    let attrs: [NSAttributedString.Key: Any] = [
+      .foregroundColor: NSColor.white.withAlphaComponent(0.9),
+      .font: NSFont.systemFont(ofSize: 10, weight: .bold),
+      .kern: 0.7,
+    ]
+    let size = label.size(withAttributes: attrs)
+    label.draw(
+      at: NSPoint(x: max(10, (bounds.width - size.width) / 2), y: max(7, (bounds.height - size.height) / 2)),
+      withAttributes: attrs
+    )
   }
 
   private func collapsedBodyPath() -> NSBezierPath {
@@ -201,7 +223,9 @@ final class NotchPanelView: NSView {
     case .locked: eyebrow = "LATERBOX PRO"; title = "Get Pro to use Companion"; detail = "Unlock clipboard capture, Watch Mode, and drag-to-save."
     case .idle:
       if !controller.receipts.isEmpty { title = "Recent saves"; detail = controller.receiptSummary }
+      else if controller.clipboardHistoryCount > 0 { title = "Ready to save"; detail = "\(controller.clipboardHistoryCount) recent cop\(controller.clipboardHistoryCount == 1 ? "y" : "ies") this session. Hover a copied receipt to review it." }
       if controller.isWatching { eyebrow = "WATCH MODE ON" }
+    case .clipboardReceipt(let item): eyebrow = "COPIED \(item.kind.rawValue.uppercased())"; title = item.title; detail = "Hover to review and save."
     case .clipboardPrompt(let item): eyebrow = "COPIED \(item.kind.rawValue.uppercased())"; title = item.title; detail = "Save this to LaterBox?"
     case .watchCandidate(let item): eyebrow = "WATCH MODE FOUND \(item.kind.rawValue.uppercased())"; title = item.title; detail = "Review before saving."
     case .saving(let item): eyebrow = "SAVING"; title = item.title; detail = "Adding this to your local LaterBox library…"
@@ -243,10 +267,16 @@ final class NotchPanelController {
   private(set) var receipts: [NotchSaveReceipt] = [] { didSet { notchView?.needsDisplay = true } }
   private(set) var isWatching = false
   private(set) var proAutomationEnabled = false
+  /// Clipboard monitoring is opt-in through Watch Mode. History is intentionally
+  /// session-only and bounded; copied content is never persisted or synced until
+  /// the user explicitly saves it.
+  private(set) var clipboardMonitoringEnabled = false
+  private(set) var clipboardHistory: [NotchCaptureCandidate] = [] { didSet { notchView?.needsDisplay = true } }
+  var clipboardHistoryCount: Int { clipboardHistory.count }
   private(set) var compactRadius: CGFloat = 12
   private(set) var compactWidth: CGFloat = 180
   private(set) var compactHeight: CGFloat = 30
-  private var hoverTimer: Timer?, collapseTimer: Timer?, promptTimer: Timer?, clipboardTimer: Timer?
+  private var hoverTimer: Timer?, collapseTimer: Timer?, promptTimer: Timer?, receiptTimer: Timer?, clipboardTimer: Timer?
   private var clipboardChangeCount = NSPasteboard.general.changeCount
   private var recentClipboard: [String: Date] = [:]
   private var stateBeforeDrag: NotchPanelState = .idle
@@ -257,7 +287,7 @@ final class NotchPanelController {
   var onDroppedItems: (([String]) -> Void)?
 
   var primaryTitle: String {
-    switch state { case .locked: return "Get Pro"; case .clipboardPrompt, .watchCandidate: return "Save"; case .saving: return "Saving…"; case .failed: return "Retry"; case .idle: return isWatching ? "Watch On" : "Watch Off"; case .saved: return "Recent"; case .dragTarget: return "Drop Here" }
+    switch state { case .locked: return "Get Pro"; case .clipboardReceipt: return "Review"; case .clipboardPrompt, .watchCandidate: return "Save"; case .saving: return "Saving…"; case .failed: return "Retry"; case .idle: return clipboardHistory.isEmpty ? (isWatching ? "Watch On" : "Watch Off") : "History"; case .saved: return "Recent"; case .dragTarget: return "Drop Here" }
   }
   var hasSecondary: Bool { if case .clipboardPrompt = state { return true }; if case .watchCandidate = state { return true }; if case .failed = state { return true }; return false }
   var showsReceiptActions: Bool { if case .saved = state { return true }; return false }
@@ -292,11 +322,19 @@ final class NotchPanelController {
     if let obs = screenChangeObserver { NotificationCenter.default.removeObserver(obs); screenChangeObserver = nil }
   }
   func setWatchingState(_ value: Bool) { isWatching = value; notchView?.needsDisplay = true }
+  func setClipboardMonitoringEnabled(_ value: Bool) {
+    clipboardMonitoringEnabled = value
+    if value { startClipboardMonitoring() } else {
+      stopClipboardMonitoring()
+      if case .clipboardReceipt = state { dismissCurrentState() }
+      if case .clipboardPrompt = state { dismissCurrentState() }
+    }
+  }
   func setProAutomationEnabled(_ value: Bool) {
     proAutomationEnabled = value
     if value {
       if case .locked = state { state = .idle }
-      startClipboardMonitoring()
+      if clipboardMonitoringEnabled { startClipboardMonitoring() }
     } else {
       stopClipboardMonitoring()
       if isWatching { toggleWatchMode() }
@@ -311,7 +349,11 @@ final class NotchPanelController {
   }
   func presentExternalCandidate(_ candidate: NotchCaptureCandidate) {
     guard proAutomationEnabled else { showProRequired(); return }
-    setPrompt(candidate.source == .clipboard ? .clipboardPrompt(candidate) : .watchCandidate(candidate))
+    if candidate.source == .clipboard {
+      presentClipboardReceipt(candidate)
+    } else {
+      setPrompt(.watchCandidate(candidate))
+    }
   }
   func captureCompleted(id: String, title: String, value: String, kind: NotchContentKind) {
     if case .saving(let candidate) = state, candidate.id != id { return }
@@ -319,9 +361,9 @@ final class NotchPanelController {
   }
   func captureFailed(id: String, message: String) { guard case .saving(let item) = state, item.id == id else { return }; state = .failed(item, message); expand() }
   func performPrimaryAction() {
-    switch state { case .locked: onOpenPlans?(); case .clipboardPrompt(let item), .watchCandidate(let item), .failed(let item, _): promptTimer?.invalidate(); state = .saving(item); onCaptureRequested?(item); case .idle: toggleWatchMode(); case .saved: state = .idle; default: break }
+    switch state { case .locked: onOpenPlans?(); case .clipboardReceipt: revealClipboardPrompt(); case .clipboardPrompt(let item), .watchCandidate(let item), .failed(let item, _): promptTimer?.invalidate(); state = .saving(item); onCaptureRequested?(item); case .idle: if let latest = clipboardHistory.first { setPrompt(.clipboardPrompt(latest)) } else { toggleWatchMode() }; case .saved: state = .idle; default: break }
   }
-  func dismissCurrentState() { promptTimer?.invalidate(); state = proAutomationEnabled ? .idle : .locked; scheduleCollapse(0.15) }
+  func dismissCurrentState() { promptTimer?.invalidate(); receiptTimer?.invalidate(); state = proAutomationEnabled ? .idle : .locked; scheduleCollapse(0.15) }
   func copyLatestReceipt() { guard let item = receipts.first else { return }; let board = NSPasteboard.general; board.clearContents(); board.setString(item.value, forType: .string); recentClipboard[item.value] = Date(); clipboardChangeCount = board.changeCount }
   func removeLatestReceipt() { guard !receipts.isEmpty else { return }; receipts.removeFirst(); state = .idle }
   func openLaterBox() { onOpenLaterBox?() }
@@ -330,7 +372,7 @@ final class NotchPanelController {
     // VoiceOver Tab cycles primary → secondary/copy → open. Simple sequential activation.
     // For now a Tab press performs primary (Save/Retry) when prompt present, otherwise opens LaterBox.
     switch state {
-    case .clipboardPrompt, .watchCandidate, .failed: performPrimaryAction()
+    case .clipboardReceipt, .clipboardPrompt, .watchCandidate, .failed: performPrimaryAction()
     case .saved: copyLatestReceipt()
     default: openLaterBox()
     }
@@ -338,21 +380,47 @@ final class NotchPanelController {
   func handleDroppedItems(_ items: [String]) { guard proAutomationEnabled else { showProRequired(); return }; state = .idle; onDroppedItems?(items) }
   func beginDragTarget() { guard proAutomationEnabled else { showProRequired(); return }; stateBeforeDrag = state; state = .dragTarget; expand() }
   func endDragTarget() { if case .dragTarget = state { state = stateBeforeDrag } }
-  func onMouseEntered() { collapseTimer?.invalidate(); guard !isExpanded else { return }; hoverTimer?.invalidate(); hoverTimer = Timer.scheduledTimer(withTimeInterval: 0.12, repeats: false) { [weak self] _ in NSHapticFeedbackManager.defaultPerformer.perform(.alignment, performanceTime: .now); self?.expand() } }
+  func onMouseEntered() { collapseTimer?.invalidate(); guard !isExpanded else { return }; hoverTimer?.invalidate(); hoverTimer = Timer.scheduledTimer(withTimeInterval: 0.12, repeats: false) { [weak self] _ in
+    guard let self else { return }
+    NSHapticFeedbackManager.defaultPerformer.perform(.alignment, performanceTime: .now)
+    self.revealClipboardPrompt()
+  } }
   func onMouseExited() { hoverTimer?.invalidate(); guard !state.preventsCollapse else { return }; scheduleCollapse(0.6) }
   func showProRequired() { state = .locked; expand() }
   func expand() { hoverTimer?.invalidate(); collapseTimer?.invalidate(); guard !isExpanded, let panel, let screen = panel.screen ?? targetScreen() else { return }; isExpanded = true; animate(panel, expandedFrame(screen)) }
   func collapse() { guard !state.preventsCollapse, isExpanded, let panel, let screen = panel.screen ?? targetScreen() else { return }; isExpanded = false; animate(panel, collapsedFrame(screen)) }
+  func revealClipboardPrompt() {
+    if case .clipboardReceipt(let item) = state {
+      receiptTimer?.invalidate()
+      setPrompt(.clipboardPrompt(item))
+    } else {
+      expand()
+    }
+  }
+  private func presentClipboardReceipt(_ item: NotchCaptureCandidate) {
+    receiptTimer?.invalidate()
+    promptTimer?.invalidate()
+    state = .clipboardReceipt(item)
+    collapse()
+    receiptTimer = Timer.scheduledTimer(withTimeInterval: 6, repeats: false) { [weak self] _ in
+      guard let self, case .clipboardReceipt = self.state else { return }
+      self.dismissCurrentState()
+    }
+  }
   private func setPrompt(_ value: NotchPanelState) { promptTimer?.invalidate(); state = value; expand(); promptTimer = Timer.scheduledTimer(withTimeInterval: 8, repeats: false) { [weak self] _ in if let self, case .clipboardPrompt = self.state { self.dismissCurrentState() } else if let self, case .watchCandidate = self.state { self.dismissCurrentState() } } }
   private func scheduleCollapse(_ delay: TimeInterval) { collapseTimer?.invalidate(); collapseTimer = Timer.scheduledTimer(withTimeInterval: delay, repeats: false) { [weak self] _ in self?.collapse() } }
   private func animate(_ panel: NSPanel, _ frame: NSRect) { NSAnimationContext.runAnimationGroup { context in context.duration = 0.22; context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut); panel.animator().setFrame(frame, display: true) } completionHandler: { [weak self] in self?.notchView?.needsDisplay = true } }
-  private func startClipboardMonitoring() { guard proAutomationEnabled, clipboardTimer == nil else { return }; clipboardChangeCount = NSPasteboard.general.changeCount; clipboardTimer = Timer.scheduledTimer(withTimeInterval: 0.45, repeats: true) { [weak self] _ in self?.checkClipboard() } }
+  private func startClipboardMonitoring() { guard proAutomationEnabled, clipboardMonitoringEnabled, clipboardTimer == nil else { return }; clipboardChangeCount = NSPasteboard.general.changeCount; clipboardTimer = Timer.scheduledTimer(withTimeInterval: 0.45, repeats: true) { [weak self] _ in self?.checkClipboard() } }
   private func stopClipboardMonitoring() { clipboardTimer?.invalidate(); clipboardTimer = nil }
   private func checkClipboard() {
     let board = NSPasteboard.general; guard board.changeCount != clipboardChangeCount else { return }; clipboardChangeCount = board.changeCount
     guard let value = board.string(forType: .string)?.trimmingCharacters(in: .whitespacesAndNewlines), eligible(value) else { return }
     let isURL = webURL(value); let item = NotchCaptureCandidate(id: UUID().uuidString, title: isURL ? URL(string: value)?.host ?? value : value.replacingOccurrences(of: "\n", with: " "), url: isURL ? value : nil, text: isURL ? nil : value, source: .clipboard, kind: isURL ? .link : .note)
-    recentClipboard[value] = Date(); setPrompt(.clipboardPrompt(item))
+    recentClipboard[value] = Date()
+    clipboardHistory.removeAll { $0.url == item.url && $0.text == item.text }
+    clipboardHistory.insert(item, at: 0)
+    clipboardHistory = Array(clipboardHistory.prefix(5))
+    presentClipboardReceipt(item)
   }
   func eligible(_ value: String) -> Bool {
     recentClipboard = recentClipboard.filter { Date().timeIntervalSince($0.value) < 30 }; guard recentClipboard[value] == nil else { return false }; if webURL(value) { return true }
@@ -360,7 +428,7 @@ final class NotchPanelController {
     return !["password:", "passcode:", "one-time code", "verification code", "security code"].contains { value.lowercased().contains($0) }
   }
   private func webURL(_ value: String) -> Bool { guard let parts = URLComponents(string: value), let scheme = parts.scheme?.lowercased() else { return false }; return (scheme == "http" || scheme == "https") && parts.host?.isEmpty == false }
-  private func invalidateTimers() { [hoverTimer, collapseTimer, promptTimer, clipboardTimer].forEach { $0?.invalidate() }; hoverTimer = nil; collapseTimer = nil; promptTimer = nil; clipboardTimer = nil }
+  private func invalidateTimers() { [hoverTimer, collapseTimer, promptTimer, receiptTimer, clipboardTimer].forEach { $0?.invalidate() }; hoverTimer = nil; collapseTimer = nil; promptTimer = nil; receiptTimer = nil; clipboardTimer = nil }
   private func collapsedFrame(_ screen: NSScreen) -> NSRect {
     let shape = geometry(screen)
     compactWidth = shape.width; compactHeight = shape.height; compactRadius = shape.notched ? min(12, shape.height / 2) : shape.height / 2

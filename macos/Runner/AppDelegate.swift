@@ -770,6 +770,13 @@ class AppDelegate: FlutterAppDelegate {
         } else {
           result(false)
         }
+      case "setClipboardMonitoringEnabled":
+        if let args = call.arguments as? [String: Any], let enabled = args["enabled"] as? Bool {
+          self.notchController.setClipboardMonitoringEnabled(enabled)
+          result(true)
+        } else {
+          result(false)
+        }
       case "setProAutomationEnabled":
         if let args = call.arguments as? [String: Any], let enabled = args["enabled"] as? Bool {
           self.notchController.setProAutomationEnabled(enabled)
