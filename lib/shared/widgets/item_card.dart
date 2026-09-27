@@ -171,7 +171,7 @@ class _ItemCardState extends ConsumerState<ItemCard> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 SizedBox(
-                                  height: 140,
+                                  height: 96,
                                   width: double.infinity,
                                   child: _buildBanner(
                                     coverUrl,
@@ -184,10 +184,10 @@ class _ItemCardState extends ConsumerState<ItemCard> {
                                 Expanded(
                                   child: Padding(
                                     padding: const EdgeInsets.fromLTRB(
-                                      14,
                                       12,
-                                      14,
-                                      10,
+                                      8,
+                                      12,
+                                      8,
                                     ),
                                     child: _GridCardContent(
                                       eyebrow: eyebrow,
@@ -505,110 +505,115 @@ class _GridCardContent extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                _CardGlyph(
-                  eyebrow: eyebrow,
-                  faviconUrl: faviconUrl,
-                  imageUrl: imageUrl,
-                  size: 18,
-                ),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                    eyebrow.toUpperCase(),
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                      fontWeight: FontWeight.w800,
-                      fontSize: 10,
-                      letterSpacing: 0.8,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                children: [
+                  _CardGlyph(
+                    eyebrow: eyebrow,
+                    faviconUrl: faviconUrl,
+                    imageUrl: imageUrl,
+                    size: 16,
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 6),
-            Text(
-              title,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-                color: Color(0xFF171711),
-                height: 1.25,
-                letterSpacing: -0.2,
+                  const SizedBox(width: 5),
+                  Expanded(
+                    child: Text(
+                      eyebrow.toUpperCase(),
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 9.5,
+                        letterSpacing: 0.6,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
               ),
-            ),
-            if (displayDescription != null) ...[
-              const SizedBox(height: 4),
+              const SizedBox(height: 3),
               Text(
-                displayDescription,
+                title,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
-                  fontSize: 11,
-                  color: Color(0xFF8E8D87),
-                  height: 1.3,
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF171711),
+                  height: 1.2,
+                  letterSpacing: -0.2,
                 ),
               ),
-            ],
-            if (tags.isNotEmpty) ...[
-              const SizedBox(height: 6),
-              Wrap(
-                spacing: 4,
-                runSpacing: 4,
-                children: [
-                  for (final t in tags.take(3))
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF0EDE4),
-                        borderRadius: BorderRadius.circular(5),
-                      ),
-                      child: Text(
-                        '#$t',
-                        style: const TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF6C6B63),
+              if (displayDescription != null) ...[
+                const SizedBox(height: 2),
+                Text(
+                  displayDescription,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 10.5,
+                    color: Color(0xFF8E8D87),
+                    height: 1.2,
+                  ),
+                ),
+              ],
+              if (tags.isNotEmpty) ...[
+                const SizedBox(height: 3),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    for (final t in tags.take(2))
+                      Padding(
+                        padding: const EdgeInsets.only(right: 4),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 5,
+                            vertical: 1.5,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF0EDE4),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            '#$t',
+                            style: const TextStyle(
+                              fontSize: 9,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF6C6B63),
+                            ),
+                          ),
                         ),
                       ),
-                    ),
-                  if (tags.length > 3)
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 5,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFEBE7DC),
-                        borderRadius: BorderRadius.circular(5),
-                      ),
-                      child: Text(
-                        '+${tags.length - 3}',
-                        style: const TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF6C6B63),
+                    if (tags.length > 2)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 4,
+                          vertical: 1.5,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFEBE7DC),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          '+${tags.length - 2}',
+                          style: const TextStyle(
+                            fontSize: 9,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF6C6B63),
+                          ),
                         ),
                       ),
-                    ),
-                ],
-              ),
+                  ],
+                ),
+              ],
             ],
-          ],
+          ),
         ),
         Container(
-          padding: const EdgeInsets.only(top: 8),
+          padding: const EdgeInsets.only(top: 5),
           decoration: const BoxDecoration(
             border: Border(
               top: BorderSide(color: Color(0xFFF0EDE4)),
@@ -627,13 +632,13 @@ class _GridCardContent extends ConsumerWidget {
                     Flexible(
                       child: Text(
                         '$_sourceName • ${timeago.format(item.createdAt)}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           fontSize: 10,
                           color: Color(0xFF9E9B92),
                           fontWeight: FontWeight.w500,
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                   ],
@@ -1101,7 +1106,7 @@ class _PsdBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 140,
+      height: 96,
       decoration: const BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
@@ -1129,24 +1134,24 @@ class _PsdBanner extends StatelessWidget {
             ),
           ),
           Positioned(
-            top: 10,
-            right: 10,
+            top: 8,
+            right: 8,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
               decoration: BoxDecoration(
                 color: Colors.black.withValues(alpha: 0.6),
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(16),
               ),
               child: const Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.circle, size: 6, color: Colors.white),
-                  SizedBox(width: 5),
+                  Icon(Icons.circle, size: 5, color: Colors.white),
+                  SizedBox(width: 4),
                   Text(
                     'Design File',
                     style: TextStyle(
                       color: Colors.white,
-                      fontSize: 11,
+                      fontSize: 10,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -1155,14 +1160,14 @@ class _PsdBanner extends StatelessWidget {
             ),
           ),
           Positioned(
-            bottom: 10,
-            left: 10,
+            bottom: 8,
+            left: 8,
             child: Container(
-              width: 36,
-              height: 36,
+              width: 28,
+              height: 28,
               decoration: BoxDecoration(
                 color: const Color(0xFF001E36),
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(6),
                 border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
               ),
               alignment: Alignment.center,
@@ -1170,7 +1175,7 @@ class _PsdBanner extends StatelessWidget {
                 'Ps',
                 style: TextStyle(
                   color: Color(0xFF31A8FF),
-                  fontSize: 14,
+                  fontSize: 12,
                   fontWeight: FontWeight.w900,
                 ),
               ),
@@ -1186,37 +1191,38 @@ class _PdfBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 140,
+      height: 96,
       color: const Color(0xFFF8F7F4),
       child: Stack(
         children: [
           Center(
             child: Container(
-              width: 100,
-              height: 80,
-              padding: const EdgeInsets.all(12),
+              width: 80,
+              height: 58,
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(6),
                 border: Border.all(color: const Color(0xFFE4E0D5)),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withValues(alpha: 0.06),
-                    blurRadius: 6,
-                    offset: const Offset(0, 2),
+                    blurRadius: 4,
+                    offset: const Offset(0, 1),
                   ),
                 ],
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  for (final w in [1.0, 0.83, 0.67, 1.0, 0.75])
+                  for (final w in [1.0, 0.83, 0.67, 0.9])
                     Padding(
-                      padding: const EdgeInsets.only(bottom: 5),
+                      padding: const EdgeInsets.only(bottom: 4),
                       child: FractionallySizedBox(
                         widthFactor: w,
                         child: Container(
-                          height: 5,
+                          height: 3.5,
                           color: const Color(0xFFE4E0D5),
                         ),
                       ),
@@ -1226,24 +1232,24 @@ class _PdfBanner extends StatelessWidget {
             ),
           ),
           Positioned(
-            top: 10,
-            right: 10,
+            top: 8,
+            right: 8,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
               decoration: BoxDecoration(
                 color: Colors.black.withValues(alpha: 0.6),
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(16),
               ),
               child: const Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.circle, size: 6, color: Colors.white),
-                  SizedBox(width: 5),
+                  Icon(Icons.circle, size: 5, color: Colors.white),
+                  SizedBox(width: 4),
                   Text(
                     'Document',
                     style: TextStyle(
                       color: Colors.white,
-                      fontSize: 11,
+                      fontSize: 10,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -1252,21 +1258,21 @@ class _PdfBanner extends StatelessWidget {
             ),
           ),
           Positioned(
-            bottom: 10,
-            left: 10,
+            bottom: 8,
+            left: 8,
             child: Container(
-              width: 36,
-              height: 36,
+              width: 28,
+              height: 28,
               decoration: BoxDecoration(
                 color: const Color(0xFFEF4444),
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(6),
               ),
               alignment: Alignment.center,
               child: const Text(
                 'PDF',
                 style: TextStyle(
                   color: Colors.white,
-                  fontSize: 10,
+                  fontSize: 9,
                   fontWeight: FontWeight.w900,
                 ),
               ),
@@ -1288,7 +1294,7 @@ class _VideoBanner extends StatelessWidget {
     final domain = item.metadata?.domain ?? '';
 
     return Container(
-      height: 140,
+      height: 96,
       color: const Color(0xFF171714),
       child: Stack(
         children: [
@@ -1299,54 +1305,54 @@ class _VideoBanner extends StatelessWidget {
                 fit: BoxFit.cover,
                 errorBuilder: (_, _, _) => const Center(
                   child: Icon(Icons.play_circle_outline_rounded,
-                      color: Colors.white24, size: 48),
+                      color: Colors.white24, size: 36),
                 ),
               ),
             )
           else
             const Center(
               child: Icon(Icons.play_circle_outline_rounded,
-                  color: Colors.white24, size: 48),
+                  color: Colors.white24, size: 36),
             ),
           if (domain.isNotEmpty)
             Positioned(
-              top: 10,
-              left: 10,
+              top: 8,
+              left: 8,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
                 decoration: BoxDecoration(
                   color: Colors.black.withValues(alpha: 0.6),
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(16),
                 ),
                 child: Text(
                   domain,
                   style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 11,
+                    fontSize: 10,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
             ),
           Positioned(
-            top: 10,
-            right: 10,
+            top: 8,
+            right: 8,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
               decoration: BoxDecoration(
                 color: const Color(0xFFEA4335),
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(16),
               ),
               child: const Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.play_arrow_rounded, size: 14, color: Colors.white),
+                  Icon(Icons.play_arrow_rounded, size: 12, color: Colors.white),
                   SizedBox(width: 3),
                   Text(
                     'Video',
                     style: TextStyle(
                       color: Colors.white,
-                      fontSize: 11,
+                      fontSize: 10,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -1369,7 +1375,7 @@ class _MusicBanner extends StatelessWidget {
     final coverUrl = item.metadata?.previewImageUrl;
 
     return Container(
-      height: 140,
+      height: 96,
       color: const Color(0xFF171714),
       child: Stack(
         children: [
@@ -1388,7 +1394,7 @@ class _MusicBanner extends StatelessWidget {
                   ),
                   child: const Center(
                     child: Icon(Icons.music_note_rounded,
-                        color: Color(0xFF34D399), size: 48),
+                        color: Color(0xFF34D399), size: 36),
                   ),
                 ),
               ),
@@ -1404,28 +1410,28 @@ class _MusicBanner extends StatelessWidget {
               ),
               child: const Center(
                 child: Icon(Icons.music_note_rounded,
-                    color: Color(0xFF34D399), size: 48),
+                    color: Color(0xFF34D399), size: 36),
               ),
             ),
           Positioned(
-            top: 10,
-            right: 10,
+            top: 8,
+            right: 8,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
               decoration: BoxDecoration(
                 color: Colors.black.withValues(alpha: 0.6),
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(16),
               ),
               child: const Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.music_note_rounded, size: 14, color: Colors.white),
-                  SizedBox(width: 5),
+                  Icon(Icons.music_note_rounded, size: 12, color: Colors.white),
+                  SizedBox(width: 4),
                   Text(
                     'Music',
                     style: TextStyle(
                       color: Colors.white,
-                      fontSize: 11,
+                      fontSize: 10,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -1486,18 +1492,18 @@ class _NoteBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 140,
+      height: 96,
       color: const Color(0xFFFBFAF6),
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 14),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Container(
-            width: 38,
-            height: 38,
+            width: 32,
+            height: 32,
             decoration: BoxDecoration(
               color: const Color(0xFFE6EDB0),
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(8),
               border: Border.all(
                 color: const Color(0xFF171711).withValues(alpha: 0.15),
               ),
@@ -1505,25 +1511,25 @@ class _NoteBanner extends StatelessWidget {
             child: const Icon(
               Icons.sticky_note_2_rounded,
               color: Color(0xFF171711),
-              size: 20,
+              size: 18,
             ),
           ),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
             decoration: BoxDecoration(
               color: const Color(0xFFEBE7DC),
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(16),
             ),
             child: const Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.circle, size: 6, color: Color(0xFF171711)),
-                SizedBox(width: 5),
+                Icon(Icons.circle, size: 5, color: Color(0xFF171711)),
+                SizedBox(width: 4),
                 Text(
                   'Note',
                   style: TextStyle(
                     color: Color(0xFF171711),
-                    fontSize: 11,
+                    fontSize: 10,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -1543,17 +1549,17 @@ class _ArticleBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 140,
+      height: 96,
       color: const Color(0xFFFBFAF6),
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 14),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(16),
               border: Border.all(color: const Color(0xFFE4E0D5)),
               boxShadow: const [
                 BoxShadow(color: Color(0x0A000000), blurRadius: 2),
@@ -1563,47 +1569,54 @@ class _ArticleBanner extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
-                  width: 16,
-                  height: 16,
+                  width: 14,
+                  height: 14,
                   decoration: BoxDecoration(
                     color: Colors.black,
-                    borderRadius: BorderRadius.circular(3),
+                    borderRadius: BorderRadius.circular(2),
                   ),
                   alignment: Alignment.center,
                   child: const Text(
                     'N',
                     style: TextStyle(
                       color: Colors.white,
-                      fontSize: 9,
+                      fontSize: 8,
                       fontWeight: FontWeight.w900,
                     ),
                   ),
                 ),
-                const SizedBox(width: 6),
+                const SizedBox(width: 5),
                 Text(
                   eyebrow.isNotEmpty ? eyebrow : 'notion.so',
                   style: const TextStyle(
                     color: Color(0xFF171711),
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ],
             ),
           ),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
             decoration: BoxDecoration(
               color: const Color(0xFFEBE7DC),
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(16),
             ),
-            child: const Text(
-              'Article',
-              style: TextStyle(
-                color: Color(0xFF171711),
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-              ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.article_rounded, size: 12, color: Color(0xFF6C6B63)),
+                SizedBox(width: 4),
+                Text(
+                  'Article',
+                  style: TextStyle(
+                    color: Color(0xFF6C6B63),
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
