@@ -93,7 +93,7 @@ class HomeShell extends ConsumerWidget {
           initialLocation: index == navigationShell!.currentIndex,
         );
       } else {
-        context.go(_paths[index]);
+        context.go(_isIOS(context) && index == 2 ? '/returns' : _paths[index]);
       }
     }
 
@@ -132,11 +132,14 @@ class HomeShell extends ConsumerWidget {
       bottomNavigationBar: isDesktop
           ? null
           : _isIOS(context)
-          ? _IOSBottomNavigation(
-              selectedIndex: _iosNavigationIndex(effectiveIndex),
-              inboxCount: inboxCount,
-              onDestinationSelected: (index) =>
-                  handleDestinationSelected(const [0, 1, 2, 5, 6][index]),
+          ? Padding(
+              padding: const EdgeInsets.only(top: 12),
+              child: _IOSBottomNavigation(
+                selectedIndex: _iosNavigationIndex(effectiveIndex),
+                inboxCount: inboxCount,
+                onDestinationSelected: (index) =>
+                    handleDestinationSelected(const [0, 1, 2, 5, 6][index]),
+              ),
             )
           : Column(
               mainAxisSize: MainAxisSize.min,

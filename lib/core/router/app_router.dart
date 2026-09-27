@@ -15,6 +15,7 @@ import '../../features/extension/presentation/extension_connected_screen.dart';
 import '../../features/home/presentation/home_shell.dart';
 import '../../features/home/presentation/home_dashboard.dart';
 import '../../features/scheduling/presentation/schedule_providers.dart';
+import '../../features/scheduling/presentation/returns_hub_screen.dart';
 import '../../features/inbox/presentation/inbox_screen.dart';
 import '../../features/landing/presentation/landing_screen.dart';
 import '../../features/onboarding/presentation/welcome_screen.dart';
@@ -144,7 +145,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               ? 4
               : location.startsWith('/upcoming')
               ? 3
-              : location.startsWith('/today')
+              : location.startsWith('/today') || location.startsWith('/returns')
               ? 2
               : location.startsWith('/inbox') ||
                     location.startsWith('/item') ||
@@ -156,6 +157,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           );
         },
         routes: [
+          GoRoute(
+            path: '/returns',
+            pageBuilder: (context, state) => NoTransitionPage(
+              key: state.pageKey,
+              child: const ReturnsHubScreen(),
+            ),
+          ),
           GoRoute(
             path: '/home',
             pageBuilder: (context, state) => NoTransitionPage(
