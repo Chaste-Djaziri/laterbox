@@ -69,13 +69,21 @@ class HomeShell extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final width = MediaQuery.sizeOf(context).width;
     final isDesktop = _isDesktopPlatform() || width >= 900;
+    final isMacDesktop =
+        !kIsWeb && defaultTargetPlatform == TargetPlatform.macOS;
+    final theme = Theme.of(context);
+    final desktopChromeColor = theme.brightness == Brightness.dark
+        ? const Color(0xFF161614)
+        : const Color(0xFFF7F5EE);
     final effectiveIndex = (navigationShell?.currentIndex ?? selectedIndex)
         .clamp(0, _paths.length - 1);
     final Widget bodyContent =
         child ?? navigationShell ?? _screens[effectiveIndex];
-    final inboxCount = ref.watch(inboxItemsProvider).whenOrNull(
-          data: (items) => items.length,
-        ) ?? 0;
+    final inboxCount =
+        ref
+            .watch(inboxItemsProvider)
+            .whenOrNull(data: (items) => items.length) ??
+        0;
 
     void handleDestinationSelected(int index) {
       if (navigationShell != null) {
@@ -90,15 +98,34 @@ class HomeShell extends ConsumerWidget {
 
     return Scaffold(
       body: isDesktop
-          ? Row(
-              children: [
-                DesktopSidebar(
-                  selectedIndex: effectiveIndex,
-                  onDestinationSelected: handleDestinationSelected,
-                  onOpenCapture: () => _openCapture(context),
-                ),
-                Expanded(child: bodyContent),
-              ],
+          ? ColoredBox(
+              // The transparent native title bar reveals this same color behind
+              // the traffic lights, so it joins the sidebar instead of reading
+              // as a detached system strip.
+              color: desktopChromeColor,
+              child: Column(
+                children: [
+                  if (isMacDesktop) const SizedBox(height: 32),
+                  Expanded(
+                    child: Row(
+                      children: [
+                        DesktopSidebar(
+                          selectedIndex: effectiveIndex,
+                          onDestinationSelected: handleDestinationSelected,
+                          onOpenCapture: () => _openCapture(context),
+                          topInset: isMacDesktop ? 8 : null,
+                        ),
+                        Expanded(
+                          child: ColoredBox(
+                            color: theme.scaffoldBackgroundColor,
+                            child: bodyContent,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             )
           : bodyContent,
       bottomNavigationBar: isDesktop
