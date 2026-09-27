@@ -52,113 +52,212 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
     final item = ref.watch(itemDetailProvider(widget.itemId)).value;
 
     return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded),
-          tooltip: 'Back',
-          onPressed: () {
-            if (context.canPop()) {
-              context.pop();
-            } else {
-              context.go('/inbox');
-            }
-          },
+      body: SafeArea(
+        child: Align(
+          alignment: Alignment.topCenter,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 820),
+            child: Column(
+              children: [
+                // Top Header & Actions Navigation
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 16, 24, 12),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      // Back Button (Pill matching web)
+                      _buildBackButton(context),
+                      const SizedBox(width: 8),
+                      if (item != null)
+                        Flexible(
+                          child: SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            reverse: true,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                // 1. Star / Favorite
+                                _HeaderIconButton(
+                                  tooltip: item.favorite
+                                      ? 'Remove from favorites'
+                                      : 'Favorite',
+                                  onTap: () {
+                                    ref
+                                        .read(itemRepositoryProvider)
+                                        .setFavorite(item.id, !item.favorite);
+                                  },
+                                  backgroundColor: item.favorite
+                                      ? const Color(0xFFfef3c7)
+                                      : Colors.transparent,
+                                  hoverColor: item.favorite
+                                      ? const Color(0xFFfde68a)
+                                          .withValues(alpha: 0.5)
+                                      : null,
+                                  icon: Icon(
+                                    item.favorite
+                                        ? Icons.star_rounded
+                                        : Icons.star_border_rounded,
+                                    size: 20,
+                                    color: item.favorite
+                                        ? const Color(0xFFf59e0b)
+                                        : const Color(0xFF9e9b92),
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+
+                                // 2. Keep / Done / Archive / Move to Inbox
+                                _buildStatusActionButton(context, ref, item),
+                                const SizedBox(width: 6),
+
+                                // 3. Add to Collection Button
+                                _HeaderPillButton(
+                                  onTap: () => showCollectionPicker(
+                                      context, ref, item.id),
+                                  icon: const Icon(Icons.folder_outlined,
+                                      size: 16, color: Color(0xFF0369a1)),
+                                  label: 'Collections',
+                                  backgroundColor: Colors.white,
+                                  foregroundColor: const Color(0xFF0369a1),
+                                  borderColor: const Color(0xFFe4e0d5),
+                                  tooltip: 'Add to Collection',
+                                ),
+                                const SizedBox(width: 6),
+
+                                // 4. Copy Link / Content
+                                _HeaderIconButton(
+                                  tooltip: item.url != null
+                                      ? 'Copy link'
+                                      : 'Copy text',
+                                  icon: const Icon(Icons.copy_rounded,
+                                      size: 18, color: Color(0xFF9e9b92)),
+                                  onTap: () {
+                                    final text = item.url ??
+                                        item.text ??
+                                        item.title ??
+                                        '';
+                                    Clipboard.setData(ClipboardData(text: text));
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('Copied to clipboard'),
+                                        duration: Duration(seconds: 2),
+                                        behavior: SnackBarBehavior.floating,
+                                      ),
+                                    );
+                                  },
+                                ),
+                                const SizedBox(width: 6),
+
+                                // 5. Open Source in external browser
+                                if (item.url != null) ...[
+                                  _HeaderIconButton(
+                                    tooltip: 'Open in browser',
+                                    icon: const Icon(Icons.open_in_new_rounded,
+                                        size: 18, color: Color(0xFF9e9b92)),
+                                    onTap: () =>
+                                        openOriginalForItem(context, item),
+                                  ),
+                                  const SizedBox(width: 6),
+                                ],
+
+                                // 6. Delete Button
+                                _HeaderIconButton(
+                                  tooltip: 'Delete item',
+                                  icon: const Icon(
+                                    Icons.delete_outline_rounded,
+                                    color: Color(0xFFdc2626),
+                                    size: 19,
+                                  ),
+                                  hoverColor: const Color(0xFFfef2f2),
+                                  onTap: () =>
+                                      _confirmDelete(context, ref, item),
+                                ),
+                                const SizedBox(width: 6),
+
+                                // 7. More Options
+                                _HeaderIconButton(
+                                  tooltip: 'More actions',
+                                  icon: const Icon(Icons.more_horiz_rounded,
+                                      size: 20, color: Color(0xFF9e9b92)),
+                                  onTap: () =>
+                                      showItemActions(context, ref, item),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 24),
+                  child: Divider(
+                    height: 1,
+                    thickness: 1,
+                    color: Color(0xFFe4e0d5),
+                  ),
+                ),
+                Expanded(
+                  child: item == null
+                      ? const Center(child: CircularProgressIndicator.adaptive())
+                      : _ItemDetailBody(item: item),
+                ),
+              ],
+            ),
+          ),
         ),
-        actions: [
-          if (item != null) ...[
-            // 1. Star / Favorite
-            IconButton(
-              tooltip: item.favorite ? 'Remove from favorites' : 'Favorite',
-              icon: Icon(
-                item.favorite ? Icons.star_rounded : Icons.star_border_rounded,
-                color: item.favorite ? const Color(0xFFf59e0b) : null,
-              ),
-              onPressed: () {
-                ref
-                    .read(itemRepositoryProvider)
-                    .setFavorite(item.id, !item.favorite);
-              },
-            ),
-
-            // 2. Keep / Done / Archive / Move to Inbox
-            _buildStatusActionButton(context, ref, item),
-
-            // 3. Add to Collection Button
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: OutlinedButton.icon(
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
-                  visualDensity: VisualDensity.compact,
-                  side: BorderSide(
-                    color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.8),
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                onPressed: () => showCollectionPicker(context, ref, item.id),
-                icon: const Icon(Icons.folder_outlined, size: 16, color: Color(0xFF0369a1)),
-                label: const Text(
-                  'Collections',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF0369a1),
-                  ),
-                ),
-              ),
-            ),
-
-            // 4. Copy Link / Content
-            IconButton(
-              tooltip: item.url != null ? 'Copy link' : 'Copy text',
-              icon: const Icon(Icons.copy_rounded, size: 19),
-              onPressed: () {
-                final text = item.url ?? item.text ?? item.title ?? '';
-                Clipboard.setData(ClipboardData(text: text));
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Copied to clipboard'),
-                    duration: Duration(seconds: 2),
-                    behavior: SnackBarBehavior.floating,
-                  ),
-                );
-              },
-            ),
-
-            // 5. Open Source in external browser
-            if (item.url != null)
-              IconButton(
-                tooltip: 'Open in browser',
-                icon: const Icon(Icons.open_in_new_rounded, size: 19),
-                onPressed: () => openOriginalForItem(context, item),
-              ),
-
-            // 6. Delete Button
-            IconButton(
-              tooltip: 'Delete item',
-              icon: Icon(
-                Icons.delete_outline_rounded,
-                color: Theme.of(context).colorScheme.error,
-                size: 20,
-              ),
-              onPressed: () => _confirmDelete(context, ref, item),
-            ),
-
-            // 7. More Options
-            IconButton(
-              tooltip: 'More actions',
-              onPressed: () => showItemActions(context, ref, item),
-              icon: const Icon(Icons.more_horiz_rounded),
-            ),
-          ],
-          const SizedBox(width: 8),
-        ],
       ),
-      body: item == null
-          ? const Center(child: CircularProgressIndicator.adaptive())
-          : _ItemDetailBody(item: item),
+    );
+  }
+
+  Widget _buildBackButton(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () {
+          if (context.canPop()) {
+            context.pop();
+          } else {
+            context.go('/inbox');
+          }
+        },
+        borderRadius: BorderRadius.circular(100),
+        hoverColor: const Color(0xFFfaf8f5),
+        child: Container(
+          height: 36,
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(100),
+            border: Border.all(color: const Color(0xFFe4e0d5)),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x0A000000),
+                blurRadius: 2,
+                offset: Offset(0, 1),
+              ),
+            ],
+          ),
+          child: const Row(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Icon(Icons.arrow_back_rounded, size: 16, color: Color(0xFF6c6b63)),
+              SizedBox(width: 6),
+              Text(
+                'Back',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF6c6b63),
+                  letterSpacing: -0.2,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -170,91 +269,47 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
     final repo = ref.read(itemRepositoryProvider);
 
     if (item.type == 'task' && item.isActive) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 4),
-        child: FilledButton.tonalIcon(
-          style: FilledButton.styleFrom(
-            backgroundColor: const Color(0xFFe6edb0),
-            foregroundColor: const Color(0xFF171711),
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
-            visualDensity: VisualDensity.compact,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-          onPressed: () => repo.archive(item.id),
-          icon: const Icon(Icons.task_alt, size: 15),
-          label: const Text(
-            'Done',
-            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
-          ),
-        ),
+      return _HeaderPillButton(
+        onTap: () => repo.archive(item.id),
+        icon: const Icon(Icons.task_alt, size: 15, color: Color(0xFF171711)),
+        label: 'Done',
+        backgroundColor: const Color(0xFFe6edb0),
+        foregroundColor: const Color(0xFF171711),
       );
     }
 
     if (item.status == ItemStatus.inbox || item.status == ItemStatus.deferred) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 4),
-        child: FilledButton.tonalIcon(
-          style: FilledButton.styleFrom(
-            backgroundColor: const Color(0xFFe6edb0),
-            foregroundColor: const Color(0xFF171711),
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
-            visualDensity: VisualDensity.compact,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-          onPressed: () => repo.keep(item.id),
-          icon: const Icon(Icons.check_circle_outline_rounded, size: 15),
-          label: const Text(
-            'Keep',
-            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
-          ),
-        ),
+      return _HeaderPillButton(
+        onTap: () => repo.keep(item.id),
+        icon: const Icon(Icons.check_circle_outline_rounded,
+            size: 15, color: Color(0xFF171711)),
+        label: 'Keep',
+        backgroundColor: const Color(0xFFe6edb0),
+        foregroundColor: const Color(0xFF171711),
+        tooltip: 'Keep in Library',
       );
     }
 
     if (item.status == ItemStatus.saved) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 4),
-        child: OutlinedButton.icon(
-          style: OutlinedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
-            visualDensity: VisualDensity.compact,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-          onPressed: () => repo.archive(item.id),
-          icon: const Icon(Icons.archive_outlined, size: 15),
-          label: const Text(
-            'Archive',
-            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
-          ),
-        ),
+      return _HeaderPillButton(
+        onTap: () => repo.archive(item.id),
+        icon: const Icon(Icons.archive_outlined,
+            size: 15, color: Color(0xFF6c6b63)),
+        label: 'Archive',
+        backgroundColor: const Color(0xFFebe7dc).withValues(alpha: 0.7),
+        foregroundColor: const Color(0xFF6c6b63),
+        tooltip: 'Archive',
       );
     }
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4),
-      child: FilledButton.tonalIcon(
-        style: FilledButton.styleFrom(
-          backgroundColor: const Color(0xFFe6edb0),
-          foregroundColor: const Color(0xFF171711),
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
-          visualDensity: VisualDensity.compact,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-        onPressed: () => repo.markUnseen(item.id),
-        icon: const Icon(Icons.inbox_outlined, size: 15),
-        label: const Text(
-          'Inbox',
-          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
-        ),
-      ),
+    return _HeaderPillButton(
+      onTap: () => repo.markUnseen(item.id),
+      icon: const Icon(Icons.inbox_outlined,
+          size: 15, color: Color(0xFF171711)),
+      label: 'Inbox',
+      backgroundColor: const Color(0xFFe6edb0),
+      foregroundColor: const Color(0xFF171711),
+      tooltip: 'Move back to Inbox',
     );
   }
 
@@ -1445,5 +1500,117 @@ class _BannerBadge extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+class _HeaderIconButton extends StatelessWidget {
+  const _HeaderIconButton({
+    required this.tooltip,
+    required this.icon,
+    required this.onTap,
+    this.backgroundColor = Colors.transparent,
+    this.hoverColor,
+  });
+
+  final String tooltip;
+  final Widget icon;
+  final VoidCallback onTap;
+  final Color backgroundColor;
+  final Color? hoverColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: tooltip,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(10),
+          hoverColor:
+              hoverColor ?? const Color(0xFFebe7dc).withValues(alpha: 0.6),
+          child: Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: backgroundColor,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            alignment: Alignment.center,
+            child: icon,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _HeaderPillButton extends StatelessWidget {
+  const _HeaderPillButton({
+    required this.onTap,
+    required this.icon,
+    required this.label,
+    required this.backgroundColor,
+    required this.foregroundColor,
+    this.borderColor,
+    this.tooltip,
+  });
+
+  final VoidCallback onTap;
+  final Widget icon;
+  final String label;
+  final Color backgroundColor;
+  final Color foregroundColor;
+  final Color? borderColor;
+  final String? tooltip;
+
+  @override
+  Widget build(BuildContext context) {
+    final button = Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(10),
+        child: Container(
+          height: 36,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          decoration: BoxDecoration(
+            color: backgroundColor,
+            borderRadius: BorderRadius.circular(10),
+            border: borderColor != null
+                ? Border.all(color: borderColor!)
+                : null,
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x08000000),
+                blurRadius: 2,
+                offset: Offset(0, 1),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              icon,
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: foregroundColor,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    if (tooltip != null) {
+      return Tooltip(message: tooltip!, child: button);
+    }
+    return button;
   }
 }
