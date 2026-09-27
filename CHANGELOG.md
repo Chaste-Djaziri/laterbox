@@ -14,6 +14,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 - **[Web] Music source labels**: Music cards and item actions now identify the originating service (including Apple Music and Spotify) and avoid presenting a Spotify label or icon for unrelated music links.
 
 ### Added
+- **[Shared] Professional OTP email delivery**: LaterBox sign-in and confirmation emails now use the official hosted logo, inbox-preview metadata, accessible copy-friendly code styling, and app-side verification immediately after an eight-digit code is pasted or AutoFilled.
 - **[macOS] Desktop-first welcome and sign-in**: Onboarding and passwordless sign-in now use a centered, window-aware desktop composition with clearer feature context, restrained illustration sizing, and consistently sized forms while retaining the compact mobile flow.
 - **[macOS] Companion copy receipt and privacy controls**: The notch stays compact after an eligible copy, shows a clear copied receipt, and opens the save prompt only on hover or click. Watch Mode now controls clipboard monitoring, and the companion keeps a bounded, session-only recent-copy history that is never synced until an item is saved.
 - **[macOS] Desktop capture flow**: Quick Capture now uses a macOS-specific staged capture interface while mobile retains its compact capture UI. Saved links are queued for metadata enrichment and attachment captures preserve their local metadata.
