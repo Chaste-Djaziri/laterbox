@@ -10,9 +10,23 @@ class SyncCoordinator {
 
   final SyncService _service;
   final List<StreamSubscription<dynamic>> _subscriptions = [];
+  final StreamController<bool> _isSyncingController =
+      StreamController<bool>.broadcast();
   Timer? _retryTimer;
   int _retryAttempt = 0;
   bool _disposed = false;
+  bool _isSyncing = false;
+
+  bool get isSyncing => _isSyncing;
+  Stream<bool> get isSyncingStream => _isSyncingController.stream;
+
+  void _setSyncing(bool value) {
+    if (_isSyncing == value) return;
+    _isSyncing = value;
+    if (!_disposed && !_isSyncingController.isClosed) {
+      _isSyncingController.add(value);
+    }
+  }
 
   void start({
     required Stream<List<ConnectivityResult>> connectivityChanges,
@@ -40,16 +54,24 @@ class SyncCoordinator {
   }
 
   Future<void> _attemptSync() async {
-    final result = await _service.sync();
-    if (_disposed || result.skipped) return;
+    if (_isSyncing) return;
+    _setSyncing(true);
+    try {
+      final result = await _service.sync();
+      if (_disposed || result.skipped) return;
 
-    if (result.succeeded) {
-      _retryAttempt = 0;
-      _retryTimer?.cancel();
-      return;
+      if (result.succeeded) {
+        _retryAttempt = 0;
+        _retryTimer?.cancel();
+        return;
+      }
+
+      _scheduleRetry();
+    } finally {
+      if (!_disposed) {
+        _setSyncing(false);
+      }
     }
-
-    _scheduleRetry();
   }
 
   void _scheduleRetry() {
@@ -62,6 +84,7 @@ class SyncCoordinator {
   Future<void> dispose() async {
     _disposed = true;
     _retryTimer?.cancel();
+    _isSyncingController.close();
     for (final subscription in _subscriptions) {
       await subscription.cancel();
     }

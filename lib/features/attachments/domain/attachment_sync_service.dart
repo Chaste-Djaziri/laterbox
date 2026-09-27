@@ -51,8 +51,14 @@ class AttachmentSyncService {
     for (final attachment in uploads) {
       final storage = _storage;
       final localPath = attachment.localPath;
-      final localBytes = attachment.localBytes;
-      if (localPath == null && localBytes == null) continue;
+      if (localPath == null && localBytes == null) {
+        if (attachment.r2ObjectKey != null) {
+          await _database.markAttachmentUploaded(attachment.id, attachment.r2ObjectKey!, userId);
+        } else {
+          await _database.markAttachmentUploadFailed(attachment.id, 'No local data available');
+        }
+        continue;
+      }
       try {
         await _database.markAttachmentUploading(attachment.id);
         final objectKey = localBytes != null

@@ -35,7 +35,7 @@ class CloudSyncIndicator extends ConsumerWidget {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
 
-    final isSyncing = stats.pendingCount > 0;
+    final isActivelySyncing = ref.watch(isSyncingProvider).valueOrNull ?? false;
 
     if (!isAuthenticated || !isPro) {
       return const SizedBox.shrink();
@@ -46,7 +46,7 @@ class CloudSyncIndicator extends ConsumerWidget {
     final Color foregroundColor;
     final String labelText;
 
-    if (isSyncing) {
+    if (isActivelySyncing) {
       icon = Icons.cloud_sync_rounded;
       backgroundColor = colors.primaryContainer;
       foregroundColor = colors.onPrimaryContainer;
@@ -55,7 +55,7 @@ class CloudSyncIndicator extends ConsumerWidget {
       icon = Icons.cloud_done_rounded;
       backgroundColor = colors.secondaryContainer.withValues(alpha: 0.8);
       foregroundColor = colors.onSecondaryContainer;
-      labelText = compact ? '${stats.percentage}%' : 'Synced ${stats.percentage}%';
+      labelText = compact ? 'Synced' : (stats.percentage >= 100 ? 'Synced 100%' : 'Synced ${stats.percentage}%');
     }
 
     return Semantics(
