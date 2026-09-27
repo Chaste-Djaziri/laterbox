@@ -32,6 +32,7 @@ import {
 import { AiOrganizeModal } from '@/components/inbox/AiOrganizeModal';
 import { OrganizeSuggestion, OrganizeResponse } from '@/app/api/ai/organize/route';
 import { resolveReturnPreset } from '@/lib/utils/schedule';
+import { CloudSyncIndicator } from '@/components/ui/CloudSyncIndicator';
 
 export default function InboxPage() {
   const router = useRouter();
@@ -359,11 +360,8 @@ export default function InboxPage() {
             </button>
           </div>
 
-          {/* Local Mode Badge */}
-          <div className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white border border-[#e4e0d5] text-xs font-semibold text-[#171711] shadow-2xs">
-            <span className="w-2 h-2 rounded-full bg-emerald-500" />
-            <span>Local Mode</span>
-          </div>
+          {/* Cloud Sync Indicator (Pro Mode) */}
+          <CloudSyncIndicator />
 
           {/* Clear Demo Cards Button (Guest/Local Mode) */}
           {hasDemoItems && (

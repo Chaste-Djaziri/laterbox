@@ -8,6 +8,7 @@ import { useAuth } from '@/lib/store/AuthContext';
 import { scheduleItems, returnLabel, type ScheduleView } from '@/lib/utils/schedule';
 import { ItemListRow } from '../inbox/ItemListRow';
 import { QuickCaptureModal } from '../inbox/QuickCaptureModal';
+import { CloudSyncIndicator } from '../ui/CloudSyncIndicator';
 import type { LaterBoxItem } from '@/lib/supabase/types';
 import { ItemCard } from '../inbox/ItemCard';
 import {
@@ -294,10 +295,7 @@ export function ScheduleDashboard({ view }: { view?: ScheduleView }) {
               </button>
             </div>
 
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#e6edb0] border border-[#d0db84] text-[11px] font-black text-[#171711]">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#27c93f]" />
-              <span>Local Mode</span>
-            </div>
+            <CloudSyncIndicator />
 
             <Link
               href="/tutorial"

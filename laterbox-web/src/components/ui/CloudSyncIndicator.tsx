@@ -11,24 +11,11 @@ export function CloudSyncIndicator({ compact = false }: { compact?: boolean }) {
   const { user, isGuest } = useAuth();
   const { isPro } = useBilling();
 
-  const getStatusDetails = () => {
-    if (isGuest || !user) {
-      return {
-        icon: <CloudOff className="w-3.5 h-3.5 text-[#6c6b63]" />,
-        label: 'Local Mode',
-        tooltip: 'Changes saved locally. Sign in to enable cloud sync.',
-        color: 'bg-[#ebe7dc]/80 border border-[#e4e0d5] text-[#171711]',
-      };
-    }
-    if (!isPro) {
-      return {
-        icon: <CloudOff className="w-3.5 h-3.5 text-[#6c6b63]" />,
-        label: 'Pro Sync',
-        tooltip: 'Cloud sync is available with LaterBox Pro.',
-        color: 'bg-[#ebe7dc]/80 border border-[#e4e0d5] text-[#171711]',
-      };
-    }
+  if (isGuest || !user || !isPro) {
+    return null;
+  }
 
+  const getStatusDetails = () => {
     switch (syncStatus) {
       case 'syncing':
         return {
@@ -48,8 +35,8 @@ export function CloudSyncIndicator({ compact = false }: { compact?: boolean }) {
       default:
         return {
           icon: <Cloud className="w-3.5 h-3.5 text-[#171711]" />,
-          label: 'Cloud Synced',
-          tooltip: 'All changes saved and synced.',
+          label: 'Synced',
+          tooltip: 'All changes saved and synced with cloud.',
           color: 'bg-[#e6edb0] border border-[#d0db84] text-[#171711]',
         };
     }

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ItemCard } from '@/components/inbox/ItemCard';
 import { ItemListRow } from '@/components/inbox/ItemListRow';
 import { QuickCaptureModal } from '@/components/inbox/QuickCaptureModal';
+import { CloudSyncIndicator } from '@/components/ui/CloudSyncIndicator';
 import { useItems } from '@/lib/store/ItemContext';
 import {
   Star,
@@ -125,10 +126,7 @@ export default function LibraryPage() {
               </button>
             </div>
 
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#e6edb0] border border-[#d0db84] text-[11px] font-black text-[#171711]">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#27c93f]" />
-              <span>Local Mode</span>
-            </div>
+            <CloudSyncIndicator />
 
             <Link
               href="/tutorial"

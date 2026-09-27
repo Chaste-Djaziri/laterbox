@@ -268,13 +268,12 @@ export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
           )}
         </Link>
 
-        {/* Local Mode Pill */}
-        <div className="flex items-center justify-center">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white border border-[#e4e0d5] text-xs font-semibold text-[#171711] shadow-2xs w-full justify-center">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
-            {!collapsed && <span>Local Mode</span>}
+        {/* Sync Indicator (Pro Mode) */}
+        {isPro && (
+          <div className="flex items-center justify-center">
+            <CloudSyncIndicator compact={collapsed} />
           </div>
-        </div>
+        )}
 
         {/* User / Guest Account Row */}
         {user ? (
