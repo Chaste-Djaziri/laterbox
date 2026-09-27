@@ -557,86 +557,92 @@ export function ItemProvider({ children }: { children: ReactNode }) {
     saveLocalData(updated);
     queueCapture(newItem);
 
-    if (user && isPro) {
-      try {
-        const supabase = getSupabaseClient();
-        await uploadWithNotificationHandoff(newItem.id, newItem.return_at, async () => {
-          const { error: saveError } = await supabase.from('items').upsert(itemRow(newItem));
-          if (saveError) throw saveError;
-        });
-        await syncPendingCaptures(user.id);
+    // ── Enrich URL metadata for ALL users (Pro writes to Supabase; others update local state only) ──
+    if (normalizedUrl) {
+      const runEnrich = async () => {
+        let enrichData: Record<string, unknown> | null = null;
 
-        // Trigger enrichment via fast API & Edge function if it's a URL
-        if (normalizedUrl) {
-          const enrichUrl = async () => {
-            let enrichData: any = null;
+        // 1. Try local Next.js /api/enrich first (fast, reliable)
+        try {
+          const res = await fetch('/api/enrich', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url: normalizedUrl }),
+          });
+          if (res.ok) {
+            enrichData = await res.json() as Record<string, unknown>;
+          }
+        } catch { /* ignore */ }
 
-            // 1. Try local Next.js /api/enrich first (instant & reliable)
+        if (enrichData && typeof enrichData === 'object') {
+          const enrichedTitle = (enrichData.title as string) || defaultTitle;
+          const description = (enrichData.description as string) || null;
+          const siteName = (enrichData.siteName as string) || (enrichData.site_name as string) || domain;
+          const faviconUrl = (enrichData.faviconUrl as string) || (enrichData.favicon_url as string) || initialFavicon;
+          const previewImageUrl = (enrichData.previewImageUrl as string) || (enrichData.preview_image_url as string) || null;
+          const contentType =
+            (enrichData.classification as Record<string, string>)?.contentType ||
+            (enrichData.classification as Record<string, string>)?.type ||
+            (enrichData.content_type as string) ||
+            'link';
+
+          const embedProvider = (enrichData.embedProvider as string) ?? null;
+          const embedUrl = (enrichData.embedUrl as string) ?? null;
+          const embedHeight = (enrichData.embedHeight as number) ?? null;
+
+          // Real keywords from page — use as tags
+          const keywords: string[] = Array.isArray(enrichData.keywords) ? (enrichData.keywords as string[]) : [];
+
+          const structuredData = {
+            source: 'web',
+            os: userOs,
+            ...(keywords.length > 0 ? { tags: keywords } : {}),
+            ...(embedProvider ? { embedProvider, embedUrl, embedHeight } : {}),
+          };
+
+          const metaUpdate: Partial<LaterBoxItem['metadata']> = {
+            domain: (enrichData.domain as string) || domain,
+            site_name: siteName,
+            title: enrichedTitle,
+            description: description,
+            favicon_url: faviconUrl,
+            preview_image_url: previewImageUrl,
+            content_type: contentType,
+            classification_source: 'web',
+            structured_data: JSON.stringify(structuredData),
+            status: 'enriched',
+            enriched_at: new Date().toISOString(),
+          };
+
+          // Update React state immediately for all users
+          setItems((prev) =>
+            prev.map((it) =>
+              it.id === newItem.id
+                ? {
+                    ...it,
+                    title: enrichedTitle || it.title,
+                    metadata: { ...it.metadata!, ...metaUpdate },
+                  }
+                : it
+            )
+          );
+
+          // Only persist to Supabase for Pro users
+          if (user && isPro) {
             try {
-              const res = await fetch('/api/enrich', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ url: normalizedUrl }),
+              const supabase = getSupabaseClient();
+
+              await uploadWithNotificationHandoff(newItem.id, newItem.return_at, async () => {
+                const { error: saveError } = await supabase.from('items').upsert(itemRow(newItem));
+                if (saveError) throw saveError;
               });
-              if (res.ok) {
-                enrichData = await res.json();
-              }
-            } catch {}
+              await syncPendingCaptures(user.id);
 
-            // 2. Fallback to Supabase Edge Function
-            if (!enrichData || !enrichData.title) {
-              try {
-                const { data } = await supabase.functions.invoke('enrich-url', {
-                  body: { url: normalizedUrl },
-                });
-                if (data && typeof data === 'object') {
-                  enrichData = data;
-                }
-              } catch {}
-            }
-
-            if (enrichData && typeof enrichData === 'object') {
-              const title = enrichData.title || defaultTitle;
-              const description = enrichData.description || null;
-              const siteName = enrichData.siteName || enrichData.site_name || domain;
-              const faviconUrl = enrichData.faviconUrl || enrichData.favicon_url || initialFavicon;
-              const previewImageUrl = enrichData.previewImageUrl || enrichData.preview_image_url || null;
-              const contentType =
-                enrichData.classification?.contentType ||
-                enrichData.classification?.type ||
-                enrichData.content_type ||
-                'link';
-
-              // Embed player data returned directly from the enrich API
-              const embedProvider: string | null = enrichData.embedProvider ?? null;
-              const embedUrl: string | null = enrichData.embedUrl ?? null;
-              const embedHeight: number | null = enrichData.embedHeight ?? null;
-
-              const structuredData = {
-                source: 'web',
-                os: userOs,
-                ...(embedProvider ? { embedProvider, embedUrl, embedHeight } : {}),
-              };
-
-              const metaUpdate: Partial<LaterBoxItem['metadata']> = {
-                domain: enrichData.domain || domain,
-                site_name: siteName,
-                title: title,
-                description: description,
-                favicon_url: faviconUrl,
-                preview_image_url: previewImageUrl,
-                content_type: contentType,
-                classification_source: 'web',
-                structured_data: JSON.stringify(structuredData),
-                status: 'enriched',
-                enriched_at: new Date().toISOString(),
-              };
-
-              // Update item title in items table if previous was generic
-              if (title && (newItem.title === domain || newItem.title === 'New Capture')) {
+              // Update item title if it was generic
+              if (enrichedTitle && (newItem.title === domain || newItem.title === 'New Capture')) {
                 await supabase
                   .from('items')
-                  .update({ title, updated_at: new Date().toISOString() })
+                  .update({ title: enrichedTitle, updated_at: new Date().toISOString() })
                   .eq('id', newItem.id);
               }
 
@@ -647,23 +653,50 @@ export function ItemProvider({ children }: { children: ReactNode }) {
                 created_at: now,
                 updated_at: new Date().toISOString(),
               });
-
-              setItems((prev) =>
-                prev.map((it) =>
-                  it.id === newItem.id
-                    ? {
-                        ...it,
-                        title: title || it.title,
-                        metadata: { ...it.metadata!, ...metaUpdate },
-                      }
-                    : it
-                )
-              );
+            } catch {
+              setSyncStatus('error');
             }
-          };
-
-          enrichUrl().catch(() => null);
+          } else if (user) {
+            // Logged-in free user: persist item + metadata to Supabase without Pro features
+            try {
+              const supabase = getSupabaseClient();
+              const { error: saveError } = await supabase.from('items').upsert(itemRow(newItem));
+              if (!saveError) {
+                await supabase.from('item_metadata').upsert({
+                  item_id: newItem.id,
+                  user_id: user.id,
+                  ...metaUpdate,
+                  created_at: now,
+                  updated_at: new Date().toISOString(),
+                });
+              }
+            } catch { /* ignore — local state already updated */ }
+          }
+        } else if (user && isPro) {
+          // Enrichment failed — still persist the raw item to Supabase
+          try {
+            const supabase = getSupabaseClient();
+            await uploadWithNotificationHandoff(newItem.id, newItem.return_at, async () => {
+              const { error: saveError } = await supabase.from('items').upsert(itemRow(newItem));
+              if (saveError) throw saveError;
+            });
+            await syncPendingCaptures(user.id);
+          } catch {
+            setSyncStatus('error');
+          }
         }
+      };
+
+      runEnrich().catch(() => null);
+    } else if (user && isPro) {
+      // No URL (text/file capture) — persist directly
+      try {
+        const supabase = getSupabaseClient();
+        await uploadWithNotificationHandoff(newItem.id, newItem.return_at, async () => {
+          const { error: saveError } = await supabase.from('items').upsert(itemRow(newItem));
+          if (saveError) throw saveError;
+        });
+        await syncPendingCaptures(user.id);
       } catch {
         setSyncStatus('error');
       }
