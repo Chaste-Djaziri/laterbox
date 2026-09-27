@@ -99,6 +99,12 @@ class WebAttachmentImportService {
 
     final itemId = _newId();
     final normalizedText = text?.trim();
+    final parsedUrl = normalizedText == null ? null : Uri.tryParse(normalizedText);
+    final itemUrl = parsedUrl != null &&
+            parsedUrl.hasScheme &&
+            parsedUrl.host.isNotEmpty
+        ? parsedUrl.toString()
+        : null;
     final rows = attachments
         .map((row) => row.copyWith(itemId: Value(itemId)))
         .toList();
@@ -107,6 +113,7 @@ class WebAttachmentImportService {
         ItemsCompanion.insert(
           id: itemId,
           userId: Value(userId),
+          url: Value(itemUrl),
           title: Value(path.basenameWithoutExtension(files.first.name)),
           textContent: Value(
             normalizedText == null || normalizedText.isEmpty

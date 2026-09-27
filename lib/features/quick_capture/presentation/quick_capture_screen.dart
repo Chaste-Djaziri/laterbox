@@ -9,6 +9,7 @@ import '../../../core/desktop/quick_capture_controller.dart';
 import '../../attachments/data/attachment_file_picker.dart';
 import '../../attachments/presentation/attachment_providers.dart';
 import 'quick_capture_field.dart';
+import 'macos_quick_capture_field.dart';
 import 'quick_capture_success.dart';
 
 /// Full-window widget shown while quick capture is active.
@@ -27,6 +28,7 @@ class _QuickCaptureScreenState extends ConsumerState<QuickCaptureScreen> {
   final List<PickedAttachmentFile> _selectedFiles = [];
   bool _didInitializePrefill = false;
   bool _isSavingAttachments = false;
+  DateTime? _returnAt;
 
   @override
   void initState() {
@@ -128,6 +130,7 @@ class _QuickCaptureScreenState extends ConsumerState<QuickCaptureScreen> {
                         .whereType<String>()
                         .toList(),
                     text: value,
+                    returnAt: _returnAt,
                   );
         if (!mounted) return;
         if (!result.saved) {
@@ -139,7 +142,10 @@ class _QuickCaptureScreenState extends ConsumerState<QuickCaptureScreen> {
         return;
       }
 
-      await ref.read(quickCaptureControllerProvider).saveValue(value);
+      await ref.read(quickCaptureControllerProvider).saveValue(
+        value,
+        returnAt: _returnAt,
+      );
       debugPrint('[LaterBox QuickCapture] saved');
       await ref.read(desktopActionsProvider).finishQuickCapture();
     } catch (error, stackTrace) {
@@ -172,17 +178,30 @@ class _QuickCaptureScreenState extends ConsumerState<QuickCaptureScreen> {
         autofocus: true,
         child: switch (controller.status) {
           QuickCaptureStatus.success => const QuickCaptureSuccess(),
-          QuickCaptureStatus.active ||
-          QuickCaptureStatus.saving => QuickCaptureField(
-            controller: _textController,
-            sourceLabel: sourceApplication,
-            selectedFiles: _selectedFiles,
-            onChanged: controller.updateDraft,
-            onSave: _submit,
-            onPickAttachments: _pickAttachments,
-            onRemoveAttachment: _removeAttachment,
-            isSaving: isSaving,
-          ),
+          QuickCaptureStatus.active || QuickCaptureStatus.saving =>
+            defaultTargetPlatform == TargetPlatform.macOS
+                ? MacosQuickCaptureField(
+                    controller: _textController,
+                    sourceLabel: sourceApplication,
+                    selectedFiles: _selectedFiles,
+                    returnAt: _returnAt,
+                    onChanged: controller.updateDraft,
+                    onSave: _submit,
+                    onPickAttachments: _pickAttachments,
+                    onRemoveAttachment: _removeAttachment,
+                    onReturnAtChanged: (value) => setState(() => _returnAt = value),
+                    isSaving: isSaving,
+                  )
+                : QuickCaptureField(
+                    controller: _textController,
+                    sourceLabel: sourceApplication,
+                    selectedFiles: _selectedFiles,
+                    onChanged: controller.updateDraft,
+                    onSave: _submit,
+                    onPickAttachments: _pickAttachments,
+                    onRemoveAttachment: _removeAttachment,
+                    isSaving: isSaving,
+                  ),
           QuickCaptureStatus.idle => const SizedBox.shrink(),
         },
       ),

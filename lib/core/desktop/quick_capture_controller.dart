@@ -123,7 +123,7 @@ class QuickCaptureController extends ChangeNotifier {
 
   /// Saves an explicit value through the shared capture pipeline, then shows a
   /// brief success state before returning to idle.
-  Future<void> saveValue(String value) async {
+  Future<void> saveValue(String value, {DateTime? returnAt}) async {
     if (_disposed) return;
     final trimmed = value.trim();
     if (trimmed.isEmpty) {
@@ -140,6 +140,7 @@ class QuickCaptureController extends ChangeNotifier {
       await _captureService.save(
         CapturePayload.fromValue(
           trimmed,
+          returnAt: returnAt,
           source: CaptureSource.desktopQuickCapture,
         ),
       );

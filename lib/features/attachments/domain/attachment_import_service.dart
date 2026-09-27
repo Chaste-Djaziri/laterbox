@@ -115,6 +115,12 @@ class AttachmentImportService {
     final resolvedItemId = itemId ?? _newId();
     final createdAt = _now();
     final normalizedText = text?.trim();
+    final parsedUrl = normalizedText == null ? null : Uri.tryParse(normalizedText);
+    final itemUrl = parsedUrl != null &&
+            parsedUrl.hasScheme &&
+            parsedUrl.host.isNotEmpty
+        ? parsedUrl.toString()
+        : null;
     try {
       await _repository.saveItemWithAttachments(
         itemId: resolvedItemId,
@@ -125,6 +131,7 @@ class AttachmentImportService {
         textContent: normalizedText == null || normalizedText.isEmpty
             ? null
             : normalizedText,
+        url: itemUrl,
         createdAt: createdAt,
         returnAt: returnAt,
         attachments: stored,

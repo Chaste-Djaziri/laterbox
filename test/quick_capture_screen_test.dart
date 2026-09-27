@@ -1,4 +1,5 @@
 import 'package:drift/native.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -94,6 +95,37 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(find.text('Selected from Safari'), findsOneWidget);
     expect(find.byType(TextField), findsOneWidget);
+  });
+
+  testWidgets('uses the staged desktop capture flow on macOS', (tester) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.macOS;
+    addTearDown(() => debugDefaultTargetPlatformOverride = null);
+    final database = AppDatabase(NativeDatabase.memory());
+    addTearDown(database.close);
+    final desktop = _FakeDesktopService();
+    final container = ProviderContainer(overrides: [
+      desktopServiceProvider.overrideWithValue(desktop),
+      quickCaptureControllerProvider.overrideWith(
+        (ref) => QuickCaptureController(
+          desktopService: desktop,
+          clipboardService: const _FakeClipboardService(),
+          captureService: _captureService(database),
+        ),
+      ),
+    ]);
+    addTearDown(container.dispose);
+    await container.read(quickCaptureControllerProvider).open();
+
+    await tester.pumpWidget(UncontrolledProviderScope(
+      container: container,
+      child: const MaterialApp(home: Material(child: QuickCaptureScreen())),
+    ));
+    await tester.pump();
+
+    expect(find.text('Add to LaterBox'), findsOneWidget);
+    expect(find.text('Schedule'), findsOneWidget);
+    expect(find.text('Details'), findsOneWidget);
+    debugDefaultTargetPlatformOverride = null;
   });
 }
 
