@@ -21,6 +21,11 @@ import {
   Layers,
   ChevronRight,
   ExternalLink,
+  Sun,
+  Sunrise,
+  Calendar,
+  Archive,
+  Lightbulb,
 } from 'lucide-react';
 
 interface AiOrganizeModalProps {
@@ -141,18 +146,43 @@ export function AiOrganizeModal({
     );
   };
 
-  const getScheduleLabel = (sched: string) => {
+  const renderScheduleBadge = (sched: string) => {
     switch (sched) {
       case 'today':
-        return '☀️ Later Today';
+        return (
+          <span className="inline-flex items-center gap-1.5">
+            <Sun className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+            <span>Later Today</span>
+          </span>
+        );
       case 'tomorrow':
-        return '🌅 Tomorrow 09:00 AM';
+        return (
+          <span className="inline-flex items-center gap-1.5">
+            <Sunrise className="w-3.5 h-3.5 text-orange-500 shrink-0" />
+            <span>Tomorrow 09:00 AM</span>
+          </span>
+        );
       case 'weekend':
-        return '📅 This Weekend';
+        return (
+          <span className="inline-flex items-center gap-1.5">
+            <Calendar className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+            <span>This Weekend</span>
+          </span>
+        );
       case 'someday':
-        return '📦 Someday Vault';
+        return (
+          <span className="inline-flex items-center gap-1.5">
+            <Archive className="w-3.5 h-3.5 text-neutral-500 shrink-0" />
+            <span>Someday Vault</span>
+          </span>
+        );
       default:
-        return 'Schedule Return';
+        return (
+          <span className="inline-flex items-center gap-1.5">
+            <Clock className="w-3.5 h-3.5 text-neutral-500 shrink-0" />
+            <span>Schedule Return</span>
+          </span>
+        );
     }
   };
 
@@ -238,7 +268,7 @@ export function AiOrganizeModal({
             {allApplied ? (
               <>
                 <Check className="w-3.5 h-3.5" />
-                <span>All Applied ✓</span>
+                <span>All Applied</span>
               </>
             ) : applyingAll ? (
               <>
@@ -363,12 +393,19 @@ export function AiOrganizeModal({
                               : 'text-[#171711] hover:underline'
                           }`}
                         >
-                          {isCollectionApplied ? '✓ Added' : '+ Add'}
+                          {isCollectionApplied ? (
+                            <span className="inline-flex items-center gap-1">
+                              <Check className="w-3 h-3" />
+                              <span>Added</span>
+                            </span>
+                          ) : (
+                            '+ Add'
+                          )}
                         </button>
                       </div>
                       <div className="flex items-center gap-2 text-xs font-bold text-[#171711]">
-                        <span className="w-5 h-5 rounded-md bg-[#e6edb0] flex items-center justify-center text-[10px]">
-                          📁
+                        <span className="w-5 h-5 rounded-md bg-[#e6edb0] flex items-center justify-center text-[#171711]">
+                          <Folder className="w-3 h-3" />
                         </span>
                         <span className="truncate">{suggestion.collection}</span>
                       </div>
@@ -391,7 +428,14 @@ export function AiOrganizeModal({
                               : 'text-[#171711] hover:underline'
                           }`}
                         >
-                          {isNoteApplied ? '✓ Saved' : '+ Save Note'}
+                          {isNoteApplied ? (
+                            <span className="inline-flex items-center gap-1">
+                              <Check className="w-3 h-3" />
+                              <span>Saved</span>
+                            </span>
+                          ) : (
+                            '+ Save Note'
+                          )}
                         </button>
                       </div>
                       <p className="text-xs text-[#171711] font-medium leading-snug">
@@ -416,19 +460,27 @@ export function AiOrganizeModal({
                               : 'text-[#171711] hover:underline'
                           }`}
                         >
-                          {isScheduleApplied ? '✓ Scheduled' : 'Schedule'}
+                          {isScheduleApplied ? (
+                            <span className="inline-flex items-center gap-1">
+                              <Check className="w-3 h-3" />
+                              <span>Scheduled</span>
+                            </span>
+                          ) : (
+                            'Schedule'
+                          )}
                         </button>
                       </div>
-                      <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white border border-[#e4e0d5] text-xs font-bold text-[#171711]">
-                        <span>{getScheduleLabel(suggestion.recommendedSchedule)}</span>
+                      <div className="inline-flex items-center px-2.5 py-1 rounded-lg bg-white border border-[#e4e0d5] text-xs font-bold text-[#171711]">
+                        {renderScheduleBadge(suggestion.recommendedSchedule)}
                       </div>
                     </div>
                   </div>
 
                   {/* Reasoning Footer */}
                   {suggestion.reasoning && (
-                    <div className="mt-3 pt-2 text-[11px] text-[#8e8d87] italic">
-                      💡 {suggestion.reasoning}
+                    <div className="mt-3 pt-2 text-[11px] text-[#8e8d87] italic flex items-center gap-1.5">
+                      <Lightbulb className="w-3.5 h-3.5 text-amber-500 shrink-0 not-italic" />
+                      <span>{suggestion.reasoning}</span>
                     </div>
                   )}
                 </div>
