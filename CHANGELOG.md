@@ -14,6 +14,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 
 ### Added
 - **[macOS] Desktop capture flow**: Quick Capture now uses a macOS-specific staged capture interface while mobile retains its compact capture UI. Saved links are queued for metadata enrichment and attachment captures preserve their local metadata.
+- **[macOS] Add Item modal**: The standard Save Item action now opens the same staged, centered desktop modal pattern as the web app instead of the compact chat composer.
 - **[Shared] Platform release contract**: Future releases record affected platforms, customer-visible changes, migrations, known limitations, and verification evidence so Windows, mobile, web, and extensions can follow the same capability contract.
 
 ### Changed
