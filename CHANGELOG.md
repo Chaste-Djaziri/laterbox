@@ -6,6 +6,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 
 ### Release readiness
 - **[macOS] Paid MVP release baseline**: Mac App Store is the first paid distribution channel. LaterBox Pro is offered through StoreKit at $3.99/month or $39.99/year, each with a 14-day trial. The release scope includes every advertised macOS integration and requires verified capture recovery, permissions, notifications, sync, purchases, and restores before shipment.
+- **[macOS] System Status**: Settings now provides a single readiness view for Mac integrations, permissions, sync, notifications, and StoreKit billing, with retry guidance and copyable diagnostics.
 - **[Shared] Platform release contract**: Future releases record affected platforms, customer-visible changes, migrations, known limitations, and verification evidence so Windows, mobile, web, and extensions can follow the same capability contract.
 
 ### Changed
