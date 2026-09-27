@@ -16,6 +16,7 @@ on:
         options:
           - macos
           - ios
+          - web
           - all
       tag_name:
         description: 'Release tag name (e.g. v1.0.0)'
@@ -100,6 +101,9 @@ jobs:
             elif [ "$DISPATCH_TARGET" = "ios" ]; then
               TARGET_IOS=true
               echo "Manual dispatch targeting iOS only for v$VERSION."
+            elif [ "$DISPATCH_TARGET" = "web" ]; then
+              TARGET_WEB=true
+              echo "Manual dispatch targeting web only for v$VERSION."
             else
               select_all_targets
               echo "Manual dispatch targeting all platforms for v$VERSION."
@@ -179,6 +183,14 @@ jobs:
             TARGET_IOS=true
             emit_outputs true
             echo "Explicit [ios-only] override for v$VERSION."
+            exit 0
+          fi
+
+          if [[ "$HEAD_MSG" == *"[web-only]"* ]] || echo "$LAST_COMMIT_MSG" | grep -qiE '\[web-only\]' || \
+             [[ "$HEAD_MSG" == *"[web-deploy]"* ]] || echo "$LAST_COMMIT_MSG" | grep -qiE '\[web-deploy\]'; then
+            TARGET_WEB=true
+            emit_outputs true
+            echo "Explicit [web-only] override for v$VERSION."
             exit 0
           fi
 
