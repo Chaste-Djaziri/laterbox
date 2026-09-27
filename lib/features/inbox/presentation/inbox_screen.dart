@@ -487,10 +487,10 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
                                   ),
                                   gridDelegate:
                                       const SliverGridDelegateWithMaxCrossAxisExtent(
-                                        maxCrossAxisExtent: 340,
-                                        mainAxisSpacing: 18,
-                                        crossAxisSpacing: 18,
-                                        childAspectRatio: 0.70,
+                                        maxCrossAxisExtent: 330,
+                                        mainAxisSpacing: 14,
+                                        crossAxisSpacing: 14,
+                                        childAspectRatio: 1.18,
                                       ),
                                 ),
                               )
@@ -517,12 +517,21 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
                                   16,
                                   104,
                                 ),
-                                sliver: SliverList.separated(
-                                  itemCount: itemList.length,
-                                  separatorBuilder: (context, index) =>
-                                      const SizedBox(height: 14),
-                                  itemBuilder: (context, index) =>
-                                      ItemCard(item: itemList[index]),
+                                sliver: SliverGrid(
+                                  delegate: SliverChildBuilderDelegate(
+                                    (context, index) => ItemCard(
+                                      item: itemList[index],
+                                      isGrid: true,
+                                    ),
+                                    childCount: itemList.length,
+                                  ),
+                                  gridDelegate:
+                                      const SliverGridDelegateWithMaxCrossAxisExtent(
+                                        maxCrossAxisExtent: 330,
+                                        mainAxisSpacing: 12,
+                                        crossAxisSpacing: 12,
+                                        childAspectRatio: 1.18,
+                                      ),
                                 ),
                               )
                             : SliverPadding(
