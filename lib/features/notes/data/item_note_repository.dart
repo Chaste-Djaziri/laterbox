@@ -23,6 +23,10 @@ class ItemNoteRepository {
     return _local.watchNote(itemId, _userId);
   }
 
+  Future<ItemNote?> noteById(String itemId) {
+    return _local.noteById(itemId);
+  }
+
   /// Saves a note. A blank note is deleted (tombstoned) instead, so an empty
   /// editor can never resurrect content on another device.
   Future<void> save(String itemId, String content) async {
