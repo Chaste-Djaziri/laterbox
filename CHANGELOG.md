@@ -10,6 +10,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 - **[Shared] Platform release contract**: Future releases record affected platforms, customer-visible changes, migrations, known limitations, and verification evidence so Windows, mobile, web, and extensions can follow the same capability contract.
 
 ### Changed
+- **macOS Companion Notch — Reduce Top Shoulder Curves**: Reduced the top-left and top-right shoulder curves on the native macOS companion notch from an oversized 34pt flare down to a subtle 4pt curve with tight 6pt depth, giving the expanded notch a clean, sleek, native appearance that aligns cleanly with the MacBook display bezel.
 - **Fix macOS Build — SafariExtension Linker Flags & Module Resolution**: Isolated `SafariExtension` from inheriting CocoaPods linker flags by explicitly clearing `OTHER_LDFLAGS = ""` in `macos/Runner.xcodeproj/project.pbxproj`, preventing extensions from attempting to link Flutter and Firebase frameworks. Resolved Clang module dependency scanning conflicts by enforcing CocoaPods over Swift Package Manager for macOS plugins.
 - **iOS TestFlight Build 170**: Incremented the iOS bundle build number so the App Group-enabled release can be uploaded after build 169.
 - **iOS-Only Release Trigger**: Release commits marked `[ios-only]` now build and submit only the iOS app, making TestFlight fixes faster without rebuilding unrelated platforms.

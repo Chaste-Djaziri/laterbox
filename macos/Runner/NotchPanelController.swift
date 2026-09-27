@@ -137,14 +137,14 @@ final class NotchPanelView: NSView {
       : collapsedBodyPath()
     body.fill()
     guard controller.isExpanded else { return }
-    let card = NSRect(x: 48, y: 54, width: bounds.width - 96, height: bounds.height - controller.compactHeight - 48)
+    let card = NSRect(x: 22, y: 54, width: bounds.width - 44, height: bounds.height - controller.compactHeight - 48)
     drawContent(controller, card: card)
   }
 
   private func collapsedBodyPath() -> NSBezierPath {
     let path = NSBezierPath()
     let r = controller?.compactRadius ?? 12
-    let topR: CGFloat = 3
+    let topR: CGFloat = 2.5
     let w = bounds.width, h = bounds.height
     path.move(to: NSPoint(x: topR, y: h))
     path.line(to: NSPoint(x: w - topR, y: h))
@@ -162,16 +162,16 @@ final class NotchPanelView: NSView {
   private func expandedBodyPath(notchHeight: CGFloat) -> NSBezierPath {
     let path = NSBezierPath()
     let bottomRadius: CGFloat = 22
-    let bodyInset: CGFloat = 34
-    let shoulderDepth = max(notchHeight + 30, 68)
+    let bodyInset: CGFloat = 4
+    let shoulderDepth: CGFloat = 6
     let shoulderBottom = bounds.height - shoulderDepth
 
     path.move(to: NSPoint(x: 0, y: bounds.height))
     path.line(to: NSPoint(x: bounds.width, y: bounds.height))
     path.curve(
       to: NSPoint(x: bounds.width - bodyInset, y: shoulderBottom),
-      controlPoint1: NSPoint(x: bounds.width - 1, y: bounds.height),
-      controlPoint2: NSPoint(x: bounds.width - bodyInset, y: bounds.height - 1)
+      controlPoint1: NSPoint(x: bounds.width - bodyInset * 0.4, y: bounds.height),
+      controlPoint2: NSPoint(x: bounds.width - bodyInset, y: bounds.height - shoulderDepth * 0.4)
     )
     path.line(to: NSPoint(x: bounds.width - bodyInset, y: bottomRadius))
     path.curve(
@@ -188,8 +188,8 @@ final class NotchPanelView: NSView {
     path.line(to: NSPoint(x: bodyInset, y: shoulderBottom))
     path.curve(
       to: NSPoint(x: 0, y: bounds.height),
-      controlPoint1: NSPoint(x: bodyInset, y: bounds.height - 1),
-      controlPoint2: NSPoint(x: 1, y: bounds.height)
+      controlPoint1: NSPoint(x: bodyInset, y: bounds.height - shoulderDepth * 0.4),
+      controlPoint2: NSPoint(x: bodyInset * 0.4, y: bounds.height)
     )
     path.close()
     return path
@@ -228,11 +228,11 @@ final class NotchPanelView: NSView {
     let attrs: [NSAttributedString.Key: Any] = [.foregroundColor: accent ? NSColor.black : NSColor.white, .font: NSFont.systemFont(ofSize: 11.5, weight: .semibold)]
     let size = title.size(withAttributes: attrs); title.draw(at: NSPoint(x: rect.midX - size.width / 2, y: rect.midY - size.height / 2), withAttributes: attrs)
   }
-  private var primary: NSRect { NSRect(x: 48, y: 14, width: 110, height: 30) }
-  private var secondary: NSRect { NSRect(x: 166, y: 14, width: 82, height: 30) }
-  private var copy: NSRect { NSRect(x: 166, y: 14, width: 58, height: 30) }
-  private var remove: NSRect { NSRect(x: 232, y: 14, width: 68, height: 30) }
-  private var open: NSRect { NSRect(x: bounds.width - 110, y: 14, width: 62, height: 30) }
+  private var primary: NSRect { NSRect(x: 22, y: 14, width: 110, height: 30) }
+  private var secondary: NSRect { NSRect(x: 140, y: 14, width: 82, height: 30) }
+  private var copy: NSRect { NSRect(x: 140, y: 14, width: 58, height: 30) }
+  private var remove: NSRect { NSRect(x: 206, y: 14, width: 68, height: 30) }
+  private var open: NSRect { NSRect(x: bounds.width - 84, y: 14, width: 62, height: 30) }
 }
 
 final class NotchPanelController {
