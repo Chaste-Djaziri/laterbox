@@ -140,6 +140,10 @@ final class NotchPanelView: NSView {
   override func draw(_ dirtyRect: NSRect) {
     super.draw(dirtyRect)
     guard let controller else { return }
+    // Keep the companion entirely invisible while idle. The borderless panel
+    // remains available for its compact hover and drag target, but it must not
+    // introduce a second fake notch on either notched or external displays.
+    guard controller.isExpanded || controller.isShowingClipboardReceipt else { return }
     NSColor.black.setFill()
     let body = controller.isExpanded
       ? expandedBodyPath(notchHeight: controller.compactHeight)
