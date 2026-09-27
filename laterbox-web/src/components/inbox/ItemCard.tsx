@@ -6,6 +6,7 @@ import { LaterBoxItem } from '@/lib/supabase/types';
 import { useItems } from '@/lib/store/ItemContext';
 import { formatTimeAgo, extractDomain, buildTextFragmentUrl } from '@/lib/utils/url';
 import { PortalMenu } from '@/components/ui/PortalMenu';
+import { getMusicSource, MusicSourceIcon, musicSourceLabel } from '@/components/music/MusicSource';
 import {
   Star,
   Check,
@@ -58,7 +59,8 @@ export function ItemCard({ item }: ItemCardProps) {
   const isPsd = ext === 'psd' || item.metadata?.content_type === 'design' || title.toLowerCase().endsWith('.psd');
   const isPdf = ext === 'pdf' || item.metadata?.content_type === 'document' || title.toLowerCase().endsWith('.pdf');
   const isVideo = item.type === 'video' || item.metadata?.content_type === 'video' || (item.url && (item.url.includes('youtube.com') || item.url.includes('youtu.be') || item.url.includes('vimeo.com')));
-  const isMusic = item.type === 'music' || item.metadata?.content_type === 'music' || (item.url && (item.url.includes('spotify.com') || item.url.includes('soundcloud.com') || item.url.includes('lyricarw.com')));
+  const musicSource = getMusicSource(item.url);
+  const isMusic = item.type === 'music' || item.metadata?.content_type === 'music' || musicSource !== 'music';
   const isNote = item.type === 'note' || item.metadata?.content_type === 'note' || (!item.url && !primaryAttachment && item.text_content);
   const isArticle = item.type === 'article' || item.metadata?.content_type === 'article' || (domain && (domain.includes('notion.so') || domain.includes('medium.com')));
 
@@ -171,8 +173,8 @@ export function ItemCard({ item }: ItemCardProps) {
               </div>
             )}
             <div className="absolute top-2.5 right-2.5 px-2.5 py-0.5 rounded-full bg-black/60 backdrop-blur-md text-white text-[10px] font-semibold flex items-center gap-1 shadow-sm">
-              <Music2 className="w-2.5 h-2.5" />
-              <span>Music</span>
+              <MusicSourceIcon source={musicSource} className="w-2.5 h-2.5" />
+              <span>{musicSourceLabel(musicSource)}</span>
             </div>
             <button
               type="button"
@@ -294,10 +296,8 @@ export function ItemCard({ item }: ItemCardProps) {
                 </>
               ) : isMusic ? (
                 <>
-                  <svg className="w-3.5 h-3.5 text-[#1ed760]" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.498 17.306c-.217.355-.678.47-1.033.253-2.83-1.73-6.393-2.12-10.592-1.16-.407.094-.813-.16-.906-.566-.094-.407.16-.813.566-.906 4.604-1.052 8.547-.611 11.712 1.346.355.217.47.678.253 1.033zm1.467-3.266c-.273.444-.855.586-1.299.313-3.24-1.992-8.18-2.568-12.012-1.405-.497.151-1.025-.136-1.176-.633-.151-.497.136-1.025.633-1.176 4.39-1.332 9.83-.687 13.54 1.597.444.273.587.855.314 1.304zm.126-3.41c-3.885-2.307-10.29-2.52-14.004-1.392-.596.182-1.229-.16-1.411-.756-.182-.596.16-1.229.756-1.411 4.267-1.295 11.334-1.047 15.792 1.6 4.09 2.427 1.488 4.708.867 4.959z"/>
-                  </svg>
-                  <span>Spotify • {timeAgo}</span>
+                  <MusicSourceIcon source={musicSource} className="w-3.5 h-3.5 text-[#1ed760]" />
+                  <span>{musicSourceLabel(musicSource)} • {timeAgo}</span>
                 </>
               ) : isArticle ? (
                 <>

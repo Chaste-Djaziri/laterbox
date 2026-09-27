@@ -4,6 +4,7 @@ import React, { use, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { MediaEmbed } from '@/components/item/MediaEmbed';
+import { getMusicSource, MusicSourceIcon, musicSourceLabel } from '@/components/music/MusicSource';
 import { NoteEditor } from '@/components/item/NoteEditor';
 import { AddToCollectionModal } from '@/components/collections/AddToCollectionModal';
 import { ReturnTimePicker } from '@/components/scheduling/ReturnTimePicker';
@@ -264,7 +265,8 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
   const isPsd = ext === 'psd' || item.metadata?.content_type === 'design' || title.toLowerCase().endsWith('.psd');
   const isPdf = ext === 'pdf' || item.metadata?.content_type === 'document' || title.toLowerCase().endsWith('.pdf');
   const isVideo = item.type === 'video' || item.metadata?.content_type === 'video' || (item.url && (item.url.includes('youtube.com') || item.url.includes('youtu.be') || item.url.includes('vimeo.com')));
-  const isMusic = item.type === 'music' || item.metadata?.content_type === 'music' || (item.url && (item.url.includes('spotify.com') || item.url.includes('soundcloud.com') || item.url.includes('lyricarw.com')));
+  const musicSource = getMusicSource(item.url);
+  const isMusic = item.type === 'music' || item.metadata?.content_type === 'music' || musicSource !== 'music';
   const isLyrica = !!(item.url && item.url.includes('lyricarw.com'));
   const isNote = item.type === 'note' || item.metadata?.content_type === 'note' || (!item.url && !primaryAttachment && item.text_content);
   const isArticle = item.type === 'article' || item.metadata?.content_type === 'article' || (domain && (domain.includes('notion.so') || domain.includes('medium.com')));
@@ -516,8 +518,8 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
               )}
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/30" />
               <div className={`absolute top-4 right-4 px-3 py-1 rounded-full backdrop-blur-md text-white text-xs font-semibold flex items-center gap-1.5 shadow-sm ${isLyrica ? 'bg-purple-600/80' : 'bg-black/60'}`}>
-                <Music2 className="w-3 h-3" />
-                <span>{isLyrica ? 'Lyrica' : '♪ Music'}</span>
+                <MusicSourceIcon source={musicSource} className="w-3 h-3" />
+                <span>{musicSourceLabel(musicSource)}</span>
               </div>
               {/* Floating Circular Play Button */}
               <div className="absolute inset-0 flex items-center justify-center">
@@ -763,8 +765,8 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
               <div className="flex items-center gap-2 text-xs font-semibold text-[#6c6b63]">
                 {isMusic ? (
                   <div className="flex items-center gap-1.5 text-[#1db954]">
-                    <Music2 className="w-4 h-4" />
-                    <span className="font-bold">Spotify</span>
+                    <MusicSourceIcon source={musicSource} className="w-4 h-4" />
+                    <span className="font-bold">{musicSourceLabel(musicSource)}</span>
                   </div>
                 ) : isVideo ? (
                   <div className="flex items-center gap-1.5 text-[#ea4335]">
@@ -809,7 +811,7 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
                 >
                   <span>
                     {isMusic
-                      ? 'Open in Spotify'
+                      ? `Open in ${musicSourceLabel(musicSource)}`
                       : isVideo
                       ? 'Watch on YouTube'
                       : isArticle
