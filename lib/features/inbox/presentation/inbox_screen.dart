@@ -17,6 +17,9 @@ import '../../../shared/widgets/item_card.dart';
 import '../../../shared/widgets/item_list_row.dart';
 import '../../../shared/widgets/view_mode_toggle.dart';
 import '../../capture/presentation/capture_sheet.dart';
+import '../../collections/presentation/collection_providers.dart';
+import '../../notes/presentation/item_note_providers.dart';
+import '../../scheduling/domain/return_schedule.dart';
 import 'inbox_providers.dart';
 
 class InboxScreen extends ConsumerStatefulWidget {
@@ -102,12 +105,31 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
   }
 
   void _openAiOrganizeSheet(BuildContext context, List<LaterBoxItem> items) {
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => _AiOrganizeModalSheet(items: items),
-    );
+    final isDesktop = MediaQuery.of(context).size.width >= 700;
+    if (isDesktop) {
+      showDialog<void>(
+        context: context,
+        barrierDismissible: true,
+        builder: (context) => Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 680, maxHeight: 820),
+            child: _AiOrganizeModal(items: items),
+          ),
+        ),
+      );
+    } else {
+      showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (context) => FractionallySizedBox(
+          heightFactor: 0.90,
+          child: _AiOrganizeModal(items: items),
+        ),
+      );
+    }
   }
 
   Widget _buildMenuButton(
@@ -1367,121 +1389,858 @@ class _AiOrganizeCard extends StatelessWidget {
 // =========================================================================
 // AI Organize Bottom Sheet (Beta)
 // =========================================================================
-class _AiOrganizeModalSheet extends StatelessWidget {
-  const _AiOrganizeModalSheet({required this.items});
+class _AiOrganizeModal extends ConsumerStatefulWidget {
+  const _AiOrganizeModal({required this.items});
 
   final List<LaterBoxItem> items;
 
   @override
+  ConsumerState<_AiOrganizeModal> createState() => _AiOrganizeModalState();
+}
+
+class _SuggestionPlan {
+  const _SuggestionPlan({
+    required this.collectionName,
+    required this.collectionIcon,
+    required this.nextStep,
+    required this.schedule,
+    required this.scheduleLabel,
+    required this.scheduleIcon,
+    required this.tags,
+    required this.reasoning,
+  });
+
+  final String collectionName;
+  final IconData collectionIcon;
+  final String nextStep;
+  final ReturnPreset schedule;
+  final String scheduleLabel;
+  final IconData scheduleIcon;
+  final List<String> tags;
+  final String reasoning;
+}
+
+class _AiOrganizeModalState extends ConsumerState<_AiOrganizeModal> {
+  final Set<String> _appliedCollections = {};
+  final Set<String> _appliedNotes = {};
+  final Set<String> _appliedSchedules = {};
+  final Set<String> _appliedItems = {};
+  bool _isApplyingAll = false;
+
+  _SuggestionPlan _getPlanForItem(LaterBoxItem item) {
+    final url = (item.url ?? '').toLowerCase();
+    final type = item.type.toLowerCase();
+    final classificationType =
+        item.metadata?.classification?.type.name.toLowerCase() ?? '';
+
+    String collectionName;
+    IconData collectionIcon;
+    String nextStep;
+    ReturnPreset schedule = ReturnPreset.tomorrow;
+    String scheduleLabel = 'Tomorrow 09:00 AM';
+    IconData scheduleIcon = Icons.wb_twilight_rounded;
+    List<String> tags;
+    String reasoning;
+
+    if (url.contains('youtube.com') ||
+        url.contains('youtu.be') ||
+        url.contains('vimeo.com') ||
+        type == 'video') {
+      collectionName = 'Watch Later';
+      collectionIcon = Icons.play_circle_outline_rounded;
+      nextStep = 'Watch and extract key insights & timestamps';
+      schedule = ReturnPreset.weekend;
+      scheduleLabel = 'This Weekend';
+      scheduleIcon = Icons.calendar_today_rounded;
+      tags = const ['#video', '#watchlater', '#deepdive'];
+      reasoning = 'Identified video media format; recommended for weekend focus.';
+    } else if (url.contains('github.com') ||
+        url.contains('gitlab.com') ||
+        type == 'code') {
+      collectionName = 'Developer & Code';
+      collectionIcon = Icons.code_rounded;
+      nextStep = 'Review repository architecture and test locally';
+      schedule = ReturnPreset.laterToday;
+      scheduleLabel = 'Later Today';
+      scheduleIcon = Icons.wb_sunny_outlined;
+      tags = const ['#dev', '#code', '#open-source'];
+      reasoning = 'Code repository detected; schedule for today\'s dev sprint.';
+    } else if (url.contains('spotify.com') ||
+        url.contains('soundcloud.com') ||
+        type == 'music') {
+      collectionName = 'Audio & Music';
+      collectionIcon = Icons.music_note_rounded;
+      nextStep = 'Listen and add favorites to your curated playlist';
+      schedule = ReturnPreset.someday;
+      scheduleLabel = 'Someday Vault';
+      scheduleIcon = Icons.inventory_2_outlined;
+      tags = const ['#audio', '#music', '#discovery'];
+      reasoning = 'Audio stream detected; cataloged into music library.';
+    } else if (url.contains('figma.com') ||
+        url.contains('dribbble.com') ||
+        url.contains('behance.com') ||
+        type == 'image') {
+      collectionName = 'Design Vault';
+      collectionIcon = Icons.palette_outlined;
+      nextStep = 'Inspect design system patterns and UX aesthetics';
+      schedule = ReturnPreset.tomorrow;
+      scheduleLabel = 'Tomorrow 09:00 AM';
+      scheduleIcon = Icons.wb_twilight_rounded;
+      tags = const ['#design', '#inspiration', '#ui-ux'];
+      reasoning = 'Visual design asset; suggested for UI reference vault.';
+    } else if (type == 'note' ||
+        (item.text != null &&
+            item.text!.isNotEmpty &&
+            (item.url == null || item.url!.isEmpty))) {
+      collectionName = 'Personal Notes';
+      collectionIcon = Icons.edit_note_rounded;
+      nextStep = 'Review thoughts and convert into actionable milestones';
+      schedule = ReturnPreset.laterToday;
+      scheduleLabel = 'Later Today';
+      scheduleIcon = Icons.wb_sunny_outlined;
+      tags = const ['#note', '#ideas', '#actionable'];
+      reasoning =
+          'Personal thought capture; recommended for today\'s organization.';
+    } else if (type == 'article' ||
+        classificationType == 'article' ||
+        url.contains('medium.com') ||
+        url.contains('substack.com')) {
+      collectionName = 'Reading List';
+      collectionIcon = Icons.menu_book_rounded;
+      nextStep = 'Read comprehensive piece and bookmark key concepts';
+      schedule = ReturnPreset.tomorrow;
+      scheduleLabel = 'Tomorrow 09:00 AM';
+      scheduleIcon = Icons.wb_twilight_rounded;
+      tags = const ['#reading', '#article', '#research'];
+      reasoning =
+          'Long-form editorial piece; queued for tomorrow morning reading.';
+    } else if (url.contains('amazon.') ||
+        url.contains('ebay.') ||
+        type == 'product') {
+      collectionName = 'Shopping Wishlist';
+      collectionIcon = Icons.shopping_bag_outlined;
+      nextStep = 'Evaluate specs, check reviews, and compare pricing';
+      schedule = ReturnPreset.weekend;
+      scheduleLabel = 'This Weekend';
+      scheduleIcon = Icons.calendar_today_rounded;
+      tags = const ['#product', '#wishlist', '#shopping'];
+      reasoning = 'Commerce item detected; scheduled for weekend decision.';
+    } else {
+      collectionName = 'Inbox Discoveries';
+      collectionIcon = Icons.folder_outlined;
+      nextStep = 'Review content and file into appropriate project';
+      schedule = ReturnPreset.tomorrow;
+      scheduleLabel = 'Tomorrow 09:00 AM';
+      scheduleIcon = Icons.wb_twilight_rounded;
+      tags = const ['#reference', '#inbox', '#to-review'];
+      reasoning =
+          'Classified based on inbound metadata and domain attributes.';
+    }
+
+    return _SuggestionPlan(
+      collectionName: collectionName,
+      collectionIcon: collectionIcon,
+      nextStep: nextStep,
+      schedule: schedule,
+      scheduleLabel: scheduleLabel,
+      scheduleIcon: scheduleIcon,
+      tags: tags,
+      reasoning: reasoning,
+    );
+  }
+
+  Future<void> _applyCollection(LaterBoxItem item, String collectionName) async {
+    try {
+      final collections = ref.read(collectionsProvider).valueOrNull ?? [];
+      final existing = collections
+          .where(
+            (c) =>
+                c.name.trim().toLowerCase() ==
+                collectionName.trim().toLowerCase(),
+          )
+          .firstOrNull;
+      final String colId;
+      if (existing != null) {
+        colId = existing.id;
+      } else {
+        colId = await ref
+            .read(collectionRepositoryProvider)
+            .create(collectionName.trim());
+      }
+      await ref.read(collectionRepositoryProvider).addItem(colId, item.id);
+      if (mounted) {
+        setState(() {
+          _appliedCollections.add(item.id);
+          if (_appliedNotes.contains(item.id) &&
+              _appliedSchedules.contains(item.id)) {
+            _appliedItems.add(item.id);
+          }
+        });
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _applyNextStep(LaterBoxItem item, String nextStep) async {
+    try {
+      final existingNote =
+          await ref.read(itemNoteRepositoryProvider).noteById(item.id);
+      final currentContent = existingNote?.content.trim() ?? '';
+      final newContent = currentContent.isEmpty
+          ? '• Next step: $nextStep'
+          : '$currentContent\n\n• Next step: $nextStep';
+      await ref.read(itemNoteRepositoryProvider).save(item.id, newContent);
+      if (mounted) {
+        setState(() {
+          _appliedNotes.add(item.id);
+          if (_appliedCollections.contains(item.id) &&
+              _appliedSchedules.contains(item.id)) {
+            _appliedItems.add(item.id);
+          }
+        });
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _applySchedule(LaterBoxItem item, ReturnPreset preset) async {
+    try {
+      final returnAt = resolveReturnPreset(preset, DateTime.now());
+      await ref.read(itemRepositoryProvider).reschedule(item.id, returnAt);
+      if (mounted) {
+        setState(() {
+          _appliedSchedules.add(item.id);
+          if (_appliedCollections.contains(item.id) &&
+              _appliedNotes.contains(item.id)) {
+            _appliedItems.add(item.id);
+          }
+        });
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _applyItem(LaterBoxItem item, _SuggestionPlan plan) async {
+    await _applyCollection(item, plan.collectionName);
+    await _applyNextStep(item, plan.nextStep);
+    await _applySchedule(item, plan.schedule);
+    if (mounted) {
+      setState(() => _appliedItems.add(item.id));
+    }
+  }
+
+  Future<void> _applyAll() async {
+    if (_isApplyingAll || widget.items.isEmpty) return;
+    setState(() => _isApplyingAll = true);
+    try {
+      for (final item in widget.items) {
+        final plan = _getPlanForItem(item);
+        await _applyItem(item, plan);
+      }
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(
+                  Icons.check_circle_rounded,
+                  color: Color(0xFF27C93F),
+                  size: 18,
+                ),
+                const SizedBox(width: 8),
+                Text('All ${widget.items.length} AI suggestions applied!'),
+              ],
+            ),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isApplyingAll = false);
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-
-    // Group items into suggested collections
-    final videoItems = items.where((i) => i.type == 'video' || (i.url ?? '').contains('youtube')).toList();
-    final articleItems = items.where((i) => i.type == 'article' || (i.metadata?.classification?.type.name == 'article')).toList();
-    final noteItems = items.where((i) => i.type == 'note' || (i.text != null && i.text!.isNotEmpty)).toList();
+    final isDark = theme.brightness == Brightness.dark;
+    final allApplied =
+        widget.items.isNotEmpty &&
+        widget.items.every((item) => _appliedItems.contains(item.id));
 
     return Container(
-      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: isDark ? const Color(0xFF333333) : const Color(0xFFE4E0D5),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.15),
+            blurRadius: 24,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
-      child: SafeArea(
-        top: false,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
         child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Row(
-                  children: [
-                    Icon(
+            // Modal Header
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              child: Row(
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFEF3C7),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(
                       Icons.auto_awesome_rounded,
                       size: 20,
                       color: Color(0xFFCA8A04),
                     ),
-                    SizedBox(width: 8),
-                    Text(
-                      'AI Organize Suggestions',
-                      style: TextStyle(
-                        fontSize: 18,
+                  ),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Row(
+                      children: [
+                        Text(
+                          'AI Inbox Organizer',
+                          style: TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -0.3,
+                          ),
+                        ),
+                        SizedBox(width: 8),
+                        _BadgePill(
+                          label: 'Beta',
+                          backgroundColor: Color(0xFFE6EDB0),
+                          textColor: Color(0xFF171711),
+                        ),
+                        SizedBox(width: 6),
+                        _BadgePill(
+                          label: 'Gemini 2.5 Flash',
+                          backgroundColor: Color(0xFFE8F5E9),
+                          textColor: Color(0xFF2E7D32),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close_rounded, size: 20),
+                    onPressed: () => Navigator.of(context).pop(),
+                    tooltip: 'Close',
+                  ),
+                ],
+              ),
+            ),
+            const Divider(height: 1, thickness: 1, color: Color(0xFFE4E0D5)),
+
+            // Summary & Apply All Bar
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              color: isDark ? const Color(0xFF252525) : const Color(0xFFF7F5EE),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Smart suggestions for collections, next steps, and return schedules.',
+                          style: TextStyle(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w500,
+                            color: isDark
+                                ? Colors.white70
+                                : const Color(0xFF6C6B63),
+                          ),
+                        ),
+                        if (widget.items.isNotEmpty) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            '${_appliedItems.length} of ${widget.items.length} items organized',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: isDark
+                                  ? Colors.white54
+                                  : const Color(0xFF9E9B92),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  FilledButton.icon(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: allApplied
+                          ? const Color(0xFFE6EDB0)
+                          : const Color(0xFF171711),
+                      foregroundColor: allApplied
+                          ? const Color(0xFF171711)
+                          : Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 10,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    onPressed: allApplied ||
+                            _isApplyingAll ||
+                            widget.items.isEmpty
+                        ? null
+                        : _applyAll,
+                    icon: _isApplyingAll
+                        ? const SizedBox(
+                            width: 14,
+                            height: 14,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : Icon(
+                            allApplied
+                                ? Icons.check_rounded
+                                : Icons.auto_awesome_rounded,
+                            size: 14,
+                            color: allApplied
+                                ? const Color(0xFF171711)
+                                : const Color(0xFFE6EDB0),
+                          ),
+                    label: Text(
+                      allApplied ? 'All Applied' : 'Apply All',
+                      style: const TextStyle(
+                        fontSize: 12,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
-                  ],
-                ),
-                IconButton(
-                  icon: const Icon(Icons.close_rounded),
-                  onPressed: () => Navigator.of(context).pop(),
-                ),
-              ],
-            ),
-            const SizedBox(height: 6),
-            Text(
-              'Gemini analyzed ${items.length} items in your inbox and generated smart recommendations:',
-              style: TextStyle(
-                fontSize: 13,
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: 16),
-            if (videoItems.isNotEmpty)
-              _SuggestionTile(
-                title: 'Watch Later Collection',
-                subtitle: '${videoItems.length} videos found to organize',
-                tags: const ['#video', '#watchlater', '#talks'],
-                icon: Icons.video_library_rounded,
-              ),
-            if (articleItems.isNotEmpty)
-              _SuggestionTile(
-                title: 'Reading List Collection',
-                subtitle: '${articleItems.length} articles and long-reads found',
-                tags: const ['#reading', '#article', '#research'],
-                icon: Icons.article_rounded,
-              ),
-            if (noteItems.isNotEmpty)
-              _SuggestionTile(
-                title: 'Personal Notes & Snippets',
-                subtitle: '${noteItems.length} quick notes to organize',
-                tags: const ['#quicknote', '#ideas', '#draft'],
-                icon: Icons.note_alt_rounded,
-              ),
-            if (items.isEmpty)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 20),
-                child: Center(
-                  child: Text('Your inbox is empty. Save items to see AI suggestions!'),
-                ),
-              ),
-            const SizedBox(height: 20),
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton.icon(
-                style: FilledButton.styleFrom(
-                  backgroundColor: const Color(0xFFE6EDB0),
-                  foregroundColor: const Color(0xFF171711),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
                   ),
-                ),
-                onPressed: () {
-                  Navigator.of(context).pop();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('AI recommendations noted for inbox!'),
-                      behavior: SnackBarBehavior.floating,
+                ],
+              ),
+            ),
+            const Divider(height: 1, thickness: 1, color: Color(0xFFE4E0D5)),
+
+            // Scrollable Item Recommendations List
+            Expanded(
+              child: widget.items.isEmpty
+                  ? Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(32),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 56,
+                              height: 56,
+                              decoration: BoxDecoration(
+                                color: isDark
+                                    ? const Color(0xFF2C2C2C)
+                                    : const Color(0xFFF7F5EE),
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              child: const Icon(
+                                Icons.auto_awesome_rounded,
+                                size: 28,
+                                color: Color(0xFFCA8A04),
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            const Text(
+                              'Your inbox is all organized!',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              'Save items to LaterBox to generate smart AI categorization and action plans.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  : ListView.separated(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: widget.items.length,
+                      separatorBuilder: (_, _) => const SizedBox(height: 14),
+                      itemBuilder: (context, index) {
+                        final item = widget.items[index];
+                        final plan = _getPlanForItem(item);
+                        final isColApplied =
+                            _appliedCollections.contains(item.id);
+                        final isNoteApplied = _appliedNotes.contains(item.id);
+                        final isSchedApplied =
+                            _appliedSchedules.contains(item.id);
+                        final isItemApplied = _appliedItems.contains(item.id);
+
+                        final rawTitle = item.metadata?.title ??
+                            item.title ??
+                            item.url ??
+                            'Untitled item';
+                        final domain = item.metadata?.domain ??
+                            (item.url != null
+                                ? Uri.tryParse(item.url!)?.host
+                                : null) ??
+                            '';
+
+                        return Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: isDark
+                                ? const Color(0xFF181818)
+                                : Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: isDark
+                                  ? const Color(0xFF2D2D2D)
+                                  : const Color(0xFFEBE7DC),
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Top item metadata & individual apply button
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 3,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: isDark
+                                          ? const Color(0xFF2A2A2A)
+                                          : const Color(0xFFEBE7DC),
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          plan.collectionIcon,
+                                          size: 11,
+                                          color: isDark
+                                              ? Colors.white70
+                                              : const Color(0xFF6C6B63),
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          item.type.toUpperCase(),
+                                          style: TextStyle(
+                                            fontSize: 9.5,
+                                            fontWeight: FontWeight.w800,
+                                            color: isDark
+                                              ? Colors.white70
+                                              : const Color(0xFF6C6B63),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  if (domain.isNotEmpty) ...[
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        domain,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600,
+                                          color: isDark
+                                              ? Colors.white54
+                                              : const Color(0xFF9E9B92),
+                                        ),
+                                      ),
+                                    ),
+                                  ] else
+                                    const Spacer(),
+                                  const SizedBox(width: 8),
+                                  InkWell(
+                                    onTap: isItemApplied
+                                        ? null
+                                        : () => _applyItem(item, plan),
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 4,
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          if (isItemApplied)
+                                            const Icon(
+                                              Icons.check_rounded,
+                                              size: 13,
+                                              color: Color(0xFF27C93F),
+                                            )
+                                          else
+                                            const Icon(
+                                              Icons.auto_awesome_rounded,
+                                              size: 13,
+                                              color: Color(0xFF171711),
+                                            ),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            isItemApplied
+                                                ? 'Applied'
+                                                : 'Apply Item',
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w800,
+                                              color: isItemApplied
+                                                  ? const Color(0xFF27C93F)
+                                                  : (isDark
+                                                      ? Colors.white
+                                                      : const Color(0xFF171711)),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+
+                              // Item Title
+                              Text(
+                                rawTitle,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 13.5,
+                                  fontWeight: FontWeight.w800,
+                                  height: 1.25,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+
+                              // Tags
+                              Wrap(
+                                spacing: 6,
+                                runSpacing: 4,
+                                children: plan.tags.map((tag) {
+                                  return Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 6,
+                                      vertical: 2,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: isDark
+                                          ? const Color(0xFF242424)
+                                          : const Color(0xFFF7F5EE),
+                                      borderRadius: BorderRadius.circular(6),
+                                      border: Border.all(
+                                        color: isDark
+                                            ? const Color(0xFF333333)
+                                            : const Color(0xFFE4E0D5),
+                                      ),
+                                    ),
+                                    child: Text(
+                                      tag,
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w600,
+                                        color: isDark
+                                            ? Colors.white70
+                                            : const Color(0xFF6C6B63),
+                                      ),
+                                    ),
+                                  );
+                                }).toList(),
+                              ),
+                              const SizedBox(height: 12),
+
+                              // 3 Sub-Blocks
+                              // 1. Collection
+                              _OrganizeSubBlock(
+                                icon: Icons.folder_outlined,
+                                label: 'COLLECTION',
+                                actionLabel: isColApplied ? 'Added' : '+ Add',
+                                isApplied: isColApplied,
+                                onAction: () => _applyCollection(
+                                  item,
+                                  plan.collectionName,
+                                ),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      width: 22,
+                                      height: 22,
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFE6EDB0),
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: const Icon(
+                                        Icons.folder_rounded,
+                                        size: 13,
+                                        color: Color(0xFF171711),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        plan.collectionName,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+
+                              // 2. Next Step
+                              _OrganizeSubBlock(
+                                icon: Icons.auto_awesome_rounded,
+                                iconColor: const Color(0xFFCA8A04),
+                                label: 'ACTIONABLE NEXT STEP',
+                                actionLabel:
+                                    isNoteApplied ? 'Saved' : '+ Save Note',
+                                isApplied: isNoteApplied,
+                                onAction: () =>
+                                    _applyNextStep(item, plan.nextStep),
+                                child: Text(
+                                  plan.nextStep,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w500,
+                                    color: isDark
+                                        ? Colors.white
+                                        : const Color(0xFF171711),
+                                    height: 1.3,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+
+                              // 3. Recommended Schedule
+                              _OrganizeSubBlock(
+                                icon: Icons.schedule_rounded,
+                                label: 'RECOMMENDED RETURN',
+                                actionLabel:
+                                    isSchedApplied ? 'Scheduled' : 'Schedule',
+                                isApplied: isSchedApplied,
+                                onAction: () =>
+                                    _applySchedule(item, plan.schedule),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: isDark
+                                        ? const Color(0xFF252525)
+                                        : Colors.white,
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(
+                                      color: isDark
+                                          ? const Color(0xFF383838)
+                                          : const Color(0xFFE4E0D5),
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        plan.scheduleIcon,
+                                        size: 13,
+                                        color: isDark
+                                            ? Colors.white70
+                                            : const Color(0xFF6C6B63),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        plan.scheduleLabel,
+                                        style: const TextStyle(
+                                          fontSize: 11.5,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+
+                              // Reasoning Footer
+                              if (plan.reasoning.isNotEmpty) ...[
+                                const SizedBox(height: 10),
+                                Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Icon(
+                                      Icons.lightbulb_outline_rounded,
+                                      size: 13,
+                                      color: Color(0xFFCA8A04),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Expanded(
+                                      child: Text(
+                                        plan.reasoning,
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          fontStyle: FontStyle.italic,
+                                          color: isDark
+                                              ? Colors.white54
+                                              : const Color(0xFF8E8D87),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ],
+                          ),
+                        );
+                      },
                     ),
-                  );
-                },
-                icon: const Icon(Icons.auto_awesome_rounded, size: 16),
-                label: const Text(
-                  'Apply Suggestions',
-                  style: TextStyle(fontWeight: FontWeight.w800),
-                ),
+            ),
+
+            // Modal Footer (Web Parity)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              color: isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF7F5EE),
+              child: const Row(
+                children: [
+                  DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: Color(0xFF27C93F),
+                      shape: BoxShape.circle,
+                    ),
+                    child: SizedBox(width: 7, height: 7),
+                  ),
+                  SizedBox(width: 8),
+                  Text(
+                    'Google Gemini Intelligence • Private Local Execution',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF6C6B63),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -1491,89 +2250,135 @@ class _AiOrganizeModalSheet extends StatelessWidget {
   }
 }
 
-class _SuggestionTile extends StatelessWidget {
-  const _SuggestionTile({
-    required this.title,
-    required this.subtitle,
-    required this.tags,
+class _OrganizeSubBlock extends StatelessWidget {
+  const _OrganizeSubBlock({
     required this.icon,
+    this.iconColor,
+    required this.label,
+    required this.actionLabel,
+    required this.isApplied,
+    required this.onAction,
+    required this.child,
   });
 
-  final String title;
-  final String subtitle;
-  final List<String> tags;
   final IconData icon;
+  final Color? iconColor;
+  final String label;
+  final String actionLabel;
+  final bool isApplied;
+  final VoidCallback onAction;
+  final Widget child;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHigh.withValues(alpha: 0.5),
+        color: isDark ? const Color(0xFF222222) : const Color(0xFFFAF8F5),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
+          color: isDark
+              ? const Color(0xFF2F2F2F)
+              : const Color(0xFFE4E0D5).withValues(alpha: 0.6),
         ),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surface,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(icon, size: 20, color: theme.colorScheme.primary),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    icon,
+                    size: 12,
+                    color: iconColor ??
+                        (isDark ? Colors.white54 : const Color(0xFF9E9B92)),
                   ),
-                ),
-                Text(
-                  subtitle,
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: theme.colorScheme.onSurfaceVariant,
+                  const SizedBox(width: 5),
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 9.5,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 0.3,
+                      color: isDark ? Colors.white54 : const Color(0xFF9E9B92),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 6),
-                Wrap(
-                  spacing: 6,
-                  children: tags.map((t) {
-                    return Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 1.5,
-                      ),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.surface,
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        t,
-                        style: const TextStyle(
+                ],
+              ),
+              InkWell(
+                onTap: isApplied ? null : onAction,
+                borderRadius: BorderRadius.circular(6),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (isApplied) ...[
+                        const Icon(
+                          Icons.check_rounded,
+                          size: 11,
+                          color: Color(0xFF27C93F),
+                        ),
+                        const SizedBox(width: 3),
+                      ],
+                      Text(
+                        actionLabel,
+                        style: TextStyle(
                           fontSize: 10,
-                          fontWeight: FontWeight.w600,
+                          fontWeight: FontWeight.w800,
+                          color: isApplied
+                              ? const Color(0xFF27C93F)
+                              : (isDark
+                                  ? Colors.white
+                                  : const Color(0xFF171711)),
                         ),
                       ),
-                    );
-                  }).toList(),
+                    ],
+                  ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
+          const SizedBox(height: 6),
+          child,
         ],
+      ),
+    );
+  }
+}
+
+class _BadgePill extends StatelessWidget {
+  const _BadgePill({
+    required this.label,
+    required this.backgroundColor,
+    required this.textColor,
+  });
+
+  final String label;
+  final Color backgroundColor;
+  final Color textColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.w800,
+          color: textColor,
+        ),
       ),
     );
   }
