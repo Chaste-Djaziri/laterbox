@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -130,6 +131,13 @@ class HomeShell extends ConsumerWidget {
           : bodyContent,
       bottomNavigationBar: isDesktop
           ? null
+          : _isIOS(context)
+          ? _IOSBottomNavigation(
+              selectedIndex: _iosNavigationIndex(effectiveIndex),
+              inboxCount: inboxCount,
+              onDestinationSelected: (index) =>
+                  handleDestinationSelected(const [0, 1, 2, 5, 6][index]),
+            )
           : Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -190,6 +198,87 @@ class HomeShell extends ConsumerWidget {
                     child: const Icon(Icons.add_rounded, size: 32),
                   ))
           : null,
+    );
+  }
+}
+
+int _iosNavigationIndex(int routeIndex) {
+  if (routeIndex >= 2 && routeIndex <= 4) return 2;
+  if (routeIndex == 5) return 3;
+  if (routeIndex == 6) return 4;
+  return routeIndex == 1 ? 1 : 0;
+}
+
+class _IOSBottomNavigation extends StatelessWidget {
+  const _IOSBottomNavigation({
+    required this.selectedIndex,
+    required this.inboxCount,
+    required this.onDestinationSelected,
+  });
+
+  final int selectedIndex;
+  final int inboxCount;
+  final ValueChanged<int> onDestinationSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final surface = isDark ? const Color(0xFF161614) : const Color(0xFFF7F5EE);
+    final active = isDark ? const Color(0xFFD7FF27) : const Color(0xFF171711);
+    final inactive = isDark ? const Color(0xFFA09E95) : const Color(0xFF6C6B63);
+
+    return CupertinoTabBar(
+      currentIndex: selectedIndex,
+      onTap: onDestinationSelected,
+      backgroundColor: surface.withValues(alpha: 0.96),
+      activeColor: active,
+      inactiveColor: inactive,
+      border: Border(top: BorderSide(color: inactive.withValues(alpha: 0.18))),
+      items: [
+        const BottomNavigationBarItem(
+          icon: Icon(CupertinoIcons.house),
+          activeIcon: Icon(CupertinoIcons.house_fill),
+          label: 'Home',
+        ),
+        BottomNavigationBarItem(
+          icon: _IOSInboxIcon(count: inboxCount, filled: false),
+          activeIcon: _IOSInboxIcon(count: inboxCount, filled: true),
+          label: 'Inbox',
+        ),
+        const BottomNavigationBarItem(
+          icon: Icon(CupertinoIcons.calendar),
+          activeIcon: Icon(CupertinoIcons.calendar_today),
+          label: 'Returns',
+        ),
+        const BottomNavigationBarItem(
+          icon: Icon(CupertinoIcons.book),
+          activeIcon: Icon(CupertinoIcons.book_fill),
+          label: 'Library',
+        ),
+        const BottomNavigationBarItem(
+          icon: Icon(CupertinoIcons.gear),
+          activeIcon: Icon(CupertinoIcons.gear_solid),
+          label: 'Settings',
+        ),
+      ],
+    );
+  }
+}
+
+class _IOSInboxIcon extends StatelessWidget {
+  const _IOSInboxIcon({required this.count, required this.filled});
+
+  final int count;
+  final bool filled;
+
+  @override
+  Widget build(BuildContext context) {
+    if (count == 0) {
+      return Icon(filled ? CupertinoIcons.tray_fill : CupertinoIcons.tray);
+    }
+    return Badge(
+      label: Text('$count'),
+      child: Icon(filled ? CupertinoIcons.tray_fill : CupertinoIcons.tray),
     );
   }
 }
