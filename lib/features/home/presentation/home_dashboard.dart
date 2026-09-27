@@ -21,13 +21,22 @@ Future<void> openDashboardCapture(
   BuildContext context, {
   bool browseFiles = false,
   List<PickedAttachmentFile> files = const [],
-}) => showModalBottomSheet<void>(
-  context: context,
-  isScrollControlled: true,
-  useSafeArea: true,
-  backgroundColor: Colors.transparent,
-  builder: (_) => CaptureSheet(browseFiles: browseFiles, initialFiles: files),
-);
+}) {
+  if (!kIsWeb && defaultTargetPlatform == TargetPlatform.macOS) {
+    return showDialog<void>(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.65),
+      builder: (_) => CaptureSheet(browseFiles: browseFiles, initialFiles: files),
+    );
+  }
+  return showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    useSafeArea: true,
+    backgroundColor: Colors.transparent,
+    builder: (_) => CaptureSheet(browseFiles: browseFiles, initialFiles: files),
+  );
+}
 
 class HomeDashboard extends ConsumerStatefulWidget {
   const HomeDashboard({super.key});
@@ -873,5 +882,4 @@ void showDisplayNamePrompt(BuildContext context, WidgetRef ref) {
     ),
   );
 }
-
 

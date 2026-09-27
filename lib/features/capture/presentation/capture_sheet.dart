@@ -71,6 +71,7 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
   final List<PickedAttachmentFile> _selectedFiles = [];
   List<AttachmentImportFailure> _fileFailures = const [];
   bool _saving = false;
+  int _desktopStep = 0;
 
   final Map<String, UrlPreviewItem> _urlPreviews = {};
   final Set<String> _dismissedUrls = {};
@@ -400,6 +401,11 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
     }
   }
 
+  void _removeFile(int index) {
+    if (index < 0 || index >= _selectedFiles.length) return;
+    setState(() => _selectedFiles.removeAt(index));
+  }
+
   bool _isImageFile(String name) {
     final ext = name.split('.').last.toLowerCase();
     return const {
@@ -688,8 +694,100 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
     }
   }
 
+  Widget _buildMacDesktopModal(BuildContext context) {
+    final theme = Theme.of(context);
+    final canSave = !_saving &&
+        (_controller.text.trim().isNotEmpty || _selectedFiles.isNotEmpty);
+    const steps = ['1. Capture', '2. Schedule', '3. Details'];
+    return Dialog(
+      insetPadding: const EdgeInsets.all(40),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 850, maxHeight: 680),
+        child: Column(children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(28, 22, 18, 18),
+            child: Row(children: [
+              ...List.generate(steps.length, (index) => Padding(
+                padding: const EdgeInsets.only(right: 10),
+                child: ChoiceChip(
+                  label: Text(steps[index]),
+                  selected: _desktopStep == index,
+                  onSelected: _saving ? null : (_) => setState(() => _desktopStep = index),
+                ),
+              )),
+              const Spacer(),
+              IconButton(onPressed: _saving ? null : () => Navigator.of(context).pop(), icon: const Icon(Icons.close_rounded)),
+            ]),
+          ),
+          const Divider(height: 1),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.all(36),
+              child: switch (_desktopStep) {
+                0 => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text('What do you want to deal with later?', style: theme.textTheme.titleMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+                  const SizedBox(height: 14),
+                  Expanded(child: TextField(
+                    controller: _controller,
+                    focusNode: _focusNode,
+                    autofocus: true,
+                    enabled: !_saving,
+                    maxLines: null,
+                    expands: true,
+                    style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w600),
+                    decoration: const InputDecoration(hintText: 'Paste a link, note, task, or drop files…', border: InputBorder.none),
+                  )),
+                  const Divider(),
+                  Row(children: [
+                    for (final kind in const {'link': 'Link', 'file': 'File', 'task': 'Task', 'idea': 'Idea'}.entries)
+                      Padding(padding: const EdgeInsets.only(right: 8), child: ChoiceChip(label: Text(kind.value), selected: _captureKind == kind.key, onSelected: _saving ? null : (_) { setState(() => _captureKind = kind.key); if (kind.key == 'file') _chooseFiles(); })),
+                    const Spacer(),
+                    OutlinedButton.icon(onPressed: _saving ? null : _chooseFiles, icon: const Icon(Icons.attach_file_rounded), label: const Text('Attach file')),
+                  ]),
+                ]),
+                1 => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text('Choose when LaterBox should bring this back.', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 18),
+                  ReturnTimePicker(value: _returnAt, onChanged: (value) { if (!_saving) setState(() => _returnAt = value); }),
+                ]),
+                _ => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text('Details and attachments', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 12),
+                  if (_selectedFiles.isEmpty) const Text('No files attached. Add files to keep them with this item.'),
+                  for (var i = 0; i < _selectedFiles.length; i++) ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(Icons.insert_drive_file_outlined),
+                    title: Text(_selectedFiles[i].name),
+                    trailing: IconButton(onPressed: _saving ? null : () => _removeFile(i), icon: const Icon(Icons.close_rounded)),
+                  ),
+                  OutlinedButton.icon(onPressed: _saving ? null : _chooseFiles, icon: const Icon(Icons.attach_file_rounded), label: const Text('Attach file')),
+                ]),
+              },
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 18),
+            decoration: BoxDecoration(color: theme.colorScheme.surfaceContainerLowest, border: Border(top: BorderSide(color: theme.dividerColor))),
+            child: Row(children: [
+              Text('Press ⌘+Enter to save', style: theme.textTheme.labelMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+              const Spacer(),
+              if (_desktopStep > 0) TextButton(onPressed: () => setState(() => _desktopStep--), child: const Text('Back')),
+              if (_desktopStep < 2) OutlinedButton(onPressed: () => setState(() => _desktopStep++), child: Text(_desktopStep == 0 ? 'Schedule →' : 'Details →')),
+              const SizedBox(width: 12),
+              FilledButton(onPressed: canSave ? _save : null, child: Text(_saving ? 'Saving…' : 'Save to LaterBox')),
+            ]),
+          ),
+        ]),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.macOS) {
+      return _buildMacDesktopModal(context);
+    }
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final keyboardHeight = MediaQuery.viewInsetsOf(context).bottom;

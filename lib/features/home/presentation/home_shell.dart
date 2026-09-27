@@ -47,6 +47,13 @@ class HomeShell extends ConsumerWidget {
   ];
 
   Future<void> _openCapture(BuildContext context) {
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.macOS) {
+      return showDialog<void>(
+        context: context,
+        barrierColor: Colors.black.withValues(alpha: 0.65),
+        builder: (_) => const CaptureSheet(),
+      );
+    }
     return showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
