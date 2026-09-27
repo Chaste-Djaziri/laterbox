@@ -28,7 +28,7 @@ import {
 type LibraryTab = 'collections' | 'starred' | 'saved' | 'archived';
 
 export default function LibraryPage() {
-  const { starredItems, savedItems, archivedItems, collections, createCollection, deleteCollection } = useItems();
+  const { items, starredItems, savedItems, archivedItems, collections, createCollection, deleteCollection } = useItems();
   const [activeTab, setActiveTab] = useState<LibraryTab>('collections');
   const [newColName, setNewColName] = useState('');
   const [showColModal, setShowColModal] = useState(false);
@@ -234,9 +234,13 @@ export default function LibraryPage() {
                     className="p-6 rounded-3xl bg-white border border-[#e4e0d5] hover:border-[#171711] hover:shadow-xs transition-all flex flex-col justify-between group"
                   >
                     <div className="flex items-center justify-between mb-4">
-                      <div className="w-10 h-10 rounded-2xl bg-[#e6edb0] border border-[#d0db84] flex items-center justify-center text-[#171711]">
+                      <Link
+                        href={`/library/${col.id}`}
+                        className="w-10 h-10 rounded-2xl bg-[#e6edb0] border border-[#d0db84] flex items-center justify-center text-[#171711] hover:scale-105 transition-transform"
+                        title={`Open ${col.name}`}
+                      >
                         <Folder className="w-5 h-5" />
-                      </div>
+                      </Link>
                       <button
                         onClick={() => deleteCollection(col.id)}
                         className="p-2 text-[#9e9b92] hover:text-red-600 rounded-xl hover:bg-red-50 transition-colors cursor-pointer opacity-80 group-hover:opacity-100"
@@ -246,10 +250,12 @@ export default function LibraryPage() {
                       </button>
                     </div>
 
-                    <div>
+                    <Link href={`/library/${col.id}`} className="block hover:opacity-80 transition-opacity">
                       <h3 className="text-base font-black text-[#171711]">{col.name}</h3>
-                      <p className="text-xs text-[#9e9b92] mt-1 font-semibold">Saved Collection</p>
-                    </div>
+                      <p className="text-xs text-[#9e9b92] mt-1 font-semibold">
+                        {items.filter((i) => !i.deleted_at && i.collections?.some((c) => c.id === col.id)).length} items · Tap to view
+                      </p>
+                    </Link>
                   </div>
                 ))}
               </div>
