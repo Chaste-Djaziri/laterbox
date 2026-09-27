@@ -263,13 +263,17 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
 
   const isPsd = ext === 'psd' || item.metadata?.content_type === 'design' || title.toLowerCase().endsWith('.psd');
   const isPdf = ext === 'pdf' || item.metadata?.content_type === 'document' || title.toLowerCase().endsWith('.pdf');
-  const isVideo = item.type === 'video' || item.metadata?.content_type === 'video' || (item.url && item.url.includes('youtube.com'));
-  const isMusic = item.type === 'music' || item.metadata?.content_type === 'music' || (item.url && item.url.includes('spotify.com'));
+  const isVideo = item.type === 'video' || item.metadata?.content_type === 'video' || (item.url && (item.url.includes('youtube.com') || item.url.includes('youtu.be') || item.url.includes('vimeo.com')));
+  const isMusic = item.type === 'music' || item.metadata?.content_type === 'music' || (item.url && (item.url.includes('spotify.com') || item.url.includes('soundcloud.com') || item.url.includes('lyricarw.com')));
+  const isLyrica = !!(item.url && item.url.includes('lyricarw.com'));
   const isNote = item.type === 'note' || item.metadata?.content_type === 'note' || (!item.url && !primaryAttachment && item.text_content);
   const isArticle = item.type === 'article' || item.metadata?.content_type === 'article' || (domain && (domain.includes('notion.so') || domain.includes('medium.com')));
 
-  // Structured tags parsing
+  // Structured tags + embed info parsing
   let tags: string[] = [];
+  let storedEmbedProvider: string | null = null;
+  let storedEmbedUrl: string | null = null;
+  let storedEmbedHeight: number | null = null;
   if (item.metadata?.structured_data) {
     try {
       const data =
@@ -277,6 +281,9 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
           ? JSON.parse(item.metadata.structured_data)
           : item.metadata.structured_data;
       if (Array.isArray(data?.tags)) tags = data.tags;
+      if (data?.embedProvider) storedEmbedProvider = data.embedProvider;
+      if (data?.embedUrl) storedEmbedUrl = data.embedUrl;
+      if (data?.embedHeight) storedEmbedHeight = data.embedHeight;
     } catch (_) {}
   }
   if (tags.length === 0) {
@@ -497,7 +504,7 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
             </div>
           ) : isMusic ? (
             /* FORMAT 4: Music / Audio with Artwork & Floating Play Button */
-            <div className="relative w-full h-52 sm:h-72 bg-neutral-900 overflow-hidden border-b border-[#e4e0d5]">
+            <div className={`relative w-full h-52 sm:h-72 overflow-hidden border-b border-[#e4e0d5] ${isLyrica ? 'bg-purple-950' : 'bg-neutral-900'}`}>
               {previewImage && !imgError ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
@@ -506,19 +513,25 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
                   className="w-full h-full object-cover"
                   onError={() => setImgError(true)}
                 />
+              ) : isLyrica ? (
+                <div className="w-full h-full bg-gradient-to-br from-purple-900 via-violet-900 to-indigo-950 flex flex-col items-center justify-center gap-3">
+                  <Music2 className="w-12 h-12 text-purple-300" />
+                  <span className="px-3 py-1 rounded-full bg-purple-700/60 text-purple-200 text-xs font-black tracking-widest border border-purple-500/40">LYRICA</span>
+                </div>
               ) : (
                 <div className="w-full h-full bg-gradient-to-br from-emerald-900 to-teal-950 flex items-center justify-center">
                   <Music2 className="w-12 h-12 text-emerald-400" />
                 </div>
               )}
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/30" />
-              <div className="absolute top-4 right-4 px-3 py-1 rounded-full bg-black/60 backdrop-blur-md text-white text-xs font-semibold flex items-center gap-1.5 shadow-sm">
-                <span>♪ Music</span>
+              <div className={`absolute top-4 right-4 px-3 py-1 rounded-full backdrop-blur-md text-white text-xs font-semibold flex items-center gap-1.5 shadow-sm ${isLyrica ? 'bg-purple-600/80' : 'bg-black/60'}`}>
+                <Music2 className="w-3 h-3" />
+                <span>{isLyrica ? 'Lyrica' : '♪ Music'}</span>
               </div>
               {/* Floating Circular Play Button */}
               <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-14 h-14 rounded-full bg-white/95 text-[#171711] flex items-center justify-center shadow-xl hover:scale-105 transition-transform cursor-pointer pl-1">
-                  <Play className="w-6 h-6 fill-[#171711]" />
+                <div className={`w-14 h-14 rounded-full text-white flex items-center justify-center shadow-xl hover:scale-105 transition-transform cursor-pointer pl-1 ${isLyrica ? 'bg-purple-600/90' : 'bg-white/95 text-[#171711]'}`}>
+                  <Play className={`w-6 h-6 ${isLyrica ? 'fill-white' : 'fill-[#171711]'}`} />
                 </div>
               </div>
             </div>
@@ -696,7 +709,15 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
             )}
 
             {/* Media Embed for Videos or Music */}
-            {item.url && <MediaEmbed url={item.url} title={title} />}
+            {item.url && (
+              <MediaEmbed
+                url={item.url}
+                title={title}
+                embedProvider={storedEmbedProvider}
+                embedUrl={storedEmbedUrl}
+                embedHeight={storedEmbedHeight}
+              />
+            )}
 
             {/* Highlighted Quote Fragment */}
             {item.url && item.text_content && (
