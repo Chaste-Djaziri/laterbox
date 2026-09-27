@@ -10,6 +10,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 - **[Shared] Platform release contract**: Future releases record affected platforms, customer-visible changes, migrations, known limitations, and verification evidence so Windows, mobile, web, and extensions can follow the same capability contract.
 
 ### Changed
+- **Fix macOS Build — SafariExtension Linker Flags & Module Resolution**: Isolated `SafariExtension` from inheriting CocoaPods linker flags by explicitly clearing `OTHER_LDFLAGS = ""` in `macos/Runner.xcodeproj/project.pbxproj`, preventing extensions from attempting to link Flutter and Firebase frameworks. Resolved Clang module dependency scanning conflicts by enforcing CocoaPods over Swift Package Manager for macOS plugins.
 - **iOS TestFlight Build 170**: Incremented the iOS bundle build number so the App Group-enabled release can be uploaded after build 169.
 - **iOS-Only Release Trigger**: Release commits marked `[ios-only]` now build and submit only the iOS app, making TestFlight fixes faster without rebuilding unrelated platforms.
 - **Fix iOS Share Extension Release Signing**: iOS release builds can now be dispatched independently, allowing the app and Share Extension provisioning profiles to be validated and published together without triggering unrelated platform releases.
