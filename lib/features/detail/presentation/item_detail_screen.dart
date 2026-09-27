@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:timeago/timeago.dart' as timeago;
@@ -65,13 +66,12 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
         ),
         actions: [
           if (item != null) ...[
+            // 1. Star / Favorite
             IconButton(
               tooltip: item.favorite ? 'Remove from favorites' : 'Favorite',
               icon: Icon(
                 item.favorite ? Icons.star_rounded : Icons.star_border_rounded,
-                color: item.favorite
-                    ? Theme.of(context).colorScheme.primary
-                    : null,
+                color: item.favorite ? const Color(0xFFf59e0b) : null,
               ),
               onPressed: () {
                 ref
@@ -79,35 +79,220 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
                     .setFavorite(item.id, !item.favorite);
               },
             ),
-            IconButton(
-              tooltip: item.isArchived ? 'Mark as unseen' : 'Mark as seen',
-              icon: Icon(
-                item.isArchived
-                    ? Icons.mark_email_unread_outlined
-                    : Icons.check_circle_outline_rounded,
+
+            // 2. Keep / Done / Archive / Move to Inbox
+            _buildStatusActionButton(context, ref, item),
+
+            // 3. Add to Collection Button
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
+                  visualDensity: VisualDensity.compact,
+                  side: BorderSide(
+                    color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.8),
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                onPressed: () => showCollectionPicker(context, ref, item.id),
+                icon: const Icon(Icons.folder_outlined, size: 16, color: Color(0xFF0369a1)),
+                label: const Text(
+                  'Collections',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF0369a1),
+                  ),
+                ),
               ),
+            ),
+
+            // 4. Copy Link / Content
+            IconButton(
+              tooltip: item.url != null ? 'Copy link' : 'Copy text',
+              icon: const Icon(Icons.copy_rounded, size: 19),
               onPressed: () {
-                final repo = ref.read(itemRepositoryProvider);
-                if (item.isArchived) {
-                  repo.markUnseen(item.id);
-                } else {
-                  repo.markSeen(item.id);
-                }
+                final text = item.url ?? item.text ?? item.title ?? '';
+                Clipboard.setData(ClipboardData(text: text));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Copied to clipboard'),
+                    duration: Duration(seconds: 2),
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
               },
             ),
+
+            // 5. Open Source in external browser
+            if (item.url != null)
+              IconButton(
+                tooltip: 'Open in browser',
+                icon: const Icon(Icons.open_in_new_rounded, size: 19),
+                onPressed: () => openOriginalForItem(context, item),
+              ),
+
+            // 6. Delete Button
+            IconButton(
+              tooltip: 'Delete item',
+              icon: Icon(
+                Icons.delete_outline_rounded,
+                color: Theme.of(context).colorScheme.error,
+                size: 20,
+              ),
+              onPressed: () => _confirmDelete(context, ref, item),
+            ),
+
+            // 7. More Options
             IconButton(
               tooltip: 'More actions',
               onPressed: () => showItemActions(context, ref, item),
               icon: const Icon(Icons.more_horiz_rounded),
             ),
           ],
-          const SizedBox(width: 4),
+          const SizedBox(width: 8),
         ],
       ),
       body: item == null
           ? const Center(child: CircularProgressIndicator.adaptive())
           : _ItemDetailBody(item: item),
     );
+  }
+
+  Widget _buildStatusActionButton(
+    BuildContext context,
+    WidgetRef ref,
+    LaterBoxItem item,
+  ) {
+    final repo = ref.read(itemRepositoryProvider);
+
+    if (item.type == 'task' && item.isActive) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4),
+        child: FilledButton.tonalIcon(
+          style: FilledButton.styleFrom(
+            backgroundColor: const Color(0xFFe6edb0),
+            foregroundColor: const Color(0xFF171711),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
+            visualDensity: VisualDensity.compact,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+          onPressed: () => repo.archive(item.id),
+          icon: const Icon(Icons.task_alt, size: 15),
+          label: const Text(
+            'Done',
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+          ),
+        ),
+      );
+    }
+
+    if (item.status == ItemStatus.inbox || item.status == ItemStatus.deferred) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4),
+        child: FilledButton.tonalIcon(
+          style: FilledButton.styleFrom(
+            backgroundColor: const Color(0xFFe6edb0),
+            foregroundColor: const Color(0xFF171711),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
+            visualDensity: VisualDensity.compact,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+          onPressed: () => repo.keep(item.id),
+          icon: const Icon(Icons.check_circle_outline_rounded, size: 15),
+          label: const Text(
+            'Keep',
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+          ),
+        ),
+      );
+    }
+
+    if (item.status == ItemStatus.saved) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4),
+        child: OutlinedButton.icon(
+          style: OutlinedButton.styleFrom(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
+            visualDensity: VisualDensity.compact,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+          onPressed: () => repo.archive(item.id),
+          icon: const Icon(Icons.archive_outlined, size: 15),
+          label: const Text(
+            'Archive',
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+          ),
+        ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: FilledButton.tonalIcon(
+        style: FilledButton.styleFrom(
+          backgroundColor: const Color(0xFFe6edb0),
+          foregroundColor: const Color(0xFF171711),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
+          visualDensity: VisualDensity.compact,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+        onPressed: () => repo.markUnseen(item.id),
+        icon: const Icon(Icons.inbox_outlined, size: 15),
+        label: const Text(
+          'Inbox',
+          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _confirmDelete(
+    BuildContext context,
+    WidgetRef ref,
+    LaterBoxItem item,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete this item?'),
+        content: const Text('It will be moved to trash.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && mounted) {
+      await ref.read(itemRepositoryProvider).delete(item.id);
+      if (context.mounted) {
+        if (context.canPop()) {
+          context.pop();
+        } else {
+          context.go('/inbox');
+        }
+      }
+    }
   }
 }
 
@@ -1210,19 +1395,6 @@ class _ItemDetailBody extends ConsumerWidget {
           padding: const EdgeInsets.symmetric(horizontal: 12),
           child: Column(
             children: [
-              ListTile(
-                leading: const Icon(Icons.folder_outlined),
-                title: const Text('Collection'),
-                subtitle: Text(
-                  (collections?.isEmpty ?? true)
-                      ? 'Not in a collection'
-                      : collections!
-                            .map((collection) => collection.name)
-                            .join(', '),
-                ),
-                trailing: const Icon(Icons.chevron_right_rounded),
-                onTap: () => showCollectionPicker(context, ref, item.id),
-              ),
               ListTile(
                 leading: const Icon(Icons.schedule_rounded),
                 title: const Text('Saved'),
