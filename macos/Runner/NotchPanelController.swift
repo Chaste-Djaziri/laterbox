@@ -78,8 +78,13 @@ final class NotchPanelView: NSView {
   }
   override func mouseDown(with event: NSEvent) {
     guard let controller else { return }
-    if !controller.isExpanded { controller.revealClipboardPrompt(); return }
     let point = convert(event.locationInWindow, from: nil)
+    if !controller.isExpanded {
+      if compactSave.contains(point) { controller.performPrimaryAction(); return }
+      if compactCopy.contains(point) { controller.copyClipboardReceipt(); return }
+      controller.revealClipboardPrompt()
+      return
+    }
     if primary.contains(point) { controller.performPrimaryAction() }
     else if secondary.contains(point) { controller.dismissCurrentState() }
     else if copy.contains(point) { controller.copyLatestReceipt() }
@@ -120,7 +125,7 @@ final class NotchPanelView: NSView {
   override func accessibilityLabel() -> String? {
     guard let controller else { return "LaterBox notch" }
     switch controller.state {
-    case .clipboardReceipt(let item): return "LaterBox notch — copied \(item.kind.rawValue), \(item.title). Hover or press Enter to review and save."
+    case .clipboardReceipt(let item): return "LaterBox copied \(item.kind.rawValue), \(item.title). Save is on the left and Copy is on the right."
     case .clipboardPrompt(let item): return "LaterBox notch — copied \(item.kind.rawValue), \(item.title). Press Enter to save, Escape to dismiss."
     case .watchCandidate(let item): return "LaterBox notch — watch found \(item.kind.rawValue), \(item.title)"
     case .saving(let item): return "Saving \(item.title)"
@@ -138,7 +143,7 @@ final class NotchPanelView: NSView {
     NSColor.black.setFill()
     let body = controller.isExpanded
       ? expandedBodyPath(notchHeight: controller.compactHeight)
-      : collapsedBodyPath()
+      : controller.isShowingClipboardReceipt ? receiptBodyPath() : collapsedBodyPath()
     body.fill()
     guard controller.isExpanded else {
       drawCompactReceipt(controller)
@@ -150,17 +155,43 @@ final class NotchPanelView: NSView {
 
   private func drawCompactReceipt(_ controller: NotchPanelController) {
     guard case .clipboardReceipt(let item) = controller.state else { return }
-    let label = "COPIED \(item.kind.rawValue.uppercased())"
+    let accent = NSColor(red: 0.82, green: 0.98, blue: 0.18, alpha: 1)
+    let savePath = NSBezierPath(roundedRect: compactSave, xRadius: compactSave.height / 2, yRadius: compactSave.height / 2)
+    accent.setFill()
+    savePath.fill()
+    let saveAttributes: [NSAttributedString.Key: Any] = [
+      .foregroundColor: NSColor.black,
+      .font: NSFont.systemFont(ofSize: 12, weight: .bold),
+    ]
+    let saveTitle = "Save"
+    let saveSize = saveTitle.size(withAttributes: saveAttributes)
+    saveTitle.draw(at: NSPoint(x: compactSave.midX - saveSize.width / 2, y: compactSave.midY - saveSize.height / 2), withAttributes: saveAttributes)
+
+    let label = "Copied · \(item.kind.rawValue.capitalized)"
     let attrs: [NSAttributedString.Key: Any] = [
       .foregroundColor: NSColor.white.withAlphaComponent(0.9),
-      .font: NSFont.systemFont(ofSize: 10, weight: .bold),
-      .kern: 0.7,
+      .font: NSFont.systemFont(ofSize: 12, weight: .semibold),
     ]
     let size = label.size(withAttributes: attrs)
-    label.draw(
-      at: NSPoint(x: max(10, (bounds.width - size.width) / 2), y: max(7, (bounds.height - size.height) / 2)),
-      withAttributes: attrs
-    )
+    let labelX = max(compactSave.maxX + 14, (bounds.width - size.width) / 2)
+    label.draw(at: NSPoint(x: labelX, y: compactCopy.midY - size.height / 2), withAttributes: attrs)
+
+    let copyPath = NSBezierPath(roundedRect: compactCopy, xRadius: compactCopy.height / 2, yRadius: compactCopy.height / 2)
+    NSColor.white.withAlphaComponent(0.14).setFill()
+    copyPath.fill()
+    drawCopyIcon(in: compactCopy.insetBy(dx: 8, dy: 8))
+  }
+
+  private func drawCopyIcon(in rect: NSRect) {
+    let back = NSBezierPath(roundedRect: NSRect(x: rect.minX + 2, y: rect.minY + 3, width: rect.width - 3, height: rect.height - 3), xRadius: 1.5, yRadius: 1.5)
+    let front = NSBezierPath(roundedRect: NSRect(x: rect.minX, y: rect.minY, width: rect.width - 3, height: rect.height - 3), xRadius: 1.5, yRadius: 1.5)
+    NSColor.white.withAlphaComponent(0.76).setStroke()
+    back.lineWidth = 1.35; back.stroke()
+    front.lineWidth = 1.35; front.stroke()
+  }
+
+  private func receiptBodyPath() -> NSBezierPath {
+    NSBezierPath(roundedRect: bounds, xRadius: bounds.height / 2, yRadius: bounds.height / 2)
   }
 
   private func collapsedBodyPath() -> NSBezierPath {
@@ -257,12 +288,15 @@ final class NotchPanelView: NSView {
   private var copy: NSRect { NSRect(x: 140, y: 14, width: 58, height: 30) }
   private var remove: NSRect { NSRect(x: 206, y: 14, width: 68, height: 30) }
   private var open: NSRect { NSRect(x: bounds.width - 84, y: 14, width: 62, height: 30) }
+  private var compactSave: NSRect { NSRect(x: 7, y: 6, width: 68, height: bounds.height - 12) }
+  private var compactCopy: NSRect { NSRect(x: bounds.width - 39, y: 6, width: 32, height: bounds.height - 12) }
 }
 
 final class NotchPanelController {
   private(set) var panel: NSPanel?
   private(set) var notchView: NotchPanelView?
   private(set) var isExpanded = false
+  private(set) var isShowingClipboardReceipt = false
   private(set) var state: NotchPanelState = .locked { didSet { notchView?.needsDisplay = true } }
   private(set) var receipts: [NotchSaveReceipt] = [] { didSet { notchView?.needsDisplay = true } }
   private(set) var isWatching = false
@@ -307,13 +341,13 @@ final class NotchPanelController {
     self.panel = panel; notchView = view; startClipboardMonitoring(); observeScreenChanges()
     NSLog("[LaterBox Notch] show on %@ — geometry w=%.1f h=%.1f notched=%@ frame=%@", screen.localizedName, compactWidth, compactHeight, geometry(screen).notched ? "yes" : "no", NSStringFromRect(frame))
   }
-  func hide() { stopClipboardMonitoring(); invalidateTimers(); removeScreenObserver(); panel?.orderOut(nil); panel = nil; notchView = nil; isExpanded = false }
+  func hide() { stopClipboardMonitoring(); invalidateTimers(); removeScreenObserver(); panel?.orderOut(nil); panel = nil; notchView = nil; isExpanded = false; isShowingClipboardReceipt = false }
 
   private func observeScreenChanges() {
     guard screenChangeObserver == nil else { return }
     screenChangeObserver = NotificationCenter.default.addObserver(forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main) { [weak self] _ in
       guard let self, let panel = self.panel, let screen = panel.screen ?? self.targetScreen() else { return }
-      let frame = self.isExpanded ? self.expandedFrame(screen) : self.collapsedFrame(screen)
+      let frame = self.isExpanded ? self.expandedFrame(screen) : (self.isShowingClipboardReceipt ? self.clipboardReceiptFrame(screen) : self.collapsedFrame(screen))
       NSAnimationContext.runAnimationGroup { ctx in ctx.duration = 0.2; panel.animator().setFrame(frame, display: true) } completionHandler: { self.notchView?.needsDisplay = true }
       NSLog("[LaterBox Notch] screen changed — now %@, frame=%@", screen.localizedName, NSStringFromRect(frame))
     }
@@ -361,10 +395,19 @@ final class NotchPanelController {
   }
   func captureFailed(id: String, message: String) { guard case .saving(let item) = state, item.id == id else { return }; state = .failed(item, message); expand() }
   func performPrimaryAction() {
-    switch state { case .locked: onOpenPlans?(); case .clipboardReceipt: revealClipboardPrompt(); case .clipboardPrompt(let item), .watchCandidate(let item), .failed(let item, _): promptTimer?.invalidate(); state = .saving(item); onCaptureRequested?(item); case .idle: if let latest = clipboardHistory.first { setPrompt(.clipboardPrompt(latest)) } else { toggleWatchMode() }; case .saved: state = .idle; default: break }
+    switch state { case .locked: onOpenPlans?(); case .clipboardReceipt(let item), .clipboardPrompt(let item), .watchCandidate(let item), .failed(let item, _): promptTimer?.invalidate(); receiptTimer?.invalidate(); isShowingClipboardReceipt = false; state = .saving(item); onCaptureRequested?(item); case .idle: if let latest = clipboardHistory.first { setPrompt(.clipboardPrompt(latest)) } else { toggleWatchMode() }; case .saved: state = .idle; default: break }
   }
   func dismissCurrentState() { promptTimer?.invalidate(); receiptTimer?.invalidate(); state = proAutomationEnabled ? .idle : .locked; scheduleCollapse(0.15) }
   func copyLatestReceipt() { guard let item = receipts.first else { return }; let board = NSPasteboard.general; board.clearContents(); board.setString(item.value, forType: .string); recentClipboard[item.value] = Date(); clipboardChangeCount = board.changeCount }
+  func copyClipboardReceipt() {
+    guard case .clipboardReceipt(let item) = state else { return }
+    let value = item.url ?? item.text ?? item.title
+    let board = NSPasteboard.general
+    board.clearContents()
+    board.setString(value, forType: .string)
+    recentClipboard[value] = Date()
+    clipboardChangeCount = board.changeCount
+  }
   func removeLatestReceipt() { guard !receipts.isEmpty else { return }; receipts.removeFirst(); state = .idle }
   func openLaterBox() { onOpenLaterBox?() }
   func toggleWatchMode() { guard proAutomationEnabled || isWatching else { return }; isWatching.toggle(); onToggleWatchMode?(isWatching); notchView?.needsDisplay = true }
@@ -380,15 +423,15 @@ final class NotchPanelController {
   func handleDroppedItems(_ items: [String]) { guard proAutomationEnabled else { showProRequired(); return }; state = .idle; onDroppedItems?(items) }
   func beginDragTarget() { guard proAutomationEnabled else { showProRequired(); return }; stateBeforeDrag = state; state = .dragTarget; expand() }
   func endDragTarget() { if case .dragTarget = state { state = stateBeforeDrag } }
-  func onMouseEntered() { collapseTimer?.invalidate(); guard !isExpanded else { return }; hoverTimer?.invalidate(); hoverTimer = Timer.scheduledTimer(withTimeInterval: 0.12, repeats: false) { [weak self] _ in
+  func onMouseEntered() { collapseTimer?.invalidate(); guard !isExpanded else { return }; if case .clipboardReceipt = state { return }; hoverTimer?.invalidate(); hoverTimer = Timer.scheduledTimer(withTimeInterval: 0.12, repeats: false) { [weak self] _ in
     guard let self else { return }
     NSHapticFeedbackManager.defaultPerformer.perform(.alignment, performanceTime: .now)
     self.revealClipboardPrompt()
   } }
   func onMouseExited() { hoverTimer?.invalidate(); guard !state.preventsCollapse else { return }; scheduleCollapse(0.6) }
   func showProRequired() { state = .locked; expand() }
-  func expand() { hoverTimer?.invalidate(); collapseTimer?.invalidate(); guard !isExpanded, let panel, let screen = panel.screen ?? targetScreen() else { return }; isExpanded = true; animate(panel, expandedFrame(screen)) }
-  func collapse() { guard !state.preventsCollapse, isExpanded, let panel, let screen = panel.screen ?? targetScreen() else { return }; isExpanded = false; animate(panel, collapsedFrame(screen)) }
+  func expand() { hoverTimer?.invalidate(); collapseTimer?.invalidate(); guard !isExpanded, let panel, let screen = panel.screen ?? targetScreen() else { return }; isExpanded = true; isShowingClipboardReceipt = false; animate(panel, expandedFrame(screen)) }
+  func collapse() { guard !state.preventsCollapse, (isExpanded || isShowingClipboardReceipt), let panel, let screen = panel.screen ?? targetScreen() else { return }; isExpanded = false; isShowingClipboardReceipt = false; animate(panel, collapsedFrame(screen)) }
   func revealClipboardPrompt() {
     if case .clipboardReceipt(let item) = state {
       receiptTimer?.invalidate()
@@ -401,7 +444,9 @@ final class NotchPanelController {
     receiptTimer?.invalidate()
     promptTimer?.invalidate()
     state = .clipboardReceipt(item)
-    collapse()
+    isExpanded = false
+    isShowingClipboardReceipt = true
+    if let panel, let screen = panel.screen ?? targetScreen() { animate(panel, clipboardReceiptFrame(screen)) }
     receiptTimer = Timer.scheduledTimer(withTimeInterval: 6, repeats: false) { [weak self] _ in
       guard let self, case .clipboardReceipt = self.state else { return }
       self.dismissCurrentState()
@@ -436,6 +481,16 @@ final class NotchPanelController {
     // so it never covers Apple menu, date/time, or NSStatusItem controls. Verified across Studio Display,
     // iMac, external 1080p/1440p/4K and 14/16" notches.
     return NSRect(x: screen.frame.midX - shape.width / 2, y: screen.frame.maxY - shape.height, width: shape.width, height: shape.height)
+  }
+  private func clipboardReceiptFrame(_ screen: NSScreen) -> NSRect {
+    // The receipt intentionally lives below the menu bar rather than inside the
+    // hardware notch. It is wide enough for two direct actions but only 44pt
+    // tall, so a copy acknowledgement never becomes a view-blocking panel.
+    let height: CGFloat = 44
+    let width = min(CGFloat(360), max(CGFloat(280), screen.visibleFrame.width - 48))
+    let x = max(screen.visibleFrame.minX + 24, min(screen.frame.midX - width / 2, screen.visibleFrame.maxX - width - 24))
+    let y = max(screen.visibleFrame.minY + 12, screen.visibleFrame.maxY - height - 12)
+    return NSRect(x: x, y: y, width: width, height: height)
   }
   private func expandedFrame(_ screen: NSScreen) -> NSRect {
     // Expanded card is user-initiated (hover) so covering menu bar is expected, but we still inset from
