@@ -702,8 +702,9 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
     return Dialog(
       insetPadding: const EdgeInsets.all(40),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 850, maxHeight: 680),
+      child: SizedBox(
+        width: 620,
+        height: 460,
         child: Column(children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(28, 22, 18, 18),
