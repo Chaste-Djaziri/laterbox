@@ -1386,47 +1386,10 @@ class _ItemDetailBody extends ConsumerWidget {
                   : const Text('No attachments are available for this item.'),
             ),
           ),
-        const SizedBox(height: 12),
-        const Divider(height: 32),
         ItemNoteSection(itemId: item.id),
-        const SizedBox(height: 12),
-        const Divider(height: 32),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          child: Column(
-            children: [
-              ListTile(
-                leading: const Icon(Icons.schedule_rounded),
-                title: const Text('Saved'),
-                subtitle: Text(
-                  '${timeago.format(item.createdAt)} · '
-                  '${_formatDate(item.createdAt)}',
-                ),
-              ),
-              if (effectiveUrl != null)
-                ListTile(
-                  leading: const Icon(Icons.link_rounded),
-                  title: const Text('URL'),
-                  subtitle: Text(
-                    effectiveUrl,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  trailing: const Icon(Icons.open_in_new_rounded, size: 20),
-                  onTap: () => openOriginalForItem(context, effectiveItem),
-                ),
-            ],
-          ),
-        ),
+        const SizedBox(height: 24),
       ],
     );
-  }
-
-  String _formatDate(DateTime date) {
-    final local = date.toLocal();
-    String two(int value) => value.toString().padLeft(2, '0');
-    return '${two(local.day)}/${two(local.month)}/${local.year} '
-        '${two(local.hour)}:${two(local.minute)}';
   }
 }
 
