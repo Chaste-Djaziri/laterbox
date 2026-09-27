@@ -607,6 +607,17 @@ export function ItemProvider({ children }: { children: ReactNode }) {
                 enrichData.content_type ||
                 'link';
 
+              // Embed player data returned directly from the enrich API
+              const embedProvider: string | null = enrichData.embedProvider ?? null;
+              const embedUrl: string | null = enrichData.embedUrl ?? null;
+              const embedHeight: number | null = enrichData.embedHeight ?? null;
+
+              const structuredData = {
+                source: 'web',
+                os: userOs,
+                ...(embedProvider ? { embedProvider, embedUrl, embedHeight } : {}),
+              };
+
               const metaUpdate: Partial<LaterBoxItem['metadata']> = {
                 domain: enrichData.domain || domain,
                 site_name: siteName,
@@ -616,7 +627,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
                 preview_image_url: previewImageUrl,
                 content_type: contentType,
                 classification_source: 'web',
-                structured_data: JSON.stringify({ source: 'web', os: userOs }),
+                structured_data: JSON.stringify(structuredData),
                 status: 'enriched',
                 enriched_at: new Date().toISOString(),
               };
