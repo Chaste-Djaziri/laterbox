@@ -46,10 +46,9 @@ DEVELOPER_DIR=/Applications/Xcode-26.6.0.app/Contents/Developer flutter build ip
 ### App Store Review Information
 For the **App Review Information** section in App Store Connect:
 - **Sign-in Required**: Checked
-- **User Name**: `apple.review@laterbox.micorp.pro`
-- **Password**: `LaterboxReview2026!`
-- **Contact Information**: Chaste Djaziri (`security@laterbox.dev` / `chaste@laterbox.dev`)
-- **Review Notes**: See below for copy-paste review instructions.
+- **Demo credentials**: Create a fresh, least-privileged review account for each submission and provide its credentials only in App Store Connect review notes. Never store the account email or password in this repository.
+- **Contact Information**: Use the current support owner from App Store Connect.
+- **Review Notes**: Explain the sign-in flow, StoreKit sandbox products, and any permission-dependent feature needed for review.
 
 ---
 
