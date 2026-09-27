@@ -6,6 +6,8 @@ class MediaEmbedInfo {
     this.videoId,
     this.aspectRatio = 16 / 9,
     this.isAudio = false,
+    this.lyricsApiUrl,
+    this.songSlug,
   });
 
   final String embedUrl;
@@ -14,6 +16,14 @@ class MediaEmbedInfo {
   final String? videoId;
   final double aspectRatio;
   final bool isAudio;
+
+  /// Lyrica public lyrics API endpoint (non-null for Lyrica embeds)
+  final String? lyricsApiUrl;
+
+  /// Lyrica song slug used for both embed + lyrics API
+  final String? songSlug;
+
+  bool get hasLyrics => lyricsApiUrl != null;
 }
 
 class MediaEmbedHelper {
@@ -94,6 +104,24 @@ class MediaEmbedHelper {
           originalUrl: url,
           aspectRatio: 16 / 6,
           isAudio: true,
+        );
+      }
+    }
+
+    // 5. Lyrica (lyricarw.com)
+    if (host.contains('lyricarw.com')) {
+      // Matches: lyricarw.com/songs/slug  OR  lyricarw.com/embed/song/slug
+      final embedMatch = RegExp(r'lyricarw\.com/(?:embed/song|songs)/([a-zA-Z0-9_-]+)').firstMatch(url);
+      final slug = embedMatch?.group(1);
+      if (slug != null && slug.isNotEmpty) {
+        return MediaEmbedInfo(
+          embedUrl: 'https://lyricarw.com/embed/song/$slug',
+          provider: 'Lyrica',
+          originalUrl: url,
+          songSlug: slug,
+          aspectRatio: 16 / 2.4, // ~152px compact player bar
+          isAudio: true,
+          lyricsApiUrl: 'https://lyricarw.com/api/public/songs/$slug/lyrics',
         );
       }
     }
