@@ -14,6 +14,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 - **[Web] Music source labels**: Music cards and item actions now identify the originating service (including Apple Music and Spotify) and avoid presenting a Spotify label or icon for unrelated music links.
 
 ### Added
+- **[macOS] Companion copied action bar**: Eligible clipboard captures now animate into a shallow, wide action bar below the menu bar, with Save on the left, a clear copied status, and a copy control on the right instead of a view-blocking notch prompt.
 - **[macOS] Web-parity scheduled views**: Today, Upcoming, and Someday now share the web app’s focused header, search, format filters, grid/list switcher, richer empty states, and direct capture actions.
 - **[Shared] Professional OTP email delivery**: LaterBox sign-in and confirmation emails now use the official hosted logo, inbox-preview metadata, accessible copy-friendly code styling, and app-side verification immediately after an eight-digit code is pasted or AutoFilled.
 - **[macOS] Desktop-first welcome and sign-in**: Onboarding and passwordless sign-in now use a centered, window-aware desktop composition with clearer feature context, restrained illustration sizing, and consistently sized forms while retaining the compact mobile flow.
