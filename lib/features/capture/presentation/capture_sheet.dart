@@ -196,11 +196,24 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
   }
 
   void _onTextChanged() {
-    if (mounted) setState(() {});
+    if (mounted) {
+      setState(() => _captureKind = _inferredCaptureKind());
+    }
     _urlDebounceTimer?.cancel();
     _urlDebounceTimer = Timer(const Duration(milliseconds: 250), () {
       _detectAndEnhanceUrls();
     });
+  }
+
+  String _inferredCaptureKind() {
+    if (_selectedFiles.isNotEmpty) return 'file';
+    final text = _controller.text.trim();
+    if (text.isEmpty) return _captureKind;
+    if (RegExp(r'^\s*(?:- \[[ xX]\]|(?:todo|task)\s*[:\-])', caseSensitive: false).hasMatch(text)) {
+      return 'task';
+    }
+    if (extractUrls(text).isNotEmpty) return 'link';
+    return 'idea';
   }
 
   void _detectAndEnhanceUrls() {
@@ -391,6 +404,7 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
           );
           if (!duplicate) _selectedFiles.add(file);
         }
+        _captureKind = 'file';
         _fileFailures = const [];
         _error = null;
       });
@@ -403,7 +417,10 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
 
   void _removeFile(int index) {
     if (index < 0 || index >= _selectedFiles.length) return;
-    setState(() => _selectedFiles.removeAt(index));
+    setState(() {
+      _selectedFiles.removeAt(index);
+      _captureKind = _inferredCaptureKind();
+    });
   }
 
   bool _isImageFile(String name) {
@@ -701,6 +718,7 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
     const steps = ['1. Capture', '2. Schedule', '3. Details'];
     return Dialog(
       insetPadding: const EdgeInsets.all(40),
+      clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
       child: SizedBox(
         width: 620,
@@ -741,7 +759,7 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
                   )),
                   const Divider(),
                   Row(children: [
-                    for (final kind in const {'link': 'Link', 'file': 'File', 'task': 'Task', 'idea': 'Idea'}.entries)
+                    for (final kind in const {'link': 'Link', 'file': 'File', 'task': 'Task', 'idea': 'Note'}.entries)
                       Padding(padding: const EdgeInsets.only(right: 8), child: ChoiceChip(label: Text(kind.value), selected: _captureKind == kind.key, onSelected: _saving ? null : (_) { setState(() => _captureKind = kind.key); if (kind.key == 'file') _chooseFiles(); })),
                     const Spacer(),
                     OutlinedButton.icon(onPressed: _saving ? null : _chooseFiles, icon: const Icon(Icons.attach_file_rounded), label: const Text('Attach file')),
