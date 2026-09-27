@@ -31,6 +31,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 - **[Shared] Platform release contract**: Future releases record affected platforms, customer-visible changes, migrations, known limitations, and verification evidence so Windows, mobile, web, and extensions can follow the same capability contract.
 
 ### Changed
+- **[Shared] Build metadata**: Synchronized the release metadata to LaterBox 1.0.170 (build 172) across the native apps, web app, installer, and browser extensions.
 - **[macOS] Balanced auth workspace**: Desktop auth now gives the product story more visual weight and centers a focused sign-in form with its supporting illustration in the right pane.
 - **[macOS] Full-page onboarding and auth**: The desktop welcome, sign-in, and code-verification screens now use the complete app window instead of a floating, rounded container.
 - **Lyrica Responsive Player & Synchronized Lyrics Embed on All Devices**: Added first-class support for Lyrica (`lyricarw.com`) music embeds and verified synchronized lyrics. Embedded tracks render a responsive 152px player iframe matching Spotify's sleek styling, accompanied by an interactive lyrics viewer that pulls synced and plain text lyrics directly from the public REST API (`/api/public/songs/[slug]/lyrics`) with timestamped verses and one-click lyrics copying across macOS, iOS, Android, and Web.
