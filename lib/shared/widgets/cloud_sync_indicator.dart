@@ -80,7 +80,7 @@ class CloudSyncIndicator extends ConsumerWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              if (isSyncing)
+              if (isActivelySyncing)
                 SizedBox(
                   width: 14,
                   height: 14,

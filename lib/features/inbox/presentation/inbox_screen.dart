@@ -1384,12 +1384,43 @@ class _SuggestionPlan {
   final String reasoning;
 }
 
+class _ItemSnapshot {
+  _ItemSnapshot({
+    required this.originalReturnAt,
+    required this.originalNoteContent,
+  });
+
+  final DateTime? originalReturnAt;
+  final String? originalNoteContent;
+  String? appliedCollectionId;
+  bool collectionApplied = false;
+  bool noteApplied = false;
+  bool scheduleApplied = false;
+
+  bool get hasAnyApplied => collectionApplied || noteApplied || scheduleApplied;
+}
+
 class _AiOrganizeModalState extends ConsumerState<_AiOrganizeModal> {
   final Set<String> _appliedCollections = {};
   final Set<String> _appliedNotes = {};
   final Set<String> _appliedSchedules = {};
   final Set<String> _appliedItems = {};
+  final Map<String, _ItemSnapshot> _snapshots = {};
   bool _isApplyingAll = false;
+  bool _isRevertingAll = false;
+
+  Future<_ItemSnapshot> _ensureSnapshot(LaterBoxItem item) async {
+    final existing = _snapshots[item.id];
+    if (existing != null) return existing;
+    final note =
+        await ref.read(itemNoteRepositoryProvider).noteById(item.id);
+    final snap = _ItemSnapshot(
+      originalReturnAt: item.returnAt,
+      originalNoteContent: note?.content,
+    );
+    _snapshots[item.id] = snap;
+    return snap;
+  }
 
   _SuggestionPlan _getPlanForItem(LaterBoxItem item) {
     final url = (item.url ?? '').toLowerCase();
@@ -1515,6 +1546,7 @@ class _AiOrganizeModalState extends ConsumerState<_AiOrganizeModal> {
 
   Future<void> _applyCollection(LaterBoxItem item, String collectionName) async {
     try {
+      final snap = await _ensureSnapshot(item);
       final collections = ref.read(collectionsProvider).valueOrNull ?? [];
       final existing = collections
           .where(
@@ -1532,6 +1564,8 @@ class _AiOrganizeModalState extends ConsumerState<_AiOrganizeModal> {
             .create(collectionName.trim());
       }
       await ref.read(collectionRepositoryProvider).addItem(colId, item.id);
+      snap.appliedCollectionId = colId;
+      snap.collectionApplied = true;
       if (mounted) {
         setState(() {
           _appliedCollections.add(item.id);
@@ -1544,8 +1578,26 @@ class _AiOrganizeModalState extends ConsumerState<_AiOrganizeModal> {
     } catch (_) {}
   }
 
+  Future<void> _revertCollection(LaterBoxItem item) async {
+    final snap = _snapshots[item.id];
+    if (snap == null || !snap.collectionApplied || snap.appliedCollectionId == null) return;
+    try {
+      await ref
+          .read(collectionRepositoryProvider)
+          .removeItem(snap.appliedCollectionId!, item.id);
+      snap.collectionApplied = false;
+      if (mounted) {
+        setState(() {
+          _appliedCollections.remove(item.id);
+          _appliedItems.remove(item.id);
+        });
+      }
+    } catch (_) {}
+  }
+
   Future<void> _applyNextStep(LaterBoxItem item, String nextStep) async {
     try {
+      final snap = await _ensureSnapshot(item);
       final existingNote =
           await ref.read(itemNoteRepositoryProvider).noteById(item.id);
       final currentContent = existingNote?.content.trim() ?? '';
@@ -1553,6 +1605,7 @@ class _AiOrganizeModalState extends ConsumerState<_AiOrganizeModal> {
           ? '• Next step: $nextStep'
           : '$currentContent\n\n• Next step: $nextStep';
       await ref.read(itemNoteRepositoryProvider).save(item.id, newContent);
+      snap.noteApplied = true;
       if (mounted) {
         setState(() {
           _appliedNotes.add(item.id);
@@ -1565,10 +1618,29 @@ class _AiOrganizeModalState extends ConsumerState<_AiOrganizeModal> {
     } catch (_) {}
   }
 
+  Future<void> _revertNextStep(LaterBoxItem item) async {
+    final snap = _snapshots[item.id];
+    if (snap == null || !snap.noteApplied) return;
+    try {
+      await ref
+          .read(itemNoteRepositoryProvider)
+          .save(item.id, snap.originalNoteContent ?? '');
+      snap.noteApplied = false;
+      if (mounted) {
+        setState(() {
+          _appliedNotes.remove(item.id);
+          _appliedItems.remove(item.id);
+        });
+      }
+    } catch (_) {}
+  }
+
   Future<void> _applySchedule(LaterBoxItem item, ReturnPreset preset) async {
     try {
+      final snap = await _ensureSnapshot(item);
       final returnAt = resolveReturnPreset(preset, DateTime.now());
       await ref.read(itemRepositoryProvider).reschedule(item.id, returnAt);
+      snap.scheduleApplied = true;
       if (mounted) {
         setState(() {
           _appliedSchedules.add(item.id);
@@ -1577,6 +1649,74 @@ class _AiOrganizeModalState extends ConsumerState<_AiOrganizeModal> {
             _appliedItems.add(item.id);
           }
         });
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _revertSchedule(LaterBoxItem item) async {
+    final snap = _snapshots[item.id];
+    if (snap == null || !snap.scheduleApplied) return;
+    try {
+      await ref
+          .read(itemRepositoryProvider)
+          .reschedule(item.id, snap.originalReturnAt);
+      snap.scheduleApplied = false;
+      if (mounted) {
+        setState(() {
+          _appliedSchedules.remove(item.id);
+          _appliedItems.remove(item.id);
+        });
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _revertItem(LaterBoxItem item) async {
+    final snap = _snapshots[item.id];
+    if (snap == null) return;
+    try {
+      if (snap.collectionApplied && snap.appliedCollectionId != null) {
+        await ref
+            .read(collectionRepositoryProvider)
+            .removeItem(snap.appliedCollectionId!, item.id);
+        snap.collectionApplied = false;
+      }
+      if (snap.noteApplied) {
+        await ref
+            .read(itemNoteRepositoryProvider)
+            .save(item.id, snap.originalNoteContent ?? '');
+        snap.noteApplied = false;
+      }
+      if (snap.scheduleApplied) {
+        await ref
+            .read(itemRepositoryProvider)
+            .reschedule(item.id, snap.originalReturnAt);
+        snap.scheduleApplied = false;
+      }
+      if (mounted) {
+        setState(() {
+          _appliedCollections.remove(item.id);
+          _appliedNotes.remove(item.id);
+          _appliedSchedules.remove(item.id);
+          _appliedItems.remove(item.id);
+          _snapshots.remove(item.id);
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Row(
+              children: [
+                Icon(
+                  Icons.undo_rounded,
+                  color: Colors.white,
+                  size: 16,
+                ),
+                SizedBox(width: 8),
+                Text('AI changes reverted for this item'),
+              ],
+            ),
+            behavior: SnackBarBehavior.floating,
+            duration: Duration(seconds: 2),
+          ),
+        );
       }
     } catch (_) {}
   }
@@ -1619,6 +1759,64 @@ class _AiOrganizeModalState extends ConsumerState<_AiOrganizeModal> {
     } finally {
       if (mounted) {
         setState(() => _isApplyingAll = false);
+      }
+    }
+  }
+
+  Future<void> _revertAll() async {
+    if (_isRevertingAll || _snapshots.isEmpty) return;
+    setState(() => _isRevertingAll = true);
+    try {
+      final itemsToRevert = widget.items.where((i) => _snapshots.containsKey(i.id)).toList();
+      for (final item in itemsToRevert) {
+        final snap = _snapshots[item.id];
+        if (snap != null) {
+          if (snap.collectionApplied && snap.appliedCollectionId != null) {
+            await ref
+                .read(collectionRepositoryProvider)
+                .removeItem(snap.appliedCollectionId!, item.id);
+          }
+          if (snap.noteApplied) {
+            await ref
+                .read(itemNoteRepositoryProvider)
+                .save(item.id, snap.originalNoteContent ?? '');
+          }
+          if (snap.scheduleApplied) {
+            await ref
+                .read(itemRepositoryProvider)
+                .reschedule(item.id, snap.originalReturnAt);
+          }
+        }
+      }
+      if (mounted) {
+        final count = itemsToRevert.length;
+        setState(() {
+          _appliedCollections.clear();
+          _appliedNotes.clear();
+          _appliedSchedules.clear();
+          _appliedItems.clear();
+          _snapshots.clear();
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(
+                  Icons.undo_rounded,
+                  color: Colors.white,
+                  size: 18,
+                ),
+                const SizedBox(width: 8),
+                Text('Reverted AI changes for $count items'),
+              ],
+            ),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isRevertingAll = false);
       }
     }
   }
@@ -1742,6 +1940,45 @@ class _AiOrganizeModalState extends ConsumerState<_AiOrganizeModal> {
                     ),
                   ),
                   const SizedBox(width: 12),
+                  if (_snapshots.isNotEmpty || _appliedItems.isNotEmpty) ...[
+                    OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor:
+                            isDark ? Colors.white70 : const Color(0xFF6C6B63),
+                        side: BorderSide(
+                          color: isDark
+                              ? const Color(0xFF444444)
+                              : const Color(0xFFD4D0C5),
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      onPressed:
+                          _isRevertingAll || _isApplyingAll ? null : _revertAll,
+                      icon: _isRevertingAll
+                          ? const SizedBox(
+                              width: 14,
+                              height: 14,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : const Icon(Icons.undo_rounded, size: 14),
+                      label: const Text(
+                        'Revert All',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                  ],
                   FilledButton.icon(
                     style: FilledButton.styleFrom(
                       backgroundColor: allApplied
@@ -1879,7 +2116,7 @@ class _AiOrganizeModalState extends ConsumerState<_AiOrganizeModal> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              // Top item metadata & individual apply button
+                              // Top item metadata & individual apply/revert buttons
                               Row(
                                 children: [
                                   Container(
@@ -1910,8 +2147,8 @@ class _AiOrganizeModalState extends ConsumerState<_AiOrganizeModal> {
                                             fontSize: 9.5,
                                             fontWeight: FontWeight.w800,
                                             color: isDark
-                                              ? Colors.white70
-                                              : const Color(0xFF6C6B63),
+                                                ? Colors.white70
+                                                : const Color(0xFF6C6B63),
                                           ),
                                         ),
                                       ],
@@ -1936,6 +2173,48 @@ class _AiOrganizeModalState extends ConsumerState<_AiOrganizeModal> {
                                   ] else
                                     const Spacer(),
                                   const SizedBox(width: 8),
+                                  if (isItemApplied ||
+                                      isColApplied ||
+                                      isNoteApplied ||
+                                      isSchedApplied) ...[
+                                    InkWell(
+                                      onTap: () => _revertItem(item),
+                                      borderRadius: BorderRadius.circular(8),
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 4,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: isDark
+                                              ? const Color(0xFF2E2424)
+                                              : const Color(0xFFFEE2E2),
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                        ),
+                                        child: const Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(
+                                              Icons.undo_rounded,
+                                              size: 11,
+                                              color: Color(0xFFDC2626),
+                                            ),
+                                            SizedBox(width: 3),
+                                            Text(
+                                              'Revert',
+                                              style: TextStyle(
+                                                fontSize: 10.5,
+                                                fontWeight: FontWeight.w800,
+                                                color: Color(0xFFDC2626),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                  ],
                                   InkWell(
                                     onTap: isItemApplied
                                         ? null
@@ -2044,6 +2323,9 @@ class _AiOrganizeModalState extends ConsumerState<_AiOrganizeModal> {
                                   item,
                                   plan.collectionName,
                                 ),
+                                onUndo: isColApplied
+                                    ? () => _revertCollection(item)
+                                    : null,
                                 child: Row(
                                   children: [
                                     Container(
@@ -2086,6 +2368,9 @@ class _AiOrganizeModalState extends ConsumerState<_AiOrganizeModal> {
                                 isApplied: isNoteApplied,
                                 onAction: () =>
                                     _applyNextStep(item, plan.nextStep),
+                                onUndo: isNoteApplied
+                                    ? () => _revertNextStep(item)
+                                    : null,
                                 child: Text(
                                   plan.nextStep,
                                   style: TextStyle(
@@ -2109,6 +2394,9 @@ class _AiOrganizeModalState extends ConsumerState<_AiOrganizeModal> {
                                 isApplied: isSchedApplied,
                                 onAction: () =>
                                     _applySchedule(item, plan.schedule),
+                                onUndo: isSchedApplied
+                                    ? () => _revertSchedule(item)
+                                    : null,
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 8,
@@ -2222,6 +2510,7 @@ class _OrganizeSubBlock extends StatelessWidget {
     required this.actionLabel,
     required this.isApplied,
     required this.onAction,
+    this.onUndo,
     required this.child,
   });
 
@@ -2231,6 +2520,7 @@ class _OrganizeSubBlock extends StatelessWidget {
   final String actionLabel;
   final bool isApplied;
   final VoidCallback onAction;
+  final VoidCallback? onUndo;
   final Widget child;
 
   @override
@@ -2276,7 +2566,7 @@ class _OrganizeSubBlock extends StatelessWidget {
                 ],
               ),
               InkWell(
-                onTap: isApplied ? null : onAction,
+                onTap: isApplied ? onUndo : onAction,
                 borderRadius: BorderRadius.circular(6),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
@@ -2303,6 +2593,14 @@ class _OrganizeSubBlock extends StatelessWidget {
                                   : const Color(0xFF171711)),
                         ),
                       ),
+                      if (isApplied && onUndo != null) ...[
+                        const SizedBox(width: 4),
+                        Icon(
+                          Icons.undo_rounded,
+                          size: 10,
+                          color: isDark ? Colors.white54 : const Color(0xFF9E9B92),
+                        ),
+                      ],
                     ],
                   ),
                 ),
