@@ -17,6 +17,8 @@ Then open **Authentication > Email Templates** and make both templates display t
 
 `{{ .Token }}` is the eight-digit code itself, not a URL. Do not place it in an anchor `href`. These templates intentionally omit `{{ .ConfirmationURL }}` because LaterBox verifies the code inside the app.
 
+The templates use the production logo hosted at `https://laterbox.dev/branding/laterbox-logo.png`, a hidden inbox preview containing the code, and email-client-safe metadata. Email clients do not permit JavaScript, so an email cannot safely copy or submit a code on its own. LaterBox instead auto-verifies after a complete eight-digit code is pasted or supplied through operating-system AutoFill.
+
 For example:
 
 ```html

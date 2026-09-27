@@ -1,43 +1,47 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Confirm your LaterBox email</title>
+    <meta name="x-apple-disable-message-reformatting" />
+    <meta name="format-detection" content="telephone=no,date=no,address=no,email=no,url=no" />
+    <meta name="color-scheme" content="light" />
+    <meta name="supported-color-schemes" content="light" />
+    <title>Your LaterBox verification code</title>
   </head>
-  <body style="margin: 0; padding: 0; background: #f4f2ea; color: #171711; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
-    <div style="display: none; max-height: 0; overflow: hidden; opacity: 0; color: transparent;">
-      Use this eight-digit code to finish creating your LaterBox account.
+  <body style="margin:0; padding:0; background-color:#f4f2ea; color:#171711; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
+    <div style="display:none; max-height:0; overflow:hidden; mso-hide:all; opacity:0; color:transparent;">
+      Your LaterBox verification code is {{ .Token }}. It expires in one hour.
     </div>
-    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background: #f4f2ea;">
+    <div style="display:none; max-height:0; overflow:hidden; mso-hide:all;">&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;</div>
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%; border-collapse:collapse; background-color:#f4f2ea;">
       <tr>
-        <td align="center" style="padding: 40px 16px;">
-          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width: 560px; background: #ffffff; border: 1px solid #dedbcf; border-radius: 24px;">
+        <td align="center" style="padding:40px 16px;">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%; max-width:560px; border-collapse:separate; background-color:#ffffff; border:1px solid #dedbcf; border-radius:24px;">
             <tr>
-              <td style="padding: 36px 40px 12px;">
-                <div style="font-size: 22px; line-height: 28px; font-weight: 800; letter-spacing: -0.5px;">
-                  <span style="color: #b6e600;">●</span>&nbsp; laterbox
-                </div>
+              <td style="padding:36px 40px 20px; border-bottom:1px solid #eeece5;">
+                <a href="https://laterbox.dev" target="_blank" style="display:inline-block; text-decoration:none;">
+                  <img src="https://laterbox.dev/branding/laterbox-logo.png" width="180" alt="LaterBox" border="0" style="display:block; width:180px; max-width:100%; height:auto; border:0; outline:none; text-decoration:none;" />
+                </a>
               </td>
             </tr>
             <tr>
-              <td style="padding: 20px 40px 40px;">
-                <h1 style="margin: 0 0 14px; font-size: 30px; line-height: 36px; letter-spacing: -1px;">Confirm your email</h1>
-                <p style="margin: 0 0 28px; color: #66655e; font-size: 16px; line-height: 25px;">
-                  Enter this eight-digit code in LaterBox to finish creating your account.
-                </p>
-                <div style="margin: 0 0 28px; padding: 22px 18px; background: #171711; border-radius: 16px; color: #d7ff27; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 34px; font-weight: 800; line-height: 42px; letter-spacing: 8px; text-align: center;">
-                  {{ .Token }}
-                </div>
-                <p style="margin: 0; color: #77766f; font-size: 13px; line-height: 20px;">
-                  This code expires soon and can only be used once. If you did not create a LaterBox account, you can safely ignore this email.
-                </p>
+              <td style="padding:36px 40px 40px;">
+                <p style="margin:0 0 12px; color:#6b6a62; font-size:12px; font-weight:700; letter-spacing:1.2px; line-height:18px;">VERIFY YOUR EMAIL</p>
+                <h1 style="margin:0 0 14px; color:#171711; font-size:30px; font-weight:800; letter-spacing:-0.8px; line-height:38px;">Your verification code</h1>
+                <p style="margin:0 0 28px; color:#66655e; font-size:16px; line-height:25px;">Enter this eight-digit code in LaterBox to finish creating your account. You can paste it directly into the app.</p>
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border-collapse:separate; background-color:#171711; border-radius:16px;">
+                  <tr>
+                    <td align="center" style="padding:22px 16px; color:#d7ff27; font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size:32px; font-weight:800; letter-spacing:7px; line-height:40px; text-align:center; word-break:break-all;">
+                      {{ .Token }}
+                    </td>
+                  </tr>
+                </table>
+                <p style="margin:24px 0 0; color:#77766f; font-size:13px; line-height:20px;">This code expires in one hour and can only be used once. If you did not create a LaterBox account, you can safely ignore this email.</p>
               </td>
             </tr>
           </table>
-          <p style="margin: 20px 0 0; color: #85837b; font-size: 12px; line-height: 18px;">
-            LaterBox · Put it here. Find it later.
-          </p>
+          <p style="margin:20px 0 0; color:#85837b; font-size:12px; line-height:18px;">LaterBox · Put it here. Find it later.</p>
         </td>
       </tr>
     </table>

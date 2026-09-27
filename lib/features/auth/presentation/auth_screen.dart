@@ -116,6 +116,12 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     }
   }
 
+  void _verifyOtpWhenComplete(String value) {
+    if (!_busy && RegExp(r'^\d{8}$').hasMatch(value.trim())) {
+      unawaited(_verifyOtp());
+    }
+  }
+
   void _showDisplayNameModal() {
     showModalBottomSheet(
       context: context,
@@ -402,6 +408,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                   counterText: '',
                 ),
                 maxLength: 8,
+                onChanged: _verifyOtpWhenComplete,
                 onSubmitted: (_) => _verifyOtp(),
               ),
               if (_message != null) ...[
@@ -578,6 +585,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
               counterText: '',
             ),
             maxLength: 8,
+            onChanged: _verifyOtpWhenComplete,
             onSubmitted: (_) => _verifyOtp(),
           ),
           if (_message != null) ...[
