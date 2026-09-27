@@ -13,6 +13,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 - **[Web] Music source labels**: Music cards and item actions now identify the originating service (including Apple Music and Spotify) and avoid presenting a Spotify label or icon for unrelated music links.
 
 ### Added
+- **[macOS] Companion copy receipt and privacy controls**: The notch stays compact after an eligible copy, shows a clear copied receipt, and opens the save prompt only on hover or click. Watch Mode now controls clipboard monitoring, and the companion keeps a bounded, session-only recent-copy history that is never synced until an item is saved.
 - **[macOS] Desktop capture flow**: Quick Capture now uses a macOS-specific staged capture interface while mobile retains its compact capture UI. Saved links are queued for metadata enrichment and attachment captures preserve their local metadata.
 - **[macOS] Add Item modal**: The standard Save Item action now opens the same staged, centered desktop modal pattern as the web app instead of the compact chat composer.
 - **[Shared] Platform release contract**: Future releases record affected platforms, customer-visible changes, migrations, known limitations, and verification evidence so Windows, mobile, web, and extensions can follow the same capability contract.
