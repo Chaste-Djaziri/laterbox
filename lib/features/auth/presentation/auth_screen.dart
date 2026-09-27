@@ -641,9 +641,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
         child: Row(
           children: [
             Expanded(
-              flex: 11,
+              flex: 12,
               child: Container(
-                padding: const EdgeInsets.fromLTRB(48, 42, 52, 42),
+                padding: const EdgeInsets.fromLTRB(64, 54, 72, 54),
                 decoration: BoxDecoration(
                   color: colors.secondaryContainer.withValues(alpha: .36),
                 ),
@@ -652,7 +652,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                   children: [
                     Image.asset(
                       'assets/branding/laterbox-logo.png',
-                      height: 40,
+                      height: 44,
                       fit: BoxFit.contain,
                     ),
                     const Spacer(),
@@ -667,16 +667,17 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                     const SizedBox(height: 14),
                     Text(
                       title,
-                      style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: -1.6,
-                        height: 1.02,
-                      ),
+                      style: Theme.of(context).textTheme.displayMedium
+                          ?.copyWith(
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: -2.1,
+                            height: .98,
+                          ),
                     ),
                     const SizedBox(height: 18),
                     Text(
                       detail,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
                         color: colors.onSurfaceVariant,
                         height: 1.45,
                       ),
@@ -692,11 +693,11 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
               ),
             ),
             Expanded(
-              flex: 10,
+              flex: 9,
               child: Padding(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 64,
-                  vertical: 48,
+                  horizontal: 56,
+                  vertical: 42,
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -721,12 +722,28 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                         label: const Text('Back'),
                       ),
                     ),
-                    const Spacer(),
-                    ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 340),
-                      child: form,
+                    Expanded(
+                      child: Center(
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 360),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              SizedBox(
+                                height: 142,
+                                child: Image.asset(
+                                  'assets/backgrounds/auth-signin.png',
+                                  fit: BoxFit.contain,
+                                ),
+                              ),
+                              const SizedBox(height: 26),
+                              form,
+                            ],
+                          ),
+                        ),
+                      ),
                     ),
-                    const Spacer(),
                   ],
                 ),
               ),
