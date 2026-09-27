@@ -1,9 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 const MAX_HTML_BYTES = 1_500_000;
-const FETCH_TIMEOUT_MS = 8_000;
-const USER_AGENT =
-  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36';
+const FETCH_TIMEOUT_MS = 10_000;
+
+// Rotate user agents to improve success rate across different sites
+const USER_AGENTS = [
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
+  'facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)',
+  'Twitterbot/1.0',
+];
 
 function decodeHtmlEntities(value: string): string {
   return value
@@ -51,6 +57,40 @@ function extractTitle(html: string): string | null {
   if (!match) return null;
   const title = decodeHtmlEntities(match[1]).replace(/\s+/g, ' ').trim();
   return title.length === 0 ? null : title;
+}
+
+function extractKeywords(html: string): string[] {
+  const raw: string[] = [];
+
+  // <meta name="keywords" content="...">
+  const kwMeta = extractMeta(html, 'keywords');
+  if (kwMeta) {
+    raw.push(...kwMeta.split(/[,;|]/).map((k) => k.trim()).filter(Boolean));
+  }
+
+  // article:tag
+  const tagPattern = /<meta[^>]+(?:property|name)=["']article:tag["'][^>]*>/gi;
+  let tm: RegExpExecArray | null;
+  while ((tm = tagPattern.exec(html)) !== null) {
+    const c = tm[0].match(/content=["']([^"']+)["']/i)?.[1];
+    if (c) raw.push(decodeHtmlEntities(c).trim());
+  }
+
+  // og:tag (some CMSes)
+  const ogTag = extractMeta(html, 'og:tag');
+  if (ogTag) raw.push(...ogTag.split(/[,;|]/).map((k) => k.trim()).filter(Boolean));
+
+  // Deduplicate, lowercase, trim, max 8 tags
+  const seen = new Set<string>();
+  return raw
+    .map((k) => k.toLowerCase().replace(/[#_]/g, ' ').trim())
+    .filter((k) => k.length > 1 && k.length < 40)
+    .filter((k) => {
+      if (seen.has(k)) return false;
+      seen.add(k);
+      return true;
+    })
+    .slice(0, 8);
 }
 
 function extractFavicon(html: string, baseUrl: string): string | null {
@@ -191,36 +231,41 @@ export async function POST(req: NextRequest) {
     const target = new URL(rawUrl);
     const domain = target.hostname.replace(/^www\./i, '');
 
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
-
     let html = '';
     let finalUrl = target.toString();
 
-    try {
-      const response = await fetch(target, {
-        signal: controller.signal,
-        headers: {
-          'user-agent': USER_AGENT,
-          accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
+    // Try each UA in turn — stop as soon as we get a valid HTML response
+    for (const ua of USER_AGENTS) {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+      try {
+        const isBot = ua.startsWith('facebook') || ua.startsWith('Twitter');
+        const headers: Record<string, string> = {
+          'user-agent': ua,
+          accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
           'accept-language': 'en-US,en;q=0.9',
-          'sec-ch-ua': '"Chromium";v="128", "Not;A=Brand";v="24", "Google Chrome";v="128"',
-          'sec-ch-ua-mobile': '?0',
-          'sec-fetch-dest': 'document',
-          'sec-fetch-mode': 'navigate',
-          'sec-fetch-site': 'none',
-        },
-      });
-
-      clearTimeout(timer);
-
-      if (response.ok) {
-        finalUrl = response.url || target.toString();
-        const text = await response.text();
-        html = text.slice(0, MAX_HTML_BYTES);
+        };
+        if (!isBot) {
+          headers['sec-ch-ua'] = '"Chromium";v="128", "Not;A=Brand";v="24", "Google Chrome";v="128"';
+          headers['sec-ch-ua-mobile'] = '?0';
+          headers['sec-fetch-dest'] = 'document';
+          headers['sec-fetch-mode'] = 'navigate';
+          headers['sec-fetch-site'] = 'none';
+        }
+        const response = await fetch(target, { signal: controller.signal, headers, redirect: 'follow' });
+        clearTimeout(timer);
+        if (response.ok) {
+          const ct = response.headers.get('content-type') || '';
+          if (ct.includes('text/html') || ct.includes('application/xhtml')) {
+            finalUrl = response.url || target.toString();
+            const text = await response.text();
+            html = text.slice(0, MAX_HTML_BYTES);
+            if (html.length > 200) break; // Got real content, stop trying
+          }
+        }
+      } catch {
+        clearTimeout(timer);
       }
-    } catch {
-      clearTimeout(timer);
     }
 
     const finalUri = new URL(finalUrl);
@@ -248,6 +293,7 @@ export async function POST(req: NextRequest) {
     const ogType = extractMeta(html, 'og:type');
     const contentType = classifyUrl(finalUri, ogType);
     const embed = detectEmbed(rawUrl);
+    const keywords = extractKeywords(html);
 
     const result = {
       domain,
@@ -259,6 +305,8 @@ export async function POST(req: NextRequest) {
       favicon_url: faviconUrl,
       previewImageUrl,
       preview_image_url: previewImageUrl,
+      // Real tags/keywords extracted from the page
+      keywords,
       // Embed player info — present for YouTube, Spotify, SoundCloud, Vimeo, Lyrica
       embedProvider: embed?.embedProvider ?? null,
       embedUrl: embed?.embedUrl ?? null,
