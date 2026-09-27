@@ -11,6 +11,9 @@ All notable user-facing changes to LaterBox will be documented in this file.
 ### Fixed
 - **[Web] Card action menus**: The three-dot menu now renders above card boundaries and stays visible on small cards or near viewport edges.
 - **[Web] Music source labels**: Music cards and item actions now identify the originating service (including Apple Music and Spotify) and avoid presenting a Spotify label or icon for unrelated music links.
+
+### Added
+- **[macOS] Desktop capture flow**: Quick Capture now uses a macOS-specific staged capture interface while mobile retains its compact capture UI. Saved links are queued for metadata enrichment and attachment captures preserve their local metadata.
 - **[Shared] Platform release contract**: Future releases record affected platforms, customer-visible changes, migrations, known limitations, and verification evidence so Windows, mobile, web, and extensions can follow the same capability contract.
 
 ### Changed
