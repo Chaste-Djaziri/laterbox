@@ -98,7 +98,7 @@ function classifyUrl(url: URL, ogType: string | null): string {
   if (host.includes('youtube.com') || host === 'youtu.be' || host.includes('vimeo.com') || (ogType && ogType.startsWith('video'))) {
     return 'video';
   }
-  if (host.includes('spotify.com') || host.includes('soundcloud.com') || (ogType && ogType.startsWith('music'))) {
+  if (host.includes('spotify.com') || host.includes('soundcloud.com') || host.includes('lyricarw.com') || (ogType && ogType.startsWith('music'))) {
     return 'music';
   }
   if (host === 'github.com' || host === 'gitlab.com') {
@@ -108,6 +108,75 @@ function classifyUrl(url: URL, ogType: string | null): string {
     return 'article';
   }
   return 'link';
+}
+
+interface EmbedInfo {
+  embedProvider: string;
+  embedUrl: string;
+  embedHeight: number;
+}
+
+function detectEmbed(rawUrl: string): EmbedInfo | null {
+  try {
+    const url = new URL(rawUrl);
+    const host = url.hostname.toLowerCase().replace(/^www\./, '');
+    const path = url.pathname;
+
+    // YouTube
+    const ytMatch = rawUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/))([\\w-]{11})/);
+    if (ytMatch?.[1]) {
+      return {
+        embedProvider: 'YouTube',
+        embedUrl: `https://www.youtube-nocookie.com/embed/${ytMatch[1]}?autoplay=0&rel=0`,
+        embedHeight: 315,
+      };
+    }
+
+    // Vimeo
+    const vimeoMatch = rawUrl.match(/vimeo\.com\/(?:video\/)?(\d+)/);
+    if (vimeoMatch?.[1]) {
+      return {
+        embedProvider: 'Vimeo',
+        embedUrl: `https://player.vimeo.com/video/${vimeoMatch[1]}`,
+        embedHeight: 315,
+      };
+    }
+
+    // Spotify
+    const spotifyMatch = rawUrl.match(/open\.spotify\.com\/(track|album|playlist|episode|show)\/([a-zA-Z0-9]+)/);
+    if (spotifyMatch) {
+      const type = spotifyMatch[1];
+      const id = spotifyMatch[2];
+      return {
+        embedProvider: 'Spotify',
+        embedUrl: `https://open.spotify.com/embed/${type}/${id}?utm_source=generator`,
+        embedHeight: type === 'track' ? 152 : 352,
+      };
+    }
+
+    // SoundCloud
+    if (host.includes('soundcloud.com') && path.length > 3 && path.includes('/')) {
+      const encoded = encodeURIComponent(rawUrl);
+      return {
+        embedProvider: 'SoundCloud',
+        embedUrl: `https://w.soundcloud.com/player/?url=${encoded}&color=%23ff5500&auto_play=false&hide_related=false&show_comments=true&show_user=true&show_reposts=false&show_teaser=true`,
+        embedHeight: 166,
+      };
+    }
+
+    // Lyrica
+    const lyricaMatch = rawUrl.match(/lyricarw\.com\/(?:embed\/song|songs)\/([a-zA-Z0-9_-]+)/);
+    if (lyricaMatch?.[1]) {
+      return {
+        embedProvider: 'Lyrica',
+        embedUrl: `https://lyricarw.com/embed/song/${lyricaMatch[1]}`,
+        embedHeight: 152,
+      };
+    }
+  } catch {
+    // ignore
+  }
+  return null;
 }
 
 export async function POST(req: NextRequest) {
@@ -178,6 +247,7 @@ export async function POST(req: NextRequest) {
     const faviconUrl = extractFavicon(html, finalUrl) || `https://www.google.com/s2/favicons?domain=${domain}&sz=128`;
     const ogType = extractMeta(html, 'og:type');
     const contentType = classifyUrl(finalUri, ogType);
+    const embed = detectEmbed(rawUrl);
 
     const result = {
       domain,
@@ -189,6 +259,10 @@ export async function POST(req: NextRequest) {
       favicon_url: faviconUrl,
       previewImageUrl,
       preview_image_url: previewImageUrl,
+      // Embed player info — present for YouTube, Spotify, SoundCloud, Vimeo, Lyrica
+      embedProvider: embed?.embedProvider ?? null,
+      embedUrl: embed?.embedUrl ?? null,
+      embedHeight: embed?.embedHeight ?? null,
       classification: {
         contentType,
         type: contentType,
