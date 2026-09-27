@@ -9,6 +9,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 - **[macOS] System Status**: Settings now provides a single readiness view for Mac integrations, permissions, sync, notifications, and StoreKit billing, with retry guidance and copyable diagnostics.
 
 ### Fixed
+- **[macOS] Database connection safety**: Native SQLite access now routes through one shared Drift database server across app isolates, preventing competing database lifecycles during capture, sync, and shutdown.
 - **[Web] Card action menus**: The three-dot menu now renders above card boundaries and stays visible on small cards or near viewport edges.
 - **[Web] Music source labels**: Music cards and item actions now identify the originating service (including Apple Music and Spotify) and avoid presenting a Spotify label or icon for unrelated music links.
 
