@@ -4,6 +4,10 @@ All notable user-facing changes to LaterBox will be documented in this file.
 
 ## [Unreleased]
 
+### Release readiness
+- **[macOS] Paid MVP release baseline**: Mac App Store is the first paid distribution channel. LaterBox Pro is offered through StoreKit at $3.99/month or $39.99/year, each with a 14-day trial. The release scope includes every advertised macOS integration and requires verified capture recovery, permissions, notifications, sync, purchases, and restores before shipment.
+- **[Shared] Platform release contract**: Future releases record affected platforms, customer-visible changes, migrations, known limitations, and verification evidence so Windows, mobile, web, and extensions can follow the same capability contract.
+
 ### Changed
 - **iOS TestFlight Build 170**: Incremented the iOS bundle build number so the App Group-enabled release can be uploaded after build 169.
 - **iOS-Only Release Trigger**: Release commits marked `[ios-only]` now build and submit only the iOS app, making TestFlight fixes faster without rebuilding unrelated platforms.
