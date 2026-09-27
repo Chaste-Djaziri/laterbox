@@ -24,4 +24,26 @@ void main() {
       isFalse,
     );
   });
+
+  test('uses StoreKit for a macOS App Store build', () {
+    expect(
+      isAppleStoreDistribution(
+        distribution: 'app-store',
+        platform: TargetPlatform.macOS,
+        isWeb: false,
+      ),
+      isTrue,
+    );
+  });
+
+  test('does not use StoreKit for a direct macOS build', () {
+    expect(
+      isAppleStoreDistribution(
+        distribution: 'direct',
+        platform: TargetPlatform.macOS,
+        isWeb: false,
+      ),
+      isFalse,
+    );
+  });
 }
