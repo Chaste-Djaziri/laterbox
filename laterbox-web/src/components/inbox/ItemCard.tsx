@@ -55,8 +55,8 @@ export function ItemCard({ item }: ItemCardProps) {
 
   const isPsd = ext === 'psd' || item.metadata?.content_type === 'design' || title.toLowerCase().endsWith('.psd');
   const isPdf = ext === 'pdf' || item.metadata?.content_type === 'document' || title.toLowerCase().endsWith('.pdf');
-  const isVideo = item.type === 'video' || item.metadata?.content_type === 'video' || (item.url && item.url.includes('youtube.com'));
-  const isMusic = item.type === 'music' || item.metadata?.content_type === 'music' || (item.url && item.url.includes('spotify.com'));
+  const isVideo = item.type === 'video' || item.metadata?.content_type === 'video' || (item.url && (item.url.includes('youtube.com') || item.url.includes('youtu.be') || item.url.includes('vimeo.com')));
+  const isMusic = item.type === 'music' || item.metadata?.content_type === 'music' || (item.url && (item.url.includes('spotify.com') || item.url.includes('soundcloud.com') || item.url.includes('lyricarw.com')));
   const isNote = item.type === 'note' || item.metadata?.content_type === 'note' || (!item.url && !primaryAttachment && item.text_content);
   const isArticle = item.type === 'article' || item.metadata?.content_type === 'article' || (domain && (domain.includes('notion.so') || domain.includes('medium.com')));
 
