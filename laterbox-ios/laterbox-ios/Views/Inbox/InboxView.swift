@@ -17,6 +17,7 @@ public struct InboxView: View {
     @State private var searchText: String = ""
     @StateObject private var search = LocalSearchController()
     @State private var showingSearch: Bool = false
+    @State private var showingOrganizer = false
 
     public init() {}
 
@@ -89,6 +90,12 @@ public struct InboxView: View {
                                     }
                                 }
                                 .buttonStyle(.plain)
+
+                                Button {
+                                    if coordinator.isProUser { showingOrganizer = true }
+                                    else { coordinator.showingPlansSheet = true }
+                                } label: { Image(systemName: "wand.and.stars") }
+                                .accessibilityLabel("AI Inbox Organizer")
 
                                 // Search icon to the right of the synced status
                                 Button(action: {
@@ -224,5 +231,6 @@ public struct InboxView: View {
                 }
             }
         }
+        .sheet(isPresented: $showingOrganizer) { AIOrganizerSheet() }
     }
 }
