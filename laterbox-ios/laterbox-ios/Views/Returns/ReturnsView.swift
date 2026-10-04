@@ -12,7 +12,6 @@ public enum ReturnSegment: String, CaseIterable {
     case today = "Today"
     case upcoming = "Upcoming"
     case someday = "Someday"
-    case inbox = "Inbox"
 }
 
 public struct ReturnsView: View {
@@ -45,8 +44,30 @@ public struct ReturnsView: View {
             return allItems.filter {
                 $0.status == ItemStatus.deferred.rawValue && $0.returnAt == nil
             }
-        case .inbox:
-            return allItems.filter { $0.status == ItemStatus.inbox.rawValue }
+        }
+    }
+
+    private func count(for segment: ReturnSegment) -> Int {
+        let cal = Calendar.current
+        let now = Date()
+        let startOfToday = cal.startOfDay(for: now)
+        let endOfToday = cal.date(byAdding: .day, value: 1, to: startOfToday) ?? now
+
+        switch segment {
+        case .today:
+            return allItems.filter {
+                guard let ret = $0.returnAt else { return false }
+                return ret <= endOfToday
+            }.count
+        case .upcoming:
+            return allItems.filter {
+                guard let ret = $0.returnAt else { return false }
+                return ret > endOfToday
+            }.count
+        case .someday:
+            return allItems.filter {
+                $0.status == ItemStatus.deferred.rawValue && $0.returnAt == nil
+            }.count
         }
     }
 
@@ -57,28 +78,68 @@ public struct ReturnsView: View {
 
                 ScrollView {
                     VStack(alignment: .leading, spacing: 18) {
-                        // Returns Hub Spaced Segment Switcher
-                        HStack(spacing: 8) {
-                            ForEach(ReturnSegment.allCases, id: \.self) { seg in
-                                Button(action: {
-                                    LBHaptic.light()
-                                    selectedSegment = seg
-                                }) {
-                                    Text(seg.rawValue)
-                                        .font(.subheadline.weight(.semibold))
-                                        .frame(maxWidth: .infinity)
-                                        .liquidGlassPill(isSelected: selectedSegment == seg)
-                                }
-                                .buttonStyle(.plain)
+                        // Top Level Header (Scrolls normally, uncontainerized on canvas, page name title removed)
+                        HStack(alignment: .center) {
+                            Image("LaterboxIconGreen")
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: 28, height: 28)
+                                .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+
+                            Spacer()
+
+                            // Sync Status Indicator (No Container)
+                            HStack(spacing: 5) {
+                                Circle()
+                                    .fill(coordinator.syncState == .synced ? Color.lbGreenTheme : coordinator.syncState.statusColor)
+                                    .frame(width: 7, height: 7)
+                                Text(coordinator.syncState.rawValue)
+                                    .font(.caption2.weight(.medium))
+                                    .foregroundColor(AppTheme.textSecondary)
                             }
+                        }
+                        .padding(.top, 4)
+
+                        // Returns Filter Badges (Today, Upcoming, Someday) with no wrapping
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 8) {
+                                ForEach(ReturnSegment.allCases, id: \.self) { seg in
+                                    Button(action: {
+                                        LBHaptic.light()
+                                        selectedSegment = seg
+                                    }) {
+                                        HStack(spacing: 6) {
+                                            Text(seg.rawValue)
+                                                .font(.subheadline.weight(.semibold))
+
+                                            let c = count(for: seg)
+                                            Text("\(c)")
+                                                .font(.caption2.weight(.bold))
+                                                .padding(.horizontal, 6)
+                                                .padding(.vertical, 2)
+                                                .background(
+                                                    Capsule()
+                                                        .fill(selectedSegment == seg ? Color.black.opacity(0.12) : AppTheme.accent)
+                                                )
+                                                .foregroundColor(AppTheme.textPrimary)
+                                        }
+                                        .lineLimit(1)
+                                        .fixedSize()
+                                        .liquidGlassPill(isSelected: selectedSegment == seg)
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                            }
+                            .padding(.horizontal, 1)
                         }
 
                         // Section Info
                         HStack {
                             Text("\(selectedSegment.rawValue) Schedule • \(itemsForSegment.count) Items")
                                 .font(.caption.weight(.bold))
-                                .foregroundColor(.secondary)
+                                .foregroundColor(AppTheme.textSecondary)
                                 .textCase(.uppercase)
+                                .lineLimit(1)
                             Spacer()
                         }
                         .padding(.top, 4)
@@ -88,13 +149,14 @@ public struct ReturnsView: View {
                             VStack(spacing: 16) {
                                 Image(systemName: "calendar.badge.clock")
                                     .font(.system(size: 40))
-                                    .foregroundColor(.secondary.opacity(0.4))
+                                    .foregroundColor(AppTheme.textSecondary.opacity(0.4))
                                 Text("No items scheduled for \(selectedSegment.rawValue.lowercased())")
                                     .font(.headline)
-                                    .foregroundColor(.primary)
+                                    .foregroundColor(AppTheme.textPrimary)
+                                    .lineLimit(1)
                                 Text("Schedule items to reappear when you have time to read or watch.")
                                     .font(.caption)
-                                    .foregroundColor(.secondary)
+                                    .foregroundColor(AppTheme.textSecondary)
                                     .multilineTextAlignment(.center)
                             }
                             .frame(maxWidth: .infinity)
@@ -122,8 +184,7 @@ public struct ReturnsView: View {
                     .padding(.bottom, 20)
                 }
             }
-            .navigationTitle("Returns")
-            .navigationBarTitleDisplayMode(.inline)
+            .navigationBarHidden(true)
         }
     }
 }
