@@ -20,12 +20,15 @@ public struct HomeView: View {
         allItems.filter { $0.status == ItemStatus.inbox.rawValue }
     }
 
-    private var savedItems: [LBItem] {
-        allItems.filter { $0.status == ItemStatus.saved.rawValue }
-    }
-
-    private var starredItems: [LBItem] {
-        allItems.filter { $0.favorite }
+    private var returnedTodayCount: Int {
+        let cal = Calendar.current
+        let now = Date()
+        let startOfToday = cal.startOfDay(for: now)
+        let endOfToday = cal.date(byAdding: .day, value: 1, to: startOfToday) ?? now
+        return allItems.filter {
+            guard let ret = $0.returnAt else { return false }
+            return ret <= endOfToday
+        }.count
     }
 
     public init() {}
@@ -48,12 +51,20 @@ public struct HomeView: View {
                         }
                         .padding(.top, 4)
 
-                        // Top 4 Metrics Grid
+                        // Preview Counts: Returned Today & Waiting in Inbox
                         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-                            SummaryMetricCard(title: "Saved", count: savedItems.count, icon: "tray.full.fill", color: Color.lbAmber)
-                            SummaryMetricCard(title: "To Review", count: inboxItems.count, icon: "clock.badge.checkmark", color: Color(red: 99/255, green: 102/255, blue: 241/255))
-                            SummaryMetricCard(title: "Starred", count: starredItems.count, icon: "star.fill", color: Color(red: 234/255, green: 179/255, blue: 8/255))
-                            SummaryMetricCard(title: "Total Vault", count: allItems.count, icon: "books.vertical.fill", color: Color(red: 20/255, green: 184/255, blue: 166/255))
+                            SummaryMetricCard(
+                                title: "Returned Today",
+                                count: returnedTodayCount,
+                                icon: "arrow.counterclockwise",
+                                theme: .green
+                            )
+                            SummaryMetricCard(
+                                title: "Waiting in Inbox",
+                                count: inboxItems.count,
+                                icon: "tray.fill",
+                                theme: .black
+                            )
                         }
 
                         // Hero "Continue Reviewing" Card
