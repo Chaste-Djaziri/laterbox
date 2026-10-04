@@ -19,6 +19,7 @@ final class LaterAIConversation: ObservableObject {
         self.provider = provider ?? AppleLaterAIProvider()
         manual = AppleLaterAIProvider.unavailableReason != nil && !(GeminiLaterAIProvider.enabled && SyncCoordinator.shared.isProUser)
     }
+    private var lastCaptureWasManual = false
     private var lastInput = ""
     private var task: Task<Void, Never>?
     private var requestID = UUID()
@@ -95,7 +96,9 @@ final class LaterAIConversation: ObservableObject {
     func continueManually() { task?.cancel(); requestID = UUID(); thinking = false; manual = true; needsClarification = false }
     func save(context: ModelContext) {
         do {
+            let wasManual = manual
             savedItem = try SyncCoordinator.shared.saveDraft(draft, context: context)
+            lastCaptureWasManual = wasManual
             manual = false; needsClarification = false; needsReturnDate = draft.returnAt == nil; error = nil
             messages.append(LaterAIMessage(text: "Saved ‘\(savedItem!.title)’.", isUser: false))
         } catch { self.error = error.localizedDescription }
@@ -111,7 +114,13 @@ final class LaterAIConversation: ObservableObject {
         guard let item = savedItem else { return }
         let oldStatus = item.status
         item.status = "deleted"; item.updatedAt = Date(); item.isSyncPending = true
-        do { try context.save(); savedItem = nil; needsReturnDate = false; Task { await SyncCoordinator.shared.syncPendingItems(context: context) } }
+        do {
+            try context.save(); savedItem = nil; needsReturnDate = false
+            draft.id = UUID().uuidString
+            manual = lastCaptureWasManual
+            messages.append(LaterAIMessage(text: "Removed the saved item.", isUser: false))
+            Task { await SyncCoordinator.shared.syncPendingItems(context: context) }
+        }
         catch { item.status = oldStatus; self.error = error.localizedDescription }
     }
 }
