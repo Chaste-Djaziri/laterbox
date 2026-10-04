@@ -34,7 +34,7 @@ export async function POST(request: Request) {
       }),
     });
     if (!response.ok) throw new Error('Generation failed');
-    const payload = await response.json();
+    const payload = await response.json() as { candidates?: { content?: { parts?: { text?: string }[] } }[] };
     const text = payload.candidates?.[0]?.content?.parts?.map((part: { text?: string }) => part.text ?? '').join('');
     const action = JSON.parse(text ?? '');
     if (!intents.has(action.intent) || stringFields.some(field => typeof action[field] !== 'string') ||
