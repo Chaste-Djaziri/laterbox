@@ -38,7 +38,7 @@ struct GuidedCaptureView: View {
                 Text("When do you want to see it again?")
                 Button("Tomorrow") { draft.returnAt = Calendar.current.date(byAdding: .day, value: 1, to: Date()) }
                 Button("This weekend") { draft.returnAt = CaptureDraft.weekend() }
-                Button("Choose date") { chooseDate = true }
+                Button("Choose date") { chooseDate = true; draft.returnAt = date }
                 Button("No reminder") { draft.returnAt = nil; chooseDate = false }
                 if chooseDate { DatePicker("Return", selection: $date).onChange(of: date) { _, value in draft.returnAt = value } }
                 if let selected = draft.returnAt { Text(selected.formatted()).font(.caption) }
