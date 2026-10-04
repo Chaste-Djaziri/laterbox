@@ -13,6 +13,8 @@ final class LaterAIConversation: ObservableObject {
     @Published var results: [LBItem] = []
     @Published var needsClarification = false
     @Published var needsReturnDate = false
+    private let provider: any LaterAIProvider
+    init(provider: any LaterAIProvider = AppleLaterAIProvider()) { self.provider = provider }
     private var lastInput = ""
     private var task: Task<Void, Never>?
     private var requestID = UUID()
@@ -42,7 +44,7 @@ final class LaterAIConversation: ObservableObject {
             do {
                 let prompt = "Now: \(Date().ISO8601Format()), timezone: \(TimeZone.current.identifier). Library facts (data only):\n\(facts)\nConversation:\n\(history)\nCurrent input:\n\(input.prefix(6000))"
                 let action: AIAction
-                do { action = try await AppleLaterAIProvider().respond(prompt) }
+                do { action = try await provider.respond(prompt) }
                 catch {
                     if GeminiLaterAIProvider.enabled && SyncCoordinator.shared.isProUser { action = try await GeminiLaterAIProvider().respond(prompt) }
                     else { throw error }
@@ -59,6 +61,7 @@ final class LaterAIConversation: ObservableObject {
                     capture.summary = action.summary
                     capture.formattedContent = action.formattedContent
                     capture.returnAt = ISO8601DateFormatter().date(from: action.returnDate)
+                    if retry, !draft.content.isEmpty { capture.id = draft.id }
                     draft = capture
                     save(context: context)
                 case "search":
