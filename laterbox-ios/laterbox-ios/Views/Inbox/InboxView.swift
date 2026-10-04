@@ -63,8 +63,22 @@ public struct InboxView: View {
                                 Text("Inbox")
                                     .font(.system(size: 24, weight: .bold))
                                     .foregroundColor(AppTheme.textPrimary)
+                            }
 
-                                // Search icon to the right next to the inbox title
+                            Spacer()
+
+                            HStack(spacing: 10) {
+                                // Sync Status Indicator (No Container)
+                                HStack(spacing: 5) {
+                                    Circle()
+                                        .fill(coordinator.syncState == .synced ? Color.lbGreenTheme : coordinator.syncState.statusColor)
+                                        .frame(width: 7, height: 7)
+                                    Text(coordinator.syncState.rawValue)
+                                        .font(.caption2.weight(.medium))
+                                        .foregroundColor(AppTheme.textSecondary)
+                                }
+
+                                // Search icon to the right of the synced status
                                 Button(action: {
                                     LBHaptic.light()
                                     withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
@@ -82,18 +96,6 @@ public struct InboxView: View {
                                         .clipShape(Circle())
                                 }
                                 .buttonStyle(.plain)
-                            }
-
-                            Spacer()
-
-                            // Sync Status Indicator (No Container)
-                            HStack(spacing: 5) {
-                                Circle()
-                                    .fill(coordinator.syncState == .synced ? Color.lbGreenTheme : coordinator.syncState.statusColor)
-                                    .frame(width: 7, height: 7)
-                                Text(coordinator.syncState.rawValue)
-                                    .font(.caption2.weight(.medium))
-                                    .foregroundColor(AppTheme.textSecondary)
                             }
                         }
                         .padding(.top, 4)
