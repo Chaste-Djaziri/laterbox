@@ -16,37 +16,46 @@ struct ContentView: View {
     @State private var showingQuickCapture: Bool = false
 
     var body: some View {
-        ZStack(alignment: .bottom) {
-            // Main Tab Content
-            Group {
-                switch selectedTab {
-                case .home:
-                    HomeView()
-                case .inbox:
-                    InboxView()
-                case .returns:
-                    ReturnsView()
-                case .library:
-                    LibraryView()
-                case .settings:
-                    SettingsView()
-                }
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        Group {
+            if !coordinator.hasAccess {
+                WelcomeView()
+                    .transition(.opacity)
+            } else {
+                ZStack(alignment: .bottom) {
+                    // Main Tab Content
+                    Group {
+                        switch selectedTab {
+                        case .home:
+                            HomeView()
+                        case .inbox:
+                            InboxView()
+                        case .returns:
+                            ReturnsView()
+                        case .library:
+                            LibraryView()
+                        case .settings:
+                            SettingsView()
+                        }
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-            // Floating Liquid Glass Tab Bar
-            GlassTabBar(selectedTab: $selectedTab) {
-                showingQuickCapture = true
+                    // Floating Liquid Glass Tab Bar
+                    GlassTabBar(selectedTab: $selectedTab) {
+                        showingQuickCapture = true
+                    }
+                }
+                .ignoresSafeArea(.keyboard, edges: .bottom)
+                .sheet(isPresented: $showingQuickCapture) {
+                    QuickCaptureSheet()
+                }
+                .task {
+                    // Trigger automatic sync on app launch
+                    await coordinator.syncPendingItems(context: modelContext)
+                }
+                .transition(.opacity)
             }
         }
-        .ignoresSafeArea(.keyboard, edges: .bottom)
-        .sheet(isPresented: $showingQuickCapture) {
-            QuickCaptureSheet()
-        }
-        .task {
-            // Trigger automatic sync on app launch
-            await coordinator.syncPendingItems(context: modelContext)
-        }
+        .animation(.spring(response: 0.45, dampingFraction: 0.85), value: coordinator.hasAccess)
     }
 }
 
