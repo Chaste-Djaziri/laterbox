@@ -12,16 +12,20 @@ import UIKit
 
 // MARK: - Brand Colors & Palette
 extension Color {
+    // Official LaterBox Theme Colors (#F7F5EE background & #E6EDB0 green theme)
+    public static let lbBackground = Color(red: 247/255, green: 245/255, blue: 238/255) // #F7F5EE
+    public static let lbGreenTheme = Color(red: 230/255, green: 237/255, blue: 176/255) // #E6EDB0
+
     public static let lbAmber = Color(red: 245/255, green: 158/255, blue: 11/255) // #F59E0B
     public static let lbAmberLight = Color(red: 251/255, green: 191/255, blue: 36/255) // #FBBF24
     public static let lbAmberDark = Color(red: 217/255, green: 119/255, blue: 6/255) // #D97706
-    public static let lbEmerald = Color(red: 16/255, green: 185/255, blue: 129/255) // #10B981
-    public static let lbEmeraldLight = Color(red: 52/255, green: 211/255, blue: 153/255) // #34D399
-    public static let lbDarkBackground = Color(red: 10/255, green: 10/255, blue: 14/255)
-    public static let lbCardBackground = Color(red: 20/255, green: 20/255, blue: 26/255)
+    public static let lbEmerald = Color(red: 230/255, green: 237/255, blue: 176/255) // #E6EDB0 primary green theme
+    public static let lbEmeraldLight = Color(red: 240/255, green: 245/255, blue: 200/255)
+    public static let lbDarkBackground = Color(red: 22/255, green: 22/255, blue: 20/255)
+    public static let lbCardBackground = Color(red: 255/255, green: 255/255, blue: 255/255)
     
     public static func dynamicBackground(for colorScheme: ColorScheme) -> Color {
-        colorScheme == .dark ? lbDarkBackground : Color(red: 246/255, green: 247/255, blue: 250/255)
+        colorScheme == .dark ? lbDarkBackground : lbBackground
     }
 }
 
