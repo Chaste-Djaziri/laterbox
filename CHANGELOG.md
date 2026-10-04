@@ -36,6 +36,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 - **[Shared] Platform release contract**: Future releases record affected platforms, customer-visible changes, migrations, known limitations, and verification evidence so Windows, mobile, web, and extensions can follow the same capability contract.
 
 ### Changed
+- **[iOS] Home Header Simplification**: Removed the plus button from the Home top header and let the personalized greeting sit naturally on the canvas without any container, maintaining an uncluttered header with clean sync status and profile logout menu.
 - **[iOS] Home Screen Header Overhaul**: Removed the brand logo and static title from the Home header in favor of a dynamic personalized greeting and user name. Replaced the sync status container with a clean theme-colored indicator and added an interactive profile menu with instant one-tap logout and guest session exit.
 - **[iOS] Bottom Navigation Active Tab Tint**: Set the active tab item color in the bottom navigation menu to solid black for high-contrast clarity against the warm canvas background.
 - **[iOS] Theme Refresh, Minimalist Welcome & Simple Sign-In Design**: Updated the app theme palette to use the warm canvas background (`#F7F5EE`) with the soft pastel green theme accent (`#E6EDB0`). Redesigned the Welcome screen with a prominent, enlarged hero illustration, concise copy, and solid black "Continue" action. Simplified the Sign-In screen to a clean, distraction-free minimalist layout matching brand specs with "Continue without account" guest access.
