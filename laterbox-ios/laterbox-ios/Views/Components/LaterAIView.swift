@@ -100,8 +100,9 @@ public struct LaterAIView: View {
                 .offset(y: travelFactor * -120)
 
                 // Bottom ChatGPT Mobile-Style Chat Input Dock (Cascades down to dock)
-                if !conversation.manual && AppleLaterAIProvider.unavailableReason == nil { bottomChatInputBar }
-                    .offset(y: travelFactor * -80)
+                if !conversation.manual && AppleLaterAIProvider.unavailableReason == nil {
+                    bottomChatInputBar.offset(y: travelFactor * -80)
+                }
             }
             .offset(y: travelFactor * -160)
             .opacity(max(0.0, min(1.0, (clampedProgress - 0.08) / 0.74)))
