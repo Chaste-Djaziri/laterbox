@@ -74,6 +74,11 @@ public final class LBItem {
     public var collectionId: String?
     public var collectionName: String?
     
+    public var tags: [String] = []
+    public var category: String = ""
+    public var summary: String = ""
+    public var formattedContent: String = ""
+
     // Sync state
     public var isSyncPending: Bool
 
