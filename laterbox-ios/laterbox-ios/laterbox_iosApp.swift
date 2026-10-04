@@ -12,7 +12,8 @@ import SwiftData
 struct laterbox_iosApp: App {
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
-            Item.self,
+            LBItem.self,
+            LBCollection.self
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 
