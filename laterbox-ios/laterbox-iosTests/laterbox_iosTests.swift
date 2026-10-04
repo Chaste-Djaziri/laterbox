@@ -96,3 +96,77 @@ private struct CaptureProvider: LaterAIProvider {
         AIAction(intent: "capture", reply: "", content: "My note #ideas", title: "My note", category: "Ideas", tags: ["invented"], summary: "Note", formattedContent: "", query: "", returnDate: "")
     }
 }
+
+@Suite(.serialized)
+@MainActor
+struct ProSyncTests {
+    @Test func freeUsersDoNotMakeCloudRequests() async throws {
+        let coordinator = SyncCoordinator.shared
+        coordinator.updateProFromStoreKit(false)
+        let container = try ModelContainer(for: LBItem.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+        let transport = MockCloudTransport()
+        try await coordinator.performCloudSync(context: container.mainContext, transport: transport)
+        #expect(transport.downloads == 0 && transport.uploads.isEmpty)
+    }
+    @Test func proSyncPreservesNewerLocalCaptureAndImportsRemoteMetadata() async throws {
+        let coordinator = SyncCoordinator.shared
+        let previous = (coordinator.currentUserId, coordinator.currentUserEmail, coordinator.authToken)
+        let uid = "00000000-0000-4000-8000-000000000009"
+        coordinator.currentUserId = uid; coordinator.currentUserEmail = "test@example.com"; coordinator.authToken = "test"
+        coordinator.updateProFromStoreKit(true)
+        defer {
+            coordinator.currentUserId = previous.0; coordinator.currentUserEmail = previous.1; coordinator.authToken = previous.2
+            coordinator.updateProFromStoreKit(false)
+        }
+        let container = try ModelContainer(for: LBItem.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+        let context = container.mainContext
+        let local = LBItem(title: "Newer local title", textContent: "Original", updatedAt: Date(timeIntervalSince1970: 2000))
+        local.tags = ["local-tag"]; local.category = "Ideas"
+        context.insert(local); try context.save()
+        let transport = MockCloudTransport()
+        let remoteID = UUID().uuidString
+        transport.snapshots = [
+            CloudItemSnapshot(id: local.id, user_id: uid, title: "Older remote", type: "note", favorite: false, status: "inbox", created_at: "1970-01-01T00:00:01Z", updated_at: "1970-01-01T00:00:02Z"),
+            CloudItemSnapshot(id: remoteID, user_id: uid, title: "Remote capture", text_content: "Remote original", type: "note", favorite: false, status: "inbox", created_at: "1970-01-01T00:00:01Z", updated_at: "1970-01-01T00:00:02Z", item_metadata: CloudMetadata(status: "enriched", structured_data: CloudClassification(tags: ["remote-tag"], category: "Reading", summary: "Remote summary", formattedContent: "Formatted")), item_notes: CloudNote(content: "Remote note"))
+        ]
+        try await coordinator.performCloudSync(context: context, transport: transport)
+        #expect(local.title == "Newer local title")
+        #expect(!local.isSyncPending)
+        #expect(transport.uploads.count == 1)
+        #expect(transport.uploads.first?["title"] as? String == "Newer local title")
+        let remote = try #require(context.fetch(FetchDescriptor<LBItem>()).first { $0.id == remoteID })
+        #expect(remote.tags == ["remote-tag"] && remote.category == "Reading")
+        #expect(remote.noteContent == "Remote note" && remote.textContent == "Remote original")
+        #expect(remote.formattedContent == "Formatted")
+    }
+    @Test func failedUploadRemainsPending() async throws {
+        let coordinator = SyncCoordinator.shared
+        let previous = (coordinator.currentUserId, coordinator.currentUserEmail, coordinator.authToken)
+        coordinator.currentUserId = "00000000-0000-4000-8000-000000000010"; coordinator.currentUserEmail = "test@example.com"; coordinator.authToken = "test"
+        coordinator.updateProFromStoreKit(true)
+        defer {
+            coordinator.currentUserId = previous.0; coordinator.currentUserEmail = previous.1; coordinator.authToken = previous.2
+            coordinator.updateProFromStoreKit(false)
+        }
+        let container = try ModelContainer(for: LBItem.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+        let context = container.mainContext
+        let item = LBItem(title: "Offline capture")
+        context.insert(item); try context.save()
+        let transport = MockCloudTransport(); transport.failUpload = true
+        await #expect(throws: URLError.self) { try await coordinator.performCloudSync(context: context, transport: transport) }
+        #expect(item.isSyncPending)
+    }
+}
+@MainActor
+private final class MockCloudTransport: IOSCloudTransport {
+    var downloads = 0
+    var uploads: [[String: Any]] = []
+    var snapshots: [CloudItemSnapshot] = []
+    var failUpload = false
+    func downloadSnapshots(userID: String, token: String) async throws -> [CloudItemSnapshot] { downloads += 1; return snapshots }
+    func cloudRequest(_ path: String, token: String, method: String, body: Any?) async throws -> Data { Data() }
+    func uploadSnapshot(_ body: [String: Any], metadata: [String: Any], note: [String: Any], collection: [String: Any]?, token: String) async throws {
+        if failUpload { throw URLError(.notConnectedToInternet) }
+        uploads.append(body)
+    }
+}
