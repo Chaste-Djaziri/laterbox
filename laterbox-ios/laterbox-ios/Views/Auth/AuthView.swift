@@ -31,175 +31,192 @@ struct AuthView: View {
             Color.lbBackground
                 .ignoresSafeArea()
 
-            VStack(alignment: .leading, spacing: 0) {
-                // Laterbox Logo
-                Image("LaterboxLogo")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(height: 38)
-                    .padding(.top, 40)
-                    .padding(.bottom, 28)
+            ScrollView(showsIndicators: false) {
+                VStack(alignment: .center, spacing: 0) {
+                    // Laterbox Logo (significantly enlarged and centered)
+                    Image("LaterboxLogo")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(maxWidth: 280, maxHeight: 88)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .padding(.top, 36)
+                        .padding(.bottom, 28)
 
-                // Title
-                Text(step == .enterEmail ? "Enter your email" : "Enter the code")
-                    .font(.system(size: 32, weight: .bold))
-                    .foregroundColor(.black)
-                    .padding(.bottom, 8)
+                    // Title
+                    Text(step == .enterEmail ? "Enter your email" : "Enter the code")
+                        .font(.system(size: 32, weight: .bold))
+                        .foregroundColor(.black)
+                        .multilineTextAlignment(.center)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .padding(.bottom, 8)
 
-                // Subtitle
-                Text(step == .enterEmail
-                     ? "We'll send you a code to sign in or create your account."
-                     : "We sent an 8-digit code to \(email).")
-                    .font(.system(size: 15, weight: .regular))
-                    .foregroundColor(Color.black.opacity(0.6))
-                    .padding(.bottom, 24)
+                    // Subtitle
+                    Text(step == .enterEmail
+                         ? "We'll send you a code to sign in or create your account."
+                         : "We sent an 8-digit code to \(email).")
+                        .font(.system(size: 15, weight: .regular))
+                        .foregroundColor(Color.black.opacity(0.6))
+                        .multilineTextAlignment(.center)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 28)
 
-                // Text Input Field
-                if step == .enterEmail {
-                    HStack {
-                        TextField("Email", text: $email)
-                            .font(.system(size: 16))
-                            .foregroundColor(.black)
-                            .keyboardType(.emailAddress)
-                            .autocapitalization(.none)
-                            .autocorrectionDisabled()
-                            .submitLabel(.continue)
-                            .onSubmit {
+                    // Text Input Field
+                    if step == .enterEmail {
+                        HStack {
+                            Spacer(minLength: !email.isEmpty ? 24 : 0)
+                            TextField("Email", text: $email)
+                                .font(.system(size: 16))
+                                .foregroundColor(.black)
+                                .multilineTextAlignment(.center)
+                                .keyboardType(.emailAddress)
+                                .autocapitalization(.none)
+                                .autocorrectionDisabled()
+                                .submitLabel(.continue)
+                                .onSubmit {
+                                    submitEmail()
+                                }
+
+                            if !email.isEmpty {
+                                Button(action: { email = "" }) {
+                                    Image(systemName: "xmark.circle.fill")
+                                        .foregroundColor(Color.black.opacity(0.3))
+                                }
+                            }
+                        }
+                        .padding(.horizontal, 16)
+                        .frame(height: 54)
+                        .background(Color.white)
+                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                .stroke(Color.black.opacity(0.1), lineWidth: 1)
+                        )
+                    } else {
+                        HStack {
+                            Spacer(minLength: !otpCode.isEmpty ? 24 : 0)
+                            TextField("8-digit code", text: $otpCode)
+                                .font(.system(size: 22, weight: .bold, design: .monospaced))
+                                .foregroundColor(.black)
+                                .multilineTextAlignment(.center)
+                                .keyboardType(.numberPad)
+                                .autocorrectionDisabled()
+                                .onChange(of: otpCode) { _, newValue in
+                                    let filtered = newValue.filter { $0.isNumber }
+                                    if filtered.count > 8 {
+                                        otpCode = String(filtered.prefix(8))
+                                    } else {
+                                        otpCode = filtered
+                                    }
+                                    if otpCode.count == 8 {
+                                        verifyCode()
+                                    }
+                                }
+
+                            if !otpCode.isEmpty {
+                                Button(action: { otpCode = "" }) {
+                                    Image(systemName: "xmark.circle.fill")
+                                        .foregroundColor(Color.black.opacity(0.3))
+                                }
+                            }
+                        }
+                        .padding(.horizontal, 16)
+                        .frame(height: 54)
+                        .background(Color.white)
+                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                .stroke(Color.black.opacity(0.1), lineWidth: 1)
+                        )
+                    }
+
+                    // Error / Info feedback
+                    if let error = errorMessage {
+                        Text(error)
+                            .font(.footnote)
+                            .foregroundColor(.red)
+                            .multilineTextAlignment(.center)
+                            .frame(maxWidth: .infinity, alignment: .center)
+                            .padding(.top, 8)
+                    } else if let info = infoMessage {
+                        Text(info)
+                            .font(.footnote)
+                            .foregroundColor(Color.black.opacity(0.7))
+                            .multilineTextAlignment(.center)
+                            .frame(maxWidth: .infinity, alignment: .center)
+                            .padding(.top, 8)
+                    }
+
+                    // Primary Black "Continue" Button
+                    Button(action: {
+                        if step == .enterEmail {
+                            submitEmail()
+                        } else {
+                            verifyCode()
+                        }
+                    }) {
+                        HStack {
+                            if isLoading {
+                                ProgressView()
+                                    .tint(.white)
+                            } else {
+                                Text("Continue")
+                                    .font(.system(size: 16, weight: .semibold))
+                                    .foregroundColor(.white)
+                            }
+                        }
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 54)
+                        .background(Color(red: 26/255, green: 26/255, blue: 26/255))
+                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    }
+                    .disabled(isLoading || (step == .enterEmail ? email.trimmingCharacters(in: .whitespaces).isEmpty : otpCode.count != 8))
+                    .opacity((isLoading || (step == .enterEmail ? email.trimmingCharacters(in: .whitespaces).isEmpty : otpCode.count != 8)) ? 0.6 : 1.0)
+                    .padding(.top, 18)
+
+                    // Secondary Action: "Continue without account"
+                    if step == .enterEmail {
+                        Button(action: {
+                            LBHaptic.light()
+                            coordinator.continueAsGuest()
+                            dismiss()
+                        }) {
+                            Text("Continue without account")
+                                .font(.system(size: 15, weight: .regular))
+                                .foregroundColor(Color.black.opacity(0.85))
+                                .frame(maxWidth: .infinity, alignment: .center)
+                                .padding(.vertical, 16)
+                        }
+                    } else {
+                        HStack(spacing: 20) {
+                            Button("Resend code") {
                                 submitEmail()
                             }
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(Color.black.opacity(0.75))
 
-                        if !email.isEmpty {
-                            Button(action: { email = "" }) {
-                                Image(systemName: "xmark.circle.fill")
-                                    .foregroundColor(Color.black.opacity(0.3))
-                            }
-                        }
-                    }
-                    .padding(.horizontal, 16)
-                    .frame(height: 54)
-                    .background(Color.white)
-                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .stroke(Color.black.opacity(0.1), lineWidth: 1)
-                    )
-                } else {
-                    HStack {
-                        TextField("8-digit code", text: $otpCode)
-                            .font(.system(size: 20, weight: .bold, design: .monospaced))
-                            .foregroundColor(.black)
-                            .keyboardType(.numberPad)
-                            .autocorrectionDisabled()
-                            .onChange(of: otpCode) { _, newValue in
-                                let filtered = newValue.filter { $0.isNumber }
-                                if filtered.count > 8 {
-                                    otpCode = String(filtered.prefix(8))
-                                } else {
-                                    otpCode = filtered
-                                }
-                                if otpCode.count == 8 {
-                                    verifyCode()
+                            Text("•")
+                                .foregroundColor(Color.black.opacity(0.3))
+
+                            Button("Use different email") {
+                                withAnimation {
+                                    step = .enterEmail
+                                    otpCode = ""
+                                    errorMessage = nil
+                                    infoMessage = nil
                                 }
                             }
-
-                        if !otpCode.isEmpty {
-                            Button(action: { otpCode = "" }) {
-                                Image(systemName: "xmark.circle.fill")
-                                    .foregroundColor(Color.black.opacity(0.3))
-                            }
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(Color.black.opacity(0.75))
                         }
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .padding(.top, 16)
                     }
-                    .padding(.horizontal, 16)
-                    .frame(height: 54)
-                    .background(Color.white)
-                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .stroke(Color.black.opacity(0.1), lineWidth: 1)
-                    )
+
+                    Spacer(minLength: 40)
                 }
-
-                // Error / Info feedback
-                if let error = errorMessage {
-                    Text(error)
-                        .font(.footnote)
-                        .foregroundColor(.red)
-                        .padding(.top, 8)
-                } else if let info = infoMessage {
-                    Text(info)
-                        .font(.footnote)
-                        .foregroundColor(Color.black.opacity(0.7))
-                        .padding(.top, 8)
-                }
-
-                // Primary Black "Continue" Button
-                Button(action: {
-                    if step == .enterEmail {
-                        submitEmail()
-                    } else {
-                        verifyCode()
-                    }
-                }) {
-                    HStack {
-                        if isLoading {
-                            ProgressView()
-                                .tint(.white)
-                        } else {
-                            Text("Continue")
-                                .font(.system(size: 16, weight: .semibold))
-                                .foregroundColor(.white)
-                        }
-                    }
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 54)
-                    .background(Color(red: 26/255, green: 26/255, blue: 26/255))
-                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                }
-                .disabled(isLoading || (step == .enterEmail ? email.trimmingCharacters(in: .whitespaces).isEmpty : otpCode.count != 8))
-                .opacity((isLoading || (step == .enterEmail ? email.trimmingCharacters(in: .whitespaces).isEmpty : otpCode.count != 8)) ? 0.6 : 1.0)
-                .padding(.top, 18)
-
-                // Secondary Action: "Continue without account"
-                if step == .enterEmail {
-                    Button(action: {
-                        LBHaptic.light()
-                        coordinator.continueAsGuest()
-                        dismiss()
-                    }) {
-                        Text("Continue without account")
-                            .font(.system(size: 15, weight: .regular))
-                            .foregroundColor(Color.black.opacity(0.85))
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 16)
-                    }
-                } else {
-                    HStack {
-                        Button("Resend code") {
-                            submitEmail()
-                        }
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(Color.black.opacity(0.75))
-
-                        Spacer()
-
-                        Button("Use different email") {
-                            withAnimation {
-                                step = .enterEmail
-                                otpCode = ""
-                                errorMessage = nil
-                                infoMessage = nil
-                            }
-                        }
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(Color.black.opacity(0.75))
-                    }
-                    .padding(.top, 16)
-                    .padding(.horizontal, 4)
-                }
-
-                Spacer()
+                .padding(.horizontal, 24)
             }
-            .padding(.horizontal, 24)
         }
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
