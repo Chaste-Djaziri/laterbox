@@ -32,11 +32,13 @@ public struct ReturnsView: View {
         switch selectedSegment {
         case .today:
             return allItems.filter {
+                guard $0.status != ItemStatus.deleted.rawValue && $0.status != ItemStatus.archived.rawValue else { return false }
                 guard let ret = $0.returnAt else { return false }
                 return ret <= endOfToday
             }
         case .upcoming:
             return allItems.filter {
+                guard $0.status != ItemStatus.deleted.rawValue && $0.status != ItemStatus.archived.rawValue else { return false }
                 guard let ret = $0.returnAt else { return false }
                 return ret > endOfToday
             }
@@ -56,11 +58,13 @@ public struct ReturnsView: View {
         switch segment {
         case .today:
             return allItems.filter {
+                guard $0.status != ItemStatus.deleted.rawValue && $0.status != ItemStatus.archived.rawValue else { return false }
                 guard let ret = $0.returnAt else { return false }
                 return ret <= endOfToday
             }.count
         case .upcoming:
             return allItems.filter {
+                guard $0.status != ItemStatus.deleted.rawValue && $0.status != ItemStatus.archived.rawValue else { return false }
                 guard let ret = $0.returnAt else { return false }
                 return ret > endOfToday
             }.count
