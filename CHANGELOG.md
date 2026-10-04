@@ -36,6 +36,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 - **[Shared] Platform release contract**: Future releases record affected platforms, customer-visible changes, migrations, known limitations, and verification evidence so Windows, mobile, web, and extensions can follow the same capability contract.
 
 ### Changed
+- **[iOS] Settings Profile & Guest Card Redesign**: Redesigned the profile and guest info section on Settings with a centered layout directly on the canvas without an enclosing card container, featuring a green avatar background with black icon, centered titles and descriptions, and a full-width black Sign In button with white text for guest sessions.
 - **[iOS] Settings Header Title Branding**: Added the uncontainerized top-level header row to Settings with the Laterbox icon-only green logo, bold "Settings" title, and sync status indicator, unifying header styling across all primary app tabs.
 - **[iOS] Returns Header Title Branding**: Added the "Returns" title beside the Laterbox icon in the uncontainerized header on the Returns page to match the design language of Inbox and Library.
 - **[iOS] User-Created Collections & Contextual Folder Actions**: Removed hardcoded default collections in favor of purely user-created folders, and added long-press contextual menus to collection cards enabling users to easily rename or delete folders with automated item reassignment.
