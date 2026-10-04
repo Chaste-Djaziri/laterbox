@@ -37,6 +37,17 @@ public struct HomeView: View {
 
                 ScrollView {
                     VStack(alignment: .leading, spacing: 22) {
+                        // Greeting sitting uncontainerized on canvas
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("\(greetingText), \(userName)")
+                                .font(.system(size: 26, weight: .bold))
+                                .foregroundColor(.black)
+                            Text("Your personal knowledge vault")
+                                .font(.subheadline)
+                                .foregroundColor(Color.black.opacity(0.55))
+                        }
+                        .padding(.top, 4)
+
                         // Top 4 Metrics Grid
                         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
                             SummaryMetricCard(title: "Saved", count: savedItems.count, icon: "tray.full.fill", color: Color.lbAmber)
@@ -176,12 +187,8 @@ public struct HomeView: View {
                 }
             }
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(.hidden, for: .navigationBar)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Text("\(greetingText), \(userName)")
-                        .font(.system(size: 18, weight: .bold))
-                        .foregroundColor(.black)
-                }
                 ToolbarItem(placement: .topBarTrailing) {
                     HStack(spacing: 12) {
                         // Sync Status in Theme Color (No Container)
@@ -192,19 +199,6 @@ public struct HomeView: View {
                             Text(coordinator.syncState.rawValue)
                                 .font(.caption2.weight(.medium))
                                 .foregroundColor(Color.black.opacity(0.65))
-                        }
-
-                        // Quick Capture Header Action
-                        Button(action: {
-                            LBHaptic.medium()
-                            coordinator.showingQuickCapture = true
-                        }) {
-                            Image(systemName: "plus")
-                                .font(.system(size: 13, weight: .bold))
-                                .foregroundColor(.white)
-                                .frame(width: 26, height: 26)
-                                .background(Color.black)
-                                .clipShape(Circle())
                         }
 
                         // Profile Icon Menu with Logout & Guest Exit
