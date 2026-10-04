@@ -36,6 +36,7 @@ public final class StoreKitManager: ObservableObject {
     @Published public var errorMessage: String? = nil
     @Published public var purchaseSuccessAlert: Bool = false
 
+    private var verifiedTransactions: [String] = []
     private var transactionListenerTask: Task<Void, Error>? = nil
 
     private init() {
@@ -77,6 +78,7 @@ public final class StoreKitManager: ObservableObject {
 
     // MARK: - Check Current Active Entitlements
     public func updatePurchasedProducts() async {
+        var signedTransactions: [String] = []
         var hasActivePro = false
         var matchedId: String? = nil
         var latestExpiration: Date? = nil
@@ -90,6 +92,8 @@ public final class StoreKitManager: ObservableObject {
             guard Self.allProductIds.contains(transaction.productID), transaction.revocationDate == nil, !transaction.isUpgraded else {
                 continue
             }
+
+            if transaction.expirationDate == nil || transaction.expirationDate! > Date() { signedTransactions.append(result.jwsRepresentation) }
 
             // Verify if still within valid period
             if let expDate = transaction.expirationDate {
@@ -105,12 +109,29 @@ public final class StoreKitManager: ObservableObject {
             }
         }
 
+        verifiedTransactions = signedTransactions
         self.isProSubscriptionActive = hasActivePro
         self.activeProductId = matchedId
         self.expirationDate = latestExpiration
 
         // Synchronize with global SyncCoordinator
         SyncCoordinator.shared.updateProFromStoreKit(hasActivePro)
+        await registerAccountPurchases()
+    }
+
+    public func registerAccountPurchases() async {
+        guard let token = SyncCoordinator.shared.authToken else { return }
+        for signed in verifiedTransactions {
+            do {
+                var request = URLRequest(url: URL(string: "\(LaterBoxAPIService.shared.webUrl)/api/billing/apple/verify")!)
+                request.httpMethod = "POST"
+                request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+                request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+                request.httpBody = try JSONEncoder().encode(["signedTransaction": signed])
+                let (_, response) = try await URLSession.shared.data(for: request)
+                if (response as? HTTPURLResponse)?.statusCode != 200 { errorMessage = "Pro is active on this device. Sign in with the account used for your purchase to enable cloud access." }
+            } catch { errorMessage = "Pro is active on this device. Cloud purchase verification will retry when online." }
+        }
     }
 
     // MARK: - Purchase Flow
