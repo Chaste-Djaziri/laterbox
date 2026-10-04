@@ -36,6 +36,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 - **[Shared] Platform release contract**: Future releases record affected platforms, customer-visible changes, migrations, known limitations, and verification evidence so Windows, mobile, web, and extensions can follow the same capability contract.
 
 ### Changed
+- **[iOS] Conditional Inbox Filter Tags**: Filter tags in the Inbox now only appear when matching items exist for that category, hiding zero-count filters and keeping the view focused and clean.
 - **[iOS] Home Search Bar & Inbox Header Repositioning**: Added a dedicated search bar directly beneath the greeting on the Home screen for quick vault discovery, and repositioned the search icon in the Inbox header to the right of the sync status indicator.
 - **[iOS] Inbox Minimalist Header & Icon-Only Branding**: Replaced the full brand logo with the green-background icon-only variant, placed a search icon directly beside the Inbox title, and removed the persistent search bar in favor of an on-demand search toggle.
 - **[iOS] Inbox Uncontainerized Scrolling Header**: Moved the brand logo, Inbox title, and sync status directly onto the canvas at the top of the scroll view, removing the sticky liquid glass navigation bar so it scrolls naturally like the Home page header.
