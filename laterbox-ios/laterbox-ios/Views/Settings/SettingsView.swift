@@ -234,11 +234,13 @@ public struct SettingsView: View {
                         .padding(.top, 10)
                         .padding(.bottom, 20)
                     }
-                    .padding(20)
+                    .padding(.horizontal, 20)
+                    .padding(.top, 12)
+                    .padding(.bottom, 20)
                 }
             }
             .navigationTitle("Settings")
-            .navigationBarTitleDisplayMode(.large)
+            .navigationBarTitleDisplayMode(.inline)
             .sheet(isPresented: $showingAuthSheet) {
                 NavigationStack {
                     AuthView()
