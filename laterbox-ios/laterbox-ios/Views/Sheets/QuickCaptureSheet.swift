@@ -214,10 +214,17 @@ public struct QuickCaptureSheet: View {
     }
 
     private func checkClipboard() {
+        #if canImport(UIKit)
         if let clip = UIPasteboard.general.string,
            clip.hasPrefix("http://") || clip.hasPrefix("https://") {
             self.clipboardUrl = clip
         }
+        #elseif canImport(AppKit)
+        if let clip = NSPasteboard.general.string(forType: .string),
+           clip.hasPrefix("http://") || clip.hasPrefix("https://") {
+            self.clipboardUrl = clip
+        }
+        #endif
     }
 
     private func inferContentType(from url: String) {
