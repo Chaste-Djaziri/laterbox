@@ -240,7 +240,10 @@ public final class SyncCoordinator: ObservableObject {
         item.status = ItemStatus.saved.rawValue
         item.updatedAt = Date()
         item.isSyncPending = true
-        try? context.save()
+        do {
+            try context.save()
+            Task { await syncPendingItems(context: context) }
+        } catch { context.rollback() }
         LBHaptic.light()
     }
 
@@ -249,7 +252,10 @@ public final class SyncCoordinator: ObservableObject {
         item.returnAt = date
         item.updatedAt = Date()
         item.isSyncPending = true
-        try? context.save()
+        do {
+            try context.save()
+            Task { await syncPendingItems(context: context) }
+        } catch { context.rollback() }
         LBHaptic.light()
     }
 
@@ -257,7 +263,10 @@ public final class SyncCoordinator: ObservableObject {
         item.favorite.toggle()
         item.updatedAt = Date()
         item.isSyncPending = true
-        try? context.save()
+        do {
+            try context.save()
+            Task { await syncPendingItems(context: context) }
+        } catch { context.rollback() }
         LBHaptic.light()
     }
 
@@ -265,7 +274,10 @@ public final class SyncCoordinator: ObservableObject {
         item.status = ItemStatus.deleted.rawValue
         item.updatedAt = Date()
         item.isSyncPending = true
-        try? context.save()
+        do {
+            try context.save()
+            Task { await syncPendingItems(context: context) }
+        } catch { context.rollback() }
         LBHaptic.medium()
     }
 
@@ -273,7 +285,10 @@ public final class SyncCoordinator: ObservableObject {
         item.status = ItemStatus.saved.rawValue
         item.updatedAt = Date()
         item.isSyncPending = true
-        try? context.save()
+        do {
+            try context.save()
+            Task { await syncPendingItems(context: context) }
+        } catch { context.rollback() }
         LBHaptic.success()
     }
 
@@ -291,7 +306,10 @@ public final class SyncCoordinator: ObservableObject {
         do {
             try context.save()
             Task { await syncPendingItems(context: context) }
-        } catch { context.rollback() }
+        } catch {
+            context.rollback()
+            if needsCloudDeletion { cloudDeletionQueue.removeAll { $0 == id } }
+        }
         LBHaptic.medium()
     }
 
