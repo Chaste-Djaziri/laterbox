@@ -201,6 +201,7 @@ public struct ReturnsView: View {
                     .padding(.top, 12)
                     .padding(.bottom, 20)
                 }
+                .trackPullDownForLaterAI()
             }
             .navigationBarHidden(true)
         }

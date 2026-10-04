@@ -220,6 +220,7 @@ public struct InboxView: View {
                     .padding(.top, 12)
                     .padding(.bottom, 20)
                 }
+                .trackPullDownForLaterAI()
             }
             .navigationBarHidden(true)
             .onChange(of: availableFilterTypes) { _, newTypes in

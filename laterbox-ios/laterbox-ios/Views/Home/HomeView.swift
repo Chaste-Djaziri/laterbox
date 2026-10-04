@@ -441,6 +441,7 @@ public struct HomeView: View {
                     .padding(.top, 14)
                     .padding(.bottom, 20)
                 }
+                .trackPullDownForLaterAI()
             }
             .navigationBarHidden(true)
             .sheet(isPresented: $showingQuickCapture) {

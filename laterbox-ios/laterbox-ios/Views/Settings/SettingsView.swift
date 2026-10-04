@@ -572,6 +572,7 @@ public struct SettingsView: View {
                     .padding(.top, 12)
                     .padding(.bottom, 20)
                 }
+                .trackPullDownForLaterAI()
             }
             .navigationBarHidden(true)
             .sheet(isPresented: $showingAuthSheet) {
