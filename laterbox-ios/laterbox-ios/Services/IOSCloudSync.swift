@@ -5,7 +5,7 @@ struct CloudItemSnapshot: Codable {
     var id: String
     var user_id: String
     var url: String?
-    var title: String
+    var title: String?
     var text_content: String?
     var type: String
     var favorite: Bool
@@ -28,6 +28,22 @@ struct CloudMetadata: Codable {
 }
 struct CloudClassification: Codable {
     var tags: [String]?; var category: String?; var summary: String?; var formattedContent: String?
+}
+
+// Older clients can send classification as a JSON string as well as an object.
+extension CloudClassification {
+    enum CodingKeys: String, CodingKey { case tags, category, summary, formattedContent }
+    init(from decoder: Decoder) throws {
+        if let string = try? decoder.singleValueContainer().decode(String.self) {
+            self = (try? JSONDecoder().decode(Self.self, from: Data(string.utf8))) ?? Self()
+            return
+        }
+        guard let values = try? decoder.container(keyedBy: CodingKeys.self) else { self = Self(); return }
+        tags = try? values.decodeIfPresent([String].self, forKey: .tags)
+        category = try? values.decodeIfPresent(String.self, forKey: .category)
+        summary = try? values.decodeIfPresent(String.self, forKey: .summary)
+        formattedContent = try? values.decodeIfPresent(String.self, forKey: .formattedContent)
+    }
 }
 
 protocol IOSCloudTransport: Sendable {
@@ -104,10 +120,10 @@ extension SyncCoordinator {
                 if existing.updatedAt >= date { continue }
                 item = existing
             } else {
-                item = LBItem(id: snapshot.id, title: snapshot.title)
+                item = LBItem(id: snapshot.id, title: snapshot.title ?? snapshot.url ?? "Untitled")
                 context.insert(item)
             }
-            item.userId = uid; item.title = snapshot.title; item.url = snapshot.url
+            item.userId = uid; item.title = snapshot.title ?? snapshot.url ?? "Untitled"; item.url = snapshot.url
             item.textContent = snapshot.text_content; item.type = snapshot.type; item.favorite = snapshot.favorite
             item.status = snapshot.deleted_at == nil ? snapshot.status : "deleted"
             item.returnAt = snapshot.return_at.flatMap(Self.cloudDate)
