@@ -87,7 +87,7 @@ public final class StoreKitManager: ObservableObject {
             }
 
             // Check if transaction is revoked
-            guard transaction.revocationDate == nil else {
+            guard Self.allProductIds.contains(transaction.productID), transaction.revocationDate == nil, !transaction.isUpgraded else {
                 continue
             }
 
