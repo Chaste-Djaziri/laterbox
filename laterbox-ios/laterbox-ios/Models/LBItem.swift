@@ -33,13 +33,15 @@ public enum ItemStatus: String, Codable, CaseIterable {
     case deferred
     case saved
     case archived
+    case deleted
 
     public var title: String {
         switch self {
         case .inbox: return "Inbox"
         case .deferred: return "Scheduled"
-        case .saved: return "Saved"
+        case .saved: return "Kept"
         case .archived: return "Archived"
+        case .deleted: return "Recently Deleted"
         }
     }
 }
