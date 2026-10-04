@@ -16,6 +16,7 @@ struct ContentView: View {
     @Environment(\.scenePhase) private var scenePhase
 
     @State private var selectedTab: LBTab = .home
+    @State private var isShowingLaterAI: Bool = false
 
     var body: some View {
         ZStack {
@@ -57,6 +58,22 @@ struct ContentView: View {
                         .tag(LBTab.settings)
                 }
                 .tint(Color.black)
+                .simultaneousGesture(
+                    DragGesture(minimumDistance: 25, coordinateSpace: .global)
+                        .onEnded { value in
+                            guard coordinator.hasAccess, !isShowingLaterAI else { return }
+                            let isDownward = value.translation.height > 55
+                            let isVertical = abs(value.translation.height) > abs(value.translation.width) * 1.15
+                            let startsInUpperPortion = value.startLocation.y < 280
+
+                            if isDownward && isVertical && startsInUpperPortion {
+                                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                                withAnimation(.spring(response: 0.38, dampingFraction: 0.82)) {
+                                    isShowingLaterAI = true
+                                }
+                            }
+                        }
+                )
                 .sheet(isPresented: $coordinator.showingQuickCapture) {
                     QuickCaptureSheet()
                 }
@@ -77,6 +94,50 @@ struct ContentView: View {
         }
         .animation(.spring(response: 0.45, dampingFraction: 0.85), value: coordinator.hasAccess)
 
+        // Top Subtle Grab Pill for Later AI
+        if coordinator.hasAccess && (!lockManager.isAppLockEnabled || !lockManager.isLocked) {
+            VStack {
+                Button {
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    withAnimation(.spring(response: 0.38, dampingFraction: 0.82)) {
+                        isShowingLaterAI = true
+                    }
+                } label: {
+                    HStack(spacing: 5) {
+                        Capsule()
+                            .fill(Color.black.opacity(0.18))
+                            .frame(width: 32, height: 3.5)
+                    }
+                    .padding(.top, 4)
+                    .padding(.bottom, 8)
+                    .padding(.horizontal, 24)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .highPriorityGesture(
+                    DragGesture(minimumDistance: 10)
+                        .onEnded { value in
+                            if value.translation.height > 15 {
+                                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                                withAnimation(.spring(response: 0.38, dampingFraction: 0.82)) {
+                                    isShowingLaterAI = true
+                                }
+                            }
+                        }
+                )
+
+                Spacer()
+            }
+            .zIndex(50)
+        }
+
+        // Later AI Dropdown Full Screen Interface
+        if isShowingLaterAI && coordinator.hasAccess {
+            LaterAIView(isPresented: $isShowingLaterAI)
+                .transition(.move(edge: .top))
+                .zIndex(200)
+        }
+
         // Biometric App Lock Screen Overlay
         if lockManager.isAppLockEnabled && lockManager.isLocked && coordinator.hasAccess {
             AppLockOverlayView()
@@ -85,6 +146,7 @@ struct ContentView: View {
         }
     }
     .animation(.spring(response: 0.35, dampingFraction: 0.85), value: lockManager.isLocked)
+    .animation(.spring(response: 0.38, dampingFraction: 0.82), value: isShowingLaterAI)
     .onChange(of: scenePhase) { _, newPhase in
         if newPhase == .background {
             lockManager.lockAppIfNeeded()
