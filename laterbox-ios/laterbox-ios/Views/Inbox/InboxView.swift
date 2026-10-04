@@ -15,6 +15,7 @@ public struct InboxView: View {
 
     @State private var selectedFilter: ItemContentType? = nil
     @State private var searchText: String = ""
+    @StateObject private var search = LocalSearchController()
     @State private var showingSearch: Bool = false
 
     public init() {}
@@ -36,7 +37,7 @@ public struct InboxView: View {
             items = items.filter { $0.type == filter.rawValue }
         }
 
-        if !searchText.isEmpty { return LocalItemSearch.search(searchText, in: items) }
+        if !searchText.isEmpty { return search.results.filter { candidate in items.contains { $0.id == candidate.id } } }
 
         // FIFO sorting: items scheduled to return earliest appear first, falling back to arrival date
         return items.sorted {
@@ -117,6 +118,7 @@ public struct InboxView: View {
                                 Image(systemName: "magnifyingglass")
                                     .foregroundColor(.secondary)
                                 TextField("Search inbox...", text: $searchText)
+                                    .task(id: searchText + rawInboxItems.map { $0.updatedAt.ISO8601Format() }.joined()) { search.update(searchText, items: rawInboxItems) }
                                 if !searchText.isEmpty {
                                     Button(action: { searchText = "" }) {
                                         Image(systemName: "xmark.circle.fill")
