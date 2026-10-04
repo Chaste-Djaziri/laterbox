@@ -6,7 +6,9 @@
 //
 
 import SwiftUI
+#if canImport(UIKit)
 import UIKit
+#endif
 
 // MARK: - Brand Colors & Palette
 extension Color {
@@ -24,19 +26,29 @@ extension Color {
 // MARK: - Haptic Feedback
 public enum LBHaptic {
     public static func light() {
+        #if canImport(UIKit)
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        #endif
     }
     public static func medium() {
+        #if canImport(UIKit)
         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        #endif
     }
     public static func heavy() {
+        #if canImport(UIKit)
         UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+        #endif
     }
     public static func success() {
+        #if canImport(UIKit)
         UINotificationFeedbackGenerator().notificationOccurred(.success)
+        #endif
     }
     public static func warning() {
+        #if canImport(UIKit)
         UINotificationFeedbackGenerator().notificationOccurred(.warning)
+        #endif
     }
 }
 
