@@ -32,6 +32,7 @@ final class LaterAIConversation: ObservableObject {
         if needsReturnDate, let detector = try? NSDataDetector(types: NSTextCheckingResult.CheckingType.date.rawValue), let date = detector.firstMatch(in: input, range: NSRange(input.startIndex..., in: input))?.date {
             schedule(date, context: context); return
         }
+        guard input.count <= 6000 else { draft = .manual(input); error = "This content is too long for on-device chat. Continue manually to save it in full."; return }
         error = nil; thinking = true; needsClarification = false; results = []
         let id = UUID(); requestID = id
         let relevant = LocalItemSearch.search(input, in: items).prefix(6)
@@ -49,10 +50,11 @@ final class LaterAIConversation: ObservableObject {
                 guard !Task.isCancelled, requestID == id else { return }
                 switch action.intent {
                 case "capture":
-                    guard !action.content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { throw AIProviderError.invalidCapture }
+                    guard !action.content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, input.contains(action.content) else { throw AIProviderError.invalidCapture }
                     var capture = CaptureDraft.manual(action.content)
                     capture.title = action.title
-                    capture.tags = action.tags
+                    let explicitTags = CaptureDraft.manual(input).tags
+                    capture.tags = explicitTags.isEmpty ? Array(Set(action.tags.map { $0.lowercased() })).sorted() : explicitTags
                     capture.category = action.category
                     capture.summary = action.summary
                     capture.formattedContent = action.formattedContent
