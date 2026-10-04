@@ -371,14 +371,24 @@ public struct LaterAIView: View {
 
                 // Chat Input Field
                 HStack(alignment: .bottom, spacing: 8) {
-                    TextField("Message Later AI...", text: $inputText, axis: .vertical)
-                        .focused($isInputFocused)
-                        .font(.system(size: 15))
-                        .foregroundColor(.white)
-                        .tint(AppTheme.accent)
-                        .lineLimit(1...5)
-                        .padding(.vertical, 8)
-                        .padding(.leading, 4)
+                    ZStack(alignment: .leading) {
+                        if inputText.isEmpty {
+                            Text("Message Later AI...")
+                                .font(.system(size: 15))
+                                .foregroundColor(Color.white.opacity(0.60))
+                                .padding(.leading, 4)
+                                .allowsHitTesting(false)
+                        }
+
+                        TextField("", text: $inputText, prompt: Text("Message Later AI...").foregroundColor(Color.white.opacity(0.60)), axis: .vertical)
+                            .focused($isInputFocused)
+                            .font(.system(size: 15))
+                            .foregroundColor(.white)
+                            .tint(AppTheme.accent)
+                            .lineLimit(1...5)
+                            .padding(.vertical, 8)
+                            .padding(.leading, 4)
+                    }
 
                     // Right Button: Waveform/Mic when empty, Arrow Send when text entered
                     let hasText = !inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
@@ -426,6 +436,7 @@ public struct LaterAIView: View {
                 .padding(.bottom, 6)
         }
         .background(Color.black)
+        .colorScheme(.dark)
     }
 
     // MARK: - Actions
