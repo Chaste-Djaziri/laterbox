@@ -170,12 +170,13 @@ public struct LibraryView: View {
                             }
                         }
                     }
-                    .padding(20)
+                    .padding(.horizontal, 20)
+                    .padding(.top, 12)
                     .padding(.bottom, 20)
                 }
             }
             .navigationTitle(selectedCollection ?? "Library")
-            .navigationBarTitleDisplayMode(.large)
+            .navigationBarTitleDisplayMode(.inline)
             .alert("New Collection", isPresented: $showingAddCollection) {
                 TextField("Collection name...", text: $newCollectionName)
                 Button("Create") {
