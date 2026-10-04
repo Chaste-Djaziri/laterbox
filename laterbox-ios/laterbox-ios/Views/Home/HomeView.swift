@@ -14,7 +14,6 @@ public struct HomeView: View {
     @ObservedObject var coordinator = SyncCoordinator.shared
 
     @State private var showingQuickCapture = false
-    @State private var showingAIOrganizer = false
 
     private var inboxItems: [LBItem] {
         allItems.filter { $0.status == ItemStatus.inbox.rawValue }
@@ -156,47 +155,6 @@ public struct HomeView: View {
                             .liquidGlassCard(cornerRadius: 22, borderOpacity: 0.3)
                         }
 
-                        // AI Inbox Organizer Beta Card
-                        Button(action: {
-                            LBHaptic.medium()
-                            showingAIOrganizer = true
-                        }) {
-                            HStack(spacing: 14) {
-                                ZStack {
-                                    Circle()
-                                        .fill(LinearGradient(colors: [Color.lbAmber, Color.lbAmberDark], startPoint: .topLeading, endPoint: .bottomTrailing))
-                                        .frame(width: 44, height: 44)
-                                    Image(systemName: "wand.and.stars")
-                                        .font(.system(size: 20, weight: .bold))
-                                        .foregroundColor(.black)
-                                }
-
-                                VStack(alignment: .leading, spacing: 3) {
-                                    HStack {
-                                        Text("AI Inbox Organizer")
-                                            .font(.subheadline.weight(.bold))
-                                            .foregroundColor(.primary)
-                                        Text("Beta")
-                                            .font(.system(size: 9, weight: .bold))
-                                            .padding(.horizontal, 6)
-                                            .padding(.vertical, 2)
-                                            .background(Capsule().fill(Color.lbAmber.opacity(0.3)))
-                                            .foregroundColor(Color.lbAmber)
-                                    }
-                                    Text("Auto-classify, assign collections, and schedule review")
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                }
-
-                                Spacer()
-                                Image(systemName: "chevron.right")
-                                    .font(.caption.weight(.semibold))
-                                    .foregroundColor(.secondary)
-                            }
-                            .padding(16)
-                            .liquidGlassCard(cornerRadius: 20)
-                        }
-                        .buttonStyle(.plain)
 
                         // Recent Captures Feed
                         VStack(alignment: .leading, spacing: 12) {
@@ -245,9 +203,6 @@ public struct HomeView: View {
             .navigationBarHidden(true)
             .sheet(isPresented: $showingQuickCapture) {
                 QuickCaptureSheet()
-            }
-            .sheet(isPresented: $showingAIOrganizer) {
-                AIOrganizerSheet()
             }
         }
     }
