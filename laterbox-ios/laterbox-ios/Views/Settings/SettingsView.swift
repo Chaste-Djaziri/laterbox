@@ -240,7 +240,9 @@ public struct SettingsView: View {
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.large)
             .sheet(isPresented: $showingAuthSheet) {
-                AuthSheet()
+                NavigationStack {
+                    AuthView()
+                }
             }
             .alert("Sign Out", isPresented: $showingSignOutAlert) {
                 Button("Sign Out", role: .destructive) { coordinator.signOut() }
