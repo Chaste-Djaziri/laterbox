@@ -117,12 +117,13 @@ public struct ReturnsView: View {
                             }
                         }
                     }
-                    .padding(20)
+                    .padding(.horizontal, 20)
+                    .padding(.top, 12)
                     .padding(.bottom, 20)
                 }
             }
             .navigationTitle("Returns")
-            .navigationBarTitleDisplayMode(.large)
+            .navigationBarTitleDisplayMode(.inline)
         }
     }
 }
