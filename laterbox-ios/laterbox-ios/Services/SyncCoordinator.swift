@@ -7,6 +7,7 @@
 
 import SwiftUI
 import SwiftData
+import Combine
 
 public enum CloudSyncState: String {
     case synced = "Synced"
