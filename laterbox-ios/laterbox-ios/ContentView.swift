@@ -57,6 +57,11 @@ struct ContentView: View {
                 .sheet(isPresented: $coordinator.showingQuickCapture) {
                     QuickCaptureSheet()
                 }
+                .sheet(isPresented: $coordinator.showingAuthSheet) {
+                    NavigationStack {
+                        AuthView()
+                    }
+                }
                 .task {
                     // Trigger automatic sync on app launch
                     await coordinator.syncPendingItems(context: modelContext)
