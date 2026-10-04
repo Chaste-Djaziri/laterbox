@@ -30,6 +30,17 @@ public struct HomeView: View {
         }.count
     }
 
+    private var upcomingItems: [LBItem] {
+        let cal = Calendar.current
+        let now = Date()
+        let startOfToday = cal.startOfDay(for: now)
+        let endOfToday = cal.date(byAdding: .day, value: 1, to: startOfToday) ?? now
+        return allItems.filter {
+            guard let ret = $0.returnAt else { return false }
+            return ret > endOfToday
+        }.sorted { ($0.returnAt ?? Date.distantFuture) < ($1.returnAt ?? Date.distantFuture) }
+    }
+
     public init() {}
 
     public var body: some View {
@@ -111,48 +122,183 @@ public struct HomeView: View {
                             )
                         }
 
-                        // Hero "Continue Reviewing" Card
-                        if let heroItem = inboxItems.first {
-                            VStack(alignment: .leading, spacing: 12) {
-                                HStack {
-                                    Image(systemName: "sparkles")
-                                        .foregroundColor(Color.lbAmber)
-                                    Text("Continue Reviewing")
-                                        .font(.caption.weight(.bold))
-                                        .foregroundColor(.secondary)
-                                        .textCase(.uppercase)
-                                    Spacer()
-                                    Text(heroItem.parsedContentType.rawValue.capitalized)
+                        // WAITING FOR YOU Section
+                        VStack(alignment: .leading, spacing: 12) {
+                            HStack {
+                                Text("WAITING FOR YOU")
+                                    .font(.caption.weight(.bold))
+                                    .foregroundColor(AppTheme.textSecondary)
+                                    .tracking(0.6)
+                                Spacer()
+                                if !inboxItems.isEmpty {
+                                    Text("\(inboxItems.count) in inbox")
                                         .font(.caption2.weight(.semibold))
-                                        .foregroundColor(Color.lbAmber)
+                                        .foregroundColor(AppTheme.textSecondary)
                                 }
+                            }
 
-                                NavigationLink(destination: ItemDetailView(item: heroItem)) {
-                                    VStack(alignment: .leading, spacing: 10) {
-                                        RichMediaBanner(type: heroItem.parsedContentType, url: heroItem.url, title: heroItem.title)
+                            if let heroItem = inboxItems.first {
+                                VStack(alignment: .leading, spacing: 12) {
+                                    HStack {
+                                        ZStack {
+                                            Circle()
+                                                .fill(AppTheme.accent)
+                                                .frame(width: 24, height: 24)
+                                            Image(systemName: "tray.fill")
+                                                .font(.system(size: 11, weight: .bold))
+                                                .foregroundColor(.black)
+                                        }
+                                        Text("Next up in review queue")
+                                            .font(.caption.weight(.semibold))
+                                            .foregroundColor(AppTheme.textSecondary)
+                                        Spacer()
+                                        Text(heroItem.parsedContentType.rawValue.capitalized)
+                                            .font(.caption2.weight(.bold))
+                                            .padding(.horizontal, 8)
+                                            .padding(.vertical, 3)
+                                            .background(Capsule().fill(AppTheme.accent))
+                                            .foregroundColor(.black)
+                                    }
 
-                                        Text(heroItem.title)
-                                            .font(.headline)
-                                            .foregroundColor(.primary)
-                                            .lineLimit(2)
+                                    NavigationLink(destination: ItemDetailView(item: heroItem)) {
+                                        VStack(alignment: .leading, spacing: 10) {
+                                            RichMediaBanner(type: heroItem.parsedContentType, url: heroItem.url, title: heroItem.title)
 
-                                        HStack {
-                                            if let domain = heroItem.domain {
-                                                Text(domain)
-                                                    .font(.caption)
-                                                    .foregroundColor(.secondary)
+                                            Text(heroItem.title)
+                                                .font(.headline)
+                                                .foregroundColor(AppTheme.textPrimary)
+                                                .lineLimit(2)
+
+                                            HStack {
+                                                if let domain = heroItem.domain {
+                                                    Text(domain)
+                                                        .font(.caption)
+                                                        .foregroundColor(AppTheme.textSecondary)
+                                                }
+                                                Spacer()
+                                                Text("Review Now →")
+                                                    .font(.caption.weight(.bold))
+                                                    .foregroundColor(AppTheme.textPrimary)
                                             }
-                                            Spacer()
-                                            Text("Review Now →")
-                                                .font(.caption.weight(.bold))
-                                                .foregroundColor(Color.lbAmber)
                                         }
                                     }
+                                    .buttonStyle(.plain)
                                 }
-                                .buttonStyle(.plain)
+                                .padding(16)
+                                .liquidGlassCard(cornerRadius: 20)
+                            } else {
+                                // Proper Themed Empty State for Waiting For You
+                                VStack(spacing: 10) {
+                                    ZStack {
+                                        Circle()
+                                            .fill(AppTheme.accent.opacity(0.35))
+                                            .frame(width: 44, height: 44)
+                                        Image(systemName: "checkmark.circle.fill")
+                                            .font(.system(size: 22, weight: .semibold))
+                                            .foregroundColor(.black)
+                                    }
+                                    Text("All caught up")
+                                        .font(.subheadline.weight(.bold))
+                                        .foregroundColor(AppTheme.textPrimary)
+                                    Text("Nothing waiting in your inbox right now.")
+                                        .font(.caption)
+                                        .foregroundColor(AppTheme.textSecondary)
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(22)
+                                .liquidGlassCard(cornerRadius: 18)
                             }
-                            .padding(16)
-                            .liquidGlassCard(cornerRadius: 22, borderOpacity: 0.3)
+                        }
+
+                        // COMING UP (Upcoming Returns Scheduled) Section
+                        VStack(alignment: .leading, spacing: 12) {
+                            HStack {
+                                Text("COMING UP")
+                                    .font(.caption.weight(.bold))
+                                    .foregroundColor(AppTheme.textSecondary)
+                                    .tracking(0.6)
+                                Spacer()
+                                if !upcomingItems.isEmpty {
+                                    Text("\(upcomingItems.count) scheduled")
+                                        .font(.caption2.weight(.semibold))
+                                        .foregroundColor(AppTheme.textSecondary)
+                                }
+                            }
+
+                            if !upcomingItems.isEmpty {
+                                ForEach(upcomingItems.prefix(3)) { item in
+                                    NavigationLink(destination: ItemDetailView(item: item)) {
+                                        HStack(spacing: 14) {
+                                            // Scheduled Date Badge
+                                            ZStack {
+                                                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                                    .fill(AppTheme.darkSurface)
+                                                    .frame(width: 48, height: 48)
+                                                VStack(spacing: 1) {
+                                                    Image(systemName: "calendar.badge.clock")
+                                                        .font(.system(size: 13, weight: .bold))
+                                                        .foregroundColor(AppTheme.accent)
+                                                    if let ret = item.returnAt {
+                                                        Text(formatReturnDate(ret))
+                                                            .font(.system(size: 9, weight: .bold))
+                                                            .foregroundColor(AppTheme.textOnDark)
+                                                            .lineLimit(1)
+                                                    }
+                                                }
+                                            }
+
+                                            VStack(alignment: .leading, spacing: 3) {
+                                                Text(item.title)
+                                                    .font(.subheadline.weight(.semibold))
+                                                    .foregroundColor(AppTheme.textPrimary)
+                                                    .lineLimit(1)
+                                                HStack(spacing: 6) {
+                                                    if let domain = item.domain {
+                                                        Text(domain)
+                                                            .font(.caption2)
+                                                            .foregroundColor(AppTheme.textSecondary)
+                                                    }
+                                                    if let ret = item.returnAt {
+                                                        Text("• Returns \(formatRelativeReturnDate(ret))")
+                                                            .font(.caption2.weight(.medium))
+                                                            .foregroundColor(AppTheme.textSecondary)
+                                                    }
+                                                }
+                                            }
+
+                                            Spacer()
+
+                                            Image(systemName: "chevron.right")
+                                                .font(.caption2.weight(.semibold))
+                                                .foregroundColor(AppTheme.textTertiary)
+                                        }
+                                        .padding(14)
+                                        .liquidGlassCard(cornerRadius: 18)
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                            } else {
+                                // Proper Themed Empty State for Coming Up
+                                VStack(spacing: 10) {
+                                    ZStack {
+                                        Circle()
+                                            .fill(AppTheme.darkSurface)
+                                            .frame(width: 44, height: 44)
+                                        Image(systemName: "calendar.badge.clock")
+                                            .font(.system(size: 20, weight: .semibold))
+                                            .foregroundColor(AppTheme.accent)
+                                    }
+                                    Text("No upcoming returns")
+                                        .font(.subheadline.weight(.bold))
+                                        .foregroundColor(AppTheme.textPrimary)
+                                    Text("Items you schedule to review later will resurface here.")
+                                        .font(.caption)
+                                        .foregroundColor(AppTheme.textSecondary)
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(22)
+                                .liquidGlassCard(cornerRadius: 18)
+                            }
                         }
 
 
@@ -220,5 +366,21 @@ public struct HomeView: View {
         if hour < 12 { return "Good Morning" }
         if hour < 18 { return "Good Afternoon" }
         return "Good Evening"
+    }
+
+    private func formatReturnDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "d MMM"
+        return formatter.string(from: date)
+    }
+
+    private func formatRelativeReturnDate(_ date: Date) -> String {
+        let cal = Calendar.current
+        if cal.isDateInTomorrow(date) {
+            return "tomorrow"
+        }
+        let formatter = DateFormatter()
+        formatter.dateFormat = "EEEE"
+        return formatter.string(from: date)
     }
 }
