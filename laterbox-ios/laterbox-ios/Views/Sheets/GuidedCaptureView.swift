@@ -15,17 +15,17 @@ struct GuidedCaptureView: View {
             switch step {
             case 0:
                 Text("What would you like to save?")
-                TextField("Paste a link or write your content", text: $draft.content, axis: .vertical).lineLimit(4...10)
+                TextField("Paste a link or write your content", text: $draft.content, axis: .vertical).lineLimit(4...10).accessibilityIdentifier("capture.content")
             case 1:
                 Text("Give it a title")
-                TextField("Title", text: $draft.title)
+                TextField("Title", text: $draft.title).accessibilityIdentifier("capture.title")
             case 2:
                 Text("Choose a category and tags")
                 Picker("Category", selection: $draft.category) {
                     Text("No category").tag("")
                     ForEach(categories, id: \.self) { Text($0).tag($0) }
                 }
-                TextField("Tags, separated by commas", text: $tagText)
+                TextField("Tags, separated by commas", text: $tagText).accessibilityIdentifier("capture.tags")
                 HStack {
                     ForEach(suggestedTags, id: \.self) { tag in
                         Button(tag) {
