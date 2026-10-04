@@ -39,6 +39,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 - **[Shared] Platform release contract**: Future releases record affected platforms, customer-visible changes, migrations, known limitations, and verification evidence so Windows, mobile, web, and extensions can follow the same capability contract.
 
 ### Changed
+- **[iOS] Later AI Universal Pull-to-Reload Trigger**: Updated the Later AI swipe gesture to trigger on a pull-down swipe anywhere on any screen like a pull-to-refresh reload, removing the top-edge origin constraint so the feather-flow chat drawer can be pulled down smoothly from any screen location.
 - **[iOS] Later AI Feather-Flow Animation**: Redesigned the top swipe-down transition for Later AI with a custom curved curtain geometry ("feather-flow") where the center dips down deepest as the black surface cascades from top to bottom, replacing flat transitions with an organic fluid motion when swiping down from the top edge.
 - **[iOS] Centered Authentication Form & Prominent Brand Logo**: Centered all login form elements, text descriptions, and input controls in AuthView, and significantly enlarged the Laterbox brand logo for a striking, balanced visual presentation.
 - **[iOS] Guest Local Mode & LaterBox Plan Redesign**: Enforced 100% free local-only mode for guest users with cloud sync disabled, updated all page headers to display an interactive "Get Pro to sync" status pill for guests, and completely redesigned the LaterBox Pro plan card with clear tier benefits, pricing, and seamless upgrade flows.
