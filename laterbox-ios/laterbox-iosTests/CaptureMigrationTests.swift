@@ -42,7 +42,7 @@ final class LBItem {
     var returnAt: Date?
     var createdAt: Date
     var updatedAt: Date
-    
+
     // Enriched metadata fields
     var domain: String?
     var siteName: String?
@@ -50,12 +50,12 @@ final class LBItem {
     var faviconUrl: String?
     var previewImageUrl: String?
     var enrichmentStatus: String
-    
+
     // Notes & Collection
     var noteContent: String?
     var collectionId: String?
     var collectionName: String?
-    
+
     // Sync state
     var isSyncPending: Bool
 
