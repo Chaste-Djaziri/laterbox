@@ -171,7 +171,7 @@ public struct LibraryView: View {
                         }
                     }
                     .padding(20)
-                    .padding(.bottom, 80)
+                    .padding(.bottom, 20)
                 }
             }
             .navigationTitle(selectedCollection ?? "Library")
