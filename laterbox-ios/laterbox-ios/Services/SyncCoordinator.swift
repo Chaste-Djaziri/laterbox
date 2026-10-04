@@ -130,7 +130,7 @@ public final class SyncCoordinator: ObservableObject {
         defaults.set(userId, forKey: "lb_user_id")
         defaults.set(token, forKey: "lb_auth_token")
         defaults.set(false, forKey: "lb_guest_mode")
-        Task { await refreshEntitlement() }
+        Task { await StoreKitManager.shared.registerAccountPurchases(); await refreshEntitlement() }
         LBHaptic.success()
     }
 
@@ -292,6 +292,7 @@ public final class SyncCoordinator: ObservableObject {
         syncState = .syncing
 
         do {
+            await StoreKitManager.shared.registerAccountPurchases()
             try await performCloudSync(context: context)
 
             self.syncState = .synced
