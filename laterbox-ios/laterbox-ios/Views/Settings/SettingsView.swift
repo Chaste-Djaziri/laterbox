@@ -12,6 +12,7 @@ public struct SettingsView: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var allItems: [LBItem]
     @ObservedObject var coordinator = SyncCoordinator.shared
+    @ObservedObject private var lockManager = AppLockManager.shared
 
     @State private var showingAuthSheet = false
     @State private var showingSignOutAlert = false
@@ -417,6 +418,94 @@ public struct SettingsView: View {
                                         .background(Color.black.opacity(0.05))
                                         .foregroundColor(AppTheme.textSecondary)
                                         .clipShape(RoundedRectangle(cornerRadius: 10))
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                            }
+                            .padding(16)
+                            .background(
+                                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                    .fill(AppTheme.cardBackground)
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                    .strokeBorder(AppTheme.cardBorder, lineWidth: 1)
+                            )
+                            .shadow(color: Color.black.opacity(0.03), radius: 6, x: 0, y: 2)
+                        }
+
+                        // Security & Privacy (App Lock)
+                        VStack(alignment: .leading, spacing: 14) {
+                            Text("Security & Privacy")
+                                .font(.caption.weight(.bold))
+                                .foregroundColor(.secondary)
+                                .textCase(.uppercase)
+
+                            VStack(spacing: 14) {
+                                // Biometric Toggle Row
+                                HStack(alignment: .center) {
+                                    HStack(spacing: 10) {
+                                        ZStack {
+                                            Circle()
+                                                .fill(AppTheme.accent)
+                                                .frame(width: 36, height: 36)
+                                            Image(systemName: lockManager.biometryIconName)
+                                                .font(.system(size: 17, weight: .semibold))
+                                                .foregroundColor(AppTheme.textPrimary)
+                                        }
+
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text("App Lock (\(lockManager.biometryName))")
+                                                .font(.subheadline.weight(.semibold))
+                                                .foregroundColor(AppTheme.textPrimary)
+                                            Text(lockManager.isAppLockEnabled ? "Requires \(lockManager.biometryName) to unlock" : "Disabled")
+                                                .font(.caption2)
+                                                .foregroundColor(AppTheme.textSecondary)
+                                        }
+                                    }
+
+                                    Spacer()
+
+                                    Toggle("", isOn: Binding(
+                                        get: { lockManager.isAppLockEnabled },
+                                        set: { _ in
+                                            Task {
+                                                await lockManager.toggleAppLock()
+                                            }
+                                        }
+                                    ))
+                                    .labelsHidden()
+                                    .tint(Color.black)
+                                }
+
+                                if let error = lockManager.authenticationError {
+                                    Text(error)
+                                        .font(.caption2)
+                                        .foregroundColor(.red)
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                }
+
+                                if lockManager.isAppLockEnabled {
+                                    Divider().background(AppTheme.cardBorder)
+
+                                    // Immediate Lock Button
+                                    Button(action: {
+                                        LBHaptic.medium()
+                                        lockManager.lockAppIfNeeded()
+                                    }) {
+                                        HStack(spacing: 6) {
+                                            Image(systemName: "lock.fill")
+                                                .font(.caption)
+                                            Text("Lock LaterBox Now")
+                                                .font(.subheadline.weight(.semibold))
+                                        }
+                                        .foregroundColor(AppTheme.textPrimary)
+                                        .frame(maxWidth: .infinity)
+                                        .padding(.vertical, 9)
+                                        .background(
+                                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                                .fill(Color.black.opacity(0.05))
+                                        )
                                     }
                                     .buttonStyle(.plain)
                                 }
