@@ -36,6 +36,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 - **[Shared] Platform release contract**: Future releases record affected platforms, customer-visible changes, migrations, known limitations, and verification evidence so Windows, mobile, web, and extensions can follow the same capability contract.
 
 ### Changed
+- **[iOS] Home Page Feed Clean-Up**: Removed the AI inbox organizer banner card from the Home feed to keep the layout minimal, focused directly on preview statistics, current review item, and recent captures.
 - **[iOS] Home Top-Level Scrolling Header**: Aligned the greeting on the top-left alongside the sync status and profile menu on the same top level inside the scroll view, allowing the header to scroll naturally without sticky navigation bar pinning or container clipping.
 - **[iOS] Home Preview Counts & Brand Theming**: Focused Home preview statistics exclusively on "Returned Today" and "Waiting in Inbox" counts, styled with the app's signature green background (`#E6EDB0`) and black icons/text alongside a contrasting deep black card with crisp white icons/text.
 - **[iOS] Home Header Simplification**: Removed the plus button from the Home top header and let the personalized greeting sit naturally on the canvas without any container, maintaining an uncluttered header with clean sync status and profile logout menu.
