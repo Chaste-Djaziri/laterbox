@@ -29,8 +29,12 @@ public struct LaterAIView: View {
     @Query private var allItems: [LBItem]
 
     @State private var inputText: String = ""
-    @State private var messages: [LaterAIMessage] = []
-    @State private var isThinking: Bool = false
+    @StateObject private var conversation = LaterAIConversation()
+    @State private var editingItem: LBItem?
+    @State private var chooseReturnDate = false
+    @State private var selectedReturnDate = Date().addingTimeInterval(86400)
+    private var messages: [LaterAIMessage] { conversation.messages }
+    private var isThinking: Bool { conversation.thinking }
     @FocusState private var isInputFocused: Bool
 
     // Suggested quick prompts like ChatGPT mobile
@@ -63,11 +67,16 @@ public struct LaterAIView: View {
                 ScrollViewReader { proxy in
                     ScrollView {
                         VStack(spacing: 20) {
-                            if messages.isEmpty {
+                            if conversation.manual {
+                                GuidedCaptureView(draft: $conversation.draft) { conversation.save(context: modelContext) }
+                                if let reason = AppleLaterAIProvider.unavailableReason { Text(reason).font(.caption).foregroundStyle(.secondary) }
+                            } else if messages.isEmpty {
                                 emptyStateView
                             } else {
                                 messageListView
                             }
+
+                            conversationActions
 
                             if isThinking {
                                 thinkingIndicatorView
@@ -91,7 +100,7 @@ public struct LaterAIView: View {
                 .offset(y: travelFactor * -120)
 
                 // Bottom ChatGPT Mobile-Style Chat Input Dock (Cascades down to dock)
-                bottomChatInputBar
+                if !conversation.manual && AppleLaterAIProvider.unavailableReason == nil { bottomChatInputBar }
                     .offset(y: travelFactor * -80)
             }
             .offset(y: travelFactor * -160)
@@ -101,6 +110,7 @@ public struct LaterAIView: View {
                     .ignoresSafeArea()
             )
         }
+        .onDisappear { conversation.reset() }
         .gesture(
             DragGesture()
                 .onChanged { value in
@@ -168,7 +178,7 @@ public struct LaterAIView: View {
                 // Clear / New Chat Button
                 Button {
                     withAnimation {
-                        messages.removeAll()
+                        conversation.reset()
                     }
                 } label: {
                     Image(systemName: "square.and.pencil")
@@ -360,7 +370,7 @@ public struct LaterAIView: View {
             HStack(alignment: .bottom, spacing: 10) {
                 // Attach / Plus Button
                 Button {
-                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    conversation.continueManually()
                 } label: {
                     Image(systemName: "plus")
                         .font(.system(size: 17, weight: .semibold))
@@ -413,6 +423,7 @@ public struct LaterAIView: View {
                                 .frame(width: 32, height: 32)
                         }
                     }
+                    .disabled(!hasText || isThinking)
                     .padding(.bottom, 2)
                 }
                 .padding(.horizontal, 12)
@@ -449,46 +460,63 @@ public struct LaterAIView: View {
     }
 
     private func sendMessage(_ text: String) {
-        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return }
-
-        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-        let userMsg = LaterAIMessage(text: trimmed, isUser: true)
-        messages.append(userMsg)
+        conversation.send(text, items: allItems, context: modelContext)
         inputText = ""
-        isThinking = true
-
-        // Generate contextual Later AI response
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-            isThinking = false
-            let reply = generateResponse(for: trimmed)
-            messages.append(LaterAIMessage(text: reply, isUser: false))
-            UIImpactFeedbackGenerator(style: .light).impactOccurred()
-        }
     }
 
-    private func generateResponse(for prompt: String) -> String {
-        let p = prompt.lowercased()
-
-        if p.contains("inbox") || p.contains("summarize") {
-            let count = inboxItemsCount
-            if count == 0 {
-                return "Your Inbox is completely clear! All saved items have been triaged or archived."
-            } else {
-                return "You have \(count) unsorted item\(count == 1 ? "" : "s") in your Inbox. Would you like to review them one by one, or assign return reminders?"
+    private var conversationActions: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            if let error = conversation.error {
+                Text(error).foregroundStyle(.orange)
+                HStack {
+                    Button("Retry") { conversation.retry(items: allItems, context: modelContext) }
+                    Button("Continue manually") { conversation.continueManually() }
+                }
             }
-        } else if p.contains("return") || p.contains("deadline") {
-            let count = returnItemsCount
-            if count == 0 {
-                return "No items have active return deadlines scheduled right now. You can set return dates from any item's action menu."
-            } else {
-                return "You have \(count) item\(count == 1 ? "" : "s") scheduled in your Returns calendar. Make sure to check the Returns tab for items needing attention today."
+            if conversation.needsClarification {
+                HStack {
+                    Button("Save this") { conversation.save(context: modelContext) }
+                    Button("Just chatting") { conversation.needsClarification = false }
+                }
             }
-        } else if p.contains("clean") || p.contains("delete") || p.contains("old") {
-            return "I can help identify duplicates or items saved over 30 days ago that remain unread. Head to Library > Recently Deleted or tap triage to clean up."
-        } else {
-            return "I've analyzed your LaterBox vault. You currently have \(allItems.count) total saved items across your collections. How else can I assist with your queue?"
+            ForEach(conversation.results) { item in
+                Button { editingItem = item } label: {
+                    HStack { Image(systemName: item.parsedContentType.systemIcon); Text(item.title); Spacer(); Image(systemName: "chevron.right") }
+                }
+            }
+            if let item = conversation.savedItem {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(item.title).font(.headline)
+                    Text(item.tags.map { "#" + $0 }.joined(separator: " ")).font(.caption)
+                    HStack {
+                        Button("Edit") { editingItem = item }
+                        Button("Undo") { conversation.undo(context: modelContext) }
+                        Button("Save another") { conversation.reset() }
+                    }
+                }
+            }
+            if conversation.needsReturnDate {
+                Text("When would you like to see it again?")
+                ViewThatFits {
+                    HStack { returnButtons }
+                    VStack(alignment: .leading) { returnButtons }
+                }
+                if chooseReturnDate {
+                    DatePicker("Return date", selection: $selectedReturnDate)
+                    Button("Set date") { conversation.schedule(selectedReturnDate, context: modelContext); chooseReturnDate = false }
+                }
+            }
         }
+        .buttonStyle(.bordered)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .sheet(item: $editingItem) { item in NavigationStack { ItemDetailView(item: item) } }
+    }
+
+    @ViewBuilder private var returnButtons: some View {
+        Button("Tomorrow") { conversation.schedule(Calendar.current.date(byAdding: .day, value: 1, to: Date()), context: modelContext) }
+        Button("This weekend") { conversation.schedule(CaptureDraft.weekend(), context: modelContext) }
+        Button("Choose date") { chooseReturnDate = true }
+        Button("No reminder") { conversation.schedule(nil, context: modelContext) }
     }
 
     private func dismiss() {
