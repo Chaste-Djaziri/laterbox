@@ -10,6 +10,10 @@ public enum LocalItemSearch {
     private static let noise: Set<String> = ["the", "that", "about", "find", "my", "saved", "something", "a", "an", "for", "me", "show"]
 
     public static func search(_ query: String, in items: [LBItem], includeDeleted: Bool = false) -> [LBItem] {
+        if cache.count > 2000 {
+            let liveIDs = Set(items.map(\.id))
+            cache = cache.filter { liveIDs.contains($0.key) }
+        }
         let eligible = items.filter { includeDeleted || $0.status != "deleted" }
         let q = normalize(query)
         guard !q.isEmpty else { return eligible }
@@ -64,17 +68,24 @@ final class LocalSearchController: ObservableObject {
                 try await Task.sleep(for: .milliseconds(180))
                 try Task.checkCancellation()
                 results = LocalItemSearch.search(query, in: items, includeDeleted: includeDeleted)
-                if query.split(separator: " ").count > 3, AppleLaterAIProvider.unavailableReason == nil {
+                if query.split(separator: " ").count > 1, AppleLaterAIProvider.unavailableReason == nil {
                     let interpretation = try await AppleSearchInterpreter.interpret(query)
                     guard !Task.isCancelled, revision == id else { return }
                     var filtered = items
                     if let type = ItemContentType(rawValue: interpretation.contentType) { filtered = filtered.filter { $0.type == type.rawValue } }
-                    if interpretation.returnWindow == "thisWeek" {
-                        let end = Calendar.current.date(byAdding: .day, value: 7, to: Date()) ?? Date()
-                        filtered = filtered.filter { $0.returnAt.map { $0 >= Calendar.current.startOfDay(for: Date()) && $0 <= end } ?? false }
+                    switch interpretation.returnWindow {
+                    case "thisWeek":
+                        if let week = Calendar.current.dateInterval(of: .weekOfYear, for: Date()) {
+                            filtered = filtered.filter { $0.returnAt.map { week.contains($0) } ?? false }
+                        }
+                    case "today":
+                        filtered = filtered.filter { $0.returnAt.map { Calendar.current.isDateInToday($0) } ?? false }
+                    case "upcoming":
+                        filtered = filtered.filter { $0.returnAt.map { $0 > Date() } ?? false }
+                    default: break
                     }
                     let improved = LocalItemSearch.search(interpretation.terms, in: filtered, includeDeleted: includeDeleted)
-                    if !improved.isEmpty { results = improved }
+                    if !improved.isEmpty || !interpretation.returnWindow.isEmpty || !interpretation.contentType.isEmpty { results = improved }
                 }
             } catch { /* Lexical results remain available if interpretation fails. */ }
         }
