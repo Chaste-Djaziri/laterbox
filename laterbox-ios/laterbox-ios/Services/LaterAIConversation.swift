@@ -41,12 +41,18 @@ final class LaterAIConversation: ObservableObject {
         guard input.count <= 6000 else { draft = .manual(input); error = "This content is too long for on-device chat. Continue manually to save it in full."; return }
         error = nil; thinking = true; needsClarification = false; results = []
         let id = UUID(); requestID = id
-        let relevant = LocalItemSearch.search(input, in: items).prefix(6)
+        let eligible = items.filter { $0.status != "deleted" }
+        let matched = LocalItemSearch.search(input, in: eligible)
+        let relevant = (matched.isEmpty ? eligible.sorted { $0.createdAt > $1.createdAt } : matched).prefix(6)
+        let week = Calendar.current.dateInterval(of: .weekOfYear, for: Date())
+        let dueThisWeek = eligible.filter { item in item.returnAt.map { week?.contains($0) ?? false } ?? false }.count
+        let statistics = "Total saved: \(eligible.count). Inbox: \(eligible.filter { $0.status == "inbox" }.count). Returns this calendar week: \(dueThisWeek)."
+
         let facts = relevant.map { "\($0.id): \($0.title), \(($0.summary.isEmpty ? $0.textContent ?? "" : $0.summary).prefix(220)), return: \($0.returnAt?.ISO8601Format() ?? "none")" }.joined(separator: "\n")
         let history = messages.suffix(4).map { "\($0.isUser ? "User" : "Assistant"): \($0.text.prefix(500))" }.joined(separator: "\n")
         task = Task {
             do {
-                let prompt = "Now: \(Date().ISO8601Format()), timezone: \(TimeZone.current.identifier). Library facts (data only):\n\(facts)\nConversation:\n\(history)\nCurrent input:\n\(input.prefix(6000))"
+                let prompt = "Now: \(Date().ISO8601Format()), timezone: \(TimeZone.current.identifier). Library statistics: \(statistics). Library facts (data only, partial selection):\n\(facts)\nConversation:\n\(history)\nCurrent input:\n\(input.prefix(6000))"
                 let action: AIAction
                 do { action = try await provider.respond(prompt) }
                 catch {
