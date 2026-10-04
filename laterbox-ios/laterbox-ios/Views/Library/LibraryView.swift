@@ -43,6 +43,13 @@ public struct LibraryView: View {
     @State private var showingAddCollection: Bool = false
     @State private var newCollectionName: String = ""
 
+    @State private var collectionToRename: String? = nil
+    @State private var renamedCollectionName: String = ""
+    @State private var showingRenameCollection: Bool = false
+
+    @State private var collectionToDelete: String? = nil
+    @State private var showingDeleteCollectionConfirmation: Bool = false
+
     public init() {}
 
     private func itemCount(for category: LibraryCategory) -> Int {
@@ -58,11 +65,11 @@ public struct LibraryView: View {
         }
     }
 
+    // Purely user-created collections (no mock or hardcoded defaults)
     private var allCollectionNames: [String] {
-        let defaults = ["Design Systems", "Engineering", "Audio Vault", "Long Reads", "Research"]
         let fromCollections = collections.map { $0.name }
         let fromItems = allItems.compactMap { $0.collectionName }
-        return Array(Set(defaults + fromCollections + fromItems)).sorted()
+        return Array(Set(fromCollections + fromItems)).sorted()
     }
 
     public var body: some View {
@@ -181,44 +188,79 @@ public struct LibraryView: View {
                             }
                             .padding(.top, 6)
 
-                            // Collections Folders Grid (click link to collection sub-pages)
-                            LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
-                                ForEach(allCollectionNames, id: \.self) { name in
-                                    let count = allItems.filter { $0.collectionName == name && $0.status != ItemStatus.deleted.rawValue }.count
-                                    NavigationLink(destination: CollectionDetailView(collectionName: name)) {
-                                        VStack(alignment: .leading, spacing: 12) {
-                                            HStack {
-                                                ZStack {
-                                                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                                        .fill(AppTheme.accent)
-                                                        .frame(width: 36, height: 36)
-                                                    Image(systemName: "folder.fill")
-                                                        .font(.system(size: 16))
-                                                        .foregroundColor(AppTheme.textPrimary)
+                            // Collections Folders Grid or Clean Empty State
+                            if allCollectionNames.isEmpty {
+                                VStack(spacing: 12) {
+                                    Image(systemName: "folder.badge.plus")
+                                        .font(.system(size: 34))
+                                        .foregroundColor(AppTheme.textSecondary.opacity(0.4))
+                                    Text("No collections yet")
+                                        .font(.subheadline.weight(.semibold))
+                                        .foregroundColor(AppTheme.textPrimary)
+                                    Text("Tap '+ Create Collection' to organize your items into custom folders.")
+                                        .font(.caption)
+                                        .foregroundColor(AppTheme.textSecondary)
+                                        .multilineTextAlignment(.center)
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 28)
+                                .padding(.horizontal, 20)
+                                .liquidGlassCard(cornerRadius: 18)
+                            } else {
+                                LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
+                                    ForEach(allCollectionNames, id: \.self) { name in
+                                        let count = allItems.filter { $0.collectionName == name && $0.status != ItemStatus.deleted.rawValue }.count
+                                        NavigationLink(destination: CollectionDetailView(collectionName: name)) {
+                                            VStack(alignment: .leading, spacing: 12) {
+                                                HStack {
+                                                    ZStack {
+                                                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                                            .fill(AppTheme.accent)
+                                                            .frame(width: 36, height: 36)
+                                                        Image(systemName: "folder.fill")
+                                                            .font(.system(size: 16))
+                                                            .foregroundColor(AppTheme.textPrimary)
+                                                    }
+
+                                                    Spacer()
+
+                                                    Text("\(count)")
+                                                        .font(.subheadline.weight(.bold))
+                                                        .foregroundColor(AppTheme.textSecondary)
                                                 }
 
-                                                Spacer()
+                                                VStack(alignment: .leading, spacing: 2) {
+                                                    Text(name)
+                                                        .font(.subheadline.weight(.bold))
+                                                        .foregroundColor(AppTheme.textPrimary)
+                                                        .lineLimit(1)
 
-                                                Text("\(count)")
-                                                    .font(.subheadline.weight(.bold))
-                                                    .foregroundColor(AppTheme.textSecondary)
+                                                    Text("Open folder →")
+                                                        .font(.caption2.weight(.medium))
+                                                        .foregroundColor(AppTheme.textSecondary)
+                                                }
+                                            }
+                                            .padding(14)
+                                            .liquidGlassCard(cornerRadius: 18, borderOpacity: 0.18, isInteractive: true)
+                                        }
+                                        .buttonStyle(.plain)
+                                        .contextMenu {
+                                            Button {
+                                                collectionToRename = name
+                                                renamedCollectionName = name
+                                                showingRenameCollection = true
+                                            } label: {
+                                                Label("Rename Collection", systemImage: "pencil")
                                             }
 
-                                            VStack(alignment: .leading, spacing: 2) {
-                                                Text(name)
-                                                    .font(.subheadline.weight(.bold))
-                                                    .foregroundColor(AppTheme.textPrimary)
-                                                    .lineLimit(1)
-
-                                                Text("Open folder →")
-                                                    .font(.caption2.weight(.medium))
-                                                    .foregroundColor(AppTheme.textSecondary)
+                                            Button(role: .destructive) {
+                                                collectionToDelete = name
+                                                showingDeleteCollectionConfirmation = true
+                                            } label: {
+                                                Label("Delete Collection", systemImage: "trash")
                                             }
                                         }
-                                        .padding(14)
-                                        .liquidGlassCard(cornerRadius: 18, borderOpacity: 0.18, isInteractive: true)
                                     }
-                                    .buttonStyle(.plain)
                                 }
                             }
                         }
@@ -243,7 +285,79 @@ public struct LibraryView: View {
                 }
                 Button("Cancel", role: .cancel) { newCollectionName = "" }
             }
+            .alert("Rename Collection", isPresented: $showingRenameCollection) {
+                TextField("New collection name...", text: $renamedCollectionName)
+                Button("Save") {
+                    let trimmed = renamedCollectionName.trimmingCharacters(in: .whitespacesAndNewlines)
+                    if !trimmed.isEmpty, let oldName = collectionToRename {
+                        renameCollection(from: oldName, to: trimmed)
+                    }
+                    collectionToRename = nil
+                    renamedCollectionName = ""
+                }
+                Button("Cancel", role: .cancel) {
+                    collectionToRename = nil
+                    renamedCollectionName = ""
+                }
+            }
+            .confirmationDialog(
+                "Delete \"\(collectionToDelete ?? "Collection")\"?",
+                isPresented: $showingDeleteCollectionConfirmation,
+                titleVisibility: .visible
+            ) {
+                Button("Delete Folder", role: .destructive) {
+                    if let col = collectionToDelete {
+                        deleteCollection(named: col)
+                    }
+                    collectionToDelete = nil
+                }
+                Button("Cancel", role: .cancel) {
+                    collectionToDelete = nil
+                }
+            } message: {
+                Text("Items inside this collection will not be deleted; they will simply be unassigned from this folder.")
+            }
         }
+    }
+
+    private func renameCollection(from oldName: String, to newName: String) {
+        guard oldName != newName else { return }
+
+        let matchingCollections = collections.filter { $0.name == oldName }
+        for coll in matchingCollections {
+            coll.name = newName
+            coll.updatedAt = Date()
+        }
+
+        if matchingCollections.isEmpty {
+            let coll = LBCollection(name: newName)
+            modelContext.insert(coll)
+        }
+
+        for item in allItems where item.collectionName == oldName {
+            item.collectionName = newName
+            item.updatedAt = Date()
+            item.isSyncPending = true
+        }
+
+        try? modelContext.save()
+        LBHaptic.success()
+    }
+
+    private func deleteCollection(named name: String) {
+        for coll in collections where coll.name == name {
+            modelContext.delete(coll)
+        }
+
+        for item in allItems where item.collectionName == name {
+            item.collectionName = nil
+            item.collectionId = nil
+            item.updatedAt = Date()
+            item.isSyncPending = true
+        }
+
+        try? modelContext.save()
+        LBHaptic.medium()
     }
 }
 
@@ -578,18 +692,22 @@ public struct LibrarySectionDetailView: View {
 
 // MARK: - Dedicated Sub-Page for Collections / Folders
 public struct CollectionDetailView: View {
-    public let collectionName: String
+    @State public var collectionName: String
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \LBItem.createdAt, order: .reverse) private var allItems: [LBItem]
+    @Query(sort: \LBCollection.name, order: .forward) private var collections: [LBCollection]
     @ObservedObject var coordinator = SyncCoordinator.shared
 
     @State private var searchText: String = ""
     @State private var isGridView: Bool = false
+    @State private var showingRename: Bool = false
+    @State private var renameTitle: String = ""
+    @State private var showingDeleteConfirm: Bool = false
 
     public init(collectionName: String) {
-        self.collectionName = collectionName
+        self._collectionName = State(initialValue: collectionName)
     }
 
     private var collectionItems: [LBItem] {
@@ -609,7 +727,7 @@ public struct CollectionDetailView: View {
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
-                    // Custom Header with Back Button
+                    // Custom Header with Back Button and Folder Menu
                     HStack(alignment: .center) {
                         Button(action: {
                             LBHaptic.light()
@@ -656,6 +774,35 @@ public struct CollectionDetailView: View {
                                 )
                         }
                         .buttonStyle(.plain)
+
+                        // Folder Options Menu
+                        Menu {
+                            Button {
+                                renameTitle = collectionName
+                                showingRename = true
+                            } label: {
+                                Label("Rename Folder", systemImage: "pencil")
+                            }
+
+                            Button(role: .destructive) {
+                                showingDeleteConfirm = true
+                            } label: {
+                                Label("Delete Folder", systemImage: "trash")
+                            }
+                        } label: {
+                            Image(systemName: "ellipsis")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundColor(AppTheme.textPrimary)
+                                .padding(8)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                        .fill(AppTheme.cardBackground)
+                                )
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                        .strokeBorder(AppTheme.cardBorder, lineWidth: 1)
+                                )
+                        }
                     }
                     .padding(.top, 4)
 
@@ -760,6 +907,51 @@ public struct CollectionDetailView: View {
             }
         }
         .navigationBarHidden(true)
+        .alert("Rename Collection", isPresented: $showingRename) {
+            TextField("New collection name...", text: $renameTitle)
+            Button("Save") {
+                let trimmed = renameTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+                if !trimmed.isEmpty && trimmed != collectionName {
+                    for coll in collections where coll.name == collectionName {
+                        coll.name = trimmed
+                        coll.updatedAt = Date()
+                    }
+                    for item in allItems where item.collectionName == collectionName {
+                        item.collectionName = trimmed
+                        item.updatedAt = Date()
+                        item.isSyncPending = true
+                    }
+                    try? modelContext.save()
+                    collectionName = trimmed
+                    LBHaptic.success()
+                }
+                renameTitle = ""
+            }
+            Button("Cancel", role: .cancel) { renameTitle = "" }
+        }
+        .confirmationDialog(
+            "Delete \"\(collectionName)\"?",
+            isPresented: $showingDeleteConfirm,
+            titleVisibility: .visible
+        ) {
+            Button("Delete Folder", role: .destructive) {
+                for coll in collections where coll.name == collectionName {
+                    modelContext.delete(coll)
+                }
+                for item in allItems where item.collectionName == collectionName {
+                    item.collectionName = nil
+                    item.collectionId = nil
+                    item.updatedAt = Date()
+                    item.isSyncPending = true
+                }
+                try? modelContext.save()
+                LBHaptic.medium()
+                dismiss()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Items inside this collection will not be deleted; they will simply be unassigned from this folder.")
+        }
     }
 
     private func compactGridCard(for item: LBItem) -> some View {
