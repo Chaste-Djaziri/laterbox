@@ -26,21 +26,11 @@ public enum LibraryCategory: String, CaseIterable, Identifiable {
     }
 
     public var iconBackground: Color {
-        switch self {
-        case .favorites: return Color.lbAmber.opacity(0.18)
-        case .kept: return AppTheme.accent
-        case .archived: return Color.blue.opacity(0.15)
-        case .deleted: return Color.red.opacity(0.15)
-        }
+        AppTheme.accent
     }
 
     public var iconForeground: Color {
-        switch self {
-        case .favorites: return Color.lbAmber
-        case .kept: return Color.black
-        case .archived: return Color.blue
-        case .deleted: return Color.red
-        }
+        AppTheme.textPrimary
     }
 }
 
@@ -200,11 +190,11 @@ public struct LibraryView: View {
                                             HStack {
                                                 ZStack {
                                                     RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                                        .fill(Color.lbAmber.opacity(0.18))
+                                                        .fill(AppTheme.accent)
                                                         .frame(width: 36, height: 36)
                                                     Image(systemName: "folder.fill")
                                                         .font(.system(size: 16))
-                                                        .foregroundColor(Color.lbAmber)
+                                                        .foregroundColor(AppTheme.textPrimary)
                                                 }
 
                                                 Spacer()
@@ -222,7 +212,7 @@ public struct LibraryView: View {
 
                                                 Text("Open folder →")
                                                     .font(.caption2.weight(.medium))
-                                                    .foregroundColor(Color.lbAmber)
+                                                    .foregroundColor(AppTheme.textSecondary)
                                             }
                                         }
                                         .padding(14)
@@ -557,7 +547,7 @@ public struct LibrarySectionDetailView: View {
                     .frame(height: 70)
                 Image(systemName: item.parsedContentType.systemIcon)
                     .font(.title2)
-                    .foregroundColor(Color.lbAmber)
+                    .foregroundColor(AppTheme.textPrimary)
             }
 
             Text(item.title)
@@ -673,11 +663,11 @@ public struct CollectionDetailView: View {
                     HStack(spacing: 8) {
                         ZStack {
                             RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                .fill(Color.lbAmber.opacity(0.18))
+                                .fill(AppTheme.accent)
                                 .frame(width: 32, height: 32)
                             Image(systemName: "folder.fill")
                                 .font(.system(size: 15))
-                                .foregroundColor(Color.lbAmber)
+                                .foregroundColor(AppTheme.textPrimary)
                         }
 
                         Text(collectionName)
@@ -780,7 +770,7 @@ public struct CollectionDetailView: View {
                     .frame(height: 70)
                 Image(systemName: item.parsedContentType.systemIcon)
                     .font(.title2)
-                    .foregroundColor(Color.lbAmber)
+                    .foregroundColor(AppTheme.textPrimary)
             }
 
             Text(item.title)
