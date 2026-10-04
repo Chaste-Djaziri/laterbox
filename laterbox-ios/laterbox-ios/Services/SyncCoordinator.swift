@@ -177,6 +177,22 @@ public final class SyncCoordinator: ObservableObject {
     }
 
     public func deleteItem(item: LBItem, context: ModelContext) {
+        item.status = ItemStatus.deleted.rawValue
+        item.updatedAt = Date()
+        item.isSyncPending = true
+        try? context.save()
+        LBHaptic.medium()
+    }
+
+    public func restoreItem(item: LBItem, context: ModelContext) {
+        item.status = ItemStatus.saved.rawValue
+        item.updatedAt = Date()
+        item.isSyncPending = true
+        try? context.save()
+        LBHaptic.success()
+    }
+
+    public func permanentlyDeleteItem(item: LBItem, context: ModelContext) {
         context.delete(item)
         try? context.save()
         LBHaptic.medium()
