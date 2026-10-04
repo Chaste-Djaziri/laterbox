@@ -10,73 +10,47 @@ import SwiftData
 
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
-    @Query private var items: [Item]
+    @StateObject private var coordinator = SyncCoordinator.shared
+
+    @State private var selectedTab: LBTab = .home
+    @State private var showingQuickCapture: Bool = false
 
     var body: some View {
-        NavigationViewWrapper {
-            List {
-                ForEach(items) { item in
-                    NavigationLink {
-                        Text("Item at \(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))")
-                    } label: {
-                        Text(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))
-                    }
-                }
-                .onDelete(perform: deleteItems)
-            }
-#if os(macOS)
-            .navigationSplitViewColumnWidth(min: 180, ideal: 200)
-#endif
-            .toolbar {
-#if os(iOS)
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    EditButton()
-                }
-#endif
-                ToolbarItem {
-                    Button(action: addItem) {
-                        Label("Add Item", systemImage: "plus")
-                    }
+        ZStack(alignment: .bottom) {
+            // Main Tab Content
+            Group {
+                switch selectedTab {
+                case .home:
+                    HomeView()
+                case .inbox:
+                    InboxView()
+                case .returns:
+                    ReturnsView()
+                case .library:
+                    LibraryView()
+                case .settings:
+                    SettingsView()
                 }
             }
-        }
-    }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-    private func addItem() {
-        withAnimation {
-            let newItem = Item(timestamp: Date())
-            modelContext.insert(newItem)
-        }
-    }
-
-    private func deleteItems(offsets: IndexSet) {
-        withAnimation {
-            for index in offsets {
-                modelContext.delete(items[index])
+            // Floating Liquid Glass Tab Bar
+            GlassTabBar(selectedTab: $selectedTab) {
+                showingQuickCapture = true
             }
         }
-    }
-}
-
-fileprivate struct NavigationViewWrapper<Content: View>: View {
-    let content: () -> Content
-
-    var body: some View {
-#if os(macOS)
-        NavigationSplitView {
-            content()
-        } detail: {
-            Text("Select an item")
+        .ignoresSafeArea(.keyboard, edges: .bottom)
+        .sheet(isPresented: $showingQuickCapture) {
+            QuickCaptureSheet()
         }
-#else
-        NavigationStack {
-            content()
+        .task {
+            // Trigger automatic sync on app launch
+            await coordinator.syncPendingItems(context: modelContext)
         }
-#endif
     }
 }
 
 #Preview {
     ContentView()
-        .modelContainer(for: Item.self, inMemory: true)
+        .modelContainer(for: [LBItem.self, LBCollection.self], inMemory: true)
 }
