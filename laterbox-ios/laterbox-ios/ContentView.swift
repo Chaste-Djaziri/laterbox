@@ -10,10 +10,10 @@ import SwiftData
 
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
+    @Query(filter: #Predicate<LBItem> { $0.status == "inbox" }) private var inboxItems: [LBItem]
     @StateObject private var coordinator = SyncCoordinator.shared
 
     @State private var selectedTab: LBTab = .home
-    @State private var showingQuickCapture: Bool = false
 
     var body: some View {
         Group {
@@ -21,31 +21,40 @@ struct ContentView: View {
                 WelcomeView()
                     .transition(.opacity)
             } else {
-                ZStack(alignment: .bottom) {
-                    // Main Tab Content
-                    Group {
-                        switch selectedTab {
-                        case .home:
-                            HomeView()
-                        case .inbox:
-                            InboxView()
-                        case .returns:
-                            ReturnsView()
-                        case .library:
-                            LibraryView()
-                        case .settings:
-                            SettingsView()
+                TabView(selection: $selectedTab) {
+                    HomeView()
+                        .tabItem {
+                            Label("Home", systemImage: selectedTab == .home ? "house.fill" : "house")
                         }
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .tag(LBTab.home)
 
-                    // Floating Liquid Glass Tab Bar
-                    GlassTabBar(selectedTab: $selectedTab) {
-                        showingQuickCapture = true
-                    }
+                    InboxView()
+                        .tabItem {
+                            Label("Inbox", systemImage: selectedTab == .inbox ? "tray.fill" : "tray")
+                        }
+                        .badge(inboxItems.count > 0 ? inboxItems.count : 0)
+                        .tag(LBTab.inbox)
+
+                    ReturnsView()
+                        .tabItem {
+                            Label("Returns", systemImage: selectedTab == .returns ? "calendar" : "calendar")
+                        }
+                        .tag(LBTab.returns)
+
+                    LibraryView()
+                        .tabItem {
+                            Label("Library", systemImage: selectedTab == .library ? "books.vertical.fill" : "books.vertical")
+                        }
+                        .tag(LBTab.library)
+
+                    SettingsView()
+                        .tabItem {
+                            Label("Settings", systemImage: selectedTab == .settings ? "gearshape.fill" : "gearshape")
+                        }
+                        .tag(LBTab.settings)
                 }
-                .ignoresSafeArea(.keyboard, edges: .bottom)
-                .sheet(isPresented: $showingQuickCapture) {
+                .tint(Color.lbEmerald)
+                .sheet(isPresented: $coordinator.showingQuickCapture) {
                     QuickCaptureSheet()
                 }
                 .task {
