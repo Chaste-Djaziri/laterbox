@@ -2,10 +2,27 @@ package com.example.laterbox.theme
 
 import androidx.compose.ui.graphics.Color
 
-val Purple80 = Color(0xFFD0BCFF)
-val PurpleGrey80 = Color(0xFFCCC2DC)
-val Pink80 = Color(0xFFEFB8C8)
+// LaterBox Signature Brand Palette
+val LaterboxBg = Color(0xFFF7F5EE)
+val LaterboxDarkBg = Color(0xFF121212)
+val LaterboxAccent = Color(0xFFE6EDB0)
+val LaterboxAccentDark = Color(0xFFC8D485)
+val LaterboxDarkSurface = Color(0xFF181818)
+val LaterboxDarkCard = Color(0xFF222222)
+val LaterboxCard = Color(0xFFFFFFFF)
+val LaterboxBorder = Color(0x14000000)
+val LaterboxDarkBorder = Color(0x22FFFFFF)
 
-val Purple40 = Color(0xFF6650a4)
-val PurpleGrey40 = Color(0xFF625b71)
-val Pink40 = Color(0xFF7D5260)
+// Typography & Content
+val LaterboxTextPrimary = Color(0xFF111827)
+val LaterboxTextSecondary = Color(0xFF6B7280)
+val LaterboxTextTertiary = Color(0xFF9CA3AF)
+val LaterboxTextOnDark = Color(0xFFFFFFFF)
+val LaterboxTextOnDarkSecondary = Color(0xB3FFFFFF)
+
+// Semantic Accents
+val LaterboxAmber = Color(0xFFF59E0B)
+val LaterboxIndigo = Color(0xFF6366F1)
+val LaterboxEmerald = Color(0xFF10B981)
+val LaterboxRose = Color(0xFFF43F5E)
+val LaterboxSky = Color(0xFF0284C7)

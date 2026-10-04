@@ -5,18 +5,24 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation3.runtime.NavKey
 import com.example.laterbox.data.DefaultDataRepository
+import com.example.laterbox.data.local.AppDatabase
 import com.example.laterbox.theme.LaterboxTheme
 
 @Composable
 fun MainScreen(
   onItemClick: (NavKey) -> Unit,
   modifier: Modifier = Modifier,
-  viewModel: MainScreenViewModel = viewModel { MainScreenViewModel(DefaultDataRepository()) },
+  context: android.content.Context = LocalContext.current,
+  viewModel: MainScreenViewModel = viewModel {
+    val db = AppDatabase.getDatabase(context)
+    MainScreenViewModel(DefaultDataRepository(context, db))
+  },
 ) {
   val state by viewModel.uiState.collectAsStateWithLifecycle()
   when (state) {
@@ -45,11 +51,5 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
 @Preview(showBackground = true)
 @Composable
 fun MainScreenPreview() {
-  LaterboxTheme { MainScreen(listOf("Android")) }
-}
-
-@Preview(showBackground = true, widthDp = 340)
-@Composable
-fun MainScreenPortraitPreview() {
   LaterboxTheme { MainScreen(listOf("Android")) }
 }
