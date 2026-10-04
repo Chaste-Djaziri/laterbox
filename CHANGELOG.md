@@ -36,6 +36,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 - **[Shared] Platform release contract**: Future releases record affected platforms, customer-visible changes, migrations, known limitations, and verification evidence so Windows, mobile, web, and extensions can follow the same capability contract.
 
 ### Changed
+- **[iOS] Native Bottom Tab Navigation**: Replaced the custom floating pill tab bar with standard native iOS bottom TabView navigation across all 5 primary tabs (Home, Inbox with unread badge count, Returns, Library, and Settings), delivering native platform ergonomics and automatic safe-area scrolling.
 - **[Shared] Build metadata**: Synchronized the release metadata to LaterBox 1.0.170 (build 172) across the native apps, web app, installer, and browser extensions.
 - **[macOS] Balanced auth workspace**: Desktop auth now gives the product story more visual weight and centers a focused sign-in form with its supporting illustration in the right pane.
 - **[macOS] Full-page onboarding and auth**: The desktop welcome, sign-in, and code-verification screens now use the complete app window instead of a floating, rounded container.
