@@ -1,43 +1,33 @@
-//
-//  laterbox_iosUITests.swift
-//  laterbox-iosUITests
-//
-//  Created by Chaste Djaziri on 04.10.26.
-//
-
 import XCTest
 
 final class laterbox_iosUITests: XCTestCase {
-
-    override func setUpWithError() throws {
-        // Put setup code here. This method is called before the invocation of each test method in the class.
-
-        // In UI tests it is usually best to stop immediately when a failure occurs.
-        continueAfterFailure = false
-
-        // In UI tests it’s important to set the initial state - such as interface orientation - required for your tests before they run. The setUp method is a good place to do this.
-    }
-
-    override func tearDownWithError() throws {
-        // Put teardown code here. This method is called after the invocation of each test method in the class.
-    }
+    override func setUpWithError() throws { continueAfterFailure = false }
 
     @MainActor
-    func testExample() throws {
-        // UI tests must launch the application that they test.
+    func testGuestGuidedCaptureSaveAndUndo() throws {
         let app = XCUIApplication()
+        app.launchArguments = ["-lb_guest_mode", "YES", "-lb_user_email", ""]
         app.launch()
-
-        // Use XCTAssert and related functions to verify your tests produce the correct results.
-        // XCUIAutomation Documentation
-        // https://developer.apple.com/documentation/xcuiautomation
-    }
-
-    @MainActor
-    func testLaunchPerformance() throws {
-        // This measures how long it takes to launch your application.
-        measure(metrics: [XCTApplicationLaunchMetric()]) {
-            XCUIApplication().launch()
-        }
+        XCTAssertTrue(app.buttons["Add item"].waitForExistence(timeout: 15))
+        app.buttons["Add item"].tap()
+        let content = app.descendants(matching: .any)["capture.content"].firstMatch
+        XCTAssertTrue(content.waitForExistence(timeout: 5))
+        XCTAssertFalse(app.textFields["Message Later AI..."].exists)
+        content.tap()
+        content.typeText("UI capture test #ideas")
+        app.buttons["Continue"].tap()
+        XCTAssertTrue(app.descendants(matching: .any)["capture.title"].firstMatch.waitForExistence(timeout: 5))
+        app.buttons["Continue"].tap()
+        XCTAssertTrue(app.descendants(matching: .any)["capture.tags"].firstMatch.waitForExistence(timeout: 5))
+        app.buttons["Continue"].tap()
+        app.buttons["No reminder"].tap()
+        app.buttons["Save"].tap()
+        XCTAssertTrue(app.buttons["Undo"].waitForExistence(timeout: 5))
+        let attachment = XCTAttachment(screenshot: app.screenshot())
+        attachment.name = "Guided capture saved item"
+        attachment.lifetime = .keepAlways
+        add(attachment)
+        app.buttons["Undo"].tap()
+        XCTAssertTrue(app.descendants(matching: .any)["capture.content"].firstMatch.waitForExistence(timeout: 5))
     }
 }
