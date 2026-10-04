@@ -3,6 +3,7 @@ import SwiftData
 import Foundation
 @testable import laterbox_ios
 
+@Suite(.serialized)
 @MainActor
 struct LaterAITests {
     private func context() throws -> ModelContext {
@@ -97,9 +98,7 @@ private struct CaptureProvider: LaterAIProvider {
     }
 }
 
-@Suite(.serialized)
-@MainActor
-struct ProSyncTests {
+extension LaterAITests {
     @Test func freeUsersDoNotMakeCloudRequests() async throws {
         let coordinator = SyncCoordinator.shared
         coordinator.updateProFromStoreKit(false)
@@ -109,6 +108,7 @@ struct ProSyncTests {
         #expect(transport.downloads == 0 && transport.uploads.isEmpty)
     }
     @Test func proSyncPreservesNewerLocalCaptureAndImportsRemoteMetadata() async throws {
+        try await Task.sleep(for: .milliseconds(100))
         let coordinator = SyncCoordinator.shared
         let previous = (coordinator.currentUserId, coordinator.currentUserEmail, coordinator.authToken)
         let uid = "00000000-0000-4000-8000-000000000009"
@@ -140,6 +140,7 @@ struct ProSyncTests {
         #expect(remote.formattedContent == "Formatted")
     }
     @Test func failedUploadRemainsPending() async throws {
+        try await Task.sleep(for: .milliseconds(100))
         let coordinator = SyncCoordinator.shared
         let previous = (coordinator.currentUserId, coordinator.currentUserEmail, coordinator.authToken)
         coordinator.currentUserId = "00000000-0000-4000-8000-000000000010"; coordinator.currentUserEmail = "test@example.com"; coordinator.authToken = "test"
