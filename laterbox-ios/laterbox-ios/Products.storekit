@@ -1,0 +1,140 @@
+{
+  "identifier" : "903D953E",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+
+  ],
+  "settings" : {
+    "_failTransactionsEnabled" : false,
+    "_locale" : "en_US",
+    "_storefront" : "USA",
+    "_storeKitErrors" : [
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Load Products"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Purchase"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Verification"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "App Store Sync"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Subscription Status"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "App Transaction"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Manage Subscriptions Sheet"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Refund Request Sheet"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Offer Code Redeem Sheet"
+      }
+    ]
+  },
+  "subscriptionGroups" : [
+    {
+      "id" : "21400123",
+      "localizations" : [
+        {
+          "description" : "Unlock all LaterBox Pro features",
+          "displayName" : "LaterBox Pro",
+          "locale" : "en_US"
+        }
+      ],
+      "name" : "LaterBox Pro",
+      "subscriptions" : [
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "3.99",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "64700001",
+          "introductoryOffer" : {
+            "internalID" : "64700010",
+            "numberOfPeriods" : 1,
+            "paymentMode" : "free",
+            "subscriptionPeriod" : "P2W"
+          },
+          "localizations" : [
+            {
+              "description" : "Monthly access with real-time cloud sync and AI.",
+              "displayName" : "LaterBox Pro Monthly",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "com.laterbox.pro.monthly",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "LaterBox Pro Monthly",
+          "subscriptionGroupID" : "21400123",
+          "type" : "RecurringSubscription"
+        },
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "39.99",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "64700002",
+          "introductoryOffer" : {
+            "internalID" : "64700020",
+            "numberOfPeriods" : 1,
+            "paymentMode" : "free",
+            "subscriptionPeriod" : "P2W"
+          },
+          "localizations" : [
+            {
+              "description" : "Annual access with real-time cloud sync and AI (Save 17%).",
+              "displayName" : "LaterBox Pro Annual",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "com.laterbox.pro.annual",
+          "recurringSubscriptionPeriod" : "P1Y",
+          "referenceName" : "LaterBox Pro Annual",
+          "subscriptionGroupID" : "21400123",
+          "type" : "RecurringSubscription"
+        }
+      ]
+    }
+  ],
+  "version" : {
+    "major" : 3,
+    "minor" : 0
+  }
+}
