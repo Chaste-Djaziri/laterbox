@@ -136,7 +136,7 @@ extension SyncCoordinator {
             let metadata: [String: Any] = ["item_id": item.id, "user_id": uid, "domain": item.domain as Any? ?? null,
                 "site_name": item.siteName as Any? ?? null, "description": item.metadataDescription as Any? ?? null,
                 "favicon_url": item.faviconUrl as Any? ?? null, "preview_image_url": item.previewImageUrl as Any? ?? null,
-                "status": item.enrichmentStatus, "updated_at": stamp,
+                "status": item.enrichmentStatus, "content_type": item.type, "updated_at": stamp,
                 "structured_data": ["tags": item.tags, "category": item.category, "summary": item.summary, "formattedContent": item.formattedContent]]
             let note: [String: Any] = ["item_id": item.id, "user_id": uid, "content": item.noteContent ?? "", "updated_at": stamp, "deleted_at": item.noteContent == nil ? stamp as Any : null]
             var collection: [String: Any]?
