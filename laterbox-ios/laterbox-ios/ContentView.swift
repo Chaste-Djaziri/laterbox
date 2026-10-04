@@ -16,8 +16,7 @@ struct ContentView: View {
     @Environment(\.scenePhase) private var scenePhase
 
     @State private var selectedTab: LBTab = .home
-    @State private var isShowingLaterAI: Bool = false
-    @State private var laterAIFlowProgress: CGFloat = 0.0
+    @StateObject private var aiManager = LaterAIManager.shared
 
     var body: some View {
         ZStack {
@@ -59,43 +58,6 @@ struct ContentView: View {
                         .tag(LBTab.settings)
                 }
                 .tint(Color.black)
-                .simultaneousGesture(
-                    DragGesture(minimumDistance: 15, coordinateSpace: .global)
-                        .onChanged { value in
-                            guard coordinator.hasAccess else { return }
-                            let isDownward = value.translation.height > 0
-                            let isVertical = value.translation.height > abs(value.translation.width) * 1.05
-
-                            if isDownward && isVertical {
-                                if !isShowingLaterAI {
-                                    isShowingLaterAI = true
-                                }
-                                laterAIFlowProgress = min(1.0, max(0.0, value.translation.height / 280.0))
-                            }
-                        }
-                        .onEnded { value in
-                            guard coordinator.hasAccess else { return }
-                            let isDownward = value.translation.height > 55
-                            let isVertical = value.translation.height > abs(value.translation.width) * 1.05
-
-                            if isDownward && isVertical {
-                                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                                withAnimation(.spring(response: 0.44, dampingFraction: 0.86)) {
-                                    laterAIFlowProgress = 1.0
-                                    isShowingLaterAI = true
-                                }
-                            } else if laterAIFlowProgress > 0 && laterAIFlowProgress < 1.0 {
-                                withAnimation(.spring(response: 0.40, dampingFraction: 0.86)) {
-                                    laterAIFlowProgress = 0.0
-                                }
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.40) {
-                                    if laterAIFlowProgress == 0 {
-                                        isShowingLaterAI = false
-                                    }
-                                }
-                            }
-                        }
-                )
                 .sheet(isPresented: $coordinator.showingQuickCapture) {
                     QuickCaptureSheet()
                 }
@@ -117,10 +79,10 @@ struct ContentView: View {
         .animation(.spring(response: 0.45, dampingFraction: 0.85), value: coordinator.hasAccess)
 
         // Later AI Dropdown Full Screen Interface with Feathered Fading Curtain
-        if (isShowingLaterAI || laterAIFlowProgress > 0) && coordinator.hasAccess {
-            LaterAIView(isPresented: $isShowingLaterAI, progress: $laterAIFlowProgress)
+        if (aiManager.isShowingLaterAI || aiManager.flowProgress > 0) && coordinator.hasAccess {
+            LaterAIView(isPresented: $aiManager.isShowingLaterAI, progress: $aiManager.flowProgress)
                 .zIndex(200)
-                .allowsHitTesting(laterAIFlowProgress > 0.6)
+                .allowsHitTesting(aiManager.flowProgress > 0.6)
         }
 
         // Biometric App Lock Screen Overlay
