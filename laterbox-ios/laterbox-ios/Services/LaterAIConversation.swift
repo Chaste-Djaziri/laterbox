@@ -62,6 +62,7 @@ final class LaterAIConversation: ObservableObject {
                     let explicitTags = CaptureDraft.manual(input).tags
                     capture.tags = explicitTags.isEmpty ? Array(Set(action.tags.map { $0.lowercased() })).sorted() : explicitTags
                     capture.category = action.category
+                    capture.contentType = action.contentType
                     capture.summary = action.summary
                     capture.formattedContent = action.formattedContent
                     capture.returnAt = ISO8601DateFormatter().date(from: action.returnDate)
