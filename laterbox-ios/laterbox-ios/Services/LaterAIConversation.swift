@@ -14,10 +14,10 @@ final class LaterAIConversation: ObservableObject {
     @Published var needsClarification = false
     @Published var needsReturnDate = false
     private let provider: any LaterAIProvider
-    var chatAvailable: Bool { AppleLaterAIProvider.unavailableReason == nil || (GeminiLaterAIProvider.enabled && SyncCoordinator.shared.isProUser) }
+    var chatAvailable: Bool { AppleLaterAIProvider.unavailableReason == nil || (GeminiLaterAIProvider.enabled && SyncCoordinator.shared.isProUser && SyncCoordinator.shared.isAuthenticated) }
     init(provider: (any LaterAIProvider)? = nil) {
         self.provider = provider ?? AppleLaterAIProvider()
-        manual = AppleLaterAIProvider.unavailableReason != nil && !(GeminiLaterAIProvider.enabled && SyncCoordinator.shared.isProUser)
+        manual = AppleLaterAIProvider.unavailableReason != nil && !(GeminiLaterAIProvider.enabled && SyncCoordinator.shared.isProUser && SyncCoordinator.shared.isAuthenticated)
     }
     private var lastCaptureWasManual = false
     private var lastInput = ""
@@ -106,9 +106,11 @@ final class LaterAIConversation: ObservableObject {
     func schedule(_ date: Date?, context: ModelContext) {
         guard let item = savedItem else { return }
         let oldDate = item.returnAt
+        let oldStatus = item.status
+        item.status = date == nil ? "inbox" : "deferred"
         item.returnAt = date; item.updatedAt = Date(); item.isSyncPending = true
         do { try context.save(); needsReturnDate = false; Task { await SyncCoordinator.shared.syncPendingItems(context: context) } }
-        catch { item.returnAt = oldDate; self.error = error.localizedDescription }
+        catch { item.returnAt = oldDate; item.status = oldStatus; self.error = error.localizedDescription }
     }
     func undo(context: ModelContext) {
         guard let item = savedItem else { return }
