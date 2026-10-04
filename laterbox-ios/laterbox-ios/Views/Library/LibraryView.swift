@@ -97,9 +97,9 @@ public struct LibraryView: View {
 
                             // Sync Status Indicator (No Container)
                             Button(action: {
-                                if !coordinator.isAuthenticated {
+                                if !coordinator.isProUser {
                                     LBHaptic.light()
-                                    coordinator.showingAuthSheet = true
+                                    coordinator.showingPlansSheet = true
                                 }
                             }) {
                                 HStack(spacing: 5) {

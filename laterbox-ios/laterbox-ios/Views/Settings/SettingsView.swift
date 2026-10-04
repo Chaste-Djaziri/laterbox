@@ -44,9 +44,9 @@ public struct SettingsView: View {
 
                             // Sync Status Indicator (No Container)
                             Button(action: {
-                                if !coordinator.isAuthenticated {
+                                if !coordinator.isProUser {
                                     LBHaptic.light()
-                                    coordinator.showingAuthSheet = true
+                                    coordinator.showingPlansSheet = true
                                 }
                             }) {
                                 HStack(spacing: 5) {
@@ -197,6 +197,27 @@ public struct SettingsView: View {
                                     benefitPill(icon: "wand.and.stars", text: "AI Organizer")
                                     benefitPill(icon: "safari.fill", text: "Extensions")
                                 }
+
+                                Button(action: {
+                                    LBHaptic.light()
+                                    coordinator.showingPlansSheet = true
+                                }) {
+                                    HStack(spacing: 6) {
+                                        Image(systemName: "list.bullet.rectangle")
+                                            .font(.caption.weight(.semibold))
+                                        Text("View Plans & Subscriptions")
+                                            .font(.caption.weight(.semibold))
+                                    }
+                                    .foregroundColor(AppTheme.textPrimary)
+                                    .padding(.vertical, 8)
+                                    .frame(maxWidth: .infinity)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                            .fill(Color.black.opacity(0.05))
+                                    )
+                                }
+                                .buttonStyle(.plain)
+                                .padding(.top, 2)
                             } else {
                                 // Guest Mode: Local Plan + Pro Upgrade Pitch
                                 HStack(alignment: .center) {
@@ -269,7 +290,7 @@ public struct SettingsView: View {
 
                                     Button(action: {
                                         LBHaptic.medium()
-                                        showingAuthSheet = true
+                                        coordinator.showingPlansSheet = true
                                     }) {
                                         HStack(spacing: 6) {
                                             Image(systemName: "sparkles")
@@ -383,7 +404,7 @@ public struct SettingsView: View {
                                 } else {
                                     Button(action: {
                                         LBHaptic.light()
-                                        showingAuthSheet = true
+                                        coordinator.showingPlansSheet = true
                                     }) {
                                         HStack(spacing: 6) {
                                             Image(systemName: "lock.fill")
