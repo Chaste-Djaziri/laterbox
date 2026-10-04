@@ -143,11 +143,23 @@ public struct InboxView: View {
                         }
                     }
                     .padding(20)
-                    .padding(.bottom, 80)
+                    .padding(.bottom, 20)
                 }
             }
             .navigationTitle("Inbox")
             .navigationBarTitleDisplayMode(.large)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button(action: {
+                        LBHaptic.medium()
+                        coordinator.showingQuickCapture = true
+                    }) {
+                        Image(systemName: "plus")
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundColor(.lbEmerald)
+                    }
+                }
+            }
         }
     }
 }
