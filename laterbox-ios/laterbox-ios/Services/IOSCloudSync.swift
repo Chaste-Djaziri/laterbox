@@ -58,7 +58,17 @@ extension LaterBoxAPIService {
     }
     func uploadSnapshot(_ body: [String: Any], metadata: [String: Any], note: [String: Any], collection: [String: Any]?, token: String) async throws {
         _ = try await cloudRequest("items?on_conflict=id", token: token, method: "POST", body: body)
-        _ = try await cloudRequest("item_metadata?on_conflict=item_id", token: token, method: "POST", body: metadata)
+        var mergedMetadata = metadata
+        if let itemID = body["id"] as? String {
+            let oldData = try await cloudRequest("item_metadata?item_id=eq.\(itemID)&select=structured_data", token: token)
+            if let rows = try JSONSerialization.jsonObject(with: oldData) as? [[String: Any]],
+               var structured = rows.first?["structured_data"] as? [String: Any],
+               let current = metadata["structured_data"] as? [String: Any] {
+                structured.merge(current) { _, new in new }
+                mergedMetadata["structured_data"] = structured
+            }
+        }
+        _ = try await cloudRequest("item_metadata?on_conflict=item_id", token: token, method: "POST", body: mergedMetadata)
         _ = try await cloudRequest("item_notes?on_conflict=item_id", token: token, method: "POST", body: note)
         if let collection {
             _ = try await cloudRequest("collections?on_conflict=id", token: token, method: "POST", body: collection)
@@ -72,6 +82,11 @@ extension SyncCoordinator {
     func performCloudSync(context: ModelContext) async throws {
         guard isAuthenticated, isProUser, let uid = currentUserId, let token = authToken else { return }
         let api = LaterBoxAPIService.shared
+        for id in cloudDeletionQueue {
+            guard currentUserId == uid, authToken == token, isProUser else { return }
+            _ = try await api.cloudRequest("items?id=eq.\(id)&user_id=eq.\(uid)", token: token, method: "DELETE")
+            cloudDeletionQueue.removeAll { $0 == id }
+        }
         let remote = try await api.downloadSnapshots(userID: uid, token: token)
         guard currentUserId == uid, authToken == token, isProUser else { return }
         let local = try context.fetch(FetchDescriptor<LBItem>())
