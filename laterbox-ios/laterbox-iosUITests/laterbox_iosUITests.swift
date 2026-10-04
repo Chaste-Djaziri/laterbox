@@ -10,6 +10,7 @@ final class laterbox_iosUITests: XCTestCase {
         app.launch()
         XCTAssertTrue(app.buttons["Add item"].waitForExistence(timeout: 15))
         app.buttons["Add item"].tap()
+        if app.buttons["Guided capture"].waitForExistence(timeout: 3) { app.buttons["Guided capture"].tap() }
         let content = app.descendants(matching: .any)["capture.content"].firstMatch
         XCTAssertTrue(content.waitForExistence(timeout: 5))
         XCTAssertFalse(app.textFields["Message Later AI..."].exists)
