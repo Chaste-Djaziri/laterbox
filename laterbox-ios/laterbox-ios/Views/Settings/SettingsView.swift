@@ -54,65 +54,91 @@ public struct SettingsView: View {
                         }
                         .padding(.top, 4)
 
-                        // User Profile Card
-                        VStack(alignment: .leading, spacing: 14) {
-                            HStack(spacing: 14) {
-                                ZStack {
-                                    Circle()
-                                        .fill(Color.lbAmber.opacity(0.2))
-                                        .frame(width: 52, height: 52)
-                                    Image(systemName: coordinator.currentUserEmail != nil ? "person.fill" : "person.crop.circle.badge.questionmark")
-                                        .font(.system(size: 24))
-                                        .foregroundColor(Color.lbAmber)
-                                }
+                        // User Profile (Centered, uncontainerized, app theme colors)
+                        VStack(alignment: .center, spacing: 12) {
+                            // Centered Profile Icon (green background, black icon)
+                            ZStack {
+                                Circle()
+                                    .fill(AppTheme.accent)
+                                    .frame(width: 72, height: 72)
+                                Image(systemName: "person.fill")
+                                    .font(.system(size: 32, weight: .semibold))
+                                    .foregroundColor(AppTheme.textPrimary)
+                            }
 
-                                VStack(alignment: .leading, spacing: 3) {
-                                    if let email = coordinator.currentUserEmail {
-                                        Text(email)
-                                            .font(.headline)
-                                            .foregroundColor(.primary)
-                                            .lineLimit(1)
-                                        HStack(spacing: 4) {
-                                            Image(systemName: "checkmark.seal.fill")
-                                                .font(.caption2)
-                                                .foregroundColor(Color.lbAmber)
-                                            Text("LaterBox Pro Active")
-                                                .font(.caption.weight(.semibold))
-                                                .foregroundColor(Color.lbAmber)
-                                        }
-                                    } else {
-                                        Text("Guest Mode")
-                                            .font(.headline)
-                                            .foregroundColor(.primary)
-                                        Text("Local saving active • Sign in for cloud sync")
+                            // Centered Name & Description
+                            VStack(spacing: 4) {
+                                if let email = coordinator.currentUserEmail {
+                                    Text(email)
+                                        .font(.system(size: 20, weight: .bold))
+                                        .foregroundColor(AppTheme.textPrimary)
+                                        .multilineTextAlignment(.center)
+                                        .lineLimit(1)
+
+                                    HStack(spacing: 5) {
+                                        Image(systemName: "checkmark.seal.fill")
                                             .font(.caption)
-                                            .foregroundColor(.secondary)
-                                    }
-                                }
-
-                                Spacer()
-
-                                if coordinator.currentUserEmail == nil {
-                                    Button(action: { showingAuthSheet = true }) {
-                                        Text("Sign In")
-                                            .font(.caption.weight(.bold))
-                                            .padding(.horizontal, 14)
-                                            .padding(.vertical, 8)
-                                            .background(Color.lbAmber)
-                                            .foregroundColor(.black)
-                                            .clipShape(Capsule())
+                                            .foregroundColor(AppTheme.textPrimary)
+                                        Text("LaterBox Pro Active")
+                                            .font(.subheadline.weight(.medium))
+                                            .foregroundColor(AppTheme.textSecondary)
                                     }
                                 } else {
-                                    Button(action: { showingSignOutAlert = true }) {
-                                        Image(systemName: "rectangle.portrait.and.arrow.right")
-                                            .font(.subheadline)
-                                            .foregroundColor(.secondary)
-                                    }
+                                    Text("Guest Mode")
+                                        .font(.system(size: 20, weight: .bold))
+                                        .foregroundColor(AppTheme.textPrimary)
+                                        .multilineTextAlignment(.center)
+
+                                    Text("Local saving active • Sign in for cloud sync")
+                                        .font(.subheadline)
+                                        .foregroundColor(AppTheme.textSecondary)
+                                        .multilineTextAlignment(.center)
                                 }
                             }
+
+                            // Full width Sign In button (button black, text white)
+                            if coordinator.currentUserEmail == nil {
+                                Button(action: {
+                                    LBHaptic.light()
+                                    showingAuthSheet = true
+                                }) {
+                                    Text("Sign In")
+                                        .font(.headline.weight(.bold))
+                                        .foregroundColor(.white)
+                                        .frame(maxWidth: .infinity)
+                                        .padding(.vertical, 14)
+                                        .background(
+                                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                                .fill(AppTheme.darkSurface)
+                                        )
+                                }
+                                .buttonStyle(.plain)
+                                .padding(.top, 6)
+                            } else {
+                                Button(action: {
+                                    LBHaptic.light()
+                                    showingSignOutAlert = true
+                                }) {
+                                    HStack(spacing: 6) {
+                                        Image(systemName: "rectangle.portrait.and.arrow.right")
+                                            .font(.subheadline.weight(.semibold))
+                                        Text("Sign Out")
+                                            .font(.subheadline.weight(.semibold))
+                                    }
+                                    .foregroundColor(.red)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 12)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                            .fill(Color.red.opacity(0.1))
+                                    )
+                                }
+                                .buttonStyle(.plain)
+                                .padding(.top, 6)
+                            }
                         }
-                        .padding(16)
-                        .liquidGlassCard(cornerRadius: 20)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
 
                         // LaterBox Pro Benefits Card
                         VStack(alignment: .leading, spacing: 12) {
