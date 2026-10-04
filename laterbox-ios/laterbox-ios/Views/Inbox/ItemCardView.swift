@@ -159,7 +159,12 @@ public struct ItemCardView: View {
                     Label("Open in Safari", systemImage: "safari")
                 }
                 Button(action: {
+                    #if canImport(UIKit)
                     UIPasteboard.general.string = urlStr
+                    #elseif canImport(AppKit)
+                    NSPasteboard.general.clearContents()
+                    NSPasteboard.general.setString(urlStr, forType: .string)
+                    #endif
                     LBHaptic.success()
                 }) {
                     Label("Copy Link", systemImage: "doc.on.doc")
