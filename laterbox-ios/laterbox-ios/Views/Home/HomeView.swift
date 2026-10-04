@@ -37,16 +37,6 @@ public struct HomeView: View {
 
                 ScrollView {
                     VStack(alignment: .leading, spacing: 22) {
-                        // Greeting Header
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(greetingText)
-                                .font(.title3.weight(.bold))
-                                .foregroundColor(.primary)
-                            Text("Your Personal Knowledge Vault")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-
                         // Top 4 Metrics Grid
                         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
                             SummaryMetricCard(title: "Saved", count: savedItems.count, icon: "tray.full.fill", color: Color.lbAmber)
@@ -181,33 +171,28 @@ public struct HomeView: View {
                         }
                     }
                     .padding(.horizontal, 20)
-                    .padding(.top, 12)
+                    .padding(.top, 14)
                     .padding(.bottom, 20)
                 }
             }
-            .navigationTitle("Home")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Image("LaterboxLogo")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(height: 24)
+                    Text("\(greetingText), \(userName)")
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundColor(.black)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    HStack(spacing: 8) {
-                        // Sync Pill
+                    HStack(spacing: 12) {
+                        // Sync Status in Theme Color (No Container)
                         HStack(spacing: 5) {
                             Circle()
-                                .fill(coordinator.syncState.statusColor)
+                                .fill(coordinator.syncState == .synced ? Color.lbGreenTheme : coordinator.syncState.statusColor)
                                 .frame(width: 7, height: 7)
                             Text(coordinator.syncState.rawValue)
-                                .font(.caption2.weight(.bold))
-                                .foregroundColor(.primary)
+                                .font(.caption2.weight(.medium))
+                                .foregroundColor(Color.black.opacity(0.65))
                         }
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .liquidGlassCard(cornerRadius: 10)
 
                         // Quick Capture Header Action
                         Button(action: {
@@ -217,9 +202,38 @@ public struct HomeView: View {
                             Image(systemName: "plus")
                                 .font(.system(size: 13, weight: .bold))
                                 .foregroundColor(.white)
-                                .frame(width: 28, height: 28)
-                                .background(Color.lbEmerald)
+                                .frame(width: 26, height: 26)
+                                .background(Color.black)
                                 .clipShape(Circle())
+                        }
+
+                        // Profile Icon Menu with Logout & Guest Exit
+                        Menu {
+                            if let email = coordinator.currentUserEmail {
+                                Section(email) {
+                                    Button(role: .destructive, action: {
+                                        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                                            coordinator.signOut()
+                                        }
+                                    }) {
+                                        Label("Log Out", systemImage: "rectangle.portrait.and.arrow.right")
+                                    }
+                                }
+                            } else {
+                                Section("Guest Mode") {
+                                    Button(role: .destructive, action: {
+                                        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                                            coordinator.signOut()
+                                        }
+                                    }) {
+                                        Label("Exit Guest / Log Out", systemImage: "rectangle.portrait.and.arrow.right")
+                                    }
+                                }
+                            }
+                        } label: {
+                            Image(systemName: "person.circle.fill")
+                                .font(.system(size: 24))
+                                .foregroundColor(.black)
                         }
                     }
                 }
@@ -231,6 +245,14 @@ public struct HomeView: View {
                 AIOrganizerSheet()
             }
         }
+    }
+
+    private var userName: String {
+        if let email = coordinator.currentUserEmail, !email.isEmpty {
+            let prefix = email.split(separator: "@").first.map(String.init) ?? "User"
+            return prefix.capitalized
+        }
+        return "Guest"
     }
 
     private var greetingText: String {
