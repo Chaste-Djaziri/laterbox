@@ -232,7 +232,7 @@ public struct SettingsView: View {
                         }
                         .frame(maxWidth: .infinity)
                         .padding(.top, 10)
-                        .padding(.bottom, 80)
+                        .padding(.bottom, 20)
                     }
                     .padding(20)
                 }
