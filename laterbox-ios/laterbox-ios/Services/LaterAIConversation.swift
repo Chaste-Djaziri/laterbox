@@ -14,7 +14,11 @@ final class LaterAIConversation: ObservableObject {
     @Published var needsClarification = false
     @Published var needsReturnDate = false
     private let provider: any LaterAIProvider
-    init(provider: any LaterAIProvider = AppleLaterAIProvider()) { self.provider = provider }
+    var chatAvailable: Bool { AppleLaterAIProvider.unavailableReason == nil || (GeminiLaterAIProvider.enabled && SyncCoordinator.shared.isProUser) }
+    init(provider: any LaterAIProvider = AppleLaterAIProvider()) {
+        self.provider = provider
+        manual = AppleLaterAIProvider.unavailableReason != nil && !(GeminiLaterAIProvider.enabled && SyncCoordinator.shared.isProUser)
+    }
     private var lastInput = ""
     private var task: Task<Void, Never>?
     private var requestID = UUID()
@@ -23,7 +27,7 @@ final class LaterAIConversation: ObservableObject {
         task?.cancel(); requestID = UUID(); thinking = false; messages = []; error = nil
         savedItem = nil; results = []; needsClarification = false; needsReturnDate = false
         draft = CaptureDraft(); lastInput = ""
-        manual = AppleLaterAIProvider.unavailableReason != nil
+        manual = !chatAvailable
     }
 
     func send(_ text: String, items: [LBItem], context: ModelContext, retry: Bool = false) {
