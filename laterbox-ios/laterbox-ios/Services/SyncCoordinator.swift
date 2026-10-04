@@ -204,9 +204,10 @@ public final class SyncCoordinator: ObservableObject {
         if let existing = try context.fetch(FetchDescriptor<LBItem>(predicate: #Predicate { $0.id == id })).first { return existing }
         let item = LBItem(id: id, userId: currentUserId, url: draft.url,
                           title: draft.title.isEmpty ? String(draft.content.prefix(100)) : draft.title,
-                          textContent: draft.content, type: draft.type, returnAt: draft.returnAt,
+                          textContent: draft.content, type: draft.type, status: draft.returnAt == nil ? .inbox : .deferred, returnAt: draft.returnAt,
                           domain: draft.url.flatMap { URL(string: $0)?.host })
         item.tags = draft.tags.map { $0.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: "#", with: "") }.filter { !$0.isEmpty }
+        item.enrichmentStatus = draft.url == nil ? "enriched" : "pending"
         item.category = draft.category
         item.summary = draft.summary
         item.formattedContent = draft.formattedContent
