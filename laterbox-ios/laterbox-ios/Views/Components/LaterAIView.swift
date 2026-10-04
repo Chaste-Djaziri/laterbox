@@ -71,7 +71,7 @@ public struct LaterAIView: View {
                                 GuidedCaptureView(draft: $conversation.draft) { conversation.save(context: modelContext) }
                                 if let reason = AppleLaterAIProvider.unavailableReason { Text(reason).font(.caption).foregroundStyle(.secondary) }
                             } else if messages.isEmpty {
-                                emptyStateView
+                                if conversation.savedItem == nil { emptyStateView }
                             } else {
                                 messageListView
                             }
@@ -100,7 +100,7 @@ public struct LaterAIView: View {
                 .offset(y: travelFactor * -120)
 
                 // Bottom ChatGPT Mobile-Style Chat Input Dock (Cascades down to dock)
-                if !conversation.manual && AppleLaterAIProvider.unavailableReason == nil {
+                if !conversation.manual && conversation.chatAvailable {
                     bottomChatInputBar.offset(y: travelFactor * -80)
                 }
             }
@@ -418,7 +418,7 @@ public struct LaterAIView: View {
                                 .frame(width: 32, height: 32)
                                 .background(Circle().fill(Color.white))
                         } else {
-                            Image(systemName: "waveform")
+                            Image(systemName: "arrow.up")
                                 .font(.system(size: 16, weight: .medium))
                                 .foregroundColor(Color.white.opacity(0.75))
                                 .frame(width: 32, height: 32)
