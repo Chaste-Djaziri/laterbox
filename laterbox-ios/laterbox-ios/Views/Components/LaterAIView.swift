@@ -379,6 +379,7 @@ public struct LaterAIView: View {
                         .frame(width: 36, height: 36)
                         .background(Circle().fill(Color.white.opacity(0.12)))
                 }
+                .accessibilityLabel("Guided capture")
 
                 // Chat Input Field
                 HStack(alignment: .bottom, spacing: 8) {
