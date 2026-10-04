@@ -43,7 +43,9 @@ public final class SyncCoordinator: ObservableObject {
     @Published public var currentUserEmail: String? = nil
     @Published public var currentUserId: String? = nil
     @Published public var authToken: String? = nil
-    @Published public var isPro: Bool = true // Pro features active on mobile
+    @Published public private(set) var isPro: Bool = false
+    private var storeKitPro = false
+    private var accountPro = false
     @Published public var systemStatusText: String = "Operational"
     @Published public var isSystemOperational: Bool = true
     @Published public var activeFilter: ItemContentType? = nil
@@ -58,14 +60,24 @@ public final class SyncCoordinator: ObservableObject {
     }
 
     public var isProUser: Bool {
-        isAuthenticated && (isPro || StoreKitManager.shared.isProSubscriptionActive)
+        isPro
     }
 
     public func updateProFromStoreKit(_ active: Bool) {
-        if active {
-            self.isPro = true
-            defaults.set(true, forKey: "lb_is_pro")
+        storeKitPro = active
+        isPro = accountPro || active
+    }
+
+    public func refreshEntitlement() async {
+        guard let uid = currentUserId, let token = authToken else {
+            accountPro = false
+            isPro = storeKitPro
+            return
         }
+        let active = await api.checkProEntitlement(userId: uid, token: token)
+        guard uid == currentUserId, token == authToken else { return }
+        accountPro = active
+        isPro = accountPro || storeKitPro
     }
 
     public var syncHeaderTitle: String {
@@ -98,6 +110,7 @@ public final class SyncCoordinator: ObservableObject {
         
         Task {
             await refreshSystemStatus()
+            await refreshEntitlement()
         }
     }
 
@@ -117,6 +130,7 @@ public final class SyncCoordinator: ObservableObject {
         defaults.set(userId, forKey: "lb_user_id")
         defaults.set(token, forKey: "lb_auth_token")
         defaults.set(false, forKey: "lb_guest_mode")
+        Task { await refreshEntitlement() }
         LBHaptic.success()
     }
 
@@ -128,6 +142,8 @@ public final class SyncCoordinator: ObservableObject {
     }
 
     public func signOut() {
+        accountPro = false
+        isPro = storeKitPro
         self.currentUserEmail = nil
         self.currentUserId = nil
         self.authToken = nil
@@ -178,6 +194,43 @@ public final class SyncCoordinator: ObservableObject {
         // Kick off cloud sync if online
         Task {
             await syncPendingItems(context: context)
+        }
+    }
+
+    @discardableResult
+    func saveDraft(_ draft: CaptureDraft, context: ModelContext) throws -> LBItem {
+        guard !draft.content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { throw AIProviderError.invalidCapture }
+        let id = draft.id
+        if let existing = try context.fetch(FetchDescriptor<LBItem>(predicate: #Predicate { $0.id == id })).first { return existing }
+        let item = LBItem(id: id, userId: currentUserId, url: draft.url,
+                          title: draft.title.isEmpty ? String(draft.content.prefix(100)) : draft.title,
+                          textContent: draft.content, type: draft.type, returnAt: draft.returnAt,
+                          domain: draft.url.flatMap { URL(string: $0)?.host })
+        item.tags = draft.tags.map { $0.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: "#", with: "") }.filter { !$0.isEmpty }
+        item.category = draft.category
+        item.summary = draft.summary
+        item.formattedContent = draft.formattedContent
+        context.insert(item)
+        do { try context.save() } catch { context.delete(item); throw error }
+        Task { await enrich(item: item, context: context); await syncPendingItems(context: context) }
+        return item
+    }
+
+    private func enrich(item: LBItem, context: ModelContext) async {
+        guard let text = item.url, let url = URL(string: text) else { return }
+        do {
+            let metadata = try await LinkMetadataLoader.load(url)
+            guard item.status != "deleted", item.modelContext != nil else { return }
+            item.siteName = metadata.site
+            item.metadataDescription = metadata.description
+            item.previewImageUrl = metadata.image
+            item.enrichmentStatus = "enriched"
+            item.updatedAt = Date()
+            item.isSyncPending = true
+            try context.save()
+        } catch {
+            item.enrichmentStatus = "failed"
+            try? context.save()
         }
     }
 
