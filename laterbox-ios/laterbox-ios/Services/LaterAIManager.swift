@@ -8,6 +8,16 @@
 import SwiftUI
 import Combine
 
+public struct ScrollOffsetData: Equatable {
+    public let offsetY: CGFloat
+    public let topInset: CGFloat
+
+    public init(offsetY: CGFloat, topInset: CGFloat) {
+        self.offsetY = offsetY
+        self.topInset = topInset
+    }
+}
+
 @MainActor
 public class LaterAIManager: ObservableObject {
     public static let shared = LaterAIManager()
@@ -15,30 +25,71 @@ public class LaterAIManager: ObservableObject {
     @Published public var isShowingLaterAI: Bool = false
     @Published public var flowProgress: CGFloat = 0.0
 
+    // Tracks if the user was scrolled down into content
+    private var wasScrolledDown: Bool = false
+    // Requires being settled at the top before arming for a downward pull
+    private var isArmedAtTop: Bool = false
     private var hasTriggeredHaptic: Bool = false
 
     private init() {}
 
-    /// Called by scrollviews when overscrolling at the very top of the page.
-    /// `offset` is > 0 only when the page is at the top with no downward scroll remaining.
-    public func handlePullDown(offset: CGFloat) {
-        guard !isShowingLaterAI else { return }
+    /// Called by scrollviews via onScrollGeometryChange.
+    /// `contentOffsetY`: current contentOffset.y
+    /// `topInset`: geometry.contentInsets.top
+    public func handleScrollUpdate(contentOffsetY: CGFloat, topInset: CGFloat) {
+        let overscroll = -topInset - contentOffsetY
+        let isScrolledDown = contentOffsetY > (-topInset + 10)
 
-        if offset <= 0 {
+        if isScrolledDown {
+            // User is scrolling through content below the top
+            wasScrolledDown = true
+            isArmedAtTop = false
             hasTriggeredHaptic = false
-            if flowProgress > 0 && flowProgress < 1.0 {
-                withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+            if !isShowingLaterAI && flowProgress > 0 {
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.88)) {
                     flowProgress = 0.0
                 }
             }
             return
         }
 
-        // Real-time feather-flow animation proportional to top overscroll
-        flowProgress = min(1.0, max(0.0, offset / 115.0))
+        // Resting at the top bounds (within 3pt of rest)
+        let isAtRestAtTop = abs(overscroll) < 3.0
 
-        // Engagement threshold with tactile haptic response
-        if offset >= 62 && !hasTriggeredHaptic {
+        if wasScrolledDown {
+            // User just arrived at the top from scrolling up!
+            // Do NOT trigger Later AI on this initial arrival momentum/drag.
+            if isAtRestAtTop {
+                // Now they have settled at the top of the page!
+                wasScrolledDown = false
+                isArmedAtTop = true
+            }
+            return
+        }
+
+        // If resting at top, arm for a fresh, forceful downward pull
+        if isAtRestAtTop {
+            isArmedAtTop = true
+            hasTriggeredHaptic = false
+            if !isShowingLaterAI && flowProgress > 0 {
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.88)) {
+                    flowProgress = 0.0
+                }
+            }
+            return
+        }
+
+        // Must be armed at top and not already showing
+        guard isArmedAtTop, !isShowingLaterAI else { return }
+
+        guard overscroll > 0 else { return }
+
+        // Apply a 14pt deadband so slight jitter does not move the curtain
+        let effectivePull = max(0.0, overscroll - 14.0)
+        flowProgress = min(1.0, max(0.0, effectivePull / 95.0))
+
+        // Forceful pull engagement threshold: 78 pt
+        if overscroll >= 78 && !hasTriggeredHaptic {
             hasTriggeredHaptic = true
             UIImpactFeedbackGenerator(style: .medium).impactOccurred()
             withAnimation(.spring(response: 0.44, dampingFraction: 0.86)) {
@@ -56,6 +107,8 @@ public class LaterAIManager: ObservableObject {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.42) {
             self.isShowingLaterAI = false
             self.hasTriggeredHaptic = false
+            self.wasScrolledDown = false
+            self.isArmedAtTop = true
         }
     }
 }
@@ -69,14 +122,16 @@ public struct LaterAIPullDownModifier: ViewModifier {
 
     public func body(content: Content) -> some View {
         content
-            .onScrollGeometryChange(for: CGFloat.self) { geometry in
-                // At rest at the top, contentOffset.y == -contentInsets.top.
-                // Pulling down beyond the top edge produces a negative offset relative to insets.
-                let topInset = geometry.contentInsets.top
-                let overscroll = -topInset - geometry.contentOffset.y
-                return max(0.0, overscroll)
-            } action: { oldValue, overscroll in
-                aiManager.handlePullDown(offset: overscroll)
+            .onScrollGeometryChange(for: ScrollOffsetData.self) { geometry in
+                ScrollOffsetData(
+                    offsetY: geometry.contentOffset.y,
+                    topInset: geometry.contentInsets.top
+                )
+            } action: { oldValue, newValue in
+                aiManager.handleScrollUpdate(
+                    contentOffsetY: newValue.offsetY,
+                    topInset: newValue.topInset
+                )
             }
     }
 }
