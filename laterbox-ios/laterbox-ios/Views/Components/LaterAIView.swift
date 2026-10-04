@@ -48,29 +48,8 @@ public struct LaterAIView: View {
 
     public var body: some View {
         ZStack {
-            // Feather-Flow Black Background Drape
-            FeatherFlowShape(progress: progress)
-                .fill(Color.black)
-                .ignoresSafeArea()
-                .shadow(color: Color.black.opacity(progress < 0.98 ? 0.6 : 0.0), radius: 24, x: 0, y: 14)
-
-            // Specular Feather Edge Highlight along bottom curve
-            FeatherFlowEdge(progress: progress)
-                .stroke(
-                    LinearGradient(
-                        colors: [
-                            Color.white.opacity(0.0),
-                            AppTheme.accent.opacity(0.35),
-                            Color.white.opacity(0.7),
-                            AppTheme.accent.opacity(0.35),
-                            Color.white.opacity(0.0)
-                        ],
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    ),
-                    lineWidth: 2
-                )
-                .ignoresSafeArea()
+            // Feather-Flow Black Background Drape with Feathered Fading Bottom (No Hard Line)
+            FeatherFadingBackdrop(progress: progress)
 
             VStack(spacing: 0) {
                 // Top Grab Handle & Header
@@ -109,9 +88,8 @@ public struct LaterAIView: View {
                 // Bottom ChatGPT Mobile-Style Chat Input Dock
                 bottomChatInputBar
             }
-            .opacity(max(0.0, min(1.0, (progress - 0.18) / 0.72)))
-            .offset(y: (1.0 - max(0.0, min(1.0, progress))) * -40)
-            .clipShape(FeatherFlowShape(progress: progress))
+            .opacity(max(0.0, min(1.0, (progress - 0.28) / 0.62)))
+            .offset(y: (1.0 - max(0.0, min(1.0, progress))) * -35)
             .ignoresSafeArea(edges: .top)
         }
         .gesture(
@@ -495,10 +473,11 @@ public struct LaterAIView: View {
 
     private func dismiss() {
         isInputFocused = false
-        withAnimation(.spring(response: 0.42, dampingFraction: 0.85)) {
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        withAnimation(.spring(response: 0.44, dampingFraction: 0.86)) {
             progress = 0.0
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.38) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.42) {
             isPresented = false
         }
     }
