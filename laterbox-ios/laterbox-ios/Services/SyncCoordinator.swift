@@ -277,9 +277,21 @@ public final class SyncCoordinator: ObservableObject {
         LBHaptic.success()
     }
 
+    var cloudDeletionQueue: [String] {
+        get { defaults.stringArray(forKey: "lb_cloud_deletions_\(currentUserId ?? "guest")") ?? [] }
+        set { defaults.set(newValue, forKey: "lb_cloud_deletions_\(currentUserId ?? "guest")") }
+    }
+
     public func permanentlyDeleteItem(item: LBItem, context: ModelContext) {
+        let id = item.id
+        let needsCloudDeletion = item.userId != nil && item.userId == currentUserId
+        // Keep a durable deletion request so an offline delete cannot reappear on download.
+        if needsCloudDeletion, !cloudDeletionQueue.contains(id) { cloudDeletionQueue.append(id) }
         context.delete(item)
-        try? context.save()
+        do {
+            try context.save()
+            Task { await syncPendingItems(context: context) }
+        } catch { context.rollback() }
         LBHaptic.medium()
     }
 
