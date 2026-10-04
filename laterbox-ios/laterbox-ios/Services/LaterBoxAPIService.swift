@@ -138,7 +138,7 @@ public actor LaterBoxAPIService {
             guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
                 return false
             }
-            if let boolVal = try? JSONSerialization.jsonObject(with: data) as? Bool {
+            if let boolVal = try? JSONDecoder().decode(Bool.self, from: data) {
                 return boolVal
             }
             return false
