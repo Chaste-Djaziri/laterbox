@@ -16,10 +16,13 @@ public struct ItemDetailView: View {
 
     @State private var editedNote: String = ""
     @State private var showingDeleteConfirm = false
+    @State private var saveError: String?
+    @State private var tagsText = ""
 
     public init(item: LBItem) {
         self.item = item
         self._editedNote = State(initialValue: item.noteContent ?? "")
+        self._tagsText = State(initialValue: item.tags.joined(separator: ", "))
     }
 
     public var body: some View {
@@ -44,7 +47,8 @@ public struct ItemDetailView: View {
                                 .foregroundColor(Color.lbAmber)
                         }
 
-                        Text(item.title)
+                        TextField("Title", text: $item.title)
+                            .onChange(of: item.title) { _, _ in persistEdit() }
                             .font(.title3.weight(.bold))
                             .foregroundColor(.primary)
 
@@ -132,7 +136,7 @@ public struct ItemDetailView: View {
                                     Spacer()
                                     Button("Clear") {
                                         item.returnAt = nil
-                                        try? modelContext.save()
+                                        persistEdit()
                                         LBHaptic.light()
                                     }
                                     .font(.caption.weight(.bold))
@@ -162,6 +166,25 @@ public struct ItemDetailView: View {
                         }
                     }
 
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("Category and tags").font(.subheadline.bold())
+                        TextField("Category", text: $item.category).onChange(of: item.category) { _, _ in persistEdit() }
+                        TextField("Tags, separated by commas", text: $tagsText).onChange(of: tagsText) { _, text in
+                            item.tags = text.split(separator: ",").map { $0.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: "#", with: "") }
+                            persistEdit()
+                        }
+                        if !item.summary.isEmpty { Text(item.summary).font(.subheadline) }
+                        if let original = item.textContent, !original.isEmpty {
+                            Text("Original content").font(.subheadline.bold())
+                            Text(original).textSelection(.enabled)
+                        }
+                        if !item.formattedContent.isEmpty {
+                            Text("Formatted content").font(.subheadline.bold())
+                            Text(item.formattedContent).textSelection(.enabled)
+                        }
+                        if let saveError { Text(saveError).foregroundStyle(.red) }
+                    }
+
                     // Notes Section
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Personal Notes & Thoughts")
@@ -174,7 +197,7 @@ public struct ItemDetailView: View {
                             .liquidGlassCard(cornerRadius: 14)
                             .onChange(of: editedNote) { _, newVal in
                                 item.noteContent = newVal
-                                try? modelContext.save()
+                                persistEdit()
                             }
                     }
 
@@ -194,6 +217,7 @@ public struct ItemDetailView: View {
                 .padding(20)
             }
         }
+        .onDisappear { Task { await coordinator.syncPendingItems(context: modelContext) } }
         .navigationTitle("Details")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -214,4 +238,11 @@ public struct ItemDetailView: View {
             Button("Cancel", role: .cancel) {}
         }
     }
+    private func persistEdit() {
+        item.updatedAt = Date()
+        item.isSyncPending = true
+        do { try modelContext.save(); saveError = nil }
+        catch { saveError = error.localizedDescription }
+    }
+
 }
