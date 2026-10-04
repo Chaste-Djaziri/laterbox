@@ -9,6 +9,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 - **[macOS] System Status**: Settings now provides a single readiness view for Mac integrations, permissions, sync, notifications, and StoreKit billing, with retry guidance and copyable diagnostics.
 
 ### Fixed
+- **[Cloud Sync & Health Monitoring] Modern Supabase Key Authentication**: Fixed Cloud Sync database health check failing with 401 (`PGRST301: Expected 3 parts in JWT; got 1`) by attaching `Bearer` authorization only to JWT tokens while providing `apikey` for modern Supabase key formats, ensuring uninterrupted cloud sync monitoring across Better Stack status checks.
 - **[macOS] Quick Capture removal**: macOS no longer registers the floating Quick Capture hotkey or exposes it in the menu-bar menu or Settings; use the standard Save Item workflow and Companion instead.
 - **[macOS] Light connected window chrome**: Restored the light desktop palette and removed the native title-bar separator so the traffic-light area and sidebar read as one continuous surface.
 - **[macOS] Connected title bar and sidebar**: The native traffic-light bar and desktop sidebar now use the same charcoal surface in light mode, eliminating the visible color break between them.
