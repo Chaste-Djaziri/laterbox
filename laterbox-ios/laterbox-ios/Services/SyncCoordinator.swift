@@ -50,9 +50,28 @@ public final class SyncCoordinator: ObservableObject {
     @Published public var searchQuery: String = ""
     @Published public var isGuestMode: Bool = false
     @Published public var showingQuickCapture: Bool = false
+    @Published public var showingAuthSheet: Bool = false
 
     public var isAuthenticated: Bool {
         currentUserEmail != nil && !(currentUserEmail?.isEmpty ?? true)
+    }
+
+    public var isProUser: Bool {
+        isAuthenticated && isPro
+    }
+
+    public var syncHeaderTitle: String {
+        guard isAuthenticated else {
+            return "Get Pro to sync"
+        }
+        return syncState.rawValue
+    }
+
+    public var syncHeaderColor: Color {
+        guard isAuthenticated else {
+            return Color.black.opacity(0.4)
+        }
+        return syncState == .synced ? Color.lbGreenTheme : syncState.statusColor
     }
 
     public var hasAccess: Bool {
@@ -67,6 +86,7 @@ public final class SyncCoordinator: ObservableObject {
         self.currentUserId = defaults.string(forKey: "lb_user_id")
         self.authToken = defaults.string(forKey: "lb_auth_token")
         self.isGuestMode = defaults.bool(forKey: "lb_guest_mode")
+        self.syncState = (currentUserEmail != nil && !(currentUserEmail?.isEmpty ?? true)) ? .synced : .offline
         
         Task {
             await refreshSystemStatus()
@@ -84,6 +104,7 @@ public final class SyncCoordinator: ObservableObject {
         self.currentUserId = userId
         self.authToken = token
         self.isGuestMode = false
+        self.syncState = .synced
         defaults.set(email, forKey: "lb_user_email")
         defaults.set(userId, forKey: "lb_user_id")
         defaults.set(token, forKey: "lb_auth_token")
@@ -93,6 +114,7 @@ public final class SyncCoordinator: ObservableObject {
 
     public func continueAsGuest() {
         self.isGuestMode = true
+        self.syncState = .offline
         defaults.set(true, forKey: "lb_guest_mode")
         LBHaptic.light()
     }
@@ -102,6 +124,7 @@ public final class SyncCoordinator: ObservableObject {
         self.currentUserId = nil
         self.authToken = nil
         self.isGuestMode = false
+        self.syncState = .offline
         defaults.removeObject(forKey: "lb_user_email")
         defaults.removeObject(forKey: "lb_user_id")
         defaults.removeObject(forKey: "lb_auth_token")
@@ -200,6 +223,10 @@ public final class SyncCoordinator: ObservableObject {
 
     // MARK: - Full Bidirectional Sync
     public func syncPendingItems(context: ModelContext) async {
+        guard isAuthenticated else {
+            self.syncState = .offline
+            return
+        }
         guard syncState != .syncing else { return }
         syncState = .syncing
 
