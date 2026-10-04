@@ -10,6 +10,12 @@ struct LaterAITests {
         let container = try ModelContainer(for: LBItem.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
         return ModelContext(container)
     }
+    @Test func cloudSupportsNullTitlesAndStringEncodedMetadata() throws {
+        let data = Data(#"{"id":"id","user_id":"user","title":null,"type":"note","favorite":false,"status":"inbox","created_at":"2026-10-05T00:00:00Z","updated_at":"2026-10-05T00:00:00Z","item_metadata":{"status":"enriched","structured_data":"{\"tags\":[\"legacy\"]}"}}"#.utf8)
+        let snapshot = try JSONDecoder().decode(CloudItemSnapshot.self, from: data)
+        #expect(snapshot.title == nil)
+        #expect(snapshot.item_metadata?.structured_data?.tags == ["legacy"])
+    }
     @Test func capturePersistsOriginalAndClassificationOnce() throws {
         let context = try context()
         var draft = CaptureDraft.manual("A recipe for lentil soup #cooking")
