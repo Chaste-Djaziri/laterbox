@@ -36,14 +36,7 @@ public struct InboxView: View {
             items = items.filter { $0.type == filter.rawValue }
         }
 
-        if !searchText.isEmpty {
-            let q = searchText.lowercased()
-            items = items.filter {
-                $0.title.lowercased().contains(q) ||
-                ($0.url?.lowercased().contains(q) ?? false) ||
-                ($0.noteContent?.lowercased().contains(q) ?? false)
-            }
-        }
+        if !searchText.isEmpty { return LocalItemSearch.search(searchText, in: items) }
 
         // FIFO sorting: items scheduled to return earliest appear first, falling back to arrival date
         return items.sorted {
