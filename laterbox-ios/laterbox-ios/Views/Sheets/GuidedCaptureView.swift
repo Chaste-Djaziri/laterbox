@@ -59,6 +59,15 @@ struct GuidedCaptureView: View {
                     .disabled(draft.content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
         }
+        .task(id: draft.url) {
+            guard let text = draft.url, let url = URL(string: text) else { return }
+            do {
+                let metadata = try await LinkMetadataLoader.load(url)
+                guard !Task.isCancelled, draft.url == text else { return }
+                if draft.title.isEmpty || draft.title == url.host || draft.title == text { draft.title = metadata.title ?? draft.title }
+                if draft.summary.isEmpty { draft.summary = metadata.description ?? "" }
+            } catch { /* Metadata is optional; manual saving stays available. */ }
+        }
         .padding(20)
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 18))
     }
