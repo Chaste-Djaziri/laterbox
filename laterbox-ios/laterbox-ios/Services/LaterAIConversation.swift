@@ -15,8 +15,8 @@ final class LaterAIConversation: ObservableObject {
     @Published var needsReturnDate = false
     private let provider: any LaterAIProvider
     var chatAvailable: Bool { AppleLaterAIProvider.unavailableReason == nil || (GeminiLaterAIProvider.enabled && SyncCoordinator.shared.isProUser) }
-    init(provider: any LaterAIProvider = AppleLaterAIProvider()) {
-        self.provider = provider
+    init(provider: (any LaterAIProvider)? = nil) {
+        self.provider = provider ?? AppleLaterAIProvider()
         manual = AppleLaterAIProvider.unavailableReason != nil && !(GeminiLaterAIProvider.enabled && SyncCoordinator.shared.isProUser)
     }
     private var lastInput = ""
