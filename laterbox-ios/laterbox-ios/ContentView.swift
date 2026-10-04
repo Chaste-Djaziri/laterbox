@@ -12,15 +12,18 @@ struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(filter: #Predicate<LBItem> { $0.status == "inbox" }) private var inboxItems: [LBItem]
     @StateObject private var coordinator = SyncCoordinator.shared
+    @StateObject private var lockManager = AppLockManager.shared
+    @Environment(\.scenePhase) private var scenePhase
 
     @State private var selectedTab: LBTab = .home
 
     var body: some View {
-        Group {
-            if !coordinator.hasAccess {
-                WelcomeView()
-                    .transition(.opacity)
-            } else {
+        ZStack {
+            Group {
+                if !coordinator.hasAccess {
+                    WelcomeView()
+                        .transition(.opacity)
+                } else {
                 TabView(selection: $selectedTab) {
                     HomeView()
                         .tabItem {
@@ -73,7 +76,21 @@ struct ContentView: View {
             }
         }
         .animation(.spring(response: 0.45, dampingFraction: 0.85), value: coordinator.hasAccess)
+
+        // Biometric App Lock Screen Overlay
+        if lockManager.isAppLockEnabled && lockManager.isLocked && coordinator.hasAccess {
+            AppLockOverlayView()
+                .transition(.opacity.combined(with: .scale(scale: 0.98)))
+                .zIndex(999)
+        }
     }
+    .animation(.spring(response: 0.35, dampingFraction: 0.85), value: lockManager.isLocked)
+    .onChange(of: scenePhase) { _, newPhase in
+        if newPhase == .background {
+            lockManager.lockAppIfNeeded()
+        }
+    }
+}
 }
 
 #Preview {
