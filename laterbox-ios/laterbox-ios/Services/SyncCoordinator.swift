@@ -51,24 +51,32 @@ public final class SyncCoordinator: ObservableObject {
     @Published public var isGuestMode: Bool = false
     @Published public var showingQuickCapture: Bool = false
     @Published public var showingAuthSheet: Bool = false
+    @Published public var showingPlansSheet: Bool = false
 
     public var isAuthenticated: Bool {
         currentUserEmail != nil && !(currentUserEmail?.isEmpty ?? true)
     }
 
     public var isProUser: Bool {
-        isAuthenticated && isPro
+        isAuthenticated && (isPro || StoreKitManager.shared.isProSubscriptionActive)
+    }
+
+    public func updateProFromStoreKit(_ active: Bool) {
+        if active {
+            self.isPro = true
+            defaults.set(true, forKey: "lb_is_pro")
+        }
     }
 
     public var syncHeaderTitle: String {
-        guard isAuthenticated else {
+        guard isAuthenticated && isProUser else {
             return "Get Pro to sync"
         }
         return syncState.rawValue
     }
 
     public var syncHeaderColor: Color {
-        guard isAuthenticated else {
+        guard isAuthenticated && isProUser else {
             return Color.black.opacity(0.4)
         }
         return syncState == .synced ? Color.lbGreenTheme : syncState.statusColor
@@ -223,7 +231,7 @@ public final class SyncCoordinator: ObservableObject {
 
     // MARK: - Full Bidirectional Sync
     public func syncPendingItems(context: ModelContext) async {
-        guard isAuthenticated else {
+        guard isAuthenticated && isProUser else {
             self.syncState = .offline
             return
         }
