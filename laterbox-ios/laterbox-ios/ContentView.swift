@@ -62,6 +62,9 @@ struct ContentView: View {
                         AuthView()
                     }
                 }
+                .sheet(isPresented: $coordinator.showingPlansSheet) {
+                    PlansView()
+                }
                 .task {
                     // Trigger automatic sync on app launch
                     await coordinator.syncPendingItems(context: modelContext)
