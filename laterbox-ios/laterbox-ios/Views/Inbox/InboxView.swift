@@ -79,14 +79,22 @@ public struct InboxView: View {
 
                             HStack(spacing: 10) {
                                 // Sync Status Indicator (No Container)
-                                HStack(spacing: 5) {
-                                    Circle()
-                                        .fill(coordinator.syncState == .synced ? Color.lbGreenTheme : coordinator.syncState.statusColor)
-                                        .frame(width: 7, height: 7)
-                                    Text(coordinator.syncState.rawValue)
-                                        .font(.caption2.weight(.medium))
-                                        .foregroundColor(AppTheme.textSecondary)
+                                Button(action: {
+                                    if !coordinator.isAuthenticated {
+                                        LBHaptic.light()
+                                        coordinator.showingAuthSheet = true
+                                    }
+                                }) {
+                                    HStack(spacing: 5) {
+                                        Circle()
+                                            .fill(coordinator.syncHeaderColor)
+                                            .frame(width: 7, height: 7)
+                                        Text(coordinator.syncHeaderTitle)
+                                            .font(.caption2.weight(.medium))
+                                            .foregroundColor(AppTheme.textSecondary)
+                                    }
                                 }
+                                .buttonStyle(.plain)
 
                                 // Search icon to the right of the synced status
                                 Button(action: {

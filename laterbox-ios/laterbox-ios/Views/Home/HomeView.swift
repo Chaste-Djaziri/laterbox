@@ -77,14 +77,22 @@ public struct HomeView: View {
 
                             HStack(spacing: 12) {
                                 // Sync Status in Theme Color (No Container)
-                                HStack(spacing: 5) {
-                                    Circle()
-                                        .fill(coordinator.syncState == .synced ? Color.lbGreenTheme : coordinator.syncState.statusColor)
-                                        .frame(width: 7, height: 7)
-                                    Text(coordinator.syncState.rawValue)
-                                        .font(.caption2.weight(.medium))
-                                        .foregroundColor(Color.black.opacity(0.65))
+                                Button(action: {
+                                    if !coordinator.isAuthenticated {
+                                        LBHaptic.light()
+                                        coordinator.showingAuthSheet = true
+                                    }
+                                }) {
+                                    HStack(spacing: 5) {
+                                        Circle()
+                                            .fill(coordinator.syncHeaderColor)
+                                            .frame(width: 7, height: 7)
+                                        Text(coordinator.syncHeaderTitle)
+                                            .font(.caption2.weight(.medium))
+                                            .foregroundColor(AppTheme.textSecondary)
+                                    }
                                 }
+                                .buttonStyle(.plain)
 
                                 // Profile Icon Menu with Logout & Guest Exit
                                 Menu {
