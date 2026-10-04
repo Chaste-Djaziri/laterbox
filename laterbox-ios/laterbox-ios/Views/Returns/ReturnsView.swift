@@ -82,13 +82,19 @@ public struct ReturnsView: View {
 
                 ScrollView {
                     VStack(alignment: .leading, spacing: 18) {
-                        // Top Level Header (Scrolls normally, uncontainerized on canvas, page name title removed)
+                        // Top Level Header (Scrolls normally, uncontainerized on canvas)
                         HStack(alignment: .center) {
-                            Image("LaterboxIconGreen")
-                                .resizable()
-                                .scaledToFit()
-                                .frame(width: 28, height: 28)
-                                .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+                            HStack(spacing: 8) {
+                                Image("LaterboxIconGreen")
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(width: 28, height: 28)
+                                    .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+
+                                Text("Returns")
+                                    .font(.system(size: 24, weight: .bold))
+                                    .foregroundColor(AppTheme.textPrimary)
+                            }
 
                             Spacer()
 
