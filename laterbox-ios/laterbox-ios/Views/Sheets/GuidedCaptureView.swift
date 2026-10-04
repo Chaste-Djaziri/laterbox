@@ -21,6 +21,10 @@ struct GuidedCaptureView: View {
                 TextField("Title", text: $draft.title).accessibilityIdentifier("capture.title")
             case 2:
                 Text("Choose a category and tags")
+                Picker("Format", selection: $draft.contentType) {
+                    Text("Automatic").tag("")
+                    ForEach(ItemContentType.allCases, id: \.self) { Text($0.rawValue.capitalized).tag($0.rawValue) }
+                }
                 Picker("Category", selection: $draft.category) {
                     Text("No category").tag("")
                     ForEach(categories, id: \.self) { Text($0).tag($0) }
