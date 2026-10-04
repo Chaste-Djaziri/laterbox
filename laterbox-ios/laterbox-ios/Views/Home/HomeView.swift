@@ -23,12 +23,7 @@ public struct HomeView: View {
     private var searchResults: [LBItem] {
         let q = searchText.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
         guard !q.isEmpty else { return [] }
-        return allItems.filter {
-            $0.title.lowercased().contains(q) ||
-            ($0.url?.lowercased().contains(q) ?? false) ||
-            ($0.noteContent?.lowercased().contains(q) ?? false) ||
-            ($0.domain?.lowercased().contains(q) ?? false)
-        }
+        return LocalItemSearch.search(q, in: allItems)
     }
 
     private var returnedTodayCount: Int {
