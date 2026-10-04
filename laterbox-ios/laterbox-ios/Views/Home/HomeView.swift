@@ -15,6 +15,7 @@ public struct HomeView: View {
 
     @State private var showingQuickCapture = false
     @State private var searchText: String = ""
+    @StateObject private var search = LocalSearchController()
 
     private var inboxItems: [LBItem] {
         allItems.filter { $0.status == ItemStatus.inbox.rawValue }
@@ -23,7 +24,7 @@ public struct HomeView: View {
     private var searchResults: [LBItem] {
         let q = searchText.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
         guard !q.isEmpty else { return [] }
-        return LocalItemSearch.search(q, in: allItems)
+        return search.results
     }
 
     private var returnedTodayCount: Int {
@@ -128,6 +129,7 @@ public struct HomeView: View {
                                 .foregroundColor(AppTheme.textSecondary)
 
                             TextField("Search your vault...", text: $searchText)
+                                .task(id: searchText + allItems.map { $0.updatedAt.ISO8601Format() }.joined()) { search.update(searchText, items: allItems) }
                                 .font(.subheadline)
                                 .foregroundColor(AppTheme.textPrimary)
 
