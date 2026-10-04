@@ -27,6 +27,21 @@ interface ItemDao {
     @Update
     suspend fun updateItem(item: ItemEntity)
 
+    @Query("UPDATE items SET status = :status, updated_at = :updatedAt, sync_status = 'pending' WHERE id = :id")
+    suspend fun updateStatus(id: String, status: String, updatedAt: String)
+
+    @Query("UPDATE items SET favorite = :favorite, updated_at = :updatedAt, sync_status = 'pending' WHERE id = :id")
+    suspend fun updateFavorite(id: String, favorite: Boolean, updatedAt: String)
+
+    @Query("UPDATE items SET return_at = :returnAt, status = :status, updated_at = :updatedAt, sync_status = 'pending' WHERE id = :id")
+    suspend fun updateReturnAt(id: String, returnAt: String?, status: String, updatedAt: String)
+
+    @Query("UPDATE items SET deleted_at = :deletedAt, sync_status = 'pending' WHERE id = :id")
+    suspend fun softDelete(id: String, deletedAt: String)
+
+    @Query("DELETE FROM items WHERE id = :id")
+    suspend fun deletePermanently(id: String)
+
     @Query("UPDATE items SET sync_status = 'synced', last_synced_at = :syncedAt WHERE id = :id")
     suspend fun markSynced(id: String, syncedAt: String)
 
