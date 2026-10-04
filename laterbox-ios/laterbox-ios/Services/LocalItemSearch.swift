@@ -1,5 +1,6 @@
 import Foundation
 import NaturalLanguage
+import Combine
 
 /// Shared, entirely local ranking. No generated result can become a library item.
 @MainActor
@@ -48,4 +49,35 @@ public enum LocalItemSearch {
         }
         return previous.last ?? 0
     }
+}
+
+@MainActor
+final class LocalSearchController: ObservableObject {
+    @Published var results: [LBItem] = []
+    private var task: Task<Void, Never>?
+    private var revision = UUID()
+    func update(_ query: String, items: [LBItem], includeDeleted: Bool = false) {
+        task?.cancel()
+        let id = UUID(); revision = id
+        task = Task {
+            do {
+                try await Task.sleep(for: .milliseconds(180))
+                try Task.checkCancellation()
+                results = LocalItemSearch.search(query, in: items, includeDeleted: includeDeleted)
+                if query.split(separator: " ").count > 3, AppleLaterAIProvider.unavailableReason == nil {
+                    let interpretation = try await AppleSearchInterpreter.interpret(query)
+                    guard !Task.isCancelled, revision == id else { return }
+                    var filtered = items
+                    if let type = ItemContentType(rawValue: interpretation.contentType) { filtered = filtered.filter { $0.type == type.rawValue } }
+                    if interpretation.returnWindow == "thisWeek" {
+                        let end = Calendar.current.date(byAdding: .day, value: 7, to: Date()) ?? Date()
+                        filtered = filtered.filter { $0.returnAt.map { $0 >= Calendar.current.startOfDay(for: Date()) && $0 <= end } ?? false }
+                    }
+                    let improved = LocalItemSearch.search(interpretation.terms, in: filtered, includeDeleted: includeDeleted)
+                    if !improved.isEmpty { results = improved }
+                }
+            } catch { /* Lexical results remain available if interpretation fails. */ }
+        }
+    }
+    deinit { task?.cancel() }
 }
