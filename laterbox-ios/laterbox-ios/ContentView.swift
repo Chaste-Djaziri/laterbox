@@ -53,7 +53,7 @@ struct ContentView: View {
                         }
                         .tag(LBTab.settings)
                 }
-                .tint(Color.lbEmerald)
+                .tint(Color.black)
                 .sheet(isPresented: $coordinator.showingQuickCapture) {
                     QuickCaptureSheet()
                 }
