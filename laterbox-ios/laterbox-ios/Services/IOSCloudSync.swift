@@ -30,7 +30,13 @@ struct CloudClassification: Codable {
     var tags: [String]?; var category: String?; var summary: String?; var formattedContent: String?
 }
 
-extension LaterBoxAPIService {
+protocol IOSCloudTransport: Sendable {
+    func downloadSnapshots(userID: String, token: String) async throws -> [CloudItemSnapshot]
+    func cloudRequest(_ path: String, token: String, method: String, body: Any?) async throws -> Data
+    func uploadSnapshot(_ body: [String: Any], metadata: [String: Any], note: [String: Any], collection: [String: Any]?, token: String) async throws
+}
+
+extension LaterBoxAPIService: IOSCloudTransport {
     func cloudRequest(_ path: String, token: String, method: String = "GET", body: Any? = nil) async throws -> Data {
         guard let url = URL(string: "\(supabaseUrl)/rest/v1/\(path)") else { throw URLError(.badURL) }
         var request = URLRequest(url: url)
@@ -79,12 +85,12 @@ extension LaterBoxAPIService {
 
 @MainActor
 extension SyncCoordinator {
-    func performCloudSync(context: ModelContext) async throws {
+    func performCloudSync(context: ModelContext, transport: (any IOSCloudTransport)? = nil) async throws {
         guard isAuthenticated, isProUser, let uid = currentUserId, let token = authToken else { return }
-        let api = LaterBoxAPIService.shared
+        let api: any IOSCloudTransport = transport ?? LaterBoxAPIService.shared
         for id in cloudDeletionQueue {
             guard currentUserId == uid, authToken == token, isProUser else { return }
-            _ = try await api.cloudRequest("items?id=eq.\(id)&user_id=eq.\(uid)", token: token, method: "DELETE")
+            _ = try await api.cloudRequest("items?id=eq.\(id)&user_id=eq.\(uid)", token: token, method: "DELETE", body: nil)
             cloudDeletionQueue.removeAll { $0 == id }
         }
         let remote = try await api.downloadSnapshots(userID: uid, token: token)
