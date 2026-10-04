@@ -19,10 +19,20 @@ public struct InboxView: View {
 
     public init() {}
 
-    private var filteredInboxItems: [LBItem] {
-        var items = allItems.filter { $0.status == ItemStatus.inbox.rawValue }
+    private var rawInboxItems: [LBItem] {
+        allItems.filter { $0.status == ItemStatus.inbox.rawValue }
+    }
 
-        if let filter = selectedFilter {
+    private var availableFilterTypes: [ItemContentType] {
+        ItemContentType.allCases.filter { type in
+            rawInboxItems.contains(where: { $0.type == type.rawValue })
+        }
+    }
+
+    private var filteredInboxItems: [LBItem] {
+        var items = rawInboxItems
+
+        if let filter = selectedFilter, availableFilterTypes.contains(filter) {
             items = items.filter { $0.type == filter.rawValue }
         }
 
@@ -118,33 +128,35 @@ public struct InboxView: View {
                             .transition(.opacity.combined(with: .move(edge: .top)))
                         }
 
-                        // Format Filters
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 8) {
-                                Button(action: {
-                                    selectedFilter = nil
-                                    LBHaptic.light()
-                                }) {
-                                    Text("All (\(allItems.filter { $0.status == ItemStatus.inbox.rawValue }.count))")
-                                        .font(.caption.weight(.semibold))
-                                        .liquidGlassPill(isSelected: selectedFilter == nil)
-                                }
-                                .buttonStyle(.plain)
-
-                                ForEach(ItemContentType.allCases, id: \.self) { type in
-                                    let count = allItems.filter { $0.status == ItemStatus.inbox.rawValue && $0.type == type.rawValue }.count
+                        // Format Filters (only show when contents are available to choose from)
+                        if !availableFilterTypes.isEmpty {
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: 8) {
                                     Button(action: {
-                                        selectedFilter = (selectedFilter == type) ? nil : type
+                                        selectedFilter = nil
                                         LBHaptic.light()
                                     }) {
-                                        HStack(spacing: 4) {
-                                            Image(systemName: type.systemIcon)
-                                            Text("\(type.rawValue.capitalized) (\(count))")
-                                        }
-                                        .font(.caption.weight(.semibold))
-                                        .liquidGlassPill(isSelected: selectedFilter == type)
+                                        Text("All (\(rawInboxItems.count))")
+                                            .font(.caption.weight(.semibold))
+                                            .liquidGlassPill(isSelected: selectedFilter == nil)
                                     }
                                     .buttonStyle(.plain)
+
+                                    ForEach(availableFilterTypes, id: \.self) { type in
+                                        let count = rawInboxItems.filter { $0.type == type.rawValue }.count
+                                        Button(action: {
+                                            selectedFilter = (selectedFilter == type) ? nil : type
+                                            LBHaptic.light()
+                                        }) {
+                                            HStack(spacing: 4) {
+                                                Image(systemName: type.systemIcon)
+                                                Text("\(type.rawValue.capitalized) (\(count))")
+                                            }
+                                            .font(.caption.weight(.semibold))
+                                            .liquidGlassPill(isSelected: selectedFilter == type)
+                                        }
+                                        .buttonStyle(.plain)
+                                    }
                                 }
                             }
                         }
@@ -202,6 +214,11 @@ public struct InboxView: View {
                 }
             }
             .navigationBarHidden(true)
+            .onChange(of: availableFilterTypes) { _, newTypes in
+                if let current = selectedFilter, !newTypes.contains(current) {
+                    selectedFilter = nil
+                }
+            }
         }
     }
 }
