@@ -90,6 +90,18 @@ public struct HomeView: View {
                                 }
                                 .buttonStyle(.plain)
 
+                                Button {
+                                    if AppleLaterAIProvider.unavailableReason == nil || (GeminiLaterAIProvider.enabled && coordinator.isProUser) {
+                                        withAnimation(.spring(response: 0.44, dampingFraction: 0.86)) {
+                                            LaterAIManager.shared.isShowingLaterAI = true
+                                            LaterAIManager.shared.flowProgress = 1
+                                        }
+                                    } else { coordinator.showingQuickCapture = true }
+                                } label: {
+                                    Image(systemName: "plus.circle.fill").font(.system(size: 26))
+                                }
+                                .accessibilityLabel("Add item")
+
                                 // Profile Icon Menu with Logout & Guest Exit
                                 Menu {
                                     if let email = coordinator.currentUserEmail {
