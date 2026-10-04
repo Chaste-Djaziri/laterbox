@@ -36,6 +36,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 - **[Shared] Platform release contract**: Future releases record affected platforms, customer-visible changes, migrations, known limitations, and verification evidence so Windows, mobile, web, and extensions can follow the same capability contract.
 
 ### Changed
+- **[iOS] Inbox Header Logo & Title Branding**: Removed the centered navigation title and plus button from the Inbox header, replacing them with the Laterbox brand logo and "Inbox" title aligned on the leading edge.
 - **[iOS] Home Waiting For You & Coming Up Sections with Centralized Theme**: Added dedicated "WAITING FOR YOU" (inbox items) and "COMING UP" (scheduled upcoming returns) sections with themed cards and empty states on the Home feed. Introduced a centralized, configurable `AppTheme` system with simple master color variables to enable effortless whole-app theme customization.
 - **[iOS] Home Page Feed Clean-Up**: Removed the AI inbox organizer banner card from the Home feed to keep the layout minimal, focused directly on preview statistics, current review item, and recent captures.
 - **[iOS] Home Top-Level Scrolling Header**: Aligned the greeting on the top-left alongside the sync status and profile menu on the same top level inside the scroll view, allowing the header to scroll naturally without sticky navigation bar pinning or container clipping.
