@@ -147,17 +147,19 @@ public struct InboxView: View {
                     .padding(.bottom, 20)
                 }
             }
-            .navigationTitle("Inbox")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(.hidden, for: .navigationBar)
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button(action: {
-                        LBHaptic.medium()
-                        coordinator.showingQuickCapture = true
-                    }) {
-                        Image(systemName: "plus")
-                            .font(.system(size: 16, weight: .bold))
-                            .foregroundColor(.lbEmerald)
+                ToolbarItem(placement: .topBarLeading) {
+                    HStack(spacing: 8) {
+                        Image("LaterboxLogo")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(height: 22)
+
+                        Text("Inbox")
+                            .font(.system(size: 20, weight: .bold))
+                            .foregroundColor(AppTheme.textPrimary)
                     }
                 }
             }
