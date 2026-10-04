@@ -221,6 +221,7 @@ public final class SyncCoordinator: ObservableObject {
         do {
             let metadata = try await LinkMetadataLoader.load(url)
             guard item.status != "deleted", item.modelContext != nil else { return }
+            if item.title == url.host || item.title == text { item.title = metadata.title ?? item.title }
             item.siteName = metadata.site
             item.metadataDescription = metadata.description
             item.previewImageUrl = metadata.image
