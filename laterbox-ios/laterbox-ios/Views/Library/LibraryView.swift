@@ -402,11 +402,7 @@ public struct LibrarySectionDetailView: View {
 
         let q = searchText.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
         guard !q.isEmpty else { return base }
-        return base.filter {
-            $0.title.lowercased().contains(q) ||
-            ($0.url?.lowercased().contains(q) ?? false) ||
-            ($0.noteContent?.lowercased().contains(q) ?? false)
-        }
+        return LocalItemSearch.search(q, in: base, includeDeleted: base.allSatisfy { $0.status == "deleted" })
     }
 
     public var body: some View {
@@ -723,11 +719,7 @@ public struct CollectionDetailView: View {
         let base = allItems.filter { $0.collectionName == collectionName && $0.status != ItemStatus.deleted.rawValue }
         let q = searchText.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
         guard !q.isEmpty else { return base }
-        return base.filter {
-            $0.title.lowercased().contains(q) ||
-            ($0.url?.lowercased().contains(q) ?? false) ||
-            ($0.noteContent?.lowercased().contains(q) ?? false)
-        }
+        return LocalItemSearch.search(q, in: base, includeDeleted: base.allSatisfy { $0.status == "deleted" })
     }
 
     public var body: some View {
