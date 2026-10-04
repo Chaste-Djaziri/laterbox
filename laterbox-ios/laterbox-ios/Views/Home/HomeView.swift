@@ -37,44 +37,14 @@ public struct HomeView: View {
 
                 ScrollView {
                     VStack(alignment: .leading, spacing: 22) {
-                        // Header Bar: Greeting + Sync Status Pill
-                        HStack(alignment: .center) {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(greetingText)
-                                    .font(.title2.weight(.bold))
-                                    .foregroundColor(.primary)
-                                Text("Your Personal Knowledge Vault")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                            }
-                            Spacer()
-
-                            // Sync Pill Indicator
-                            HStack(spacing: 6) {
-                                Circle()
-                                    .fill(coordinator.syncState.statusColor)
-                                    .frame(width: 8, height: 8)
-                                Text(coordinator.syncState.rawValue)
-                                    .font(.caption2.weight(.bold))
-                                    .foregroundColor(.primary)
-                            }
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 6)
-                            .liquidGlassCard(cornerRadius: 12)
-
-                            // Quick Capture Header Action
-                            Button(action: {
-                                LBHaptic.medium()
-                                coordinator.showingQuickCapture = true
-                            }) {
-                                Image(systemName: "plus")
-                                    .font(.system(size: 14, weight: .bold))
-                                    .foregroundColor(.white)
-                                    .frame(width: 32, height: 32)
-                                    .background(Color.lbEmerald)
-                                    .clipShape(Circle())
-                                    .shadow(color: Color.lbEmerald.opacity(0.35), radius: 6, y: 2)
-                            }
+                        // Greeting Header
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(greetingText)
+                                .font(.title3.weight(.bold))
+                                .foregroundColor(.primary)
+                            Text("Your Personal Knowledge Vault")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
                         }
 
                         // Top 4 Metrics Grid
@@ -210,11 +180,50 @@ public struct HomeView: View {
                             }
                         }
                     }
-                    .padding(20)
+                    .padding(.horizontal, 20)
+                    .padding(.top, 12)
                     .padding(.bottom, 20)
                 }
             }
-            .navigationBarHidden(true)
+            .navigationTitle("Home")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Image("LaterboxLogo")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(height: 24)
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    HStack(spacing: 8) {
+                        // Sync Pill
+                        HStack(spacing: 5) {
+                            Circle()
+                                .fill(coordinator.syncState.statusColor)
+                                .frame(width: 7, height: 7)
+                            Text(coordinator.syncState.rawValue)
+                                .font(.caption2.weight(.bold))
+                                .foregroundColor(.primary)
+                        }
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .liquidGlassCard(cornerRadius: 10)
+
+                        // Quick Capture Header Action
+                        Button(action: {
+                            LBHaptic.medium()
+                            coordinator.showingQuickCapture = true
+                        }) {
+                            Image(systemName: "plus")
+                                .font(.system(size: 13, weight: .bold))
+                                .foregroundColor(.white)
+                                .frame(width: 28, height: 28)
+                                .background(Color.lbEmerald)
+                                .clipShape(Circle())
+                        }
+                    }
+                }
+            }
             .sheet(isPresented: $showingQuickCapture) {
                 QuickCaptureSheet()
             }
