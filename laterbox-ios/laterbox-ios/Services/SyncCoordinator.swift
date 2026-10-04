@@ -292,38 +292,7 @@ public final class SyncCoordinator: ObservableObject {
         syncState = .syncing
 
         do {
-            // Check status
-            await refreshSystemStatus()
-            
-            // If logged in, fetch remote items
-            if let uid = currentUserId, let token = authToken {
-                let remoteItems = try await api.fetchRemoteItems(userId: uid, token: token)
-                for r in remoteItems {
-                    let descriptor = FetchDescriptor<LBItem>(predicate: #Predicate { $0.id == r.id })
-                    let existing = try? context.fetch(descriptor).first
-                    if existing == nil {
-                        let parsedType = ItemContentType(rawValue: r.type ?? "link") ?? .link
-                        let parsedStatus = ItemStatus(rawValue: r.status ?? "inbox") ?? .inbox
-                        let parsedDate = ISO8601DateFormatter().date(from: r.created_at ?? "") ?? Date()
-                        let returnDate = r.return_at != nil ? ISO8601DateFormatter().date(from: r.return_at!) : nil
-                        
-                        let imported = LBItem(
-                            id: r.id,
-                            userId: r.user_id,
-                            url: r.url,
-                            title: r.title ?? "Imported Link",
-                            type: parsedType,
-                            favorite: r.favorite ?? false,
-                            status: parsedStatus,
-                            returnAt: returnDate,
-                            createdAt: parsedDate,
-                            isSyncPending: false
-                        )
-                        context.insert(imported)
-                    }
-                }
-                try? context.save()
-            }
+            try await performCloudSync(context: context)
 
             self.syncState = .synced
             self.lastSyncedAt = Date()
