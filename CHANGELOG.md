@@ -39,6 +39,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 - **[Shared] Platform release contract**: Future releases record affected platforms, customer-visible changes, migrations, known limitations, and verification evidence so Windows, mobile, web, and extensions can follow the same capability contract.
 
 ### Changed
+- **[iOS] Later AI Top-of-Page Overscroll Trigger & Haptic Response**: Restricted the Later AI pull-down trigger strictly to when the user is at the very top of the page with no downward scroll remaining, preventing mid-page scrolling from firing the curtain and providing a crisp haptic feedback pulse upon engagement.
 - **[iOS] Later AI Feathered Fading Edge & Smooth Animation**: Replaced the stroked edge with a multi-layered soft feathered gradient blur along the bottom curve, eliminating hard boundary lines for an organic fading mist transition that flows smoothly on both open and close.
 - **[iOS] Later AI Universal Pull-to-Reload Trigger**: Updated the Later AI swipe gesture to trigger on a pull-down swipe anywhere on any screen like a pull-to-refresh reload, removing the top-edge origin constraint so the feather-flow chat drawer can be pulled down smoothly from any screen location.
 - **[iOS] Later AI Feather-Flow Animation**: Redesigned the top swipe-down transition for Later AI with a custom curved curtain geometry ("feather-flow") where the center dips down deepest as the black surface cascades from top to bottom, replacing flat transitions with an organic fluid motion when swiping down from the top edge.
