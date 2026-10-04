@@ -74,30 +74,22 @@ public struct LiquidGlassCardModifier: ViewModifier {
         content
             .background(
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .fill(.ultraThinMaterial)
+                    .fill(colorScheme == .dark ? AnyShapeStyle(.ultraThinMaterial) : AnyShapeStyle(Color.white))
             )
             .overlay(
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                     .strokeBorder(
-                        LinearGradient(
-                            colors: [
-                                Color.white.opacity(colorScheme == .dark ? borderOpacity : borderOpacity * 1.5),
-                                Color.white.opacity(0.04),
-                                Color.lbAmber.opacity(0.12)
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ),
+                        colorScheme == .dark
+                            ? Color.white.opacity(borderOpacity)
+                            : Color.black.opacity(0.06),
                         lineWidth: 1
                     )
             )
             .shadow(
-                color: colorScheme == .dark
-                    ? Color.black.opacity(0.35)
-                    : Color.black.opacity(0.06),
-                radius: 12,
+                color: Color.black.opacity(colorScheme == .dark ? 0.35 : 0.04),
+                radius: 10,
                 x: 0,
-                y: 6
+                y: 4
             )
     }
 }
@@ -112,21 +104,21 @@ public struct LiquidGlassPillModifier: ViewModifier {
             .padding(.vertical, 8)
             .background(
                 Capsule(style: .continuous)
-                    .fill(isSelected ? AnyShapeStyle(Color.lbAmber) : AnyShapeStyle(.ultraThinMaterial))
+                    .fill(isSelected ? AnyShapeStyle(Color.lbGreenTheme) : AnyShapeStyle(Color.white))
             )
             .overlay(
                 Capsule(style: .continuous)
                     .strokeBorder(
                         isSelected
-                            ? Color.white.opacity(0.3)
-                            : Color.white.opacity(colorScheme == .dark ? 0.15 : 0.4),
+                            ? Color.black.opacity(0.12)
+                            : Color.black.opacity(0.07),
                         lineWidth: 1
                     )
             )
-            .foregroundColor(isSelected ? .black : .primary)
+            .foregroundColor(isSelected ? .black : Color.black.opacity(0.7))
             .shadow(
-                color: isSelected ? Color.lbAmber.opacity(0.3) : Color.clear,
-                radius: 6,
+                color: isSelected ? Color.lbGreenTheme.opacity(0.4) : Color.clear,
+                radius: 4,
                 y: 2
             )
     }
@@ -154,7 +146,7 @@ public struct LiquidGlassBackground: View {
 
     public var body: some View {
         ZStack {
-            Color.dynamicBackground(for: colorScheme)
+            Color.lbBackground
                 .ignoresSafeArea()
 
             if colorScheme == .dark {
@@ -165,32 +157,25 @@ public struct LiquidGlassBackground: View {
                     .blur(radius: 80)
                     .offset(x: -120, y: -220)
 
-                // Purple/Indigo Contrast Orb
+                // Contrast Orb
                 Circle()
                     .fill(Color(red: 99/255, green: 102/255, blue: 241/255).opacity(0.14))
                     .frame(width: 300, height: 300)
                     .blur(radius: 90)
                     .offset(x: 140, y: 120)
-
-                // Teal Accent Orb
-                Circle()
-                    .fill(Color(red: 20/255, green: 184/255, blue: 166/255).opacity(0.10))
-                    .frame(width: 260, height: 260)
-                    .blur(radius: 80)
-                    .offset(x: -80, y: 340)
             } else {
-                // Light mode subtle warmth
+                // Subtle pastel green theme (#E6EDB0) ambient illumination
                 Circle()
-                    .fill(Color.lbAmber.opacity(0.12))
-                    .frame(width: 340, height: 340)
-                    .blur(radius: 90)
-                    .offset(x: -100, y: -200)
+                    .fill(Color.lbGreenTheme.opacity(0.35))
+                    .frame(width: 320, height: 320)
+                    .blur(radius: 100)
+                    .offset(x: -120, y: -220)
 
                 Circle()
-                    .fill(Color(red: 99/255, green: 102/255, blue: 241/255).opacity(0.08))
+                    .fill(Color.lbGreenTheme.opacity(0.20))
                     .frame(width: 300, height: 300)
                     .blur(radius: 90)
-                    .offset(x: 130, y: 150)
+                    .offset(x: 140, y: 180)
             }
         }
         .allowsHitTesting(false)
