@@ -40,14 +40,59 @@ public struct HomeView: View {
 
                 ScrollView {
                     VStack(alignment: .leading, spacing: 22) {
-                        // Greeting sitting uncontainerized on canvas
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("\(greetingText), \(userName)")
-                                .font(.system(size: 26, weight: .bold))
-                                .foregroundColor(.black)
-                            Text("Your personal knowledge vault")
-                                .font(.subheadline)
-                                .foregroundColor(Color.black.opacity(0.55))
+                        // Top Level Header (Scrolls normally, does not stick)
+                        HStack(alignment: .center) {
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text("\(greetingText), \(userName)")
+                                    .font(.system(size: 22, weight: .bold))
+                                    .foregroundColor(.black)
+                                Text("Your personal knowledge vault")
+                                    .font(.caption)
+                                    .foregroundColor(Color.black.opacity(0.55))
+                            }
+
+                            Spacer()
+
+                            HStack(spacing: 12) {
+                                // Sync Status in Theme Color (No Container)
+                                HStack(spacing: 5) {
+                                    Circle()
+                                        .fill(coordinator.syncState == .synced ? Color.lbGreenTheme : coordinator.syncState.statusColor)
+                                        .frame(width: 7, height: 7)
+                                    Text(coordinator.syncState.rawValue)
+                                        .font(.caption2.weight(.medium))
+                                        .foregroundColor(Color.black.opacity(0.65))
+                                }
+
+                                // Profile Icon Menu with Logout & Guest Exit
+                                Menu {
+                                    if let email = coordinator.currentUserEmail {
+                                        Section(email) {
+                                            Button(role: .destructive, action: {
+                                                withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                                                    coordinator.signOut()
+                                                }
+                                            }) {
+                                                Label("Log Out", systemImage: "rectangle.portrait.and.arrow.right")
+                                            }
+                                        }
+                                    } else {
+                                        Section("Guest Mode") {
+                                            Button(role: .destructive, action: {
+                                                withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                                                    coordinator.signOut()
+                                                }
+                                            }) {
+                                                Label("Exit Guest / Log Out", systemImage: "rectangle.portrait.and.arrow.right")
+                                            }
+                                        }
+                                    }
+                                } label: {
+                                    Image(systemName: "person.circle.fill")
+                                        .font(.system(size: 26))
+                                        .foregroundColor(.black)
+                                }
+                            }
                         }
                         .padding(.top, 4)
 
@@ -197,52 +242,7 @@ public struct HomeView: View {
                     .padding(.bottom, 20)
                 }
             }
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbarBackground(.hidden, for: .navigationBar)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    HStack(spacing: 12) {
-                        // Sync Status in Theme Color (No Container)
-                        HStack(spacing: 5) {
-                            Circle()
-                                .fill(coordinator.syncState == .synced ? Color.lbGreenTheme : coordinator.syncState.statusColor)
-                                .frame(width: 7, height: 7)
-                            Text(coordinator.syncState.rawValue)
-                                .font(.caption2.weight(.medium))
-                                .foregroundColor(Color.black.opacity(0.65))
-                        }
-
-                        // Profile Icon Menu with Logout & Guest Exit
-                        Menu {
-                            if let email = coordinator.currentUserEmail {
-                                Section(email) {
-                                    Button(role: .destructive, action: {
-                                        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                                            coordinator.signOut()
-                                        }
-                                    }) {
-                                        Label("Log Out", systemImage: "rectangle.portrait.and.arrow.right")
-                                    }
-                                }
-                            } else {
-                                Section("Guest Mode") {
-                                    Button(role: .destructive, action: {
-                                        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                                            coordinator.signOut()
-                                        }
-                                    }) {
-                                        Label("Exit Guest / Log Out", systemImage: "rectangle.portrait.and.arrow.right")
-                                    }
-                                }
-                            }
-                        } label: {
-                            Image(systemName: "person.circle.fill")
-                                .font(.system(size: 24))
-                                .foregroundColor(.black)
-                        }
-                    }
-                }
-            }
+            .navigationBarHidden(true)
             .sheet(isPresented: $showingQuickCapture) {
                 QuickCaptureSheet()
             }
