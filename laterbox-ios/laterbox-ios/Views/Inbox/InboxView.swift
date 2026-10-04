@@ -142,12 +142,13 @@ public struct InboxView: View {
                             }
                         }
                     }
-                    .padding(20)
+                    .padding(.horizontal, 20)
+                    .padding(.top, 12)
                     .padding(.bottom, 20)
                 }
             }
             .navigationTitle("Inbox")
-            .navigationBarTitleDisplayMode(.large)
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button(action: {
