@@ -380,6 +380,7 @@ public struct LibrarySectionDetailView: View {
     @ObservedObject var coordinator = SyncCoordinator.shared
 
     @State private var searchText: String = ""
+    @StateObject private var search = LocalSearchController()
     @State private var isGridView: Bool = false
     @State private var showingEmptyTrashConfirmation: Bool = false
 
@@ -402,7 +403,7 @@ public struct LibrarySectionDetailView: View {
 
         let q = searchText.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
         guard !q.isEmpty else { return base }
-        return LocalItemSearch.search(q, in: base, includeDeleted: base.allSatisfy { $0.status == "deleted" })
+        return search.results.filter { candidate in base.contains { $0.id == candidate.id } }
     }
 
     public var body: some View {
@@ -508,6 +509,7 @@ public struct LibrarySectionDetailView: View {
                             .foregroundColor(AppTheme.textSecondary)
 
                         TextField("Filter \(category.rawValue.lowercased())...", text: $searchText)
+                            .task(id: searchText + allItems.map { $0.updatedAt.ISO8601Format() }.joined()) { search.update(searchText, items: allItems, includeDeleted: category == .deleted) }
                             .font(.subheadline)
                             .foregroundColor(AppTheme.textPrimary)
 
@@ -706,6 +708,7 @@ public struct CollectionDetailView: View {
     @ObservedObject var coordinator = SyncCoordinator.shared
 
     @State private var searchText: String = ""
+    @StateObject private var search = LocalSearchController()
     @State private var isGridView: Bool = false
     @State private var showingRename: Bool = false
     @State private var renameTitle: String = ""
@@ -719,7 +722,7 @@ public struct CollectionDetailView: View {
         let base = allItems.filter { $0.collectionName == collectionName && $0.status != ItemStatus.deleted.rawValue }
         let q = searchText.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
         guard !q.isEmpty else { return base }
-        return LocalItemSearch.search(q, in: base, includeDeleted: base.allSatisfy { $0.status == "deleted" })
+        return search.results.filter { candidate in base.contains { $0.id == candidate.id } }
     }
 
     public var body: some View {
@@ -837,6 +840,7 @@ public struct CollectionDetailView: View {
                             .foregroundColor(AppTheme.textSecondary)
 
                         TextField("Search in \(collectionName)...", text: $searchText)
+                            .task(id: searchText + allItems.map { $0.updatedAt.ISO8601Format() }.joined()) { search.update(searchText, items: allItems) }
                             .font(.subheadline)
                             .foregroundColor(AppTheme.textPrimary)
 
