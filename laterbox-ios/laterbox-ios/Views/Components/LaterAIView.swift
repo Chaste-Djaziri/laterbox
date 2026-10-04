@@ -47,15 +47,19 @@ public struct LaterAIView: View {
     }
 
     public var body: some View {
+        let clampedProgress = max(0.0, min(1.0, progress))
+        let travelFactor = (1.0 - clampedProgress)
+
         ZStack {
             // Feather-Flow Black Background Drape with Feathered Fading Bottom (No Hard Line)
             FeatherFadingBackdrop(progress: progress)
 
             VStack(spacing: 0) {
-                // Top Grab Handle & Header
+                // Top Grab Handle & Header (Rides down from top)
                 topBar
+                    .offset(y: travelFactor * -60)
 
-                // Chat Messages / Welcome Empty State
+                // Chat Messages / Welcome Empty State (Rides down with center drape)
                 ScrollViewReader { proxy in
                     ScrollView {
                         VStack(spacing: 20) {
@@ -84,12 +88,18 @@ public struct LaterAIView: View {
                         }
                     }
                 }
+                .offset(y: travelFactor * -120)
 
-                // Bottom ChatGPT Mobile-Style Chat Input Dock
+                // Bottom ChatGPT Mobile-Style Chat Input Dock (Cascades down to dock)
                 bottomChatInputBar
+                    .offset(y: travelFactor * -80)
             }
-            .opacity(max(0.0, min(1.0, (progress - 0.28) / 0.62)))
-            .offset(y: (1.0 - max(0.0, min(1.0, progress))) * -35)
+            .offset(y: travelFactor * -160)
+            .opacity(max(0.0, min(1.0, (clampedProgress - 0.08) / 0.74)))
+            .mask(
+                FeatherFlowShape(progress: progress, centerDipFraction: 0.32)
+                    .ignoresSafeArea()
+            )
             .ignoresSafeArea(edges: .top)
         }
         .gesture(
