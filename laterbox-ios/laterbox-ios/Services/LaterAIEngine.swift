@@ -8,6 +8,7 @@ struct AIAction {
     @Guide(description: "Exact content to save, without the user's instructions. Empty for chat.") var content: String
     var title: String
     var category: String
+    @Guide(description: "Content type: link, article, video, music, document, or note") var contentType: String = ""
     var tags: [String]
     var summary: String
     var formattedContent: String
@@ -20,12 +21,22 @@ struct CaptureDraft: Codable, Equatable {
     var content = ""
     var title = ""
     var category = ""
+    var contentType = ""
     var tags: [String] = []
     var summary = ""
     var formattedContent = ""
     var returnAt: Date?
     var url: String? { Self.detectURL(content) }
-    var type: ItemContentType { url == nil ? .note : .link }
+    var type: ItemContentType {
+        if let specified = ItemContentType(rawValue: contentType) { return specified }
+        guard let url else { return .note }
+        let host = URL(string: url)?.host?.lowercased() ?? ""
+        if ["youtube.com", "youtu.be", "vimeo.com"].contains(where: { host == $0 || host.hasSuffix("." + $0) }) { return .video }
+        if ["spotify.com", "music.apple.com", "soundcloud.com"].contains(where: { host == $0 || host.hasSuffix("." + $0) }) { return .music }
+        if URL(string: url)?.path.lowercased().hasSuffix(".pdf") == true { return .document }
+        if ["medium.com", "substack.com"].contains(where: { host == $0 || host.hasSuffix("." + $0) }) { return .article }
+        return .link
+    }
     static func detectURL(_ text: String) -> String? {
         guard let detector = try? NSDataDetector(types: NSTextCheckingResult.CheckingType.link.rawValue),
               let url = detector.firstMatch(in: text, range: NSRange(text.startIndex..., in: text))?.url,
