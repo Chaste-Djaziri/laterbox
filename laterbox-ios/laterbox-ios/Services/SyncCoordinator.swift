@@ -48,6 +48,15 @@ public final class SyncCoordinator: ObservableObject {
     @Published public var isSystemOperational: Bool = true
     @Published public var activeFilter: ItemContentType? = nil
     @Published public var searchQuery: String = ""
+    @Published public var isGuestMode: Bool = false
+
+    public var isAuthenticated: Bool {
+        currentUserEmail != nil && !(currentUserEmail?.isEmpty ?? true)
+    }
+
+    public var hasAccess: Bool {
+        isAuthenticated || isGuestMode
+    }
 
     private let defaults = UserDefaults.standard
     private let api = LaterBoxAPIService.shared
@@ -56,6 +65,7 @@ public final class SyncCoordinator: ObservableObject {
         self.currentUserEmail = defaults.string(forKey: "lb_user_email")
         self.currentUserId = defaults.string(forKey: "lb_user_id")
         self.authToken = defaults.string(forKey: "lb_auth_token")
+        self.isGuestMode = defaults.bool(forKey: "lb_guest_mode")
         
         Task {
             await refreshSystemStatus()
@@ -72,19 +82,29 @@ public final class SyncCoordinator: ObservableObject {
         self.currentUserEmail = email
         self.currentUserId = userId
         self.authToken = token
+        self.isGuestMode = false
         defaults.set(email, forKey: "lb_user_email")
         defaults.set(userId, forKey: "lb_user_id")
         defaults.set(token, forKey: "lb_auth_token")
+        defaults.set(false, forKey: "lb_guest_mode")
         LBHaptic.success()
+    }
+
+    public func continueAsGuest() {
+        self.isGuestMode = true
+        defaults.set(true, forKey: "lb_guest_mode")
+        LBHaptic.light()
     }
 
     public func signOut() {
         self.currentUserEmail = nil
         self.currentUserId = nil
         self.authToken = nil
+        self.isGuestMode = false
         defaults.removeObject(forKey: "lb_user_email")
         defaults.removeObject(forKey: "lb_user_id")
         defaults.removeObject(forKey: "lb_auth_token")
+        defaults.removeObject(forKey: "lb_guest_mode")
         LBHaptic.light()
     }
 
