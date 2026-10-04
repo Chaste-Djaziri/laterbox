@@ -36,6 +36,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 - **[Shared] Platform release contract**: Future releases record affected platforms, customer-visible changes, migrations, known limitations, and verification evidence so Windows, mobile, web, and extensions can follow the same capability contract.
 
 ### Changed
+- **[iOS] User-Created Collections & Contextual Folder Actions**: Removed hardcoded default collections in favor of purely user-created folders, and added long-press contextual menus to collection cards enabling users to easily rename or delete folders with automated item reassignment.
 - **[iOS] Library Cards App Theme Styling**: Unified all Library category cards (Favorites, Kept, Archived, Recently Deleted) and collection folder icons to strictly use the app's signature pastel green accent (`#E6EDB0`) and black icon styling.
 - **[iOS] Library Navigation Cards & Collections Hub**: Redesigned the Library screen with a 2x2 grid of link cards for Favorites, Kept, Archived, and Recently Deleted that navigate to dedicated sub-pages, soft-delete item recovery, and a dedicated Collections section underneath featuring a '+ Create Collection' action with folder cards linking to collection sub-pages.
 - **[iOS] Returns Header & Focused Filter Badges**: Redesigned the Returns screen header to remove the static page name title in favor of the clean brand icon and uncontainerized sync indicator, streamlined return segments to Today, Upcoming, and Someday only, and ensured all filter badges and card content never wrap awkwardly.
