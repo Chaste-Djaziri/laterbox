@@ -100,7 +100,6 @@ public struct LaterAIView: View {
                 FeatherFlowShape(progress: progress, centerDipFraction: 0.32)
                     .ignoresSafeArea()
             )
-            .ignoresSafeArea(edges: .top)
         }
         .gesture(
             DragGesture()
@@ -125,12 +124,12 @@ public struct LaterAIView: View {
 
     // MARK: - Top Header Bar
     private var topBar: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: 10) {
             // Top pull handle
             Capsule()
                 .fill(Color.white.opacity(0.3))
                 .frame(width: 38, height: 4.5)
-                .padding(.top, 8)
+                .padding(.top, 6)
 
             HStack {
                 // Dismiss / Dropdown close button
