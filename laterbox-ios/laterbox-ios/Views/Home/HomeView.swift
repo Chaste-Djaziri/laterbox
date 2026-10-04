@@ -61,6 +61,20 @@ public struct HomeView: View {
                             .padding(.horizontal, 10)
                             .padding(.vertical, 6)
                             .liquidGlassCard(cornerRadius: 12)
+
+                            // Quick Capture Header Action
+                            Button(action: {
+                                LBHaptic.medium()
+                                coordinator.showingQuickCapture = true
+                            }) {
+                                Image(systemName: "plus")
+                                    .font(.system(size: 14, weight: .bold))
+                                    .foregroundColor(.white)
+                                    .frame(width: 32, height: 32)
+                                    .background(Color.lbEmerald)
+                                    .clipShape(Circle())
+                                    .shadow(color: Color.lbEmerald.opacity(0.35), radius: 6, y: 2)
+                            }
                         }
 
                         // Top 4 Metrics Grid
@@ -197,7 +211,7 @@ public struct HomeView: View {
                         }
                     }
                     .padding(20)
-                    .padding(.bottom, 80) // Gap for floating tab bar
+                    .padding(.bottom, 20)
                 }
             }
             .navigationBarHidden(true)
