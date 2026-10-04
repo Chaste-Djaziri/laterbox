@@ -25,7 +25,35 @@ public struct SettingsView: View {
                 LiquidGlassBackground()
 
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 22) {
+                    VStack(alignment: .leading, spacing: 20) {
+                        // Top Level Header (Scrolls normally, uncontainerized on canvas)
+                        HStack(alignment: .center) {
+                            HStack(spacing: 8) {
+                                Image("LaterboxIconGreen")
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(width: 28, height: 28)
+                                    .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+
+                                Text("Settings")
+                                    .font(.system(size: 24, weight: .bold))
+                                    .foregroundColor(AppTheme.textPrimary)
+                            }
+
+                            Spacer()
+
+                            // Sync Status Indicator (No Container)
+                            HStack(spacing: 5) {
+                                Circle()
+                                    .fill(coordinator.syncState == .synced ? Color.lbGreenTheme : coordinator.syncState.statusColor)
+                                    .frame(width: 7, height: 7)
+                                Text(coordinator.syncState.rawValue)
+                                    .font(.caption2.weight(.medium))
+                                    .foregroundColor(AppTheme.textSecondary)
+                            }
+                        }
+                        .padding(.top, 4)
+
                         // User Profile Card
                         VStack(alignment: .leading, spacing: 14) {
                             HStack(spacing: 14) {
@@ -239,8 +267,7 @@ public struct SettingsView: View {
                     .padding(.bottom, 20)
                 }
             }
-            .navigationTitle("Settings")
-            .navigationBarTitleDisplayMode(.inline)
+            .navigationBarHidden(true)
             .sheet(isPresented: $showingAuthSheet) {
                 NavigationStack {
                     AuthView()
