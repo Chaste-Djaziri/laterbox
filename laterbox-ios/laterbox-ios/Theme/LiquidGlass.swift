@@ -15,6 +15,8 @@ extension Color {
     public static let lbAmber = Color(red: 245/255, green: 158/255, blue: 11/255) // #F59E0B
     public static let lbAmberLight = Color(red: 251/255, green: 191/255, blue: 36/255) // #FBBF24
     public static let lbAmberDark = Color(red: 217/255, green: 119/255, blue: 6/255) // #D97706
+    public static let lbEmerald = Color(red: 16/255, green: 185/255, blue: 129/255) // #10B981
+    public static let lbEmeraldLight = Color(red: 52/255, green: 211/255, blue: 153/255) // #34D399
     public static let lbDarkBackground = Color(red: 10/255, green: 10/255, blue: 14/255)
     public static let lbCardBackground = Color(red: 20/255, green: 20/255, blue: 26/255)
     
@@ -48,6 +50,11 @@ public enum LBHaptic {
     public static func warning() {
         #if canImport(UIKit)
         UINotificationFeedbackGenerator().notificationOccurred(.warning)
+        #endif
+    }
+    public static func error() {
+        #if canImport(UIKit)
+        UINotificationFeedbackGenerator().notificationOccurred(.error)
         #endif
     }
 }
@@ -122,6 +129,10 @@ public struct LiquidGlassPillModifier: ViewModifier {
 }
 
 extension View {
+    public func liquidGlass(cornerRadius: CGFloat = 16, borderOpacity: Double = 0.22) -> some View {
+        self.modifier(LiquidGlassCardModifier(cornerRadius: cornerRadius, borderOpacity: borderOpacity, isInteractive: false))
+    }
+
     public func liquidGlassCard(cornerRadius: CGFloat = 20, borderOpacity: Double = 0.22, isInteractive: Bool = false) -> some View {
         self.modifier(LiquidGlassCardModifier(cornerRadius: cornerRadius, borderOpacity: borderOpacity, isInteractive: isInteractive))
     }
