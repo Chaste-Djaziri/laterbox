@@ -14,17 +14,17 @@ struct WelcomeView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                // Liquid Glass Ambient Background
-                LiquidGlassBackground()
+                // Main App Background #F7F5EE
+                Color.lbBackground
+                    .ignoresSafeArea()
 
                 VStack(spacing: 0) {
-                    // Top Bar: Logo & Sign In Button
+                    // Top Bar: Logo & Sign In
                     HStack(alignment: .center) {
                         Image("LaterboxLogo")
                             .resizable()
                             .scaledToFit()
-                            .frame(height: 38)
-                            .accessibilityLabel("Laterbox Logo")
+                            .frame(height: 34)
 
                         Spacer()
 
@@ -33,118 +33,95 @@ struct WelcomeView: View {
                             showingAuthView = true
                         }) {
                             Text("Sign In")
-                                .font(.subheadline.weight(.semibold))
-                                .foregroundColor(.primary)
-                                .padding(.horizontal, 16)
-                                .padding(.vertical, 8)
-                                .liquidGlass(cornerRadius: 20)
+                                .font(.system(size: 15, weight: .semibold))
+                                .foregroundColor(.black)
+                                .padding(.horizontal, 14)
+                                .padding(.vertical, 7)
+                                .background(Color.white)
+                                .clipShape(Capsule())
+                                .overlay(
+                                    Capsule()
+                                        .stroke(Color.black.opacity(0.08), lineWidth: 1)
+                                )
                         }
                     }
                     .padding(.horizontal, 24)
-                    .padding(.top, 14)
+                    .padding(.top, 12)
 
-                    // Hero Graphic
-                    Spacer(minLength: 12)
+                    Spacer(minLength: 8)
 
-                    ZStack {
-                        // Ambient glow behind hero
-                        Circle()
-                            .fill(Color.lbEmerald.opacity(0.18))
-                            .blur(radius: 50)
-                            .frame(width: 240, height: 240)
-
-                        Image("OnboardingHero")
-                            .resizable()
-                            .scaledToFit()
-                            .frame(maxHeight: 280)
-                            .padding(.horizontal, 20)
-                            .shadow(color: Color.black.opacity(0.25), radius: 24, x: 0, y: 12)
-                    }
+                    // Big Hero Illustration
+                    Image("OnboardingHero")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(maxWidth: .infinity)
+                        .frame(maxHeight: 380)
+                        .padding(.horizontal, 16)
 
                     Spacer(minLength: 16)
 
-                    // Pitch & Headlines
-                    VStack(alignment: .leading, spacing: 14) {
+                    // Headline with Reduced Words
+                    VStack(alignment: .leading, spacing: 6) {
                         Text("Save it now.\nRead it later.")
-                            .font(.system(size: 34, weight: .black, design: .default))
-                            .lineSpacing(-2)
-                            .foregroundColor(.primary)
+                            .font(.system(size: 36, weight: .bold))
+                            .lineSpacing(-3)
+                            .foregroundColor(.black)
 
-                        Text("Your personal vault for articles, links, files, and notes with real-time cloud sync.")
-                            .font(.body)
-                            .foregroundColor(.secondary)
-                            .fixedSize(horizontal: false, vertical: true)
-
-                        // Feature Pills
-                        HStack(spacing: 8) {
-                            FeaturePill(icon: "bolt.fill", label: "Quick Capture", color: .lbEmerald)
-                            FeaturePill(icon: "sparkles", label: "AI Organizer", color: .lbAmber)
-                            FeaturePill(icon: "clock.arrow.circlepath", label: "Returns", color: .blue)
-                        }
-                        .padding(.top, 4)
+                        Text("Your personal knowledge vault.")
+                            .font(.system(size: 16, weight: .regular))
+                            .foregroundColor(Color.black.opacity(0.6))
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 24)
+                    .padding(.bottom, 24)
 
-                    Spacer(minLength: 20)
-
-                    // Action Buttons & Legal
+                    // Action Buttons: Black Continue & Guest Option
                     VStack(spacing: 12) {
-                        // Get Started / Sign In Button
+                        // Solid Black Continue Button
                         Button(action: {
                             LBHaptic.medium()
                             showingAuthView = true
                         }) {
-                            HStack {
-                                Text("Get Started")
-                                    .font(.headline.weight(.bold))
-                                Image(systemName: "arrow.right")
-                                    .font(.headline.weight(.bold))
-                            }
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 16)
-                            .background(
-                                LinearGradient(
-                                    colors: [Color.lbEmerald, Color.lbEmerald.opacity(0.85)],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                            )
-                            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-                            .shadow(color: Color.lbEmerald.opacity(0.35), radius: 14, x: 0, y: 6)
+                            Text("Continue")
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 54)
+                                .background(Color(red: 26/255, green: 26/255, blue: 26/255))
+                                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                         }
 
-                        // Continue as Guest Option
+                        // Continue Without Account
                         Button(action: {
-                            withAnimation(.spring(response: 0.45, dampingFraction: 0.8)) {
+                            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
                                 coordinator.continueAsGuest()
                             }
                         }) {
-                            Text("Explore as Guest")
-                                .font(.subheadline.weight(.medium))
-                                .foregroundColor(.secondary)
+                            Text("Continue without account")
+                                .font(.system(size: 15, weight: .regular))
+                                .foregroundColor(Color.black.opacity(0.85))
                                 .frame(maxWidth: .infinity)
-                                .padding(.vertical, 12)
-                                .liquidGlass(cornerRadius: 16)
+                                .padding(.vertical, 8)
                         }
 
                         // Legal Disclaimer
                         HStack(spacing: 4) {
                             Text("By continuing, you agree to our")
-                                .foregroundColor(.secondary.opacity(0.7))
+                                .foregroundColor(Color.black.opacity(0.45))
                             Link("Terms", destination: URL(string: "https://laterbox.dev/terms")!)
-                                .foregroundColor(.lbEmerald)
+                                .foregroundColor(.black)
+                                .underline()
                             Text("&")
-                                .foregroundColor(.secondary.opacity(0.7))
+                                .foregroundColor(Color.black.opacity(0.45))
                             Link("Privacy Policy", destination: URL(string: "https://laterbox.dev/privacy")!)
-                                .foregroundColor(.lbEmerald)
+                                .foregroundColor(.black)
+                                .underline()
                         }
                         .font(.caption2)
                         .padding(.top, 4)
                     }
                     .padding(.horizontal, 24)
-                    .padding(.bottom, 24)
+                    .padding(.bottom, 20)
                 }
             }
             .navigationDestination(isPresented: $showingAuthView) {
@@ -154,27 +131,6 @@ struct WelcomeView: View {
     }
 }
 
-private struct FeaturePill: View {
-    let icon: String
-    let label: String
-    let color: Color
-
-    var body: some View {
-        HStack(spacing: 5) {
-            Image(systemName: icon)
-                .font(.caption.weight(.bold))
-                .foregroundColor(color)
-            Text(label)
-                .font(.caption.weight(.semibold))
-                .foregroundColor(.primary)
-        }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 6)
-        .liquidGlass(cornerRadius: 12)
-    }
-}
-
 #Preview {
     WelcomeView()
-        .preferredColorScheme(.dark)
 }
