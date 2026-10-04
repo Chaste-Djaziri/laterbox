@@ -18,6 +18,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 - **[Web] Music source labels**: Music cards and item actions now identify the originating service (including Apple Music and Spotify) and avoid presenting a Spotify label or icon for unrelated music links.
 
 ### Added
+- **[iOS] App Store Plans & StoreKit 2 Integration**: Connected official App Store subscription products (`com.laterbox.pro.monthly` and `com.laterbox.pro.annual`) using Apple StoreKit 2 standards with real-time entitlement verification, automatic background transaction updates, and purchase restoration. Added a dedicated Apple-standard Plans view with monthly and annual options, 14-day free trial presentation, and proactive Pro status detection across the app.
 - **[iOS] Liquid Glass Welcome, Onboarding & Authentication**: Added a dedicated single-screen welcome/onboarding experience with official branding assets, value propositions, and a native full-screen authentication flow with passwordless email OTP verification, guest mode access, and smooth state-driven navigation.
 - **[iOS] App Display Name**: Configured the app display and bundle name to "Laterbox", matching the official mobile app branding on the home screen, app switcher, and system settings.
 - **[iOS] Official App Icons & Themes**: Synchronized the official LaterBox primary app icons and alternate theme icon sets (Dark, Emerald, Monochrome, Neon, Sunset) into the native iOS app bundle.
