@@ -63,24 +63,22 @@ struct ContentView: View {
                     DragGesture(minimumDistance: 15, coordinateSpace: .global)
                         .onChanged { value in
                             guard coordinator.hasAccess else { return }
-                            let startsAtTopEnd = value.startLocation.y < 220
                             let isDownward = value.translation.height > 0
-                            let isVertical = abs(value.translation.height) > abs(value.translation.width) * 1.05
+                            let isVertical = value.translation.height > abs(value.translation.width) * 1.08
 
-                            if startsAtTopEnd && isDownward && isVertical {
+                            if isDownward && isVertical {
                                 if !isShowingLaterAI {
                                     isShowingLaterAI = true
                                 }
-                                laterAIFlowProgress = min(1.0, max(0.0, value.translation.height / 300.0))
+                                laterAIFlowProgress = min(1.0, max(0.0, value.translation.height / 260.0))
                             }
                         }
                         .onEnded { value in
                             guard coordinator.hasAccess else { return }
-                            let startsAtTopEnd = value.startLocation.y < 220
-                            let isDownward = value.translation.height > 50
-                            let isVertical = abs(value.translation.height) > abs(value.translation.width) * 1.05
+                            let isDownward = value.translation.height > 55
+                            let isVertical = value.translation.height > abs(value.translation.width) * 1.08
 
-                            if startsAtTopEnd && isDownward && isVertical {
+                            if isDownward && isVertical {
                                 UIImpactFeedbackGenerator(style: .medium).impactOccurred()
                                 withAnimation(.spring(response: 0.48, dampingFraction: 0.82)) {
                                     laterAIFlowProgress = 1.0
@@ -117,62 +115,6 @@ struct ContentView: View {
             }
         }
         .animation(.spring(response: 0.45, dampingFraction: 0.85), value: coordinator.hasAccess)
-
-        // Top Subtle Grab Pill for Later AI
-        if coordinator.hasAccess && (!lockManager.isAppLockEnabled || !lockManager.isLocked) {
-            VStack {
-                Button {
-                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                    isShowingLaterAI = true
-                    withAnimation(.spring(response: 0.48, dampingFraction: 0.82)) {
-                        laterAIFlowProgress = 1.0
-                    }
-                } label: {
-                    HStack(spacing: 5) {
-                        Capsule()
-                            .fill(Color.black.opacity(0.18))
-                            .frame(width: 32, height: 3.5)
-                    }
-                    .padding(.top, 4)
-                    .padding(.bottom, 8)
-                    .padding(.horizontal, 24)
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .highPriorityGesture(
-                    DragGesture(minimumDistance: 10)
-                        .onChanged { value in
-                            if value.translation.height > 0 {
-                                if !isShowingLaterAI {
-                                    isShowingLaterAI = true
-                                }
-                                laterAIFlowProgress = min(1.0, max(0.0, value.translation.height / 300.0))
-                            }
-                        }
-                        .onEnded { value in
-                            if value.translation.height > 30 || value.predictedEndTranslation.height > 60 {
-                                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                                withAnimation(.spring(response: 0.48, dampingFraction: 0.82)) {
-                                    laterAIFlowProgress = 1.0
-                                    isShowingLaterAI = true
-                                }
-                            } else {
-                                withAnimation(.spring(response: 0.38, dampingFraction: 0.85)) {
-                                    laterAIFlowProgress = 0.0
-                                }
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.38) {
-                                    if laterAIFlowProgress == 0 {
-                                        isShowingLaterAI = false
-                                    }
-                                }
-                            }
-                        }
-                )
-
-                Spacer()
-            }
-            .zIndex(50)
-        }
 
         // Later AI Dropdown Full Screen Interface with Feather-Flow Curtain
         if isShowingLaterAI && coordinator.hasAccess {
