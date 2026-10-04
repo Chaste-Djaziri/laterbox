@@ -45,10 +45,12 @@ public struct ItemCardView: View {
                     Text(domain)
                         .font(.caption.weight(.semibold))
                         .foregroundColor(.primary)
+                        .lineLimit(1)
                 } else {
                     Text(item.parsedContentType.rawValue.capitalized)
                         .font(.caption.weight(.semibold))
                         .foregroundColor(.primary)
+                        .lineLimit(1)
                 }
 
                 Text("•")
@@ -58,6 +60,7 @@ public struct ItemCardView: View {
                 Text(formattedRelativeTime(item.createdAt))
                     .font(.caption2)
                     .foregroundColor(.secondary)
+                    .lineLimit(1)
 
                 Spacer()
 
@@ -104,11 +107,13 @@ public struct ItemCardView: View {
                             .font(.caption2)
                         Text(coll)
                             .font(.caption2.weight(.medium))
+                            .lineLimit(1)
                     }
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
                     .background(Capsule().fill(Color.white.opacity(0.08)))
                     .foregroundColor(.secondary)
+                    .lineLimit(1)
                 }
 
                 if let returnAt = item.returnAt {
@@ -117,11 +122,13 @@ public struct ItemCardView: View {
                             .font(.caption2)
                         Text(returnAt, format: .dateTime.month().day())
                             .font(.caption2.weight(.medium))
+                            .lineLimit(1)
                     }
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
                     .background(Capsule().fill(Color.lbAmber.opacity(0.15)))
                     .foregroundColor(Color.lbAmber)
+                    .lineLimit(1)
                 }
 
                 Spacer()
