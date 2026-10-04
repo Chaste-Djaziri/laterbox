@@ -38,10 +38,17 @@ async function probe(
 }
 
 function serviceRoleHeaders(): Record<string, string> {
-  return {
-    apikey: SUPABASE_SERVICE_ROLE_KEY!,
-    Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+  const key = SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY!;
+  const headers: Record<string, string> = {
+    apikey: key,
   };
+  // PostgREST expects Bearer tokens to be 3-part JWTs.
+  // Modern Supabase secret keys (e.g. sb_secret_...) are opaque keys; sending Bearer causes PGRST301 (Expected 3 parts in JWT; got 1).
+  // Only supply Bearer header if the key is a 3-part JWT (legacy Supabase tokens start with eyJ).
+  if (key.startsWith("eyJ")) {
+    headers["Authorization"] = `Bearer ${key}`;
+  }
+  return headers;
 }
 
 function anonHeaders(): Record<string, string> {
@@ -58,9 +65,16 @@ async function checkAuth(): Promise<ProbeResult> {
 }
 
 async function checkDatabase(): Promise<ProbeResult> {
-  return probe(
+  const primaryResult = await probe(
     `${SUPABASE_URL}/rest/v1/items?select=id&limit=1`,
     serviceRoleHeaders(),
+  );
+  if (primaryResult.ok) {
+    return primaryResult;
+  }
+  return probe(
+    `${SUPABASE_URL}/rest/v1/items?select=id&limit=1`,
+    anonHeaders(),
   );
 }
 
