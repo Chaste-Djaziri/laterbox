@@ -15,6 +15,7 @@ public struct InboxView: View {
 
     @State private var selectedFilter: ItemContentType? = nil
     @State private var searchText: String = ""
+    @State private var showingSearch: Bool = false
 
     public init() {}
 
@@ -52,14 +53,35 @@ public struct InboxView: View {
                         // Top Level Header (Scrolls normally, uncontainerized on canvas)
                         HStack(alignment: .center) {
                             HStack(spacing: 8) {
-                                Image("LaterboxLogo")
+                                // Green background variant with black icon (icon-only version)
+                                Image("LaterboxIconGreen")
                                     .resizable()
                                     .scaledToFit()
-                                    .frame(height: 24)
+                                    .frame(width: 28, height: 28)
+                                    .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
 
                                 Text("Inbox")
                                     .font(.system(size: 24, weight: .bold))
                                     .foregroundColor(AppTheme.textPrimary)
+
+                                // Search icon to the right next to the inbox title
+                                Button(action: {
+                                    LBHaptic.light()
+                                    withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                                        showingSearch.toggle()
+                                        if !showingSearch {
+                                            searchText = ""
+                                        }
+                                    }
+                                }) {
+                                    Image(systemName: "magnifyingglass")
+                                        .font(.system(size: 15, weight: .semibold))
+                                        .foregroundColor(showingSearch ? AppTheme.textPrimary : AppTheme.textSecondary)
+                                        .frame(width: 30, height: 30)
+                                        .background(showingSearch ? AppTheme.accent : Color.clear)
+                                        .clipShape(Circle())
+                                }
+                                .buttonStyle(.plain)
                             }
 
                             Spacer()
@@ -76,20 +98,23 @@ public struct InboxView: View {
                         }
                         .padding(.top, 4)
 
-                        // Search Bar
-                        HStack {
-                            Image(systemName: "magnifyingglass")
-                                .foregroundColor(.secondary)
-                            TextField("Search inbox...", text: $searchText)
-                            if !searchText.isEmpty {
-                                Button(action: { searchText = "" }) {
-                                    Image(systemName: "xmark.circle.fill")
-                                        .foregroundColor(.secondary)
+                        // On-demand Search Bar (revealed only when search icon is tapped)
+                        if showingSearch {
+                            HStack {
+                                Image(systemName: "magnifyingglass")
+                                    .foregroundColor(.secondary)
+                                TextField("Search inbox...", text: $searchText)
+                                if !searchText.isEmpty {
+                                    Button(action: { searchText = "" }) {
+                                        Image(systemName: "xmark.circle.fill")
+                                            .foregroundColor(.secondary)
+                                    }
                                 }
                             }
+                            .padding(10)
+                            .liquidGlassCard(cornerRadius: 12)
+                            .transition(.opacity.combined(with: .move(edge: .top)))
                         }
-                        .padding(12)
-                        .liquidGlassCard(cornerRadius: 14)
 
                         // Format Filters
                         ScrollView(.horizontal, showsIndicators: false) {
