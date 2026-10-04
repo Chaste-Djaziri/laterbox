@@ -93,7 +93,13 @@ struct ContentView: View {
         }
     }
     .animation(.spring(response: 0.35, dampingFraction: 0.85), value: lockManager.isLocked)
+    .onChange(of: coordinator.isProUser) { _, active in
+        if active { Task { await coordinator.syncPendingItems(context: modelContext) } }
+    }
     .onChange(of: scenePhase) { _, newPhase in
+        if newPhase == .active {
+            Task { await coordinator.refreshEntitlement(); await coordinator.syncPendingItems(context: modelContext) }
+        }
         if newPhase == .background {
             lockManager.lockAppIfNeeded()
         }
