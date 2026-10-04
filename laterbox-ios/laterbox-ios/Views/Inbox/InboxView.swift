@@ -48,7 +48,34 @@ public struct InboxView: View {
                 LiquidGlassBackground()
 
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 16) {
+                    VStack(alignment: .leading, spacing: 18) {
+                        // Top Level Header (Scrolls normally, uncontainerized on canvas)
+                        HStack(alignment: .center) {
+                            HStack(spacing: 8) {
+                                Image("LaterboxLogo")
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(height: 24)
+
+                                Text("Inbox")
+                                    .font(.system(size: 24, weight: .bold))
+                                    .foregroundColor(AppTheme.textPrimary)
+                            }
+
+                            Spacer()
+
+                            // Sync Status Indicator (No Container)
+                            HStack(spacing: 5) {
+                                Circle()
+                                    .fill(coordinator.syncState == .synced ? Color.lbGreenTheme : coordinator.syncState.statusColor)
+                                    .frame(width: 7, height: 7)
+                                Text(coordinator.syncState.rawValue)
+                                    .font(.caption2.weight(.medium))
+                                    .foregroundColor(AppTheme.textSecondary)
+                            }
+                        }
+                        .padding(.top, 4)
+
                         // Search Bar
                         HStack {
                             Image(systemName: "magnifyingglass")
@@ -147,22 +174,7 @@ public struct InboxView: View {
                     .padding(.bottom, 20)
                 }
             }
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbarBackground(.hidden, for: .navigationBar)
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    HStack(spacing: 8) {
-                        Image("LaterboxLogo")
-                            .resizable()
-                            .scaledToFit()
-                            .frame(height: 22)
-
-                        Text("Inbox")
-                            .font(.system(size: 20, weight: .bold))
-                            .foregroundColor(AppTheme.textPrimary)
-                    }
-                }
-            }
+            .navigationBarHidden(true)
         }
     }
 }
