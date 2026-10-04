@@ -17,6 +17,7 @@ struct ContentView: View {
 
     @State private var selectedTab: LBTab = .home
     @State private var isShowingLaterAI: Bool = false
+    @State private var laterAIFlowProgress: CGFloat = 0.0
 
     var body: some View {
         ZStack {
@@ -59,17 +60,40 @@ struct ContentView: View {
                 }
                 .tint(Color.black)
                 .simultaneousGesture(
-                    DragGesture(minimumDistance: 25, coordinateSpace: .global)
-                        .onEnded { value in
-                            guard coordinator.hasAccess, !isShowingLaterAI else { return }
-                            let isDownward = value.translation.height > 55
-                            let isVertical = abs(value.translation.height) > abs(value.translation.width) * 1.15
-                            let startsInUpperPortion = value.startLocation.y < 280
+                    DragGesture(minimumDistance: 15, coordinateSpace: .global)
+                        .onChanged { value in
+                            guard coordinator.hasAccess else { return }
+                            let startsAtTopEnd = value.startLocation.y < 220
+                            let isDownward = value.translation.height > 0
+                            let isVertical = abs(value.translation.height) > abs(value.translation.width) * 1.05
 
-                            if isDownward && isVertical && startsInUpperPortion {
-                                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                                withAnimation(.spring(response: 0.38, dampingFraction: 0.82)) {
+                            if startsAtTopEnd && isDownward && isVertical {
+                                if !isShowingLaterAI {
                                     isShowingLaterAI = true
+                                }
+                                laterAIFlowProgress = min(1.0, max(0.0, value.translation.height / 300.0))
+                            }
+                        }
+                        .onEnded { value in
+                            guard coordinator.hasAccess else { return }
+                            let startsAtTopEnd = value.startLocation.y < 220
+                            let isDownward = value.translation.height > 50
+                            let isVertical = abs(value.translation.height) > abs(value.translation.width) * 1.05
+
+                            if startsAtTopEnd && isDownward && isVertical {
+                                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                                withAnimation(.spring(response: 0.48, dampingFraction: 0.82)) {
+                                    laterAIFlowProgress = 1.0
+                                    isShowingLaterAI = true
+                                }
+                            } else if laterAIFlowProgress > 0 && laterAIFlowProgress < 1.0 {
+                                withAnimation(.spring(response: 0.38, dampingFraction: 0.85)) {
+                                    laterAIFlowProgress = 0.0
+                                }
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.38) {
+                                    if laterAIFlowProgress == 0 {
+                                        isShowingLaterAI = false
+                                    }
                                 }
                             }
                         }
@@ -99,8 +123,9 @@ struct ContentView: View {
             VStack {
                 Button {
                     UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                    withAnimation(.spring(response: 0.38, dampingFraction: 0.82)) {
-                        isShowingLaterAI = true
+                    isShowingLaterAI = true
+                    withAnimation(.spring(response: 0.48, dampingFraction: 0.82)) {
+                        laterAIFlowProgress = 1.0
                     }
                 } label: {
                     HStack(spacing: 5) {
@@ -116,11 +141,29 @@ struct ContentView: View {
                 .buttonStyle(.plain)
                 .highPriorityGesture(
                     DragGesture(minimumDistance: 10)
-                        .onEnded { value in
-                            if value.translation.height > 15 {
-                                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                                withAnimation(.spring(response: 0.38, dampingFraction: 0.82)) {
+                        .onChanged { value in
+                            if value.translation.height > 0 {
+                                if !isShowingLaterAI {
                                     isShowingLaterAI = true
+                                }
+                                laterAIFlowProgress = min(1.0, max(0.0, value.translation.height / 300.0))
+                            }
+                        }
+                        .onEnded { value in
+                            if value.translation.height > 30 || value.predictedEndTranslation.height > 60 {
+                                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                                withAnimation(.spring(response: 0.48, dampingFraction: 0.82)) {
+                                    laterAIFlowProgress = 1.0
+                                    isShowingLaterAI = true
+                                }
+                            } else {
+                                withAnimation(.spring(response: 0.38, dampingFraction: 0.85)) {
+                                    laterAIFlowProgress = 0.0
+                                }
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.38) {
+                                    if laterAIFlowProgress == 0 {
+                                        isShowingLaterAI = false
+                                    }
                                 }
                             }
                         }
@@ -131,10 +174,9 @@ struct ContentView: View {
             .zIndex(50)
         }
 
-        // Later AI Dropdown Full Screen Interface
+        // Later AI Dropdown Full Screen Interface with Feather-Flow Curtain
         if isShowingLaterAI && coordinator.hasAccess {
-            LaterAIView(isPresented: $isShowingLaterAI)
-                .transition(.move(edge: .top))
+            LaterAIView(isPresented: $isShowingLaterAI, progress: $laterAIFlowProgress)
                 .zIndex(200)
         }
 
@@ -146,7 +188,6 @@ struct ContentView: View {
         }
     }
     .animation(.spring(response: 0.35, dampingFraction: 0.85), value: lockManager.isLocked)
-    .animation(.spring(response: 0.38, dampingFraction: 0.82), value: isShowingLaterAI)
     .onChange(of: scenePhase) { _, newPhase in
         if newPhase == .background {
             lockManager.lockAppIfNeeded()
