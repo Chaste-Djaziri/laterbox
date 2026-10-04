@@ -49,6 +49,7 @@ public final class SyncCoordinator: ObservableObject {
     @Published public var activeFilter: ItemContentType? = nil
     @Published public var searchQuery: String = ""
     @Published public var isGuestMode: Bool = false
+    @Published public var showingQuickCapture: Bool = false
 
     public var isAuthenticated: Bool {
         currentUserEmail != nil && !(currentUserEmail?.isEmpty ?? true)
