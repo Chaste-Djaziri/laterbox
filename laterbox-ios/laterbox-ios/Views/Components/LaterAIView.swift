@@ -24,13 +24,13 @@ public struct LaterAIMessage: Identifiable, Equatable {
 
 public struct LaterAIView: View {
     @Binding var isPresented: Bool
+    @Binding var progress: CGFloat
     @Environment(\.modelContext) private var modelContext
     @Query private var allItems: [LBItem]
 
     @State private var inputText: String = ""
     @State private var messages: [LaterAIMessage] = []
     @State private var isThinking: Bool = false
-    @State private var dragOffset: CGFloat = 0
     @FocusState private var isInputFocused: Bool
 
     // Suggested quick prompts like ChatGPT mobile
@@ -41,14 +41,35 @@ public struct LaterAIView: View {
         "Help me clean up old bookmarks"
     ]
 
-    public init(isPresented: Binding<Bool>) {
+    public init(isPresented: Binding<Bool>, progress: Binding<CGFloat>) {
         self._isPresented = isPresented
+        self._progress = progress
     }
 
     public var body: some View {
         ZStack {
-            // Full Screen Pitch Black Background
-            Color.black
+            // Feather-Flow Black Background Drape
+            FeatherFlowShape(progress: progress)
+                .fill(Color.black)
+                .ignoresSafeArea()
+                .shadow(color: Color.black.opacity(progress < 0.98 ? 0.6 : 0.0), radius: 24, x: 0, y: 14)
+
+            // Specular Feather Edge Highlight along bottom curve
+            FeatherFlowEdge(progress: progress)
+                .stroke(
+                    LinearGradient(
+                        colors: [
+                            Color.white.opacity(0.0),
+                            AppTheme.accent.opacity(0.35),
+                            Color.white.opacity(0.7),
+                            AppTheme.accent.opacity(0.35),
+                            Color.white.opacity(0.0)
+                        ],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    ),
+                    lineWidth: 2
+                )
                 .ignoresSafeArea()
 
             VStack(spacing: 0) {
@@ -88,21 +109,26 @@ public struct LaterAIView: View {
                 // Bottom ChatGPT Mobile-Style Chat Input Dock
                 bottomChatInputBar
             }
+            .opacity(max(0.0, min(1.0, (progress - 0.18) / 0.72)))
+            .offset(y: (1.0 - max(0.0, min(1.0, progress))) * -40)
+            .clipShape(FeatherFlowShape(progress: progress))
+            .ignoresSafeArea(edges: .top)
         }
-        .offset(y: dragOffset < 0 ? dragOffset : 0)
         .gesture(
             DragGesture()
                 .onChanged { value in
                     if value.translation.height < 0 {
-                        dragOffset = value.translation.height
+                        // Dragging UP to dismiss smoothly
+                        let delta = abs(value.translation.height) / 260.0
+                        progress = max(0.0, 1.0 - delta)
                     }
                 }
                 .onEnded { value in
-                    if value.translation.height < -100 || value.predictedEndTranslation.height < -150 {
+                    if value.translation.height < -60 || value.predictedEndTranslation.height < -120 {
                         dismiss()
                     } else {
-                        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                            dragOffset = 0
+                        withAnimation(.spring(response: 0.38, dampingFraction: 0.82)) {
+                            progress = 1.0
                         }
                     }
                 }
@@ -469,9 +495,11 @@ public struct LaterAIView: View {
 
     private func dismiss() {
         isInputFocused = false
-        withAnimation(.spring(response: 0.38, dampingFraction: 0.85)) {
+        withAnimation(.spring(response: 0.42, dampingFraction: 0.85)) {
+            progress = 0.0
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.38) {
             isPresented = false
-            dragOffset = 0
         }
     }
 }
