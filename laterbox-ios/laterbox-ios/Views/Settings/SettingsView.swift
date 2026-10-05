@@ -506,6 +506,18 @@ public struct SettingsView: View {
                                         Text("Configure AI Models & Keys")
                                             .font(.subheadline.weight(.semibold))
                                         Spacer()
+                                        if !coordinator.isProUser {
+                                            HStack(spacing: 3) {
+                                                Image(systemName: "lock.fill")
+                                                    .font(.system(size: 8, weight: .bold))
+                                                Text("PRO")
+                                                    .font(.system(size: 9, weight: .black))
+                                            }
+                                            .foregroundColor(.white)
+                                            .padding(.horizontal, 6)
+                                            .padding(.vertical, 2.5)
+                                            .background(Capsule().fill(Color.purple))
+                                        }
                                         Image(systemName: "chevron.right")
                                             .font(.caption.weight(.bold))
                                             .foregroundColor(AppTheme.textSecondary)
@@ -837,6 +849,19 @@ public struct SettingsView: View {
                                     Spacer()
 
                                     HStack(spacing: 6) {
+                                        if !coordinator.isProUser {
+                                            HStack(spacing: 3) {
+                                                Image(systemName: "lock.fill")
+                                                    .font(.system(size: 8, weight: .bold))
+                                                Text("PRO")
+                                                    .font(.system(size: 9, weight: .black))
+                                            }
+                                            .foregroundColor(.white)
+                                            .padding(.horizontal, 6)
+                                            .padding(.vertical, 2.5)
+                                            .background(Capsule().fill(Color.purple))
+                                        }
+
                                         Text("\(AppIconManager.availableIcons.count) Icons")
                                             .font(.caption2.weight(.medium))
                                             .foregroundColor(AppTheme.textSecondary)
