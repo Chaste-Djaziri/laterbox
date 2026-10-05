@@ -18,15 +18,22 @@ export function queueCapture(item: LaterBoxItem) {
 }
 export function isAuthError(error: any): boolean {
   if (!error) return false;
+  const status = error.status || error.statusCode || (error as any).response?.status;
+  const code = String(error.code || '');
+  const msg = typeof error.message === 'string' ? error.message.toLowerCase() : '';
   return (
-    error.status === 401 ||
-    error.code === 'PGRST301' ||
-    error.code === '401' ||
-    (typeof error.message === 'string' &&
-      (error.message.toLowerCase().includes('jwt') ||
-        error.message.toLowerCase().includes('token') ||
-        error.message.toLowerCase().includes('unauthorized') ||
-        error.message.toLowerCase().includes('permission denied')))
+    status === 401 ||
+    status === 403 ||
+    code === 'PGRST301' ||
+    code === '401' ||
+    code === '403' ||
+    msg.includes('jwt') ||
+    msg.includes('token') ||
+    msg.includes('unauthorized') ||
+    msg.includes('permission denied') ||
+    msg.includes('session') ||
+    msg.includes('auth') ||
+    msg.includes('pgrst301')
   );
 }
 
