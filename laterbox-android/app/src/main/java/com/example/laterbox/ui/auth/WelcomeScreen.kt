@@ -403,10 +403,8 @@ fun AuthSheet(
                                     statusMessage = "Verification code sent to $email"
                                     isError = false
                                 } catch (e: Exception) {
-                                    // Fallback for offline demo mode
-                                    codeSent = true
-                                    statusMessage = "Demo mode: Enter any 6 digits to verify"
-                                    isError = false
+                                    statusMessage = "Unable to send the code. Check your connection and retry."
+                                    isError = true
                                 } finally {
                                     isLoading = false
                                 }
@@ -416,10 +414,18 @@ fun AuthSheet(
                         if (otpCode.isNotBlank()) {
                             isLoading = true
                             scope.launch {
-                                delay(600)
-                                isLoading = false
-                                onAuthenticated()
-                                onDismiss()
+                                try {
+                                    SupabaseClient.client.auth.verifyEmailOtp(
+                                        type = io.github.jan.supabase.auth.OtpType.Email.EMAIL,
+                                        email = email.trim(), token = otpCode.trim()
+                                    )
+                                    com.example.laterbox.services.AccountService.refresh()
+                                    onAuthenticated()
+                                    onDismiss()
+                                } catch (e: Exception) {
+                                    statusMessage = "Verification failed. Check the code and try again."
+                                    isError = true
+                                } finally { isLoading = false }
                             }
                         }
                     }
