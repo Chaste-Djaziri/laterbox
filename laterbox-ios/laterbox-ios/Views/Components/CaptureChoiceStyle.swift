@@ -21,7 +21,12 @@ struct CaptureDateChoices: View {
                 Text(date, format: .dateTime.hour().minute())
                 Button("+1 hour") { shift(.hour, 1) }
             }
-        }.foregroundStyle(.black).padding(12).background(AppTheme.cardBackground, in: RoundedRectangle(cornerRadius: 16)).buttonStyle(CaptureChoiceStyle())
+        }
+        .foregroundStyle(.white)
+        .padding(14)
+        .background(Color(white: 24.0/255), in: RoundedRectangle(cornerRadius: 16))
+        .overlay(RoundedRectangle(cornerRadius: 16).strokeBorder(Color.white.opacity(0.12), lineWidth: 1))
+        .buttonStyle(CaptureChoiceStyle())
     }
     private func shift(_ component: Calendar.Component, _ value: Int) {
         if let next = Calendar.current.date(byAdding: component, value: value, to: date), next > Date() { date = next }
