@@ -71,14 +71,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Listen for auth state changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (_event === 'SIGNED_IN') resumeCloudNotifications();
-      setSession(session);
-      setUser(session?.user ?? null);
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN') resumeCloudNotifications();
       if (session?.user) {
+        setSession(session);
+        setUser(session.user);
         setIsGuest(false);
         localStorage.removeItem(GUEST_KEY);
-        const metaName = session.user.user_metadata?.display_name as string;
+        const metaName = (session.user.user_metadata?.display_name || session.user.user_metadata?.name || session.user.user_metadata?.full_name) as string;
         if (metaName) {
           setUserNameState(metaName);
           localStorage.setItem(USER_NAME_KEY, metaName);
@@ -86,8 +86,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const derived = session.user.email?.split('@')[0] || '';
           if (derived) setUserNameState(derived);
         }
-      } else {
+      } else if (event === 'SIGNED_OUT') {
+        setSession(null);
+        setUser(null);
         setIsGuest(true);
+        localStorage.setItem(GUEST_KEY, 'true');
       }
       setLoading(false);
     });
@@ -157,10 +160,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signInWithPassword = async (email: string, password: string) => {
     const supabase = getSupabaseClient();
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (!error) {
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (!error && data?.session) {
+      setSession(data.session);
+      setUser(data.user);
       setIsGuest(false);
       localStorage.removeItem(GUEST_KEY);
+      const metaName = (data.user?.user_metadata?.display_name || data.user?.user_metadata?.name || data.user?.user_metadata?.full_name) as string;
+      if (metaName) {
+        setUserNameState(metaName);
+        localStorage.setItem(USER_NAME_KEY, metaName);
+      }
     }
     return { error };
   };
@@ -173,9 +183,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       password,
       options: { emailRedirectTo: redirectTo },
     });
-    if (!error) {
+    if (!error && data?.session) {
+      setSession(data.session);
+      setUser(data.user);
       setIsGuest(false);
       localStorage.removeItem(GUEST_KEY);
+      const metaName = (data.user?.user_metadata?.display_name || data.user?.user_metadata?.name || data.user?.user_metadata?.full_name) as string;
+      if (metaName) {
+        setUserNameState(metaName);
+        localStorage.setItem(USER_NAME_KEY, metaName);
+      }
     }
     return { error, requiresConfirmation: !error && data.session === null };
   };
