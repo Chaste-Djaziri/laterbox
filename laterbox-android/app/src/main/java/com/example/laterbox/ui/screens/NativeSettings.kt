@@ -33,6 +33,7 @@ fun NativeSettings(repository: DataRepository, onAuth: () -> Unit, onTrash: () -
     var protect by remember { mutableStateOf(preferences.getBoolean("screen_protection", false)) }
     var message by remember { mutableStateOf<String?>(null) }; var clearing by remember { mutableStateOf(false) }
     var plans by remember { mutableStateOf(false) }
+    var aiSettings by remember { mutableStateOf(false) }
     var bytes by remember { mutableLongStateOf(File(context.filesDir, "captures").walkTopDown().filter { it.isFile }.sumOf { it.length() }) }
     val permissions = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted -> message = if (granted) "Return notifications enabled" else "Notifications are off. Returns still appear in your inbox." }
     val importer = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> if (uri != null) scope.launch { try { val count = BackupService.import(context, uri); message = "Imported $count captures"; repository.syncNow() } catch (failure: Exception) { message = failure.message } } }
@@ -47,6 +48,7 @@ fun NativeSettings(repository: DataRepository, onAuth: () -> Unit, onTrash: () -
         item { Choice("Platform status", status.label) { repository.refreshWebStatus() } }
         item { Text("Later AI", style = MaterialTheme.typography.titleLarge) }
         item { Choice("On-device Gemini Nano", "Free where supported. Guided capture is always available.") { message = "Open Later AI to check availability or download the local model. Cloud AI is disabled by default." } }
+        item { Choice("Configure AI models & keys", "On-device and Pro custom providers") { aiSettings = true } }
         item { Text("Privacy & alerts", style = MaterialTheme.typography.titleLarge) }
         item { Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text("Lock with biometrics or device PIN"); Switch(lock, { enabled -> if (!enabled || AppLockService.supported(context)) { lock = enabled; preferences.edit().putBoolean("app_lock", enabled).apply() } else message = "Set up a screen lock or biometrics first." }) } }
         item { Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text("Hide screenshots and previews"); Switch(protect, { protect = it; preferences.edit().putBoolean("screen_protection", it).apply(); val activity = context as? android.app.Activity; if (it) activity?.window?.addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE) else activity?.window?.clearFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE) }) } }
@@ -67,4 +69,5 @@ fun NativeSettings(repository: DataRepository, onAuth: () -> Unit, onTrash: () -
         Button(onClick = { scope.launch { BackupService.clearTrash(context); clearing = false; bytes = File(context.filesDir, "captures").walkTopDown().filter { it.isFile }.sumOf { it.length() } } }) { Text("Empty trash") }
     }
     if (plans) PlansSheet { plans = false }
+    if (aiSettings) AISettingsSheet { aiSettings = false }
 }
