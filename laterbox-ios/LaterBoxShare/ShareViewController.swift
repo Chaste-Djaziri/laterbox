@@ -23,7 +23,7 @@ final class ShareViewController: UIViewController {
     var category: String
     var reply: String
 }
-struct ShareChatMessage: Identifiable { let id = UUID(); let text: String; let isUser: Bool }
+struct ShareChatMessage: Identifiable { let id = UUID(); let text: String; let isUser: Bool; let timestamp = Date() }
 @MainActor final class ShareCaptureModel: ObservableObject {
     @Published var capture = SharedCapture()
     @Published var chatInput = ""
@@ -131,17 +131,9 @@ struct ShareCaptureView: View {
                         sharedContent
                         assistant(model.message)
                         ForEach(model.messages) { message in
-                            if message.isUser {
-                                HStack {
-                                    Spacer(minLength: 48)
-                                    Text(message.text).font(.system(size: 15)).padding(.horizontal, 16).padding(.vertical, 12)
-                                        .background(Color(white: 0.155), in: RoundedRectangle(cornerRadius: 18))
-                                }
-                            } else { assistant(message.text) }
+                            LaterAIChatRow(text: message.text, isUser: message.isUser, timestamp: message.timestamp)
                         }
-                        if model.loading {
-                            HStack(spacing: 10) { ProgressView().tint(green); Text("Thinking…").font(.system(size: 14)).foregroundStyle(.white.opacity(0.6)) }
-                        }
+                        if model.loading { LaterAIThinkingIndicator(thinking: model.loading) }
                         if let error = model.error { assistant(error) }
                         if editing || !model.localAIAvailable { editCard }
                         if !model.saved {
@@ -178,12 +170,7 @@ struct ShareCaptureView: View {
     private var sharedContent: some View {
         VStack(alignment: .leading, spacing: 12) {
             if !model.capture.content.isEmpty {
-                HStack {
-                    Spacer(minLength: 48)
-                    Text(model.capture.content).font(.system(size: 15)).lineLimit(8)
-                        .padding(.horizontal, 16).padding(.vertical, 12)
-                        .background(Color(white: 0.155), in: RoundedRectangle(cornerRadius: 18))
-                }
+                LaterAIChatRow(text: model.capture.content, isUser: true, timestamp: nil)
             }
             ForEach(model.capture.attachments) { file in
                 HStack(spacing: 12) {
@@ -196,11 +183,7 @@ struct ShareCaptureView: View {
         }
     }
     private func assistant(_ text: String) -> some View {
-        HStack(alignment: .top, spacing: 12) {
-            Image(systemName: "sparkles").font(.system(size: 13, weight: .semibold)).foregroundStyle(green)
-                .frame(width: 30, height: 30).background(Color(white: 0.11), in: Circle())
-            Text(text).font(.system(size: 15)).frame(maxWidth: .infinity, alignment: .leading)
-        }
+        LaterAIChatRow(text: text, isUser: false, timestamp: nil)
     }
     private var editCard: some View {
         VStack(alignment: .leading, spacing: 16) {
