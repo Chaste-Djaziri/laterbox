@@ -164,10 +164,15 @@ public struct ReturnsView: View {
 
                         // Empty State or List
                         if itemsForSegment.isEmpty {
-                            VStack(spacing: 16) {
-                                Image(systemName: "calendar.badge.clock")
-                                    .font(.system(size: 40))
-                                    .foregroundColor(AppTheme.textSecondary.opacity(0.4))
+                            VStack(spacing: 14) {
+                                ZStack {
+                                    Circle()
+                                        .fill(AppTheme.darkSurface)
+                                        .frame(width: 52, height: 52)
+                                    Image(systemName: "calendar.badge.clock")
+                                        .font(.system(size: 22, weight: .semibold))
+                                        .foregroundColor(AppTheme.accent)
+                                }
                                 Text("No items scheduled for \(selectedSegment.rawValue.lowercased())")
                                     .font(.headline)
                                     .foregroundColor(AppTheme.textPrimary)
@@ -178,7 +183,7 @@ public struct ReturnsView: View {
                                     .multilineTextAlignment(.center)
                             }
                             .frame(maxWidth: .infinity)
-                            .padding(48)
+                            .padding(42)
                             .liquidGlassCard(cornerRadius: 20)
                         } else {
                             ForEach(itemsForSegment) { item in
