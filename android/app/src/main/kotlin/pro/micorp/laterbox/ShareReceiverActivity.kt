@@ -22,6 +22,14 @@ import java.util.UUID
 class ShareReceiverActivity : Activity() {
 
     private data class StagedShare(val paths: List<String>, val failureCount: Int)
+    private data class FormattedShareResult(val formattedText: String?, val targetUrl: String?)
+    private data class EnrichedMetadata(
+        val title: String?,
+        val siteName: String?,
+        val description: String?,
+        val previewImageUrl: String?,
+        val keywords: List<String>,
+    )
 
     private lateinit var pendingShares: PendingShareQueue
     private lateinit var spinner: ProgressBar
@@ -117,7 +125,9 @@ class ShareReceiverActivity : Activity() {
             ?.takeIf { it.isNotEmpty() }
 
         val referrerUrl = extractReferrerUrl(intent)
-        val text = formatSharedText(rawText, referrerUrl)
+        val shareFormat = formatSharedText(rawText, referrerUrl)
+        val text = shareFormat.formattedText
+        val targetUrl = shareFormat.targetUrl
         val uris = sharedUris(intent)
 
         if (text == null && uris.isEmpty()) {
@@ -127,9 +137,11 @@ class ShareReceiverActivity : Activity() {
 
         val captureId = UUID.randomUUID().toString()
         Thread {
-            val result = runCatching { stageSharedFiles(captureId, uris) }
+            val stagedResult = runCatching { stageSharedFiles(captureId, uris) }
+            val enriched = if (targetUrl != null) fetchEnrichment(targetUrl) else null
+
             runOnUiThread {
-                result.fold(
+                stagedResult.fold(
                     onSuccess = { staged ->
                         if (staged.paths.isEmpty() && text == null) {
                             deleteStagedCapture(captureId)
@@ -141,6 +153,10 @@ class ShareReceiverActivity : Activity() {
                             text = text,
                             filePaths = staged.paths,
                             createdAt = Instant.now().toString(),
+                            title = enriched?.title,
+                            url = targetUrl,
+                            previewImageUrl = enriched?.previewImageUrl,
+                            siteName = enriched?.siteName,
                         )
                         if (pendingShares.enqueue(capture)) {
                             val subtitle = when {
@@ -148,6 +164,15 @@ class ShareReceiverActivity : Activity() {
                                     "${staged.paths.size} saved, ${staged.failureCount} couldn't be read"
                                 staged.paths.size > 1 -> "${staged.paths.size} files"
                                 staged.paths.size == 1 -> File(staged.paths.first()).name
+                                !enriched?.title.isNullOrBlank() -> {
+                                    val site = enriched?.siteName
+                                    val pageTitle = enriched?.title
+                                    if (!site.isNullOrBlank() && !pageTitle.contains(site, ignoreCase = true)) {
+                                        "$site • $pageTitle"
+                                    } else {
+                                        pageTitle
+                                    }
+                                }
                                 text != null -> displaySubtitle(text)
                                 else -> null
                             }
@@ -294,36 +319,98 @@ class ShareReceiverActivity : Activity() {
         return null
     }
 
-    private fun formatSharedText(raw: String?, referrer: String? = null): String? {
-        if (raw.isNullOrBlank() && referrer.isNullOrBlank()) return null
-        val trimmed = raw?.trim() ?: ""
+    private fun cleanUrl(rawUrl: String): String {
+        return runCatching {
+            val uri = Uri.parse(rawUrl)
+            val queryNames = uri.queryParameterNames
+            val trackingKeys = setOf(
+                "utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content",
+                "si", "igsh", "fbclid", "gclid", "ref", "ref_src", "feature", "share_id", "s"
+            )
+            if (queryNames.none { it.lowercase() in trackingKeys }) {
+                return rawUrl
+            }
+            val builder = uri.buildUpon().clearQuery()
+            for (name in queryNames) {
+                if (name.lowercase() !in trackingKeys) {
+                    for (value in uri.getQueryParameters(name)) {
+                        builder.appendQueryParameter(name, value)
+                    }
+                }
+            }
+            builder.build().toString()
+        }.getOrDefault(rawUrl)
+    }
 
-        if ((trimmed.startsWith("http://") || trimmed.startsWith("https://")) && !trimmed.contains(" ") && !trimmed.contains("\n")) {
-            return trimmed
-        }
+    private fun formatSharedText(raw: String?, referrer: String? = null): FormattedShareResult {
+        if (raw.isNullOrBlank() && referrer.isNullOrBlank()) return FormattedShareResult(null, null)
+        val trimmed = raw?.trim() ?: ""
 
         val urlRegex = Regex("(https?://[^\\s]+)")
         val match = urlRegex.find(trimmed)
-        val targetUrl = match?.value ?: referrer?.trim()
+        val rawTargetUrl = match?.value ?: referrer?.trim()
 
-        if (targetUrl != null && (targetUrl.startsWith("http://") || targetUrl.startsWith("https://"))) {
-            val quote = trimmed.replace(targetUrl, "").trim().trim('"', '“', '”', '\'', ' ', '\n', '\r')
+        if (rawTargetUrl != null && (rawTargetUrl.startsWith("http://") || rawTargetUrl.startsWith("https://"))) {
+            val cleanedTargetUrl = cleanUrl(rawTargetUrl)
+            val quote = trimmed.replace(rawTargetUrl, "").trim().trim('"', '“', '”', '\'', ' ', '\n', '\r')
             if (quote.isNotEmpty()) {
-                if (targetUrl.contains(":~:text=")) {
-                    return targetUrl
+                if (cleanedTargetUrl.contains(":~:text=")) {
+                    return FormattedShareResult(cleanedTargetUrl, cleanedTargetUrl)
                 }
                 val snippet = quote.take(120).trim()
                 val encoded = runCatching { Uri.encode(snippet) }.getOrNull()
                 if (!encoded.isNullOrEmpty()) {
-                    val separator = if (targetUrl.contains("#")) ":~:text=" else "#:~:text="
-                    return "$targetUrl$separator$encoded"
+                    val separator = if (cleanedTargetUrl.contains("#")) ":~:text=" else "#:~:text="
+                    val fullUrlWithFragment = "$cleanedTargetUrl$separator$encoded"
+                    return FormattedShareResult(fullUrlWithFragment, cleanedTargetUrl)
                 }
-                return "$targetUrl\n$quote"
+                return FormattedShareResult("$cleanedTargetUrl\n$quote", cleanedTargetUrl)
             }
-            return targetUrl
+            return FormattedShareResult(cleanedTargetUrl, cleanedTargetUrl)
         }
 
-        return trimmed.ifEmpty { referrer }
+        return FormattedShareResult(trimmed.ifEmpty { referrer }, null)
+    }
+
+    private fun fetchEnrichment(rawUrl: String): EnrichedMetadata? {
+        return runCatching {
+            val endpoint = java.net.URL("https://laterbox.dev/api/enrich")
+            val conn = (endpoint.openConnection() as java.net.HttpURLConnection).apply {
+                requestMethod = "POST"
+                connectTimeout = 4000
+                readTimeout = 4000
+                doOutput = true
+                setRequestProperty("Content-Type", "application/json; charset=UTF-8")
+                setRequestProperty("Accept", "application/json")
+            }
+
+            val payload = org.json.JSONObject().apply {
+                put("url", rawUrl)
+            }.toString()
+
+            conn.outputStream.use { os ->
+                os.write(payload.toByteArray(Charsets.UTF_8))
+            }
+
+            if (conn.responseCode in 200..299) {
+                val responseText = conn.inputStream.bufferedReader().use { it.readText() }
+                val json = org.json.JSONObject(responseText)
+                val title = json.optString("title").trim().takeIf { it.isNotEmpty() }
+                val siteName = (json.optString("siteName").takeIf { it.isNotEmpty() }
+                    ?: json.optString("site_name")).trim().takeIf { it.isNotEmpty() }
+                val description = json.optString("description").trim().takeIf { it.isNotEmpty() }
+                val previewImageUrl = (json.optString("previewImageUrl").takeIf { it.isNotEmpty() }
+                    ?: json.optString("preview_image_url")).trim().takeIf { it.isNotEmpty() }
+                val keywordsArray = json.optJSONArray("keywords") ?: org.json.JSONArray()
+                val keywords = (0 until keywordsArray.length()).mapNotNull { i ->
+                    keywordsArray.optString(i).trim().takeIf { it.isNotEmpty() }
+                }
+
+                EnrichedMetadata(title, siteName, description, previewImageUrl, keywords)
+            } else {
+                null
+            }
+        }.getOrNull()
     }
 
     private fun displaySubtitle(value: String): String? {
