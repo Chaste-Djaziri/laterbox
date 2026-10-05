@@ -93,7 +93,12 @@ struct ContentView: View {
         }
     }
     .animation(.spring(response: 0.35, dampingFraction: 0.85), value: lockManager.isLocked)
-    .task { try? SharedCaptureImporter.refresh(context: modelContext) }
+    .task {
+        while !Task.isCancelled {
+            try? SharedCaptureImporter.refresh(context: modelContext)
+            do { try await Task.sleep(for: .seconds(30)) } catch { break }
+        }
+    }
     .onChange(of: coordinator.isProUser) { _, active in
         if active { Task { await coordinator.syncPendingItems(context: modelContext) } }
     }
