@@ -8,9 +8,12 @@ import kotlinx.coroutines.withTimeout
 import org.json.JSONObject
 import java.time.Instant
 
-class LaterAIService : AutoCloseable {
+class LaterAIService(private val context: android.content.Context? = null) : AutoCloseable {
     private val model = Generation.getClient()
-    suspend fun status(): Int = withTimeout(10000) { model.checkStatus() }
+    suspend fun status(): Int = withTimeout(10000) {
+        if (context != null && SecureSettings(context).provider != "device" && AccountService.state.value.pro && SecureSettings(context).apiKey().isNotBlank()) FeatureStatus.AVAILABLE
+        else model.checkStatus()
+    }
     suspend fun download(onProgress: (String) -> Unit) {
         model.download().collect { state ->
             when (state) {
@@ -36,8 +39,11 @@ class LaterAIService : AutoCloseable {
             Recent conversation: ${history.takeLast(1000)}
             User input: $input
         """.trimIndent()
-        val response = withTimeout(45000) { model.generateContent(prompt) }
-        return AIAction.parse(response.candidates.firstOrNull()?.text.orEmpty())
+        val response = withTimeout(45000) {
+            if (context != null && SecureSettings(context).provider != "device" && AccountService.state.value.pro) CustomAIService.generate(context, prompt)
+            else model.generateContent(prompt).candidates.firstOrNull()?.text.orEmpty()
+        }
+        return AIAction.parse(response)
     }
     override fun close() { model.close() }
 }
