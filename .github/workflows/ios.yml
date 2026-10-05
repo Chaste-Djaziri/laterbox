@@ -9,6 +9,8 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
+env:
+  DEVELOPER_DIR: /Applications/Xcode_27.0.app/Contents/Developer
 concurrency:
   group: ios-${{ github.ref }}
   cancel-in-progress: false
@@ -64,6 +66,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          umask 077
           for name in APPLE_CERTIFICATE_BASE64 APPLE_PROVISIONING_PROFILE_BASE64 APPLE_SHARE_EXTENSION_PROVISIONING_PROFILE_BASE64 APPLE_TEAM_ID APP_STORE_CONNECT_API_KEY_BASE64 APP_STORE_CONNECT_KEY_ID APP_STORE_CONNECT_ISSUER_ID; do
             test -n "${!name}" || { echo "::error::Missing secret $name"; exit 1; }
           done
