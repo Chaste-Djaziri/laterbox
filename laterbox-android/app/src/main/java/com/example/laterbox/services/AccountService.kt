@@ -14,6 +14,7 @@ data class AccountState(val userId: String? = null, val email: String? = null, v
 object AccountService {
     val state = MutableStateFlow(AccountState())
     suspend fun refresh() {
+        SupabaseClient.client.auth.awaitInitialization()
         val user = SupabaseClient.client.auth.currentUserOrNull()
         state.value = AccountState(user?.id, user?.email)
         if (user == null) return
@@ -31,6 +32,7 @@ object NativeApi {
             connection.requestMethod = method
             connection.connectTimeout = 15000; connection.readTimeout = 30000
             connection.setRequestProperty("Content-Type", "application/json")
+            connection.setRequestProperty("Prefer", "resolution=merge-duplicates,return=minimal")
             connection.setRequestProperty("apikey", LaterBoxApiService.supabaseAnonKey)
             SupabaseClient.client.auth.currentSessionOrNull()?.accessToken?.let { connection.setRequestProperty("Authorization", "Bearer $it") }
             if (body != null) { connection.doOutput = true; connection.outputStream.use { it.write(body.toString().toByteArray()) } }
