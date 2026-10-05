@@ -42,10 +42,10 @@ function LoginContent() {
 
   // Automatically redirect to dashboard if user is already authenticated
   useEffect(() => {
-    if (!authLoading && user && !isGuest) {
+    if (!authLoading && user) {
       router.replace(nextPath);
     }
-  }, [authLoading, user, isGuest, nextPath, router]);
+  }, [authLoading, user, nextPath, router]);
 
   const handleSendOtp = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -130,7 +130,7 @@ function LoginContent() {
   };
 
   // If already authenticated, show redirecting state while transition completes
-  if (!authLoading && user && !isGuest) {
+  if (!authLoading && user) {
     return (
       <main className="min-h-screen bg-[#f7f5ee] flex flex-col items-center justify-center p-6 text-[#181816]">
         <div className="flex flex-col items-center gap-3">
