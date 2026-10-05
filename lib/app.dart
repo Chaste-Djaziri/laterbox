@@ -403,6 +403,9 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
   }
 
   String _shareReceiptTitle(NativeSharePayload payload) {
+    if (payload.title != null && payload.title!.trim().isNotEmpty) {
+      return payload.title!.trim();
+    }
     final text = payload.text?.trim();
     if (text != null && text.isNotEmpty) {
       final uri = Uri.tryParse(text.split(RegExp(r'\s+')).last);
@@ -448,13 +451,15 @@ class _LaterBoxAppState extends ConsumerState<LaterBoxApp>
     }
 
     if (filePaths.isEmpty) {
-      if (text == null) return true;
+      final valueToCapture = payload.url ?? text;
+      if (valueToCapture == null) return true;
       await ref
           .read(captureServiceProvider)
           .save(
             CapturePayload.fromValue(
-              text,
+              valueToCapture,
               id: payload.id,
+              title: payload.title,
               createdAt: payload.createdAt,
               source: source,
               returnAt: payload.returnAt,
