@@ -109,7 +109,16 @@ final class LaterAIConversation: ObservableObject {
         let oldStatus = item.status
         item.status = date == nil ? "inbox" : "deferred"
         item.returnAt = date; item.updatedAt = Date(); item.isSyncPending = true
-        do { try context.save(); needsReturnDate = false; Task { await SyncCoordinator.shared.syncPendingItems(context: context) } }
+        do {
+            try context.save(); needsReturnDate = false
+            Task {
+                do {
+                    let allowed = try await ReturnNotification.update(id: item.id, title: item.title, date: date)
+                    if !allowed { self.error = "Saved. Enable notifications in Settings for return alerts." }
+                } catch { self.error = "Saved, but reminder failed: \(error.localizedDescription)" }
+                await SyncCoordinator.shared.syncPendingItems(context: context)
+            }
+        }
         catch { item.returnAt = oldDate; item.status = oldStatus; self.error = error.localizedDescription }
     }
     func undo(context: ModelContext) {
@@ -117,7 +126,7 @@ final class LaterAIConversation: ObservableObject {
         let oldStatus = item.status
         item.status = "deleted"; item.updatedAt = Date(); item.isSyncPending = true
         do {
-            try context.save(); savedItem = nil; needsReturnDate = false
+            try context.save(); UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [item.id]); savedItem = nil; needsReturnDate = false
             draft.id = UUID().uuidString
             manual = lastCaptureWasManual
             messages.append(LaterAIMessage(text: "Removed the saved item.", isUser: false))
