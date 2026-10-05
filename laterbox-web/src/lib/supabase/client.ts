@@ -22,6 +22,7 @@ export function getSupabaseClient(): SupabaseClient {
         persistSession: true,
         autoRefreshToken: true,
         detectSessionInUrl: true,
+        storage: window.localStorage,
       },
     });
   }
@@ -29,4 +30,10 @@ export function getSupabaseClient(): SupabaseClient {
   return browserClient;
 }
 
-export const supabase = getSupabaseClient();
+export const supabase = new Proxy({} as SupabaseClient, {
+  get(_target, prop) {
+    const client = getSupabaseClient();
+    const value = (client as any)[prop];
+    return typeof value === 'function' ? value.bind(client) : value;
+  },
+});
