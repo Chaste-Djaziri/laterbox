@@ -33,6 +33,7 @@ public struct LaterAIView: View {
     @State private var editingItem: LBItem?
     @State private var chooseReturnDate = false
     @State private var selectedReturnDate = Date().addingTimeInterval(86400)
+    @State private var forceShowTextInput = false
     private var messages: [LaterAIMessage] { conversation.messages }
     private var isThinking: Bool { conversation.thinking }
     @FocusState private var isInputFocused: Bool
@@ -63,45 +64,101 @@ public struct LaterAIView: View {
                 topBar
                     .offset(y: travelFactor * -60)
 
-                // Chat Messages / Welcome Empty State (Rides down with center drape)
+                // Chat Messages / Welcome Empty State (Allows scrolling back up to all previous conversations)
                 ScrollViewReader { proxy in
                     ScrollView {
                         VStack(spacing: 20) {
                             if conversation.manual {
                                 GuidedCaptureView(draft: $conversation.draft) { conversation.save(context: modelContext) }
                                 if let reason = AppleLaterAIProvider.unavailableReason { Text(reason).font(.caption).foregroundStyle(.secondary) }
-                            } else if messages.isEmpty {
-                                if conversation.savedItem == nil { emptyStateView }
+                            } else if messages.isEmpty && conversation.savedItem == nil {
+                                emptyStateView
                             } else {
                                 messageListView
                             }
 
-                            conversationActions
+                            if !conversation.results.isEmpty {
+                                matchedResultsView
+                            }
+
+                            if let error = conversation.error {
+                                errorRetryView(error)
+                            }
 
                             if isThinking {
                                 thinkingIndicatorView
                             }
 
                             Color.clear
-                                .frame(height: 12)
+                                .frame(height: 24)
                                 .id("bottomAnchor")
                         }
                         .padding(.horizontal, 20)
                         .padding(.top, 16)
-                        .padding(.bottom, 20)
+                        .padding(.bottom, 24)
                     }
                     .scrollDismissesKeyboard(.interactively)
                     .onChange(of: messages.count) { _, _ in
-                        withAnimation(.easeOut(duration: 0.25)) {
+                        withAnimation(.easeOut(duration: 0.28)) {
                             proxy.scrollTo("bottomAnchor", anchor: .bottom)
+                        }
+                    }
+                    .onChange(of: isThinking) { _, thinking in
+                        if thinking {
+                            withAnimation(.easeOut(duration: 0.28)) {
+                                proxy.scrollTo("bottomAnchor", anchor: .bottom)
+                            }
                         }
                     }
                 }
                 .offset(y: travelFactor * -120)
 
-                // Bottom ChatGPT Mobile-Style Chat Input Dock (Cascades down to dock)
+                // Bottom Area: Options Dock when popups are active, or standard Chat Composer
                 if !conversation.manual && conversation.chatAvailable {
-                    bottomChatInputBar.offset(y: travelFactor * -80)
+                    if !activeOptions.isEmpty && !forceShowTextInput {
+                        LaterAIOptionsDock(
+                            title: optionsTitle,
+                            options: activeOptions,
+                            onManualType: {
+                                withAnimation(.easeInOut(duration: 0.22)) {
+                                    forceShowTextInput = true
+                                }
+                            }
+                        )
+                        .offset(y: travelFactor * -80)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                    } else {
+                        VStack(spacing: 6) {
+                            if !activeOptions.isEmpty && forceShowTextInput {
+                                HStack {
+                                    Button(action: {
+                                        withAnimation(.easeInOut(duration: 0.22)) {
+                                            forceShowTextInput = false
+                                        }
+                                    }) {
+                                        HStack(spacing: 5) {
+                                            Image(systemName: "square.grid.2x2")
+                                                .font(.system(size: 11, weight: .bold))
+                                            Text("Show quick options")
+                                                .font(.system(size: 12, weight: .semibold))
+                                        }
+                                        .foregroundColor(LaterAIStyle.accent)
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 5)
+                                        .background(Color(white: 24.0/255), in: Capsule())
+                                        .overlay(Capsule().strokeBorder(Color.white.opacity(0.12), lineWidth: 1))
+                                    }
+                                    .buttonStyle(.plain)
+                                    Spacer()
+                                }
+                                .padding(.horizontal, 18)
+                            }
+
+                            bottomChatInputBar
+                        }
+                        .offset(y: travelFactor * -80)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                    }
                 }
             }
             .offset(y: travelFactor * -160)
@@ -112,6 +169,55 @@ public struct LaterAIView: View {
             )
         }
         .onDisappear { conversation.reset() }
+        .sheet(item: $editingItem) { item in
+            NavigationStack { ItemDetailView(item: item) }
+        }
+        .sheet(isPresented: $chooseReturnDate) {
+            NavigationStack {
+                VStack(spacing: 20) {
+                    DatePicker(
+                        "Return Date",
+                        selection: $selectedReturnDate,
+                        in: Date()...,
+                        displayedComponents: [.date, .hourAndMinute]
+                    )
+                    .datePickerStyle(.graphical)
+                    .tint(LaterAIStyle.accent)
+                    .colorScheme(.dark)
+                    .padding()
+                    .background(Color(white: 20.0/255), in: RoundedRectangle(cornerRadius: 16))
+
+                    Button(action: {
+                        chooseReturnDate = false
+                        let formatted = selectedReturnDate.formatted(date: .abbreviated, time: .shortened)
+                        sendOptionReply(formatted) {
+                            conversation.schedule(selectedReturnDate, context: modelContext)
+                        }
+                    }) {
+                        Text("Confirm Return Date")
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundColor(.black)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                            .background(LaterAIStyle.accent, in: RoundedRectangle(cornerRadius: 14))
+                    }
+                    .buttonStyle(.plain)
+
+                    Spacer()
+                }
+                .padding(20)
+                .background(Color.black.ignoresSafeArea())
+                .navigationTitle("Select Return Date")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Cancel") { chooseReturnDate = false }
+                            .foregroundColor(LaterAIStyle.accent)
+                    }
+                }
+            }
+            .presentationDetents([.medium, .large])
+        }
         .gesture(
             DragGesture()
                 .onChanged { value in
@@ -136,14 +242,17 @@ public struct LaterAIView: View {
     // MARK: - Top Header Bar
     private var topBar: some View {
         LaterAIHeader(canReset: !messages.isEmpty, close: { dismiss() }, reset: {
-            withAnimation { conversation.reset() }
+            withAnimation {
+                conversation.reset()
+                forceShowTextInput = false
+            }
         })
     }
 
     // MARK: - Empty State (ChatGPT Mobile Style)
     private var emptyStateView: some View {
         VStack(spacing: 24) {
-            Spacer(minLength: 40)
+            Spacer(minLength: 30)
 
             // Glowing Brand Orb
             ZStack {
@@ -219,7 +328,7 @@ public struct LaterAIView: View {
             }
             .padding(.top, 10)
 
-            Spacer(minLength: 30)
+            Spacer(minLength: 20)
         }
     }
 
@@ -233,7 +342,230 @@ public struct LaterAIView: View {
     }
 
     private var thinkingIndicatorView: some View {
-        LaterAIThinkingIndicator(thinking: isThinking)
+        LaterAIThinkingIndicator(thinking: isThinking, statusText: "Later AI is writing...")
+    }
+
+    // MARK: - Search Matched Results View
+    private var matchedResultsView: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("MATCHED ITEMS")
+                .font(.system(size: 11, weight: .bold))
+                .foregroundColor(Color.white.opacity(0.6))
+                .tracking(0.5)
+
+            ForEach(conversation.results) { item in
+                Button { editingItem = item } label: {
+                    HStack(spacing: 12) {
+                        Image(systemName: item.parsedContentType.systemIcon)
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundColor(LaterAIStyle.accent)
+                            .frame(width: 32, height: 32)
+                            .background(Color(white: 24.0/255), in: Circle())
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(item.title)
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundColor(.white)
+                                .lineLimit(1)
+                            if let domain = item.domain {
+                                Text(domain)
+                                    .font(.system(size: 11))
+                                    .foregroundColor(Color.white.opacity(0.5))
+                            }
+                        }
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundColor(Color.white.opacity(0.35))
+                    }
+                    .padding(12)
+                    .background(Color(white: 20.0/255), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(Color.white.opacity(0.08), lineWidth: 1))
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+
+    // MARK: - Error View
+    private func errorRetryView(_ error: String) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(error)
+                .font(.system(size: 13))
+                .foregroundColor(.orange)
+            HStack(spacing: 10) {
+                Button("Retry") {
+                    conversation.retry(items: allItems, context: modelContext)
+                }
+                .font(.caption.weight(.bold))
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(LaterAIStyle.accent, in: Capsule())
+                .foregroundColor(.black)
+
+                Button("Continue manually") {
+                    conversation.continueManually()
+                }
+                .font(.caption.weight(.medium))
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(Color(white: 24.0/255), in: Capsule())
+                .foregroundColor(.white)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(14)
+        .background(Color(white: 18.0/255), in: RoundedRectangle(cornerRadius: 14))
+    }
+
+    // MARK: - Active Options Popups
+    private var activeOptions: [LaterAIOptionItem] {
+        guard !conversation.manual && !isThinking else { return [] }
+
+        if conversation.needsClarification {
+            return [
+                LaterAIOptionItem(
+                    title: "Save to Vault",
+                    subtitle: "Store with AI tags",
+                    icon: "tray.and.arrow.down.fill",
+                    isPrimary: true
+                ) {
+                    sendOptionReply("Save to vault") {
+                        conversation.save(context: modelContext)
+                    }
+                },
+                LaterAIOptionItem(
+                    title: "Just Chatting",
+                    subtitle: "Don't save item",
+                    icon: "bubble.left.and.bubble.right.fill",
+                    isPrimary: false
+                ) {
+                    sendOptionReply("Just chatting") {
+                        conversation.needsClarification = false
+                        conversation.messages.append(LaterAIMessage(text: "Sounds good! What else would you like to know or find?", isUser: false))
+                    }
+                }
+            ]
+        }
+
+        if conversation.needsReturnDate {
+            return [
+                LaterAIOptionItem(
+                    title: "Tomorrow",
+                    subtitle: "9:00 AM",
+                    icon: "calendar.badge.clock",
+                    isPrimary: true
+                ) {
+                    sendOptionReply("Tomorrow") {
+                        conversation.schedule(Calendar.current.date(byAdding: .day, value: 1, to: Date()), context: modelContext)
+                    }
+                },
+                LaterAIOptionItem(
+                    title: "This Weekend",
+                    subtitle: "Saturday morning",
+                    icon: "sun.max.fill",
+                    isPrimary: false
+                ) {
+                    sendOptionReply("This weekend") {
+                        conversation.schedule(CaptureDraft.weekend(), context: modelContext)
+                    }
+                },
+                LaterAIOptionItem(
+                    title: "Next Week",
+                    subtitle: "7 days from now",
+                    icon: "calendar",
+                    isPrimary: false
+                ) {
+                    sendOptionReply("Next week") {
+                        conversation.schedule(Calendar.current.date(byAdding: .day, value: 7, to: Date()), context: modelContext)
+                    }
+                },
+                LaterAIOptionItem(
+                    title: "No Reminder",
+                    subtitle: "Inbox only",
+                    icon: "tray",
+                    isPrimary: false
+                ) {
+                    sendOptionReply("No reminder") {
+                        conversation.schedule(nil, context: modelContext)
+                    }
+                },
+                LaterAIOptionItem(
+                    title: "Choose Date",
+                    subtitle: "Pick date & time",
+                    icon: "slider.horizontal.3",
+                    isPrimary: false
+                ) {
+                    chooseReturnDate = true
+                }
+            ]
+        }
+
+        if let saved = conversation.savedItem {
+            return [
+                LaterAIOptionItem(
+                    title: "Schedule Return",
+                    subtitle: "Set reminder date",
+                    icon: "calendar.badge.clock",
+                    isPrimary: true
+                ) {
+                    sendOptionReply("Schedule return") {
+                        conversation.needsReturnDate = true
+                        conversation.messages.append(LaterAIMessage(text: "When would you like to see it again?", isUser: false))
+                    }
+                },
+                LaterAIOptionItem(
+                    title: "Edit Details",
+                    subtitle: "View title & tags",
+                    icon: "pencil",
+                    isPrimary: false
+                ) {
+                    editingItem = saved
+                },
+                LaterAIOptionItem(
+                    title: "Undo Save",
+                    subtitle: "Remove from vault",
+                    icon: "arrow.uturn.backward",
+                    isPrimary: false
+                ) {
+                    sendOptionReply("Undo save") {
+                        conversation.undo(context: modelContext)
+                    }
+                },
+                LaterAIOptionItem(
+                    title: "Save Another",
+                    subtitle: "Capture new item",
+                    icon: "plus.circle.fill",
+                    isPrimary: false
+                ) {
+                    sendOptionReply("Save another item") {
+                        conversation.reset()
+                    }
+                }
+            ]
+        }
+
+        return []
+    }
+
+    private var optionsTitle: String? {
+        if conversation.needsClarification {
+            return "Choose an action"
+        } else if conversation.needsReturnDate {
+            return "When would you like to return?"
+        } else if conversation.savedItem != nil {
+            return "Saved item options"
+        }
+        return nil
+    }
+
+    private func sendOptionReply(_ title: String, action: @escaping () -> Void) {
+        LBHaptic.medium()
+        withAnimation(.easeInOut(duration: 0.22)) {
+            conversation.messages.append(LaterAIMessage(text: title, isUser: true))
+            forceShowTextInput = false
+        }
+        action()
     }
 
     // MARK: - Bottom ChatGPT Mobile Chat Input Bar
@@ -243,73 +575,12 @@ public struct LaterAIView: View {
                         send: { sendMessage(inputText) })
     }
 
-    // MARK: - Actions
-    private var inboxItemsCount: Int {
-        allItems.filter { $0.status == "inbox" }.count
-    }
-
-    private var returnItemsCount: Int {
-        allItems.filter { $0.returnAt != nil }.count
-    }
-
     private func sendMessage(_ text: String) {
-        conversation.send(text, items: allItems, context: modelContext)
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        conversation.send(trimmed, items: allItems, context: modelContext)
         inputText = ""
-    }
-
-    private var conversationActions: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            if let error = conversation.error {
-                Text(error).foregroundStyle(.orange)
-                HStack {
-                    Button("Retry") { conversation.retry(items: allItems, context: modelContext) }
-                    Button("Continue manually") { conversation.continueManually() }
-                }
-            }
-            if conversation.needsClarification {
-                HStack {
-                    Button("Save this") { conversation.save(context: modelContext) }
-                    Button("Just chatting") { conversation.needsClarification = false }
-                }
-            }
-            ForEach(conversation.results) { item in
-                Button { editingItem = item } label: {
-                    HStack { Image(systemName: item.parsedContentType.systemIcon); Text(item.title); Spacer(); Image(systemName: "chevron.right") }
-                }
-            }
-            if let item = conversation.savedItem {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(item.title).font(.headline)
-                    Text(item.tags.map { "#" + $0 }.joined(separator: " ")).font(.caption)
-                    HStack {
-                        Button("Edit") { editingItem = item }
-                        Button("Undo") { conversation.undo(context: modelContext) }
-                        Button("Save another") { conversation.reset() }
-                    }
-                }
-            }
-            if conversation.needsReturnDate {
-                Text("When would you like to see it again?")
-                ViewThatFits {
-                    HStack { returnButtons }
-                    VStack(alignment: .leading) { returnButtons }
-                }
-                if chooseReturnDate {
-                    CaptureDateChoices(date: $selectedReturnDate)
-                    Button("Set date") { conversation.schedule(selectedReturnDate, context: modelContext); chooseReturnDate = false }
-                }
-            }
-        }
-        .buttonStyle(CaptureChoiceStyle())
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .sheet(item: $editingItem) { item in NavigationStack { ItemDetailView(item: item) } }
-    }
-
-    @ViewBuilder private var returnButtons: some View {
-        Button("Tomorrow") { conversation.schedule(Calendar.current.date(byAdding: .day, value: 1, to: Date()), context: modelContext) }
-        Button("This weekend") { conversation.schedule(CaptureDraft.weekend(), context: modelContext) }
-        Button("Choose date") { chooseReturnDate = true }
-        Button("No reminder") { conversation.schedule(nil, context: modelContext) }
+        forceShowTextInput = false
     }
 
     private func dismiss() {
