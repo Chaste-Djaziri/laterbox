@@ -232,17 +232,27 @@ public final class SyncCoordinator: ObservableObject {
         do {
             let metadata = try await LinkMetadataLoader.load(url)
             guard item.status != "deleted", item.modelContext != nil else { return }
+            let candidateTitle = LinkMetadataLoader.cleanTitle(metadata.title)
             let currentIsGeneric = item.title.isEmpty || item.title == url.host || item.title == text || item.title.hasPrefix("http") || LinkMetadataLoader.isGenericTitle(item.title)
-            if let metaTitle = metadata.title, !metaTitle.isEmpty, (currentIsGeneric || !LinkMetadataLoader.isGenericTitle(metaTitle)) {
-                item.title = metaTitle
+            if let candidateTitle, !LinkMetadataLoader.isGenericTitle(candidateTitle) {
+                if currentIsGeneric || LinkMetadataLoader.isGenericTitle(item.title) {
+                    item.title = candidateTitle
+                }
             }
             item.siteName = metadata.site ?? item.siteName
-            item.metadataDescription = metadata.description ?? item.metadataDescription
+            if let desc = metadata.description, !desc.isEmpty, !LinkMetadataLoader.isGenericDescription(desc) {
+                item.metadataDescription = desc
+                if item.summary.isEmpty {
+                    item.summary = desc
+                }
+            }
             item.previewImageUrl = metadata.image ?? item.previewImageUrl
             item.faviconUrl = metadata.faviconUrl ?? item.faviconUrl
             if !metadata.keywords.isEmpty {
-                let filteredCurrent = item.tags.filter { !["playlist", "youtube"].contains($0.lowercased()) }
-                let merged = Set(filteredCurrent + metadata.keywords.map { $0.lowercased() })
+                let junkTags: Set<String> = ["sharing", "camera phone", "video phone", "free", "upload", "playlist", "video playlist", "youtube"]
+                let filteredCurrent = item.tags.filter { !junkTags.contains($0.lowercased()) }
+                let filteredNew = metadata.keywords.filter { !junkTags.contains($0.lowercased()) }
+                let merged = Set(filteredCurrent + filteredNew.map { $0.lowercased() })
                 if !merged.isEmpty {
                     item.tags = Array(merged).sorted()
                 }
