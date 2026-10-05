@@ -33,6 +33,7 @@ def main():
         destination = Path.home() / "Library/Developer/Xcode/UserData/Provisioning Profiles" / (profile["UUID"] + ".mobileprovision")
         destination.parent.mkdir(parents=True, exist_ok=True)
         destination.write_bytes((root / (name + ".mobileprovision")).read_bytes())
+        with (root / "installed-profiles.txt").open("a") as manifest: manifest.write(str(destination) + "\n")
     # Per-target profile settings avoid assigning the app profile to the extension.
     import re
     project = Path("laterbox-ios/laterbox-ios.xcodeproj/project.pbxproj")
