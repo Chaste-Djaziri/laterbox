@@ -43,6 +43,7 @@ fun LaterAIContent(items: List<ItemEntity>, initial: String = "", attachments: S
     var guided by rememberSaveable { mutableStateOf(false) }
     var input by rememberSaveable { mutableStateOf(initial) }
     var capturedInput by rememberSaveable { mutableStateOf(initial) }
+    var saving by remember { mutableStateOf(false) }
     var busy by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var saved by remember { mutableStateOf<ItemEntity?>(null) }
@@ -55,8 +56,8 @@ fun LaterAIContent(items: List<ItemEntity>, initial: String = "", attachments: S
     DisposableEffect(ai) { onDispose { ai.close() } }
     LaunchedEffect(ai) { status = runCatching { ai.status() }.getOrDefault(FeatureStatus.UNAVAILABLE); checking = false; guided = status != FeatureStatus.AVAILABLE }
     fun save(item: ItemEntity) {
-        if (busy) return
-        busy = true; error = null
+        if (saving) return
+        saving = true; busy = true; error = null
         scope.launch {
             try {
                 saved = store.save(item); guided = false; clarify = false; returnQuestion = item.returnAt == null
@@ -64,7 +65,7 @@ fun LaterAIContent(items: List<ItemEntity>, initial: String = "", attachments: S
                 onSaved()
                 scope.launch { saved?.let { store.metadata(it); onSaved() } }
             } catch (failure: Exception) { error = failure.message ?: "Save failed. Your content is still here." }
-            finally { busy = false }
+            finally { saving = false; busy = false }
         }
     }
     fun send() {
@@ -86,12 +87,12 @@ fun LaterAIContent(items: List<ItemEntity>, initial: String = "", attachments: S
                     else -> { messages.add(action.reply to false); input = "" }
                 }
             } catch (failure: Exception) { error = failure.message ?: "The local model failed. Retry or continue manually." }
-            finally { busy = false }
+            finally { if (!saving) busy = false }
         }
     }
     Column(Modifier.fillMaxSize().background(Color.Black).padding(20.dp).imePadding(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Column { Text("✦ Later AI", color = Color.White, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold); Text(if (status == FeatureStatus.AVAILABLE) "On-device · Private & free" else "Guided capture", color = Color.LightGray, style = MaterialTheme.typography.bodySmall) }
+            Column { Text("✦ Later AI", color = Color.White, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold); Text(if (status == FeatureStatus.AVAILABLE) if (SecureSettings(context).provider != "device" && AccountService.state.value.pro) "${SecureSettings(context).provider.replaceFirstChar { it.uppercase() }} · Your API key" else "On-device · Private & free" else "Guided capture", color = Color.LightGray, style = MaterialTheme.typography.bodySmall) }
             TextButton(onClick = onDismiss) { Text("Close", color = LaterboxAccent) }
         }
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
