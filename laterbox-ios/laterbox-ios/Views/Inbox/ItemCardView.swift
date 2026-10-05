@@ -33,41 +33,41 @@ public struct ItemCardView: View {
             // Header Row: Favicon/Icon + Domain + Time ago + Favorite Button
             HStack(spacing: 8) {
                 ZStack {
-                    RoundedRectangle(cornerRadius: 6)
-                        .fill(Color.lbAmber.opacity(0.2))
-                        .frame(width: 22, height: 22)
+                    RoundedRectangle(cornerRadius: 7, style: .continuous)
+                        .fill(AppTheme.accent)
+                        .frame(width: 24, height: 24)
                     Image(systemName: item.parsedContentType.systemIcon)
                         .font(.system(size: 11, weight: .bold))
-                        .foregroundColor(Color.lbAmber)
+                        .foregroundColor(AppTheme.textPrimary)
                 }
 
                 if let domain = item.domain, !domain.isEmpty {
                     Text(domain)
                         .font(.caption.weight(.semibold))
-                        .foregroundColor(.primary)
+                        .foregroundColor(AppTheme.textPrimary)
                         .lineLimit(1)
                 } else {
                     Text(item.parsedContentType.rawValue.capitalized)
                         .font(.caption.weight(.semibold))
-                        .foregroundColor(.primary)
+                        .foregroundColor(AppTheme.textPrimary)
                         .lineLimit(1)
                 }
 
                 Text("•")
-                    .foregroundColor(.secondary)
+                    .foregroundColor(AppTheme.textTertiary)
                     .font(.caption2)
 
                 Text(formattedRelativeTime(item.createdAt))
                     .font(.caption2)
-                    .foregroundColor(.secondary)
+                    .foregroundColor(AppTheme.textSecondary)
                     .lineLimit(1)
 
                 Spacer()
 
                 Button(action: onToggleFavorite) {
                     Image(systemName: item.favorite ? "star.fill" : "star")
-                        .foregroundColor(item.favorite ? Color.lbAmber : .secondary)
-                        .font(.system(size: 14))
+                        .foregroundColor(item.favorite ? AppTheme.amber : AppTheme.textTertiary)
+                        .font(.system(size: 15))
                 }
                 .buttonStyle(.plain)
             }
@@ -85,18 +85,25 @@ public struct ItemCardView: View {
             // Title
             Text(item.title)
                 .font(.headline)
-                .foregroundColor(.primary)
+                .foregroundColor(AppTheme.textPrimary)
                 .lineLimit(2)
 
             // Optional note preview
             if let note = item.noteContent, !note.isEmpty {
                 Text(note)
                     .font(.subheadline)
-                    .foregroundColor(.secondary)
+                    .foregroundColor(AppTheme.textSecondary)
                     .lineLimit(2)
-                    .padding(8)
+                    .padding(10)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(RoundedRectangle(cornerRadius: 8).fill(Color.white.opacity(0.04)))
+                    .background(
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .fill(AppTheme.background)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                    .strokeBorder(AppTheme.cardBorder, lineWidth: 1)
+                            )
+                    )
             }
 
             // Footer row: Collection Tag + Actions
@@ -111,23 +118,41 @@ public struct ItemCardView: View {
                     }
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
-                    .background(Capsule().fill(Color.white.opacity(0.08)))
-                    .foregroundColor(.secondary)
+                    .background(Capsule().fill(AppTheme.background))
+                    .overlay(Capsule().strokeBorder(AppTheme.cardBorder, lineWidth: 1))
+                    .foregroundColor(AppTheme.textSecondary)
                     .lineLimit(1)
                 }
 
                 if let returnAt = item.returnAt {
+                    let isTodayOrOverdue = Calendar.current.isDateInToday(returnAt) || returnAt < Date()
                     HStack(spacing: 4) {
-                        Image(systemName: "calendar")
+                        Image(systemName: isTodayOrOverdue ? "exclamationmark.clock.fill" : "calendar")
                             .font(.caption2)
-                        Text(returnAt, format: .dateTime.month().day())
+                        Text(isTodayOrOverdue ? "Due Today" : returnAt.formatted(.dateTime.month().day()))
+                            .font(.caption2.weight(.bold))
+                            .lineLimit(1)
+                    }
+                    .padding(.horizontal, 9)
+                    .padding(.vertical, 4)
+                    .background(
+                        Capsule().fill(isTodayOrOverdue ? AppTheme.darkSurface : AppTheme.accent)
+                    )
+                    .foregroundColor(isTodayOrOverdue ? AppTheme.textOnDark : AppTheme.textPrimary)
+                    .lineLimit(1)
+                } else if item.status == ItemStatus.deferred.rawValue {
+                    HStack(spacing: 4) {
+                        Image(systemName: "moon.fill")
+                            .font(.caption2)
+                        Text("Someday")
                             .font(.caption2.weight(.medium))
                             .lineLimit(1)
                     }
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
-                    .background(Capsule().fill(Color.lbAmber.opacity(0.15)))
-                    .foregroundColor(Color.lbAmber)
+                    .background(Capsule().fill(AppTheme.background))
+                    .overlay(Capsule().strokeBorder(AppTheme.cardBorder, lineWidth: 1))
+                    .foregroundColor(AppTheme.textSecondary)
                     .lineLimit(1)
                 }
 
@@ -136,15 +161,20 @@ public struct ItemCardView: View {
                 // Action buttons
                 Button(action: onSchedule) {
                     Image(systemName: "clock.arrow.circlepath")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(.secondary)
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(AppTheme.textSecondary)
+                        .frame(width: 30, height: 30)
+                        .background(Circle().fill(AppTheme.background))
+                        .overlay(Circle().strokeBorder(AppTheme.cardBorder, lineWidth: 1))
                 }
                 .buttonStyle(.plain)
 
                 Button(action: onMarkDone) {
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 17, weight: .semibold))
-                        .foregroundColor(Color.lbAmber)
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundColor(AppTheme.textPrimary)
+                        .frame(width: 30, height: 30)
+                        .background(Circle().fill(AppTheme.accent))
                 }
                 .buttonStyle(.plain)
             }
