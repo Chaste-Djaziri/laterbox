@@ -7,7 +7,7 @@ import Foundation
 @MainActor
 struct LaterAITests {
     private func context() throws -> ModelContext {
-        let container = try ModelContainer(for: LBItem.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+        let container = try ModelContainer(for: LBItem.self, LBCollection.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
         return ModelContext(container)
     }
     @Test func cloudSupportsNullTitlesAndStringEncodedMetadata() throws {
@@ -109,6 +109,32 @@ struct LaterAITests {
         conversation.undo(context: context)
         #expect(item.status == "deleted")
         #expect(conversation.savedItem == nil)
+        #expect(try context.fetch(FetchDescriptor<LBCollection>()).contains { $0.name == "Ideas" })
+    }
+    @Test func savingDraftAutoCreatesCollectionIfNotAvailable() throws {
+        let context = try context()
+        var draft = CaptureDraft.manual("AMV video https://youtube.com/watch?v=123")
+        draft.category = "Amv"
+
+        let item = try SyncCoordinator.shared.saveDraft(draft, context: context)
+        #expect(item.collectionName == "Amv")
+        #expect(item.collectionId != nil)
+
+        let collections = try context.fetch(FetchDescriptor<LBCollection>())
+        #expect(collections.contains { $0.name == "Amv" })
+        let amvCollection = collections.first { $0.name == "Amv" }
+        #expect(amvCollection?.id == item.collectionId)
+    }
+    @Test func savingItemAutoCreatesCollectionIfNotAvailable() throws {
+        let context = try context()
+        SyncCoordinator.shared.saveItem(title: "Grand Escape", collectionName: "Anime", context: context)
+
+        let collections = try context.fetch(FetchDescriptor<LBCollection>())
+        #expect(collections.contains { $0.name == "Anime" })
+        let items = try context.fetch(FetchDescriptor<LBItem>())
+        let item = items.first { $0.title == "Grand Escape" }
+        #expect(item?.collectionName == "Anime")
+        #expect(item?.collectionId != nil)
     }
     @Test func defaultClassificationFieldsAreCompatible() {
         let item = LBItem(title: "Existing item")
