@@ -6,8 +6,8 @@ import io.github.jan.supabase.postgrest.Postgrest
 
 object SupabaseClient {
     val client = createSupabaseClient(
-        supabaseUrl = BuildConfig.SUPABASE_URL,
-        supabaseKey = BuildConfig.SUPABASE_KEY
+        supabaseUrl = com.example.laterbox.data.api.LaterBoxApiService.supabaseUrl,
+        supabaseKey = com.example.laterbox.data.api.LaterBoxApiService.supabaseAnonKey
     ) {
         install(Auth) {
             scheme = "laterbox"
