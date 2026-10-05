@@ -4,6 +4,7 @@ import { initializePaddle, type Environments, type Paddle } from '@paddle/paddle
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { FREE_ENTITLEMENT, hasProAccess, type Entitlement } from '@/lib/billing/types';
 import { useAuth } from './AuthContext';
+import { getSupabaseClient } from '../supabase/client';
 
 type Interval = 'month' | 'year';
 type CheckoutState = 'idle' | 'processing' | 'confirmed' | 'delayed';
@@ -31,18 +32,52 @@ export function BillingProvider({ children }: { children: React.ReactNode }) {
   const cacheKey = user ? `laterbox_entitlement_${user.id}` : null;
 
   const refresh = useCallback(async () => {
-    if (!session?.access_token || !user) {
+    if (!user) {
       setEntitlement(FREE_ENTITLEMENT);
       return;
     }
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch('/api/billing/entitlement', {
-        headers: { Authorization: `Bearer ${session.access_token}` },
+      const supabase = getSupabaseClient();
+      const { data: sessionData } = await supabase.auth.getSession();
+      const currentSession = sessionData?.session ?? session;
+
+      if (!currentSession?.access_token) {
+        setEntitlement(FREE_ENTITLEMENT);
+        return;
+      }
+
+      let token = currentSession.access_token;
+      if (currentSession.expires_at && currentSession.expires_at * 1000 < Date.now() + 60000) {
+        const { data: refreshed } = await supabase.auth.refreshSession();
+        if (refreshed?.session?.access_token) {
+          token = refreshed.session.access_token;
+        }
+      }
+
+      let response = await fetch('/api/billing/entitlement', {
+        headers: { Authorization: `Bearer ${token}` },
         cache: 'no-store',
       });
-      if (!response.ok) throw new Error('Unable to refresh subscription status.');
+
+      if (response.status === 401) {
+        const { data: refreshed } = await supabase.auth.refreshSession();
+        if (refreshed?.session?.access_token) {
+          response = await fetch('/api/billing/entitlement', {
+            headers: { Authorization: `Bearer ${refreshed.session.access_token}` },
+            cache: 'no-store',
+          });
+        }
+      }
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          setEntitlement(FREE_ENTITLEMENT);
+          return;
+        }
+        throw new Error('Unable to refresh subscription status.');
+      }
       const value = (await response.json()) as Entitlement;
       setEntitlement(value);
       localStorage.setItem(`laterbox_entitlement_${user.id}`, JSON.stringify(value));
@@ -51,7 +86,7 @@ export function BillingProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }, [session?.access_token, user]);
+  }, [session, user]);
 
   useEffect(() => {
     if (!cacheKey) {
@@ -68,13 +103,17 @@ export function BillingProvider({ children }: { children: React.ReactNode }) {
   }, [cacheKey, refresh]);
 
   const pollForPro = useCallback(async () => {
-    if (!session?.access_token || !user) return;
+    if (!user) return;
     setCheckoutState('processing');
+    const supabase = getSupabaseClient();
     for (let attempt = 0; attempt < 8; attempt += 1) {
       await new Promise((resolve) => window.setTimeout(resolve, attempt === 0 ? 800 : 1500));
       try {
+        const { data: sessData } = await supabase.auth.getSession();
+        const token = sessData?.session?.access_token || session?.access_token;
+        if (!token) break;
         const response = await fetch('/api/billing/entitlement', {
-          headers: { Authorization: `Bearer ${session.access_token}` },
+          headers: { Authorization: `Bearer ${token}` },
           cache: 'no-store',
         });
         if (!response.ok) continue;
