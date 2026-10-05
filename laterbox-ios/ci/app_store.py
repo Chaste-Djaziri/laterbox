@@ -5,10 +5,12 @@ import os
 from pathlib import Path
 import time
 import urllib.request
+import urllib.error
 import jwt
 
 BASE = "https://api.appstoreconnect.apple.com"
 BUNDLE = "pro.micorp.laterbox"
+APP_ID = "6804139119"
 
 def request(path):
     now = int(time.time())
@@ -44,20 +46,25 @@ def release_numbers(metadata, builds, store_versions):
     if baseline >= 9999: raise ValueError("Build number requires a new numbering scheme")
     return ".".join(map(str, selected)), str(baseline + 1)
 
+def existing_app():
+    try:
+        app = request(f"/v1/apps/{APP_ID}")["data"]
+    except urllib.error.HTTPError as error:
+        raise RuntimeError(
+            f"App Store Connect HTTP {error.code} for existing LaterBox app {APP_ID}. "
+            "Check that the GitHub API key and issuer belong to the account shown in App Store Connect "
+            "and have access to this app. No upload was attempted."
+        ) from None
+    if app["id"] != APP_ID or app["attributes"]["bundleId"] != BUNDLE:
+        raise RuntimeError("Existing App Store Connect app identity does not match pro.micorp.laterbox")
+    return app["id"]
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("mode", choices=["prepare", "verify"])
     parser.add_argument("--metadata", default="version.json")
     args = parser.parse_args()
-    apps = records("/v1/apps?filter[bundleId]=" + BUNDLE)
-    if len(apps) != 1:
-        raise RuntimeError(
-            f"App Store Connect returned {len(apps)} accessible apps for {BUNDLE}. "
-            "Confirm that the existing app uses this bundle identifier and that the configured "
-            "APP_STORE_CONNECT API key/issuer can access it in Apple team LS42X27YFY. "
-            "No archive or upload was attempted; do not create a replacement app."
-        )
-    app = apps[0]["id"]
+    app = existing_app()
     path = f"/v1/builds?filter[app]={app}&limit=200"
     if args.mode == "prepare":
         builds = records(path)
