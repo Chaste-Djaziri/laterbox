@@ -38,6 +38,8 @@ jobs:
           deno test -A supabase/tests/notifications.test.ts supabase/functions/notifications/providers.test.ts supabase/functions/capture/capture.test.ts supabase/functions/extension-connect/extension-connect.test.ts
       - name: Build Cloudflare application
         working-directory: laterbox-web
+        env:
+          LATERBOX_SKIP_VERSION_BUMP: '1'
         run: npx opennextjs-cloudflare build
       - name: Deploy Cloudflare application
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
