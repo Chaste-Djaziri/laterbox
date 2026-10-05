@@ -23,7 +23,7 @@ object CustomAIService {
         }
         val body = when(provider) {
             "gemini" -> JSONObject().put("contents", JSONArray().put(JSONObject().put("parts", JSONArray().put(JSONObject().put("text", prompt))))).put("generationConfig", JSONObject().put("responseMimeType", "application/json").put("maxOutputTokens", 2048))
-            else -> JSONObject().put("model", model).put("max_tokens", 2048).put("messages", JSONArray().put(JSONObject().put("role", "user").put("content", prompt)))
+            else -> JSONObject().put("model", model).put(if (provider == "openai") "max_completion_tokens" else "max_tokens", 2048).put("messages", JSONArray().put(JSONObject().put("role", "user").put("content", prompt)))
         }
         val connection = URL(endpoint).openConnection() as HttpURLConnection
         try {
