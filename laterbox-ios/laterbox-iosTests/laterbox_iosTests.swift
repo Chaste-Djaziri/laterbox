@@ -524,6 +524,145 @@ extension LaterAITests {
         #expect(!manager.currentIconId.isEmpty)
         #expect(!manager.currentIconOption.name.isEmpty)
     }
+
+    @Test
+    func loginDataResolutionMergesLocalItemsAndHydratesCloud() async throws {
+        let coordinator = SyncCoordinator.shared
+        let originalSession = (coordinator.currentUserEmail, coordinator.currentUserId, coordinator.authToken)
+        defer {
+            coordinator.currentUserEmail = originalSession.0
+            coordinator.currentUserId = originalSession.1
+            coordinator.authToken = originalSession.2
+        }
+
+        let container = try ModelContainer(for: LBItem.self, LBCollection.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+        let context = container.mainContext
+
+        let guestItem = LBItem(title: "Local Guest Capture", textContent: "Offline notes")
+        guestItem.userId = nil
+        context.insert(guestItem)
+        try context.save()
+
+        let testUID = "user-login-test-123"
+        #expect(coordinator.countUnassignedLocalItems(context: context, targetUserId: testUID) == 1)
+
+        let transport = MockCloudTransport()
+        let remoteID = "remote-cloud-item-999"
+        transport.snapshots = [
+            CloudItemSnapshot(
+                id: remoteID,
+                user_id: testUID,
+                url: "https://example.com/article",
+                title: "Cloud Synced Article",
+                type: "link",
+                favorite: true,
+                status: "inbox",
+                created_at: "2026-10-01T10:00:00Z",
+                updated_at: "2026-10-01T10:00:00Z",
+                item_metadata: CloudMetadata(
+                    domain: "example.com",
+                    site_name: "Example",
+                    description: "An article from web",
+                    status: "enriched",
+                    structured_data: CloudClassification(tags: ["web", "reading"], category: "Tech", summary: "Article summary")
+                ),
+                collection_items: [
+                    CloudMembership(collection_id: "c1", collections: CloudCollection(id: "c1", name: "Tech"))
+                ]
+            )
+        ]
+
+        try await coordinator.resolveLoginData(
+            merge: true,
+            email: "testuser@example.com",
+            userId: testUID,
+            token: "mock-token",
+            context: context,
+            transport: transport
+        )
+
+        #expect(coordinator.currentUserEmail == "testuser@example.com")
+        #expect(coordinator.currentUserId == testUID)
+        #expect(coordinator.syncState == .synced)
+        #expect(coordinator.lastSyncedAt != nil)
+
+        // Verify local guest item merged to current user
+        #expect(guestItem.userId == testUID)
+        #expect(guestItem.isSyncPending == true)
+        #expect(coordinator.countUnassignedLocalItems(context: context, targetUserId: testUID) == 0)
+
+        // Verify remote item hydrated into catalog
+        let allItems = try context.fetch(FetchDescriptor<LBItem>())
+        #expect(allItems.count == 2)
+        let remoteItem = try #require(allItems.first { $0.id == remoteID })
+        #expect(remoteItem.title == "Cloud Synced Article")
+        #expect(remoteItem.url == "https://example.com/article")
+        #expect(remoteItem.tags == ["web", "reading"])
+        #expect(remoteItem.category == "Tech")
+        #expect(remoteItem.favorite == true)
+
+        // Verify collection auto-created
+        let allCollections = try context.fetch(FetchDescriptor<LBCollection>())
+        #expect(allCollections.contains { $0.name == "Tech" })
+    }
+
+    @Test
+    func loginDataResolutionDiscardsLocalItemsAndHydratesCloud() async throws {
+        let coordinator = SyncCoordinator.shared
+        let originalSession = (coordinator.currentUserEmail, coordinator.currentUserId, coordinator.authToken)
+        defer {
+            coordinator.currentUserEmail = originalSession.0
+            coordinator.currentUserId = originalSession.1
+            coordinator.authToken = originalSession.2
+        }
+
+        let container = try ModelContainer(for: LBItem.self, LBCollection.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+        let context = container.mainContext
+
+        let guestItem = LBItem(title: "Ephemeral Guest Capture", textContent: "To be removed")
+        guestItem.userId = nil
+        context.insert(guestItem)
+        try context.save()
+
+        let testUID = "user-login-test-456"
+        #expect(coordinator.countUnassignedLocalItems(context: context, targetUserId: testUID) == 1)
+
+        let transport = MockCloudTransport()
+        let remoteID = "remote-cloud-item-777"
+        transport.snapshots = [
+            CloudItemSnapshot(
+                id: remoteID,
+                user_id: testUID,
+                title: "My Cloud Note",
+                text_content: "Saved in web dashboard",
+                type: "note",
+                favorite: false,
+                status: "inbox",
+                created_at: "2026-10-02T12:00:00Z",
+                updated_at: "2026-10-02T12:00:00Z"
+            )
+        ]
+
+        try await coordinator.resolveLoginData(
+            merge: false,
+            email: "testuser2@example.com",
+            userId: testUID,
+            token: "mock-token-2",
+            context: context,
+            transport: transport
+        )
+
+        #expect(coordinator.currentUserEmail == "testuser2@example.com")
+        #expect(coordinator.currentUserId == testUID)
+        #expect(coordinator.syncState == .synced)
+
+        // Verify guest item was removed
+        let allItems = try context.fetch(FetchDescriptor<LBItem>())
+        #expect(allItems.count == 1)
+        #expect(allItems.first?.id == remoteID)
+        #expect(allItems.first?.title == "My Cloud Note")
+        #expect(coordinator.countUnassignedLocalItems(context: context, targetUserId: testUID) == 0)
+    }
 }
 @MainActor
 private final class MockCloudTransport: IOSCloudTransport {
