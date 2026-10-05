@@ -458,6 +458,46 @@ extension LaterAITests {
         #expect(!AppVersion.marketingVersion.isEmpty)
         #expect(!AppVersion.buildNumber.isEmpty)
     }
+
+    @Test
+    func appIconOptionsAndManagerDefaults() {
+        let icons = AppIconManager.availableIcons
+        #expect(icons.count == 6)
+
+        // Default icon has nil iconName (system primary)
+        let defaultIcon = icons.first(where: { $0.id == "default" })
+        #expect(defaultIcon != nil)
+        #expect(defaultIcon?.iconName == nil)
+        #expect(defaultIcon?.isDefault == true)
+
+        // Alternate icons have valid names
+        let darkIcon = icons.first(where: { $0.id == "dark" })
+        #expect(darkIcon?.iconName == "AppIcon-Dark")
+
+        let emeraldIcon = icons.first(where: { $0.id == "emerald" })
+        #expect(emeraldIcon?.iconName == "AppIcon-Emerald")
+
+        let monochromeIcon = icons.first(where: { $0.id == "monochrome" })
+        #expect(monochromeIcon?.iconName == "AppIcon-Monochrome")
+
+        let neonIcon = icons.first(where: { $0.id == "neon" })
+        #expect(neonIcon?.iconName == "AppIcon-Neon")
+
+        let sunsetIcon = icons.first(where: { $0.id == "sunset" })
+        #expect(sunsetIcon?.iconName == "AppIcon-Sunset")
+
+        for icon in icons {
+            #expect(!icon.name.isEmpty)
+            #expect(!icon.previewImageName.isEmpty)
+            #expect(!icon.subtitle.isEmpty)
+            #expect(!icon.accentHex.isEmpty)
+            #expect(!icon.badgeText.isEmpty)
+        }
+
+        let manager = AppIconManager.shared
+        #expect(!manager.currentIconId.isEmpty)
+        #expect(!manager.currentIconOption.name.isEmpty)
+    }
 }
 @MainActor
 private final class MockCloudTransport: IOSCloudTransport {
