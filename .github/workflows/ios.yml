@@ -119,5 +119,9 @@ jobs:
         if: always()
         run: |
           security delete-keychain "$RUNNER_TEMP/laterbox-signing.keychain-db" || true
+          if [ -f "$RUNNER_TEMP/installed-profiles.txt" ]; then
+            while IFS= read -r profile; do rm -f "$profile"; done < "$RUNNER_TEMP/installed-profiles.txt"
+            rm -f "$RUNNER_TEMP/installed-profiles.txt"
+          fi
           rm -f "$RUNNER_TEMP/certificate.p12" "$RUNNER_TEMP/main.mobileprovision" "$RUNNER_TEMP/share.mobileprovision"
           rm -f "$HOME/.appstoreconnect/private_keys/AuthKey_${APP_STORE_CONNECT_KEY_ID}.p8"
