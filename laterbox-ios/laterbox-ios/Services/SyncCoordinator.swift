@@ -211,6 +211,10 @@ public final class SyncCoordinator: ObservableObject {
         item.category = draft.category
         item.summary = draft.summary
         item.formattedContent = draft.formattedContent
+        item.siteName = draft.siteName
+        item.metadataDescription = draft.metadataDescription
+        item.previewImageUrl = draft.previewImageUrl
+        item.faviconUrl = draft.faviconUrl
         context.insert(item)
         do { try context.save() } catch { context.delete(item); throw error }
         Task {
@@ -220,15 +224,24 @@ public final class SyncCoordinator: ObservableObject {
         return item
     }
 
-    private func enrich(item: LBItem, context: ModelContext) async {
+    public func enrich(item: LBItem, context: ModelContext) async {
         guard let text = item.url, let url = URL(string: text) else { return }
         do {
             let metadata = try await LinkMetadataLoader.load(url)
             guard item.status != "deleted", item.modelContext != nil else { return }
-            if item.title == url.host || item.title == text { item.title = metadata.title ?? item.title }
-            item.siteName = metadata.site
-            item.metadataDescription = metadata.description
-            item.previewImageUrl = metadata.image
+            if item.title == url.host || item.title == text || item.title.isEmpty {
+                item.title = metadata.title ?? item.title
+            }
+            item.siteName = metadata.site ?? item.siteName
+            item.metadataDescription = metadata.description ?? item.metadataDescription
+            item.previewImageUrl = metadata.image ?? item.previewImageUrl
+            item.faviconUrl = metadata.faviconUrl ?? item.faviconUrl
+            if item.tags.isEmpty && !metadata.keywords.isEmpty {
+                item.tags = Array(Set(metadata.keywords.map { $0.lowercased() })).sorted()
+            }
+            if let ct = metadata.contentType, !ct.isEmpty, item.type == ItemContentType.link.rawValue {
+                item.type = ct
+            }
             item.enrichmentStatus = "enriched"
             item.updatedAt = Date()
             item.isSyncPending = true
