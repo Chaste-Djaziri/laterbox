@@ -13,12 +13,20 @@ data class PendingShareCapture(
     val text: String?,
     val filePaths: List<String>,
     val createdAt: String,
+    val title: String? = null,
+    val url: String? = null,
+    val previewImageUrl: String? = null,
+    val siteName: String? = null,
 ) {
     fun toMap(): Map<String, Any?> = mapOf(
         "id" to id,
         "text" to text,
         "filePaths" to filePaths,
         "createdAt" to createdAt,
+        "title" to title,
+        "url" to url,
+        "previewImageUrl" to previewImageUrl,
+        "siteName" to siteName,
     )
 }
 
@@ -99,6 +107,10 @@ class PendingShareQueue(private val context: Context) {
                     put("text", capture.text)
                     put("filePaths", JSONArray(capture.filePaths))
                     put("createdAt", capture.createdAt)
+                    put("title", capture.title)
+                    put("url", capture.url)
+                    put("previewImageUrl", capture.previewImageUrl)
+                    put("siteName", capture.siteName)
                 },
             )
         }
@@ -117,6 +129,10 @@ class PendingShareQueue(private val context: Context) {
             },
             createdAt = optString("createdAt").takeIf { it.isNotBlank() }
                 ?: java.time.Instant.now().toString(),
+            title = optString("title").takeIf { it.isNotBlank() },
+            url = optString("url").takeIf { it.isNotBlank() },
+            previewImageUrl = optString("previewImageUrl").takeIf { it.isNotBlank() },
+            siteName = optString("siteName").takeIf { it.isNotBlank() },
         )
     }
 
