@@ -18,6 +18,7 @@ struct ContentView: View {
     @ObservedObject private var returnRouter = ReturnNotificationRouter.shared
     @State private var selectedTab: LBTab = .home
     @StateObject private var aiManager = LaterAIManager.shared
+    @ObservedObject private var clipboardManager = ClipboardDetectionManager.shared
 
     var body: some View {
         ZStack {
@@ -79,6 +80,23 @@ struct ContentView: View {
         }
         .animation(.spring(response: 0.45, dampingFraction: 0.85), value: coordinator.hasAccess)
 
+        // In-App Top Slide-Down Notification Banner for Copied Items
+        if clipboardManager.isShowingBanner, let item = clipboardManager.detectedItem, coordinator.hasAccess {
+            VStack {
+                CopiedItemBannerView(item: item)
+                    .padding(.horizontal, 16)
+                    .padding(.top, 6)
+                Spacer()
+            }
+            .transition(
+                .asymmetric(
+                    insertion: .move(edge: .top).combined(with: .opacity),
+                    removal: .move(edge: .top).combined(with: .opacity)
+                )
+            )
+            .zIndex(150)
+        }
+
         // Later AI Dropdown Full Screen Interface with Feathered Fading Curtain
         if (aiManager.isShowingLaterAI || aiManager.flowProgress > 0) && coordinator.hasAccess {
             LaterAIView(isPresented: $aiManager.isShowingLaterAI, progress: $aiManager.flowProgress)
@@ -94,6 +112,7 @@ struct ContentView: View {
         }
     }
     .animation(.spring(response: 0.35, dampingFraction: 0.85), value: lockManager.isLocked)
+    .animation(.spring(response: 0.44, dampingFraction: 0.82), value: clipboardManager.isShowingBanner)
     .onReceive(returnRouter.$itemID) { id in
         if id != nil {
             try? SharedCaptureImporter.refresh(context: modelContext)
@@ -106,6 +125,9 @@ struct ContentView: View {
             do { try await Task.sleep(for: .seconds(30)) } catch { break }
         }
     }
+    .onAppear {
+        clipboardManager.checkForCopiedItem()
+    }
     .onChange(of: coordinator.isProUser) { _, active in
         if active { Task { await coordinator.syncPendingItems(context: modelContext) } }
     }
@@ -113,6 +135,7 @@ struct ContentView: View {
         if newPhase == .active {
             try? SharedCaptureImporter.refresh(context: modelContext)
             Task { await coordinator.refreshEntitlement(); await coordinator.syncPendingItems(context: modelContext) }
+            clipboardManager.checkForCopiedItem()
         }
         if newPhase == .background {
             lockManager.lockAppIfNeeded()
