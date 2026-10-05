@@ -97,6 +97,18 @@ public struct ItemDetailView: View {
                             .foregroundColor(AppTheme.textPrimary)
                             .lineLimit(1...4)
 
+                        if let desc = item.metadataDescription, !desc.isEmpty, !LinkMetadataLoader.isGenericDescription(desc) {
+                            Text(desc)
+                                .font(.subheadline)
+                                .foregroundColor(AppTheme.textSecondary)
+                                .lineLimit(3)
+                        } else if !item.summary.isEmpty {
+                            Text(item.summary)
+                                .font(.subheadline)
+                                .foregroundColor(AppTheme.textSecondary)
+                                .lineLimit(3)
+                        }
+
                         HStack(spacing: 6) {
                             Image(systemName: "clock")
                                 .font(.caption2)
@@ -321,6 +333,35 @@ public struct ItemDetailView: View {
                                 }
                             }
 
+                            // Description if present
+                            if let desc = item.metadataDescription, !desc.isEmpty, !LinkMetadataLoader.isGenericDescription(desc), desc != item.summary {
+                                Divider()
+                                VStack(alignment: .leading, spacing: 6) {
+                                    HStack(spacing: 6) {
+                                        Image(systemName: "text.alignleft")
+                                            .font(.caption.weight(.bold))
+                                            .foregroundColor(AppTheme.textPrimary)
+                                        Text("Description")
+                                            .font(.caption.weight(.bold))
+                                            .foregroundColor(AppTheme.textPrimary)
+                                    }
+                                    Text(desc)
+                                        .font(.subheadline)
+                                        .foregroundColor(AppTheme.textSecondary)
+                                        .lineSpacing(3)
+                                }
+                                .padding(12)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                        .fill(AppTheme.background)
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                                .strokeBorder(AppTheme.cardBorder, lineWidth: 1)
+                                        )
+                                )
+                            }
+
                             // AI Summary if present
                             if !item.summary.isEmpty {
                                 Divider()
@@ -449,6 +490,15 @@ public struct ItemDetailView: View {
             }
         }
         .onDisappear { Task { await coordinator.syncPendingItems(context: modelContext) } }
+        .task {
+            let needsTitleHeal = LinkMetadataLoader.isGenericTitle(item.title)
+            let needsDescHeal = item.metadataDescription != nil && LinkMetadataLoader.isGenericDescription(item.metadataDescription)
+            let junkTags: Set<String> = ["sharing", "camera phone", "video phone", "free", "upload", "playlist", "video playlist"]
+            let hasJunkTags = item.tags.contains { junkTags.contains($0.lowercased()) }
+            if (needsTitleHeal || needsDescHeal || hasJunkTags) && item.url != nil {
+                await coordinator.enrich(item: item, context: modelContext)
+            }
+        }
         .navigationTitle("Details")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
