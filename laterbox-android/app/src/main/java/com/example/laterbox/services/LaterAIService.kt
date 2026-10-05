@@ -12,7 +12,7 @@ class LaterAIService(private val context: android.content.Context? = null) : Aut
     private val model = Generation.getClient()
     suspend fun status(): Int = withTimeout(10000) {
         if (context != null && SecureSettings(context).provider != "device" && AccountService.state.value.pro && SecureSettings(context).apiKey().isNotBlank()) FeatureStatus.AVAILABLE
-        else model.checkStatus()
+        else if (context != null && RemoteAIService.available(context)) FeatureStatus.AVAILABLE else model.checkStatus()
     }
     suspend fun download(onProgress: (String) -> Unit) {
         model.download().collect { state ->
@@ -41,7 +41,9 @@ class LaterAIService(private val context: android.content.Context? = null) : Aut
         """.trimIndent()
         val response = withTimeout(45000) {
             if (context != null && SecureSettings(context).provider != "device" && AccountService.state.value.pro) CustomAIService.generate(context, prompt)
-            else model.generateContent(prompt).candidates.firstOrNull()?.text.orEmpty()
+            else try { model.generateContent(prompt).candidates.firstOrNull()?.text.orEmpty() }
+            catch (cancelled: kotlinx.coroutines.CancellationException) { throw cancelled }
+            catch (failure: Exception) { if (context != null && RemoteAIService.available(context)) RemoteAIService.generate(context, prompt) else throw failure }
         }
         return AIAction.parse(response)
     }

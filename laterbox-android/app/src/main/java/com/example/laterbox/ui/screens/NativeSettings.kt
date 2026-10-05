@@ -49,6 +49,10 @@ fun NativeSettings(repository: DataRepository, onAuth: () -> Unit, onTrash: () -
         item { Text("Later AI", style = MaterialTheme.typography.titleLarge) }
         item { Choice("On-device Gemini Nano", "Free where supported. Guided capture is always available.") { message = "Open Later AI to check availability or download the local model. Cloud AI is disabled by default." } }
         item { Choice("Configure AI models & keys", "On-device and Pro custom providers") { aiSettings = true } }
+        if (RemoteAIService.ENABLED && account.pro) item {
+            var fallback by remember { mutableStateOf(preferences.getBoolean("gemini_fallback", false)) }
+            Row { Text("Use Pro Gemini after local failures", Modifier.weight(1f)); Switch(fallback, { fallback = it; preferences.edit().putBoolean("gemini_fallback", it).apply() }) }
+        }
         item { Text("Privacy & alerts", style = MaterialTheme.typography.titleLarge) }
         item { Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text("Lock with biometrics or device PIN"); Switch(lock, { enabled -> if (!enabled || AppLockService.supported(context)) { lock = enabled; preferences.edit().putBoolean("app_lock", enabled).apply() } else message = "Set up a screen lock or biometrics first." }) } }
         item { Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text("Hide screenshots and previews"); Switch(protect, { protect = it; preferences.edit().putBoolean("screen_protection", it).apply(); val activity = context as? android.app.Activity; if (it) activity?.window?.addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE) else activity?.window?.clearFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE) }) } }
