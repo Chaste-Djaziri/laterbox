@@ -272,6 +272,51 @@ extension LaterAITests {
         #expect(interpretation.contentType == "document")
         #expect(interpretation.returnWindow == "thisWeek")
     }
+    @Test func clipboardPayloadParserDetectsURLsAndNoteTypes() {
+        let youtubePayload = ClipboardDetectionManager.parsePayload(from: "https://www.youtube.com/watch?v=dQw4w9WgXcQ")
+        #expect(youtubePayload.isURL == true)
+        #expect(youtubePayload.titlePreview == "youtube.com")
+        #expect(youtubePayload.systemIcon == "play.rectangle.fill")
+
+        let githubPayload = ClipboardDetectionManager.parsePayload(from: "https://github.com/swiftlang/swift")
+        #expect(githubPayload.isURL == true)
+        #expect(githubPayload.titlePreview == "github.com")
+        #expect(githubPayload.systemIcon == "chevron.left.forwardslash.chevron.right")
+
+        let notePayload = ClipboardDetectionManager.parsePayload(from: "Groceries to buy:\n- Apples\n- Bread")
+        #expect(notePayload.isURL == false)
+        #expect(notePayload.titlePreview == "Groceries to buy:")
+        #expect(notePayload.systemIcon == "doc.text.fill")
+    }
+    @Test func clipboardManagerDismissAndConfirmLifecycle() {
+        let testDefaults = UserDefaults(suiteName: "test_clipboard_\(UUID().uuidString)")!
+        let manager = ClipboardDetectionManager(userDefaults: testDefaults)
+
+        let payload = ClipboardDetectionManager.parsePayload(from: "https://news.ycombinator.com")
+        manager.detectedItem = payload
+        manager.isShowingBanner = true
+
+        #expect(manager.isShowingBanner == true)
+        #expect(manager.detectedItem?.titlePreview == "news.ycombinator.com")
+
+        // Dismissal clears banner and detected item
+        manager.dismiss()
+        #expect(manager.isShowingBanner == false)
+        #expect(manager.detectedItem == nil)
+
+        // Internal copy recording
+        manager.recordInternalCopy("https://laterbox.app/internal-link")
+    }
+    @Test func laterAIManagerOpenWithAttachedSubject() {
+        let aiManager = LaterAIManager.shared
+        aiManager.open(with: "https://swift.org", autoSend: true)
+        #expect(aiManager.isShowingLaterAI == true)
+        #expect(aiManager.flowProgress == 1.0)
+        #expect(aiManager.attachedSubject == "https://swift.org")
+        #expect(aiManager.initialPrompt == "https://swift.org")
+
+        aiManager.dismiss()
+    }
 }
 @MainActor
 private final class MockCloudTransport: IOSCloudTransport {
