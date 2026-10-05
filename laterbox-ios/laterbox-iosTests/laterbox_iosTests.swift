@@ -1,6 +1,7 @@
 import Testing
 import SwiftData
 import Foundation
+import UserNotifications
 @testable import laterbox_ios
 
 @Suite(.serialized)
@@ -210,6 +211,10 @@ extension LaterAITests {
         let transport = MockCloudTransport(); transport.failUpload = true
         await #expect(throws: URLError.self) { try await coordinator.performCloudSync(context: context, transport: transport) }
         #expect(item.isSyncPending)
+    }
+    @Test func notificationStatusAndPermissionsAPIAvailable() async {
+        let status = await ReturnNotification.currentAuthorizationStatus()
+        #expect([UNAuthorizationStatus.notDetermined, .denied, .authorized, .provisional, .ephemeral].contains(status))
     }
 }
 @MainActor
