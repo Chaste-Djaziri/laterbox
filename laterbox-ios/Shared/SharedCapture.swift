@@ -100,6 +100,37 @@ enum SharedCaptureStore {
     }
 }
 enum ReturnNotification {
+    static func currentAuthorizationStatus() async -> UNAuthorizationStatus {
+        let settings = await UNUserNotificationCenter.current().notificationSettings()
+        return settings.authorizationStatus
+    }
+
+    static func requestPermissions() async throws -> Bool {
+        let center = UNUserNotificationCenter.current()
+        return try await center.requestAuthorization(options: [.alert, .sound, .badge])
+    }
+
+    static func sendTestNotification(delaySeconds: TimeInterval = 2.0) async throws -> Bool {
+        let center = UNUserNotificationCenter.current()
+        let settings = await center.notificationSettings()
+        let isAuthorized = settings.authorizationStatus == .authorized || settings.authorizationStatus == .provisional
+        if !isAuthorized {
+            let requested = try await requestPermissions()
+            guard requested else { return false }
+        }
+
+        let content = UNMutableNotificationContent()
+        content.title = "LaterBox Notification Test"
+        content.body = "Notifications are active and working! You'll receive alerts when saved items return to your inbox."
+        content.sound = .default
+        content.userInfo = ["isTest": true]
+
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: max(1.0, delaySeconds), repeats: false)
+        let request = UNNotificationRequest(identifier: "laterbox-test-notification-\(UUID().uuidString)", content: content, trigger: trigger)
+        try await center.add(request)
+        return true
+    }
+
     static func update(id: String, title: String, date: Date?) async throws -> Bool {
         let center = UNUserNotificationCenter.current()
         center.removePendingNotificationRequests(withIdentifiers: [id])
