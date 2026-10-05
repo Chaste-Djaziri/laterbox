@@ -4,9 +4,16 @@ import SwiftUI
 public struct AppIconSelectionView: View {
     @Environment(\.dismiss) private var dismiss
     @StateObject private var iconManager = AppIconManager.shared
-    @State private var hoveredIconId: String? = nil
+    @State private var selectedCategory: String = "All"
 
     public init() {}
+
+    private var filteredIcons: [AppIconOption] {
+        if selectedCategory == "All" {
+            return AppIconManager.availableIcons
+        }
+        return AppIconManager.availableIcons.filter { $0.category == selectedCategory }
+    }
 
     public var body: some View {
         ZStack {
@@ -43,7 +50,7 @@ public struct AppIconSelectionView: View {
 
                     Spacer()
 
-                    // Balance layout with hidden placeholder
+                    // Balance layout with invisible counter-spacer
                     HStack(spacing: 6) {
                         Image(systemName: "chevron.left")
                             .font(.system(size: 16, weight: .bold))
@@ -56,31 +63,63 @@ public struct AppIconSelectionView: View {
                 }
                 .padding(.horizontal, 18)
                 .padding(.top, 14)
-                .padding(.bottom, 12)
+                .padding(.bottom, 10)
 
                 ScrollView {
                     VStack(alignment: .leading, spacing: 20) {
                         // Hero Spotlight Card
                         heroSpotlightCard
 
-                        // Section Title
-                        HStack {
-                            Text("Available Themes")
-                                .font(.caption.weight(.bold))
-                                .foregroundColor(.secondary)
-                                .textCase(.uppercase)
+                        // Category Filter Carousel
+                        VStack(alignment: .leading, spacing: 10) {
+                            HStack {
+                                Text("Icon Collections")
+                                    .font(.caption.weight(.bold))
+                                    .foregroundColor(.secondary)
+                                    .textCase(.uppercase)
 
-                            Spacer()
+                                Spacer()
 
-                            Text("\(AppIconManager.availableIcons.count) variants")
-                                .font(.caption2.weight(.medium))
-                                .foregroundColor(AppTheme.textSecondary)
+                                Text("\(filteredIcons.count) of \(AppIconManager.availableIcons.count)")
+                                    .font(.caption2.weight(.medium))
+                                    .foregroundColor(AppTheme.textSecondary)
+                            }
+                            .padding(.horizontal, 4)
+
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: 8) {
+                                    ForEach(AppIconManager.categories, id: \.self) { cat in
+                                        let isSelected = selectedCategory == cat
+                                        Button(action: {
+                                            LBHaptic.light()
+                                            withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) {
+                                                selectedCategory = cat
+                                            }
+                                        }) {
+                                            Text(cat)
+                                                .font(.caption.weight(isSelected ? .bold : .medium))
+                                                .foregroundColor(isSelected ? AppTheme.textPrimary : AppTheme.textSecondary)
+                                                .padding(.horizontal, 14)
+                                                .padding(.vertical, 7)
+                                                .background(
+                                                    Capsule()
+                                                        .fill(isSelected ? AppTheme.accent : Color.black.opacity(0.04))
+                                                )
+                                                .overlay(
+                                                    Capsule()
+                                                        .strokeBorder(isSelected ? AppTheme.textPrimary.opacity(0.15) : Color.clear, lineWidth: 1)
+                                                )
+                                        }
+                                        .buttonStyle(.plain)
+                                    }
+                                }
+                                .padding(.horizontal, 2)
+                            }
                         }
-                        .padding(.horizontal, 4)
 
                         // Icon Selection Cards
                         VStack(spacing: 12) {
-                            ForEach(AppIconManager.availableIcons) { option in
+                            ForEach(filteredIcons) { option in
                                 iconRowCard(for: option)
                             }
                         }
@@ -91,7 +130,7 @@ public struct AppIconSelectionView: View {
                                 Image(systemName: "info.circle.fill")
                                     .font(.caption2)
                                     .foregroundColor(AppTheme.textSecondary)
-                                Text("iOS displays a brief system prompt to confirm home screen icon updates.")
+                                Text("iOS displays a brief confirmation dialog when updating the home screen icon.")
                                     .font(.caption2)
                                     .foregroundColor(AppTheme.textSecondary)
                             }
@@ -128,15 +167,15 @@ public struct AppIconSelectionView: View {
                 // Radial ambient glow matching theme
                 RadialGradient(
                     colors: [
-                        current.accentColor.opacity(0.25),
-                        current.accentColor.opacity(0.05),
+                        current.accentColor.opacity(0.28),
+                        current.accentColor.opacity(0.06),
                         Color.clear
                     ],
                     center: .center,
                     startRadius: 10,
-                    endRadius: 90
+                    endRadius: 95
                 )
-                .frame(width: 180, height: 180)
+                .frame(width: 190, height: 190)
 
                 VStack(spacing: 8) {
                     // App Icon Render
@@ -144,14 +183,14 @@ public struct AppIconSelectionView: View {
                         Image(current.previewImageName)
                             .resizable()
                             .scaledToFit()
-                            .frame(width: 76, height: 76)
+                            .frame(width: 78, height: 78)
                             .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
                             .overlay(
                                 RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                    .strokeBorder(Color.white.opacity(0.3), lineWidth: 1.5)
+                                    .strokeBorder(Color.white.opacity(0.35), lineWidth: 1.5)
                             )
-                            .shadow(color: Color.black.opacity(0.18), radius: 10, x: 0, y: 5)
-                            .shadow(color: current.accentColor.opacity(0.3), radius: 14, x: 0, y: 4)
+                            .shadow(color: Color.black.opacity(0.2), radius: 10, x: 0, y: 5)
+                            .shadow(color: current.accentColor.opacity(0.35), radius: 16, x: 0, y: 4)
 
                         if iconManager.isChanging {
                             ProgressView()
@@ -165,26 +204,26 @@ public struct AppIconSelectionView: View {
                         .foregroundColor(AppTheme.textPrimary)
                 }
             }
-            .frame(height: 120)
+            .frame(height: 124)
 
             Divider().background(AppTheme.cardBorder)
 
             // Current Active Details
             HStack(alignment: .center) {
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: 3) {
                     HStack(spacing: 6) {
                         Text(current.name)
                             .font(.headline.weight(.bold))
                             .foregroundColor(AppTheme.textPrimary)
 
-                        Text(current.badgeText)
-                            .font(.caption2.weight(.bold))
-                            .foregroundColor(AppTheme.textPrimary)
-                            .padding(.horizontal, 7)
+                        Text(current.category)
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundColor(AppTheme.textSecondary)
+                            .padding(.horizontal, 6)
                             .padding(.vertical, 2)
                             .background(
                                 Capsule()
-                                    .fill(current.accentColor.opacity(0.25))
+                                    .fill(Color.black.opacity(0.05))
                             )
                     }
 
@@ -240,17 +279,17 @@ public struct AppIconSelectionView: View {
                     Image(option.previewImageName)
                         .resizable()
                         .scaledToFit()
-                        .frame(width: 54, height: 54)
-                        .clipShape(RoundedRectangle(cornerRadius: 13, style: .continuous))
+                        .frame(width: 56, height: 56)
+                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                         .overlay(
-                            RoundedRectangle(cornerRadius: 13, style: .continuous)
-                                .strokeBorder(Color.white.opacity(0.25), lineWidth: 1)
+                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                .strokeBorder(Color.white.opacity(0.3), lineWidth: 1)
                         )
-                        .shadow(color: Color.black.opacity(0.08), radius: 4, x: 0, y: 2)
+                        .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
 
                     if isSelected {
-                        RoundedRectangle(cornerRadius: 13, style: .continuous)
-                            .strokeBorder(AppTheme.accent, lineWidth: 2)
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .strokeBorder(AppTheme.accent, lineWidth: 2.5)
                     }
                 }
 
@@ -313,11 +352,11 @@ public struct AppIconSelectionView: View {
             .padding(14)
             .background(
                 RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .fill(isSelected ? AppTheme.accent.opacity(0.12) : AppTheme.cardBackground)
+                    .fill(isSelected ? AppTheme.accent.opacity(0.14) : AppTheme.cardBackground)
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .strokeBorder(isSelected ? AppTheme.accent.opacity(0.8) : AppTheme.cardBorder, lineWidth: isSelected ? 1.5 : 1)
+                    .strokeBorder(isSelected ? AppTheme.accent.opacity(0.85) : AppTheme.cardBorder, lineWidth: isSelected ? 1.5 : 1)
             )
             .shadow(color: Color.black.opacity(0.02), radius: 4, x: 0, y: 1)
         }

@@ -11,6 +11,7 @@ public struct AppIconOption: Identifiable, Equatable, Hashable {
     public let description: String
     public let accentHex: String
     public let badgeText: String
+    public let category: String
 
     public var isDefault: Bool {
         iconName == nil
@@ -28,7 +29,8 @@ public struct AppIconOption: Identifiable, Equatable, Hashable {
         subtitle: String,
         description: String,
         accentHex: String,
-        badgeText: String
+        badgeText: String,
+        category: String = "Signature"
     ) {
         self.id = id
         self.name = name
@@ -38,6 +40,7 @@ public struct AppIconOption: Identifiable, Equatable, Hashable {
         self.description = description
         self.accentHex = accentHex
         self.badgeText = badgeText
+        self.category = category
     }
 }
 
@@ -52,7 +55,19 @@ public final class AppIconManager: ObservableObject {
     @Published public private(set) var isChanging: Bool = false
     @Published public var errorMessage: String? = nil
 
+    public static let categories: [String] = [
+        "All",
+        "Signature",
+        "Gaming",
+        "Anime",
+        "Horror",
+        "Gadgets",
+        "Animation",
+        "Tech & Geek"
+    ]
+
     public static let availableIcons: [AppIconOption] = [
+        // MARK: - Signature Themes
         AppIconOption(
             id: "default",
             name: "Classic Charcoal",
@@ -61,7 +76,8 @@ public final class AppIconManager: ObservableObject {
             subtitle: "Signature Dark & Amber",
             description: "The original balanced LaterBox design featuring warm ivory canvas and muted dark surfaces.",
             accentHex: "F59E0B",
-            badgeText: "Default"
+            badgeText: "Default",
+            category: "Signature"
         ),
         AppIconOption(
             id: "dark",
@@ -71,7 +87,8 @@ public final class AppIconManager: ObservableObject {
             subtitle: "Pitch Black & Indigo",
             description: "Deep OLED true black surfaces with frosted dark glass and subtle luminescent edges.",
             accentHex: "6366F1",
-            badgeText: "Dark"
+            badgeText: "Dark",
+            category: "Signature"
         ),
         AppIconOption(
             id: "emerald",
@@ -81,7 +98,8 @@ public final class AppIconManager: ObservableObject {
             subtitle: "Botanical Green & Glass",
             description: "Vibrant organic mint and emerald hues inspired by lush canopy tones and calm clarity.",
             accentHex: "10B981",
-            badgeText: "Eco"
+            badgeText: "Eco",
+            category: "Signature"
         ),
         AppIconOption(
             id: "neon",
@@ -91,7 +109,8 @@ public final class AppIconManager: ObservableObject {
             subtitle: "Electric Cyan & Violet",
             description: "High-contrast synthwave aesthetic with radiant electric cyan and vaporwave gradients.",
             accentHex: "06B6D4",
-            badgeText: "Vibrant"
+            badgeText: "Vibrant",
+            category: "Signature"
         ),
         AppIconOption(
             id: "sunset",
@@ -101,7 +120,8 @@ public final class AppIconManager: ObservableObject {
             subtitle: "Warm Copper & Gold",
             description: "Warm golden-hour radiance with rich copper gradients and dusk glow accents.",
             accentHex: "F97316",
-            badgeText: "Warm"
+            badgeText: "Warm",
+            category: "Signature"
         ),
         AppIconOption(
             id: "monochrome",
@@ -111,7 +131,76 @@ public final class AppIconManager: ObservableObject {
             subtitle: "Minimalist Slate & Steel",
             description: "Stripped back timeless grayscale for minimalists who appreciate subtle editorial clarity.",
             accentHex: "71717A",
-            badgeText: "Minimal"
+            badgeText: "Minimal",
+            category: "Signature"
+        ),
+
+        // MARK: - Fun, Games, Anime, Pop Culture & Tech
+        AppIconOption(
+            id: "arcade",
+            name: "Pixel Arcade",
+            iconName: "AppIcon-Arcade",
+            previewImageName: "AppIconPreview-Arcade",
+            subtitle: "8-Bit Retro Gaming",
+            description: "Glossy neon retro arcade joystick and glowing action buttons on cosmic deep indigo.",
+            accentHex: "EC4899",
+            badgeText: "Retro",
+            category: "Gaming"
+        ),
+        AppIconOption(
+            id: "anime",
+            name: "Cyber Mecha",
+            iconName: "AppIcon-Anime",
+            previewImageName: "AppIconPreview-Anime",
+            subtitle: "Neo-Tokyo Mecha Visor",
+            description: "Intense robotic optical visor with electric cyan, magenta neon wings and sharp sci-fi armor.",
+            accentHex: "06B6D4",
+            badgeText: "Mecha",
+            category: "Anime"
+        ),
+        AppIconOption(
+            id: "horror",
+            name: "Phantom Ghost",
+            iconName: "AppIcon-Horror",
+            previewImageName: "AppIconPreview-Horror",
+            subtitle: "Ethereal Spectral Wisp",
+            description: "Cute & eerie glowing phantom ghost surrounded by mysterious violet flame wisps.",
+            accentHex: "A855F7",
+            badgeText: "Spooky",
+            category: "Horror"
+        ),
+        AppIconOption(
+            id: "gadget",
+            name: "Cyber Cassette",
+            iconName: "AppIcon-Gadget",
+            previewImageName: "AppIconPreview-Gadget",
+            subtitle: "Holographic Glass Tape",
+            description: "Futuristic transparent acrylic cassette cartridge packed with glowing circuit lines and tape reels.",
+            accentHex: "F59E0B",
+            badgeText: "Gizmo",
+            category: "Gadgets"
+        ),
+        AppIconOption(
+            id: "animation",
+            name: "Cosmic Pop",
+            iconName: "AppIcon-Animation",
+            previewImageName: "AppIconPreview-Animation",
+            subtitle: "3D Claymorphic Mascot",
+            description: "Joyful animated star character floating among bubbly pastel sparkle orbs and soft candy skies.",
+            accentHex: "FBBF24",
+            badgeText: "Kawaii",
+            category: "Animation"
+        ),
+        AppIconOption(
+            id: "terminal",
+            name: "Matrix Terminal",
+            iconName: "AppIcon-Terminal",
+            previewImageName: "AppIconPreview-Terminal",
+            subtitle: "Retro Phosphor CRT",
+            description: "Curved cathode-ray tube monitor flashing radiant phosphor green command line matrix code.",
+            accentHex: "22C55E",
+            badgeText: "Hacker",
+            category: "Tech & Geek"
         )
     ]
 
@@ -128,7 +217,6 @@ public final class AppIconManager: ObservableObject {
     }
 
     public init() {
-        // Fast start from cached selection
         let cachedId = UserDefaults.standard.string(forKey: userDefaultsKey) ?? "default"
         self.currentIconId = cachedId
         self.refreshCurrentIcon()

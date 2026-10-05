@@ -462,37 +462,63 @@ extension LaterAITests {
     @Test
     func appIconOptionsAndManagerDefaults() {
         let icons = AppIconManager.availableIcons
-        #expect(icons.count == 6)
+        #expect(icons.count == 12)
 
         // Default icon has nil iconName (system primary)
         let defaultIcon = icons.first(where: { $0.id == "default" })
         #expect(defaultIcon != nil)
         #expect(defaultIcon?.iconName == nil)
         #expect(defaultIcon?.isDefault == true)
+        #expect(defaultIcon?.category == "Signature")
 
-        // Alternate icons have valid names
+        // Alternate icons have valid names and categories
         let darkIcon = icons.first(where: { $0.id == "dark" })
         #expect(darkIcon?.iconName == "AppIcon-Dark")
 
         let emeraldIcon = icons.first(where: { $0.id == "emerald" })
         #expect(emeraldIcon?.iconName == "AppIcon-Emerald")
 
-        let monochromeIcon = icons.first(where: { $0.id == "monochrome" })
-        #expect(monochromeIcon?.iconName == "AppIcon-Monochrome")
+        let arcadeIcon = icons.first(where: { $0.id == "arcade" })
+        #expect(arcadeIcon?.iconName == "AppIcon-Arcade")
+        #expect(arcadeIcon?.category == "Gaming")
 
-        let neonIcon = icons.first(where: { $0.id == "neon" })
-        #expect(neonIcon?.iconName == "AppIcon-Neon")
+        let animeIcon = icons.first(where: { $0.id == "anime" })
+        #expect(animeIcon?.iconName == "AppIcon-Anime")
+        #expect(animeIcon?.category == "Anime")
 
-        let sunsetIcon = icons.first(where: { $0.id == "sunset" })
-        #expect(sunsetIcon?.iconName == "AppIcon-Sunset")
+        let horrorIcon = icons.first(where: { $0.id == "horror" })
+        #expect(horrorIcon?.iconName == "AppIcon-Horror")
+        #expect(horrorIcon?.category == "Horror")
+
+        let gadgetIcon = icons.first(where: { $0.id == "gadget" })
+        #expect(gadsetIcon?.iconName == "AppIcon-Gadget")
+        #expect(gadsetIcon?.category == "Gadgets")
+
+        let animationIcon = icons.first(where: { $0.id == "animation" })
+        #expect(animationIcon?.iconName == "AppIcon-Animation")
+        #expect(animationIcon?.category == "Animation")
+
+        let terminalIcon = icons.first(where: { $0.id == "terminal" })
+        #expect(terminalIcon?.iconName == "AppIcon-Terminal")
+        #expect(terminalIcon?.category == "Tech & Geek")
 
         for icon in icons {
             #expect(!icon.name.isEmpty)
             #expect(!icon.previewImageName.isEmpty)
             #expect(!icon.subtitle.isEmpty)
+            #expect(!icon.description.isEmpty)
             #expect(!icon.accentHex.isEmpty)
             #expect(!icon.badgeText.isEmpty)
+            #expect(!icon.category.isEmpty)
         }
+
+        #expect(AppIconManager.categories.contains("All"))
+        #expect(AppIconManager.categories.contains("Gaming"))
+        #expect(AppIconManager.categories.contains("Anime"))
+        #expect(AppIconManager.categories.contains("Horror"))
+        #expect(AppIconManager.categories.contains("Gadgets"))
+        #expect(AppIconManager.categories.contains("Animation"))
+        #expect(AppIconManager.categories.contains("Tech & Geek"))
 
         let manager = AppIconManager.shared
         #expect(!manager.currentIconId.isEmpty)
