@@ -22,7 +22,12 @@ import UniformTypeIdentifiers
                     item.tags = capture.tags; item.category = capture.category
                     item.attachmentsData = try JSONEncoder().encode(capture.attachments)
                     context.insert(item)
-                    do { try context.save() } catch { context.delete(item); throw error }
+                    do {
+                        try context.save()
+                        if item.url != nil {
+                            Task { await SyncCoordinator.shared.enrich(item: item, context: context) }
+                        }
+                    } catch { context.delete(item); throw error }
                 }
                 try FileManager.default.removeItem(at: file)
             }
