@@ -3,12 +3,20 @@ class NativeSharePayload {
     required this.id,
     required this.filePaths,
     this.text,
+    this.title,
+    this.url,
+    this.previewImageUrl,
+    this.siteName,
     this.createdAt,
     this.returnAt,
   });
 
   final String id;
   final String? text;
+  final String? title;
+  final String? url;
+  final String? previewImageUrl;
+  final String? siteName;
   final List<String> filePaths;
   final DateTime? createdAt;
   final DateTime? returnAt;
@@ -52,12 +60,21 @@ class NativeSharePayload {
       }
     }
 
-    if ((textValue == null || textValue.isEmpty) && paths.isEmpty) return null;
+    if ((textValue == null || textValue.isEmpty) && paths.isEmpty && (map['url'] == null || (map['url'] as String).trim().isEmpty)) return null;
     final createdAtValue = map['createdAt'] as String?;
     final returnAtValue = (map['returnAt'] as String?)?.trim();
+    final titleValue = (map['title'] as String?)?.trim();
+    final urlValue = (map['url'] as String?)?.trim();
+    final previewImageUrlValue = (map['previewImageUrl'] as String?)?.trim();
+    final siteNameValue = (map['siteName'] as String?)?.trim();
+
     return NativeSharePayload(
       id: id,
       text: textValue == null || textValue.isEmpty ? null : textValue,
+      title: titleValue == null || titleValue.isEmpty ? null : titleValue,
+      url: urlValue == null || urlValue.isEmpty ? null : urlValue,
+      previewImageUrl: previewImageUrlValue == null || previewImageUrlValue.isEmpty ? null : previewImageUrlValue,
+      siteName: siteNameValue == null || siteNameValue.isEmpty ? null : siteNameValue,
       filePaths: paths,
       createdAt: createdAtValue == null
           ? null
