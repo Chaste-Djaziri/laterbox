@@ -413,6 +413,39 @@ extension LaterAITests {
         #expect(!ContentFormatMode.html.icon.isEmpty)
         #expect(!ContentFormatMode.raw.icon.isEmpty)
     }
+
+    @Test func duplicateDetectionAndStorageBreakdown() throws {
+        // 1. Storage Breakdown
+        let breakdown = StorageBreakdown(databaseBytes: 10_000_000, attachmentsBytes: 5_000_000, cacheBytes: 5_000_000)
+        #expect(breakdown.totalBytes == 20_000_000)
+        #expect(!breakdown.formattedTotal.isEmpty)
+        #expect(breakdown.databasePercentage == 0.5)
+        #expect(breakdown.attachmentsPercentage == 0.25)
+        #expect(breakdown.cachePercentage == 0.25)
+
+        // 2. Duplicate Detection by URL
+        let item1 = LBItem(id: "1", url: "https://example.com/article", title: "Article 1", createdAt: Date(timeIntervalSince1970: 1000))
+        let item2 = LBItem(id: "2", url: "https://example.com/article/", title: "Article 1 Duplicate", createdAt: Date(timeIntervalSince1970: 2000))
+        let item3 = LBItem(id: "3", url: "https://example.com/other", title: "Other Article", createdAt: Date(timeIntervalSince1970: 3000))
+
+        let groups = LocalStorageManager.findDuplicates(in: [item1, item2, item3])
+        #expect(groups.count == 1)
+        #expect(groups[0].primaryItem.id == "2") // Newer item is primary
+        #expect(groups[0].duplicates.count == 1)
+        #expect(groups[0].duplicates[0].id == "1")
+
+        // 3. Excludes deleted items
+        let deletedItem = LBItem(id: "4", url: "https://example.com/other", title: "Other Article Deleted", status: .deleted)
+        let groupsWithDeleted = LocalStorageManager.findDuplicates(in: [item3, deletedItem])
+        #expect(groupsWithDeleted.isEmpty)
+
+        // 4. Duplicate Detection by Title (non-URL)
+        let note1 = LBItem(id: "5", title: "Meeting Notes", createdAt: Date(timeIntervalSince1970: 100))
+        let note2 = LBItem(id: "6", title: "meeting notes", createdAt: Date(timeIntervalSince1970: 200))
+        let noteGroups = LocalStorageManager.findDuplicates(in: [note1, note2])
+        #expect(noteGroups.count == 1)
+        #expect(noteGroups[0].primaryItem.id == "6")
+    }
 }
 @MainActor
 private final class MockCloudTransport: IOSCloudTransport {
