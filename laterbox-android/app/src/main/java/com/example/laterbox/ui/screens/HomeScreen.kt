@@ -1,7 +1,7 @@
 package com.example.laterbox.ui.screens
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -14,19 +14,18 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Inbox
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -41,16 +40,23 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.laterbox.R
 import com.example.laterbox.data.DataRepository
 import com.example.laterbox.theme.LaterboxAccent
 import com.example.laterbox.theme.LaterboxAmber
+import com.example.laterbox.theme.LaterboxBg
+import com.example.laterbox.theme.LaterboxBorder
+import com.example.laterbox.theme.LaterboxCard
 import com.example.laterbox.theme.LaterboxDarkSurface
 import com.example.laterbox.theme.LaterboxEmerald
 import com.example.laterbox.theme.LaterboxIndigo
-import com.example.laterbox.theme.LaterboxRose
+import com.example.laterbox.theme.LaterboxTextPrimary
+import com.example.laterbox.theme.LaterboxTextSecondary
 import com.example.laterbox.ui.components.ItemCardView
 import com.example.laterbox.ui.components.SummaryMetricCard
 import com.example.laterbox.ui.components.SystemStatusIndicator
@@ -73,46 +79,49 @@ fun HomeScreen(
     val todayStr = LocalDate.now().toString()
     val dueTodayItems = items.filter { it.returnAt?.startsWith(todayStr) == true }
     val starredItems = items.filter { it.favorite }
-    val recentItems = items.take(5)
+    val recentItems = items.take(6)
 
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background),
+            .background(LaterboxBg),
         contentPadding = PaddingValues(horizontal = 20.dp, vertical = 20.dp),
         verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
-        // App Header: Branding + Live Web System Status + AI Trigger
+        // App Header: Official Logo / Icon + Brand Name + Live Web System Status + AI Trigger
         item {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Column {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Image(
+                        painter = painterResource(id = R.drawable.laterbox_icon_green),
+                        contentDescription = "Laterbox",
+                        modifier = Modifier
+                            .size(32.dp)
+                            .clip(RoundedCornerShape(8.dp)),
+                        contentScale = ContentScale.Fit
+                    )
+
+                    Column {
                         Text(
                             text = "laterbox",
-                            fontSize = 24.sp,
+                            fontSize = 22.sp,
                             fontWeight = FontWeight.Black,
                             letterSpacing = (-0.5).sp,
-                            color = MaterialTheme.colorScheme.onBackground
+                            color = LaterboxTextPrimary
                         )
-                        Box(
-                            modifier = Modifier
-                                .size(8.dp)
-                                .clip(CircleShape)
-                                .background(LaterboxAmber)
+                        Text(
+                            text = "Save now, return when ready",
+                            fontSize = 12.sp,
+                            color = LaterboxTextSecondary
                         )
                     }
-                    Text(
-                        text = "Save now, return when ready",
-                        fontSize = 13.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
                 }
 
                 Row(
@@ -256,7 +265,7 @@ fun HomeScreen(
                         text = "Returns Hub",
                         fontSize = 17.sp,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onBackground
+                        color = LaterboxTextPrimary
                     )
                     Text(
                         text = "View All",
@@ -276,11 +285,11 @@ fun HomeScreen(
                             .weight(1f)
                             .clickable { onNavigateToTab(2) },
                         shape = RoundedCornerShape(14.dp),
-                        color = MaterialTheme.colorScheme.surface,
-                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+                        color = LaterboxCard,
+                        border = androidx.compose.foundation.BorderStroke(1.dp, LaterboxBorder)
                     ) {
                         Row(
-                            modifier = Modifier.padding(12.dp),
+                            modifier = Modifier.padding(14.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
@@ -291,8 +300,8 @@ fun HomeScreen(
                                 modifier = Modifier.size(16.dp)
                             )
                             Column {
-                                Text(text = "Today", fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                                Text(text = "${dueTodayItems.size} items", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(text = "Today", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = LaterboxTextPrimary)
+                                Text(text = "${dueTodayItems.size} items", fontSize = 11.sp, color = LaterboxTextSecondary)
                             }
                         }
                     }
@@ -302,23 +311,23 @@ fun HomeScreen(
                             .weight(1f)
                             .clickable { onNavigateToTab(2) },
                         shape = RoundedCornerShape(14.dp),
-                        color = MaterialTheme.colorScheme.surface,
-                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+                        color = LaterboxCard,
+                        border = androidx.compose.foundation.BorderStroke(1.dp, LaterboxBorder)
                     ) {
                         Row(
-                            modifier = Modifier.padding(12.dp),
+                            modifier = Modifier.padding(14.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             Icon(
-                                imageVector = Icons.Default.TrendingUp,
+                                imageVector = Icons.AutoMirrored.Filled.TrendingUp,
                                 contentDescription = null,
                                 tint = LaterboxIndigo,
                                 modifier = Modifier.size(16.dp)
                             )
                             Column {
-                                Text(text = "Upcoming", fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                                Text(text = "Scheduled", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(text = "Upcoming", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = LaterboxTextPrimary)
+                                Text(text = "Scheduled", fontSize = 11.sp, color = LaterboxTextSecondary)
                             }
                         }
                     }
@@ -337,13 +346,13 @@ fun HomeScreen(
                     text = "Recent Captures",
                     fontSize = 17.sp,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onBackground
+                    color = LaterboxTextPrimary
                 )
                 if (items.isNotEmpty()) {
                     Text(
                         text = "${items.size} total",
                         fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = LaterboxTextSecondary
                     )
                 }
             }
@@ -354,8 +363,8 @@ fun HomeScreen(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+                    colors = CardDefaults.cardColors(containerColor = LaterboxCard),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, LaterboxBorder)
                 ) {
                     Column(
                         modifier = Modifier
@@ -367,19 +376,19 @@ fun HomeScreen(
                         Icon(
                             imageVector = Icons.Default.Inbox,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            tint = LaterboxTextSecondary,
                             modifier = Modifier.size(36.dp)
                         )
                         Text(
                             text = "No saved items yet",
                             fontSize = 15.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onSurface
+                            color = LaterboxTextPrimary
                         )
                         Text(
                             text = "Tap '+ New' above to save your first link or note.",
                             fontSize = 13.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = LaterboxTextSecondary
                         )
                     }
                 }

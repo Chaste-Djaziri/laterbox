@@ -1,5 +1,6 @@
 package com.example.laterbox.ui.screens
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -20,13 +21,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.FilterList
-import androidx.compose.material.icons.filled.Sort
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -40,13 +39,21 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.laterbox.R
 import com.example.laterbox.data.DataRepository
 import com.example.laterbox.theme.LaterboxAccent
+import com.example.laterbox.theme.LaterboxBg
+import com.example.laterbox.theme.LaterboxBorder
+import com.example.laterbox.theme.LaterboxCard
 import com.example.laterbox.theme.LaterboxDarkSurface
 import com.example.laterbox.theme.LaterboxEmerald
+import com.example.laterbox.theme.LaterboxTextPrimary
+import com.example.laterbox.theme.LaterboxTextSecondary
 import com.example.laterbox.ui.components.ItemCardView
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -93,7 +100,7 @@ fun InboxScreen(
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background),
+            .background(LaterboxBg),
         contentPadding = PaddingValues(horizontal = 20.dp, vertical = 20.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
@@ -108,11 +115,20 @@ fun InboxScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
+                    Image(
+                        painter = painterResource(id = R.drawable.laterbox_icon_green),
+                        contentDescription = null,
+                        modifier = Modifier
+                            .size(26.dp)
+                            .clip(RoundedCornerShape(6.dp)),
+                        contentScale = ContentScale.Fit
+                    )
+
                     Text(
                         text = "Inbox",
                         fontSize = 24.sp,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onBackground
+                        color = LaterboxTextPrimary
                     )
 
                     Surface(
@@ -132,8 +148,8 @@ fun InboxScreen(
                 // Sort toggle (FIFO / LIFO)
                 Surface(
                     shape = RoundedCornerShape(10.dp),
-                    color = MaterialTheme.colorScheme.surface,
-                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                    color = LaterboxCard,
+                    border = androidx.compose.foundation.BorderStroke(1.dp, LaterboxBorder),
                     modifier = Modifier.clickable { isFifoAscending = !isFifoAscending }
                 ) {
                     Row(
@@ -142,15 +158,15 @@ fun InboxScreen(
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Sort,
+                            imageVector = Icons.AutoMirrored.Filled.Sort,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            tint = LaterboxTextSecondary,
                             modifier = Modifier.size(14.dp)
                         )
                         Text(
                             text = if (isFifoAscending) "Oldest first" else "Newest first",
                             fontSize = 12.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = LaterboxTextSecondary,
                             fontWeight = FontWeight.Medium
                         )
                     }
@@ -170,9 +186,9 @@ fun InboxScreen(
                     val isSelected = activeFilter == key
                     Surface(
                         shape = RoundedCornerShape(12.dp),
-                        color = if (isSelected) LaterboxDarkSurface else MaterialTheme.colorScheme.surface,
-                        contentColor = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface,
-                        border = if (!isSelected) androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline) else null,
+                        color = if (isSelected) LaterboxDarkSurface else LaterboxCard,
+                        contentColor = if (isSelected) Color.White else LaterboxTextPrimary,
+                        border = if (!isSelected) androidx.compose.foundation.BorderStroke(1.dp, LaterboxBorder) else null,
                         modifier = Modifier.clickable { activeFilter = key }
                     ) {
                         Text(
@@ -192,8 +208,8 @@ fun InboxScreen(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(18.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+                    colors = CardDefaults.cardColors(containerColor = LaterboxCard),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, LaterboxBorder)
                 ) {
                     Column(
                         modifier = Modifier
@@ -220,12 +236,12 @@ fun InboxScreen(
                             text = "Inbox Zero",
                             fontSize = 17.sp,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
+                            color = LaterboxTextPrimary
                         )
                         Text(
                             text = "You have caught up with all your saved captures.",
                             fontSize = 13.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = LaterboxTextSecondary
                         )
                     }
                 }

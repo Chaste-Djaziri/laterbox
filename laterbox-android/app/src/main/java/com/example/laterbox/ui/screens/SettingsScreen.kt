@@ -1,5 +1,6 @@
 package com.example.laterbox.ui.screens
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -17,13 +18,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CloudDone
 import androidx.compose.material.icons.filled.CloudSync
 import androidx.compose.material.icons.filled.Language
-import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.WorkspacePremium
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -31,7 +29,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -44,17 +41,24 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.laterbox.R
 import com.example.laterbox.data.DataRepository
 import com.example.laterbox.theme.LaterboxAccent
 import com.example.laterbox.theme.LaterboxAmber
+import com.example.laterbox.theme.LaterboxBg
+import com.example.laterbox.theme.LaterboxBorder
+import com.example.laterbox.theme.LaterboxCard
 import com.example.laterbox.theme.LaterboxDarkSurface
 import com.example.laterbox.theme.LaterboxEmerald
 import com.example.laterbox.theme.LaterboxIndigo
-import com.example.laterbox.theme.LaterboxRose
+import com.example.laterbox.theme.LaterboxTextPrimary
+import com.example.laterbox.theme.LaterboxTextSecondary
+import com.example.laterbox.ui.components.SystemStatusIndicator
 
 @Composable
 fun SettingsScreen(
@@ -68,27 +72,53 @@ fun SettingsScreen(
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background),
+            .background(LaterboxBg),
         contentPadding = PaddingValues(horizontal = 20.dp, vertical = 20.dp),
         verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
-        // Title
+        // Header Row: Brand Icon + Title + Live Status Indicator
         item {
-            Text(
-                text = "Settings",
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Image(
+                        painter = painterResource(id = R.drawable.laterbox_icon_green),
+                        contentDescription = null,
+                        modifier = Modifier
+                            .size(28.dp)
+                            .clip(RoundedCornerShape(7.dp)),
+                        contentScale = ContentScale.Fit
+                    )
+
+                    Text(
+                        text = "Settings",
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = LaterboxTextPrimary
+                    )
+                }
+
+                SystemStatusIndicator(
+                    isOperational = webStatus.isOperational,
+                    label = webStatus.status.replaceFirstChar { it.uppercase() }
+                )
+            }
         }
 
-        // Account Profile Card
+        // Account Profile Card (Crisp White Card)
         item {
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(18.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+                colors = CardDefaults.cardColors(containerColor = LaterboxCard),
+                border = androidx.compose.foundation.BorderStroke(1.dp, LaterboxBorder),
+                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
             ) {
                 Row(
                     modifier = Modifier
@@ -103,15 +133,15 @@ fun SettingsScreen(
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(44.dp)
+                                .size(46.dp)
                                 .clip(CircleShape)
-                                .background(LaterboxDarkSurface),
+                                .background(LaterboxAccent),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Person,
                                 contentDescription = null,
-                                tint = Color.White,
+                                tint = LaterboxDarkSurface,
                                 modifier = Modifier.size(24.dp)
                             )
                         }
@@ -121,24 +151,24 @@ fun SettingsScreen(
                                 text = "Guest User",
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface
+                                color = LaterboxTextPrimary
                             )
                             Text(
                                 text = "Offline vault active",
                                 fontSize = 13.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = LaterboxTextSecondary
                             )
                         }
                     }
 
                     Button(
                         onClick = onOpenAuth,
-                        shape = RoundedCornerShape(10.dp),
+                        shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = LaterboxDarkSurface,
                             contentColor = Color.White
                         ),
-                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
                     ) {
                         Text("Sign In", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                     }
@@ -146,12 +176,13 @@ fun SettingsScreen(
             }
         }
 
-        // Pro Plan Banner
+        // Pro Plan Banner (Black card matching iOS Plans design)
         item {
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(18.dp),
-                colors = CardDefaults.cardColors(containerColor = LaterboxDarkSurface)
+                colors = CardDefaults.cardColors(containerColor = LaterboxDarkSurface),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
             ) {
                 Column(
                     modifier = Modifier
@@ -208,14 +239,15 @@ fun SettingsScreen(
                     text = "Cloud & Services",
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onBackground
+                    color = LaterboxTextPrimary
                 )
 
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(18.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+                    colors = CardDefaults.cardColors(containerColor = LaterboxCard),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, LaterboxBorder),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
                 ) {
                     Column(
                         modifier = Modifier
@@ -237,7 +269,7 @@ fun SettingsScreen(
                                     modifier = Modifier
                                         .size(36.dp)
                                         .clip(CircleShape)
-                                        .background(LaterboxIndigo.copy(alpha = 0.15f)),
+                                        .background(LaterboxIndigo.copy(alpha = 0.12f)),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
@@ -252,7 +284,8 @@ fun SettingsScreen(
                                     Text(
                                         text = "Web Platform Health",
                                         fontSize = 14.sp,
-                                        fontWeight = FontWeight.SemiBold
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = LaterboxTextPrimary
                                     )
                                     Text(
                                         text = webStatus.label,
@@ -263,7 +296,7 @@ fun SettingsScreen(
                             }
 
                             IconButton(onClick = { repository.refreshWebStatus() }) {
-                                Icon(Icons.Default.Refresh, contentDescription = "Refresh", modifier = Modifier.size(18.dp))
+                                Icon(Icons.Default.Refresh, contentDescription = "Refresh", modifier = Modifier.size(18.dp), tint = LaterboxTextSecondary)
                             }
                         }
 
@@ -281,7 +314,7 @@ fun SettingsScreen(
                                     modifier = Modifier
                                         .size(36.dp)
                                         .clip(CircleShape)
-                                        .background(LaterboxEmerald.copy(alpha = 0.15f)),
+                                        .background(LaterboxEmerald.copy(alpha = 0.12f)),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
@@ -296,12 +329,13 @@ fun SettingsScreen(
                                     Text(
                                         text = "Supabase Cloud Sync",
                                         fontSize = 14.sp,
-                                        fontWeight = FontWeight.SemiBold
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = LaterboxTextPrimary
                                     )
                                     Text(
                                         text = "Offline-first with WorkManager",
                                         fontSize = 12.sp,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        color = LaterboxTextSecondary
                                     )
                                 }
                             }
@@ -311,14 +345,15 @@ fun SettingsScreen(
                                     isSyncing = true
                                     repository.syncNow()
                                 },
-                                shape = RoundedCornerShape(8.dp),
+                                shape = RoundedCornerShape(10.dp),
                                 colors = ButtonDefaults.buttonColors(
-                                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                                    contentColor = MaterialTheme.colorScheme.onSurface
+                                    containerColor = LaterboxBg,
+                                    contentColor = LaterboxTextPrimary
                                 ),
-                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
+                                border = androidx.compose.foundation.BorderStroke(1.dp, LaterboxBorder),
+                                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
                             ) {
-                                Text("Sync Now", fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                                Text("Sync Now", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                             }
                         }
                     }
@@ -333,18 +368,18 @@ fun SettingsScreen(
                     .fillMaxWidth()
                     .padding(vertical = 12.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(4.dp)
+                verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                Text(
-                    text = "Laterbox for Android",
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface
+                Image(
+                    painter = painterResource(id = R.drawable.laterbox_logo),
+                    contentDescription = "Laterbox",
+                    modifier = Modifier.height(24.dp),
+                    contentScale = ContentScale.Fit
                 )
                 Text(
                     text = "Version 1.0.0 · Native Jetpack Compose",
                     fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = LaterboxTextSecondary
                 )
             }
         }
