@@ -12,11 +12,12 @@ android {
     namespace = "com.example.laterbox"
     compileSdk = 36
     defaultConfig {
-        applicationId = "com.example.laterbox"
-        minSdk = 24
+        applicationId = "pro.micorp.laterbox"
+        minSdk = 26
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0"
+        val release = groovy.json.JsonSlurper().parse(rootProject.file("../version.json")) as Map<*, *>
+        versionCode = (release["buildNumber"] as Number).toInt()
+        versionName = release["version"].toString()
         
         val localProperties = Properties()
         val localPropertiesFile = rootProject.file("local.properties")
@@ -56,6 +57,11 @@ kotlin {
 }
 
 dependencies {
+  implementation("com.google.mlkit:genai-prompt:1.0.0-beta4")
+  implementation("org.jsoup:jsoup:1.18.3")
+  implementation("androidx.biometric:biometric:1.1.0")
+  implementation("io.coil-kt:coil-compose:2.7.0")
+  implementation("com.android.billingclient:billing-ktx:8.0.0")
   val composeBom = platform(libs.androidx.compose.bom)
   implementation(composeBom)
   androidTestImplementation(composeBom)
