@@ -9,6 +9,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 - **[macOS] System Status**: Settings now provides a single readiness view for Mac integrations, permissions, sync, notifications, and StoreKit billing, with retry guidance and copyable diagnostics.
 
 ### Fixed
+- **[Web] Cloud Sync Session Recovery & 401 Error Resilience**: Fixed web client syncing errors caused by expired Supabase auth tokens (401 Unauthorized / PGRST301). Added proactive session expiration checks and token refresh in `ItemContext`, auto-refresh and retry in `syncPendingCaptures`, and resilient session recovery in `BillingContext` before entitlement verification.
 - **[iOS] Share sheet Later AI parity**: Shared captures now use the same black chat shell, header, message styling, and green composer as in-app Later AI.
 - **[Cloud Sync & Health Monitoring] Modern Supabase Key Authentication**: Fixed Cloud Sync database health check failing with 401 (`PGRST301: Expected 3 parts in JWT; got 1`) by attaching `Bearer` authorization only to JWT tokens while providing `apikey` for modern Supabase key formats, ensuring uninterrupted cloud sync monitoring across Better Stack status checks.
 - **[macOS] Quick Capture removal**: macOS no longer registers the floating Quick Capture hotkey or exposes it in the menu-bar menu or Settings; use the standard Save Item workflow and Companion instead.
