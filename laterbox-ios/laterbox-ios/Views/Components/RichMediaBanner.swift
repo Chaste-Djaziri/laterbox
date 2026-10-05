@@ -21,6 +21,66 @@ public struct RichMediaBanner: View {
     }
 
     public var body: some View {
+        Group {
+            if let previewImageUrl, let imgUrl = URL(string: previewImageUrl), !previewImageUrl.isEmpty {
+                ZStack(alignment: .bottomLeading) {
+                    AsyncImage(url: imgUrl) { phase in
+                        switch phase {
+                        case .success(let image):
+                            image
+                                .resizable()
+                                .aspectRatio(contentMode: .fill)
+                                .frame(maxWidth: .infinity, maxHeight: 130)
+                                .clipped()
+                                .overlay(
+                                    LinearGradient(
+                                        colors: [Color.clear, Color.black.opacity(0.85)],
+                                        startPoint: .top,
+                                        endPoint: .bottom
+                                    )
+                                )
+                                .overlay(alignment: .bottomLeading) {
+                                    HStack(spacing: 8) {
+                                        Image(systemName: type.systemIcon)
+                                            .font(.caption.weight(.bold))
+                                            .foregroundColor(AppTheme.accent)
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text(title.isEmpty ? (url ?? "Web Resource") : title)
+                                                .font(.subheadline.weight(.semibold))
+                                                .foregroundColor(.white)
+                                                .lineLimit(1)
+                                        }
+                                        Spacer()
+                                        Image(systemName: "arrow.up.right")
+                                            .font(.caption.weight(.semibold))
+                                            .foregroundColor(.white.opacity(0.8))
+                                    }
+                                    .padding(.horizontal, 14)
+                                    .padding(.bottom, 10)
+                                }
+                        case .failure:
+                            fallbackBanner
+                        case .empty:
+                            ZStack {
+                                fallbackBanner
+                                ProgressView()
+                                    .tint(.white)
+                            }
+                        @unknown default:
+                            fallbackBanner
+                        }
+                    }
+                }
+                .frame(height: 130)
+            } else {
+                fallbackBanner
+                    .frame(height: 72)
+            }
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
+
+    private var fallbackBanner: some View {
         ZStack {
             switch type {
             case .music:
@@ -182,7 +242,5 @@ public struct RichMediaBanner: View {
                 .padding(.horizontal, 16)
             }
         }
-        .frame(height: 72)
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 }
