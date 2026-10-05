@@ -219,6 +219,50 @@ function detectEmbed(rawUrl: string): EmbedInfo | null {
   return null;
 }
 
+interface OEmbedData {
+  title?: string;
+  author_name?: string;
+  thumbnail_url?: string;
+  provider_name?: string;
+  description?: string;
+}
+
+async function fetchOEmbed(rawUrl: string, host: string): Promise<OEmbedData | null> {
+  try {
+    let oembedEndpoint = '';
+    if (host.includes('youtube.com') || host === 'youtu.be') {
+      oembedEndpoint = `https://www.youtube.com/oembed?url=${encodeURIComponent(rawUrl)}&format=json`;
+    } else if (host.includes('vimeo.com')) {
+      oembedEndpoint = `https://vimeo.com/api/oembed.json?url=${encodeURIComponent(rawUrl)}`;
+    } else if (host.includes('spotify.com')) {
+      oembedEndpoint = `https://open.spotify.com/oembed?url=${encodeURIComponent(rawUrl)}`;
+    } else if (host.includes('soundcloud.com')) {
+      oembedEndpoint = `https://soundcloud.com/oembed?url=${encodeURIComponent(rawUrl)}&format=json`;
+    }
+    if (!oembedEndpoint) return null;
+    const res = await fetch(oembedEndpoint, { signal: AbortSignal.timeout(6000) });
+    if (!res.ok) return null;
+    return (await res.json()) as OEmbedData;
+  } catch {
+    return null;
+  }
+}
+
+function isGenericTitle(t: string | null | undefined): boolean {
+  if (!t) return true;
+  const l = t.trim().toLowerCase();
+  return (
+    l.length === 0 ||
+    l === 'youtube' ||
+    l.includes('video playlist') ||
+    l === 'untitled' ||
+    l.startsWith('http://') ||
+    l.startsWith('https://') ||
+    l === 'watch' ||
+    l === 'before you continue to youtube'
+  );
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
@@ -230,6 +274,10 @@ export async function POST(req: NextRequest) {
 
     const target = new URL(rawUrl);
     const domain = target.hostname.replace(/^www\./i, '');
+    const host = target.hostname.toLowerCase().replace(/^www\./i, '');
+
+    // Fast-path oEmbed query for media sites (YouTube, Vimeo, Spotify, SoundCloud)
+    const oembedPromise = fetchOEmbed(rawUrl, host);
 
     let html = '';
     let finalUrl = target.toString();
@@ -268,18 +316,28 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    const oembed = await oembedPromise;
     const finalUri = new URL(finalUrl);
-    const title =
+
+    let title =
+      (oembed?.title && !isGenericTitle(oembed.title) ? oembed.title : null) ||
       extractMeta(html, 'og:title') ||
       extractMeta(html, 'twitter:title') ||
-      extractTitle(html) ||
-      domain;
+      extractTitle(html);
+
+    if (isGenericTitle(title) && oembed?.title) {
+      title = oembed.title;
+    }
+    if (!title || isGenericTitle(title)) {
+      title = domain;
+    }
 
     const description =
       extractMeta(html, 'og:description') ||
       extractMeta(html, 'twitter:description') ||
       extractMeta(html, 'description') ||
-      null;
+      oembed?.description ||
+      (oembed?.author_name ? `${oembed.provider_name || 'Media'} by ${oembed.author_name}` : null);
 
     const rawImage =
       extractMeta(html, 'og:image') ||
@@ -287,13 +345,52 @@ export async function POST(req: NextRequest) {
       extractMeta(html, 'twitter:image') ||
       extractMeta(html, 'twitter:image:src');
 
-    const previewImageUrl = resolveAbsoluteUrl(rawImage, finalUrl);
-    const siteName = extractMeta(html, 'og:site_name') || extractMeta(html, 'application-name') || domain;
+    let previewImageUrl = resolveAbsoluteUrl(rawImage, finalUrl) || oembed?.thumbnail_url || null;
+
+    // For YouTube, ensure high-quality thumbnail if present
+    const ytMatch = rawUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/))([\w-]{11})/);
+    if (ytMatch?.[1] && (!previewImageUrl || previewImageUrl.includes('hqdefault'))) {
+      previewImageUrl = `https://i.ytimg.com/vi/${ytMatch[1]}/hqdefault.jpg`;
+    }
+
+    const siteName =
+      oembed?.provider_name ||
+      extractMeta(html, 'og:site_name') ||
+      extractMeta(html, 'application-name') ||
+      (host.includes('youtube') ? 'YouTube' : domain);
+
     const faviconUrl = extractFavicon(html, finalUrl) || `https://www.google.com/s2/favicons?domain=${domain}&sz=128`;
     const ogType = extractMeta(html, 'og:type');
     const contentType = classifyUrl(finalUri, ogType);
     const embed = detectEmbed(rawUrl);
-    const keywords = extractKeywords(html);
+
+    // Build intelligent, contextual keywords from page and oEmbed metadata
+    const extractedKeywords = extractKeywords(html);
+    if (oembed?.title) {
+      const titleTokens = oembed.title
+        .split(/[/|\\:–—•[\](){}"]+/)
+        .map((t) => t.trim().toLowerCase())
+        .filter((t) => t.length > 2 && t.length < 35);
+      extractedKeywords.push(...titleTokens);
+    }
+    if (oembed?.author_name) {
+      extractedKeywords.push(oembed.author_name.toLowerCase());
+    }
+    if (host.includes('youtube') || host === 'youtu.be') {
+      extractedKeywords.push('video', 'youtube');
+    }
+
+    // Deduplicate and filter out standalone generic 'playlist'
+    const seen = new Set<string>();
+    const keywords = extractedKeywords
+      .map((k) => k.replace(/[#_]/g, ' ').trim().toLowerCase())
+      .filter((k) => k.length > 1 && k !== 'playlist' && k !== 'video playlist')
+      .filter((k) => {
+        if (seen.has(k)) return false;
+        seen.add(k);
+        return true;
+      })
+      .slice(0, 10);
 
     const result = {
       domain,
@@ -305,18 +402,16 @@ export async function POST(req: NextRequest) {
       favicon_url: faviconUrl,
       previewImageUrl,
       preview_image_url: previewImageUrl,
-      // Real tags/keywords extracted from the page
       keywords,
-      // Embed player info — present for YouTube, Spotify, SoundCloud, Vimeo, Lyrica
-      embedProvider: embed?.embedProvider ?? null,
+      embedProvider: embed?.embedProvider ?? oembed?.provider_name ?? null,
       embedUrl: embed?.embedUrl ?? null,
       embedHeight: embed?.embedHeight ?? null,
       classification: {
         contentType,
         type: contentType,
         content_type: contentType,
-        confidence: 0.9,
-        source: 'htmlMeta',
+        confidence: 0.95,
+        source: oembed ? 'oEmbed' : 'htmlMeta',
       },
     };
 
