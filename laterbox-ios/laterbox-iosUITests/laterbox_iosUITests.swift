@@ -26,6 +26,8 @@ final class laterbox_iosUITests: XCTestCase {
         noReminder.tap()
         XCTAssertTrue(app.buttons["Save to Vault"].waitForExistence(timeout: 5))
         app.buttons["Save to Vault"].tap()
+        let savedNoReminder = app.buttons.matching(NSPredicate(format: "label CONTAINS[c] %@", "No Reminder")).firstMatch
+        if savedNoReminder.waitForExistence(timeout: 3) { savedNoReminder.tap() }
         let undo = app.buttons.matching(NSPredicate(format: "label CONTAINS[c] %@", "Undo Save")).firstMatch
         XCTAssertTrue(undo.waitForExistence(timeout: 5))
         let attachment = XCTAttachment(screenshot: app.screenshot())
