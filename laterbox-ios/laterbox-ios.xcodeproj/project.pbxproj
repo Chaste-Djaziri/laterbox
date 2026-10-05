@@ -508,7 +508,7 @@
 		5194A51A3072E2E100DE79B5 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES = "AppIcon-Dark AppIcon-Emerald AppIcon-Monochrome AppIcon-Neon AppIcon-Sunset";
+				ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES = "AppIcon-Dark AppIcon-Emerald AppIcon-Monochrome AppIcon-Neon AppIcon-Sunset AppIcon-Arcade AppIcon-Anime AppIcon-Horror AppIcon-Gadget AppIcon-Animation AppIcon-Terminal";
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
@@ -564,7 +564,7 @@
 		5194A51B3072E2E100DE79B5 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES = "AppIcon-Dark AppIcon-Emerald AppIcon-Monochrome AppIcon-Neon AppIcon-Sunset";
+				ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES = "AppIcon-Dark AppIcon-Emerald AppIcon-Monochrome AppIcon-Neon AppIcon-Sunset AppIcon-Arcade AppIcon-Anime AppIcon-Horror AppIcon-Gadget AppIcon-Animation AppIcon-Terminal";
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
