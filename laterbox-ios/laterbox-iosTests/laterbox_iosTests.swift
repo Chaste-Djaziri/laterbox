@@ -446,6 +446,18 @@ extension LaterAITests {
         #expect(noteGroups.count == 1)
         #expect(noteGroups[0].primaryItem.id == "6")
     }
+
+    @Test
+    func appVersionResolutionAndFormatting() {
+        #expect(!AppVersion.currentVersion.isEmpty)
+        #expect(!AppVersion.currentBuild.isEmpty)
+        #expect(AppVersion.displayString.hasPrefix("Version "))
+        #expect(AppVersion.displayString.contains("(Build "))
+        #expect(AppVersion.displayString.contains(AppVersion.currentVersion))
+        #expect(AppVersion.displayString.contains(AppVersion.currentBuild))
+        #expect(!AppVersion.marketingVersion.isEmpty)
+        #expect(!AppVersion.buildNumber.isEmpty)
+    }
 }
 @MainActor
 private final class MockCloudTransport: IOSCloudTransport {
