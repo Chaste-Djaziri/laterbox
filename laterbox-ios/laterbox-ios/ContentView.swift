@@ -19,6 +19,7 @@ struct ContentView: View {
     @State private var selectedTab: LBTab = .home
     @StateObject private var aiManager = LaterAIManager.shared
     @ObservedObject private var clipboardManager = ClipboardDetectionManager.shared
+    @State private var itemToPresent: LBItem? = nil
 
     var body: some View {
         ZStack {
@@ -114,9 +115,32 @@ struct ContentView: View {
     .animation(.spring(response: 0.35, dampingFraction: 0.85), value: lockManager.isLocked)
     .animation(.spring(response: 0.44, dampingFraction: 0.82), value: clipboardManager.isShowingBanner)
     .onReceive(returnRouter.$itemID) { id in
-        if id != nil {
-            try? SharedCaptureImporter.refresh(context: modelContext)
-            selectedTab = .inbox
+        guard let id = id, !id.isEmpty else { return }
+        try? SharedCaptureImporter.refresh(context: modelContext)
+        selectedTab = .inbox
+
+        let descriptor = FetchDescriptor<LBItem>(predicate: #Predicate { $0.id == id })
+        if let matchingItem = try? modelContext.fetch(descriptor).first {
+            aiManager.isShowingLaterAI = false
+            coordinator.showingQuickCapture = false
+            itemToPresent = matchingItem
+            returnRouter.itemID = nil
+        } else {
+            Task {
+                try? await Task.sleep(for: .milliseconds(350))
+                try? SharedCaptureImporter.refresh(context: modelContext)
+                if let delayedItem = try? modelContext.fetch(descriptor).first {
+                    aiManager.isShowingLaterAI = false
+                    coordinator.showingQuickCapture = false
+                    itemToPresent = delayedItem
+                    returnRouter.itemID = nil
+                }
+            }
+        }
+    }
+    .sheet(item: $itemToPresent) { item in
+        NavigationStack {
+            ItemDetailView(item: item, isModal: true)
         }
     }
     .task {
