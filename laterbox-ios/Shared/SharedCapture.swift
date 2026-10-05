@@ -15,6 +15,9 @@ struct SharedCapture: Codable, Identifiable {
     var category = ""
     var returnAt: Date?
     var attachments: [SharedAttachment] = []
+    var previewImageUrl: String?
+    var siteName: String?
+    var metadataDescription: String?
 }
 enum SharedCaptureStore {
     static let group = "group.pro.micorp.laterbox"
