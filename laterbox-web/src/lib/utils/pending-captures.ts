@@ -43,19 +43,9 @@ export async function syncPendingCaptures(userId: string) {
   const items = Object.values(queue);
   if (items.length === 0) return;
 
-  // Proactively check and refresh expired session before triggering REST requests
   const { data: sessionData } = await client.auth.getSession();
-  let session = sessionData?.session;
+  const session = sessionData?.session;
   if (!session) return;
-
-  if (session.expires_at && session.expires_at * 1000 < Date.now() + 60000) {
-    const { data: refreshed, error: refreshError } = await client.auth.refreshSession();
-    if (!refreshError && refreshed?.session) {
-      session = refreshed.session;
-    } else {
-      return;
-    }
-  }
 
   for (const item of items) {
     let { data: remote, error: readError } = await client
@@ -65,39 +55,21 @@ export async function syncPendingCaptures(userId: string) {
       .eq('user_id', userId)
       .maybeSingle();
 
-    if (readError && isAuthError(readError)) {
-      const { data: refreshed, error: refreshError } = await client.auth.refreshSession();
-      if (!refreshError && refreshed?.session) {
-        const retry = await client
-          .from('items')
-          .select('updated_at,deleted_at')
-          .eq('id', item.id)
-          .eq('user_id', userId)
-          .maybeSingle();
-        remote = retry.data;
-        readError = retry.error;
-      } else {
-        throw readError;
-      }
+    if (readError) {
+      console.warn('[pending-captures] error reading remote item:', readError);
+      continue;
     }
-    if (readError) throw readError;
 
     if (!remote || new Date(remote.updated_at) <= new Date(item.updated_at)) {
       await uploadWithNotificationHandoff(item.id, item.return_at, async () => {
-        let { error } = remote
+        const { error } = remote
           ? await client.from('items').update(itemRow(item)).eq('id', item.id).eq('user_id', userId).lte('updated_at', item.updated_at)
           : await client.from('items').upsert(itemRow(item));
 
-        if (error && isAuthError(error)) {
-          const { data: refreshed } = await client.auth.refreshSession();
-          if (refreshed?.session) {
-            const retry = remote
-              ? await client.from('items').update(itemRow(item)).eq('id', item.id).eq('user_id', userId).lte('updated_at', item.updated_at)
-              : await client.from('items').upsert(itemRow(item));
-            error = retry.error;
-          }
+        if (error) {
+          console.warn('[pending-captures] error upserting item:', error);
+          throw error;
         }
-        if (error) throw error;
       });
     }
     if (!item.deleted_at && !remote?.deleted_at) {
