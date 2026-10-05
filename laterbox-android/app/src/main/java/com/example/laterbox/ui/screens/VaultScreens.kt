@@ -88,7 +88,7 @@ fun VaultScreen(tab: Int, repository: DataRepository, onCapture: () -> Unit, onA
         items(if (tab == 0 && query.isEmpty()) filtered.take(10) else filtered, key = { it.id }) { item ->
             ItemCardView(item = item, onToggleFavorite = { scope.launch { repository.toggleFavorite(item.id, item.favorite) } },
                 onMarkDone = { scope.launch { repository.updateItemStatus(item.id, "done") } },
-                onReturn = { scope.launch { repository.scheduleReturn(item.id, java.time.LocalDate.now().plusDays(1).atTime(9,0).atZone(java.time.ZoneId.systemDefault()).toInstant().toString()) } },
+                onScheduleReturn = { date -> scope.launch { repository.scheduleReturn(item.id, date) } },
                 onDelete = { scope.launch { repository.deleteItem(item.id) } }, onClick = { onItem(item) })
         }
     }
