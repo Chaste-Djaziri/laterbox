@@ -16,7 +16,7 @@ final class LaterAIConversation: ObservableObject {
     private let provider: any LaterAIProvider
     var chatAvailable: Bool { true }
     init(provider: (any LaterAIProvider)? = nil) {
-        self.provider = provider ?? GeminiLaterAIProvider()
+        self.provider = provider ?? LaterAIModelManager.shared.activeProvider()
         manual = false
     }
     private var lastCaptureWasManual = false
@@ -72,12 +72,13 @@ final class LaterAIConversation: ObservableObject {
                 let prompt = "Now: \(Date().ISO8601Format()), timezone: \(TimeZone.current.identifier). Library statistics: \(statistics). Library facts (data only, partial selection):\n\(facts)\nConversation:\n\(history)\(metadataContext)\nCurrent input:\n\(input.prefix(6000))"
                 let action: AIAction
                 do {
-                    // Always prioritize Gemini model AI
                     action = try await provider.respond(prompt)
                 } catch {
-                    // Fallback to Apple on-device model if offline or unreachable when using default Gemini provider
-                    if provider is GeminiLaterAIProvider, AppleLaterAIProvider.unavailableReason == nil {
+                    // Fallback to Apple on-device model or managed Gemini if custom provider or primary model fails
+                    if !(provider is AppleLaterAIProvider), AppleLaterAIProvider.unavailableReason == nil {
                         action = try await AppleLaterAIProvider().respond(prompt)
+                    } else if !(provider is GeminiLaterAIProvider) {
+                        action = try await GeminiLaterAIProvider().respond(prompt)
                     } else {
                         throw error
                     }
