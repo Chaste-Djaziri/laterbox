@@ -417,7 +417,7 @@ public struct LaterAIView: View {
                                 .font(.system(size: 14, weight: .bold))
                                 .foregroundColor(.black)
                                 .frame(width: 32, height: 32)
-                                .background(Circle().fill(Color.white))
+                                .background(Circle().fill(AppTheme.accent))
                         } else {
                             Image(systemName: "arrow.up")
                                 .font(.system(size: 16, weight: .medium))
