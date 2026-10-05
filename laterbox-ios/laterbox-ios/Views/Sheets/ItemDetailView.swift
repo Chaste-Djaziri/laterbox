@@ -8,6 +8,12 @@
 import SwiftUI
 import SwiftData
 import QuickLook
+import SafariServices
+
+struct IdentifiableURL: Identifiable {
+    let id = UUID()
+    let url: URL
+}
 
 public struct ItemDetailView: View {
     @Environment(\.dismiss) private var dismiss
@@ -19,6 +25,8 @@ public struct ItemDetailView: View {
     @State private var showingDeleteConfirm = false
     @State private var saveError: String?
     @State private var attachmentURL: URL?
+    @State private var previewDocumentURL: URL?
+    @State private var showingSafariReader = false
     @State private var tagsText = ""
 
     public init(item: LBItem) {
@@ -33,18 +41,57 @@ public struct ItemDetailView: View {
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
-                    if let data = item.attachmentsData, let files = try? JSONDecoder().decode([SharedAttachment].self, from: data) {
-                        ForEach(files) { file in
-                            Button { attachmentURL = try? SharedCaptureStore.fileURL(file) } label: {
-                                Label(file.name, systemImage: "paperclip")
-                                    .font(.subheadline.weight(.semibold))
-                                    .foregroundColor(AppTheme.textPrimary)
-                                    .padding(.horizontal, 14)
-                                    .padding(.vertical, 12)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .background(AppTheme.accent, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    // Attachments & Files Previews
+                    if let data = item.attachmentsData,
+                       let files = try? JSONDecoder().decode([SharedAttachment].self, from: data),
+                       !files.isEmpty {
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack(spacing: 6) {
+                                Image(systemName: "paperclip")
+                                    .font(.caption.weight(.bold))
+                                    .foregroundColor(AppTheme.textSecondary)
+                                Text("ATTACHMENTS & FILES")
+                                    .font(.caption.weight(.bold))
+                                    .foregroundColor(AppTheme.textSecondary)
+                                    .tracking(0.6)
                             }
-                            .buttonStyle(.plain)
+
+                            ForEach(files) { file in
+                                let fileURL = try? SharedCaptureStore.fileURL(file)
+                                Button {
+                                    if let fileURL {
+                                        previewDocumentURL = fileURL
+                                    }
+                                } label: {
+                                    HStack(spacing: 12) {
+                                        fileIcon(for: file.name)
+                                            .font(.system(size: 18))
+                                            .foregroundColor(AppTheme.accent)
+                                            .frame(width: 36, height: 36)
+                                            .background(AppTheme.background, in: RoundedRectangle(cornerRadius: 10))
+
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text(file.name)
+                                                .font(.subheadline.weight(.semibold))
+                                                .foregroundColor(AppTheme.textPrimary)
+                                                .lineLimit(1)
+                                            Text(file.typeIdentifier.uppercased())
+                                                .font(.system(size: 10, weight: .bold))
+                                                .foregroundColor(AppTheme.textSecondary)
+                                        }
+
+                                        Spacer()
+
+                                        Image(systemName: "eye.fill")
+                                            .font(.caption.weight(.semibold))
+                                            .foregroundColor(AppTheme.textSecondary)
+                                    }
+                                    .padding(.horizontal, 14)
+                                    .padding(.vertical, 10)
+                                    .liquidGlassCard(cornerRadius: 14)
+                                }
+                                .buttonStyle(.plain)
+                            }
                         }
                     }
 
@@ -55,6 +102,12 @@ public struct ItemDetailView: View {
                         title: item.title,
                         previewImageUrl: item.previewImageUrl
                     )
+
+                    // Embedded In-App Media Player (YouTube, Vimeo, Spotify, Apple Music)
+                    let mediaType = EmbeddedMediaType.detect(url: item.url)
+                    if mediaType != .none && mediaType != .webArticle(url: URL(string: item.url ?? "")!) {
+                        InlineVideoEmbedView(embedType: mediaType)
+                    }
 
                     // Title & Source Metadata Card
                     VStack(alignment: .leading, spacing: 10) {
@@ -121,14 +174,31 @@ public struct ItemDetailView: View {
                     .padding(16)
                     .liquidGlassCard(cornerRadius: 18)
 
-                    // Actions Bar: Safari, Share, Status
-                    HStack(spacing: 10) {
+                    // Actions Bar: In-App Reader, Safari, Share, Status
+                    HStack(spacing: 8) {
                         if let urlStr = item.url, let url = URL(string: urlStr) {
+                            Button(action: {
+                                LBHaptic.light()
+                                showingSafariReader = true
+                            }) {
+                                HStack(spacing: 5) {
+                                    Image(systemName: "book.pages")
+                                        .font(.subheadline.weight(.semibold))
+                                    Text("Reader")
+                                        .font(.subheadline.weight(.bold))
+                                }
+                                .foregroundColor(AppTheme.textPrimary)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 12)
+                                .liquidGlassCard(cornerRadius: 14)
+                            }
+                            .buttonStyle(.plain)
+
                             Link(destination: url) {
-                                HStack(spacing: 6) {
+                                HStack(spacing: 5) {
                                     Image(systemName: "safari")
                                         .font(.subheadline.weight(.semibold))
-                                    Text("Open")
+                                    Text("Safari")
                                         .font(.subheadline.weight(.bold))
                                 }
                                 .foregroundColor(AppTheme.textPrimary)
@@ -139,7 +209,7 @@ public struct ItemDetailView: View {
                             .buttonStyle(.plain)
 
                             ShareLink(item: url) {
-                                HStack(spacing: 6) {
+                                HStack(spacing: 5) {
                                     Image(systemName: "square.and.arrow.up")
                                         .font(.subheadline.weight(.semibold))
                                     Text("Share")
@@ -160,7 +230,7 @@ public struct ItemDetailView: View {
                                 coordinator.markDone(item: item, context: modelContext)
                             }
                         }) {
-                            HStack(spacing: 6) {
+                            HStack(spacing: 5) {
                                 Image(systemName: item.status == ItemStatus.saved.rawValue ? "arrow.uturn.backward" : "checkmark")
                                     .font(.subheadline.weight(.bold))
                                 Text(item.status == ItemStatus.saved.rawValue ? "Return" : "Done")
@@ -344,35 +414,6 @@ public struct ItemDetailView: View {
                                 }
                             }
 
-                            // Description if present
-                            if let desc = item.metadataDescription, !desc.isEmpty, !LinkMetadataLoader.isGenericDescription(desc), desc != item.summary {
-                                Divider()
-                                VStack(alignment: .leading, spacing: 6) {
-                                    HStack(spacing: 6) {
-                                        Image(systemName: "text.alignleft")
-                                            .font(.caption.weight(.bold))
-                                            .foregroundColor(AppTheme.textPrimary)
-                                        Text("Description")
-                                            .font(.caption.weight(.bold))
-                                            .foregroundColor(AppTheme.textPrimary)
-                                    }
-                                    Text(desc)
-                                        .font(.subheadline)
-                                        .foregroundColor(AppTheme.textSecondary)
-                                        .lineSpacing(3)
-                                }
-                                .padding(12)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                        .fill(AppTheme.background)
-                                        .overlay(
-                                            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                                .strokeBorder(AppTheme.cardBorder, lineWidth: 1)
-                                        )
-                                )
-                            }
-
                             // AI Summary if present
                             if !item.summary.isEmpty {
                                 Divider()
@@ -402,36 +443,6 @@ public struct ItemDetailView: View {
                                 )
                             }
 
-                            // Original content preview if present
-                            if let original = item.textContent, !original.isEmpty {
-                                Divider()
-                                VStack(alignment: .leading, spacing: 6) {
-                                    Text("Captured Content")
-                                        .font(.caption.weight(.bold))
-                                        .foregroundColor(AppTheme.textSecondary)
-                                    Text(original)
-                                        .font(.caption)
-                                        .foregroundColor(AppTheme.textPrimary)
-                                        .textSelection(.enabled)
-                                        .lineLimit(8)
-                                }
-                            }
-
-                            // Formatted content if present
-                            if !item.formattedContent.isEmpty {
-                                Divider()
-                                VStack(alignment: .leading, spacing: 6) {
-                                    Text("Formatted Content")
-                                        .font(.caption.weight(.bold))
-                                        .foregroundColor(AppTheme.textSecondary)
-                                    Text(item.formattedContent)
-                                        .font(.caption)
-                                        .foregroundColor(AppTheme.textPrimary)
-                                        .textSelection(.enabled)
-                                        .lineLimit(8)
-                                }
-                            }
-
                             if let saveError {
                                 Text(saveError)
                                     .font(.caption)
@@ -442,39 +453,21 @@ public struct ItemDetailView: View {
                         .liquidGlassCard(cornerRadius: 18)
                     }
 
-                    // Notes Section
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("PERSONAL NOTES")
-                            .font(.caption.weight(.bold))
-                            .foregroundColor(AppTheme.textSecondary)
-                            .tracking(0.6)
-
-                        ZStack(alignment: .topLeading) {
-                            if editedNote.isEmpty {
-                                Text("Add personal thoughts, takeaways, or reminders...")
-                                    .font(.subheadline)
-                                    .foregroundColor(AppTheme.textTertiary)
-                                    .padding(.horizontal, 14)
-                                    .padding(.vertical, 12)
-                            }
-
-                            TextEditor(text: $editedNote)
-                                .font(.subheadline)
-                                .foregroundColor(AppTheme.textPrimary)
-                                .scrollContentBackground(.hidden)
-                                .padding(8)
-                                .frame(minHeight: 110)
-                                .onChange(of: editedNote) { _, newVal in
-                                    item.noteContent = newVal
-                                    persistEdit()
-                                }
-                        }
-                        .background(Color.white)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                .strokeBorder(AppTheme.cardBorder, lineWidth: 1)
+                    // Captured Content Viewer (Markdown & HTML Formatting Views)
+                    let captured = item.textContent?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                    let formatted = item.formattedContent.trimmingCharacters(in: .whitespacesAndNewlines)
+                    if !captured.isEmpty || !formatted.isEmpty {
+                        RichCapturedContentViewer(
+                            title: "Captured Content",
+                            content: !captured.isEmpty ? captured : formatted,
+                            formattedHTML: !formatted.isEmpty ? formatted : nil
                         )
-                        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    }
+
+                    // Personal Notes (With Live Markdown & HTML Rendering)
+                    RichNotesCard(text: $editedNote) {
+                        item.noteContent = editedNote
+                        persistEdit()
                     }
 
                     // Delete Button
@@ -499,6 +492,18 @@ public struct ItemDetailView: View {
                 }
                 .padding(20)
             }
+        }
+        .sheet(isPresented: $showingSafariReader) {
+            if let urlStr = item.url, let url = URL(string: urlStr) {
+                SFSafariViewWrapper(url: url, entersReaderIfAvailable: true)
+                    .ignoresSafeArea()
+            }
+        }
+        .sheet(item: Binding<IdentifiableURL?>(
+            get: { previewDocumentURL.map { IdentifiableURL(url: $0) } },
+            set: { previewDocumentURL = $0?.url }
+        )) { doc in
+            DocumentReaderSheet(url: doc.url, title: doc.url.lastPathComponent)
         }
         .onDisappear { Task { await coordinator.syncPendingItems(context: modelContext) } }
         .task {
@@ -538,6 +543,7 @@ public struct ItemDetailView: View {
             Button("Cancel", role: .cancel) {}
         }
     }
+
     private func persistEdit() {
         item.updatedAt = Date()
         item.isSyncPending = true
@@ -545,4 +551,17 @@ public struct ItemDetailView: View {
         catch { saveError = error.localizedDescription }
     }
 
+    private func fileIcon(for filename: String) -> Image {
+        let ext = (filename as NSString).pathExtension.lowercased()
+        switch ext {
+        case "pdf": return Image(systemName: "doc.text.fill")
+        case "jpg", "jpeg", "png", "heic", "webp", "gif": return Image(systemName: "photo.fill")
+        case "mp3", "m4a", "wav", "aac": return Image(systemName: "music.note")
+        case "mp4", "mov", "m4v": return Image(systemName: "film.fill")
+        case "csv", "xlsx", "xls": return Image(systemName: "tablecells.fill")
+        case "md", "txt", "rtf": return Image(systemName: "doc.plaintext.fill")
+        case "json", "js", "ts", "swift", "py", "html": return Image(systemName: "chevron.left.forwardslash.chevron.right")
+        default: return Image(systemName: "doc.fill")
+        }
+    }
 }
