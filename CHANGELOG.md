@@ -21,6 +21,9 @@ All notable user-facing changes to LaterBox will be documented in this file.
 - **[Web] Card action menus**: The three-dot menu now renders above card boundaries and stays visible on small cards or near viewport edges.
 - **[Web] Music source labels**: Music cards and item actions now identify the originating service (including Apple Music and Spotify) and avoid presenting a Spotify label or icon for unrelated music links.
 
+### Changed
+- **[CI/CD] Streamlined Workflows for Native & Next.js Platforms**: Removed legacy Flutter build and test jobs (`analyze-and-test`, `macos-release-contract`, `build-macos`, `build-windows`, `build-linux`, `build-android`, `build-ios`) from GitHub Actions workflows (`ci.yml` and `release.yml`). Dedicated active CI/CD to Next.js web application verification, TypeScript compilation, web unit tests, Cloudflare deployment, and Supabase notification contracts ahead of the transition to Swift and Kotlin native platforms.
+
 ### Added
 - **[iOS] Notification Permissions & Test in Settings**: Added a dedicated Notifications & Alerts section in the Settings page. Users can view current notification permission status, request authorization directly, open system Settings if denied, and dispatch a test return notification with haptic feedback to verify alert delivery and sound.
 - **[iOS] Auto-Create Collections on AI Categorization**: Configured Later AI, Gemini remote model, on-device Apple Intelligence, and the AI Organizer to automatically create new collections in the user's Library whenever an item is filed into a new or non-existent category/collection. Synchronized `item.category` with `item.collectionName` and `item.collectionId`, ensuring AI-categorized items immediately appear under their respective Library collection folders and sync cleanly to the cloud.
