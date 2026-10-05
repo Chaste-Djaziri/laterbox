@@ -223,7 +223,7 @@ const DEFAULT_GUEST_ITEMS: LaterBoxItem[] = [
 ];
 
 export function ItemProvider({ children }: { children: ReactNode }) {
-  const { user } = useAuth();
+  const { user, signOut: authSignOut } = useAuth();
   const { isPro } = useBilling();
   const [items, setItems] = useState<LaterBoxItem[]>([]);
   const [now, setNow] = useState(() => new Date());
@@ -231,6 +231,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
   const [activeFilter, setActiveFilter] = useState<InboxFilterType>('all');
   const [loading, setLoading] = useState(true);
   const [syncStatus, setSyncStatus] = useState<SyncState>('synced');
+  const isFetchingRef = React.useRef(false);
 
   // Load from local storage
   const loadLocalData = useCallback(() => {
@@ -260,6 +261,24 @@ export function ItemProvider({ children }: { children: ReactNode }) {
     }
   }, [user?.id]);
 
+  // Gracefully handle unrecoverable auth failures without infinite re-fetch loops
+  const handleAuthFailure = useCallback(async () => {
+    const supabase = getSupabaseClient();
+    try {
+      await supabase.auth.signOut({ scope: 'local' });
+    } catch {
+      // ignore
+    }
+    try {
+      await authSignOut();
+    } catch {
+      // ignore
+    }
+    loadLocalData();
+    setSyncStatus('offline');
+    setLoading(false);
+  }, [authSignOut, loadLocalData]);
+
   // Save to local storage
   const saveLocalData = useCallback((newItems: LaterBoxItem[], newCols?: Collection[]) => {
     try {
@@ -274,12 +293,15 @@ export function ItemProvider({ children }: { children: ReactNode }) {
 
   // Fetch from Supabase
   const fetchData = useCallback(async () => {
-    if (!user || !isPro) {
+    if (!user || !user.id || !isPro) {
       loadLocalData();
       setSyncStatus('offline');
       setLoading(false);
       return;
     }
+
+    if (isFetchingRef.current) return;
+    isFetchingRef.current = true;
 
     setSyncStatus('syncing');
     try {
@@ -289,9 +311,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
       const { data: sessionData } = await supabase.auth.getSession();
       let currentSession = sessionData?.session;
       if (!currentSession) {
-        loadLocalData();
-        setSyncStatus('offline');
-        setLoading(false);
+        await handleAuthFailure();
         return;
       }
 
@@ -299,10 +319,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
       if (currentSession.expires_at && currentSession.expires_at * 1000 < Date.now() + 60000) {
         const { data: refreshed, error: refreshError } = await supabase.auth.refreshSession();
         if (refreshError || !refreshed?.session) {
-          await supabase.auth.signOut();
-          loadLocalData();
-          setSyncStatus('offline');
-          setLoading(false);
+          await handleAuthFailure();
           return;
         }
         currentSession = refreshed.session;
@@ -315,12 +332,9 @@ export function ItemProvider({ children }: { children: ReactNode }) {
         if (isAuthError(syncErr)) {
           const { data: refreshed, error: refreshError } = await supabase.auth.refreshSession();
           if (!refreshError && refreshed?.session) {
-            await syncPendingCaptures(user.id);
+            await syncPendingCaptures(user.id).catch(() => {});
           } else {
-            await supabase.auth.signOut();
-            loadLocalData();
-            setSyncStatus('offline');
-            setLoading(false);
+            await handleAuthFailure();
             return;
           }
         } else {
@@ -347,16 +361,23 @@ export function ItemProvider({ children }: { children: ReactNode }) {
             .order('created_at', { ascending: false });
           itemRows = retry.data;
           itemError = retry.error;
+          if (itemError && (isAuthError(itemError) || (itemError as any).status === 401 || (itemError as any).code === 'PGRST301')) {
+            await handleAuthFailure();
+            return;
+          }
         } else {
-          await supabase.auth.signOut();
-          loadLocalData();
-          setSyncStatus('offline');
-          setLoading(false);
+          await handleAuthFailure();
           return;
         }
       }
 
-      if (itemError) throw itemError;
+      if (itemError) {
+        if (isAuthError(itemError)) {
+          await handleAuthFailure();
+          return;
+        }
+        throw itemError;
+      }
 
       // Fetch metadata
       const { data: metaRows } = await supabase
@@ -453,13 +474,18 @@ export function ItemProvider({ children }: { children: ReactNode }) {
       setCollections(colRows || []);
       saveLocalData(deduplicated, colRows || []);
       setSyncStatus('synced');
-    } catch {
+    } catch (err) {
+      if (isAuthError(err)) {
+        await handleAuthFailure();
+        return;
+      }
       setSyncStatus('error');
       loadLocalData();
     } finally {
+      isFetchingRef.current = false;
       setLoading(false);
     }
-  }, [user, isPro, loadLocalData, saveLocalData]);
+  }, [user?.id, isPro, loadLocalData, saveLocalData, handleAuthFailure]);
 
   useEffect(() => {
     fetchData();
@@ -752,14 +778,17 @@ export function ItemProvider({ children }: { children: ReactNode }) {
     } catch (err: any) {
       if (isAuthError(err)) {
         const supabase = getSupabaseClient();
-        const { data: refreshed } = await supabase.auth.refreshSession();
-        if (refreshed?.session) {
+        const { data: refreshed, error: refreshError } = await supabase.auth.refreshSession();
+        if (!refreshError && refreshed?.session) {
           try {
             await syncPendingCaptures(userId);
             return;
           } catch {
             // ignore retry error
           }
+        } else {
+          await handleAuthFailure();
+          return;
         }
       }
       setSyncStatus('error');
