@@ -23,7 +23,7 @@ public enum LocalItemSearch {
             let text: String
             if let entry = cache[item.id], entry.0 == item.updatedAt { text = entry.1 }
             else {
-                text = normalize([item.title, item.textContent ?? "", item.noteContent ?? "", item.url ?? "", item.domain ?? "", item.tags.joined(separator: " "), item.category, item.summary, item.formattedContent, item.collectionName ?? ""].joined(separator: " "))
+                text = normalize([item.title, item.textContent ?? "", item.noteContent ?? "", item.url ?? "", item.domain ?? "", item.tags.joined(separator: " "), item.category, item.summary, item.formattedContent, (item.attachmentsData.flatMap { try? JSONDecoder().decode([SharedAttachment].self, from: $0) } ?? []).map(\.name).joined(separator: " "), item.collectionName ?? ""].joined(separator: " "))
                 cache[item.id] = (item.updatedAt, text)
             }
             let words = Array(Set(text.split(whereSeparator: { !$0.isLetter && !$0.isNumber }).map(String.init))).prefix(400)
