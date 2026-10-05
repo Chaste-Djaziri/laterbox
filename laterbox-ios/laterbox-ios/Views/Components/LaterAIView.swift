@@ -476,10 +476,32 @@ public struct LaterAIView: View {
         if conversation.needsReturnDate {
             return [
                 LaterAIOptionItem(
+                    title: "In 10 Minutes",
+                    subtitle: "Quick return",
+                    icon: "timer",
+                    isPrimary: true
+                ) {
+                    let tenMin = Date().addingTimeInterval(600)
+                    sendOptionReply("In 10 minutes") {
+                        conversation.schedule(tenMin, intervalDescription: "(in 10 minutes)", context: modelContext)
+                    }
+                },
+                LaterAIOptionItem(
+                    title: "In 1 Hour",
+                    subtitle: "Later today",
+                    icon: "clock.arrow.circlepath",
+                    isPrimary: false
+                ) {
+                    let oneHour = Date().addingTimeInterval(3600)
+                    sendOptionReply("In 1 hour") {
+                        conversation.schedule(oneHour, intervalDescription: "(in 1 hour)", context: modelContext)
+                    }
+                },
+                LaterAIOptionItem(
                     title: "Tomorrow",
                     subtitle: "9:00 AM",
                     icon: "calendar.badge.clock",
-                    isPrimary: true
+                    isPrimary: false
                 ) {
                     sendOptionReply("Tomorrow") {
                         conversation.schedule(Calendar.current.date(byAdding: .day, value: 1, to: Date()), context: modelContext)
