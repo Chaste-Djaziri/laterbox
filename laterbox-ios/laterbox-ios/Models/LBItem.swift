@@ -14,6 +14,8 @@ public enum ItemContentType: String, Codable, CaseIterable {
     case video
     case music
     case document
+    case image
+    case file
     case note
 
     public var systemIcon: String {
@@ -22,6 +24,8 @@ public enum ItemContentType: String, Codable, CaseIterable {
         case .article: return "doc.text"
         case .video: return "play.rectangle.fill"
         case .music: return "music.note"
+        case .image: return "photo"
+        case .file: return "paperclip"
         case .document: return "doc.fill"
         case .note: return "note.text"
         }
