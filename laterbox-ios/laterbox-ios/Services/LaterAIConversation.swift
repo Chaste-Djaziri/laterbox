@@ -47,7 +47,9 @@ final class LaterAIConversation: ObservableObject {
         let relevant = (matched.isEmpty ? eligible.sorted { $0.createdAt > $1.createdAt } : matched).prefix(6)
         let week = Calendar.current.dateInterval(of: .weekOfYear, for: Date())
         let dueThisWeek = eligible.filter { item in item.returnAt.map { week?.contains($0) ?? false } ?? false }.count
-        let statistics = "Total saved: \(eligible.count). Inbox: \(eligible.filter { $0.status == "inbox" }.count). Returns this calendar week: \(dueThisWeek)."
+        let existingCollections = Array(Set(items.compactMap { $0.collectionName } + ((try? context.fetch(FetchDescriptor<LBCollection>()))?.map(\.name) ?? []))).sorted()
+        let collectionsContext = existingCollections.isEmpty ? "" : " User's existing collections: \(existingCollections.joined(separator: ", "))."
+        let statistics = "Total saved: \(eligible.count). Inbox: \(eligible.filter { $0.status == "inbox" }.count). Returns this calendar week: \(dueThisWeek).\(collectionsContext)"
 
         let facts = relevant.map { "\($0.id): \($0.title), \(($0.summary.isEmpty ? $0.textContent ?? "" : $0.summary).prefix(220)), return: \($0.returnAt?.ISO8601Format() ?? "none")" }.joined(separator: "\n")
         let history = messages.suffix(4).map { "\($0.isUser ? "User" : "Assistant"): \($0.text.prefix(500))" }.joined(separator: "\n")
@@ -93,6 +95,7 @@ final class LaterAIConversation: ObservableObject {
                     let explicitTags = CaptureDraft.manual(input).tags
                     capture.tags = explicitTags.isEmpty ? Array(Set(action.tags.map { $0.lowercased() })).sorted() : explicitTags
                     capture.category = action.category
+                    capture.collectionName = action.category
                     capture.contentType = action.contentType
                     capture.summary = action.summary
                     capture.formattedContent = action.formattedContent
@@ -132,7 +135,30 @@ final class LaterAIConversation: ObservableObject {
                 case "clarify":
                     draft = .manual(input); needsClarification = true
                     messages.append(LaterAIMessage(text: "Would you like to save this to your vault, or are we just chatting?", isUser: false))
-                default: messages.append(LaterAIMessage(text: action.reply, isUser: false))
+                default:
+                    let lower = input.lowercased()
+                    let isOrganizeCommand = lower.contains("collection") || lower.contains("category") || lower.contains("folder") ||
+                                           lower.contains("add to") || lower.contains("move to") || lower.contains("put in") ||
+                                           lower.contains("file under") || lower.contains("organize")
+                    if isOrganizeCommand, !action.category.isEmpty, let targetItem = savedItem ?? relevant.first {
+                        let collName = action.category.trimmingCharacters(in: .whitespacesAndNewlines)
+                        if !collName.isEmpty {
+                            let coll = SyncCoordinator.shared.ensureCollectionExists(named: collName, context: context)
+                            targetItem.collectionName = coll?.name ?? collName
+                            targetItem.collectionId = coll?.id ?? targetItem.collectionId
+                            targetItem.category = coll?.name ?? collName
+                            targetItem.updatedAt = Date()
+                            targetItem.isSyncPending = true
+                            try? context.save()
+                            Task { await SyncCoordinator.shared.syncPendingItems(context: context) }
+                            let replyText = action.reply.isEmpty
+                                ? "Filed ‘\(targetItem.title)’ under the \(coll?.name ?? collName) collection."
+                                : action.reply
+                            messages.append(LaterAIMessage(text: replyText, isUser: false))
+                            break
+                        }
+                    }
+                    messages.append(LaterAIMessage(text: action.reply, isUser: false))
                 }
             } catch {
                 guard !Task.isCancelled, requestID == id else { return }
