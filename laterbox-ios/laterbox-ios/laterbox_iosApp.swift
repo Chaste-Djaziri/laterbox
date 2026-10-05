@@ -10,6 +10,7 @@ import SwiftData
 
 @main
 struct laterbox_iosApp: App {
+    @UIApplicationDelegateAdaptor(ReturnNotificationDelegate.self) private var notificationDelegate
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             LBItem.self,
