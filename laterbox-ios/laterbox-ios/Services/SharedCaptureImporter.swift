@@ -32,6 +32,9 @@ import UniformTypeIdentifiers
                     context.insert(item)
                     do {
                         try context.save()
+                        if item.returnAt != nil {
+                            Task { _ = try? await ReturnNotification.update(id: item.id, title: item.title, date: item.returnAt) }
+                        }
                         if item.url != nil {
                             Task { await SyncCoordinator.shared.enrich(item: item, context: context) }
                         }
@@ -43,6 +46,11 @@ import UniformTypeIdentifiers
         let items = try context.fetch(FetchDescriptor<LBItem>())
         for item in items where item.status == "deferred" && item.returnAt.map({ $0 <= now }) == true {
             item.status = "inbox"; item.updatedAt = now; item.isSyncPending = true
+            let id = item.id
+            let title = item.title
+            Task {
+                _ = try? await ReturnNotification.notifyReturned(id: id, title: title)
+            }
         }
         try context.save()
     }
