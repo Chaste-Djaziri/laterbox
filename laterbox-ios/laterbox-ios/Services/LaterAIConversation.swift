@@ -61,6 +61,10 @@ final class LaterAIConversation: ObservableObject {
                     else { throw error }
                 }
                 guard !Task.isCancelled, requestID == id else { return }
+                // Brief writing pacing so AI appears to write on its end
+                try? await Task.sleep(nanoseconds: 300_000_000)
+                guard !Task.isCancelled, requestID == id else { return }
+
                 switch action.intent {
                 case "capture":
                     guard !action.content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, input.contains(action.content) else { throw AIProviderError.invalidCapture }
@@ -78,10 +82,10 @@ final class LaterAIConversation: ObservableObject {
                     save(context: context)
                 case "search":
                     results = LocalItemSearch.search(action.query.isEmpty ? input : action.query, in: items)
-                    messages.append(LaterAIMessage(text: results.isEmpty ? "No saved items matched. Try a topic, tag, or phrase you remember." : "Found \(results.count) saved items.", isUser: false))
+                    messages.append(LaterAIMessage(text: results.isEmpty ? "No saved items matched. Try a topic, tag, or phrase you remember." : "Found \(results.count) saved items in your vault.", isUser: false))
                 case "clarify":
                     draft = .manual(input); needsClarification = true
-                    messages.append(LaterAIMessage(text: "Would you like to save this, or are we just chatting?", isUser: false))
+                    messages.append(LaterAIMessage(text: "Would you like to save this to your vault, or are we just chatting?", isUser: false))
                 default: messages.append(LaterAIMessage(text: action.reply, isUser: false))
                 }
             } catch {
@@ -100,7 +104,13 @@ final class LaterAIConversation: ObservableObject {
             savedItem = try SyncCoordinator.shared.saveDraft(draft, context: context)
             lastCaptureWasManual = wasManual
             manual = false; needsClarification = false; needsReturnDate = draft.returnAt == nil; error = nil
-            messages.append(LaterAIMessage(text: "Saved ‘\(savedItem!.title)’.", isUser: false))
+            messages.append(LaterAIMessage(text: "Saved ‘\(savedItem!.title)’ to your vault.", isUser: false))
+            if needsReturnDate {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
+                    guard let self else { return }
+                    self.messages.append(LaterAIMessage(text: "When would you like to see it again?", isUser: false))
+                }
+            }
         } catch { self.error = error.localizedDescription }
     }
     func schedule(_ date: Date?, context: ModelContext) {
@@ -111,6 +121,8 @@ final class LaterAIConversation: ObservableObject {
         item.returnAt = date; item.updatedAt = Date(); item.isSyncPending = true
         do {
             try context.save(); needsReturnDate = false
+            let desc = date.map { "for \($0.formatted(date: .abbreviated, time: .shortened))" } ?? "with no reminder (inbox)"
+            messages.append(LaterAIMessage(text: "Scheduled ‘\(item.title)’ \(desc).", isUser: false))
             Task {
                 do {
                     let allowed = try await ReturnNotification.update(id: item.id, title: item.title, date: date)
@@ -129,7 +141,7 @@ final class LaterAIConversation: ObservableObject {
             try context.save(); UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [item.id]); savedItem = nil; needsReturnDate = false
             draft.id = UUID().uuidString
             manual = lastCaptureWasManual
-            messages.append(LaterAIMessage(text: "Removed the saved item.", isUser: false))
+            messages.append(LaterAIMessage(text: "Removed ‘\(item.title)’ from your vault.", isUser: false))
             Task { await SyncCoordinator.shared.syncPendingItems(context: context) }
         }
         catch { item.status = oldStatus; self.error = error.localizedDescription }
