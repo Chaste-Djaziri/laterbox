@@ -68,8 +68,8 @@ final class LocalSearchController: ObservableObject {
                 try await Task.sleep(for: .milliseconds(180))
                 try Task.checkCancellation()
                 results = LocalItemSearch.search(query, in: items, includeDeleted: includeDeleted)
-                if query.split(separator: " ").count > 1, AppleLaterAIProvider.unavailableReason == nil {
-                    let interpretation = try await AppleSearchInterpreter.interpret(query)
+                if query.split(separator: " ").count > 1, LaterAIModelManager.shared.enableSearchRefine {
+                    let interpretation = try await LaterAIModelManager.shared.interpretSearch(query)
                     guard !Task.isCancelled, revision == id else { return }
                     var filtered = items
                     if let type = ItemContentType(rawValue: interpretation.contentType) { filtered = filtered.filter { $0.type == type.rawValue } }
