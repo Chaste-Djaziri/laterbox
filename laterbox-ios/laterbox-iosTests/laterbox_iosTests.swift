@@ -216,6 +216,62 @@ extension LaterAITests {
         let status = await ReturnNotification.currentAuthorizationStatus()
         #expect([UNAuthorizationStatus.notDetermined, .denied, .authorized, .provisional, .ephemeral].contains(status))
     }
+    @Test func modelManagerProviderSwitchingAndPresets() {
+        let manager = LaterAIModelManager.shared
+        let original = (manager.selectedProvider, manager.openAIApiKey, manager.openAIModel)
+        defer {
+            manager.selectedProvider = original.0
+            manager.openAIApiKey = original.1
+            manager.openAIModel = original.2
+        }
+
+        #expect(AIModelPresets.geminiModels.contains("gemini-2.5-flash"))
+        #expect(AIModelPresets.openAIModels.contains("gpt-4o-mini"))
+        #expect(AIModelPresets.claudeModels.contains("claude-3-5-haiku-latest"))
+
+        manager.selectedProvider = .customOpenAI
+        manager.openAIApiKey = "test-key"
+        manager.openAIModel = "gpt-4o"
+        #expect(manager.activeModelName == "gpt-4o")
+        #expect(manager.selectedProvider.isCustomKey == true)
+
+        manager.selectedProvider = .onDevice
+        #expect(manager.selectedProvider.isCustomKey == false)
+        #expect(manager.activeModelName == "Apple Intelligence")
+    }
+    @Test func laterAIJSONParserHandlesFencedAndRawResponses() throws {
+        let fencedJSON = """
+        ```json
+        {
+          "intent": "capture",
+          "reply": "Saved your note!",
+          "content": "Meeting with Sarah",
+          "title": "Meeting with Sarah",
+          "category": "Work",
+          "contentType": "note",
+          "tags": ["work", "meetings"],
+          "summary": "Meeting notes",
+          "formattedContent": "Meeting with Sarah",
+          "query": "",
+          "returnDate": "2026-10-10T09:00:00Z"
+        }
+        ```
+        """
+        let action = try LaterAIJSONParser.parseAIAction(from: fencedJSON)
+        #expect(action.intent == "capture")
+        #expect(action.title == "Meeting with Sarah")
+        #expect(action.category == "Work")
+        #expect(action.tags == ["work", "meetings"])
+        #expect(action.returnDate == "2026-10-10T09:00:00Z")
+
+        let searchJSON = """
+        {"terms": "tax returns", "contentType": "document", "returnWindow": "thisWeek"}
+        """
+        let interpretation = LaterAIJSONParser.parseSearchInterpretation(from: searchJSON, fallbackQuery: "find my taxes")
+        #expect(interpretation.terms == "tax returns")
+        #expect(interpretation.contentType == "document")
+        #expect(interpretation.returnWindow == "thisWeek")
+    }
 }
 @MainActor
 private final class MockCloudTransport: IOSCloudTransport {
