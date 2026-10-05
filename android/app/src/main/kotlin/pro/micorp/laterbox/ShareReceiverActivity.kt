@@ -372,8 +372,63 @@ class ShareReceiverActivity : Activity() {
         return FormattedShareResult(trimmed.ifEmpty { referrer }, null)
     }
 
+    private fun isGenericTitle(title: String?): Boolean {
+        val raw = title?.trim() ?: return true
+        val stripped = raw.trim('-', '–', '—', '|', ':', '•', ' ', '\t', '\n', '\r')
+        val lower = stripped.lowercase()
+        return lower.isEmpty() ||
+            lower == "youtube" ||
+            lower == "- youtube" ||
+            (lower.endsWith("youtube") && lower.length <= 14) ||
+            lower.contains("video playlist") ||
+            lower == "untitled" ||
+            lower.startsWith("http://") ||
+            lower.startsWith("https://") ||
+            lower == "watch" ||
+            lower == "before you continue to youtube"
+    }
+
+    private fun cleanTitle(title: String?): String? {
+        val raw = title?.trim() ?: return null
+        if (isGenericTitle(raw)) return null
+        var cleaned = raw
+        for (suffix in listOf(" - YouTube", " | YouTube", " – YouTube", " — YouTube", " - Vimeo", " | Vimeo")) {
+            if (cleaned.endsWith(suffix, ignoreCase = true)) {
+                cleaned = cleaned.dropLast(suffix.length).trim()
+            }
+        }
+        return if (isGenericTitle(cleaned)) null else cleaned
+    }
+
+    private fun isGenericDescription(desc: String?): Boolean {
+        val raw = desc?.lowercase()?.trim() ?: return true
+        return raw.contains("enjoy the videos and music you love") ||
+            raw.contains("upload original content") ||
+            raw.contains("share it all with friends, family")
+    }
+
     private fun fetchEnrichment(rawUrl: String): EnrichedMetadata? {
         return runCatching {
+            var oembedTitle: String? = null
+            var oembedThumb: String? = null
+            var oembedAuthor: String? = null
+            if (rawUrl.contains("youtube.com") || rawUrl.contains("youtu.be")) {
+                runCatching {
+                    val encoded = java.net.URLEncoder.encode(rawUrl, "UTF-8")
+                    val oembedConn = (java.net.URL("https://www.youtube.com/oembed?url=$encoded&format=json").openConnection() as java.net.HttpURLConnection).apply {
+                        connectTimeout = 3000
+                        readTimeout = 3000
+                    }
+                    if (oembedConn.responseCode in 200..299) {
+                        val ytJson = org.json.JSONObject(oembedConn.inputStream.bufferedReader().use { it.readText() })
+                        val rawYtTitle = ytJson.optString("title").trim().takeIf { it.isNotEmpty() }
+                        oembedTitle = cleanTitle(rawYtTitle) ?: rawYtTitle
+                        oembedThumb = ytJson.optString("thumbnail_url").takeIf { it.isNotEmpty() }
+                        oembedAuthor = ytJson.optString("author_name").takeIf { it.isNotEmpty() }
+                    }
+                }
+            }
+
             val endpoint = java.net.URL("https://laterbox.dev/api/enrich")
             val conn = (endpoint.openConnection() as java.net.HttpURLConnection).apply {
                 requestMethod = "POST"
@@ -395,18 +450,24 @@ class ShareReceiverActivity : Activity() {
             if (conn.responseCode in 200..299) {
                 val responseText = conn.inputStream.bufferedReader().use { it.readText() }
                 val json = org.json.JSONObject(responseText)
-                val title = json.optString("title").trim().takeIf { it.isNotEmpty() }
+                val rawTitle = json.optString("title").trim().takeIf { it.isNotEmpty() }
+                val cleanedTitle = cleanTitle(rawTitle)
                 val siteName = (json.optString("siteName").takeIf { it.isNotEmpty() }
                     ?: json.optString("site_name")).trim().takeIf { it.isNotEmpty() }
-                val description = json.optString("description").trim().takeIf { it.isNotEmpty() }
+                val rawDesc = json.optString("description").trim().takeIf { it.isNotEmpty() }
+                val description = if (rawDesc != null && !isGenericDescription(rawDesc)) rawDesc else oembedAuthor?.let { "Video by $it on YouTube" }
                 val previewImageUrl = (json.optString("previewImageUrl").takeIf { it.isNotEmpty() }
-                    ?: json.optString("preview_image_url")).trim().takeIf { it.isNotEmpty() }
+                    ?: json.optString("preview_image_url")).trim().takeIf { it.isNotEmpty() } ?: oembedThumb
                 val keywordsArray = json.optJSONArray("keywords") ?: org.json.JSONArray()
+                val junk = setOf("sharing", "camera phone", "video phone", "free", "upload", "playlist", "video playlist", "youtube")
                 val keywords = (0 until keywordsArray.length()).mapNotNull { i ->
-                    keywordsArray.optString(i).trim().takeIf { it.isNotEmpty() }
+                    keywordsArray.optString(i).trim().takeIf { it.isNotEmpty() && it.lowercase() !in junk }
                 }
 
-                EnrichedMetadata(title, siteName, description, previewImageUrl, keywords)
+                val finalTitle = cleanedTitle ?: oembedTitle
+                EnrichedMetadata(finalTitle, siteName ?: (if (rawUrl.contains("youtube")) "YouTube" else null), description, previewImageUrl, keywords)
+            } else if (oembedTitle != null || oembedThumb != null) {
+                EnrichedMetadata(oembedTitle, "YouTube", oembedAuthor?.let { "Video by $it on YouTube" }, oembedThumb, emptyList())
             } else {
                 null
             }
