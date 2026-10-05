@@ -504,12 +504,12 @@ public struct LaterAIView: View {
                     VStack(alignment: .leading) { returnButtons }
                 }
                 if chooseReturnDate {
-                    DatePicker("Return date", selection: $selectedReturnDate)
+                    CaptureDateChoices(date: $selectedReturnDate)
                     Button("Set date") { conversation.schedule(selectedReturnDate, context: modelContext); chooseReturnDate = false }
                 }
             }
         }
-        .buttonStyle(.bordered)
+        .buttonStyle(CaptureChoiceStyle())
         .frame(maxWidth: .infinity, alignment: .leading)
         .sheet(item: $editingItem) { item in NavigationStack { ItemDetailView(item: item) } }
     }
