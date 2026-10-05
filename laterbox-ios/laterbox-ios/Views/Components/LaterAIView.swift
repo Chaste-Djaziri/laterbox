@@ -176,6 +176,7 @@ public struct LaterAIView: View {
                 FeatherFlowShape(progress: progress, centerDipFraction: 0.32)
                     .ignoresSafeArea()
             )
+        }
         .onAppear {
             if let prompt = LaterAIManager.shared.initialPrompt {
                 triggerInitialPrompt(prompt)
