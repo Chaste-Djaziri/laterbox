@@ -204,8 +204,11 @@ public final class SyncCoordinator: ObservableObject {
         try? context.save()
         LBHaptic.success()
 
-        // Kick off cloud sync and enrichment if online
+        // Kick off cloud sync, notifications, and enrichment if online
         Task {
+            if newItem.returnAt != nil {
+                _ = try? await ReturnNotification.update(id: newItem.id, title: newItem.title, date: newItem.returnAt)
+            }
             if newItem.url != nil {
                 await enrich(item: newItem, context: context)
             }
