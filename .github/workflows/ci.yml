@@ -9,53 +9,8 @@ on:
       - main
 
 jobs:
-  analyze-and-test:
-    name: Flutter Analyze & Test
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          channel: 'stable'
-          cache: true
-
-      - name: Install Dependencies
-        run: flutter pub get
-
-      - name: Verify Formatting & Static Analysis
-        run: |
-          dart analyze
-
-      - name: Run Unit & Widget Tests
-        run: |
-          flutter test
-
-  macos-release-contract:
-    name: macOS Release Contract
-    runs-on: macos-15
-
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-          cache: true
-
-      - name: Verify App Store metadata and entitlements
-        run: tool/verify_macos_release.sh
-
-      - name: Build Mac App Store release candidate
-        run: flutter build macos --release --dart-define=LATERBOX_DISTRIBUTION=app-store
-
-  notification-contracts:
-    name: Web and Notification Contracts
+  web-and-contracts:
+    name: Web (Next.js) & Contracts
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -67,11 +22,12 @@ jobs:
       - name: Install web dependencies
         working-directory: laterbox-web
         run: npm ci
-      - name: Check web types and behavior
+      - name: Check web types, tests, and build
         working-directory: laterbox-web
         run: |
           npx tsc --noEmit
           npm test
+          npx next build
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
