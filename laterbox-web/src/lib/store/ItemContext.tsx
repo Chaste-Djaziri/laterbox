@@ -278,6 +278,50 @@ export function ItemProvider({ children }: { children: ReactNode }) {
     }
   }, [user?.id]);
 
+  // Migrate guest items to authenticated user on login and upload to Supabase
+  const migrateGuestItems = useCallback(async (userId: string) => {
+    try {
+      const guestStored = localStorage.getItem(`${LOCAL_ITEMS_KEY}_guest`);
+      if (!guestStored) return;
+      const guestItems = JSON.parse(guestStored) as LaterBoxItem[];
+      // Filter out demo items
+      const userItems = guestItems.filter((i) => !i.id.startsWith('guest-item-'));
+      if (userItems.length === 0) return;
+
+      const supabase = getSupabaseClient();
+      for (const item of userItems) {
+        const migrated: LaterBoxItem = {
+          ...item,
+          user_id: userId,
+          updated_at: new Date().toISOString(),
+        };
+        // Upsert to Supabase
+        await supabase.from('items').upsert(itemRow(migrated));
+        if (migrated.metadata) {
+          await supabase.from('item_metadata').upsert({
+            ...migrated.metadata,
+            item_id: migrated.id,
+            user_id: userId,
+            updated_at: new Date().toISOString(),
+          });
+        }
+        if (migrated.note?.content) {
+          await supabase.from('item_notes').upsert({
+            item_id: migrated.id,
+            user_id: userId,
+            content: migrated.note.content,
+            created_at: migrated.note.created_at || new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          });
+        }
+      }
+      // Reset guest storage once migrated
+      localStorage.setItem(`${LOCAL_ITEMS_KEY}_guest`, JSON.stringify(DEFAULT_GUEST_ITEMS));
+    } catch (err) {
+      console.warn('[ItemContext] Error migrating guest items:', err);
+    }
+  }, []);
+
   // Fetch from Supabase
   const fetchData = useCallback(async () => {
     if (!user || !user.id) {
@@ -296,42 +340,23 @@ export function ItemProvider({ children }: { children: ReactNode }) {
 
       // Ensure active and valid session before executing cloud operations
       const { data: sessionData } = await supabase.auth.getSession();
-      let currentSession = sessionData?.session ?? authSession;
-      if (!currentSession) {
-        const { data: refreshed } = await supabase.auth.refreshSession();
-        currentSession = refreshed?.session ?? null;
-      }
+      const currentSession = sessionData?.session ?? authSession;
       if (!currentSession) {
         handleAuthFailure();
         return;
       }
 
-      // If token is expired or within 60s of expiring, refresh upfront
-      if (currentSession.expires_at && currentSession.expires_at * 1000 < Date.now() + 60000) {
-        const { data: refreshed, error: refreshError } = await supabase.auth.refreshSession();
-        if (!refreshError && refreshed?.session) {
-          currentSession = refreshed.session;
-        }
-      }
+      // Automatically migrate any items saved while in guest mode to user account
+      await migrateGuestItems(user.id);
 
       // Sync any local pending captures safely
       try {
         await syncPendingCaptures(user.id);
       } catch (syncErr: any) {
-        if (isAuthError(syncErr)) {
-          const { data: refreshed, error: refreshError } = await supabase.auth.refreshSession();
-          if (!refreshError && refreshed?.session) {
-            await syncPendingCaptures(user.id).catch(() => {});
-          } else {
-            handleAuthFailure();
-            return;
-          }
-        } else {
-          console.warn('[ItemContext] Non-fatal sync pending error:', syncErr);
-        }
+        console.warn('[ItemContext] Non-fatal sync pending error:', syncErr);
       }
 
-      // Fetch items with 401 session recovery
+      // Fetch items from Supabase
       let { data: itemRows, error: itemError } = await supabase
         .from('items')
         .select('*')
@@ -339,33 +364,10 @@ export function ItemProvider({ children }: { children: ReactNode }) {
         .is('deleted_at', null)
         .order('created_at', { ascending: false });
 
-      if (itemError && (isAuthError(itemError) || (itemError as any).status === 401 || (itemError as any).code === 'PGRST301')) {
-        const { data: refreshed, error: refreshError } = await supabase.auth.refreshSession();
-        if (!refreshError && refreshed?.session) {
-          const retry = await supabase
-            .from('items')
-            .select('*')
-            .eq('user_id', user.id)
-            .is('deleted_at', null)
-            .order('created_at', { ascending: false });
-          itemRows = retry.data;
-          itemError = retry.error;
-          if (itemError && (isAuthError(itemError) || (itemError as any).status === 401 || (itemError as any).code === 'PGRST301')) {
-            handleAuthFailure();
-            return;
-          }
-        } else {
-          handleAuthFailure();
-          return;
-        }
-      }
-
       if (itemError) {
-        if (isAuthError(itemError)) {
-          handleAuthFailure();
-          return;
-        }
-        throw itemError;
+        console.warn('[ItemContext] Error fetching items:', itemError);
+        handleAuthFailure();
+        return;
       }
 
       // Fetch metadata
@@ -474,7 +476,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
       isFetchingRef.current = false;
       setLoading(false);
     }
-  }, [user?.id, authSession, loadLocalData, saveLocalData, handleAuthFailure]);
+  }, [user?.id, authSession, loadLocalData, saveLocalData, handleAuthFailure, migrateGuestItems]);
 
   useEffect(() => {
     fetchData();
@@ -750,21 +752,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
     try {
       await syncPendingCaptures(userId);
     } catch (err: any) {
-      if (isAuthError(err)) {
-        const supabase = getSupabaseClient();
-        const { data: refreshed, error: refreshError } = await supabase.auth.refreshSession();
-        if (!refreshError && refreshed?.session) {
-          try {
-            await syncPendingCaptures(userId);
-            return;
-          } catch {
-            // ignore retry error
-          }
-        } else {
-          handleAuthFailure();
-          return;
-        }
-      }
+      console.warn('[ItemContext] safeSyncPending warning:', err);
       setSyncStatus('error');
     }
   };
