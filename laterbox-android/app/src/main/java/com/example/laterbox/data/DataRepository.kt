@@ -67,8 +67,8 @@ class DefaultDataRepository(
         refreshWebStatus()
     }
 
-    override val items: Flow<List<ItemEntity>> = database.itemDao().watchAllItems()
-    override val collections: Flow<List<CollectionEntity>> = database.collectionDao().watchAllCollections()
+    override val items: Flow<List<ItemEntity>> = kotlinx.coroutines.flow.combine(database.itemDao().watchAllItems(), com.example.laterbox.services.AccountService.state) { items, account -> items.filter { it.userId == null || it.userId == account.userId } }
+    override val collections: Flow<List<CollectionEntity>> = kotlinx.coroutines.flow.combine(database.collectionDao().watchAllCollections(), com.example.laterbox.services.AccountService.state) { collections, account -> collections.filter { it.userId == null || it.userId == account.userId } }
 
     override fun refreshWebStatus() {
         scope.launch {
