@@ -73,8 +73,8 @@ final class LaterAIConversation: ObservableObject {
                     // Always prioritize Gemini model AI
                     action = try await provider.respond(prompt)
                 } catch {
-                    // Fallback to Apple on-device model if offline or unreachable
-                    if AppleLaterAIProvider.unavailableReason == nil {
+                    // Fallback to Apple on-device model if offline or unreachable when using default Gemini provider
+                    if provider is GeminiLaterAIProvider, AppleLaterAIProvider.unavailableReason == nil {
                         action = try await AppleLaterAIProvider().respond(prompt)
                     } else {
                         throw error
