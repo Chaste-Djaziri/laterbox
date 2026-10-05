@@ -13,7 +13,10 @@ interface AuthContextType {
   userName: string;
   setUserName: (name: string) => void;
   signInWithOtp: (email: string) => Promise<{ error: AuthError | null }>;
-  verifyEmailOtp: (email: string, token: string) => Promise<{ error: AuthError | null }>;
+  verifyEmailOtp: (
+    email: string,
+    token: string
+  ) => Promise<{ data?: { user: User | null; session: Session | null }; error: AuthError | null }>;
   resendSignupOtp: (email: string) => Promise<{ error: AuthError | null }>;
   signInWithPassword: (email: string, password: string) => Promise<{ error: AuthError | null }>;
   signUpWithPassword: (email: string, password: string) => Promise<{ error: AuthError | null; requiresConfirmation: boolean }>;
@@ -122,16 +125,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const verifyEmailOtp = async (email: string, token: string) => {
     const supabase = getSupabaseClient();
-    const { error } = await supabase.auth.verifyOtp({
+    const { data, error } = await supabase.auth.verifyOtp({
       email,
       token,
       type: 'email',
     });
-    if (!error) {
+    if (!error && data?.session) {
+      setSession(data.session);
+      setUser(data.user);
       setIsGuest(false);
       localStorage.removeItem(GUEST_KEY);
+      const metaName = (data.user?.user_metadata?.display_name || data.user?.user_metadata?.name || data.user?.user_metadata?.full_name) as string;
+      if (metaName) {
+        setUserNameState(metaName);
+        localStorage.setItem(USER_NAME_KEY, metaName);
+      }
     }
-    return { error };
+    return { data, error };
   };
 
   const resendSignupOtp = async (email: string) => {
