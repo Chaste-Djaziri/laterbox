@@ -9,7 +9,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
     entities = [ItemEntity::class, ItemMetadataEntity::class, CollectionEntity::class],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -36,6 +36,8 @@ abstract class AppDatabase : RoomDatabase() {
                             db.execSQL("ALTER TABLE items ADD COLUMN collectionId TEXT")
                             db.execSQL("ALTER TABLE items ADD COLUMN attachments TEXT NOT NULL DEFAULT '[]'")
                         }
+                    }, object : Migration(3, 4) {
+                        override fun migrate(db: SupportSQLiteDatabase) { db.execSQL("ALTER TABLE collections ADD COLUMN deleted_at TEXT") }
                     })
                     .build()
                 INSTANCE = instance

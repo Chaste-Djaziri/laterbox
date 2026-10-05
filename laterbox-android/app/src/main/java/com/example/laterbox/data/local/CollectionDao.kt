@@ -9,10 +9,10 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface CollectionDao {
-    @Query("SELECT * FROM collections WHERE name = :name COLLATE NOCASE LIMIT 1")
-    suspend fun findByName(name: String): CollectionEntity?
+    @Query("SELECT * FROM collections WHERE deleted_at IS NULL AND (user_id IS NULL OR user_id = :userId) AND name = :name COLLATE NOCASE LIMIT 1")
+    suspend fun findByName(name: String, userId: String?): CollectionEntity?
 
-    @Query("SELECT * FROM collections ORDER BY name ASC")
+    @Query("SELECT * FROM collections WHERE deleted_at IS NULL ORDER BY name ASC")
     fun watchAllCollections(): Flow<List<CollectionEntity>>
 
     @Query("SELECT * FROM collections WHERE id = :id")
@@ -27,6 +27,12 @@ interface CollectionDao {
     @Update
     suspend fun updateCollection(collection: CollectionEntity)
 
-    @Query("DELETE FROM collections WHERE id = :id")
-    suspend fun deleteCollection(id: String)
+    @Query("SELECT * FROM collections")
+    suspend fun getAllCollections(): List<CollectionEntity>
+
+    @Query("UPDATE collections SET deleted_at = :now, updated_at = :now, sync_status = 'pending' WHERE id = :id")
+    suspend fun deleteCollection(id: String, now: String)
+
+    @Query("UPDATE collections SET sync_status = 'synced', user_id = :userId WHERE id = :id AND updated_at = :version")
+    suspend fun markSynced(id: String, version: String, userId: String)
 }

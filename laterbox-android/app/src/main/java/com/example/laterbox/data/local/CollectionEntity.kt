@@ -17,5 +17,6 @@ data class CollectionEntity(
     @SerialName("icon_name") @ColumnInfo(name = "icon_name") val iconName: String = "folder",
     @SerialName("created_at") @ColumnInfo(name = "created_at") val createdAt: String,
     @SerialName("updated_at") @ColumnInfo(name = "updated_at") val updatedAt: String,
-    @SerialName("sync_status") @ColumnInfo(name = "sync_status") val syncStatus: String = "synced"
+    @SerialName("sync_status") @ColumnInfo(name = "sync_status") val syncStatus: String = "pending",
+    @SerialName("deleted_at") @ColumnInfo(name = "deleted_at") val deletedAt: String? = null
 )

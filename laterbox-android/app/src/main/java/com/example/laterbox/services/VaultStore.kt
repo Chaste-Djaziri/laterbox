@@ -20,7 +20,7 @@ class VaultStore(private val context: Context) {
             if (existing != null) return@withTransaction existing
             var capture = draft.copy(userId = AccountService.state.value.userId)
             if (draft.category.isNotBlank() && draft.collectionId == null) {
-                val existingCollection = database.collectionDao().findByName(draft.category)
+                val existingCollection = database.collectionDao().findByName(draft.category, capture.userId)
                 val collection = existingCollection ?: CollectionEntity(UUID.randomUUID().toString(), capture.userId, draft.category, createdAt = draft.createdAt, updatedAt = draft.updatedAt, syncStatus = "pending")
                 database.collectionDao().insertCollection(collection)
                 capture = capture.copy(collectionId = collection.id)

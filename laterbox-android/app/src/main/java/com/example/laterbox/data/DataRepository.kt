@@ -126,18 +126,24 @@ class DefaultDataRepository(
         val now = DateTimeFormatter.ISO_INSTANT.format(Instant.now())
         val collection = CollectionEntity(
             id = UUID.randomUUID().toString(),
-            name = name,
+            userId = com.example.laterbox.services.AccountService.state.value.userId,
+            name = name.trim(),
             colorHex = colorHex,
             iconName = iconName,
             createdAt = now,
             updatedAt = now
         )
+        require(collection.name.isNotBlank())
         database.collectionDao().insertCollection(collection)
+        syncNow()
         return collection
     }
 
     override suspend fun deleteCollection(id: String) {
-        database.collectionDao().deleteCollection(id)
+        val now = Instant.now().toString()
+        database.collectionDao().deleteCollection(id, now)
+        database.itemDao().getAllItems().filter { it.collectionId == id }.forEach { database.itemDao().updateItem(it.copy(collectionId = null, category = "", updatedAt = now, syncStatus = "pending")) }
+        syncNow()
     }
 
     override fun syncNow() {
