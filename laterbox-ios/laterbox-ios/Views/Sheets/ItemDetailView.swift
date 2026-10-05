@@ -28,9 +28,11 @@ public struct ItemDetailView: View {
     @State private var previewDocumentURL: URL?
     @State private var showingSafariReader = false
     @State private var tagsText = ""
+    public var isModal: Bool
 
-    public init(item: LBItem) {
+    public init(item: LBItem, isModal: Bool = false) {
         self.item = item
+        self.isModal = isModal
         self._editedNote = State(initialValue: item.noteContent ?? "")
         self._tagsText = State(initialValue: item.tags.joined(separator: ", "))
     }
@@ -281,7 +283,11 @@ public struct ItemDetailView: View {
 
                                 Button("Clear") {
                                     item.returnAt = nil
+                                    item.status = ItemStatus.inbox.rawValue
                                     persistEdit()
+                                    Task {
+                                        _ = try? await ReturnNotification.update(id: item.id, title: item.title, date: nil)
+                                    }
                                     LBHaptic.light()
                                 }
                                 .font(.caption.weight(.bold))
@@ -525,6 +531,13 @@ public struct ItemDetailView: View {
         .navigationTitle("Details")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            if isModal {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("Done") { dismiss() }
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundColor(AppTheme.accent)
+                }
+            }
             ToolbarItem(placement: .topBarTrailing) {
                 Button(action: {
                     coordinator.toggleFavorite(item: item, context: modelContext)
