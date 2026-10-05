@@ -8,7 +8,7 @@ Scheduled captures request local notification permission and install a reminder 
 
 ## Device setup and verification
 
-Register App Group `group.pro.micorp.laterbox` for both `pro.micorp.laterbox` and `pro.micorp.laterbox.Share` in the Apple developer account and refresh provisioning profiles. Both targets declare the entitlement. An unsigned simulator build cannot validate distribution provisioning.
+Register App Group `group.pro.micorp.laterbox` for both `pro.micorp.laterbox` and `pro.micorp.laterbox.ShareExtension` in the Apple developer account and refresh provisioning profiles. Both targets declare the entitlement. An unsigned simulator build cannot validate distribution provisioning.
 
 From Safari, Photos, Files and a media app, share a link, selected text, image, video, audio, PDF and arbitrary file. Select LaterBox (enable it in the system share sheet if hidden). Verify attachments appear, Save/Undo/Edit works without launching LaterBox, and files still preview after reopening the host. Schedule a near-future return with alerts allowed and denied; verify notification, Inbox and original content. Repeat offline and on a device without Apple Intelligence. Test actual local-model latency on a compatible iPhone.
 
