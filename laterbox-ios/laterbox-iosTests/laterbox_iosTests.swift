@@ -491,8 +491,8 @@ extension LaterAITests {
         #expect(horrorIcon?.category == "Horror")
 
         let gadgetIcon = icons.first(where: { $0.id == "gadget" })
-        #expect(gadsetIcon?.iconName == "AppIcon-Gadget")
-        #expect(gadsetIcon?.category == "Gadgets")
+        #expect(gadgetIcon?.iconName == "AppIcon-Gadget")
+        #expect(gadgetIcon?.category == "Gadgets")
 
         let animationIcon = icons.first(where: { $0.id == "animation" })
         #expect(animationIcon?.iconName == "AppIcon-Animation")
