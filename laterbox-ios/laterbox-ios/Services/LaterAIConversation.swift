@@ -74,11 +74,8 @@ final class LaterAIConversation: ObservableObject {
                 do {
                     action = try await provider.respond(prompt)
                 } catch {
-                    // Fallback to Apple on-device model or managed Gemini if custom provider or primary model fails
-                    if !(provider is AppleLaterAIProvider), AppleLaterAIProvider.unavailableReason == nil {
+                    if provider is GeminiLaterAIProvider, AppleLaterAIProvider.unavailableReason == nil {
                         action = try await AppleLaterAIProvider().respond(prompt)
-                    } else if !(provider is GeminiLaterAIProvider) {
-                        action = try await GeminiLaterAIProvider().respond(prompt)
                     } else {
                         throw error
                     }

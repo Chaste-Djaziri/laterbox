@@ -10,16 +10,16 @@ import Combine
 import SwiftUI
 import OSLog
 
-public enum AIProviderType: String, CaseIterable, Identifiable, Codable {
+enum AIProviderType: String, CaseIterable, Identifiable, Codable {
     case cloudGemini = "cloudGemini"
     case onDevice = "onDevice"
     case customGemini = "customGemini"
     case customOpenAI = "customOpenAI"
     case customClaude = "customClaude"
 
-    public var id: String { rawValue }
+    var id: String { rawValue }
 
-    public var displayName: String {
+    var displayName: String {
         switch self {
         case .cloudGemini: return "LaterBox Cloud (Gemini)"
         case .onDevice: return "On-Device (Apple Intelligence)"
@@ -29,7 +29,7 @@ public enum AIProviderType: String, CaseIterable, Identifiable, Codable {
         }
     }
 
-    public var shortName: String {
+    var shortName: String {
         switch self {
         case .cloudGemini: return "Cloud Gemini"
         case .onDevice: return "On-Device"
@@ -39,7 +39,7 @@ public enum AIProviderType: String, CaseIterable, Identifiable, Codable {
         }
     }
 
-    public var subtitle: String {
+    var subtitle: String {
         switch self {
         case .cloudGemini: return "Pro-managed server intelligence (Default)"
         case .onDevice: return "Private & offline using Apple Foundation Models"
@@ -49,7 +49,7 @@ public enum AIProviderType: String, CaseIterable, Identifiable, Codable {
         }
     }
 
-    public var iconName: String {
+    var iconName: String {
         switch self {
         case .cloudGemini: return "sparkles"
         case .onDevice: return "brain"
@@ -59,7 +59,7 @@ public enum AIProviderType: String, CaseIterable, Identifiable, Codable {
         }
     }
 
-    public var isCustomKey: Bool {
+    var isCustomKey: Bool {
         switch self {
         case .cloudGemini, .onDevice: return false
         case .customGemini, .customOpenAI, .customClaude: return true
@@ -67,22 +67,22 @@ public enum AIProviderType: String, CaseIterable, Identifiable, Codable {
     }
 }
 
-public struct AIModelPresets {
-    public static let geminiModels = [
+struct AIModelPresets {
+    static let geminiModels = [
         "gemini-2.5-flash",
         "gemini-2.5-pro",
         "gemini-1.5-flash",
         "gemini-1.5-pro"
     ]
 
-    public static let openAIModels = [
+    static let openAIModels = [
         "gpt-4o-mini",
         "gpt-4o",
         "gpt-4.5-preview",
         "o3-mini"
     ]
 
-    public static let claudeModels = [
+    static let claudeModels = [
         "claude-3-7-sonnet-latest",
         "claude-3-5-sonnet-latest",
         "claude-3-5-haiku-latest"
@@ -90,8 +90,8 @@ public struct AIModelPresets {
 }
 
 @MainActor
-public final class LaterAIModelManager: ObservableObject {
-    public static let shared = LaterAIModelManager()
+final class LaterAIModelManager: ObservableObject {
+    static let shared = LaterAIModelManager()
 
     private let defaults: UserDefaults
 
@@ -105,39 +105,39 @@ public final class LaterAIModelManager: ObservableObject {
     private let kClaudeModel = "laterai_claude_model_name"
     private let kEnableSearchRefine = "laterai_enable_search_refine"
 
-    @Published public var selectedProvider: AIProviderType {
+    @Published var selectedProvider: AIProviderType {
         didSet { defaults.set(selectedProvider.rawValue, forKey: kSelectedProvider) }
     }
 
-    @Published public var geminiApiKey: String {
+    @Published var geminiApiKey: String {
         didSet { defaults.set(geminiApiKey, forKey: kGeminiApiKey) }
     }
 
-    @Published public var geminiModel: String {
+    @Published var geminiModel: String {
         didSet { defaults.set(geminiModel, forKey: kGeminiModel) }
     }
 
-    @Published public var openAIApiKey: String {
+    @Published var openAIApiKey: String {
         didSet { defaults.set(openAIApiKey, forKey: kOpenAIApiKey) }
     }
 
-    @Published public var openAIModel: String {
+    @Published var openAIModel: String {
         didSet { defaults.set(openAIModel, forKey: kOpenAIModel) }
     }
 
-    @Published public var claudeApiKey: String {
+    @Published var claudeApiKey: String {
         didSet { defaults.set(claudeApiKey, forKey: kClaudeApiKey) }
     }
 
-    @Published public var claudeModel: String {
+    @Published var claudeModel: String {
         didSet { defaults.set(claudeModel, forKey: kClaudeModel) }
     }
 
-    @Published public var enableSearchRefine: Bool {
+    @Published var enableSearchRefine: Bool {
         didSet { defaults.set(enableSearchRefine, forKey: kEnableSearchRefine) }
     }
 
-    public init() {
+    init() {
         let store = UserDefaults(suiteName: SharedCaptureStore.group) ?? .standard
         self.defaults = store
 
@@ -160,7 +160,7 @@ public final class LaterAIModelManager: ObservableObject {
         }
     }
 
-    public var activeModelName: String {
+    var activeModelName: String {
         switch selectedProvider {
         case .cloudGemini:
             return "Gemini 2.5 (Pro)"
@@ -175,7 +175,7 @@ public final class LaterAIModelManager: ObservableObject {
         }
     }
 
-    public func activeProvider() -> any LaterAIProvider {
+    func activeProvider() -> any LaterAIProvider {
         switch selectedProvider {
         case .cloudGemini:
             return GeminiLaterAIProvider()
@@ -213,9 +213,9 @@ public final class LaterAIModelManager: ObservableObject {
         }
     }
 
-    public func interpretSearch(_ query: String) async throws -> SearchInterpretation {
+    func interpretSearch(_ query: String) async throws -> SearchInterpretation {
         guard enableSearchRefine else {
-            return SearchInterpretation(terms: query)
+            return SearchInterpretation(terms: query, contentType: "", returnWindow: "")
         }
 
         switch selectedProvider {
@@ -230,26 +230,26 @@ public final class LaterAIModelManager: ObservableObject {
             if AppleLaterAIProvider.unavailableReason == nil {
                 return try await AppleSearchInterpreter.interpret(query)
             }
-            return SearchInterpretation(terms: query)
+            return SearchInterpretation(terms: query, contentType: "", returnWindow: "")
 
         case .customGemini:
             let key = geminiApiKey.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !key.isEmpty else { return SearchInterpretation(terms: query) }
+            guard !key.isEmpty else { return SearchInterpretation(terms: query, contentType: "", returnWindow: "") }
             return try await CustomGeminiLaterAIProvider(apiKey: key, model: geminiModel).interpretSearch(query)
 
         case .customOpenAI:
             let key = openAIApiKey.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !key.isEmpty else { return SearchInterpretation(terms: query) }
+            guard !key.isEmpty else { return SearchInterpretation(terms: query, contentType: "", returnWindow: "") }
             return try await OpenAILaterAIProvider(apiKey: key, model: openAIModel).interpretSearch(query)
 
         case .customClaude:
             let key = claudeApiKey.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !key.isEmpty else { return SearchInterpretation(terms: query) }
+            guard !key.isEmpty else { return SearchInterpretation(terms: query, contentType: "", returnWindow: "") }
             return try await ClaudeLaterAIProvider(apiKey: key, model: claudeModel).interpretSearch(query)
         }
     }
 
-    public func testConnection(for provider: AIProviderType) async throws -> String {
+    func testConnection(for provider: AIProviderType) async throws -> String {
         switch provider {
         case .cloudGemini:
             _ = try await GeminiLaterAIProvider().respond("Ping test. Reply with a short greeting.")
@@ -357,7 +357,7 @@ enum LaterAIJSONParser {
         let clean = extractCleanJSON(text)
         guard let data = clean.data(using: .utf8),
               let dict = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] else {
-            return SearchInterpretation(terms: fallbackQuery)
+            return SearchInterpretation(terms: fallbackQuery, contentType: "", returnWindow: "")
         }
 
         let terms = dict["terms"] as? String ?? fallbackQuery
@@ -369,11 +369,11 @@ enum LaterAIJSONParser {
 
 // MARK: - Custom Gemini Provider (BYOK)
 @MainActor
-public struct CustomGeminiLaterAIProvider: LaterAIProvider {
-    public let apiKey: String
-    public let model: String
+struct CustomGeminiLaterAIProvider: LaterAIProvider {
+    let apiKey: String
+    let model: String
 
-    public init(apiKey: String, model: String) {
+    init(apiKey: String, model: String) {
         self.apiKey = apiKey
         self.model = model.isEmpty ? "gemini-2.5-flash" : model
     }
@@ -398,7 +398,7 @@ public struct CustomGeminiLaterAIProvider: LaterAIProvider {
         """
     }
 
-    public func respond(_ prompt: String) async throws -> AIAction {
+    func respond(_ prompt: String) async throws -> AIAction {
         guard let url = URL(string: "https://generativelanguage.googleapis.com/v1beta/models/\(model):generateContent?key=\(apiKey)") else {
             throw AIProviderError.customModelError("Invalid Gemini URL")
         }
@@ -444,10 +444,10 @@ public struct CustomGeminiLaterAIProvider: LaterAIProvider {
         return try LaterAIJSONParser.parseAIAction(from: text)
     }
 
-    public func interpretSearch(_ query: String) async throws -> SearchInterpretation {
+    func interpretSearch(_ query: String) async throws -> SearchInterpretation {
         let prompt = "Extract search query topics and filters from this user search: \"\(query)\". Return JSON with keys: terms, contentType (link, article, video, music, document, note), returnWindow (today, thisWeek, upcoming)."
         guard let url = URL(string: "https://generativelanguage.googleapis.com/v1beta/models/\(model):generateContent?key=\(apiKey)") else {
-            return SearchInterpretation(terms: query)
+            return SearchInterpretation(terms: query, contentType: "", returnWindow: "")
         }
 
         var request = URLRequest(url: url)
@@ -462,10 +462,13 @@ public struct CustomGeminiLaterAIProvider: LaterAIProvider {
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
         let (data, response) = try await URLSession.shared.data(for: request)
         guard let http = response as? HTTPURLResponse, http.statusCode == 200,
-              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let candidates = json?["candidates"] as? [[String: Any]],
-              let text = ((candidates.first?["content"] as? [String: Any])?["parts"] as? [[String: Any]])?.first?["text"] as? String else {
-            return SearchInterpretation(terms: query)
+              let json = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any],
+              let candidates = json["candidates"] as? [[String: Any]],
+              let firstCandidate = candidates.first,
+              let content = firstCandidate["content"] as? [String: Any],
+              let parts = content["parts"] as? [[String: Any]],
+              let text = parts.first?["text"] as? String else {
+            return SearchInterpretation(terms: query, contentType: "", returnWindow: "")
         }
 
         return LaterAIJSONParser.parseSearchInterpretation(from: text, fallbackQuery: query)
@@ -474,11 +477,11 @@ public struct CustomGeminiLaterAIProvider: LaterAIProvider {
 
 // MARK: - Custom OpenAI Provider (BYOK)
 @MainActor
-public struct OpenAILaterAIProvider: LaterAIProvider {
-    public let apiKey: String
-    public let model: String
+struct OpenAILaterAIProvider: LaterAIProvider {
+    let apiKey: String
+    let model: String
 
-    public init(apiKey: String, model: String) {
+    init(apiKey: String, model: String) {
         self.apiKey = apiKey
         self.model = model.isEmpty ? "gpt-4o-mini" : model
     }
@@ -503,7 +506,7 @@ public struct OpenAILaterAIProvider: LaterAIProvider {
         """
     }
 
-    public func respond(_ prompt: String) async throws -> AIAction {
+    func respond(_ prompt: String) async throws -> AIAction {
         guard let url = URL(string: "https://api.openai.com/v1/chat/completions") else {
             throw AIProviderError.customModelError("Invalid OpenAI URL")
         }
@@ -545,9 +548,9 @@ public struct OpenAILaterAIProvider: LaterAIProvider {
         return try LaterAIJSONParser.parseAIAction(from: text)
     }
 
-    public func interpretSearch(_ query: String) async throws -> SearchInterpretation {
+    func interpretSearch(_ query: String) async throws -> SearchInterpretation {
         guard let url = URL(string: "https://api.openai.com/v1/chat/completions") else {
-            return SearchInterpretation(terms: query)
+            return SearchInterpretation(terms: query, contentType: "", returnWindow: "")
         }
 
         var request = URLRequest(url: url)
@@ -567,10 +570,12 @@ public struct OpenAILaterAIProvider: LaterAIProvider {
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
         let (data, response) = try await URLSession.shared.data(for: request)
         guard let http = response as? HTTPURLResponse, http.statusCode == 200,
-              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let choices = json?["choices"] as? [[String: Any]],
-              let text = (choices.first?["message"] as? [String: Any])?["content"] as? String else {
-            return SearchInterpretation(terms: query)
+              let json = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any],
+              let choices = json["choices"] as? [[String: Any]],
+              let firstChoice = choices.first,
+              let message = firstChoice["message"] as? [String: Any],
+              let text = message["content"] as? String else {
+            return SearchInterpretation(terms: query, contentType: "", returnWindow: "")
         }
 
         return LaterAIJSONParser.parseSearchInterpretation(from: text, fallbackQuery: query)
@@ -579,11 +584,11 @@ public struct OpenAILaterAIProvider: LaterAIProvider {
 
 // MARK: - Custom Claude Provider (BYOK)
 @MainActor
-public struct ClaudeLaterAIProvider: LaterAIProvider {
-    public let apiKey: String
-    public let model: String
+struct ClaudeLaterAIProvider: LaterAIProvider {
+    let apiKey: String
+    let model: String
 
-    public init(apiKey: String, model: String) {
+    init(apiKey: String, model: String) {
         self.apiKey = apiKey
         self.model = model.isEmpty ? "claude-3-5-haiku-latest" : model
     }
@@ -608,7 +613,7 @@ public struct ClaudeLaterAIProvider: LaterAIProvider {
         """
     }
 
-    public func respond(_ prompt: String) async throws -> AIAction {
+    func respond(_ prompt: String) async throws -> AIAction {
         guard let url = URL(string: "https://api.anthropic.com/v1/messages") else {
             throw AIProviderError.customModelError("Invalid Claude URL")
         }
@@ -650,9 +655,9 @@ public struct ClaudeLaterAIProvider: LaterAIProvider {
         return try LaterAIJSONParser.parseAIAction(from: text)
     }
 
-    public func interpretSearch(_ query: String) async throws -> SearchInterpretation {
+    func interpretSearch(_ query: String) async throws -> SearchInterpretation {
         guard let url = URL(string: "https://api.anthropic.com/v1/messages") else {
-            return SearchInterpretation(terms: query)
+            return SearchInterpretation(terms: query, contentType: "", returnWindow: "")
         }
 
         var request = URLRequest(url: url)
@@ -671,10 +676,10 @@ public struct ClaudeLaterAIProvider: LaterAIProvider {
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
         let (data, response) = try await URLSession.shared.data(for: request)
         guard let http = response as? HTTPURLResponse, http.statusCode == 200,
-              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let contentList = json?["content"] as? [[String: Any]],
+              let json = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any],
+              let contentList = json["content"] as? [[String: Any]],
               let text = contentList.first?["text"] as? String else {
-            return SearchInterpretation(terms: query)
+            return SearchInterpretation(terms: query, contentType: "", returnWindow: "")
         }
 
         return LaterAIJSONParser.parseSearchInterpretation(from: text, fallbackQuery: query)

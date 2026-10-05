@@ -133,47 +133,11 @@ enum AIProviderError: LocalizedError {
     }
 }
 
-extension AIAction {
-    init(
-        intent: String = "chat",
-        reply: String = "",
-        content: String = "",
-        title: String = "",
-        category: String = "",
-        contentType: String = "",
-        tags: [String] = [],
-        summary: String = "",
-        formattedContent: String = "",
-        query: String = "",
-        returnDate: String = ""
-    ) {
-        self.intent = intent
-        self.reply = reply
-        self.content = content
-        self.title = title
-        self.category = category
-        self.contentType = contentType
-        self.tags = tags
-        self.summary = summary
-        self.formattedContent = formattedContent
-        self.query = query
-        self.returnDate = returnDate
-    }
-}
-
 @Generable
 struct SearchInterpretation {
     @Guide(description: "Important search topics, synonyms, or entities without conversational filler") var terms: String
     @Guide(description: "Explicit requested type: link, article, video, music, document, note; otherwise empty") var contentType: String
     @Guide(description: "today, thisWeek, or upcoming only for explicitly requested return-date filters; otherwise empty") var returnWindow: String
-}
-
-extension SearchInterpretation {
-    init(terms: String, contentType: String = "", returnWindow: String = "") {
-        self.terms = terms
-        self.contentType = contentType
-        self.returnWindow = returnWindow
-    }
 }
 
 @MainActor

@@ -7,10 +7,9 @@
 
 import SwiftUI
 
-public struct AIModelSettingsView: View {
+struct AIModelSettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @ObservedObject private var modelManager = LaterAIModelManager.shared
-    @ObservedObject private var coordinator = SyncCoordinator.shared
 
     @State private var showingKeyText = false
     @State private var testingConnection = false
@@ -18,32 +17,21 @@ public struct AIModelSettingsView: View {
     @State private var testIsError = false
     @State private var showingCustomModelField = false
 
-    public init() {}
-
-    public var body: some View {
+    var body: some View {
         ZStack {
             LiquidGlassBackground()
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
-                    // Header Card
                     headerSection
-
-                    // Active Model Overview
                     activeSummaryCard
-
-                    // Model Provider Selection
                     providerSelectionSection
 
-                    // Provider Specific Configuration (Keys & Models)
                     if modelManager.selectedProvider.isCustomKey {
                         customKeyConfigurationSection
                     }
 
-                    // Search & Refine Settings
                     searchRefineSection
-
-                    // Privacy Note
                     privacyFooterSection
                 }
                 .padding(.horizontal, 20)
@@ -150,69 +138,7 @@ public struct AIModelSettingsView: View {
 
             VStack(spacing: 10) {
                 ForEach(AIProviderType.allCases) { provider in
-                    Button(action: {
-                        LBHaptic.selection()
-                        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                            modelManager.selectedProvider = provider
-                            testResultMessage = nil
-                        }
-                    }) {
-                        HStack(spacing: 12) {
-                            ZStack {
-                                Circle()
-                                    .fill(modelManager.selectedProvider == provider ? AppTheme.accent : Color.black.opacity(0.05))
-                                    .frame(width: 36, height: 36)
-                                Image(systemName: provider.iconName)
-                                    .font(.system(size: 16, weight: .semibold))
-                                    .foregroundColor(AppTheme.textPrimary)
-                            }
-
-                            VStack(alignment: .leading, spacing: 2) {
-                                HStack(spacing: 6) {
-                                    Text(provider.displayName)
-                                        .font(.subheadline.weight(.semibold))
-                                        .foregroundColor(AppTheme.textPrimary)
-
-                                    if provider == .cloudGemini {
-                                        Text("Included")
-                                            .font(.caption2.weight(.bold))
-                                            .foregroundColor(AppTheme.textPrimary)
-                                            .padding(.horizontal, 6)
-                                            .padding(.vertical, 2)
-                                            .background(Capsule().fill(AppTheme.accent))
-                                    } else if provider.isCustomKey {
-                                        Text("BYOK")
-                                            .font(.caption2.weight(.bold))
-                                            .foregroundColor(AppTheme.textSecondary)
-                                            .padding(.horizontal, 6)
-                                            .padding(.vertical, 2)
-                                            .background(Capsule().fill(Color.black.opacity(0.06)))
-                                    }
-                                }
-
-                                Text(provider.subtitle)
-                                    .font(.caption2)
-                                    .foregroundColor(AppTheme.textSecondary)
-                                    .lineLimit(2)
-                            }
-
-                            Spacer()
-
-                            Image(systemName: modelManager.selectedProvider == provider ? "checkmark.circle.fill" : "circle")
-                                .foregroundColor(modelManager.selectedProvider == provider ? AppTheme.textPrimary : AppTheme.textSecondary.opacity(0.4))
-                                .font(.system(size: 20))
-                        }
-                        .padding(14)
-                        .background(
-                            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                .fill(modelManager.selectedProvider == provider ? AppTheme.accent.opacity(0.2) : Color.white.opacity(0.4))
-                        )
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                .strokeBorder(modelManager.selectedProvider == provider ? AppTheme.accent : AppTheme.cardBorder, lineWidth: 1.2)
-                        )
-                    }
-                    .buttonStyle(.plain)
+                    providerRow(provider: provider)
                 }
             }
             .padding(16)
@@ -228,6 +154,74 @@ public struct AIModelSettingsView: View {
         }
     }
 
+    @ViewBuilder
+    private func providerRow(provider: AIProviderType) -> some View {
+        let isSelected = modelManager.selectedProvider == provider
+        Button(action: {
+            LBHaptic.light()
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                modelManager.selectedProvider = provider
+                testResultMessage = nil
+            }
+        }) {
+            HStack(spacing: 12) {
+                ZStack {
+                    Circle()
+                        .fill(isSelected ? AppTheme.accent : Color.black.opacity(0.05))
+                        .frame(width: 36, height: 36)
+                    Image(systemName: provider.iconName)
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(AppTheme.textPrimary)
+                }
+
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 6) {
+                        Text(provider.displayName)
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundColor(AppTheme.textPrimary)
+
+                        if provider == .cloudGemini {
+                            Text("Included")
+                                .font(.caption2.weight(.bold))
+                                .foregroundColor(AppTheme.textPrimary)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(Capsule().fill(AppTheme.accent))
+                        } else if provider.isCustomKey {
+                            Text("BYOK")
+                                .font(.caption2.weight(.bold))
+                                .foregroundColor(AppTheme.textSecondary)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(Capsule().fill(Color.black.opacity(0.06)))
+                        }
+                    }
+
+                    Text(provider.subtitle)
+                        .font(.caption2)
+                        .foregroundColor(AppTheme.textSecondary)
+                        .lineLimit(2)
+                }
+
+                Spacer()
+
+                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                    .foregroundColor(isSelected ? AppTheme.textPrimary : AppTheme.textSecondary.opacity(0.4))
+                    .font(.system(size: 20))
+            }
+            .padding(14)
+            .background(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(isSelected ? AppTheme.accent.opacity(0.2) : Color.white.opacity(0.4))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .strokeBorder(isSelected ? AppTheme.accent : AppTheme.cardBorder, lineWidth: 1.2)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
     // MARK: - Custom Key Configuration Section
     private var customKeyConfigurationSection: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -237,147 +231,11 @@ public struct AIModelSettingsView: View {
                 .textCase(.uppercase)
 
             VStack(alignment: .leading, spacing: 16) {
-                // API Key Input
-                VStack(alignment: .leading, spacing: 6) {
-                    HStack {
-                        Text("API Key")
-                            .font(.caption.weight(.bold))
-                            .foregroundColor(AppTheme.textPrimary)
-
-                        Spacer()
-
-                        Button(action: {
-                            if let paste = UIPasteboard.general.string {
-                                LBHaptic.light()
-                                switch modelManager.selectedProvider {
-                                case .customGemini: modelManager.geminiApiKey = paste.trimmingCharacters(in: .whitespacesAndNewlines)
-                                case .customOpenAI: modelManager.openAIApiKey = paste.trimmingCharacters(in: .whitespacesAndNewlines)
-                                case .customClaude: modelManager.claudeApiKey = paste.trimmingCharacters(in: .whitespacesAndNewlines)
-                                default: break
-                                }
-                            }
-                        }) {
-                            HStack(spacing: 4) {
-                                Image(systemName: "doc.on.clipboard")
-                                Text("Paste")
-                            }
-                            .font(.caption2.weight(.semibold))
-                            .foregroundColor(AppTheme.textPrimary)
-                        }
-                    }
-
-                    HStack {
-                        if showingKeyText {
-                            TextField(keyPlaceholder, text: apiKeyBinding)
-                                .font(.system(size: 14, design: .monospaced))
-                                .autocorrectionDisabled()
-                                .textInputAutocapitalization(.never)
-                        } else {
-                            SecureField(keyPlaceholder, text: apiKeyBinding)
-                                .font(.system(size: 14, design: .monospaced))
-                        }
-
-                        Button(action: { showingKeyText.toggle() }) {
-                            Image(systemName: showingKeyText ? "eye.slash" : "eye")
-                                .foregroundColor(AppTheme.textSecondary)
-                                .padding(.horizontal, 4)
-                        }
-                        .buttonStyle(.plain)
-                    }
-                    .padding(12)
-                    .background(Color.black.opacity(0.04))
-                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                }
-
+                apiKeyInputSection
                 Divider().background(AppTheme.cardBorder)
-
-                // Model Selection
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Select Model")
-                        .font(.caption.weight(.bold))
-                        .foregroundColor(AppTheme.textPrimary)
-
-                    // Model Pills
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 8) {
-                            ForEach(availablePresetModels, id: \.self) { model in
-                                Button(action: {
-                                    LBHaptic.selection()
-                                    selectedModelBinding.wrappedValue = model
-                                    testResultMessage = nil
-                                }) {
-                                    Text(model)
-                                        .font(.caption.weight(selectedModelBinding.wrappedValue == model ? .bold : .medium))
-                                        .padding(.horizontal, 12)
-                                        .padding(.vertical, 8)
-                                        .background(
-                                            Capsule()
-                                                .fill(selectedModelBinding.wrappedValue == model ? AppTheme.accent : Color.black.opacity(0.05))
-                                        )
-                                        .foregroundColor(AppTheme.textPrimary)
-                                        .overlay(
-                                            Capsule()
-                                                .strokeBorder(selectedModelBinding.wrappedValue == model ? AppTheme.textPrimary.opacity(0.2) : Color.clear, lineWidth: 1)
-                                        )
-                                }
-                                .buttonStyle(.plain)
-                            }
-                        }
-                        .padding(.vertical, 2)
-                    }
-
-                    // Custom model identifier input
-                    DisclosureGroup(isExpanded: $showingCustomModelField) {
-                        TextField("e.g. custom-fine-tuned-model", text: selectedModelBinding)
-                            .font(.system(size: 14, design: .monospaced))
-                            .padding(10)
-                            .background(Color.black.opacity(0.04))
-                            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-                            .padding(.top, 4)
-                    } label: {
-                        Text("Use Custom Model Name")
-                            .font(.caption2.weight(.medium))
-                            .foregroundColor(AppTheme.textSecondary)
-                    }
-                }
-
+                modelSelectionSection
                 Divider().background(AppTheme.cardBorder)
-
-                // Test Connection Button & Result
-                VStack(spacing: 8) {
-                    Button(action: runConnectionTest) {
-                        HStack(spacing: 8) {
-                            if testingConnection {
-                                ProgressView()
-                                    .tint(AppTheme.textPrimary)
-                            } else {
-                                Image(systemName: "bolt.horizontal.circle.fill")
-                            }
-                            Text(testingConnection ? "Testing Connection..." : "Test Connection")
-                                .font(.subheadline.weight(.semibold))
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 11)
-                        .background(AppTheme.accent)
-                        .foregroundColor(AppTheme.textPrimary)
-                        .clipShape(RoundedRectangle(cornerRadius: 11, style: .continuous))
-                    }
-                    .buttonStyle(.plain)
-                    .disabled(testingConnection || apiKeyBinding.wrappedValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-
-                    if let result = testResultMessage {
-                        HStack(alignment: .top, spacing: 6) {
-                            Image(systemName: testIsError ? "exclamationmark.triangle.fill" : "checkmark.circle.fill")
-                                .foregroundColor(testIsError ? Color.red : Color.green)
-                                .font(.caption)
-                            Text(result)
-                                .font(.caption)
-                                .foregroundColor(testIsError ? Color.red : AppTheme.textPrimary)
-                                .lineLimit(3)
-                        }
-                        .padding(.top, 2)
-                    }
-                }
+                testConnectionSection
             }
             .padding(16)
             .background(
@@ -389,6 +247,151 @@ public struct AIModelSettingsView: View {
                     .strokeBorder(AppTheme.cardBorder, lineWidth: 1)
             )
             .shadow(color: Color.black.opacity(0.03), radius: 6, x: 0, y: 2)
+        }
+    }
+
+    private var apiKeyInputSection: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Text("API Key")
+                    .font(.caption.weight(.bold))
+                    .foregroundColor(AppTheme.textPrimary)
+
+                Spacer()
+
+                Button(action: {
+                    if let paste = UIPasteboard.general.string {
+                        LBHaptic.light()
+                        switch modelManager.selectedProvider {
+                        case .customGemini: modelManager.geminiApiKey = paste.trimmingCharacters(in: .whitespacesAndNewlines)
+                        case .customOpenAI: modelManager.openAIApiKey = paste.trimmingCharacters(in: .whitespacesAndNewlines)
+                        case .customClaude: modelManager.claudeApiKey = paste.trimmingCharacters(in: .whitespacesAndNewlines)
+                        default: break
+                        }
+                    }
+                }) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "doc.on.clipboard")
+                        Text("Paste")
+                    }
+                    .font(.caption2.weight(.semibold))
+                    .foregroundColor(AppTheme.textPrimary)
+                }
+            }
+
+            HStack {
+                if showingKeyText {
+                    TextField(keyPlaceholder, text: apiKeyBinding)
+                        .font(.system(size: 14, design: .monospaced))
+                        .autocorrectionDisabled()
+                        .textInputAutocapitalization(.never)
+                } else {
+                    SecureField(keyPlaceholder, text: apiKeyBinding)
+                        .font(.system(size: 14, design: .monospaced))
+                }
+
+                Button(action: { showingKeyText.toggle() }) {
+                    Image(systemName: showingKeyText ? "eye.slash" : "eye")
+                        .foregroundColor(AppTheme.textSecondary)
+                        .padding(.horizontal, 4)
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(12)
+            .background(Color.black.opacity(0.04))
+            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+        }
+    }
+
+    private var modelSelectionSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Select Model")
+                .font(.caption.weight(.bold))
+                .foregroundColor(AppTheme.textPrimary)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(availablePresetModels, id: \.self) { model in
+                        modelChip(model: model)
+                    }
+                }
+                .padding(.vertical, 2)
+            }
+
+            DisclosureGroup(isExpanded: $showingCustomModelField) {
+                TextField("e.g. custom-fine-tuned-model", text: selectedModelBinding)
+                    .font(.system(size: 14, design: .monospaced))
+                    .padding(10)
+                    .background(Color.black.opacity(0.04))
+                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    .padding(.top, 4)
+            } label: {
+                Text("Use Custom Model Name")
+                    .font(.caption2.weight(.medium))
+                    .foregroundColor(AppTheme.textSecondary)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func modelChip(model: String) -> some View {
+        let isSelected = selectedModelBinding.wrappedValue == model
+        Button(action: {
+            LBHaptic.light()
+            selectedModelBinding.wrappedValue = model
+            testResultMessage = nil
+        }) {
+            Text(model)
+                .font(.caption.weight(isSelected ? .bold : .medium))
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(
+                    Capsule()
+                        .fill(isSelected ? AppTheme.accent : Color.black.opacity(0.05))
+                )
+                .foregroundColor(AppTheme.textPrimary)
+                .overlay(
+                    Capsule()
+                        .strokeBorder(isSelected ? AppTheme.textPrimary.opacity(0.2) : Color.clear, lineWidth: 1)
+                )
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var testConnectionSection: some View {
+        VStack(spacing: 8) {
+            Button(action: runConnectionTest) {
+                HStack(spacing: 8) {
+                    if testingConnection {
+                        ProgressView()
+                            .tint(AppTheme.textPrimary)
+                    } else {
+                        Image(systemName: "bolt.horizontal.circle.fill")
+                    }
+                    Text(testingConnection ? "Testing Connection..." : "Test Connection")
+                        .font(.subheadline.weight(.semibold))
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 11)
+                .background(AppTheme.accent)
+                .foregroundColor(AppTheme.textPrimary)
+                .clipShape(RoundedRectangle(cornerRadius: 11, style: .continuous))
+            }
+            .buttonStyle(.plain)
+            .disabled(testingConnection || apiKeyBinding.wrappedValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+
+            if let result = testResultMessage {
+                HStack(alignment: .top, spacing: 6) {
+                    Image(systemName: testIsError ? "exclamationmark.triangle.fill" : "checkmark.circle.fill")
+                        .foregroundColor(testIsError ? Color.red : Color.green)
+                        .font(.caption)
+                    Text(result)
+                        .font(.caption)
+                        .foregroundColor(testIsError ? Color.red : AppTheme.textPrimary)
+                        .lineLimit(3)
+                }
+                .padding(.top, 2)
+            }
         }
     }
 

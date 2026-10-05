@@ -68,22 +68,16 @@
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		5194A4FA3072E2E100DE79B5 /* laterbox-ios */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
 			path = "laterbox-ios";
 			sourceTree = "<group>";
 		};
 		5194A50A3072E2E100DE79B5 /* laterbox-iosTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
 			path = "laterbox-iosTests";
 			sourceTree = "<group>";
 		};
 		5194A5143072E2E100DE79B5 /* laterbox-iosUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
 			path = "laterbox-iosUITests";
 			sourceTree = "<group>";
 		};
