@@ -21,21 +21,26 @@ struct GuidedCaptureView: View {
                 TextField("Title", text: $draft.title).accessibilityIdentifier("capture.title")
             case 2:
                 Text("Choose a category and tags")
-                Picker("Format", selection: $draft.contentType) {
-                    Text("Automatic").tag("")
-                    ForEach(ItemContentType.allCases, id: \.self) { Text($0.rawValue.capitalized).tag($0.rawValue) }
+                ScrollView(.horizontal) {
+                    HStack {
+                        Button("Automatic") { draft.contentType = "" }
+                        ForEach(ItemContentType.allCases, id: \.self) { type in
+                            Button(type.rawValue.capitalized) { draft.contentType = type.rawValue }
+                        }
+                    }
                 }
-                Picker("Category", selection: $draft.category) {
-                    Text("No category").tag("")
-                    ForEach(categories, id: \.self) { Text($0).tag($0) }
+                Text("Format: \(draft.contentType.isEmpty ? "Automatic" : draft.contentType)").font(.caption)
+                ScrollView(.horizontal) {
+                    HStack { ForEach(categories, id: \.self) { category in Button(category) { draft.category = category } } }
                 }
+                Text("Category: \(draft.category)").font(.caption)
                 TextField("Tags, separated by commas", text: $tagText).accessibilityIdentifier("capture.tags")
                 HStack {
                     ForEach(suggestedTags, id: \.self) { tag in
                         Button(tag) {
                             let tags = tagText.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }
                             if !tags.contains(tag) { tagText += tagText.isEmpty ? tag : ", \(tag)" }
-                        }.buttonStyle(.bordered)
+                        }.buttonStyle(CaptureChoiceStyle())
                     }
                 }
             default:
@@ -44,7 +49,7 @@ struct GuidedCaptureView: View {
                 Button("This weekend") { draft.returnAt = CaptureDraft.weekend() }
                 Button("Choose date") { chooseDate = true; draft.returnAt = date }
                 Button("No reminder") { draft.returnAt = nil; chooseDate = false }
-                if chooseDate { DatePicker("Return", selection: $date).onChange(of: date) { _, value in draft.returnAt = value } }
+                if chooseDate { CaptureDateChoices(date: $date).onChange(of: date) { _, value in draft.returnAt = value } }
                 if let selected = draft.returnAt { Text(selected.formatted()).font(.caption) }
             }
             HStack {
@@ -59,7 +64,7 @@ struct GuidedCaptureView: View {
                     }
                     if step == 2 { draft.tags = tagText.split(separator: ",").map { $0.trimmingCharacters(in: .whitespacesAndNewlines) } }
                     if step == 3 { save() } else { step += 1 }
-                }.buttonStyle(.borderedProminent)
+                }.buttonStyle(CaptureChoiceStyle())
                     .disabled(draft.content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
         }
@@ -73,7 +78,9 @@ struct GuidedCaptureView: View {
             } catch { /* Metadata is optional; manual saving stays available. */ }
         }
         .padding(20)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 18))
+        .foregroundStyle(.black)
+        .buttonStyle(CaptureChoiceStyle())
+        .background(AppTheme.background, in: RoundedRectangle(cornerRadius: 18))
     }
     private var suggestedTags: [String] {
         let text = draft.content.lowercased()
