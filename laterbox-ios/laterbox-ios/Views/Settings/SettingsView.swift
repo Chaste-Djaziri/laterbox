@@ -7,6 +7,7 @@
 
 import SwiftUI
 import SwiftData
+import UserNotifications
 
 public struct SettingsView: View {
     @Environment(\.modelContext) private var modelContext
@@ -17,6 +18,11 @@ public struct SettingsView: View {
     @State private var showingAuthSheet = false
     @State private var showingSignOutAlert = false
     @State private var showingSyncCompleteAlert = false
+    @State private var notificationStatus: UNAuthorizationStatus = .notDetermined
+    @State private var isSendingTestNotification = false
+    @State private var testNotificationScheduled = false
+    @State private var testNotificationErrorMessage: String? = nil
+    @State private var showingTestNotificationAlert = false
 
     public init() {}
 
@@ -434,6 +440,175 @@ public struct SettingsView: View {
                             .shadow(color: Color.black.opacity(0.03), radius: 6, x: 0, y: 2)
                         }
 
+                        // Notifications & Alerts Card
+                        VStack(alignment: .leading, spacing: 14) {
+                            Text("Notifications & Alerts")
+                                .font(.caption.weight(.bold))
+                                .foregroundColor(.secondary)
+                                .textCase(.uppercase)
+
+                            VStack(spacing: 12) {
+                                // Notification Status Row
+                                HStack {
+                                    HStack(spacing: 8) {
+                                        Image(systemName: notificationStatusIcon)
+                                            .foregroundColor(notificationStatusColor)
+                                        Text("Notification Status")
+                                            .font(.subheadline)
+                                            .foregroundColor(AppTheme.textPrimary)
+                                    }
+                                    Spacer()
+                                    Text(notificationStatusTitle)
+                                        .font(.subheadline.weight(.semibold))
+                                        .foregroundColor(notificationStatusColor)
+                                }
+
+                                Divider().background(AppTheme.cardBorder)
+
+                                if notificationStatus == .authorized || notificationStatus == .provisional {
+                                    HStack {
+                                        Text("Reminders & Snooze")
+                                            .font(.subheadline)
+                                            .foregroundColor(AppTheme.textSecondary)
+                                        Spacer()
+                                        HStack(spacing: 4) {
+                                            Image(systemName: "checkmark.circle.fill")
+                                                .font(.caption)
+                                                .foregroundColor(AppTheme.textPrimary)
+                                            Text("Enabled")
+                                                .font(.caption2.weight(.bold))
+                                                .foregroundColor(AppTheme.textPrimary)
+                                        }
+                                        .padding(.horizontal, 9)
+                                        .padding(.vertical, 4)
+                                        .background(
+                                            Capsule()
+                                                .fill(AppTheme.accent)
+                                        )
+                                    }
+
+                                    Divider().background(AppTheme.cardBorder)
+
+                                    // Send Test Notification Button
+                                    Button(action: {
+                                        triggerTestNotification()
+                                    }) {
+                                        HStack(spacing: 8) {
+                                            if isSendingTestNotification {
+                                                ProgressView()
+                                                    .tint(AppTheme.textPrimary)
+                                            } else {
+                                                Image(systemName: testNotificationScheduled ? "checkmark" : "paperplane.fill")
+                                            }
+                                            Text(testNotificationScheduled ? "Test Scheduled! (Arriving in 2s)" : "Send Test Notification")
+                                                .font(.subheadline.weight(.semibold))
+                                        }
+                                        .frame(maxWidth: .infinity)
+                                        .padding(.vertical, 10)
+                                        .background(testNotificationScheduled ? AppTheme.accent : AppTheme.accent.opacity(0.3))
+                                        .foregroundColor(AppTheme.textPrimary)
+                                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                                    }
+                                    .buttonStyle(.plain)
+                                    .disabled(isSendingTestNotification)
+
+                                    // Secondary link to manage in iOS Settings
+                                    Button(action: {
+                                        LBHaptic.light()
+                                        if let settingsUrl = URL(string: UIApplication.openSettingsURLString) {
+                                            UIApplication.shared.open(settingsUrl)
+                                        }
+                                    }) {
+                                        HStack(spacing: 4) {
+                                            Text("Configure in iOS Settings")
+                                            Image(systemName: "arrow.up.right")
+                                        }
+                                        .font(.caption2.weight(.medium))
+                                        .foregroundColor(AppTheme.textSecondary)
+                                    }
+                                    .buttonStyle(.plain)
+                                    .padding(.top, 2)
+
+                                } else if notificationStatus == .denied {
+                                    VStack(alignment: .leading, spacing: 10) {
+                                        Text("Notifications are currently disabled in iOS Settings. Allow notifications to receive timely return reminders for your saved items.")
+                                            .font(.caption)
+                                            .foregroundColor(AppTheme.textSecondary)
+                                            .lineSpacing(2)
+
+                                        Button(action: {
+                                            LBHaptic.medium()
+                                            if let settingsUrl = URL(string: UIApplication.openSettingsURLString) {
+                                                UIApplication.shared.open(settingsUrl)
+                                            }
+                                        }) {
+                                            HStack(spacing: 6) {
+                                                Image(systemName: "gearshape.fill")
+                                                Text("Open iOS Settings to Allow")
+                                                    .font(.subheadline.weight(.semibold))
+                                            }
+                                            .frame(maxWidth: .infinity)
+                                            .padding(.vertical, 10)
+                                            .background(Color.red.opacity(0.12))
+                                            .foregroundColor(.red)
+                                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                                        }
+                                        .buttonStyle(.plain)
+                                    }
+                                } else {
+                                    // Not determined
+                                    VStack(alignment: .leading, spacing: 10) {
+                                        Text("Enable notifications to receive alerts when your snoozed inbox items and reminders return.")
+                                            .font(.caption)
+                                            .foregroundColor(AppTheme.textSecondary)
+                                            .lineSpacing(2)
+
+                                        Button(action: {
+                                            requestNotificationPermission()
+                                        }) {
+                                            HStack(spacing: 6) {
+                                                Image(systemName: "bell.badge.fill")
+                                                Text("Allow Notifications")
+                                                    .font(.subheadline.weight(.semibold))
+                                            }
+                                            .frame(maxWidth: .infinity)
+                                            .padding(.vertical, 10)
+                                            .background(AppTheme.accent)
+                                            .foregroundColor(AppTheme.textPrimary)
+                                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                                        }
+                                        .buttonStyle(.plain)
+
+                                        Button(action: {
+                                            triggerTestNotification()
+                                        }) {
+                                            HStack(spacing: 6) {
+                                                Image(systemName: "paperplane")
+                                                Text("Send Test Notification")
+                                                    .font(.subheadline.weight(.semibold))
+                                            }
+                                            .frame(maxWidth: .infinity)
+                                            .padding(.vertical, 10)
+                                            .background(Color.black.opacity(0.05))
+                                            .foregroundColor(AppTheme.textSecondary)
+                                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                                        }
+                                        .buttonStyle(.plain)
+                                    }
+                                }
+                            }
+                            .padding(16)
+                            .background(
+                                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                    .fill(AppTheme.cardBackground)
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                    .strokeBorder(AppTheme.cardBorder, lineWidth: 1)
+                            )
+                            .shadow(color: Color.black.opacity(0.03), radius: 6, x: 0, y: 2)
+                        }
+
                         // Security & Privacy (App Lock)
                         VStack(alignment: .leading, spacing: 14) {
                             Text("Security & Privacy")
@@ -591,6 +766,28 @@ public struct SettingsView: View {
             } message: {
                 Text("Cloud sync completed successfully.")
             }
+            .alert("Notifications", isPresented: $showingTestNotificationAlert) {
+                if notificationStatus == .denied {
+                    Button("Open Settings") {
+                        if let settingsUrl = URL(string: UIApplication.openSettingsURLString) {
+                            UIApplication.shared.open(settingsUrl)
+                        }
+                    }
+                    Button("Cancel", role: .cancel) {}
+                } else {
+                    Button("OK", role: .cancel) {}
+                }
+            } message: {
+                Text(testNotificationErrorMessage ?? "Unable to schedule notification.")
+            }
+            .task {
+                await refreshNotificationStatus()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
+                Task {
+                    await refreshNotificationStatus()
+                }
+            }
         }
     }
 
@@ -621,5 +818,105 @@ public struct SettingsView: View {
             Capsule()
                 .fill(AppTheme.accent.opacity(0.5))
         )
+    }
+
+    private var notificationStatusTitle: String {
+        switch notificationStatus {
+        case .authorized:
+            return "Active"
+        case .provisional:
+            return "Provisional"
+        case .denied:
+            return "Disabled"
+        case .notDetermined:
+            return "Not Allowed"
+        case .ephemeral:
+            return "App Clip"
+        @unknown default:
+            return "Unknown"
+        }
+    }
+
+    private var notificationStatusColor: Color {
+        switch notificationStatus {
+        case .authorized, .provisional:
+            return Color.green
+        case .denied:
+            return Color.red
+        case .notDetermined:
+            return AppTheme.textSecondary
+        default:
+            return AppTheme.textSecondary
+        }
+    }
+
+    private var notificationStatusIcon: String {
+        switch notificationStatus {
+        case .authorized, .provisional:
+            return "bell.badge.fill"
+        case .denied:
+            return "bell.slash.fill"
+        case .notDetermined:
+            return "bell.fill"
+        default:
+            return "bell.fill"
+        }
+    }
+
+    private func refreshNotificationStatus() async {
+        let status = await ReturnNotification.currentAuthorizationStatus()
+        await MainActor.run {
+            self.notificationStatus = status
+        }
+    }
+
+    private func requestNotificationPermission() {
+        LBHaptic.medium()
+        Task {
+            do {
+                _ = try await ReturnNotification.requestPermissions()
+                await refreshNotificationStatus()
+            } catch {
+                await MainActor.run {
+                    testNotificationErrorMessage = error.localizedDescription
+                    showingTestNotificationAlert = true
+                }
+            }
+        }
+    }
+
+    private func triggerTestNotification() {
+        LBHaptic.medium()
+        isSendingTestNotification = true
+        testNotificationScheduled = false
+
+        Task {
+            do {
+                let success = try await ReturnNotification.sendTestNotification(delaySeconds: 2.0)
+                await refreshNotificationStatus()
+                await MainActor.run {
+                    isSendingTestNotification = false
+                    if success {
+                        testNotificationScheduled = true
+                        LBHaptic.success()
+                        Task {
+                            try? await Task.sleep(nanoseconds: 3_000_000_000)
+                            await MainActor.run {
+                                testNotificationScheduled = false
+                            }
+                        }
+                    } else {
+                        testNotificationErrorMessage = "Notifications are disabled. Please allow them in iOS Settings."
+                        showingTestNotificationAlert = true
+                    }
+                }
+            } catch {
+                await MainActor.run {
+                    isSendingTestNotification = false
+                    testNotificationErrorMessage = error.localizedDescription
+                    showingTestNotificationAlert = true
+                }
+            }
+        }
     }
 }
