@@ -69,7 +69,16 @@ public struct LaterAIView: View {
                     ScrollView {
                         VStack(spacing: 20) {
                             if conversation.manual {
-                                GuidedCaptureView(draft: $conversation.draft) { conversation.save(context: modelContext) }
+                                GuidedCaptureView(
+                                    draft: $conversation.draft,
+                                    onCancel: conversation.chatAvailable ? {
+                                        withAnimation(.easeInOut(duration: 0.22)) {
+                                            conversation.manual = false
+                                        }
+                                    } : nil
+                                ) {
+                                    conversation.save(context: modelContext)
+                                }
                                 if let reason = AppleLaterAIProvider.unavailableReason { Text(reason).font(.caption).foregroundStyle(.secondary) }
                             } else if messages.isEmpty && conversation.savedItem == nil {
                                 emptyStateView
