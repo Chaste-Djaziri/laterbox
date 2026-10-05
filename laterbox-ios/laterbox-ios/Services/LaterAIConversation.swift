@@ -78,6 +78,31 @@ final class LaterAIConversation: ObservableObject {
                     capture.formattedContent = action.formattedContent
                     capture.returnAt = ISO8601DateFormatter().date(from: action.returnDate)
                     if retry, !draft.content.isEmpty { capture.id = draft.id }
+                    if let detectedUrlString = capture.url, let url = URL(string: detectedUrlString) {
+                        let meta = await LinkMetadataLoader.load(url)
+                        if let title = meta.title, !title.isEmpty, capture.title.isEmpty || capture.title == "Untitled" {
+                            capture.title = title
+                        }
+                        if let site = meta.site, !site.isEmpty {
+                            capture.siteName = site
+                        }
+                        if let desc = meta.description, !desc.isEmpty {
+                            capture.metadataDescription = desc
+                        }
+                        if let img = meta.image, !img.isEmpty {
+                            capture.previewImageUrl = img
+                        }
+                        if let fav = meta.faviconUrl, !fav.isEmpty {
+                            capture.faviconUrl = fav
+                        }
+                        if let kw = meta.keywords, !kw.isEmpty {
+                            let mergedTags = Set(capture.tags + kw.map { $0.lowercased() })
+                            capture.tags = Array(mergedTags).sorted()
+                        }
+                        if let ct = meta.contentType, !ct.isEmpty {
+                            capture.contentType = ct
+                        }
+                    }
                     draft = capture
                     save(context: context)
                 case "search":
