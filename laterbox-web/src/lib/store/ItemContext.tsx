@@ -7,7 +7,7 @@ import { useAuth } from './AuthContext';
 import { useBilling } from './BillingContext';
 import { normalizeUrl, isUrl, extractDomain } from '../utils/url';
 import { storeLocalAttachment } from '../utils/local-attachments';
-import { itemRow, queueCapture, syncPendingCaptures } from '../utils/pending-captures';
+import { itemRow, queueCapture, syncPendingCaptures, isAuthError } from '../utils/pending-captures';
 import { uploadWithNotificationHandoff } from '../notifications/client';
 import { isActive, isDue, migrateSchedule } from '../utils/schedule';
 
@@ -285,7 +285,48 @@ export function ItemProvider({ children }: { children: ReactNode }) {
     try {
       const supabase = getSupabaseClient();
 
-      await syncPendingCaptures(user.id);
+      // Ensure active and valid session before executing cloud operations
+      const { data: sessionData } = await supabase.auth.getSession();
+      let currentSession = sessionData?.session;
+      if (!currentSession) {
+        loadLocalData();
+        setSyncStatus('offline');
+        setLoading(false);
+        return;
+      }
+
+      // If token is expired or within 60s of expiring, refresh upfront
+      if (currentSession.expires_at && currentSession.expires_at * 1000 < Date.now() + 60000) {
+        const { data: refreshed, error: refreshError } = await supabase.auth.refreshSession();
+        if (refreshError || !refreshed?.session) {
+          await supabase.auth.signOut();
+          loadLocalData();
+          setSyncStatus('offline');
+          setLoading(false);
+          return;
+        }
+        currentSession = refreshed.session;
+      }
+
+      // Sync any local pending captures safely
+      try {
+        await syncPendingCaptures(user.id);
+      } catch (syncErr: any) {
+        if (isAuthError(syncErr)) {
+          const { data: refreshed, error: refreshError } = await supabase.auth.refreshSession();
+          if (!refreshError && refreshed?.session) {
+            await syncPendingCaptures(user.id);
+          } else {
+            await supabase.auth.signOut();
+            loadLocalData();
+            setSyncStatus('offline');
+            setLoading(false);
+            return;
+          }
+        } else {
+          console.warn('[ItemContext] Non-fatal sync pending error:', syncErr);
+        }
+      }
 
       // Fetch items with 401 session recovery
       let { data: itemRows, error: itemError } = await supabase
@@ -295,7 +336,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
         .is('deleted_at', null)
         .order('created_at', { ascending: false });
 
-      if (itemError && ((itemError as any).status === 401 || (itemError as any).code === 'PGRST301')) {
+      if (itemError && (isAuthError(itemError) || (itemError as any).status === 401 || (itemError as any).code === 'PGRST301')) {
         const { data: refreshed, error: refreshError } = await supabase.auth.refreshSession();
         if (!refreshError && refreshed?.session) {
           const retry = await supabase
@@ -705,6 +746,26 @@ export function ItemProvider({ children }: { children: ReactNode }) {
     return newItem;
   };
 
+  const safeSyncPending = async (userId: string) => {
+    try {
+      await syncPendingCaptures(userId);
+    } catch (err: any) {
+      if (isAuthError(err)) {
+        const supabase = getSupabaseClient();
+        const { data: refreshed } = await supabase.auth.refreshSession();
+        if (refreshed?.session) {
+          try {
+            await syncPendingCaptures(userId);
+            return;
+          } catch {
+            // ignore retry error
+          }
+        }
+      }
+      setSyncStatus('error');
+    }
+  };
+
   const setFavorite = async (id: string, favorite: boolean) => {
     const updated = items.map((i) => (i.id === id ? { ...i, favorite, updated_at: new Date().toISOString() } : i));
     setItems(updated);
@@ -713,7 +774,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
     if (changed) queueCapture(changed);
 
     if (user && isPro) {
-      try { await syncPendingCaptures(user.id); } catch { setSyncStatus('error'); }
+      await safeSyncPending(user.id);
     }
   };
 
@@ -725,7 +786,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
     if (changed) queueCapture(changed);
 
     if (user && isPro) {
-      try { await syncPendingCaptures(user.id); } catch { setSyncStatus('error'); }
+      await safeSyncPending(user.id);
     }
   };
 
@@ -738,7 +799,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
     const changed = updated.find(item => item.id === id);
     if (changed) queueCapture(changed);
     if (user && isPro) {
-      try { await syncPendingCaptures(user.id); } catch { setSyncStatus('error'); }
+      await safeSyncPending(user.id);
     }
   };
 
@@ -755,7 +816,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
     saveLocalData(updated);
 
     if (user && isPro) {
-      try { await syncPendingCaptures(user.id); } catch { setSyncStatus('error'); }
+      await safeSyncPending(user.id);
     }
   };
 
