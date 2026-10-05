@@ -60,9 +60,9 @@ public struct AIOrganizerSheet: View {
                 guard coordinator.isProUser else { return }
                 let prompt = "Prepare capture classification only, without changing content or scheduling a date. Content: \(item.title)\n\((item.textContent ?? item.url ?? "").prefix(2500))\nExisting tags: \(item.tags.joined(separator: ","))"
                 let action: AIAction
-                do { action = try await AppleLaterAIProvider().respond(prompt) }
+                do { action = try await GeminiLaterAIProvider().respond(prompt) }
                 catch {
-                    if GeminiLaterAIProvider.enabled { action = try await GeminiLaterAIProvider().respond(prompt) } else { throw error }
+                    if AppleLaterAIProvider.unavailableReason == nil { action = try await AppleLaterAIProvider().respond(prompt) } else { throw error }
                 }
                 suggestions.append(AISuggestion(item: item, category: action.category, tags: action.tags, summary: action.summary))
             }

@@ -232,15 +232,20 @@ public final class SyncCoordinator: ObservableObject {
         do {
             let metadata = try await LinkMetadataLoader.load(url)
             guard item.status != "deleted", item.modelContext != nil else { return }
-            if item.title == url.host || item.title == text || item.title.isEmpty {
-                item.title = metadata.title ?? item.title
+            let currentIsGeneric = item.title.isEmpty || item.title == url.host || item.title == text || item.title.hasPrefix("http") || LinkMetadataLoader.isGenericTitle(item.title)
+            if let metaTitle = metadata.title, !metaTitle.isEmpty, (currentIsGeneric || !LinkMetadataLoader.isGenericTitle(metaTitle)) {
+                item.title = metaTitle
             }
             item.siteName = metadata.site ?? item.siteName
             item.metadataDescription = metadata.description ?? item.metadataDescription
             item.previewImageUrl = metadata.image ?? item.previewImageUrl
             item.faviconUrl = metadata.faviconUrl ?? item.faviconUrl
-            if item.tags.isEmpty && !metadata.keywords.isEmpty {
-                item.tags = Array(Set(metadata.keywords.map { $0.lowercased() })).sorted()
+            if !metadata.keywords.isEmpty {
+                let filteredCurrent = item.tags.filter { !["playlist", "youtube"].contains($0.lowercased()) }
+                let merged = Set(filteredCurrent + metadata.keywords.map { $0.lowercased() })
+                if !merged.isEmpty {
+                    item.tags = Array(merged).sorted()
+                }
             }
             if let ct = metadata.contentType, !ct.isEmpty, item.type == ItemContentType.link.rawValue {
                 item.type = ct

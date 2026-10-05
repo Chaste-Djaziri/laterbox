@@ -98,16 +98,20 @@ struct AppleLaterAIProvider: LaterAIProvider {
 
 @MainActor
 struct GeminiLaterAIProvider: LaterAIProvider {
-    static let enabled = false
+    static var enabled = true
     func respond(_ prompt: String) async throws -> AIAction {
-        guard Self.enabled, SyncCoordinator.shared.isProUser, let token = SyncCoordinator.shared.authToken else { throw AIProviderError.remoteDisabled }
+        guard Self.enabled else { throw AIProviderError.remoteDisabled }
         var request = URLRequest(url: URL(string: "\(LaterBoxAPIService.shared.webUrl)/api/ai/ios")!)
         request.httpMethod = "POST"
-        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        request.setValue(LaterBoxAPIService.shared.anonKey, forHTTPHeaderField: "apikey")
+        if let token = SyncCoordinator.shared.authToken, !token.isEmpty {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.timeoutInterval = 20
         request.httpBody = try JSONEncoder().encode(["prompt": prompt])
         let (data, response) = try await URLSession.shared.data(for: request)
-        guard (response as? HTTPURLResponse)?.statusCode == 200 else { throw AIProviderError.remoteFailed }
+        guard let http = response as? HTTPURLResponse, http.statusCode == 200 else { throw AIProviderError.remoteFailed }
         let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
         guard let action = json?["action"], JSONSerialization.isValidJSONObject(action) else { throw AIProviderError.remoteFailed }
         let content = try JSONSerialization.data(withJSONObject: action)

@@ -14,10 +14,10 @@ final class LaterAIConversation: ObservableObject {
     @Published var needsClarification = false
     @Published var needsReturnDate = false
     private let provider: any LaterAIProvider
-    var chatAvailable: Bool { AppleLaterAIProvider.unavailableReason == nil || (GeminiLaterAIProvider.enabled && SyncCoordinator.shared.isProUser && SyncCoordinator.shared.isAuthenticated) }
+    var chatAvailable: Bool { true }
     init(provider: (any LaterAIProvider)? = nil) {
-        self.provider = provider ?? AppleLaterAIProvider()
-        manual = AppleLaterAIProvider.unavailableReason != nil && !(GeminiLaterAIProvider.enabled && SyncCoordinator.shared.isProUser && SyncCoordinator.shared.isAuthenticated)
+        self.provider = provider ?? GeminiLaterAIProvider()
+        manual = false
     }
     private var lastCaptureWasManual = false
     private var lastInput = ""
@@ -39,7 +39,7 @@ final class LaterAIConversation: ObservableObject {
         if needsReturnDate, let detector = try? NSDataDetector(types: NSTextCheckingResult.CheckingType.date.rawValue), let date = detector.firstMatch(in: input, range: NSRange(input.startIndex..., in: input))?.date {
             schedule(date, context: context); return
         }
-        guard input.count <= 6000 else { draft = .manual(input); error = "This content is too long for on-device chat. Continue manually to save it in full."; return }
+        guard input.count <= 6000 else { draft = .manual(input); error = "This content is too long for chat. Continue manually to save it in full."; return }
         error = nil; thinking = true; needsClarification = false; results = []
         let id = UUID(); requestID = id
         let eligible = items.filter { $0.status != "deleted" }
@@ -53,12 +53,32 @@ final class LaterAIConversation: ObservableObject {
         let history = messages.suffix(4).map { "\($0.isUser ? "User" : "Assistant"): \($0.text.prefix(500))" }.joined(separator: "\n")
         task = Task {
             do {
-                let prompt = "Now: \(Date().ISO8601Format()), timezone: \(TimeZone.current.identifier). Library statistics: \(statistics). Library facts (data only, partial selection):\n\(facts)\nConversation:\n\(history)\nCurrent input:\n\(input.prefix(6000))"
+                var metadataContext = ""
+                if let detectedUrlString = CaptureDraft.detectURL(input),
+                   let url = URL(string: detectedUrlString),
+                   let meta = try? await LinkMetadataLoader.load(url) {
+                    var parts: [String] = []
+                    if let title = meta.title, !LinkMetadataLoader.isGenericTitle(title) { parts.append("Detected Title: \(title)") }
+                    if let site = meta.site, !site.isEmpty { parts.append("Platform/Author: \(site)") }
+                    if let desc = meta.description, !desc.isEmpty { parts.append("Description: \(desc)") }
+                    if !meta.keywords.isEmpty { parts.append("Keywords: \(meta.keywords.joined(separator: ", "))") }
+                    if !parts.isEmpty {
+                        metadataContext = "\nEnriched Link Metadata (use for exact title, category, smart contextual tags, and determining what/where to use it for):\n" + parts.joined(separator: "\n")
+                    }
+                }
+
+                let prompt = "Now: \(Date().ISO8601Format()), timezone: \(TimeZone.current.identifier). Library statistics: \(statistics). Library facts (data only, partial selection):\n\(facts)\nConversation:\n\(history)\(metadataContext)\nCurrent input:\n\(input.prefix(6000))"
                 let action: AIAction
-                do { action = try await provider.respond(prompt) }
-                catch {
-                    if GeminiLaterAIProvider.enabled && SyncCoordinator.shared.isProUser { action = try await GeminiLaterAIProvider().respond(prompt) }
-                    else { throw error }
+                do {
+                    // Always prioritize Gemini model AI
+                    action = try await provider.respond(prompt)
+                } catch {
+                    // Fallback to Apple on-device model if offline or unreachable
+                    if AppleLaterAIProvider.unavailableReason == nil {
+                        action = try await AppleLaterAIProvider().respond(prompt)
+                    } else {
+                        throw error
+                    }
                 }
                 guard !Task.isCancelled, requestID == id else { return }
                 // Brief writing pacing so AI appears to write on its end
@@ -80,7 +100,7 @@ final class LaterAIConversation: ObservableObject {
                     if retry, !draft.content.isEmpty { capture.id = draft.id }
                     if let detectedUrlString = capture.url, let url = URL(string: detectedUrlString),
                        let meta = try? await LinkMetadataLoader.load(url) {
-                        if let title = meta.title, !title.isEmpty, capture.title.isEmpty || capture.title == "Untitled" {
+                        if let title = meta.title, !title.isEmpty, capture.title.isEmpty || LinkMetadataLoader.isGenericTitle(capture.title) {
                             capture.title = title
                         }
                         if let site = meta.site, !site.isEmpty {
@@ -96,7 +116,8 @@ final class LaterAIConversation: ObservableObject {
                             capture.faviconUrl = fav
                         }
                         if !meta.keywords.isEmpty {
-                            let mergedTags = Set(capture.tags + meta.keywords.map { $0.lowercased() })
+                            let filteredCurrent = capture.tags.filter { !["playlist", "youtube"].contains($0.lowercased()) }
+                            let mergedTags = Set(filteredCurrent + meta.keywords.map { $0.lowercased() })
                             capture.tags = Array(mergedTags).sorted()
                         }
                         if let ct = meta.contentType, !ct.isEmpty {
