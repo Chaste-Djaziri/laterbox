@@ -36,7 +36,7 @@ fun LaterAIScreen(repository: DataRepository, onDismiss: () -> Unit) {
 fun LaterAIContent(items: List<ItemEntity>, initial: String = "", attachments: String = "[]", onDismiss: () -> Unit, onSaved: () -> Unit = {}) {
     val context = LocalContext.current
     val store = remember { VaultStore(context) }
-    val ai = remember { LaterAIService() }
+    val ai = remember { LaterAIService(context) }
     val scope = rememberCoroutineScope()
     var status by remember { mutableIntStateOf(FeatureStatus.UNAVAILABLE) }
     var checking by remember { mutableStateOf(true) }
