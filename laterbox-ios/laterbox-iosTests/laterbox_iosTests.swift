@@ -317,6 +317,45 @@ extension LaterAITests {
 
         aiManager.dismiss()
     }
+    @Test func relativeDateParserHandlesMinutesHoursAndNaturalKeywords() {
+        let reference = Date(timeIntervalSince1970: 1760000000) // Fixed reference date
+
+        // 1. "i want this back in 10 minutes"
+        let tenMin = RelativeDateParser.parse("i want this back in 10 minutes", now: reference)
+        #expect(tenMin != nil)
+        #expect(tenMin?.isRelative == true)
+        #expect(tenMin?.intervalDescription == "10 minutes")
+        #expect(abs((tenMin?.date.timeIntervalSince(reference) ?? 0) - 600) < 0.1)
+
+        // 2. "10m"
+        let shortMin = RelativeDateParser.parse("10m", now: reference)
+        #expect(shortMin != nil)
+        #expect(abs((shortMin?.date.timeIntervalSince(reference) ?? 0) - 600) < 0.1)
+
+        // 3. "in 2 hours"
+        let twoHours = RelativeDateParser.parse("in 2 hours", now: reference)
+        #expect(twoHours != nil)
+        #expect(twoHours?.intervalDescription == "2 hours")
+        #expect(abs((twoHours?.date.timeIntervalSince(reference) ?? 0) - 7200) < 0.1)
+
+        // 4. "in 30 seconds"
+        let thirtySec = RelativeDateParser.parse("in 30 seconds", now: reference)
+        #expect(thirtySec != nil)
+        #expect(abs((thirtySec?.date.timeIntervalSince(reference) ?? 0) - 30) < 0.1)
+
+        // 5. "in 3 days"
+        let threeDays = RelativeDateParser.parse("in 3 days", now: reference)
+        #expect(threeDays != nil)
+        #expect(threeDays?.intervalDescription == "3 days")
+
+        // 6. "tomorrow"
+        let tomorrow = RelativeDateParser.parse("remind me tomorrow", now: reference)
+        #expect(tomorrow != nil)
+
+        // 7. Unrelated text returns nil
+        let unrelated = RelativeDateParser.parse("hello there please organize this", now: reference)
+        #expect(unrelated == nil)
+    }
 }
 @MainActor
 private final class MockCloudTransport: IOSCloudTransport {
