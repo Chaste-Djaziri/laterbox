@@ -86,21 +86,18 @@ export async function GET(request: NextRequest) {
         });
       }
 
-      console.error('GitHub returned no published releases.');
+      console.warn('GitHub returned no published releases.');
     } else {
-      console.error(`GitHub releases request failed: ${res.status} ${res.statusText}`);
+      console.warn(`GitHub releases request failed: ${res.status} ${res.statusText}`);
     }
   } catch (error) {
-    console.error('Failed to fetch releases:', error);
+    console.warn('Failed to fetch releases:', error);
   }
 
-  return NextResponse.json(
-    { error: 'Live GitHub release data is currently unavailable.' },
-    {
-      status: 502,
-      headers: {
-        'Cache-Control': 'no-store',
-      },
-    }
-  );
+  return NextResponse.json([], {
+    status: 200,
+    headers: {
+      'Cache-Control': 'public, max-age=60, s-maxage=60',
+    },
+  });
 }
