@@ -90,7 +90,7 @@ class SyncWorker(context: Context, parameters: WorkerParameters) : CoroutineWork
                 item.collectionId?.let { id -> database.collectionDao().getCollectionById(id)?.takeIf { it.deletedAt == null }?.let {
                     post("collection_items?on_conflict=collection_id,item_id", JSONObject().put("collection_id", id).put("item_id", item.id).put("user_id", uid).put("created_at", item.createdAt).put("updated_at", item.updatedAt).put("deleted_at", JSONObject.NULL))
                 } }
-                dao.markSyncedIfUnchanged(item.id, item.updatedAt, Instant.now().toString())
+                dao.markSyncedIfUnchanged(item.id, item.updatedAt, Instant.now().toString(), uid)
             }
             Result.success()
         } catch (error: kotlinx.coroutines.CancellationException) { throw error } catch (error: Exception) { Result.retry() }
