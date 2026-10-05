@@ -20,6 +20,11 @@ import UniformTypeIdentifiers
                                       status: capture.returnAt.map { $0 > now ? .deferred : .inbox } ?? .inbox, returnAt: capture.returnAt)
                     item.url = CaptureDraft.detectURL(capture.content)
                     item.tags = capture.tags; item.category = capture.category
+                    if !capture.category.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        let coll = SyncCoordinator.shared.ensureCollectionExists(named: capture.category, context: context)
+                        item.collectionName = coll?.name ?? capture.category
+                        item.collectionId = coll?.id
+                    }
                     item.previewImageUrl = capture.previewImageUrl
                     item.siteName = capture.siteName
                     item.metadataDescription = capture.metadataDescription
