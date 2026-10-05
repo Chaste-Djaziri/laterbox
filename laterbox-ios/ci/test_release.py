@@ -1,9 +1,21 @@
 import datetime
 import unittest
-from app_store import release_numbers
+from unittest.mock import patch
+import urllib.error
+from app_store import release_numbers, existing_app, APP_ID, BUNDLE
 from signing import validate, TEAM, GROUP
 
 class ReleaseTests(unittest.TestCase):
+    def test_existing_app_checks_identity(self):
+        with patch('app_store.request', return_value={'data': {'id': APP_ID, 'attributes': {'bundleId': BUNDLE}}}) as fetch:
+            self.assertEqual(existing_app(), APP_ID)
+            fetch.assert_called_once_with('/v1/apps/' + APP_ID)
+        with patch('app_store.request', return_value={'data': {'id': APP_ID, 'attributes': {'bundleId': 'wrong.bundle'}}}):
+            with self.assertRaisesRegex(RuntimeError, 'identity'): existing_app()
+    def test_app_access_failure_reports_status(self):
+        with patch('app_store.request', side_effect=urllib.error.HTTPError('https://api.appstoreconnect.apple.com', 403, 'Forbidden', {}, None)):
+            with self.assertRaisesRegex(RuntimeError, 'HTTP 403'): existing_app()
+
     def test_numbers_exceed_legacy_builds_and_closed_versions(self):
         version, build = release_numbers({'version':'1.0.173','buildNumber':175},
                                         [{'attributes':{'version':'180.2'}}],
