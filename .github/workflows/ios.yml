@@ -36,7 +36,8 @@ jobs:
           xcodebuild -project laterbox-ios/laterbox-ios.xcodeproj -scheme laterbox-ios \
             -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -derivedDataPath "$RUNNER_TEMP/DerivedData" \
             -resultBundlePath "$RUNNER_TEMP/NativeTests.xcresult" -parallel-testing-enabled NO \
-            -test-timeouts-enabled YES -maximum-test-execution-time-allowance 180 CODE_SIGNING_ALLOWED=NO test
+            -collect-test-diagnostics never -test-timeouts-enabled YES \
+            -maximum-test-execution-time-allowance 180 CODE_SIGNING_ALLOWED=NO test
       - uses: actions/upload-artifact@v4
         if: always()
         with:
