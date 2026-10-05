@@ -27,6 +27,10 @@ struct CaptureDraft: Codable, Equatable {
     var summary = ""
     var formattedContent = ""
     var returnAt: Date?
+    var siteName: String?
+    var metadataDescription: String?
+    var previewImageUrl: String?
+    var faviconUrl: String?
     var url: String? { Self.detectURL(content) }
     var type: ItemContentType {
         if let specified = ItemContentType(rawValue: contentType) { return specified }
