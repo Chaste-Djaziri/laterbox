@@ -213,7 +213,10 @@ public final class SyncCoordinator: ObservableObject {
         item.formattedContent = draft.formattedContent
         context.insert(item)
         do { try context.save() } catch { context.delete(item); throw error }
-        Task { await enrich(item: item, context: context); await syncPendingItems(context: context) }
+        Task {
+            _ = try? await ReturnNotification.update(id: item.id, title: item.title, date: item.returnAt)
+            await enrich(item: item, context: context); await syncPendingItems(context: context)
+        }
         return item
     }
 
@@ -243,6 +246,7 @@ public final class SyncCoordinator: ObservableObject {
         item.isSyncPending = true
         do {
             try context.save()
+            UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [item.id])
             Task { await syncPendingItems(context: context) }
         } catch { context.rollback() }
         LBHaptic.light()
@@ -255,7 +259,10 @@ public final class SyncCoordinator: ObservableObject {
         item.isSyncPending = true
         do {
             try context.save()
-            Task { await syncPendingItems(context: context) }
+            Task {
+                _ = try? await ReturnNotification.update(id: item.id, title: item.title, date: date)
+                await syncPendingItems(context: context)
+            }
         } catch { context.rollback() }
         LBHaptic.light()
     }
@@ -277,6 +284,7 @@ public final class SyncCoordinator: ObservableObject {
         item.isSyncPending = true
         do {
             try context.save()
+            UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [item.id])
             Task { await syncPendingItems(context: context) }
         } catch { context.rollback() }
         LBHaptic.medium()
@@ -306,6 +314,7 @@ public final class SyncCoordinator: ObservableObject {
         context.delete(item)
         do {
             try context.save()
+            UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [item.id])
             Task { await syncPendingItems(context: context) }
         } catch {
             context.rollback()
