@@ -19,6 +19,8 @@ public struct SettingsView: View {
     @State private var showingAuthSheet = false
     @State private var showingSignOutAlert = false
     @State private var showingSyncCompleteAlert = false
+    @State private var showingStorageSheet = false
+    @StateObject private var storageManager = LocalStorageManager.shared
     @State private var notificationStatus: UNAuthorizationStatus = .notDetermined
     @State private var isSendingTestNotification = false
     @State private var testNotificationScheduled = false
@@ -786,24 +788,113 @@ public struct SettingsView: View {
 
                         // Local Storage Section
                         VStack(alignment: .leading, spacing: 14) {
-                            Text("Vault Storage")
-                                .font(.caption.weight(.bold))
-                                .foregroundColor(.secondary)
-                                .textCase(.uppercase)
-
                             HStack {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text("Total Local Items")
-                                        .font(.subheadline)
-                                        .foregroundColor(AppTheme.textPrimary)
-                                    Text("\(allItems.count) entries in encrypted SwiftData store")
-                                        .font(.caption2)
-                                        .foregroundColor(AppTheme.textSecondary)
-                                }
+                                Text("Local Storage & Vault")
+                                    .font(.caption.weight(.bold))
+                                    .foregroundColor(.secondary)
+                                    .textCase(.uppercase)
                                 Spacer()
-                                Text("\(allItems.count)")
-                                    .font(.title3.weight(.bold).monospaced())
+                                Text(storageManager.breakdown.formattedTotal)
+                                    .font(.caption.weight(.bold).monospaced())
                                     .foregroundColor(AppTheme.textPrimary)
+                            }
+
+                            VStack(alignment: .leading, spacing: 12) {
+                                HStack {
+                                    VStack(alignment: .leading, spacing: 3) {
+                                        Text("Vault Disk Usage")
+                                            .font(.subheadline.weight(.semibold))
+                                            .foregroundColor(AppTheme.textPrimary)
+                                        Text("\(allItems.count) entries in encrypted SwiftData store")
+                                            .font(.caption2)
+                                            .foregroundColor(AppTheme.textSecondary)
+                                    }
+                                    Spacer()
+                                    Text(storageManager.breakdown.formattedTotal)
+                                        .font(.title3.weight(.bold).monospaced())
+                                        .foregroundColor(AppTheme.textPrimary)
+                                }
+
+                                // Quick Storage Bar
+                                GeometryReader { geo in
+                                    HStack(spacing: 2) {
+                                        Rectangle()
+                                            .fill(AppTheme.accent)
+                                            .frame(width: max(geo.size.width * CGFloat(storageManager.breakdown.databasePercentage), 6))
+
+                                        Rectangle()
+                                            .fill(Color(hex: "3B82F6"))
+                                            .frame(width: max(geo.size.width * CGFloat(storageManager.breakdown.attachmentsPercentage), 6))
+
+                                        Rectangle()
+                                            .fill(Color(hex: "F59E0B"))
+                                            .frame(width: max(geo.size.width * CGFloat(storageManager.breakdown.cachePercentage), 6))
+                                    }
+                                    .clipShape(Capsule())
+                                }
+                                .frame(height: 6)
+
+                                Divider().background(AppTheme.cardBorder)
+
+                                // Status counts breakdown
+                                let trashCount = allItems.filter { $0.status == ItemStatus.deleted.rawValue }.count
+                                let duplicateCount = storageManager.totalDuplicateItemCount
+                                if trashCount > 0 || duplicateCount > 0 {
+                                    HStack(spacing: 8) {
+                                        if trashCount > 0 {
+                                            HStack(spacing: 4) {
+                                                Image(systemName: "trash.fill")
+                                                    .font(.system(size: 11))
+                                                Text("\(trashCount) in Trash")
+                                                    .font(.system(size: 11, weight: .bold))
+                                            }
+                                            .padding(.horizontal, 8)
+                                            .padding(.vertical, 4)
+                                            .background(Capsule().fill(Color.red.opacity(0.12)))
+                                            .foregroundColor(Color.red)
+                                        }
+
+                                        if duplicateCount > 0 {
+                                            HStack(spacing: 4) {
+                                                Image(systemName: "doc.on.doc.fill")
+                                                    .font(.system(size: 11))
+                                                Text("\(duplicateCount) Duplicates")
+                                                    .font(.system(size: 11, weight: .bold))
+                                            }
+                                            .padding(.horizontal, 8)
+                                            .padding(.vertical, 4)
+                                            .background(Capsule().fill(Color.orange.opacity(0.15)))
+                                            .foregroundColor(Color.orange)
+                                        }
+
+                                        Spacer()
+                                    }
+                                }
+
+                                // Manage Storage Button
+                                Button(action: {
+                                    LBHaptic.medium()
+                                    storageManager.refreshBreakdown()
+                                    storageManager.scanDuplicates(items: allItems)
+                                    showingStorageSheet = true
+                                }) {
+                                    HStack(spacing: 6) {
+                                        Image(systemName: "internaldrive.fill")
+                                            .font(.subheadline.weight(.semibold))
+                                        Text("Manage Storage & Duplicates")
+                                            .font(.subheadline.weight(.bold))
+                                        Spacer()
+                                        Image(systemName: "chevron.right")
+                                            .font(.caption.weight(.bold))
+                                            .foregroundColor(AppTheme.textSecondary)
+                                    }
+                                    .foregroundColor(AppTheme.textPrimary)
+                                    .padding(.horizontal, 14)
+                                    .padding(.vertical, 11)
+                                    .background(AppTheme.accent)
+                                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                                }
+                                .buttonStyle(.plain)
                             }
                             .padding(16)
                             .background(
@@ -841,6 +932,9 @@ public struct SettingsView: View {
                 NavigationStack {
                     AuthView()
                 }
+            }
+            .sheet(isPresented: $showingStorageSheet) {
+                StorageManagementView()
             }
             .alert("Sign Out", isPresented: $showingSignOutAlert) {
                 Button("Sign Out", role: .destructive) { coordinator.signOut() }
