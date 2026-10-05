@@ -12,7 +12,9 @@ import UniformTypeIdentifiers
                         let type = UTType(attachment.typeIdentifier)
                         if type?.conforms(to: .movie) == true { return .video }
                         if type?.conforms(to: .audio) == true { return .music }
-                        return .document
+                        if type?.conforms(to: .image) == true { return .image }
+                        if type?.conforms(to: .pdf) == true || type?.conforms(to: .text) == true { return .document }
+                        return .file
                     } ?? (CaptureDraft.detectURL(capture.content) == nil ? .note : .link)
                     let item = LBItem(id: id, title: capture.title, textContent: capture.content, type: type,
                                       status: capture.returnAt.map { $0 > now ? .deferred : .inbox } ?? .inbox, returnAt: capture.returnAt)
