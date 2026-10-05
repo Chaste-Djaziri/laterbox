@@ -16,17 +16,80 @@ export function queueCapture(item: LaterBoxItem) {
   const queue = JSON.parse(localStorage.getItem(queueKey(item.user_id)) || '{}');
   queue[item.id] = item; localStorage.setItem(queueKey(item.user_id), JSON.stringify(queue));
 }
+export function isAuthError(error: any): boolean {
+  if (!error) return false;
+  return (
+    error.status === 401 ||
+    error.code === 'PGRST301' ||
+    error.code === '401' ||
+    (typeof error.message === 'string' &&
+      (error.message.toLowerCase().includes('jwt') ||
+        error.message.toLowerCase().includes('token') ||
+        error.message.toLowerCase().includes('unauthorized') ||
+        error.message.toLowerCase().includes('permission denied')))
+  );
+}
+
 export async function syncPendingCaptures(userId: string) {
   const client = getSupabaseClient();
   const queue = JSON.parse(localStorage.getItem(queueKey(userId)) || '{}') as Record<string, LaterBoxItem>;
-  for (const item of Object.values(queue)) {
-    const { data: remote, error: readError } = await client.from('items').select('updated_at,deleted_at').eq('id', item.id).eq('user_id', userId).maybeSingle();
+  const items = Object.values(queue);
+  if (items.length === 0) return;
+
+  // Proactively check and refresh expired session before triggering REST requests
+  const { data: sessionData } = await client.auth.getSession();
+  let session = sessionData?.session;
+  if (!session) return;
+
+  if (session.expires_at && session.expires_at * 1000 < Date.now() + 60000) {
+    const { data: refreshed, error: refreshError } = await client.auth.refreshSession();
+    if (!refreshError && refreshed?.session) {
+      session = refreshed.session;
+    } else {
+      return;
+    }
+  }
+
+  for (const item of items) {
+    let { data: remote, error: readError } = await client
+      .from('items')
+      .select('updated_at,deleted_at')
+      .eq('id', item.id)
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (readError && isAuthError(readError)) {
+      const { data: refreshed, error: refreshError } = await client.auth.refreshSession();
+      if (!refreshError && refreshed?.session) {
+        const retry = await client
+          .from('items')
+          .select('updated_at,deleted_at')
+          .eq('id', item.id)
+          .eq('user_id', userId)
+          .maybeSingle();
+        remote = retry.data;
+        readError = retry.error;
+      } else {
+        throw readError;
+      }
+    }
     if (readError) throw readError;
+
     if (!remote || new Date(remote.updated_at) <= new Date(item.updated_at)) {
       await uploadWithNotificationHandoff(item.id, item.return_at, async () => {
-        const { error } = remote
+        let { error } = remote
           ? await client.from('items').update(itemRow(item)).eq('id', item.id).eq('user_id', userId).lte('updated_at', item.updated_at)
           : await client.from('items').upsert(itemRow(item));
+
+        if (error && isAuthError(error)) {
+          const { data: refreshed } = await client.auth.refreshSession();
+          if (refreshed?.session) {
+            const retry = remote
+              ? await client.from('items').update(itemRow(item)).eq('id', item.id).eq('user_id', userId).lte('updated_at', item.updated_at)
+              : await client.from('items').upsert(itemRow(item));
+            error = retry.error;
+          }
+        }
         if (error) throw error;
       });
     }
