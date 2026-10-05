@@ -4,7 +4,6 @@ import React, { createContext, useContext, useEffect, useState, useMemo, useCall
 import { getSupabaseClient } from '../supabase/client';
 import { LaterBoxItem, ItemStatus, InboxFilterType, Collection, Attachment } from '../supabase/types';
 import { useAuth } from './AuthContext';
-import { useBilling } from './BillingContext';
 import { normalizeUrl, isUrl, extractDomain } from '../utils/url';
 import { storeLocalAttachment } from '../utils/local-attachments';
 import { itemRow, queueCapture, syncPendingCaptures, isAuthError } from '../utils/pending-captures';
@@ -223,8 +222,7 @@ const DEFAULT_GUEST_ITEMS: LaterBoxItem[] = [
 ];
 
 export function ItemProvider({ children }: { children: ReactNode }) {
-  const { user, signOut: authSignOut } = useAuth();
-  const { isPro } = useBilling();
+  const { user, session: authSession } = useAuth();
   const [items, setItems] = useState<LaterBoxItem[]>([]);
   const [now, setNow] = useState(() => new Date());
   const [collections, setCollections] = useState<Collection[]>([]);
@@ -261,23 +259,12 @@ export function ItemProvider({ children }: { children: ReactNode }) {
     }
   }, [user?.id]);
 
-  // Gracefully handle unrecoverable auth failures without infinite re-fetch loops
-  const handleAuthFailure = useCallback(async () => {
-    const supabase = getSupabaseClient();
-    try {
-      await supabase.auth.signOut({ scope: 'local' });
-    } catch {
-      // ignore
-    }
-    try {
-      await authSignOut();
-    } catch {
-      // ignore
-    }
+  // Gracefully handle unrecoverable sync/network failures without destroying user session
+  const handleAuthFailure = useCallback(() => {
     loadLocalData();
     setSyncStatus('offline');
     setLoading(false);
-  }, [authSignOut, loadLocalData]);
+  }, [loadLocalData]);
 
   // Save to local storage
   const saveLocalData = useCallback((newItems: LaterBoxItem[], newCols?: Collection[]) => {
@@ -293,7 +280,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
 
   // Fetch from Supabase
   const fetchData = useCallback(async () => {
-    if (!user || !user.id || !isPro) {
+    if (!user || !user.id) {
       loadLocalData();
       setSyncStatus('offline');
       setLoading(false);
@@ -309,20 +296,22 @@ export function ItemProvider({ children }: { children: ReactNode }) {
 
       // Ensure active and valid session before executing cloud operations
       const { data: sessionData } = await supabase.auth.getSession();
-      let currentSession = sessionData?.session;
+      let currentSession = sessionData?.session ?? authSession;
       if (!currentSession) {
-        await handleAuthFailure();
+        const { data: refreshed } = await supabase.auth.refreshSession();
+        currentSession = refreshed?.session ?? null;
+      }
+      if (!currentSession) {
+        handleAuthFailure();
         return;
       }
 
       // If token is expired or within 60s of expiring, refresh upfront
       if (currentSession.expires_at && currentSession.expires_at * 1000 < Date.now() + 60000) {
         const { data: refreshed, error: refreshError } = await supabase.auth.refreshSession();
-        if (refreshError || !refreshed?.session) {
-          await handleAuthFailure();
-          return;
+        if (!refreshError && refreshed?.session) {
+          currentSession = refreshed.session;
         }
-        currentSession = refreshed.session;
       }
 
       // Sync any local pending captures safely
@@ -334,7 +323,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
           if (!refreshError && refreshed?.session) {
             await syncPendingCaptures(user.id).catch(() => {});
           } else {
-            await handleAuthFailure();
+            handleAuthFailure();
             return;
           }
         } else {
@@ -362,18 +351,18 @@ export function ItemProvider({ children }: { children: ReactNode }) {
           itemRows = retry.data;
           itemError = retry.error;
           if (itemError && (isAuthError(itemError) || (itemError as any).status === 401 || (itemError as any).code === 'PGRST301')) {
-            await handleAuthFailure();
+            handleAuthFailure();
             return;
           }
         } else {
-          await handleAuthFailure();
+          handleAuthFailure();
           return;
         }
       }
 
       if (itemError) {
         if (isAuthError(itemError)) {
-          await handleAuthFailure();
+          handleAuthFailure();
           return;
         }
         throw itemError;
@@ -476,7 +465,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
       setSyncStatus('synced');
     } catch (err) {
       if (isAuthError(err)) {
-        await handleAuthFailure();
+        handleAuthFailure();
         return;
       }
       setSyncStatus('error');
@@ -485,7 +474,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
       isFetchingRef.current = false;
       setLoading(false);
     }
-  }, [user?.id, isPro, loadLocalData, saveLocalData, handleAuthFailure]);
+  }, [user?.id, authSession, loadLocalData, saveLocalData, handleAuthFailure]);
 
   useEffect(() => {
     fetchData();
@@ -694,8 +683,8 @@ export function ItemProvider({ children }: { children: ReactNode }) {
             )
           );
 
-          // Only persist to Supabase for Pro users
-          if (user && isPro) {
+          // Persist to Supabase for logged-in users
+          if (user) {
             try {
               const supabase = getSupabaseClient();
 
@@ -723,23 +712,8 @@ export function ItemProvider({ children }: { children: ReactNode }) {
             } catch {
               setSyncStatus('error');
             }
-          } else if (user) {
-            // Logged-in free user: persist item + metadata to Supabase without Pro features
-            try {
-              const supabase = getSupabaseClient();
-              const { error: saveError } = await supabase.from('items').upsert(itemRow(newItem));
-              if (!saveError) {
-                await supabase.from('item_metadata').upsert({
-                  item_id: newItem.id,
-                  user_id: user.id,
-                  ...metaUpdate,
-                  created_at: now,
-                  updated_at: new Date().toISOString(),
-                });
-              }
-            } catch { /* ignore — local state already updated */ }
           }
-        } else if (user && isPro) {
+        } else if (user) {
           // Enrichment failed — still persist the raw item to Supabase
           try {
             const supabase = getSupabaseClient();
@@ -755,7 +729,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
       };
 
       runEnrich().catch(() => null);
-    } else if (user && isPro) {
+    } else if (user) {
       // No URL (text/file capture) — persist directly
       try {
         const supabase = getSupabaseClient();
@@ -787,7 +761,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
             // ignore retry error
           }
         } else {
-          await handleAuthFailure();
+          handleAuthFailure();
           return;
         }
       }
@@ -802,7 +776,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
     const changed = updated.find(item => item.id === id);
     if (changed) queueCapture(changed);
 
-    if (user && isPro) {
+    if (user) {
       await safeSyncPending(user.id);
     }
   };
@@ -814,7 +788,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
     const changed = updated.find(item => item.id === id);
     if (changed) queueCapture(changed);
 
-    if (user && isPro) {
+    if (user) {
       await safeSyncPending(user.id);
     }
   };
@@ -827,7 +801,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
 
     const changed = updated.find(item => item.id === id);
     if (changed) queueCapture(changed);
-    if (user && isPro) {
+    if (user) {
       await safeSyncPending(user.id);
     }
   };
@@ -844,7 +818,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
     setItems(updated);
     saveLocalData(updated);
 
-    if (user && isPro) {
+    if (user) {
       await safeSyncPending(user.id);
     }
   };
@@ -872,7 +846,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
     setItems(updated);
     saveLocalData(updated);
 
-    if (user && isPro) {
+    if (user) {
       const supabase = getSupabaseClient();
       if (trimmed) {
         await supabase.from('item_notes').upsert({
@@ -901,7 +875,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
     setCollections(updated);
     saveLocalData(items, updated);
 
-    if (user && isPro) {
+    if (user) {
       const supabase = getSupabaseClient();
       await supabase.from('collections').insert({
         id: newCol.id,
@@ -920,7 +894,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
     setCollections(updated);
     saveLocalData(items, updated);
 
-    if (user && isPro) {
+    if (user) {
       const supabase = getSupabaseClient();
       await supabase.from('collections').update({ deleted_at: now }).eq('id', id);
     }
@@ -941,7 +915,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
       return updated;
     });
 
-    if (user && isPro) {
+    if (user) {
       const supabase = getSupabaseClient();
       await supabase.from('collection_items').upsert({
         collection_id: collectionId,
@@ -964,7 +938,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
       return updated;
     });
 
-    if (user && isPro) {
+    if (user) {
       const supabase = getSupabaseClient();
       await supabase
         .from('collection_items')
