@@ -9,6 +9,9 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface ItemDao {
+    @Query("UPDATE items SET attachments = :files WHERE id = :id AND updated_at = :version")
+    suspend fun replaceAttachmentsIfUnchanged(id: String, version: String, files: String)
+
     @Query("SELECT * FROM items WHERE deleted_at IS NOT NULL ORDER BY deleted_at DESC")
     fun watchTrash(): Flow<List<ItemEntity>>
 

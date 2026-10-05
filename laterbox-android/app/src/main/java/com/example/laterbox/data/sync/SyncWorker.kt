@@ -72,6 +72,10 @@ class SyncWorker(context: Context, parameters: WorkerParameters) : CoroutineWork
                 if (rows.length() < 100) break
                 offset += rows.length()
             }
+            for (item in dao.getAllItems().filter { it.userId == uid && it.deletedAt == null && it.syncStatus == "synced" }) {
+                val files = CloudFileService.download(applicationContext, item, uid)
+                dao.replaceAttachmentsIfUnchanged(item.id, item.updatedAt, files)
+            }
             for (item in dao.getItemsNeedingSync().filter { it.userId == null || it.userId == uid }) {
                 val body = JSONObject().put("id", item.id).put("user_id", uid).put("title", item.title).put("url", item.url ?: JSONObject.NULL)
                     .put("text_content", item.textContent ?: JSONObject.NULL).put("type", item.type).put("favorite", item.favorite).put("status", item.status)
@@ -90,6 +94,7 @@ class SyncWorker(context: Context, parameters: WorkerParameters) : CoroutineWork
                 item.collectionId?.let { id -> database.collectionDao().getCollectionById(id)?.takeIf { it.deletedAt == null }?.let {
                     post("collection_items?on_conflict=collection_id,item_id", JSONObject().put("collection_id", id).put("item_id", item.id).put("user_id", uid).put("created_at", item.createdAt).put("updated_at", item.updatedAt).put("deleted_at", JSONObject.NULL))
                 } }
+                CloudFileService.upload(applicationContext, item, uid)
                 dao.markSyncedIfUnchanged(item.id, item.updatedAt, Instant.now().toString(), uid)
             }
             Result.success()
