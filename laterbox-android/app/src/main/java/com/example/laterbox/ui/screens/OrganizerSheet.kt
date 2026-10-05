@@ -25,7 +25,7 @@ fun OrganizerSheet(items: List<ItemEntity>, onDismiss: () -> Unit, onChanged: ()
             if (!AccountService.state.value.pro) Text("LaterBox Pro is required.")
             else if (suggestions.isEmpty()) Button(onClick = { scope.launch {
                 busy = true; error = null
-                val ai = LaterAIService()
+                val ai = LaterAIService(context)
                 try {
                     val result = mutableListOf<Pair<ItemEntity, AIAction>>()
                     for (item in items.filter { it.status == "inbox" }.take(20)) result.add(item to ai.respond("Suggest tags and category only for this saved content: ${item.title}\n${item.textContent.orEmpty().take(3000)}", emptyList()))
