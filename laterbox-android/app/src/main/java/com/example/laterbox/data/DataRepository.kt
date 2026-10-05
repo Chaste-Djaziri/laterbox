@@ -84,66 +84,10 @@ class DefaultDataRepository(
         returnAt: String?,
         collectionId: String?
     ): ItemEntity {
-        val now = DateTimeFormatter.ISO_INSTANT.format(Instant.now())
-        val itemId = UUID.randomUUID().toString()
-
-        var resolvedType = "link"
-        if (url == null && text != null) {
-            resolvedType = "note"
-        }
-
-        val item = ItemEntity(
-            id = itemId,
-            url = url,
-            title = title ?: (if (!url.isNullOrEmpty()) url else "Quick Note"),
-            textContent = text,
-            type = resolvedType,
-            status = if (returnAt != null) "returned" else "inbox",
-            returnAt = returnAt,
-            createdAt = now,
-            updatedAt = now,
-            syncStatus = "pending"
-        )
-
-        database.itemDao().insertItem(item)
-
-        // Web enrichment integration
-        if (!url.isNullOrEmpty()) {
-            scope.launch {
-                val enrichment = LaterBoxApiService.enrichUrl(url)
-                if (enrichment != null) {
-                    val metadata = ItemMetadataEntity(
-                        itemId = itemId,
-                        domain = enrichment.domain,
-                        siteName = enrichment.siteName,
-                        title = enrichment.title ?: item.title,
-                        description = enrichment.description,
-                        faviconUrl = enrichment.faviconUrl,
-                        previewImageUrl = enrichment.previewImageUrl,
-                        contentType = enrichment.contentType,
-                        status = "enriched",
-                        enrichedAt = DateTimeFormatter.ISO_INSTANT.format(Instant.now()),
-                        createdAt = now,
-                        updatedAt = now
-                    )
-                    database.itemMetadataDao().insertMetadata(metadata)
-
-                    // Update item title and type if enrichment found better info
-                    if (!enrichment.title.isNullOrEmpty() || enrichment.contentType != "link") {
-                        val updated = item.copy(
-                            title = enrichment.title ?: item.title,
-                            type = enrichment.contentType,
-                            updatedAt = DateTimeFormatter.ISO_INSTANT.format(Instant.now())
-                        )
-                        database.itemDao().updateItem(updated)
-                    }
-                }
-            }
-        }
-
-        // Trigger background sync
-        syncNow()
-
+        val store = com.example.laterbox.services.VaultStore(context)
+        val draft = com.example.laterbox.services.VaultStore.draft(text ?: url.orEmpty(), title.orEmpty(), returnAt = returnAt).copy(collectionId = collectionId)
+        val item = store.save(draft)
+        scope.launch { store.metadata(item); syncNow() }
         return item
     }
 
@@ -161,14 +105,16 @@ class DefaultDataRepository(
 
     override suspend fun scheduleReturn(id: String, returnAt: String?) {
         val now = DateTimeFormatter.ISO_INSTANT.format(Instant.now())
-        val status = if (returnAt != null) "returned" else "inbox"
+        val status = if (returnAt != null) "deferred" else "inbox"
         database.itemDao().updateReturnAt(id, returnAt, status, now)
+        database.itemDao().getItemById(id)?.let { com.example.laterbox.services.ReturnsService.schedule(context, it) }
         syncNow()
     }
 
     override suspend fun deleteItem(id: String) {
         val now = DateTimeFormatter.ISO_INSTANT.format(Instant.now())
         database.itemDao().softDelete(id, now)
+        androidx.work.WorkManager.getInstance(context).cancelUniqueWork("return-$id")
         syncNow()
     }
 
@@ -195,9 +141,10 @@ class DefaultDataRepository(
     }
 
     override fun syncNow() {
+        if (!com.example.laterbox.services.AccountService.state.value.pro) return
         try {
             val syncRequest = OneTimeWorkRequestBuilder<SyncWorker>().build()
-            WorkManager.getInstance(context).enqueue(syncRequest)
+            WorkManager.getInstance(context).enqueueUniqueWork("cloud-sync", androidx.work.ExistingWorkPolicy.KEEP, syncRequest)
         } catch (e: Exception) {
             // Log or fallback
         }
