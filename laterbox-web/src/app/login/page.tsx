@@ -1,6 +1,6 @@
 'use client';
 
-import React, { Suspense, useState } from 'react';
+import React, { Suspense, useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/store/AuthContext';
@@ -18,6 +18,9 @@ function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const {
+    user,
+    loading: authLoading,
+    isGuest,
     signInWithOtp,
     verifyEmailOtp,
     continueAsGuest,
@@ -36,6 +39,13 @@ function LoginContent() {
   const nextPath = requestedNext?.startsWith('/') && !requestedNext.startsWith('//')
     ? requestedNext
     : '/home';
+
+  // Automatically redirect to dashboard if user is already authenticated
+  useEffect(() => {
+    if (!authLoading && user && !isGuest) {
+      router.replace(nextPath);
+    }
+  }, [authLoading, user, isGuest, nextPath, router]);
 
   const handleSendOtp = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -60,13 +70,40 @@ function LoginContent() {
     setLoading(true);
     setError(null);
     setMessage(null);
-    const { error: err } = await verifyEmailOtp(email.trim(), otp);
-    if (err) setError(err.message);
-    else {
-      setAwaitingOtp(false);
-      setAwaitingName(true);
+    const { data, error: err } = await verifyEmailOtp(email.trim(), otp);
+    if (err) {
+      setError(err.message);
+      setLoading(false);
+      return;
     }
-    setLoading(false);
+
+    const verifiedUser = data?.user;
+    const existingName =
+      (verifiedUser?.user_metadata?.display_name as string) ||
+      (verifiedUser?.user_metadata?.name as string) ||
+      (verifiedUser?.user_metadata?.full_name as string) ||
+      (typeof window !== 'undefined' ? localStorage.getItem('laterbox_user_name') : null) ||
+      '';
+
+    // Check if account was newly created (created_at and last_sign_in_at within 5s)
+    const isNewAccount = Boolean(
+      verifiedUser?.created_at &&
+      verifiedUser?.last_sign_in_at &&
+      Math.abs(new Date(verifiedUser.last_sign_in_at).getTime() - new Date(verifiedUser.created_at).getTime()) < 5000
+    );
+
+    // Only ask if no name is currently saved or if this is brand new account creation
+    if (!existingName.trim() || isNewAccount) {
+      setAwaitingOtp(false);
+      if (existingName.trim()) {
+        setDisplayName(existingName.trim());
+      }
+      setAwaitingName(true);
+      setLoading(false);
+    } else {
+      setAwaitingOtp(false);
+      router.replace(nextPath);
+    }
   };
 
   const handleResendOtp = async () => {
@@ -84,20 +121,33 @@ function LoginContent() {
     router.push('/home');
   };
 
-  const handleSaveDisplayName = async () => {
-    if (displayName.trim()) {
-      await setUserName(displayName.trim());
+  const handleSaveDisplayName = async (nameToSave?: string) => {
+    const finalName = (nameToSave ?? displayName).trim();
+    if (finalName) {
+      await setUserName(finalName);
     }
-    router.push(nextPath);
+    router.replace(nextPath);
   };
+
+  // If already authenticated, show redirecting state while transition completes
+  if (!authLoading && user && !isGuest) {
+    return (
+      <main className="min-h-screen bg-[#f7f5ee] flex flex-col items-center justify-center p-6 text-[#181816]">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="w-6 h-6 animate-spin text-zinc-600" />
+          <p className="text-sm text-zinc-600 font-medium">Redirecting to dashboard...</p>
+        </div>
+      </main>
+    );
+  }
 
   if (awaitingName) {
     return (
       <DisplayNameInput
         displayName={displayName}
         onChange={setDisplayName}
-        onSave={() => handleSaveDisplayName()}
-        onSkip={() => handleSaveDisplayName()}
+        onSave={() => handleSaveDisplayName(displayName)}
+        onSkip={() => handleSaveDisplayName('')}
       />
     );
   }
