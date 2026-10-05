@@ -176,6 +176,10 @@ final class LaterAIModelManager: ObservableObject {
     }
 
     func activeProvider() -> any LaterAIProvider {
+        guard SyncCoordinator.shared.isProUser else {
+            return GeminiLaterAIProvider()
+        }
+
         switch selectedProvider {
         case .cloudGemini:
             return GeminiLaterAIProvider()
@@ -214,7 +218,7 @@ final class LaterAIModelManager: ObservableObject {
     }
 
     func interpretSearch(_ query: String) async throws -> SearchInterpretation {
-        guard enableSearchRefine else {
+        guard SyncCoordinator.shared.isProUser, enableSearchRefine else {
             return SearchInterpretation(terms: query, contentType: "", returnWindow: "")
         }
 
@@ -250,6 +254,10 @@ final class LaterAIModelManager: ObservableObject {
     }
 
     func testConnection(for provider: AIProviderType) async throws -> String {
+        guard SyncCoordinator.shared.isProUser else {
+            throw AIProviderError.customModelError("Configuring and testing AI models requires LaterBox Pro.")
+        }
+
         switch provider {
         case .cloudGemini:
             _ = try await GeminiLaterAIProvider().respond("Ping test. Reply with a short greeting.")
