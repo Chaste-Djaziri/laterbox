@@ -15,6 +15,7 @@ struct ContentView: View {
     @StateObject private var lockManager = AppLockManager.shared
     @Environment(\.scenePhase) private var scenePhase
 
+    @ObservedObject private var returnRouter = ReturnNotificationRouter.shared
     @State private var selectedTab: LBTab = .home
     @StateObject private var aiManager = LaterAIManager.shared
 
@@ -93,6 +94,12 @@ struct ContentView: View {
         }
     }
     .animation(.spring(response: 0.35, dampingFraction: 0.85), value: lockManager.isLocked)
+    .onReceive(returnRouter.$itemID) { id in
+        if id != nil {
+            try? SharedCaptureImporter.refresh(context: modelContext)
+            selectedTab = .inbox
+        }
+    }
     .task {
         while !Task.isCancelled {
             try? SharedCaptureImporter.refresh(context: modelContext)
