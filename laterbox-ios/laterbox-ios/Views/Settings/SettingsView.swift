@@ -14,6 +14,7 @@ public struct SettingsView: View {
     @Query private var allItems: [LBItem]
     @ObservedObject var coordinator = SyncCoordinator.shared
     @ObservedObject private var lockManager = AppLockManager.shared
+    @ObservedObject private var modelManager = LaterAIModelManager.shared
 
     @State private var showingAuthSheet = false
     @State private var showingSignOutAlert = false
@@ -427,6 +428,92 @@ public struct SettingsView: View {
                                     }
                                     .buttonStyle(.plain)
                                 }
+                            }
+                            .padding(16)
+                            .background(
+                                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                    .fill(AppTheme.cardBackground)
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                    .strokeBorder(AppTheme.cardBorder, lineWidth: 1)
+                            )
+                            .shadow(color: Color.black.opacity(0.03), radius: 6, x: 0, y: 2)
+                        }
+
+                        // Later AI & Intelligence Card
+                        VStack(alignment: .leading, spacing: 14) {
+                            Text("Later AI & Intelligence")
+                                .font(.caption.weight(.bold))
+                                .foregroundColor(.secondary)
+                                .textCase(.uppercase)
+
+                            VStack(spacing: 12) {
+                                // Active Model Row
+                                HStack {
+                                    HStack(spacing: 8) {
+                                        Image(systemName: modelManager.selectedProvider.iconName)
+                                            .foregroundColor(AppTheme.textPrimary)
+                                        Text("Active Engine")
+                                            .font(.subheadline)
+                                            .foregroundColor(AppTheme.textPrimary)
+                                    }
+                                    Spacer()
+                                    Text(modelManager.selectedProvider.displayName)
+                                        .font(.subheadline.weight(.semibold))
+                                        .foregroundColor(AppTheme.textPrimary)
+                                }
+
+                                Divider().background(AppTheme.cardBorder)
+
+                                // Model Identifier
+                                HStack {
+                                    Text("Selected Model")
+                                        .font(.subheadline)
+                                        .foregroundColor(AppTheme.textSecondary)
+                                    Spacer()
+                                    Text(modelManager.activeModelName)
+                                        .font(.caption.monospaced())
+                                        .foregroundColor(AppTheme.textPrimary)
+                                        .padding(.horizontal, 8)
+                                        .padding(.vertical, 3)
+                                        .background(AppTheme.accent)
+                                        .clipShape(Capsule())
+                                }
+
+                                Divider().background(AppTheme.cardBorder)
+
+                                // Search Refinement Status
+                                HStack {
+                                    Text("Search Refinement")
+                                        .font(.subheadline)
+                                        .foregroundColor(AppTheme.textSecondary)
+                                    Spacer()
+                                    Text(modelManager.enableSearchRefine ? "Enabled" : "Disabled")
+                                        .font(.caption.weight(.medium))
+                                        .foregroundColor(modelManager.enableSearchRefine ? Color.green : AppTheme.textSecondary)
+                                }
+
+                                Divider().background(AppTheme.cardBorder)
+
+                                // Configure Models NavigationLink
+                                NavigationLink(destination: AIModelSettingsView()) {
+                                    HStack(spacing: 6) {
+                                        Image(systemName: "slider.horizontal.3")
+                                        Text("Configure AI Models & Keys")
+                                            .font(.subheadline.weight(.semibold))
+                                        Spacer()
+                                        Image(systemName: "chevron.right")
+                                            .font(.caption.weight(.bold))
+                                            .foregroundColor(AppTheme.textSecondary)
+                                    }
+                                    .padding(.vertical, 10)
+                                    .padding(.horizontal, 12)
+                                    .background(Color.black.opacity(0.04))
+                                    .foregroundColor(AppTheme.textPrimary)
+                                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                                }
+                                .buttonStyle(.plain)
                             }
                             .padding(16)
                             .background(
