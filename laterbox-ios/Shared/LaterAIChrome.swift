@@ -92,19 +92,143 @@ struct LaterAIChatRow: View {
 }
 struct LaterAIThinkingIndicator: View {
     var thinking: Bool
+    var statusText: String = "Later AI is writing..."
     var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: "sparkles").font(.system(size: 13, weight: .semibold)).foregroundStyle(LaterAIStyle.accent)
-                .frame(width: 30, height: 30).background(Color(white: 28.0/255), in: Circle())
-            HStack(spacing: 5) {
-                ForEach(0..<3) { i in
-                    Circle().fill(LaterAIStyle.accent.opacity(0.8)).frame(width: 7, height: 7)
-                        .scaleEffect(thinking ? 1 : 0.5)
-                        .animation(.easeInOut(duration: 0.6).repeatForever().delay(Double(i) * 0.2), value: thinking)
+        HStack(alignment: .center, spacing: 10) {
+            ZStack {
+                Circle()
+                    .fill(Color(white: 28.0/255))
+                    .frame(width: 32, height: 32)
+                Image(systemName: "sparkles")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(LaterAIStyle.accent)
+            }
+            HStack(spacing: 8) {
+                HStack(spacing: 4) {
+                    ForEach(0..<3) { i in
+                        Circle().fill(LaterAIStyle.accent).frame(width: 5.5, height: 5.5)
+                            .scaleEffect(thinking ? 1 : 0.4)
+                            .opacity(thinking ? 1 : 0.4)
+                            .animation(.easeInOut(duration: 0.55).repeatForever().delay(Double(i) * 0.18), value: thinking)
+                    }
                 }
-            }.padding(.horizontal, 14).padding(.vertical, 10)
-                .background(Color(white: 26.0/255), in: RoundedRectangle(cornerRadius: 16))
+                Text(statusText).font(.system(size: 13, weight: .medium)).foregroundColor(Color.white.opacity(0.7))
+            }
+            .padding(.horizontal, 14).padding(.vertical, 10)
+            .background(Color(white: 24.0/255), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(Color.white.opacity(0.08), lineWidth: 1))
             Spacer()
         }
+    }
+}
+
+public struct LaterAIOptionItem: Identifiable, Equatable {
+    public let id: String
+    public let title: String
+    public let subtitle: String?
+    public let icon: String?
+    public let isPrimary: Bool
+    public let action: () -> Void
+
+    public init(
+        id: String = UUID().uuidString,
+        title: String,
+        subtitle: String? = nil,
+        icon: String? = nil,
+        isPrimary: Bool = false,
+        action: @escaping () -> Void
+    ) {
+        self.id = id
+        self.title = title
+        self.subtitle = subtitle
+        self.icon = icon
+        self.isPrimary = isPrimary
+        self.action = action
+    }
+
+    public static func == (lhs: LaterAIOptionItem, rhs: LaterAIOptionItem) -> Bool {
+        lhs.id == rhs.id && lhs.title == rhs.title && lhs.subtitle == rhs.subtitle && lhs.icon == rhs.icon && lhs.isPrimary == rhs.isPrimary
+    }
+}
+
+struct LaterAIOptionsDock: View {
+    var title: String? = nil
+    var options: [LaterAIOptionItem]
+    var onManualType: () -> Void
+
+    var body: some View {
+        VStack(spacing: 8) {
+            HStack {
+                if let title, !title.isEmpty {
+                    Text(title)
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundColor(Color.white.opacity(0.65))
+                        .textCase(.uppercase)
+                        .tracking(0.5)
+                }
+                Spacer()
+                Button(action: onManualType) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "keyboard")
+                            .font(.system(size: 11))
+                        Text("Type instead")
+                            .font(.system(size: 12, weight: .medium))
+                    }
+                    .foregroundColor(Color.white.opacity(0.55))
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, 18)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(options) { opt in
+                        Button(action: {
+                            opt.action()
+                        }) {
+                            HStack(spacing: 8) {
+                                if let icon = opt.icon {
+                                    Image(systemName: icon)
+                                        .font(.system(size: 13, weight: .bold))
+                                        .foregroundColor(opt.isPrimary ? .black : LaterAIStyle.accent)
+                                }
+                                VStack(alignment: .leading, spacing: 1) {
+                                    Text(opt.title)
+                                        .font(.system(size: 14, weight: .semibold))
+                                        .foregroundColor(opt.isPrimary ? .black : .white)
+                                    if let sub = opt.subtitle {
+                                        Text(sub)
+                                            .font(.system(size: 10))
+                                            .foregroundColor(opt.isPrimary ? Color.black.opacity(0.7) : Color.white.opacity(0.6))
+                                    }
+                                }
+                            }
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 12)
+                            .background(
+                                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                    .fill(opt.isPrimary ? AnyShapeStyle(LaterAIStyle.accent) : AnyShapeStyle(Color(white: 24.0/255)))
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                    .strokeBorder(opt.isPrimary ? Color.black.opacity(0.12) : Color.white.opacity(0.12), lineWidth: 1)
+                            )
+                            .shadow(color: opt.isPrimary ? LaterAIStyle.accent.opacity(0.3) : Color.clear, radius: 8, y: 3)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 4)
+            }
+
+            Text("Later AI can make mistakes. Verify important info.")
+                .font(.system(size: 11))
+                .foregroundColor(Color.white.opacity(0.35))
+                .padding(.bottom, 6)
+        }
+        .padding(.top, 8)
+        .background(Color.black)
+        .colorScheme(.dark)
     }
 }
