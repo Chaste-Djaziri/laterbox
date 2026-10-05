@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 110;
+	objectVersion = 77;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -57,7 +57,7 @@
 		5194A4F83072E2E100DE79B5 /* laterbox-ios.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "laterbox-ios.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		5194A5073072E2E100DE79B5 /* laterbox-iosTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "laterbox-iosTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		5194A5113072E2E100DE79B5 /* laterbox-iosUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "laterbox-iosUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
-		9CD0ABE6B11066E3BE4E19C1 /* LaterBoxShare.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = LaterBoxShare.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		9CD0ABE6B11066E3BE4E19C1 /* LaterBoxShare.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; name = LaterBoxShare.appex; path = .appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		9F81B1954BAF7A76CDFE5F0E /* ShareViewController.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
 		DAC0F63DC56B313D3701E636 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
 /* End PBXFileReference section */
@@ -89,18 +89,24 @@
 /* Begin PBXFrameworksBuildPhase section */
 		5194A4F53072E2E100DE79B5 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
 			files = (
 			);
+			runOnlyForDeploymentPostprocessing = 0;
 		};
 		5194A5043072E2E100DE79B5 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
 			files = (
 			);
+			runOnlyForDeploymentPostprocessing = 0;
 		};
 		5194A50E3072E2E100DE79B5 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
 			files = (
 			);
+			runOnlyForDeploymentPostprocessing = 0;
 		};
 		A0DFFF1CD67346A1F4635787 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
@@ -150,7 +156,6 @@
 			children = (
 				9F81B1954BAF7A76CDFE5F0E /* ShareViewController.swift */,
 			);
-			name = LaterBoxShare;
 			path = LaterBoxShare;
 			sourceTree = "<group>";
 		};
@@ -167,7 +172,6 @@
 			children = (
 				498F59466D1129E98872BACB /* SharedCapture.swift */,
 			);
-			name = Shared;
 			path = Shared;
 			sourceTree = "<group>";
 		};
@@ -310,18 +314,24 @@
 		};
 		5194A4F63072E2E100DE79B5 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
 			files = (
 			);
+			runOnlyForDeploymentPostprocessing = 0;
 		};
 		5194A5053072E2E100DE79B5 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
 			files = (
 			);
+			runOnlyForDeploymentPostprocessing = 0;
 		};
 		5194A50F3072E2E100DE79B5 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
 			files = (
 			);
+			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
 
@@ -337,19 +347,25 @@
 		};
 		5194A4F43072E2E100DE79B5 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
 			files = (
 				6F6C4FD026002CB02E6370CE /* SharedCapture.swift in Sources */,
 			);
+			runOnlyForDeploymentPostprocessing = 0;
 		};
 		5194A5033072E2E100DE79B5 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
 			files = (
 			);
+			runOnlyForDeploymentPostprocessing = 0;
 		};
 		5194A50D3072E2E100DE79B5 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
 			files = (
 			);
+			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
@@ -712,6 +728,7 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = pro.micorp.laterbox.Share;
+				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
 				SWIFT_VERSION = 5.0;
@@ -733,6 +750,7 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = pro.micorp.laterbox.Share;
+				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
 				SWIFT_VERSION = 5.0;
@@ -749,6 +767,7 @@
 				5194A5173072E2E100DE79B5 /* Debug */,
 				5194A5183072E2E100DE79B5 /* Release */,
 			);
+			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
 		5194A5193072E2E100DE79B5 /* Build configuration list for PBXNativeTarget "laterbox-ios" */ = {
@@ -757,6 +776,7 @@
 				5194A51A3072E2E100DE79B5 /* Debug */,
 				5194A51B3072E2E100DE79B5 /* Release */,
 			);
+			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
 		5194A51C3072E2E100DE79B5 /* Build configuration list for PBXNativeTarget "laterbox-iosTests" */ = {
@@ -765,6 +785,7 @@
 				5194A51D3072E2E100DE79B5 /* Debug */,
 				5194A51E3072E2E100DE79B5 /* Release */,
 			);
+			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
 		5194A51F3072E2E100DE79B5 /* Build configuration list for PBXNativeTarget "laterbox-iosUITests" */ = {
@@ -773,6 +794,7 @@
 				5194A5203072E2E100DE79B5 /* Debug */,
 				5194A5213072E2E100DE79B5 /* Release */,
 			);
+			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
 		DBCA85860435523381768280 /* Build configuration list for PBXNativeTarget "LaterBoxShare" */ = {
