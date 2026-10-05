@@ -356,6 +356,63 @@ extension LaterAITests {
         let unrelated = RelativeDateParser.parse("hello there please organize this", now: reference)
         #expect(unrelated == nil)
     }
+
+    @Test func embeddedMediaTypeDetection() {
+        // YouTube
+        let ytWatch = EmbeddedMediaType.detect(url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ")
+        #expect(ytWatch == .youtube(videoId: "dQw4w9WgXcQ"))
+
+        let ytShort = EmbeddedMediaType.detect(url: "https://youtu.be/dQw4w9WgXcQ")
+        #expect(ytShort == .youtube(videoId: "dQw4w9WgXcQ"))
+
+        let ytShorts = EmbeddedMediaType.detect(url: "https://youtube.com/shorts/dQw4w9WgXcQ")
+        #expect(ytShorts == .youtube(videoId: "dQw4w9WgXcQ"))
+
+        // Vimeo
+        let vimeo = EmbeddedMediaType.detect(url: "https://vimeo.com/76979871")
+        #expect(vimeo == .vimeo(videoId: "76979871"))
+
+        // Spotify
+        let spotify = EmbeddedMediaType.detect(url: "https://open.spotify.com/track/4cOdK2wGLETKBW3PvgPWqT")
+        if case .spotify(let embedURL) = spotify {
+            #expect(embedURL.absoluteString.contains("embed/track/4cOdK2wGLETKBW3PvgPWqT"))
+        } else {
+            Issue.record("Expected Spotify embed")
+        }
+
+        // Apple Music
+        let apple = EmbeddedMediaType.detect(url: "https://music.apple.com/us/album/nevermind/1440783617")
+        if case .appleMusic(let embedURL) = apple {
+            #expect(embedURL.host == "embed.music.apple.com")
+        } else {
+            Issue.record("Expected Apple Music embed")
+        }
+
+        // PDF Document
+        let pdf = EmbeddedMediaType.detect(url: "https://example.com/reports/document.pdf")
+        if case .pdf(let url) = pdf {
+            #expect(url.pathExtension == "pdf")
+        } else {
+            Issue.record("Expected PDF embed")
+        }
+
+        // Web Article
+        let article = EmbeddedMediaType.detect(url: "https://news.ycombinator.com/item?id=123")
+        if case .webArticle(let url) = article {
+            #expect(url.host == "news.ycombinator.com")
+        } else {
+            Issue.record("Expected web article")
+        }
+    }
+
+    @Test func contentFormatModeProperties() {
+        #expect(ContentFormatMode.formatted.rawValue == "Formatted")
+        #expect(ContentFormatMode.html.rawValue == "HTML")
+        #expect(ContentFormatMode.raw.rawValue == "Raw")
+        #expect(!ContentFormatMode.formatted.icon.isEmpty)
+        #expect(!ContentFormatMode.html.icon.isEmpty)
+        #expect(!ContentFormatMode.raw.icon.isEmpty)
+    }
 }
 @MainActor
 private final class MockCloudTransport: IOSCloudTransport {
