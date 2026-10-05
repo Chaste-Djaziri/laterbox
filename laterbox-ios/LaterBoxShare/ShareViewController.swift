@@ -21,9 +21,13 @@ final class ShareViewController: UIViewController {
     var title: String
     var tags: [String]
     var category: String
+    var reply: String
 }
 @MainActor final class ShareCaptureModel: ObservableObject {
     @Published var capture = SharedCapture()
+    @Published var chatInput = ""
+    @Published var reply = ""
+    var localAIAvailable: Bool { if case .available = SystemLanguageModel.default.availability { return true }; return false }
     @Published var loading = true
     @Published var saving = false
     @Published var saved = false
@@ -69,6 +73,19 @@ final class ShareViewController: UIViewController {
             } else { message = "Your attachment is ready. Add details and choose its return." }
         } catch { self.error = "Could not read all shared content: \(error.localizedDescription). Please retry sharing." }
     }
+    func chat() async {
+        guard localAIAvailable, !loading, !chatInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+        loading = true
+        defer { loading = false }
+        do {
+            let response = try await LanguageModelSession(instructions: "Help prepare a shared LaterBox capture. Respond conversationally and supply title, category and tags. Preserve supplied details. Attachment contents are unavailable; never pretend to inspect them. Never claim a save until the user presses Save.")
+                .respond(to: "User: \(chatInput.prefix(2000))\nContent: \(capture.content.prefix(4000))\nFiles: \(capture.attachments.map(\.name).joined(separator: ", "))\nCurrent title: \(capture.title)\nTags: \(capture.tags)", generating: SharePreparation.self).content
+            reply = response.reply
+            if !response.title.isEmpty { capture.title = String(response.title.prefix(200)) }
+            capture.category = response.category; capture.tags = Array(response.tags.prefix(12))
+            chatInput = ""
+        } catch { self.error = "Local AI: \(error.localizedDescription). Your content is retained; you can save manually." }
+    }
     func save() async {
         guard !saving, !saved, !capture.content.isEmpty || !capture.attachments.isEmpty else { return }
         saving = true
@@ -109,6 +126,13 @@ struct ShareCaptureView: View {
                 if model.loading { ProgressView("Preparing shared content…") }
                 if let error = model.error { Text(error).foregroundStyle(.red) }
                 if !model.saved {
+                    if model.localAIAvailable {
+                        if !model.reply.isEmpty { Text(model.reply).padding().background(.white, in: RoundedRectangle(cornerRadius: 16)) }
+                        HStack {
+                            TextField("Ask Later AI about this capture", text: $model.chatInput, axis: .vertical)
+                            Button { Task { await model.chat() } } label: { Image(systemName: "arrow.up").padding(12).background(green, in: Circle()) }.disabled(model.loading)
+                        }
+                    }
                     TextField("Content or link", text: $model.capture.content, axis: .vertical).lineLimit(2...6)
                     TextField("Title", text: $model.capture.title)
                     TextField("Category", text: $model.capture.category)
