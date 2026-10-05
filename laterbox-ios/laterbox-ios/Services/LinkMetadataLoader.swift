@@ -33,16 +33,105 @@ public enum LinkMetadataLoader {
 
     private static let webEnrichEndpoint = URL(string: "https://laterbox.dev/api/enrich")!
 
+    public static func isGenericTitle(_ title: String?) -> Bool {
+        guard let title = title?.trimmingCharacters(in: .whitespacesAndNewlines), !title.isEmpty else { return true }
+        let lower = title.lowercased()
+        return lower == "youtube" ||
+               lower.contains("video playlist") ||
+               lower == "untitled" ||
+               lower.hasPrefix("http://") ||
+               lower.hasPrefix("https://") ||
+               lower == "watch" ||
+               lower == "before you continue to youtube"
+    }
+
     public static func load(_ url: URL) async throws -> Metadata {
         guard ["http", "https"].contains(url.scheme?.lowercased() ?? "") else { throw URLError(.badURL) }
 
         // 1. Query Next.js web /api/enrich for rich social graphs, rotating bot UAs, and OG images
-        if let enriched = await fetchFromEnrichAPI(url) {
+        if var enriched = await fetchFromEnrichAPI(url) {
+            if isGenericTitle(enriched.title), let oembed = await fetchOEmbed(url) {
+                enriched.title = oembed.title ?? enriched.title
+                enriched.image = oembed.image ?? enriched.image
+                enriched.site = oembed.site ?? enriched.site
+                if enriched.description == nil || enriched.description?.isEmpty == true {
+                    enriched.description = oembed.description
+                }
+                if !oembed.keywords.isEmpty {
+                    let merged = Set(enriched.keywords + oembed.keywords)
+                    enriched.keywords = Array(merged).sorted()
+                }
+            }
             return enriched
         }
 
-        // 2. Fall back to local HTML scraper
+        // 2. Fast-path direct oEmbed for media platforms (YouTube, Vimeo)
+        if let oembed = await fetchOEmbed(url) {
+            return oembed
+        }
+
+        // 3. Fall back to local HTML scraper
         return try await fetchLocalScrape(url)
+    }
+
+    public static func fetchOEmbed(_ url: URL) async -> Metadata? {
+        guard let host = url.host?.lowercased() else { return nil }
+        var oembedUrlString: String?
+
+        if host.contains("youtube.com") || host == "youtu.be" {
+            if let encoded = url.absoluteString.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) {
+                oembedUrlString = "https://www.youtube.com/oembed?url=\(encoded)&format=json"
+            }
+        } else if host.contains("vimeo.com") {
+            if let encoded = url.absoluteString.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) {
+                oembedUrlString = "https://vimeo.com/api/oembed.json?url=\(encoded)"
+            }
+        }
+
+        guard let oembedUrlString, let oembedUrl = URL(string: oembedUrlString) else { return nil }
+
+        var request = URLRequest(url: oembedUrl)
+        request.timeoutInterval = 6
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else { return nil }
+            guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return nil }
+
+            let title = (json["title"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
+            let author = (json["author_name"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
+            let thumb = (json["thumbnail_url"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
+            let provider = (json["provider_name"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? (host.contains("youtube") ? "YouTube" : host)
+
+            var tags: [String] = []
+            if host.contains("youtube") || host == "youtu.be" {
+                tags.append(contentsOf: ["video", "youtube"])
+            } else if host.contains("vimeo") {
+                tags.append(contentsOf: ["video", "vimeo"])
+            }
+            if let author, !author.isEmpty { tags.append(author.lowercased()) }
+
+            if let title, !title.isEmpty {
+                let parts = title.components(separatedBy: CharacterSet(charactersIn: "|-:–—[]()•\""))
+                    .map { $0.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() }
+                    .filter { $0.count > 2 && $0.count < 35 && $0 != "playlist" && $0 != "video playlist" }
+                tags.append(contentsOf: parts)
+            }
+
+            let uniqueTags = Array(Set(tags)).sorted()
+            let desc = author.map { "\(provider) by \($0)" } ?? "\(provider) content"
+
+            return Metadata(
+                title: (title?.isEmpty == false && !isGenericTitle(title)) ? title : nil,
+                site: provider,
+                description: desc,
+                image: thumb,
+                faviconUrl: "https://www.google.com/s2/favicons?domain=\(host)&sz=128",
+                keywords: uniqueTags,
+                contentType: "video"
+            )
+        } catch {
+            return nil
+        }
     }
 
     private static func fetchFromEnrichAPI(_ url: URL) async -> Metadata? {
