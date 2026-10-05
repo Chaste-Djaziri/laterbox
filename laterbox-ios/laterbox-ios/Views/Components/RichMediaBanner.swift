@@ -45,7 +45,7 @@ public struct RichMediaBanner: View {
                                             .font(.caption.weight(.bold))
                                             .foregroundColor(AppTheme.accent)
                                         VStack(alignment: .leading, spacing: 2) {
-                                            Text(title.isEmpty ? (url ?? "Web Resource") : title)
+                                            Text(displayTitle)
                                                 .font(.subheadline.weight(.semibold))
                                                 .foregroundColor(.white)
                                                 .lineLimit(1)
@@ -78,6 +78,19 @@ public struct RichMediaBanner: View {
             }
         }
         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
+
+    private var displayTitle: String {
+        if let cleaned = LinkMetadataLoader.cleanTitle(title) {
+            return cleaned
+        }
+        if LinkMetadataLoader.isGenericTitle(title) {
+            if let host = (url.flatMap { URL(string: $0) })?.host {
+                return host.replacingOccurrences(of: "www.", with: "")
+            }
+            return type == .video ? "Video" : "Web Resource"
+        }
+        return title.isEmpty ? (url ?? "Web Resource") : title
     }
 
     private var fallbackBanner: some View {
