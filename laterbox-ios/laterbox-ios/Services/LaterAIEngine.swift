@@ -121,13 +121,43 @@ struct GeminiLaterAIProvider: LaterAIProvider {
 }
 
 enum AIProviderError: LocalizedError {
-    case remoteDisabled, remoteFailed, invalidCapture
+    case remoteDisabled, remoteFailed, invalidCapture, missingApiKey(String), customModelError(String)
     var errorDescription: String? {
         switch self {
         case .remoteDisabled: return "Gemini fallback is disabled."
         case .remoteFailed: return "Gemini could not complete the request."
         case .invalidCapture: return "No valid content was prepared. Continue manually to preserve your input."
+        case .missingApiKey(let provider): return "Missing API key for \(provider). Please add your key in Settings."
+        case .customModelError(let msg): return msg
         }
+    }
+}
+
+extension AIAction {
+    init(
+        intent: String = "chat",
+        reply: String = "",
+        content: String = "",
+        title: String = "",
+        category: String = "",
+        contentType: String = "",
+        tags: [String] = [],
+        summary: String = "",
+        formattedContent: String = "",
+        query: String = "",
+        returnDate: String = ""
+    ) {
+        self.intent = intent
+        self.reply = reply
+        self.content = content
+        self.title = title
+        self.category = category
+        self.contentType = contentType
+        self.tags = tags
+        self.summary = summary
+        self.formattedContent = formattedContent
+        self.query = query
+        self.returnDate = returnDate
     }
 }
 
@@ -137,6 +167,15 @@ struct SearchInterpretation {
     @Guide(description: "Explicit requested type: link, article, video, music, document, note; otherwise empty") var contentType: String
     @Guide(description: "today, thisWeek, or upcoming only for explicitly requested return-date filters; otherwise empty") var returnWindow: String
 }
+
+extension SearchInterpretation {
+    init(terms: String, contentType: String = "", returnWindow: String = "") {
+        self.terms = terms
+        self.contentType = contentType
+        self.returnWindow = returnWindow
+    }
+}
+
 @MainActor
 enum AppleSearchInterpreter {
     static func interpret(_ query: String) async throws -> SearchInterpretation {
