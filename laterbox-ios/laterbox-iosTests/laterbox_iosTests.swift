@@ -663,6 +663,72 @@ extension LaterAITests {
         #expect(allItems.first?.title == "My Cloud Note")
         #expect(coordinator.countUnassignedLocalItems(context: context, targetUserId: testUID) == 0)
     }
+
+    @Test func appIconSelectionRestrictedToProPlan() async {
+        let coordinator = SyncCoordinator.shared
+        let iconManager = AppIconManager.shared
+
+        // Set to Free (non-Pro)
+        coordinator.updateProFromStoreKit(false)
+        #expect(coordinator.isProUser == false)
+
+        let alternateOption = try! #require(AppIconManager.availableIcons.first(where: { $0.id == "dark" }))
+        #expect(alternateOption.isProOnly == true)
+
+        let defaultOption = try! #require(AppIconManager.availableIcons.first(where: { $0.id == "default" }))
+        #expect(defaultOption.isProOnly == false)
+
+        // Attempting to select alternate icon without Pro fails
+        let successNonPro = await iconManager.selectIcon(alternateOption)
+        #expect(successNonPro == false)
+        #expect(iconManager.errorMessage?.contains("Pro") == true)
+
+        // Default icon is never blocked by Pro gating
+        #expect(defaultOption.isProOnly == false)
+
+        // Restoring Pro allows alternate selection attempts
+        coordinator.updateProFromStoreKit(true)
+        #expect(coordinator.isProUser == true)
+
+        // Clean up
+        coordinator.updateProFromStoreKit(false)
+    }
+
+    @Test func aiModelConfigurationRestrictedToProPlan() async {
+        let coordinator = SyncCoordinator.shared
+        let modelManager = LaterAIModelManager.shared
+
+        // Test non-Pro user
+        coordinator.updateProFromStoreKit(false)
+        #expect(coordinator.isProUser == false)
+
+        modelManager.selectedProvider = .customOpenAI
+        modelManager.openAIApiKey = "test-key"
+
+        // Active provider falls back to default GeminiLaterAIProvider for free users
+        let provider = modelManager.activeProvider()
+        #expect(provider is GeminiLaterAIProvider)
+
+        // Connection test throws Pro required error
+        await #expect(throws: AIProviderError.self) {
+            try await modelManager.testConnection(for: .customOpenAI)
+        }
+
+        // Search refinement returns unrefined query for free users
+        let refined = try? await modelManager.interpretSearch("recipes for lentil soup")
+        #expect(refined?.terms == "recipes for lentil soup")
+        #expect(refined?.contentType.isEmpty == true)
+
+        // Test Pro user restores custom provider access
+        coordinator.updateProFromStoreKit(true)
+        #expect(coordinator.isProUser == true)
+        let proProvider = modelManager.activeProvider()
+        #expect(proProvider is OpenAILaterAIProvider)
+
+        // Clean up
+        coordinator.updateProFromStoreKit(false)
+        modelManager.selectedProvider = .cloudGemini
+    }
 }
 @MainActor
 private final class MockCloudTransport: IOSCloudTransport {
