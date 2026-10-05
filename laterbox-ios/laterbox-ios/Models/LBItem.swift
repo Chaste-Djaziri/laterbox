@@ -74,6 +74,7 @@ public final class LBItem {
     public var collectionId: String?
     public var collectionName: String?
     
+    public var attachmentsData: Data? = nil
     public var tags: [String] = []
     public var category: String = ""
     public var summary: String = ""
