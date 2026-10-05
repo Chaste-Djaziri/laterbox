@@ -133,18 +133,18 @@ public struct RichMediaBanner: View {
                 }
                 .padding(.horizontal, 16)
 
-            case .document:
+            case .document, .image, .file:
                 LinearGradient(
                     colors: [Color(red: 225/255, green: 29/255, blue: 72/255).opacity(0.75), Color(red: 24/255, green: 24/255, blue: 27/255)],
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
                 )
                 HStack(spacing: 12) {
-                    Image(systemName: "doc.fill")
+                    Image(systemName: type.systemIcon)
                         .font(.system(size: 26))
                         .foregroundColor(.white)
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Document / PDF")
+                        Text(type.rawValue.capitalized)
                             .font(.caption2.weight(.bold))
                             .foregroundColor(.white.opacity(0.75))
                         Text(title)
