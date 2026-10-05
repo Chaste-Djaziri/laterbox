@@ -294,7 +294,18 @@ public struct ItemDetailView: View {
                                 TextField("Add category...", text: $item.category)
                                     .font(.subheadline)
                                     .foregroundColor(AppTheme.textPrimary)
-                                    .onChange(of: item.category) { _, _ in persistEdit() }
+                                    .onChange(of: item.category) { _, newVal in
+                                        let trimmed = newVal.trimmingCharacters(in: .whitespacesAndNewlines)
+                                        if !trimmed.isEmpty {
+                                            let coll = coordinator.ensureCollectionExists(named: trimmed, context: modelContext)
+                                            item.collectionName = coll?.name ?? trimmed
+                                            item.collectionId = coll?.id ?? item.collectionId
+                                        } else {
+                                            item.collectionName = nil
+                                            item.collectionId = nil
+                                        }
+                                        persistEdit()
+                                    }
                             }
 
                             Divider()
@@ -497,6 +508,13 @@ public struct ItemDetailView: View {
             let hasJunkTags = item.tags.contains { junkTags.contains($0.lowercased()) }
             if (needsTitleHeal || needsDescHeal || hasJunkTags) && item.url != nil {
                 await coordinator.enrich(item: item, context: modelContext)
+            }
+            let trimmedCategory = item.category.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !trimmedCategory.isEmpty && (item.collectionName == nil || item.collectionId == nil) {
+                let coll = coordinator.ensureCollectionExists(named: trimmedCategory, context: modelContext)
+                item.collectionName = coll?.name ?? trimmedCategory
+                item.collectionId = coll?.id ?? item.collectionId
+                persistEdit()
             }
         }
         .navigationTitle("Details")
