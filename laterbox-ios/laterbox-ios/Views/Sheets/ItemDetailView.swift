@@ -7,6 +7,7 @@
 
 import SwiftUI
 import SwiftData
+import QuickLook
 
 public struct ItemDetailView: View {
     @Environment(\.dismiss) private var dismiss
@@ -17,6 +18,7 @@ public struct ItemDetailView: View {
     @State private var editedNote: String = ""
     @State private var showingDeleteConfirm = false
     @State private var saveError: String?
+    @State private var attachmentURL: URL?
     @State private var tagsText = ""
 
     public init(item: LBItem) {
@@ -27,10 +29,17 @@ public struct ItemDetailView: View {
 
     public var body: some View {
         ZStack {
-            LiquidGlassBackground()
+            LiquidGlassBackground().quickLookPreview($attachmentURL)
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
+                    if let data = item.attachmentsData, let files = try? JSONDecoder().decode([SharedAttachment].self, from: data) {
+                        ForEach(files) { file in
+                            Button { attachmentURL = try? SharedCaptureStore.fileURL(file) } label: {
+                                Label(file.name, systemImage: "paperclip").padding().frame(maxWidth: .infinity, alignment: .leading).background(AppTheme.accent, in: RoundedRectangle(cornerRadius: 16))
+                            }.buttonStyle(.plain)
+                        }
+                    }
                     // Rich Visual Banner
                     RichMediaBanner(
                         type: item.parsedContentType,
