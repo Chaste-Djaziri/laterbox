@@ -23,10 +23,12 @@ final class ShareViewController: UIViewController {
     var category: String
     var reply: String
 }
+struct ShareChatMessage: Identifiable { let id = UUID(); let text: String; let isUser: Bool }
 @MainActor final class ShareCaptureModel: ObservableObject {
     @Published var capture = SharedCapture()
     @Published var chatInput = ""
     @Published var reply = ""
+    @Published var messages: [ShareChatMessage] = []
     var localAIAvailable: Bool { if case .available = SystemLanguageModel.default.availability { return true }; return false }
     @Published var loading = true
     @Published var saving = false
@@ -75,12 +77,14 @@ final class ShareViewController: UIViewController {
     }
     func chat() async {
         guard localAIAvailable, !loading, !chatInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+        messages.append(ShareChatMessage(text: chatInput, isUser: true))
         loading = true
         defer { loading = false }
         do {
             let response = try await LanguageModelSession(instructions: "Help prepare a shared LaterBox capture. Respond conversationally and supply title, category and tags. Preserve supplied details. Attachment contents are unavailable; never pretend to inspect them. Never claim a save until the user presses Save.")
                 .respond(to: "User: \(chatInput.prefix(2000))\nContent: \(capture.content.prefix(4000))\nFiles: \(capture.attachments.map(\.name).joined(separator: ", "))\nCurrent title: \(capture.title)\nTags: \(capture.tags)", generating: SharePreparation.self).content
             reply = response.reply
+            messages.append(ShareChatMessage(text: response.reply, isUser: false))
             if !response.title.isEmpty { capture.title = String(response.title.prefix(200)) }
             capture.category = response.category; capture.tags = Array(response.tags.prefix(12))
             chatInput = ""
@@ -112,60 +116,142 @@ import UserNotifications
 struct ShareCaptureView: View {
     @ObservedObject var model: ShareCaptureModel
     @State private var tags = ""
+    @State private var editing = false
     @State private var customDate = false
     @State private var date = Date().addingTimeInterval(86400)
-    private let green = Color(red: 230/255, green: 237/255, blue: 176/255)
+    private var green: Color { LaterAIStyle.accent }
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
-                HStack { Image(systemName: "sparkles"); Text("Later AI").font(.title2.bold()); Spacer(); Button("Close") { model.context?.completeRequest(returningItems: nil) } }
-                Text(model.message).font(.headline)
-                ForEach(model.capture.attachments) { attachment in
-                    Label(attachment.name, systemImage: "paperclip").padding().frame(maxWidth: .infinity, alignment: .leading).background(.white, in: RoundedRectangle(cornerRadius: 16))
-                }
-                if model.loading { ProgressView("Preparing shared content…") }
-                if let error = model.error { Text(error).foregroundStyle(.red) }
-                if !model.saved {
-                    if model.localAIAvailable {
-                        if !model.reply.isEmpty { Text(model.reply).padding().background(.white, in: RoundedRectangle(cornerRadius: 16)) }
-                        HStack {
-                            TextField("Ask Later AI about this capture", text: $model.chatInput, axis: .vertical)
-                            Button { Task { await model.chat() } } label: { Image(systemName: "arrow.up").padding(12).background(green, in: Circle()) }.disabled(model.loading)
+        VStack(spacing: 0) {
+            LaterAIHeader(canReset: !model.messages.isEmpty, close: close, reset: {
+                model.messages = []; model.reply = ""; model.chatInput = ""
+            })
+            ScrollViewReader { proxy in
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 20) {
+                        sharedContent
+                        assistant(model.message)
+                        ForEach(model.messages) { message in
+                            if message.isUser {
+                                HStack {
+                                    Spacer(minLength: 48)
+                                    Text(message.text).font(.system(size: 15)).padding(.horizontal, 16).padding(.vertical, 12)
+                                        .background(Color(white: 0.155), in: RoundedRectangle(cornerRadius: 18))
+                                }
+                            } else { assistant(message.text) }
                         }
-                    }
-                    TextField("Content or link", text: $model.capture.content, axis: .vertical).lineLimit(2...6)
-                    TextField("Title", text: $model.capture.title)
-                    TextField("Category", text: $model.capture.category)
-                    TextField("Tags, separated by commas", text: $tags)
-                    Text("When should it return?").font(.headline)
-                    choice("Tomorrow") { model.capture.returnAt = Calendar.current.date(bySettingHour: 9, minute: 0, second: 0, of: Date().addingTimeInterval(86400)); customDate = false }
-                    choice("This weekend") { model.capture.returnAt = Calendar.current.nextDate(after: Date(), matching: DateComponents(hour: 9, weekday: 7), matchingPolicy: .nextTime); customDate = false }
-                    choice("Choose date") { customDate.toggle(); model.capture.returnAt = date }
-                    if customDate {
-                        HStack {
-                            Button { date = date.addingTimeInterval(-86400); model.capture.returnAt = date } label: { Image(systemName: "chevron.left") }
-                            Text(date, format: .dateTime.day().month().year().hour().minute()).frame(maxWidth: .infinity)
-                            Button { date = date.addingTimeInterval(86400); model.capture.returnAt = date } label: { Image(systemName: "chevron.right") }
+                        if model.loading {
+                            HStack(spacing: 10) { ProgressView().tint(green); Text("Thinking…").font(.system(size: 14)).foregroundStyle(.white.opacity(0.6)) }
                         }
-                        HStack { choice("−1 hour") { date = date.addingTimeInterval(-3600); model.capture.returnAt = date }; choice("+1 hour") { date = date.addingTimeInterval(3600); model.capture.returnAt = date } }
+                        if let error = model.error { assistant(error) }
+                        if editing || !model.localAIAvailable { editCard }
+                        if !model.saved {
+                            choice("Edit details") { editing.toggle() }
+                            Text("When do you want to see it again?").font(.system(size: 15))
+                            returnChoices
+                            choice(model.saving ? "Saving…" : "Save to LaterBox") {
+                                model.capture.tags = tags.split(separator: ",").map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                                Task { await model.save() }
+                            }.disabled(model.loading || model.saving)
+                        } else {
+                            Text(model.capture.title).font(.headline)
+                            HStack {
+                                choice("Edit") { model.undo(); editing = true }
+                                choice("Undo") { model.undo() }
+                                choice("Done", action: close)
+                            }
+                        }
+                        Color.clear.frame(height: 12).id("bottomAnchor")
+                    }.padding(.horizontal, 20).padding(.top, 16).padding(.bottom, 20)
+                }.scrollDismissesKeyboard(.interactively)
+                    .onChange(of: model.messages.count) { _, _ in
+                        withAnimation(.easeOut(duration: 0.25)) { proxy.scrollTo("bottomAnchor", anchor: .bottom) }
                     }
-                    choice("No reminder") { model.capture.returnAt = nil; customDate = false }
-                    if let date = model.capture.returnAt { Text("Return: \(date.formatted())").font(.caption) }
-                    choice(model.saving ? "Saving…" : "Save to LaterBox") {
-                        if !tags.isEmpty { model.capture.tags = tags.split(separator: ",").map { $0.trimmingCharacters(in: .whitespacesAndNewlines) } }
-                        Task { await model.save() }
-                    }.disabled(model.loading || model.saving)
-                } else {
-                    choice("Edit / Undo save") { model.undo() }
-                    choice("Done") { model.context?.completeRequest(returningItems: nil) }
-                }
-            }.padding(24)
-        }.background(Color(red: 247/255, green: 245/255, blue: 238/255))
-            .foregroundStyle(.black).preferredColorScheme(.light).buttonStyle(.plain)
-            .textFieldStyle(.roundedBorder)
+            }
+            if model.localAIAvailable && !model.saved {
+                LaterAIComposer(text: $model.chatInput, thinking: model.loading,
+                                attach: { editing.toggle() }, send: { Task { await model.chat() } })
+            }
+        }.background(Color.black.ignoresSafeArea()).foregroundStyle(.white)
+            .preferredColorScheme(.dark).buttonStyle(.plain)
             .onChange(of: model.capture.tags) { _, value in tags = value.joined(separator: ", ") }
     }
+    private var sharedContent: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            if !model.capture.content.isEmpty {
+                HStack {
+                    Spacer(minLength: 48)
+                    Text(model.capture.content).font(.system(size: 15)).lineLimit(8)
+                        .padding(.horizontal, 16).padding(.vertical, 12)
+                        .background(Color(white: 0.155), in: RoundedRectangle(cornerRadius: 18))
+                }
+            }
+            ForEach(model.capture.attachments) { file in
+                HStack(spacing: 12) {
+                    Image(systemName: "paperclip").foregroundStyle(green)
+                    Text(file.name).font(.system(size: 15)).lineLimit(2)
+                }.padding(16).frame(maxWidth: .infinity, alignment: .leading)
+                    .background(LaterAIStyle.field, in: RoundedRectangle(cornerRadius: 18))
+                    .overlay(RoundedRectangle(cornerRadius: 18).strokeBorder(Color.white.opacity(0.12), lineWidth: 1))
+            }
+        }
+    }
+    private func assistant(_ text: String) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: "sparkles").font(.system(size: 13, weight: .semibold)).foregroundStyle(green)
+                .frame(width: 30, height: 30).background(Color(white: 0.11), in: Circle())
+            Text(text).font(.system(size: 15)).frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+    private var editCard: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Edit shared item").font(.headline)
+            field("Content or link", text: $model.capture.content)
+            field("Title", text: $model.capture.title)
+            field("Category", text: $model.capture.category)
+            field("Tags, separated by commas", text: $tags)
+        }.padding(20).foregroundStyle(.black)
+            .background(Color(red: 247.0/255, green: 245.0/255, blue: 238.0/255), in: RoundedRectangle(cornerRadius: 18))
+            .environment(\.colorScheme, .light)
+    }
+    private func field(_ title: String, text: Binding<String>) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(title).font(.caption).foregroundStyle(.black.opacity(0.6))
+            TextField(title, text: text, axis: .vertical).padding(12).background(.white, in: RoundedRectangle(cornerRadius: 12)).tint(.black)
+        }
+    }
+    private var returnChoices: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            choice("Tomorrow") { model.capture.returnAt = Calendar.current.date(bySettingHour: 9, minute: 0, second: 0, of: Date().addingTimeInterval(86400)); customDate = false }
+            choice("This weekend") { model.capture.returnAt = Calendar.current.nextDate(after: Date(), matching: DateComponents(hour: 9, weekday: 7), matchingPolicy: .nextTime); customDate = false }
+            choice("Choose date") { customDate.toggle(); model.capture.returnAt = date }
+            if customDate {
+                VStack(spacing: 12) {
+                    HStack {
+                        choice("‹") { shift(.day, -1) }
+                        Text(date, format: .dateTime.day().month().year()).frame(maxWidth: .infinity)
+                        choice("›") { shift(.day, 1) }
+                    }
+                    HStack {
+                        choice("−1 hour") { shift(.hour, -1) }
+                        Text(date, format: .dateTime.hour().minute())
+                        choice("+1 hour") { shift(.hour, 1) }
+                    }
+                }.padding(12).foregroundStyle(.black).background(.white, in: RoundedRectangle(cornerRadius: 16))
+            }
+            choice("No reminder") { model.capture.returnAt = nil; customDate = false }
+            if let date = model.capture.returnAt { Text("Return: \(date.formatted())").font(.caption).foregroundStyle(.white.opacity(0.6)) }
+        }
+    }
+    private func shift(_ component: Calendar.Component, _ value: Int) {
+        if let next = Calendar.current.date(byAdding: component, value: value, to: date), next > Date() {
+            date = next; model.capture.returnAt = next
+        }
+    }
+    private func close() { model.context?.completeRequest(returningItems: nil) }
     private func choice(_ title: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) { Text(title).font(.body.weight(.semibold)).padding(16).frame(maxWidth: .infinity, alignment: .leading).background(green, in: RoundedRectangle(cornerRadius: 16)) }
+        Button(action: action) {
+            Text(title).font(.body.weight(.semibold)).foregroundStyle(.black)
+                .padding(.horizontal, 16).padding(.vertical, 12).background(green, in: RoundedRectangle(cornerRadius: 14))
+        }
     }
 }
