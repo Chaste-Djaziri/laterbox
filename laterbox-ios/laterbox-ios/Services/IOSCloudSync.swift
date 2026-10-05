@@ -3,16 +3,16 @@ import SwiftData
 
 struct CloudItemSnapshot: Codable {
     var id: String
-    var user_id: String
+    var user_id: String?
     var url: String?
     var title: String?
     var text_content: String?
-    var type: String
-    var favorite: Bool
-    var status: String
+    var type: String?
+    var favorite: Bool?
+    var status: String?
     var return_at: String?
-    var created_at: String
-    var updated_at: String
+    var created_at: String?
+    var updated_at: String?
     var deleted_at: String?
     var item_metadata: CloudMetadata?
     var item_notes: CloudNote?
@@ -102,19 +102,19 @@ extension LaterBoxAPIService: IOSCloudTransport {
 @MainActor
 extension SyncCoordinator {
     func performCloudSync(context: ModelContext, transport: (any IOSCloudTransport)? = nil) async throws {
-        guard isAuthenticated, isProUser, let uid = currentUserId, let token = authToken else { return }
+        guard isAuthenticated, let uid = currentUserId, let token = authToken else { return }
         let api: any IOSCloudTransport = transport ?? LaterBoxAPIService.shared
         for id in cloudDeletionQueue {
-            guard currentUserId == uid, authToken == token, isProUser else { return }
+            guard currentUserId == uid, authToken == token else { return }
             _ = try await api.cloudRequest("items?id=eq.\(id)&user_id=eq.\(uid)", token: token, method: "DELETE", body: nil)
             cloudDeletionQueue.removeAll { $0 == id }
         }
         let remote = try await api.downloadSnapshots(userID: uid, token: token)
-        guard currentUserId == uid, authToken == token, isProUser else { return }
+        guard currentUserId == uid, authToken == token else { return }
         let local = try context.fetch(FetchDescriptor<LBItem>())
         let byID = Dictionary(uniqueKeysWithValues: local.map { ($0.id, $0) })
         for snapshot in remote {
-            let date = Self.cloudDate(snapshot.updated_at) ?? .distantPast
+            let date = snapshot.updated_at.flatMap(Self.cloudDate) ?? .distantPast
             let item: LBItem
             if let existing = byID[snapshot.id] {
                 if existing.updatedAt >= date { continue }
@@ -124,10 +124,10 @@ extension SyncCoordinator {
                 context.insert(item)
             }
             item.userId = uid; item.title = snapshot.title ?? snapshot.url ?? "Untitled"; item.url = snapshot.url
-            item.textContent = snapshot.text_content; item.type = snapshot.type; item.favorite = snapshot.favorite
-            item.status = snapshot.deleted_at == nil ? snapshot.status : "deleted"
+            item.textContent = snapshot.text_content; item.type = snapshot.type ?? "link"; item.favorite = snapshot.favorite ?? false
+            item.status = snapshot.deleted_at == nil ? (snapshot.status ?? "inbox") : "deleted"
             item.returnAt = snapshot.return_at.flatMap(Self.cloudDate)
-            item.createdAt = Self.cloudDate(snapshot.created_at) ?? date; item.updatedAt = date
+            item.createdAt = snapshot.created_at.flatMap(Self.cloudDate) ?? date; item.updatedAt = date
             if let metadata = snapshot.item_metadata {
                 item.domain = metadata.domain; item.siteName = metadata.site_name; item.metadataDescription = metadata.description
                 item.faviconUrl = metadata.favicon_url; item.previewImageUrl = metadata.preview_image_url; item.enrichmentStatus = metadata.status
@@ -141,7 +141,7 @@ extension SyncCoordinator {
         }
         try context.save()
         for item in try context.fetch(FetchDescriptor<LBItem>()) where item.isSyncPending && (item.userId == nil || item.userId == uid) {
-            guard currentUserId == uid, authToken == token, isProUser else { return }
+            guard currentUserId == uid, authToken == token else { return }
             let revision = item.updatedAt
             let stamp = revision.ISO8601Format()
             let null = NSNull()
@@ -213,7 +213,7 @@ extension SyncCoordinator {
             let byID = Dictionary(uniqueKeysWithValues: updatedLocal.map { ($0.id, $0) })
 
             for snapshot in remote {
-                let date = Self.cloudDate(snapshot.updated_at) ?? .distantPast
+                let date = snapshot.updated_at.flatMap(Self.cloudDate) ?? .distantPast
                 let item: LBItem
                 if let existing = byID[snapshot.id] {
                     if existing.updatedAt >= date { continue }
@@ -226,11 +226,11 @@ extension SyncCoordinator {
                 item.title = snapshot.title ?? snapshot.url ?? "Untitled"
                 item.url = snapshot.url
                 item.textContent = snapshot.text_content
-                item.type = snapshot.type
-                item.favorite = snapshot.favorite
-                item.status = snapshot.deleted_at == nil ? snapshot.status : "deleted"
+                item.type = snapshot.type ?? "link"
+                item.favorite = snapshot.favorite ?? false
+                item.status = snapshot.deleted_at == nil ? (snapshot.status ?? "inbox") : "deleted"
                 item.returnAt = snapshot.return_at.flatMap(Self.cloudDate)
-                item.createdAt = Self.cloudDate(snapshot.created_at) ?? date
+                item.createdAt = snapshot.created_at.flatMap(Self.cloudDate) ?? date
                 item.updatedAt = date
 
                 if let metadata = snapshot.item_metadata {
@@ -268,9 +268,9 @@ extension SyncCoordinator {
             // Remote fetch might fail if offline; local resolution remains saved
         }
 
-        // 3. Check entitlement and upload pending items if user is Pro
+        // 3. Upload pending items if user chose to merge local data
         await refreshEntitlement()
-        if isProUser && merge {
+        if merge {
             try? await performCloudSync(context: context, transport: transport)
         }
 
