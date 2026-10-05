@@ -69,12 +69,17 @@ protocol LaterAIProvider {
 @MainActor
 struct AppleLaterAIProvider: LaterAIProvider {
     static var unavailableReason: String? {
+        #if targetEnvironment(simulator)
+        return "On-device AI requires a compatible physical iPhone. You can still save using guided capture."
+        #else
         switch SystemLanguageModel.default.availability {
         case .available: return nil
         case .unavailable(let reason): return "On-device AI is unavailable: \(reason). You can still save using guided capture."
         }
+        #endif
     }
     func respond(_ prompt: String) async throws -> AIAction {
+        if let reason = Self.unavailableReason { throw AIProviderError.customModelError(reason) }
         let session = LanguageModelSession(instructions: """
         You are Later AI, a concise assistant for a personal saved-content library.
         Answer simple questions. Distinguish chat from capture. A pasted URL or standalone note is capture;
