@@ -50,7 +50,13 @@ def main():
     parser.add_argument("--metadata", default="version.json")
     args = parser.parse_args()
     apps = records("/v1/apps?filter[bundleId]=" + BUNDLE)
-    if len(apps) != 1: raise RuntimeError("Expected existing LaterBox App Store Connect app")
+    if len(apps) != 1:
+        raise RuntimeError(
+            f"App Store Connect returned {len(apps)} accessible apps for {BUNDLE}. "
+            "Confirm that the existing app uses this bundle identifier and that the configured "
+            "APP_STORE_CONNECT API key/issuer can access it in Apple team LS42X27YFY. "
+            "No archive or upload was attempted; do not create a replacement app."
+        )
     app = apps[0]["id"]
     path = f"/v1/builds?filter[app]={app}&limit=200"
     if args.mode == "prepare":
