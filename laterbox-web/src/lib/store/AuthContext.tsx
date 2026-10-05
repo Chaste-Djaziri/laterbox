@@ -83,6 +83,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const derived = session.user.email?.split('@')[0] || '';
           if (derived) setUserNameState(derived);
         }
+      } else {
+        setIsGuest(true);
       }
       setLoading(false);
     });
@@ -181,8 +183,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = async () => {
     const supabase = getSupabaseClient();
     suspendCloudNotifications(user?.id);
-    await disableCloudNotifications();
-    await supabase.auth.signOut();
+    await disableCloudNotifications().catch(() => {});
+    try {
+      await supabase.auth.signOut({ scope: 'local' });
+    } catch {
+      // Local sign-out should not throw even if network or server token is rejected
+    }
     setUser(null);
     setSession(null);
     setIsGuest(true);
