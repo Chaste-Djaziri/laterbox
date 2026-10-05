@@ -135,67 +135,9 @@ public struct LaterAIView: View {
 
     // MARK: - Top Header Bar
     private var topBar: some View {
-        VStack(spacing: 10) {
-            // Top pull handle
-            Capsule()
-                .fill(Color.white.opacity(0.3))
-                .frame(width: 38, height: 4.5)
-                .padding(.top, 6)
-
-            HStack {
-                // Dismiss / Dropdown close button
-                Button {
-                    dismiss()
-                } label: {
-                    Image(systemName: "chevron.down")
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundColor(.white)
-                        .frame(width: 36, height: 36)
-                        .background(Circle().fill(Color.white.opacity(0.12)))
-                }
-
-                Spacer()
-
-                // "Later AI" Title with Brand Accent
-                HStack(spacing: 7) {
-                    Image(systemName: "sparkles")
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundColor(AppTheme.accent)
-
-                    Text("Later AI")
-                        .font(.system(size: 17, weight: .bold))
-                        .foregroundColor(.white)
-
-                    Text("PREVIEW")
-                        .font(.system(size: 9, weight: .bold))
-                        .foregroundColor(.black)
-                        .padding(.horizontal, 5)
-                        .padding(.vertical, 2)
-                        .background(Capsule().fill(AppTheme.accent))
-                }
-
-                Spacer()
-
-                // Clear / New Chat Button
-                Button {
-                    withAnimation {
-                        conversation.reset()
-                    }
-                } label: {
-                    Image(systemName: "square.and.pencil")
-                        .font(.system(size: 15, weight: .medium))
-                        .foregroundColor(messages.isEmpty ? Color.white.opacity(0.3) : .white)
-                        .frame(width: 36, height: 36)
-                        .background(Circle().fill(Color.white.opacity(0.12)))
-                }
-                .disabled(messages.isEmpty)
-            }
-            .padding(.horizontal, 18)
-            .padding(.bottom, 8)
-
-            Divider()
-                .background(Color.white.opacity(0.08))
-        }
+        LaterAIHeader(canReset: !messages.isEmpty, close: { dismiss() }, reset: {
+            withAnimation { conversation.reset() }
+        })
     }
 
     // MARK: - Empty State (ChatGPT Mobile Style)
@@ -367,89 +309,9 @@ public struct LaterAIView: View {
 
     // MARK: - Bottom ChatGPT Mobile Chat Input Bar
     private var bottomChatInputBar: some View {
-        VStack(spacing: 8) {
-            HStack(alignment: .bottom, spacing: 10) {
-                // Attach / Plus Button
-                Button {
-                    conversation.continueManually()
-                } label: {
-                    Image(systemName: "plus")
-                        .font(.system(size: 17, weight: .semibold))
-                        .foregroundColor(.white)
-                        .frame(width: 36, height: 36)
-                        .background(Circle().fill(Color.white.opacity(0.12)))
-                }
-                .accessibilityLabel("Guided capture")
-
-                // Chat Input Field
-                HStack(alignment: .bottom, spacing: 8) {
-                    ZStack(alignment: .leading) {
-                        if inputText.isEmpty {
-                            Text("Message Later AI...")
-                                .font(.system(size: 15))
-                                .foregroundColor(Color.white.opacity(0.60))
-                                .padding(.leading, 4)
-                                .allowsHitTesting(false)
-                        }
-
-                        TextField("", text: $inputText, prompt: Text("Message Later AI...").foregroundColor(Color.white.opacity(0.60)), axis: .vertical)
-                            .focused($isInputFocused)
-                            .font(.system(size: 15))
-                            .foregroundColor(.white)
-                            .tint(AppTheme.accent)
-                            .lineLimit(1...5)
-                            .padding(.vertical, 8)
-                            .padding(.leading, 4)
-                    }
-
-                    // Right Button: Waveform/Mic when empty, Arrow Send when text entered
-                    let hasText = !inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-
-                    Button {
-                        if hasText {
-                            sendMessage(inputText)
-                        } else {
-                            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                        }
-                    } label: {
-                        if hasText {
-                            Image(systemName: "arrow.up")
-                                .font(.system(size: 14, weight: .bold))
-                                .foregroundColor(.black)
-                                .frame(width: 32, height: 32)
-                                .background(Circle().fill(AppTheme.accent))
-                        } else {
-                            Image(systemName: "arrow.up")
-                                .font(.system(size: 16, weight: .medium))
-                                .foregroundColor(Color.white.opacity(0.75))
-                                .frame(width: 32, height: 32)
-                        }
-                    }
-                    .disabled(!hasText || isThinking)
-                    .padding(.bottom, 2)
-                }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 4)
-                .background(
-                    RoundedRectangle(cornerRadius: 24)
-                        .fill(Color(hex: "1F1F21"))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 24)
-                                .strokeBorder(Color.white.opacity(0.12), lineWidth: 1)
-                        )
-                )
-            }
-            .padding(.horizontal, 16)
-            .padding(.top, 8)
-
-            // Legal Disclaimer
-            Text("Later AI can make mistakes. Verify important info.")
-                .font(.system(size: 11))
-                .foregroundColor(Color.white.opacity(0.35))
-                .padding(.bottom, 6)
-        }
-        .background(Color.black)
-        .colorScheme(.dark)
+        LaterAIComposer(text: $inputText, thinking: isThinking,
+                        attach: { conversation.continueManually() },
+                        send: { sendMessage(inputText) })
     }
 
     // MARK: - Actions
