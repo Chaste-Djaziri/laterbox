@@ -15,8 +15,20 @@ final class ReturnNotificationDelegate: NSObject, UIApplicationDelegate, UNUserN
         completionHandler([.banner, .sound])
     }
     func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse, withCompletionHandler completionHandler: @escaping () -> Void) {
-        let id = response.notification.request.content.userInfo["itemID"] as? String
-        Task { @MainActor in ReturnNotificationRouter.shared.itemID = id }
+        var id = response.notification.request.content.userInfo["itemID"] as? String
+        if id == nil || id?.isEmpty == true {
+            let identifier = response.notification.request.identifier
+            if identifier.hasPrefix("returned-") {
+                id = identifier.replacingOccurrences(of: "returned-", with: "")
+            } else if !identifier.hasPrefix("laterbox-test-") {
+                id = identifier
+            }
+        }
+        if let id, !id.isEmpty {
+            Task { @MainActor in
+                ReturnNotificationRouter.shared.itemID = id
+            }
+        }
         completionHandler()
     }
 }
