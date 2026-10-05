@@ -135,15 +135,38 @@ enum ReturnNotification {
         let center = UNUserNotificationCenter.current()
         center.removePendingNotificationRequests(withIdentifiers: [id])
         guard let date, date > Date() else { return true }
-        let allowed = try await center.requestAuthorization(options: [.alert, .sound, .badge])
-        guard allowed else { return false }
+        let settings = await center.notificationSettings()
+        let isAuthorized = settings.authorizationStatus == .authorized || settings.authorizationStatus == .provisional
+        if !isAuthorized {
+            let allowed = try await requestPermissions()
+            guard allowed else { return false }
+        }
         let content = UNMutableNotificationContent()
         content.title = "Back in your Inbox"
-        content.body = title
+        content.body = title.isEmpty ? "A scheduled item is ready for review." : title
         content.sound = .default
         content.userInfo = ["itemID": id]
         let trigger = UNTimeIntervalNotificationTrigger(timeInterval: max(1, date.timeIntervalSinceNow), repeats: false)
         try await center.add(UNNotificationRequest(identifier: id, content: content, trigger: trigger))
+        return true
+    }
+
+    static func notifyReturned(id: String, title: String) async throws -> Bool {
+        let center = UNUserNotificationCenter.current()
+        let settings = await center.notificationSettings()
+        let isAuthorized = settings.authorizationStatus == .authorized || settings.authorizationStatus == .provisional
+        if !isAuthorized {
+            let requested = try await requestPermissions()
+            guard requested else { return false }
+        }
+        let content = UNMutableNotificationContent()
+        content.title = "Back in your Inbox"
+        content.body = title.isEmpty ? "A scheduled item has returned to your inbox." : title
+        content.sound = .default
+        content.userInfo = ["itemID": id]
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 1.0, repeats: false)
+        let request = UNNotificationRequest(identifier: "returned-\(id)", content: content, trigger: trigger)
+        try await center.add(request)
         return true
     }
 }
