@@ -176,8 +176,23 @@ public struct LaterAIView: View {
                 FeatherFlowShape(progress: progress, centerDipFraction: 0.32)
                     .ignoresSafeArea()
             )
+        .onAppear {
+            if let prompt = LaterAIManager.shared.initialPrompt {
+                triggerInitialPrompt(prompt)
+            } else if let subject = LaterAIManager.shared.attachedSubject, inputText.isEmpty {
+                inputText = subject
+            }
         }
-        .onDisappear { conversation.reset() }
+        .onReceive(LaterAIManager.shared.$initialPrompt) { prompt in
+            if let prompt, !prompt.isEmpty {
+                triggerInitialPrompt(prompt)
+            }
+        }
+        .onDisappear {
+            conversation.reset()
+            LaterAIManager.shared.attachedSubject = nil
+            LaterAIManager.shared.initialPrompt = nil
+        }
         .sheet(item: $editingItem) { item in
             NavigationStack { ItemDetailView(item: item) }
         }
@@ -577,11 +592,67 @@ public struct LaterAIView: View {
         action()
     }
 
+    // MARK: - Attached Subject Bar
+    @ViewBuilder
+    private var attachedSubjectBar: some View {
+        if let subject = LaterAIManager.shared.attachedSubject, conversation.savedItem == nil {
+            HStack(spacing: 8) {
+                Image(systemName: CaptureDraft.detectURL(subject) != nil ? "link.circle.fill" : "doc.text.fill")
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundColor(LaterAIStyle.accent)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("ATTACHED ITEM TO SAVE")
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundColor(LaterAIStyle.accent)
+                        .tracking(0.5)
+
+                    Text(subject)
+                        .font(.system(size: 12))
+                        .foregroundColor(.white.opacity(0.85))
+                        .lineLimit(1)
+                }
+
+                Spacer()
+
+                Button(action: {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        LaterAIManager.shared.attachedSubject = nil
+                    }
+                }) {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 14))
+                        .foregroundColor(.white.opacity(0.45))
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
+            .background(Color(white: 22.0/255), in: RoundedRectangle(cornerRadius: 12))
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .strokeBorder(Color.white.opacity(0.12), lineWidth: 1)
+            )
+            .padding(.horizontal, 16)
+            .transition(.move(edge: .bottom).combined(with: .opacity))
+        }
+    }
+
     // MARK: - Bottom ChatGPT Mobile Chat Input Bar
     private var bottomChatInputBar: some View {
-        LaterAIComposer(text: $inputText, thinking: isThinking,
-                        attach: { conversation.continueManually() },
-                        send: { sendMessage(inputText) })
+        VStack(spacing: 6) {
+            attachedSubjectBar
+            LaterAIComposer(text: $inputText, thinking: isThinking,
+                            attach: { conversation.continueManually() },
+                            send: { sendMessage(inputText) })
+        }
+    }
+
+    private func triggerInitialPrompt(_ prompt: String) {
+        LaterAIManager.shared.initialPrompt = nil
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+            sendMessage(prompt)
+        }
     }
 
     private func sendMessage(_ text: String) {

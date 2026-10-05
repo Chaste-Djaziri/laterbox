@@ -24,6 +24,8 @@ public class LaterAIManager: ObservableObject {
 
     @Published public var isShowingLaterAI: Bool = false
     @Published public var flowProgress: CGFloat = 0.0
+    @Published public var initialPrompt: String? = nil
+    @Published public var attachedSubject: String? = nil
 
     // Tracks if the user was scrolled down into content
     private var wasScrolledDown: Bool = false
@@ -32,6 +34,22 @@ public class LaterAIManager: ObservableObject {
     private var hasTriggeredHaptic: Bool = false
 
     private init() {}
+
+    /// Programmatically open Later AI, optionally pre-populating or sending content as an attached subject to save.
+    public func open(with content: String? = nil, autoSend: Bool = true) {
+        if let content = content?.trimmingCharacters(in: .whitespacesAndNewlines), !content.isEmpty {
+            self.attachedSubject = content
+            if autoSend {
+                let prompt = CaptureDraft.detectURL(content) != nil ? content : "Save: \(content)"
+                self.initialPrompt = prompt
+            }
+        }
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        withAnimation(.spring(response: 0.44, dampingFraction: 0.86)) {
+            self.flowProgress = 1.0
+            self.isShowingLaterAI = true
+        }
+    }
 
     /// Called by scrollviews via onScrollGeometryChange.
     /// `contentOffsetY`: current contentOffset.y
@@ -109,6 +127,8 @@ public class LaterAIManager: ObservableObject {
             self.hasTriggeredHaptic = false
             self.wasScrolledDown = false
             self.isArmedAtTop = true
+            self.attachedSubject = nil
+            self.initialPrompt = nil
         }
     }
 }
