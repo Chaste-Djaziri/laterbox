@@ -3,9 +3,9 @@ import Foundation
 
 /// Provides compile-time version metadata and dynamic bundle introspection for LaterBox iOS.
 public enum AppVersion {
-    public static let marketingVersion = "1.0.170"
-    public static let buildNumber = "172"
-    public static let buildTime = "2026-09-27T21:33:45.789Z"
+    public static let marketingVersion = "1.0.171"
+    public static let buildNumber = "173"
+    public static let buildTime = "2026-10-05T12:55:50.537Z"
 
     /// Live version string from bundle (CFBundleShortVersionString), falling back to compile-time constant
     public static var currentVersion: String {
