@@ -17,6 +17,10 @@ public struct AppIconOption: Identifiable, Equatable, Hashable {
         iconName == nil
     }
 
+    public var isProOnly: Bool {
+        id != "default"
+    }
+
     public var accentColor: Color {
         Color(hex: accentHex)
     }
@@ -243,6 +247,12 @@ public final class AppIconManager: ObservableObject {
     @discardableResult
     public func selectIcon(_ option: AppIconOption) async -> Bool {
         guard option.id != currentIconId else { return true }
+
+        if option.isProOnly && !SyncCoordinator.shared.isProUser {
+            self.errorMessage = "Alternate app icons require an active LaterBox Pro plan."
+            LBHaptic.error()
+            return false
+        }
 
         #if os(iOS)
         guard UIApplication.shared.supportsAlternateIcons else {
