@@ -1,370 +1,135 @@
 package com.example.laterbox.ui.ai
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.filled.AutoAwesome
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.laterbox.data.DataRepository
 import com.example.laterbox.data.local.ItemEntity
+import com.example.laterbox.services.*
 import com.example.laterbox.theme.LaterboxAccent
-import com.example.laterbox.theme.LaterboxDarkCard
-import com.example.laterbox.theme.LaterboxDarkSurface
-import kotlinx.coroutines.delay
+import com.example.laterbox.ui.capture.*
+import com.example.laterbox.ui.screens.ItemDetailSheet
+import com.google.mlkit.genai.common.FeatureStatus
 import kotlinx.coroutines.launch
+import org.json.JSONArray
 import java.util.UUID
 
-data class ChatMessage(
-    val id: String = UUID.randomUUID().toString(),
-    val text: String,
-    val isUser: Boolean
-)
-
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun LaterAIScreen(
-    repository: DataRepository,
-    onDismiss: () -> Unit
-) {
+fun LaterAIScreen(repository: DataRepository, onDismiss: () -> Unit) {
     val items by repository.items.collectAsState(initial = emptyList())
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true), containerColor = Color.Black) {
+        LaterAIContent(items, onDismiss = onDismiss, onSaved = { repository.syncNow() })
+    }
+}
+@Composable
+fun LaterAIContent(items: List<ItemEntity>, initial: String = "", attachments: String = "[]", onDismiss: () -> Unit, onSaved: () -> Unit = {}) {
+    val context = LocalContext.current
+    val store = remember { VaultStore(context) }
+    val ai = remember { LaterAIService() }
     val scope = rememberCoroutineScope()
-    val listState = rememberLazyListState()
-
-    val messages = remember {
-        mutableStateListOf(
-            ChatMessage(
-                text = "Hi! I'm Later AI. Ask me anything about your saved links, articles, return schedules, or inbox organization.",
-                isUser = false
-            )
-        )
-    }
-
-    var inputText by remember { mutableStateOf("") }
-    var isThinking by remember { mutableStateOf(false) }
-
-    val promptSuggestions = listOf(
-        "Summarize my inbox",
-        "What's due today?",
-        "Find saved articles & videos",
-        "Help me clean up"
-    )
-
-    fun generateAIResponse(query: String, allItems: List<ItemEntity>): String {
-        val q = query.lowercase().trim()
-        val inboxItems = allItems.filter { it.status == "inbox" }
-        val returnedItems = allItems.filter { it.status == "returned" }
-
-        return when {
-            q.contains("summarize") || q.contains("inbox") -> {
-                if (inboxItems.isEmpty()) {
-                    "Your inbox is completely clear! You have 0 unsorted items."
-                } else {
-                    val count = inboxItems.size
-                    val types = inboxItems.groupBy { it.type }.map { "${it.value.size} ${it.key}(s)" }.joinToString(", ")
-                    val recentTitles = inboxItems.take(3).mapNotNull { it.title }.joinToString("\n• ")
-                    "You have $count items waiting in your inbox ($types).\n\nTop items:\n• $recentTitles"
-                }
-            }
-            q.contains("due") || q.contains("today") || q.contains("return") -> {
-                if (returnedItems.isEmpty()) {
-                    "You don't have any items scheduled for return today."
-                } else {
-                    val titles = returnedItems.take(4).mapNotNull { it.title }.joinToString("\n• ")
-                    "You have ${returnedItems.size} items scheduled:\n• $titles"
-                }
-            }
-            q.contains("article") || q.contains("video") || q.contains("find") -> {
-                val matches = allItems.filter {
-                    it.type.equals("article", true) || it.type.equals("video", true) ||
-                    it.title?.lowercase()?.contains("article") == true ||
-                    it.title?.lowercase()?.contains("video") == true
-                }
-                if (matches.isEmpty()) {
-                    "I didn't find any articles or videos in your vault yet. Save one via Quick Capture!"
-                } else {
-                    val sample = matches.take(3).mapNotNull { it.title }.joinToString("\n• ")
-                    "Found ${matches.size} articles & media captures:\n• $sample"
-                }
-            }
-            q.contains("clean") -> {
-                "To keep your vault neat, consider:\n1. Archiving or marking items done that you've finished reading.\n2. Setting return dates for items you want to read next weekend.\n3. Grouping related links into Collections."
-            }
-            else -> {
-                val matches = allItems.filter {
-                    it.title?.lowercase()?.contains(q) == true ||
-                    it.textContent?.lowercase()?.contains(q) == true
-                }
-                if (matches.isNotEmpty()) {
-                    "Found ${matches.size} matching items:\n" + matches.take(3).mapNotNull { "• ${it.title}" }.joinToString("\n")
-                } else {
-                    "I reviewed your ${allItems.size} saved items, but couldn't find an exact match for '$query'. Try asking me to summarize your inbox or check scheduled returns!"
-                }
-            }
-        }
-    }
-
-    fun handleSend(text: String) {
-        val userQuery = text.trim()
-        if (userQuery.isEmpty()) return
-
-        messages.add(ChatMessage(text = userQuery, isUser = true))
-        inputText = ""
-        isThinking = true
-
+    var status by remember { mutableIntStateOf(FeatureStatus.UNAVAILABLE) }
+    var checking by remember { mutableStateOf(true) }
+    var guided by rememberSaveable { mutableStateOf(false) }
+    var input by rememberSaveable { mutableStateOf(initial) }
+    var capturedInput by rememberSaveable { mutableStateOf(initial) }
+    var busy by remember { mutableStateOf(false) }
+    var error by remember { mutableStateOf<String?>(null) }
+    var saved by remember { mutableStateOf<ItemEntity?>(null) }
+    var edit by remember { mutableStateOf(false) }
+    var clarify by remember { mutableStateOf(false) }
+    var returnQuestion by remember { mutableStateOf(false) }
+    var matches by remember { mutableStateOf<List<ItemEntity>>(emptyList()) }
+    val messages = remember { mutableStateListOf<Pair<String, Boolean>>() }
+    var captureID by rememberSaveable { mutableStateOf(UUID.randomUUID().toString()) }
+    DisposableEffect(ai) { onDispose { ai.close() } }
+    LaunchedEffect(ai) { status = runCatching { ai.status() }.getOrDefault(FeatureStatus.UNAVAILABLE); checking = false; guided = status != FeatureStatus.AVAILABLE }
+    fun save(item: ItemEntity) {
+        if (busy) return
+        busy = true; error = null
         scope.launch {
-            delay(500) // Realistic conversational pause
-            val reply = generateAIResponse(userQuery, items)
-            isThinking = false
-            messages.add(ChatMessage(text = reply, isUser = false))
-            delay(100)
-            listState.animateScrollToItem(messages.size - 1)
+            try {
+                saved = store.save(item); guided = false; clarify = false; returnQuestion = item.returnAt == null
+                messages.add("Saved ‘${saved?.title}’ to your vault." to false)
+                onSaved()
+                scope.launch { saved?.let { store.metadata(it); onSaved() } }
+            } catch (failure: Exception) { error = failure.message ?: "Save failed. Your content is still here." }
+            finally { busy = false }
         }
     }
-
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        containerColor = LaterboxDarkSurface,
-        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 20.dp, vertical = 8.dp)
-                .padding(bottom = 24.dp),
-            verticalArrangement = Arrangement.SpaceBetween
-        ) {
-            // Top Header: AI Title + Close button
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(30.dp)
-                            .clip(CircleShape)
-                            .background(LaterboxAccent),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.AutoAwesome,
-                            contentDescription = null,
-                            tint = LaterboxDarkSurface,
-                            modifier = Modifier.size(16.dp)
-                        )
+    fun send() {
+        if (input.isBlank() || busy) return
+        val original = input; capturedInput = original
+        messages.add(original to true); busy = true; error = null; matches = emptyList()
+        scope.launch {
+            try {
+                val action = ai.respond(original, items, messages.takeLast(4).joinToString("\n") { it.first })
+                when (action.intent) {
+                    "capture" -> {
+                        val exact = action.content.takeIf { it.isNotBlank() && original.contains(it) } ?: original
+                        var draft = VaultStore.draft(exact, action.title, action.tags, action.category, action.returnAt, attachments, captureID)
+                        draft = draft.copy(summary = action.summary, formattedContent = action.formatted)
+                        busy = false; save(draft); input = ""
                     }
-                    Column {
-                        Text(
-                            text = "Later AI",
-                            fontSize = 17.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White
-                        )
-                        Text(
-                            text = "Personal vault intelligence",
-                            fontSize = 11.sp,
-                            color = Color.White.copy(alpha = 0.6f)
-                        )
-                    }
+                    "search" -> { matches = LocalSearch.search(action.query.ifBlank { original }, items); messages.add("Found ${matches.size} saved items." to false); input = "" }
+                    "clarify" -> { clarify = true; messages.add("Would you like to save this or just chat?" to false) }
+                    else -> { messages.add(action.reply to false); input = "" }
                 }
-
-                IconButton(onClick = onDismiss) {
-                    Icon(
-                        imageVector = Icons.Default.Close,
-                        contentDescription = "Close",
-                        tint = Color.White.copy(alpha = 0.7f)
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Conversation Messages
-            LazyColumn(
-                state = listState,
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
-            ) {
-                items(messages, key = { it.id }) { msg ->
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = if (msg.isUser) Arrangement.End else Arrangement.Start
-                    ) {
-                        Surface(
-                            shape = RoundedCornerShape(
-                                topStart = 16.dp,
-                                topEnd = 16.dp,
-                                bottomStart = if (msg.isUser) 16.dp else 4.dp,
-                                bottomEnd = if (msg.isUser) 4.dp else 16.dp
-                            ),
-                            color = if (msg.isUser) LaterboxAccent else LaterboxDarkCard,
-                            contentColor = if (msg.isUser) LaterboxDarkSurface else Color.White,
-                            modifier = Modifier.widthIn(max = 290.dp)
-                        ) {
-                            Text(
-                                text = msg.text,
-                                fontSize = 14.sp,
-                                lineHeight = 20.sp,
-                                modifier = Modifier.padding(14.dp)
-                            )
-                        }
-                    }
-                }
-
-                if (isThinking) {
-                    item {
-                        Row(
-                            horizontalArrangement = Arrangement.Start,
-                            modifier = Modifier.padding(start = 4.dp)
-                        ) {
-                            Surface(
-                                shape = RoundedCornerShape(12.dp),
-                                color = LaterboxDarkCard,
-                                modifier = Modifier.padding(vertical = 4.dp)
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    CircularProgressIndicator(
-                                        modifier = Modifier.size(14.dp),
-                                        strokeWidth = 2.dp,
-                                        color = LaterboxAccent
-                                    )
-                                    Text(
-                                        text = "Later AI is thinking...",
-                                        fontSize = 12.sp,
-                                        color = Color.White.copy(alpha = 0.7f)
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Quick Prompt Suggestions (if few messages)
-            if (messages.size <= 2) {
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 10.dp)
-                ) {
-                    promptSuggestions.forEach { prompt ->
-                        Surface(
-                            shape = RoundedCornerShape(12.dp),
-                            color = LaterboxDarkCard,
-                            contentColor = Color.White.copy(alpha = 0.85f),
-                            modifier = Modifier.clickable { handleSend(prompt) }
-                        ) {
-                            Text(
-                                text = prompt,
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Medium,
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp)
-                            )
-                        }
-                    }
-                }
-            }
-
-            // Input Row
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 4.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                OutlinedTextField(
-                    value = inputText,
-                    onValueChange = { inputText = it },
-                    placeholder = { Text("Ask Later AI...", color = Color.White.copy(alpha = 0.5f)) },
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(18.dp),
-                    singleLine = true,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = Color.White,
-                        focusedContainerColor = LaterboxDarkCard,
-                        unfocusedContainerColor = LaterboxDarkCard,
-                        focusedBorderColor = LaterboxAccent,
-                        unfocusedBorderColor = Color.White.copy(alpha = 0.15f)
-                    )
-                )
-
-                IconButton(
-                    onClick = { handleSend(inputText) },
-                    modifier = Modifier
-                        .size(46.dp)
-                        .clip(CircleShape)
-                        .background(if (inputText.isNotBlank()) LaterboxAccent else LaterboxDarkCard)
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.Send,
-                        contentDescription = "Send",
-                        tint = if (inputText.isNotBlank()) LaterboxDarkSurface else Color.White.copy(alpha = 0.4f),
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
-            }
+            } catch (failure: Exception) { error = failure.message ?: "The local model failed. Retry or continue manually." }
+            finally { busy = false }
         }
     }
+    Column(Modifier.fillMaxSize().background(Color.Black).padding(20.dp).imePadding(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Column { Text("✦ Later AI", color = Color.White, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold); Text(if (status == FeatureStatus.AVAILABLE) "On-device · Private & free" else "Guided capture", color = Color.LightGray, style = MaterialTheme.typography.bodySmall) }
+            TextButton(onClick = onDismiss) { Text("Close", color = LaterboxAccent) }
+        }
+        Column(Modifier.weight(1f).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            if (attachments != "[]") {
+                val files = runCatching { JSONArray(attachments) }.getOrNull()
+                files?.let { values -> for (index in 0 until values.length()) Choice("📎 ${values.getJSONObject(index).optString("name", "Shared file")}", "Attached to this capture", true) {} }
+            }
+            messages.forEach { (text, user) -> Text(text, color = Color.White, modifier = Modifier.fillMaxWidth().background(if (user) Color(0xFF242424) else Color.Black, RoundedCornerShape(18.dp)).padding(12.dp)) }
+            if (checking || busy) CircularProgressIndicator(color = LaterboxAccent)
+            if (status == FeatureStatus.DOWNLOADABLE && !busy) Choice("Download on-device model", "Enable free Later AI on this device", true) {
+                scope.launch { busy = true; try { ai.download { error = it }; status = ai.status(); guided = status != FeatureStatus.AVAILABLE; error = null } catch (failure: Exception) { error = failure.message } finally { busy = false } }
+            }
+            error?.let {
+                Text(it, color = Color(0xFFFFB4AB))
+                if (status == FeatureStatus.AVAILABLE) Choice("Retry", dark = true) { input = capturedInput; send() }
+                Choice("Continue manually", "Keep your content and attachments", true) { guided = true }
+            }
+            if (guided && saved == null && !checking) key(captureID) { GuidedCapture(capturedInput, attachments, true, ::save) }
+            if (clarify) {
+                Choice("Save this", dark = true) { save(VaultStore.draft(capturedInput, attachments = attachments, id = captureID)) }
+                Choice("Just chatting", dark = true) { clarify = false; input = "" }
+            }
+            matches.forEach { item -> Choice(item.title.orEmpty(), item.summary, true) { saved = item; edit = true; returnQuestion = false } }
+            saved?.let { item ->
+                if (returnQuestion) { Text("When would you like to see it again?", color = Color.White); ReturnChoices(true) { date -> scope.launch { try { val updated = item.copy(returnAt = date, status = if (date == null) "inbox" else "deferred"); store.edit(updated); saved = updated; returnQuestion = false; onSaved() } catch (failure: Exception) { error = failure.message } } } }
+                else {
+                    Choice("Edit", "Review saved content and metadata", true) { edit = true }
+                    Choice("Undo save", "Remove this capture", true) { scope.launch { try { store.undo(item); saved = null; captureID = UUID.randomUUID().toString(); guided = true; onSaved() } catch (failure: Exception) { error = failure.message } } }
+                    Choice("Save another", dark = true) { saved = null; captureID = UUID.randomUUID().toString(); capturedInput = ""; input = ""; guided = status != FeatureStatus.AVAILABLE }
+                }
+            }
+            if (messages.isEmpty() && !guided && !checking) Text("How can I help you today?\nPaste a link, save a thought, or search your vault.", color = Color.White, style = MaterialTheme.typography.headlineSmall)
+        }
+        if (!guided && saved == null && status == FeatureStatus.AVAILABLE) {
+            Field(input, { input = it }, "Message Later AI…", true)
+            Button(onClick = ::send, enabled = !busy && input.isNotBlank(), colors = ButtonDefaults.buttonColors(containerColor = LaterboxAccent, contentColor = Color.Black), modifier = Modifier.fillMaxWidth()) { Text("Send") }
+            TextButton(onClick = { capturedInput = input; guided = true }) { Text("Guided capture", color = LaterboxAccent) }
+        }
+    }
+    if (edit && saved != null) ItemDetailSheet(saved!!, onDismiss = { edit = false }, onChanged = { onSaved() })
 }
