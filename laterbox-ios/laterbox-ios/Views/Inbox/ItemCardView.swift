@@ -197,6 +197,7 @@ public struct ItemCardView: View {
                 }
                 Button(action: {
                     #if canImport(UIKit)
+                    ClipboardDetectionManager.shared.recordInternalCopy(urlStr)
                     UIPasteboard.general.string = urlStr
                     #elseif canImport(AppKit)
                     NSPasteboard.general.clearContents()
