@@ -167,6 +167,118 @@ extension SyncCoordinator {
             try context.save()
         }
     }
+
+    /// Resolves local unassigned items on login (merge or discard), downloads cross-platform items from cloud,
+    /// refreshes collections and catalog, and updates return notifications.
+    public func resolveLoginData(
+        merge: Bool,
+        email: String,
+        userId: String,
+        token: String,
+        context: ModelContext,
+        transport: (any IOSCloudTransport)? = nil
+    ) async throws {
+        self.setSession(email: email, userId: userId, token: token)
+        self.syncState = .syncing
+
+        // 1. Resolve local items
+        let localItems = (try? context.fetch(FetchDescriptor<LBItem>())) ?? []
+        let localCollections = (try? context.fetch(FetchDescriptor<LBCollection>())) ?? []
+
+        if merge {
+            // Associate guest/unassigned items with the user account and mark for cloud upload
+            for item in localItems where item.userId == nil || item.userId != userId {
+                item.userId = userId
+                item.isSyncPending = true
+            }
+            for coll in localCollections where coll.userId == nil || coll.userId != userId {
+                coll.userId = userId
+            }
+        } else {
+            // Discard local items that were created as guest/unassigned
+            for item in localItems where item.userId == nil || item.userId != userId {
+                context.delete(item)
+            }
+            for coll in localCollections where coll.userId == nil || coll.userId != userId {
+                context.delete(coll)
+            }
+        }
+        try? context.save()
+
+        // 2. Fetch cross-platform remote items
+        let api: any IOSCloudTransport = transport ?? LaterBoxAPIService.shared
+        do {
+            let remote = try await api.downloadSnapshots(userID: userId, token: token)
+            let updatedLocal = (try? context.fetch(FetchDescriptor<LBItem>())) ?? []
+            let byID = Dictionary(uniqueKeysWithValues: updatedLocal.map { ($0.id, $0) })
+
+            for snapshot in remote {
+                let date = Self.cloudDate(snapshot.updated_at) ?? .distantPast
+                let item: LBItem
+                if let existing = byID[snapshot.id] {
+                    if existing.updatedAt >= date { continue }
+                    item = existing
+                } else {
+                    item = LBItem(id: snapshot.id, title: snapshot.title ?? snapshot.url ?? "Untitled")
+                    context.insert(item)
+                }
+                item.userId = userId
+                item.title = snapshot.title ?? snapshot.url ?? "Untitled"
+                item.url = snapshot.url
+                item.textContent = snapshot.text_content
+                item.type = snapshot.type
+                item.favorite = snapshot.favorite
+                item.status = snapshot.deleted_at == nil ? snapshot.status : "deleted"
+                item.returnAt = snapshot.return_at.flatMap(Self.cloudDate)
+                item.createdAt = Self.cloudDate(snapshot.created_at) ?? date
+                item.updatedAt = date
+
+                if let metadata = snapshot.item_metadata {
+                    item.domain = metadata.domain
+                    item.siteName = metadata.site_name
+                    item.metadataDescription = metadata.description
+                    item.faviconUrl = metadata.favicon_url
+                    item.previewImageUrl = metadata.preview_image_url
+                    item.enrichmentStatus = metadata.status
+                    item.tags = metadata.structured_data?.tags ?? []
+                    item.category = metadata.structured_data?.category ?? ""
+                    item.summary = metadata.structured_data?.summary ?? ""
+                    item.formattedContent = metadata.structured_data?.formattedContent ?? ""
+                }
+                item.noteContent = snapshot.item_notes?.deleted_at == nil ? snapshot.item_notes?.content : nil
+
+                // Auto-create and refresh collection catalog
+                let rawCollName = snapshot.collection_items?.first?.collections?.name ?? (item.category.isEmpty ? nil : item.category)
+                if let name = rawCollName, !name.isEmpty {
+                    if let coll = ensureCollectionExists(named: name, context: context) {
+                        item.collectionId = coll.id
+                        item.collectionName = coll.name
+                        if item.category.isEmpty { item.category = coll.name }
+                    }
+                }
+                item.isSyncPending = false
+
+                // Re-register return notification if scheduled in the future
+                if let returnDate = item.returnAt, returnDate > Date() {
+                    _ = try? await ReturnNotification.update(id: item.id, title: item.title, date: returnDate)
+                }
+            }
+            try context.save()
+        } catch {
+            // Remote fetch might fail if offline; local resolution remains saved
+        }
+
+        // 3. Check entitlement and upload pending items if user is Pro
+        await refreshEntitlement()
+        if isProUser && merge {
+            try? await performCloudSync(context: context, transport: transport)
+        }
+
+        self.lastSyncedAt = Date()
+        self.syncState = .synced
+        self.catalogUpdateTrigger = UUID()
+    }
+
     static func cloudDate(_ value: String) -> Date? {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]

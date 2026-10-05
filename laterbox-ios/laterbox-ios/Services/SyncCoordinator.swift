@@ -54,6 +54,7 @@ public final class SyncCoordinator: ObservableObject {
     @Published public var showingQuickCapture: Bool = false
     @Published public var showingAuthSheet: Bool = false
     @Published public var showingPlansSheet: Bool = false
+    @Published public var catalogUpdateTrigger: UUID = UUID()
 
     public var isAuthenticated: Bool {
         currentUserEmail != nil && !(currentUserEmail?.isEmpty ?? true)
@@ -61,6 +62,20 @@ public final class SyncCoordinator: ObservableObject {
 
     public var isProUser: Bool {
         isPro
+    }
+
+    public func countUnassignedLocalItems(context: ModelContext, targetUserId: String? = nil) -> Int {
+        do {
+            let items = try context.fetch(FetchDescriptor<LBItem>())
+            return items.filter { item in
+                if let target = targetUserId {
+                    return item.userId == nil || item.userId != target
+                }
+                return item.userId == nil
+            }.count
+        } catch {
+            return 0
+        }
     }
 
     public func updateProFromStoreKit(_ active: Bool) {
