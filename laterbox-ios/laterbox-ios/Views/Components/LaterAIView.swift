@@ -227,84 +227,13 @@ public struct LaterAIView: View {
     private var messageListView: some View {
         VStack(spacing: 18) {
             ForEach(messages) { msg in
-                if msg.isUser {
-                    HStack {
-                        Spacer(minLength: 48)
-                        Text(msg.text)
-                            .font(.system(size: 15))
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 12)
-                            .background(
-                                RoundedRectangle(cornerRadius: 18)
-                                    .fill(Color(hex: "272729"))
-                            )
-                    }
-                } else {
-                    HStack(alignment: .top, spacing: 12) {
-                        // AI Avatar
-                        Circle()
-                            .fill(Color(hex: "1C1C1E"))
-                            .frame(width: 30, height: 30)
-                            .overlay(
-                                Image(systemName: "sparkles")
-                                    .font(.system(size: 13, weight: .semibold))
-                                    .foregroundColor(AppTheme.accent)
-                            )
-
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text(msg.text)
-                                .font(.system(size: 15))
-                                .foregroundColor(.white)
-                                .lineSpacing(4)
-
-                            Text(msg.timestamp.formatted(date: .omitted, time: .shortened))
-                                .font(.system(size: 11))
-                                .foregroundColor(Color.white.opacity(0.35))
-                        }
-
-                        Spacer(minLength: 32)
-                    }
-                }
+                LaterAIChatRow(text: msg.text, isUser: msg.isUser, timestamp: msg.timestamp)
             }
         }
     }
 
-    // MARK: - Thinking / Typing Indicator
     private var thinkingIndicatorView: some View {
-        HStack(alignment: .center, spacing: 12) {
-            Circle()
-                .fill(Color(hex: "1C1C1E"))
-                .frame(width: 30, height: 30)
-                .overlay(
-                    Image(systemName: "sparkles")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundColor(AppTheme.accent)
-                )
-
-            HStack(spacing: 5) {
-                ForEach(0..<3) { i in
-                    Circle()
-                        .fill(AppTheme.accent.opacity(0.8))
-                        .frame(width: 7, height: 7)
-                        .scaleEffect(isThinking ? 1.0 : 0.5)
-                        .animation(
-                            Animation.easeInOut(duration: 0.6)
-                                .repeatForever()
-                                .delay(Double(i) * 0.2),
-                            value: isThinking
-                        )
-                }
-            }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 10)
-            .background(
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(Color(hex: "1A1A1A"))
-            )
-
-            Spacer()
-        }
+        LaterAIThinkingIndicator(thinking: isThinking)
     }
 
     // MARK: - Bottom ChatGPT Mobile Chat Input Bar
