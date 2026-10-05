@@ -36,10 +36,18 @@ public struct ItemDetailView: View {
                     if let data = item.attachmentsData, let files = try? JSONDecoder().decode([SharedAttachment].self, from: data) {
                         ForEach(files) { file in
                             Button { attachmentURL = try? SharedCaptureStore.fileURL(file) } label: {
-                                Label(file.name, systemImage: "paperclip").padding().frame(maxWidth: .infinity, alignment: .leading).background(AppTheme.accent, in: RoundedRectangle(cornerRadius: 16))
-                            }.buttonStyle(.plain)
+                                Label(file.name, systemImage: "paperclip")
+                                    .font(.subheadline.weight(.semibold))
+                                    .foregroundColor(AppTheme.textPrimary)
+                                    .padding(.horizontal, 14)
+                                    .padding(.vertical, 12)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .background(AppTheme.accent, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                            }
+                            .buttonStyle(.plain)
                         }
                     }
+
                     // Rich Visual Banner
                     RichMediaBanner(
                         type: item.parsedContentType,
@@ -48,45 +56,70 @@ public struct ItemDetailView: View {
                         previewImageUrl: item.previewImageUrl
                     )
 
-                    // Title & Domain
-                    VStack(alignment: .leading, spacing: 6) {
-                        if let domain = item.domain {
-                            Text(domain.uppercased())
-                                .font(.caption.weight(.bold))
-                                .foregroundColor(Color.lbAmber)
-                        }
-
-                        TextField("Title", text: $item.title)
-                            .onChange(of: item.title) { _, _ in persistEdit() }
-                            .font(.title3.weight(.bold))
-                            .foregroundColor(.primary)
-
+                    // Title & Source Metadata Card
+                    VStack(alignment: .leading, spacing: 10) {
                         HStack(spacing: 8) {
-                            Text("Saved \(item.createdAt, format: .dateTime.month().day().year())")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
+                            if let domain = item.domain, !domain.isEmpty {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "globe")
+                                        .font(.caption2)
+                                    Text(domain)
+                                        .font(.caption2.weight(.bold))
+                                }
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(Capsule().fill(AppTheme.background))
+                                .overlay(Capsule().strokeBorder(AppTheme.cardBorder, lineWidth: 1))
+                                .foregroundColor(AppTheme.textSecondary)
+                            }
 
-                            Text("•")
-                                .foregroundColor(.secondary)
+                            Text(item.parsedContentType.rawValue.capitalized)
+                                .font(.caption2.weight(.bold))
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(Capsule().fill(AppTheme.accent))
+                                .foregroundColor(AppTheme.textPrimary)
+
+                            Spacer()
 
                             Text(item.parsedStatus.title)
-                                .font(.caption.weight(.semibold))
+                                .font(.caption2.weight(.semibold))
                                 .padding(.horizontal, 8)
-                                .padding(.vertical, 2)
-                                .background(Capsule().fill(Color.white.opacity(0.08)))
-                                .foregroundColor(.secondary)
+                                .padding(.vertical, 4)
+                                .background(Capsule().fill(AppTheme.background))
+                                .overlay(Capsule().strokeBorder(AppTheme.cardBorder, lineWidth: 1))
+                                .foregroundColor(AppTheme.textSecondary)
+                        }
+
+                        TextField("Title", text: $item.title, axis: .vertical)
+                            .onChange(of: item.title) { _, _ in persistEdit() }
+                            .font(.title3.weight(.bold))
+                            .foregroundColor(AppTheme.textPrimary)
+                            .lineLimit(1...4)
+
+                        HStack(spacing: 6) {
+                            Image(systemName: "clock")
+                                .font(.caption2)
+                                .foregroundColor(AppTheme.textTertiary)
+                            Text("Saved \(item.createdAt, format: .dateTime.month().day().year())")
+                                .font(.caption)
+                                .foregroundColor(AppTheme.textSecondary)
                         }
                     }
+                    .padding(16)
+                    .liquidGlassCard(cornerRadius: 18)
 
                     // Actions Bar: Safari, Share, Status
-                    HStack(spacing: 12) {
+                    HStack(spacing: 10) {
                         if let urlStr = item.url, let url = URL(string: urlStr) {
                             Link(destination: url) {
-                                HStack {
+                                HStack(spacing: 6) {
                                     Image(systemName: "safari")
-                                    Text("Open")
                                         .font(.subheadline.weight(.semibold))
+                                    Text("Open")
+                                        .font(.subheadline.weight(.bold))
                                 }
+                                .foregroundColor(AppTheme.textPrimary)
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 12)
                                 .liquidGlassCard(cornerRadius: 14)
@@ -94,11 +127,13 @@ public struct ItemDetailView: View {
                             .buttonStyle(.plain)
 
                             ShareLink(item: url) {
-                                HStack {
+                                HStack(spacing: 6) {
                                     Image(systemName: "square.and.arrow.up")
-                                    Text("Share")
                                         .font(.subheadline.weight(.semibold))
+                                    Text("Share")
+                                        .font(.subheadline.weight(.bold))
                                 }
+                                .foregroundColor(AppTheme.textPrimary)
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 12)
                                 .liquidGlassCard(cornerRadius: 14)
@@ -113,115 +148,302 @@ public struct ItemDetailView: View {
                                 coordinator.markDone(item: item, context: modelContext)
                             }
                         }) {
-                            HStack {
+                            HStack(spacing: 6) {
                                 Image(systemName: item.status == ItemStatus.saved.rawValue ? "arrow.uturn.backward" : "checkmark")
+                                    .font(.subheadline.weight(.bold))
                                 Text(item.status == ItemStatus.saved.rawValue ? "Return" : "Done")
-                                    .font(.subheadline.weight(.semibold))
+                                    .font(.subheadline.weight(.bold))
                             }
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 12)
                             .background(
                                 item.status == ItemStatus.saved.rawValue
-                                    ? AnyShapeStyle(.ultraThinMaterial)
-                                    : AnyShapeStyle(Color.lbAmber)
+                                    ? AnyShapeStyle(AppTheme.accent)
+                                    : AnyShapeStyle(AppTheme.darkSurface)
                             )
-                            .foregroundColor(item.status == ItemStatus.saved.rawValue ? .primary : .black)
-                            .clipShape(RoundedRectangle(cornerRadius: 14))
+                            .foregroundColor(item.status == ItemStatus.saved.rawValue ? AppTheme.textPrimary : AppTheme.textOnDark)
+                            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                            .shadow(color: Color.black.opacity(0.04), radius: 6, y: 2)
                         }
                     }
 
                     // Return Schedule Section
                     VStack(alignment: .leading, spacing: 10) {
-                        Text("Return Schedule")
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundColor(.secondary)
+                        Text("RETURN SCHEDULE")
+                            .font(.caption.weight(.bold))
+                            .foregroundColor(AppTheme.textSecondary)
+                            .tracking(0.6)
 
-                        HStack(spacing: 8) {
-                            if let ret = item.returnAt {
-                                HStack {
-                                    Image(systemName: "calendar")
-                                    Text("Scheduled for \(ret, format: .dateTime.month().day())")
-                                        .font(.subheadline.weight(.medium))
-                                    Spacer()
-                                    Button("Clear") {
-                                        item.returnAt = nil
-                                        persistEdit()
-                                        LBHaptic.light()
-                                    }
-                                    .font(.caption.weight(.bold))
-                                    .foregroundColor(.red)
+                        if let ret = item.returnAt {
+                            let isTodayOrOverdue = Calendar.current.isDateInToday(ret) || ret < Date()
+                            HStack(spacing: 12) {
+                                ZStack {
+                                    Circle()
+                                        .fill(isTodayOrOverdue ? AppTheme.darkSurface : AppTheme.accent)
+                                        .frame(width: 38, height: 38)
+                                    Image(systemName: isTodayOrOverdue ? "exclamationmark.clock.fill" : "calendar.badge.clock")
+                                        .font(.system(size: 15, weight: .bold))
+                                        .foregroundColor(isTodayOrOverdue ? AppTheme.accent : AppTheme.darkSurface)
                                 }
-                                .padding(12)
-                                .liquidGlassCard(cornerRadius: 12)
-                            } else {
-                                Button("+ Tomorrow") {
+
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(isTodayOrOverdue ? "Due Today" : "Scheduled Return")
+                                        .font(.caption.weight(.bold))
+                                        .foregroundColor(AppTheme.textPrimary)
+                                    Text(ret, format: .dateTime.month().day().year())
+                                        .font(.caption2)
+                                        .foregroundColor(AppTheme.textSecondary)
+                                }
+
+                                Spacer()
+
+                                Button("Clear") {
+                                    item.returnAt = nil
+                                    persistEdit()
+                                    LBHaptic.light()
+                                }
+                                .font(.caption.weight(.bold))
+                                .foregroundColor(Color.red)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 6)
+                                .background(Capsule().fill(Color.red.opacity(0.08)))
+                            }
+                            .padding(14)
+                            .liquidGlassCard(cornerRadius: 16)
+                        } else {
+                            HStack(spacing: 8) {
+                                Button(action: {
                                     coordinator.scheduleItem(item: item, date: Calendar.current.date(byAdding: .day, value: 1, to: Date())!, context: modelContext)
+                                }) {
+                                    HStack(spacing: 4) {
+                                        Image(systemName: "plus")
+                                            .font(.caption2.weight(.bold))
+                                        Text("Tomorrow")
+                                            .font(.caption.weight(.semibold))
+                                    }
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 8)
+                                    .background(Capsule().fill(AppTheme.accent))
+                                    .foregroundColor(AppTheme.textPrimary)
                                 }
-                                .font(.caption.weight(.medium))
-                                .liquidGlassPill()
+                                .buttonStyle(.plain)
 
-                                Button("+ Weekend") {
+                                Button(action: {
                                     coordinator.scheduleItem(item: item, date: Calendar.current.date(byAdding: .day, value: 2, to: Date())!, context: modelContext)
+                                }) {
+                                    HStack(spacing: 4) {
+                                        Image(systemName: "plus")
+                                            .font(.caption2.weight(.bold))
+                                        Text("Weekend")
+                                            .font(.caption.weight(.semibold))
+                                    }
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 8)
+                                    .background(Capsule().fill(AppTheme.cardBackground))
+                                    .overlay(Capsule().strokeBorder(AppTheme.cardBorder, lineWidth: 1))
+                                    .foregroundColor(AppTheme.textPrimary)
                                 }
-                                .font(.caption.weight(.medium))
-                                .liquidGlassPill()
+                                .buttonStyle(.plain)
 
-                                Button("+ Next Week") {
+                                Button(action: {
                                     coordinator.scheduleItem(item: item, date: Calendar.current.date(byAdding: .day, value: 7, to: Date())!, context: modelContext)
+                                }) {
+                                    HStack(spacing: 4) {
+                                        Image(systemName: "plus")
+                                            .font(.caption2.weight(.bold))
+                                        Text("Next Week")
+                                            .font(.caption.weight(.semibold))
+                                    }
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 8)
+                                    .background(Capsule().fill(AppTheme.cardBackground))
+                                    .overlay(Capsule().strokeBorder(AppTheme.cardBorder, lineWidth: 1))
+                                    .foregroundColor(AppTheme.textPrimary)
                                 }
-                                .font(.caption.weight(.medium))
-                                .liquidGlassPill()
+                                .buttonStyle(.plain)
                             }
                         }
                     }
 
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text("Category and tags").font(.subheadline.bold())
-                        TextField("Category", text: $item.category).onChange(of: item.category) { _, _ in persistEdit() }
-                        TextField("Tags, separated by commas", text: $tagsText).onChange(of: tagsText) { _, text in
-                            item.tags = text.split(separator: ",").map { $0.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: "#", with: "") }
-                            persistEdit()
+                    // Organization & Tags Card
+                    VStack(alignment: .leading, spacing: 14) {
+                        Text("ORGANIZATION & TAGS")
+                            .font(.caption.weight(.bold))
+                            .foregroundColor(AppTheme.textSecondary)
+                            .tracking(0.6)
+
+                        VStack(alignment: .leading, spacing: 12) {
+                            // Category Row
+                            HStack(spacing: 10) {
+                                Image(systemName: "folder")
+                                    .font(.subheadline)
+                                    .foregroundColor(AppTheme.textSecondary)
+                                    .frame(width: 20)
+                                TextField("Add category...", text: $item.category)
+                                    .font(.subheadline)
+                                    .foregroundColor(AppTheme.textPrimary)
+                                    .onChange(of: item.category) { _, _ in persistEdit() }
+                            }
+
+                            Divider()
+
+                            // Tags Row
+                            HStack(alignment: .top, spacing: 10) {
+                                Image(systemName: "tag")
+                                    .font(.subheadline)
+                                    .foregroundColor(AppTheme.textSecondary)
+                                    .frame(width: 20)
+                                    .padding(.top, 2)
+                                VStack(alignment: .leading, spacing: 8) {
+                                    TextField("Tags, separated by commas...", text: $tagsText)
+                                        .font(.subheadline)
+                                        .foregroundColor(AppTheme.textPrimary)
+                                        .onChange(of: tagsText) { _, text in
+                                            item.tags = text.split(separator: ",").map { $0.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: "#", with: "") }
+                                            persistEdit()
+                                        }
+
+                                    if !item.tags.isEmpty {
+                                        ScrollView(.horizontal, showsIndicators: false) {
+                                            HStack(spacing: 6) {
+                                                ForEach(item.tags, id: \.self) { tag in
+                                                    Text("#\(tag)")
+                                                        .font(.caption2.weight(.semibold))
+                                                        .padding(.horizontal, 8)
+                                                        .padding(.vertical, 3)
+                                                        .background(Capsule().fill(AppTheme.background))
+                                                        .overlay(Capsule().strokeBorder(AppTheme.cardBorder, lineWidth: 1))
+                                                        .foregroundColor(AppTheme.textSecondary)
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            // AI Summary if present
+                            if !item.summary.isEmpty {
+                                Divider()
+                                VStack(alignment: .leading, spacing: 6) {
+                                    HStack(spacing: 6) {
+                                        Image(systemName: "sparkles")
+                                            .font(.caption.weight(.bold))
+                                            .foregroundColor(AppTheme.textPrimary)
+                                        Text("AI Summary")
+                                            .font(.caption.weight(.bold))
+                                            .foregroundColor(AppTheme.textPrimary)
+                                    }
+                                    Text(item.summary)
+                                        .font(.subheadline)
+                                        .foregroundColor(AppTheme.textSecondary)
+                                        .lineSpacing(3)
+                                }
+                                .padding(12)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                        .fill(AppTheme.background)
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                                .strokeBorder(AppTheme.cardBorder, lineWidth: 1)
+                                        )
+                                )
+                            }
+
+                            // Original content preview if present
+                            if let original = item.textContent, !original.isEmpty {
+                                Divider()
+                                VStack(alignment: .leading, spacing: 6) {
+                                    Text("Captured Content")
+                                        .font(.caption.weight(.bold))
+                                        .foregroundColor(AppTheme.textSecondary)
+                                    Text(original)
+                                        .font(.caption)
+                                        .foregroundColor(AppTheme.textPrimary)
+                                        .textSelection(.enabled)
+                                        .lineLimit(8)
+                                }
+                            }
+
+                            // Formatted content if present
+                            if !item.formattedContent.isEmpty {
+                                Divider()
+                                VStack(alignment: .leading, spacing: 6) {
+                                    Text("Formatted Content")
+                                        .font(.caption.weight(.bold))
+                                        .foregroundColor(AppTheme.textSecondary)
+                                    Text(item.formattedContent)
+                                        .font(.caption)
+                                        .foregroundColor(AppTheme.textPrimary)
+                                        .textSelection(.enabled)
+                                        .lineLimit(8)
+                                }
+                            }
+
+                            if let saveError {
+                                Text(saveError)
+                                    .font(.caption)
+                                    .foregroundColor(.red)
+                            }
                         }
-                        if !item.summary.isEmpty { Text(item.summary).font(.subheadline) }
-                        if let original = item.textContent, !original.isEmpty {
-                            Text("Original content").font(.subheadline.bold())
-                            Text(original).textSelection(.enabled)
-                        }
-                        if !item.formattedContent.isEmpty {
-                            Text("Formatted content").font(.subheadline.bold())
-                            Text(item.formattedContent).textSelection(.enabled)
-                        }
-                        if let saveError { Text(saveError).foregroundStyle(.red) }
+                        .padding(16)
+                        .liquidGlassCard(cornerRadius: 18)
                     }
 
                     // Notes Section
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Personal Notes & Thoughts")
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundColor(.secondary)
+                        Text("PERSONAL NOTES")
+                            .font(.caption.weight(.bold))
+                            .foregroundColor(AppTheme.textSecondary)
+                            .tracking(0.6)
 
-                        TextEditor(text: $editedNote)
-                            .frame(minHeight: 120)
-                            .padding(10)
-                            .liquidGlassCard(cornerRadius: 14)
-                            .onChange(of: editedNote) { _, newVal in
-                                item.noteContent = newVal
-                                persistEdit()
+                        ZStack(alignment: .topLeading) {
+                            if editedNote.isEmpty {
+                                Text("Add personal thoughts, takeaways, or reminders...")
+                                    .font(.subheadline)
+                                    .foregroundColor(AppTheme.textTertiary)
+                                    .padding(.horizontal, 14)
+                                    .padding(.vertical, 12)
                             }
+
+                            TextEditor(text: $editedNote)
+                                .font(.subheadline)
+                                .foregroundColor(AppTheme.textPrimary)
+                                .scrollContentBackground(.hidden)
+                                .padding(8)
+                                .frame(minHeight: 110)
+                                .onChange(of: editedNote) { _, newVal in
+                                    item.noteContent = newVal
+                                    persistEdit()
+                                }
+                        }
+                        .background(Color.white)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                .strokeBorder(AppTheme.cardBorder, lineWidth: 1)
+                        )
+                        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                     }
 
                     // Delete Button
                     Button(role: .destructive, action: { showingDeleteConfirm = true }) {
-                        HStack {
+                        HStack(spacing: 6) {
                             Image(systemName: "trash")
                             Text("Delete Item")
+                                .font(.subheadline.weight(.semibold))
                         }
                         .foregroundColor(.red)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
-                        .liquidGlassCard(cornerRadius: 14)
+                        .background(Color.red.opacity(0.08))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                .strokeBorder(Color.red.opacity(0.18), lineWidth: 1)
+                        )
+                        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                     }
-                    .padding(.top, 10)
+                    .buttonStyle(.plain)
+                    .padding(.top, 4)
                 }
                 .padding(20)
             }
@@ -235,7 +457,8 @@ public struct ItemDetailView: View {
                     coordinator.toggleFavorite(item: item, context: modelContext)
                 }) {
                     Image(systemName: item.favorite ? "star.fill" : "star")
-                        .foregroundColor(item.favorite ? Color.lbAmber : .primary)
+                        .foregroundColor(item.favorite ? AppTheme.amber : AppTheme.textPrimary)
+                        .font(.system(size: 16, weight: .semibold))
                 }
             }
         }
