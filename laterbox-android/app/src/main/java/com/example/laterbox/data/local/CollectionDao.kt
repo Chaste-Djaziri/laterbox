@@ -9,6 +9,9 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface CollectionDao {
+    @Query("SELECT * FROM collections WHERE name = :name COLLATE NOCASE LIMIT 1")
+    suspend fun findByName(name: String): CollectionEntity?
+
     @Query("SELECT * FROM collections ORDER BY name ASC")
     fun watchAllCollections(): Flow<List<CollectionEntity>>
 
