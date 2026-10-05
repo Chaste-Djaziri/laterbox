@@ -267,7 +267,12 @@ public struct HomeView: View {
 
                                     NavigationLink(destination: ItemDetailView(item: heroItem)) {
                                         VStack(alignment: .leading, spacing: 10) {
-                                            RichMediaBanner(type: heroItem.parsedContentType, url: heroItem.url, title: heroItem.title)
+                                            RichMediaBanner(
+                                                type: heroItem.parsedContentType,
+                                                url: heroItem.url,
+                                                title: heroItem.title,
+                                                previewImageUrl: heroItem.previewImageUrl
+                                            )
 
                                             Text(heroItem.title)
                                                 .font(.headline)
