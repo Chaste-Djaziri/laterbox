@@ -58,8 +58,18 @@ struct LaterAITests {
         #expect(SyncCoordinator.cloudDate("2026-10-05T12:00:00.123Z") != nil)
     }
     @Test func remoteFallbackDisabledWithoutNetwork() async {
-        #expect(GeminiLaterAIProvider.enabled == false)
+        #expect(GeminiLaterAIProvider.enabled == true)
+        GeminiLaterAIProvider.enabled = false
         await #expect(throws: AIProviderError.self) { try await GeminiLaterAIProvider().respond("Hello") }
+        GeminiLaterAIProvider.enabled = true
+    }
+    @Test func linkMetadataIdentifiesGenericTitles() {
+        #expect(LinkMetadataLoader.isGenericTitle(nil))
+        #expect(LinkMetadataLoader.isGenericTitle(""))
+        #expect(LinkMetadataLoader.isGenericTitle("YouTube Video Playlist"))
+        #expect(LinkMetadataLoader.isGenericTitle("youtube"))
+        #expect(LinkMetadataLoader.isGenericTitle("https://youtube.com"))
+        #expect(!LinkMetadataLoader.isGenericTitle("Grand Escape | A Weathering With You AMV"))
     }
     @Test func modelFailurePreservesInputForGuidedCapture() async throws {
         let context = try context()
