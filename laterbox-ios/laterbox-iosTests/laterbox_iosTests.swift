@@ -66,10 +66,19 @@ struct LaterAITests {
     @Test func linkMetadataIdentifiesGenericTitles() {
         #expect(LinkMetadataLoader.isGenericTitle(nil))
         #expect(LinkMetadataLoader.isGenericTitle(""))
+        #expect(LinkMetadataLoader.isGenericTitle("- YouTube"))
+        #expect(LinkMetadataLoader.isGenericTitle(" - YouTube "))
         #expect(LinkMetadataLoader.isGenericTitle("YouTube Video Playlist"))
         #expect(LinkMetadataLoader.isGenericTitle("youtube"))
         #expect(LinkMetadataLoader.isGenericTitle("https://youtube.com"))
         #expect(!LinkMetadataLoader.isGenericTitle("Grand Escape | A Weathering With You AMV"))
+
+        #expect(LinkMetadataLoader.cleanTitle("Grand Escape - YouTube") == "Grand Escape")
+        #expect(LinkMetadataLoader.cleanTitle("Grand Escape | YouTube") == "Grand Escape")
+        #expect(LinkMetadataLoader.cleanTitle("- YouTube") == nil)
+
+        #expect(LinkMetadataLoader.isGenericDescription("Enjoy the videos and music you love, upload original content, and share it all with friends, family, and the world on YouTube."))
+        #expect(!LinkMetadataLoader.isGenericDescription("Radwimps - Grand Escape theme song for the movie Weathering With You"))
     }
     @Test func modelFailurePreservesInputForGuidedCapture() async throws {
         let context = try context()
