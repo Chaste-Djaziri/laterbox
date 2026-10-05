@@ -1,7 +1,6 @@
 package com.example.laterbox.ui.capture
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -51,12 +50,14 @@ import com.example.laterbox.data.DataRepository
 import com.example.laterbox.data.api.LaterBoxApiService
 import com.example.laterbox.theme.LaterboxAccent
 import com.example.laterbox.theme.LaterboxAmber
+import com.example.laterbox.theme.LaterboxBg
+import com.example.laterbox.theme.LaterboxBorder
+import com.example.laterbox.theme.LaterboxCard
 import com.example.laterbox.theme.LaterboxDarkSurface
 import com.example.laterbox.theme.LaterboxEmerald
 import com.example.laterbox.theme.LaterboxIndigo
 import com.example.laterbox.theme.LaterboxTextPrimary
 import com.example.laterbox.theme.LaterboxTextSecondary
-import com.example.laterbox.ui.components.TypeBadge
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -108,14 +109,14 @@ fun QuickCaptureSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = MaterialTheme.colorScheme.surface,
+        containerColor = LaterboxBg,
         shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 24.dp, vertical = 8.dp)
-                .padding(bottom = 32.dp),
+                .padding(bottom = 36.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             // Header
@@ -126,38 +127,38 @@ fun QuickCaptureSheet(
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(28.dp)
+                            .size(32.dp)
                             .clip(CircleShape)
-                            .background(LaterboxAccent),
+                            .background(LaterboxDarkSurface),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Default.Link,
                             contentDescription = null,
-                            tint = LaterboxDarkSurface,
+                            tint = LaterboxAccent,
                             modifier = Modifier.size(16.dp)
                         )
                     }
                     Text(
                         text = "Quick Capture",
-                        fontSize = 18.sp,
+                        fontSize = 20.sp,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = LaterboxTextPrimary
                     )
                 }
 
                 IconButton(
                     onClick = onDismiss,
-                    modifier = Modifier.size(28.dp)
+                    modifier = Modifier.size(32.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.Close,
                         contentDescription = "Close",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        tint = LaterboxTextSecondary
                     )
                 }
             }
@@ -167,8 +168,8 @@ fun QuickCaptureSheet(
                 Text(
                     text = "URL or Note Content",
                     fontSize = 13.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    fontWeight = FontWeight.SemiBold,
+                    color = LaterboxTextPrimary
                 )
                 OutlinedTextField(
                     value = inputContent,
@@ -178,12 +179,14 @@ fun QuickCaptureSheet(
                             tryAutoEnrich(it.trim())
                         }
                     },
-                    placeholder = { Text("https://example.com or any thought...") },
+                    placeholder = { Text("https://example.com or any note...") },
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(14.dp),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = LaterboxDarkSurface,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                        unfocusedBorderColor = LaterboxBorder,
+                        focusedContainerColor = LaterboxCard,
+                        unfocusedContainerColor = LaterboxCard
                     ),
                     maxLines = 4,
                     trailingIcon = {
@@ -220,19 +223,21 @@ fun QuickCaptureSheet(
                 Text(
                     text = "Title (Optional)",
                     fontSize = 13.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    fontWeight = FontWeight.SemiBold,
+                    color = LaterboxTextPrimary
                 )
                 OutlinedTextField(
                     value = inputTitle,
                     onValueChange = { inputTitle = it },
                     placeholder = { Text("Title or summary") },
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(14.dp),
                     singleLine = true,
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = LaterboxDarkSurface,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                        unfocusedBorderColor = LaterboxBorder,
+                        focusedContainerColor = LaterboxCard,
+                        unfocusedContainerColor = LaterboxCard
                     )
                 )
             }
@@ -242,8 +247,8 @@ fun QuickCaptureSheet(
                 Text(
                     text = "Format Classification",
                     fontSize = 13.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    fontWeight = FontWeight.SemiBold,
+                    color = LaterboxTextPrimary
                 )
                 FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -253,16 +258,17 @@ fun QuickCaptureSheet(
                     formatOptions.forEach { format ->
                         val isSelected = selectedType == format
                         Surface(
-                            shape = RoundedCornerShape(10.dp),
-                            color = if (isSelected) LaterboxDarkSurface else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                            contentColor = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface,
+                            shape = RoundedCornerShape(12.dp),
+                            color = if (isSelected) LaterboxDarkSurface else LaterboxCard,
+                            contentColor = if (isSelected) Color.White else LaterboxTextPrimary,
+                            border = if (!isSelected) androidx.compose.foundation.BorderStroke(1.dp, LaterboxBorder) else null,
                             modifier = Modifier.clickable { selectedType = format }
                         ) {
                             Text(
                                 text = format.replaceFirstChar { it.uppercase() },
                                 fontSize = 12.sp,
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp)
                             )
                         }
                     }
@@ -284,8 +290,8 @@ fun QuickCaptureSheet(
                     Text(
                         text = "Schedule Return",
                         fontSize = 13.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        fontWeight = FontWeight.SemiBold,
+                        color = LaterboxTextPrimary
                     )
                 }
 
@@ -297,17 +303,17 @@ fun QuickCaptureSheet(
                     scheduleOptions.forEach { (key, label) ->
                         val isSelected = selectedSchedule == key
                         Surface(
-                            shape = RoundedCornerShape(10.dp),
-                            color = if (isSelected) LaterboxAmber.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                            contentColor = if (isSelected) LaterboxAmber else MaterialTheme.colorScheme.onSurface,
-                            border = if (isSelected) androidx.compose.foundation.BorderStroke(1.dp, LaterboxAmber) else null,
+                            shape = RoundedCornerShape(12.dp),
+                            color = if (isSelected) LaterboxAmber.copy(alpha = 0.15f) else LaterboxCard,
+                            contentColor = if (isSelected) LaterboxAmber else LaterboxTextPrimary,
+                            border = if (isSelected) androidx.compose.foundation.BorderStroke(1.5.dp, LaterboxAmber) else androidx.compose.foundation.BorderStroke(1.dp, LaterboxBorder),
                             modifier = Modifier.clickable { selectedSchedule = key }
                         ) {
                             Text(
                                 text = label,
                                 fontSize = 12.sp,
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp)
                             )
                         }
                     }
@@ -351,8 +357,8 @@ fun QuickCaptureSheet(
                 enabled = !isSaving && (inputContent.isNotEmpty() || inputTitle.isNotEmpty()),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(50.dp),
-                shape = RoundedCornerShape(14.dp),
+                    .height(52.dp),
+                shape = RoundedCornerShape(16.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = LaterboxDarkSurface,
                     contentColor = Color.White

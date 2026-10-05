@@ -44,6 +44,9 @@ import com.example.laterbox.data.DataRepository
 import com.example.laterbox.data.DefaultDataRepository
 import com.example.laterbox.data.local.AppDatabase
 import com.example.laterbox.theme.LaterboxAccent
+import com.example.laterbox.theme.LaterboxBg
+import com.example.laterbox.theme.LaterboxBorder
+import com.example.laterbox.theme.LaterboxCard
 import com.example.laterbox.theme.LaterboxDarkSurface
 import com.example.laterbox.ui.ai.LaterAIScreen
 import com.example.laterbox.ui.auth.AuthSheet
@@ -79,9 +82,10 @@ fun AppNavigation(
         )
     } else {
         Scaffold(
+            containerColor = LaterboxBg,
             bottomBar = {
                 NavigationBar(
-                    containerColor = MaterialTheme.colorScheme.surface,
+                    containerColor = LaterboxCard,
                     tonalElevation = 6.dp
                 ) {
                     // Home
