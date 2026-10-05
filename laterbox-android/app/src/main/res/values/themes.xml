@@ -2,4 +2,11 @@
 <resources>
 
     <style name="Theme.Laterbox" parent="android:Theme.Material.Light.NoActionBar" />
+    <style name="Theme.Laterbox.Share" parent="Theme.Laterbox">
+        <item name="android:windowIsFloating">true</item>
+        <item name="android:windowBackground">@android:color/black</item>
+        <item name="android:backgroundDimEnabled">true</item>
+        <item name="android:windowMinWidthMajor">95%</item>
+        <item name="android:windowMinWidthMinor">95%</item>
+    </style>
 </resources>
