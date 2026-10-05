@@ -24,5 +24,12 @@ data class ItemEntity(
     @SerialName("updated_at") @ColumnInfo(name = "updated_at") val updatedAt: String,
     @SerialName("sync_status") @ColumnInfo(name = "sync_status") val syncStatus: String = "pending",
     @SerialName("last_synced_at") @ColumnInfo(name = "last_synced_at") val lastSyncedAt: String? = null,
+    val tags: String = "",
+    val category: String = "",
+    val summary: String = "",
+    val formattedContent: String = "",
+    val notes: String = "",
+    val collectionId: String? = null,
+    val attachments: String = "[]",
     @SerialName("deleted_at") @ColumnInfo(name = "deleted_at") val deletedAt: String? = null
 )
