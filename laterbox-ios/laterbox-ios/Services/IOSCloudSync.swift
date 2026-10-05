@@ -170,7 +170,7 @@ extension SyncCoordinator {
 
     /// Resolves local unassigned items on login (merge or discard), downloads cross-platform items from cloud,
     /// refreshes collections and catalog, and updates return notifications.
-    public func resolveLoginData(
+    func resolveLoginData(
         merge: Bool,
         email: String,
         userId: String,
