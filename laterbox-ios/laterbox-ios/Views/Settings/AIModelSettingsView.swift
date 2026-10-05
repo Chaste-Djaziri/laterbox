@@ -9,6 +9,7 @@ import SwiftUI
 
 struct AIModelSettingsView: View {
     @Environment(\.dismiss) private var dismiss
+    @ObservedObject private var coordinator = SyncCoordinator.shared
     @ObservedObject private var modelManager = LaterAIModelManager.shared
 
     @State private var showingKeyText = false
@@ -24,6 +25,7 @@ struct AIModelSettingsView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
                     headerSection
+                    proBannerCard
                     activeSummaryCard
                     providerSelectionSection
 
@@ -67,6 +69,80 @@ struct AIModelSettingsView: View {
                 .lineSpacing(2)
         }
         .padding(.top, 4)
+    }
+
+    // MARK: - Pro Banner
+    @ViewBuilder
+    private var proBannerCard: some View {
+        if !coordinator.isProUser {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(spacing: 10) {
+                    ZStack {
+                        Circle()
+                            .fill(LinearGradient(colors: [Color.purple, Color.indigo], startPoint: .topLeading, endPoint: .bottomTrailing))
+                            .frame(width: 36, height: 36)
+                        Image(systemName: "sparkles")
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundColor(.white)
+                    }
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        HStack(spacing: 6) {
+                            Text("LaterBox Pro Feature")
+                                .font(.subheadline.weight(.bold))
+                                .foregroundColor(AppTheme.textPrimary)
+
+                            Text("PRO")
+                                .font(.system(size: 10, weight: .black))
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(Capsule().fill(Color.purple))
+                        }
+
+                        Text("Configure custom engines, BYOK keys (OpenAI, Claude, Gemini), and reasoning refinement")
+                            .font(.caption2)
+                            .foregroundColor(AppTheme.textSecondary)
+                    }
+
+                    Spacer()
+                }
+
+                Button(action: {
+                    LBHaptic.medium()
+                    coordinator.showingPlansSheet = true
+                }) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "crown.fill")
+                            .font(.caption.weight(.bold))
+                        Text("Upgrade to Pro")
+                            .font(.subheadline.weight(.bold))
+                        Spacer()
+                        Image(systemName: "arrow.right")
+                            .font(.caption.weight(.bold))
+                    }
+                    .foregroundColor(.white)
+                    .padding(.vertical, 10)
+                    .padding(.horizontal, 14)
+                    .frame(maxWidth: .infinity)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .fill(AppTheme.darkSurface)
+                    )
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(14)
+            .background(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(AppTheme.cardBackground)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .strokeBorder(Color.purple.opacity(0.35), lineWidth: 1)
+            )
+            .shadow(color: Color.purple.opacity(0.06), radius: 8, x: 0, y: 2)
+        }
     }
 
     // MARK: - Active Summary Card
@@ -157,7 +233,14 @@ struct AIModelSettingsView: View {
     @ViewBuilder
     private func providerRow(provider: AIProviderType) -> some View {
         let isSelected = modelManager.selectedProvider == provider
+        let isLocked = !coordinator.isProUser
+
         Button(action: {
+            if isLocked {
+                LBHaptic.medium()
+                coordinator.showingPlansSheet = true
+                return
+            }
             LBHaptic.light()
             withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
                 modelManager.selectedProvider = provider
@@ -180,7 +263,18 @@ struct AIModelSettingsView: View {
                             .font(.subheadline.weight(.semibold))
                             .foregroundColor(AppTheme.textPrimary)
 
-                        if provider == .cloudGemini {
+                        if isLocked {
+                            HStack(spacing: 3) {
+                                Image(systemName: "lock.fill")
+                                    .font(.system(size: 8, weight: .bold))
+                                Text("PRO")
+                                    .font(.system(size: 9, weight: .black))
+                            }
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 5)
+                            .padding(.vertical, 1.5)
+                            .background(Capsule().fill(Color.purple))
+                        } else if provider == .cloudGemini {
                             Text("Included")
                                 .font(.caption2.weight(.bold))
                                 .foregroundColor(AppTheme.textPrimary)
@@ -205,9 +299,24 @@ struct AIModelSettingsView: View {
 
                 Spacer()
 
-                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                    .foregroundColor(isSelected ? AppTheme.textPrimary : AppTheme.textSecondary.opacity(0.4))
-                    .font(.system(size: 20))
+                if isLocked {
+                    HStack(spacing: 4) {
+                        Image(systemName: "lock.fill")
+                            .font(.system(size: 9, weight: .semibold))
+                        Text("PRO")
+                            .font(.system(size: 10, weight: .bold))
+                    }
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 5)
+                    .background(
+                        Capsule().fill(Color.purple)
+                    )
+                } else {
+                    Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                        .foregroundColor(isSelected ? AppTheme.textPrimary : AppTheme.textSecondary.opacity(0.4))
+                        .font(.system(size: 20))
+                }
             }
             .padding(14)
             .background(
@@ -416,9 +525,24 @@ struct AIModelSettingsView: View {
                         }
 
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("Semantic Search Refine")
-                                .font(.subheadline.weight(.semibold))
-                                .foregroundColor(AppTheme.textPrimary)
+                            HStack(spacing: 6) {
+                                Text("Semantic Search Refine")
+                                    .font(.subheadline.weight(.semibold))
+                                    .foregroundColor(AppTheme.textPrimary)
+
+                                if !coordinator.isProUser {
+                                    HStack(spacing: 3) {
+                                        Image(systemName: "lock.fill")
+                                            .font(.system(size: 8, weight: .bold))
+                                        Text("PRO")
+                                            .font(.system(size: 9, weight: .black))
+                                    }
+                                    .foregroundColor(.white)
+                                    .padding(.horizontal, 5)
+                                    .padding(.vertical, 1.5)
+                                    .background(Capsule().fill(Color.purple))
+                                }
+                            }
                             Text("Extract concepts, time windows, and formats from search queries.")
                                 .font(.caption2)
                                 .foregroundColor(AppTheme.textSecondary)
@@ -427,7 +551,16 @@ struct AIModelSettingsView: View {
 
                     Spacer()
 
-                    Toggle("", isOn: $modelManager.enableSearchRefine)
+                    Toggle("", isOn: Binding(
+                        get: { coordinator.isProUser ? modelManager.enableSearchRefine : false },
+                        set: { newValue in
+                            if !coordinator.isProUser {
+                                coordinator.showingPlansSheet = true
+                            } else {
+                                modelManager.enableSearchRefine = newValue
+                            }
+                        }
+                    ))
                         .labelsHidden()
                         .tint(Color.black)
                 }
@@ -499,6 +632,11 @@ struct AIModelSettingsView: View {
     }
 
     private func runConnectionTest() {
+        guard coordinator.isProUser else {
+            LBHaptic.medium()
+            coordinator.showingPlansSheet = true
+            return
+        }
         LBHaptic.medium()
         testingConnection = true
         testResultMessage = nil
