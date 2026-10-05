@@ -45,6 +45,13 @@ class LaterAIService(private val context: android.content.Context? = null) : Aut
         }
         return AIAction.parse(response)
     }
+    suspend fun interpretQuery(query: String): String {
+        if (query.isBlank() || model.checkStatus() != FeatureStatus.AVAILABLE) return query
+        return withTimeout(15000) {
+            val response = model.generateContent("Expand this saved-item search into 3 to 8 relevant topic words and synonyms. Do not answer the question. Return only the search words. Query: ${query.take(300)}")
+            response.candidates.firstOrNull()?.text.orEmpty().take(300).ifBlank { query }
+        }
+    }
     override fun close() { model.close() }
 }
 data class AIAction(val intent: String, val reply: String, val content: String, val title: String, val category: String, val tags: String, val summary: String, val formatted: String, val query: String, val returnAt: String?) {

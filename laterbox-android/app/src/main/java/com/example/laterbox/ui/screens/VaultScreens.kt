@@ -20,6 +20,9 @@ import com.example.laterbox.theme.*
 import com.example.laterbox.ui.capture.Field
 import com.example.laterbox.ui.components.ItemCardView
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
+import com.example.laterbox.services.LaterAIService
+import androidx.compose.ui.platform.LocalContext
 import java.time.Instant
 
 @Composable
@@ -34,15 +37,28 @@ fun VaultScreen(tab: Int, repository: DataRepository, onCapture: () -> Unit, onA
     var addCollection by remember { mutableStateOf(false) }
     var newName by remember { mutableStateOf("") }; var error by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
-    val filtered = remember(allItems, tab, type, category, collection, query, sort) {
+    val model = remember { LaterAIService() }
+    var interpreted by remember { mutableStateOf("" to "") }
+    DisposableEffect(model) { onDispose { model.close() } }
+    LaunchedEffect(query) {
+        interpreted = query to ""
+        if (query.trim().length >= 4) {
+            delay(500)
+            try { interpreted = query to model.interpretQuery(query) }
+            catch (cancelled: kotlinx.coroutines.CancellationException) { throw cancelled }
+            catch (_: Exception) { /* Lexical search remains available. */ }
+        }
+    }
+    val filtered = remember(allItems, tab, type, category, collection, query, sort, interpreted) {
         val eligible = allItems.filter { item -> when(tab) {
             1 -> item.status == "inbox"
             2 -> item.returnAt != null && item.status != "deleted" && item.status != "done" && item.status != "archived"
             3 -> when(category) { "Starred" -> item.favorite; "Archive" -> item.status == "archived"; "Done" -> item.status == "done"; else -> true }
             else -> true
         } }.filter { type == "All" || it.type == type.lowercase() }.filter { collection == null || it.collectionId == collection }
-        val results = LocalSearch.search(query, eligible)
-        if (sort == "Oldest") results.sortedBy { it.createdAt } else if (tab == 2) results.sortedBy { it.returnAt } else results.sortedByDescending { it.createdAt }
+        val expanded = if (interpreted.first == query) interpreted.second else ""
+        val results = LocalSearch.search(listOf(query, expanded).filter { it.isNotBlank() }.joinToString(" "), eligible)
+        if (query.isNotBlank()) results else if (sort == "Oldest") results.sortedBy { it.createdAt } else if (tab == 2) results.sortedBy { it.returnAt } else results.sortedByDescending { it.createdAt }
     }
     LazyColumn(Modifier.fillMaxSize().background(LaterboxBg), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         item {
@@ -68,7 +84,7 @@ fun VaultScreen(tab: Int, repository: DataRepository, onCapture: () -> Unit, onA
             }
         }
         item { Field(query, { query = it }, "Search titles, content, tags, topics…") }
-        item { Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) { listOf("All", "Link", "Article", "Video", "Music", "Note", "Document").forEach { option -> FilterChip(selected = type == option, onClick = { type = option }, label = { Text(option) }) } } }
+        item { Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) { listOf("All", "Link", "Article", "Video", "Music", "Note", "Document", "Image").forEach { option -> FilterChip(selected = type == option, onClick = { type = option }, label = { Text(option) }) } } }
         if (tab == 1) item { OutlinedButton(onClick = onOrganizer) { Text("✦ Organize inbox") } }
         if (tab == 3) {
             item { Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) { listOf("All", "Starred", "Archive", "Done").forEach { option -> FilterChip(category == option, { category = option }, label = { Text(option) }) } } }

@@ -10,7 +10,7 @@ object LocalSearch {
         val words = normalized(query).split(Regex("\\W+")).filter { it.isNotEmpty() && it !in listOf("my", "the", "find", "saved", "things", "about", "to", "for", "me") }
         return items.filter { includeDeleted || it.deletedAt == null }.map { item ->
             val title = normalized(item.title.orEmpty())
-            val corpus = normalized(listOf(item.title, item.textContent, item.url, item.tags, item.category, item.summary, item.notes, item.formattedContent, item.type).joinToString(" "))
+            val corpus = normalized(listOf(item.title, item.textContent, item.url, item.tags, item.category, item.summary, item.notes, item.formattedContent, item.type, item.attachments).joinToString(" "))
             val tokens = corpus.split(Regex("\\W+"))
             val score = words.sumOf { word ->
                 when {
