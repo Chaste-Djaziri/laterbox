@@ -409,24 +409,38 @@ public struct HomeView: View {
 
                         // Recent Captures Feed
                         VStack(alignment: .leading, spacing: 12) {
-                            Text("Recent Captures")
-                                .font(.headline)
-                                .foregroundColor(.primary)
+                            HStack {
+                                Text("RECENT CAPTURES")
+                                    .font(.caption.weight(.bold))
+                                    .foregroundColor(AppTheme.textSecondary)
+                                    .tracking(0.6)
+                                Spacer()
+                                if !allItems.isEmpty {
+                                    Text("\(allItems.count) saved")
+                                        .font(.caption2.weight(.semibold))
+                                        .foregroundColor(AppTheme.textSecondary)
+                                }
+                            }
 
                             if allItems.isEmpty {
                                 VStack(spacing: 12) {
-                                    Image(systemName: "tray")
-                                        .font(.system(size: 38))
-                                        .foregroundColor(.secondary.opacity(0.5))
+                                    ZStack {
+                                        Circle()
+                                            .fill(AppTheme.background)
+                                            .frame(width: 48, height: 48)
+                                        Image(systemName: "tray")
+                                            .font(.system(size: 22, weight: .semibold))
+                                            .foregroundColor(AppTheme.textSecondary)
+                                    }
                                     Text("Your vault is empty")
-                                        .font(.subheadline.weight(.semibold))
-                                        .foregroundColor(.secondary)
+                                        .font(.subheadline.weight(.bold))
+                                        .foregroundColor(AppTheme.textPrimary)
                                     Text("Tap + below to capture links, articles, or notes")
                                         .font(.caption)
-                                        .foregroundColor(.secondary.opacity(0.7))
+                                        .foregroundColor(AppTheme.textSecondary)
                                 }
                                 .frame(maxWidth: .infinity)
-                                .padding(36)
+                                .padding(32)
                                 .liquidGlassCard(cornerRadius: 18)
                             } else {
                                 ForEach(allItems.prefix(5)) { item in
