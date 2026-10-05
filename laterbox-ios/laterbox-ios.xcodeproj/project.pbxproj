@@ -731,7 +731,7 @@
 				INFOPLIST_FILE = LaterBoxShare/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
 				MARKETING_VERSION = 1.0.173;
-				PRODUCT_BUNDLE_IDENTIFIER = pro.micorp.laterbox.Share;
+				PRODUCT_BUNDLE_IDENTIFIER = pro.micorp.laterbox.ShareExtension;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
@@ -753,7 +753,7 @@
 				INFOPLIST_FILE = LaterBoxShare/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
 				MARKETING_VERSION = 1.0.173;
-				PRODUCT_BUNDLE_IDENTIFIER = pro.micorp.laterbox.Share;
+				PRODUCT_BUNDLE_IDENTIFIER = pro.micorp.laterbox.ShareExtension;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
