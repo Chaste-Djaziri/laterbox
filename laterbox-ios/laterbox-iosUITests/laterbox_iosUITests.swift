@@ -7,10 +7,10 @@ final class laterbox_iosUITests: XCTestCase {
     private func reveal(_ button: XCUIElement, in app: XCUIApplication) {
         let dock = app.scrollViews.containing(.button, identifier: button.label).firstMatch
         for _ in 0..<6 {
-            if button.isHittable { return }
-            dock.swipeLeft()
+            if dock.frame.contains(button.frame) { return }
+            if button.frame.midX < dock.frame.midX { dock.swipeRight() } else { dock.swipeLeft() }
         }
-        XCTAssertTrue(button.isHittable)
+        XCTAssertTrue(dock.frame.contains(button.frame))
     }
 
     @MainActor
