@@ -9,6 +9,9 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface ItemDao {
+    @Query("SELECT * FROM items WHERE deleted_at IS NOT NULL ORDER BY deleted_at DESC")
+    fun watchTrash(): Flow<List<ItemEntity>>
+
     @Query("SELECT * FROM items")
     suspend fun getAllItems(): List<ItemEntity>
 
