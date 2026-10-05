@@ -13,7 +13,14 @@ import java.util.UUID
 class VaultStore(private val context: Context) {
     val database = AppDatabase.getDatabase(context)
     suspend fun save(draft: ItemEntity): ItemEntity {
-        require((0 until JSONArray(draft.attachments).length()).none { JSONArray(draft.attachments).getJSONObject(it).has("error") }) { "Some shared files could not be copied. Retry sharing those files before saving." }
+        val attachments = JSONArray(draft.attachments)
+        val root = java.io.File(context.filesDir, "captures").canonicalPath + java.io.File.separator
+        for (index in 0 until attachments.length()) {
+            val attachment = attachments.getJSONObject(index)
+            require(!attachment.has("error")) { "Some shared files could not be copied. Retry sharing those files before saving." }
+            val file = java.io.File(attachment.optString("path"))
+            require(file.isFile && file.canonicalPath.startsWith(root)) { "The shared file is no longer available. Share it again before saving." }
+        }
         require(!draft.textContent.isNullOrBlank() || !draft.url.isNullOrBlank() || JSONArray(draft.attachments).length() > 0) { "Add content or an attachment first." }
         val item = database.withTransaction {
             val existing = database.itemDao().getItemById(draft.id)
@@ -32,8 +39,20 @@ class VaultStore(private val context: Context) {
         return item
     }
     suspend fun edit(item: ItemEntity) {
-        val updated = item.copy(updatedAt = Instant.now().toString(), syncStatus = "pending")
-        database.itemDao().updateItem(updated); ReturnsService.schedule(context, updated)
+        val updated = database.withTransaction {
+            val current = database.itemDao().getItemById(item.id) ?: error("This item no longer exists")
+            require(current.userId == null || current.userId == AccountService.state.value.userId) { "Sign in to the account that owns this item." }
+            var value = item.copy(updatedAt = Instant.now().toString(), syncStatus = "pending")
+            if (current.category != item.category) {
+                val collection = if (item.category.isBlank()) null else database.collectionDao().findByName(item.category, current.userId)
+                    ?: CollectionEntity(UUID.randomUUID().toString(), current.userId, item.category, createdAt = value.updatedAt, updatedAt = value.updatedAt)
+                collection?.let { database.collectionDao().insertCollection(it) }
+                value = value.copy(collectionId = collection?.id)
+            }
+            database.itemDao().updateItem(value)
+            value
+        }
+        ReturnsService.schedule(context, updated)
     }
     suspend fun undo(item: ItemEntity) { edit(item.copy(deletedAt = Instant.now().toString(), status = "deleted")) }
     suspend fun metadata(item: ItemEntity) = withContext(Dispatchers.IO) {
