@@ -176,6 +176,15 @@ public final class SyncCoordinator: ObservableObject {
             extractedDomain = host.replacingOccurrences(of: "www.", with: "")
         }
 
+        var resolvedCollName = collectionName?.trimmingCharacters(in: .whitespacesAndNewlines)
+        var resolvedCollId: String? = nil
+        if let name = resolvedCollName, !name.isEmpty {
+            if let coll = ensureCollectionExists(named: name, context: context) {
+                resolvedCollName = coll.name
+                resolvedCollId = coll.id
+            }
+        }
+
         let newItem = LBItem(
             userId: currentUserId,
             url: url,
@@ -184,9 +193,13 @@ public final class SyncCoordinator: ObservableObject {
             returnAt: returnAt,
             domain: extractedDomain,
             noteContent: note,
-            collectionName: collectionName,
+            collectionId: resolvedCollId,
+            collectionName: resolvedCollName,
             isSyncPending: true
         )
+        if let name = resolvedCollName {
+            newItem.category = name
+        }
         context.insert(newItem)
         try? context.save()
         LBHaptic.success()
@@ -205,13 +218,31 @@ public final class SyncCoordinator: ObservableObject {
         guard !draft.content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { throw AIProviderError.invalidCapture }
         let id = draft.id
         if let existing = try context.fetch(FetchDescriptor<LBItem>(predicate: #Predicate { $0.id == id })).first { return existing }
+
+        let rawCollName = draft.collectionName?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
+            ? draft.collectionName
+            : (draft.category.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false ? draft.category : nil)
+        
+        var resolvedCollName: String? = nil
+        var resolvedCollId: String? = nil
+        if let name = rawCollName?.trimmingCharacters(in: .whitespacesAndNewlines), !name.isEmpty {
+            if let coll = ensureCollectionExists(named: name, context: context) {
+                resolvedCollName = coll.name
+                resolvedCollId = coll.id
+            } else {
+                resolvedCollName = name
+            }
+        }
+
         let item = LBItem(id: id, userId: currentUserId, url: draft.url,
                           title: draft.title.isEmpty ? String(draft.content.prefix(100)) : draft.title,
                           textContent: draft.content, type: draft.type, status: draft.returnAt == nil ? .inbox : .deferred, returnAt: draft.returnAt,
                           domain: draft.url.flatMap { URL(string: $0)?.host })
         item.tags = draft.tags.map { $0.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: "#", with: "") }.filter { !$0.isEmpty }
         item.enrichmentStatus = draft.url == nil ? "enriched" : "pending"
-        item.category = draft.category
+        item.category = resolvedCollName ?? draft.category
+        item.collectionName = resolvedCollName
+        item.collectionId = resolvedCollId
         item.summary = draft.summary
         item.formattedContent = draft.formattedContent
         item.siteName = draft.siteName
@@ -225,6 +256,55 @@ public final class SyncCoordinator: ObservableObject {
             await enrich(item: item, context: context); await syncPendingItems(context: context)
         }
         return item
+    }
+
+    // MARK: - Collection Auto-Creation
+    @discardableResult
+    public func ensureCollectionExists(named rawName: String?, context: ModelContext) -> LBCollection? {
+        guard let raw = rawName?.trimmingCharacters(in: .whitespacesAndNewlines), !raw.isEmpty else { return nil }
+        let excluded: Set<String> = ["inbox", "archive", "archived", "trash", "deleted", "none", "uncategorized", "general"]
+        if excluded.contains(raw.lowercased()) { return nil }
+
+        do {
+            let existing = try context.fetch(FetchDescriptor<LBCollection>())
+            if let found = existing.first(where: { $0.name.localizedCaseInsensitiveCompare(raw) == .orderedSame }) {
+                return found
+            }
+            let (icon, color) = defaultCollectionStyle(for: raw)
+            let newCollection = LBCollection(
+                userId: currentUserId,
+                name: raw,
+                colorHex: color,
+                iconName: icon,
+                createdAt: Date(),
+                updatedAt: Date()
+            )
+            context.insert(newCollection)
+            try? context.save()
+            return newCollection
+        } catch {
+            return nil
+        }
+    }
+
+    private func defaultCollectionStyle(for name: String) -> (icon: String, color: String) {
+        let lower = name.lowercased()
+        if lower.contains("video") || lower.contains("amv") || lower.contains("movie") || lower.contains("youtube") {
+            return ("play.rectangle.fill", "#EF4444")
+        } else if lower.contains("music") || lower.contains("audio") || lower.contains("song") {
+            return ("music.note", "#10B981")
+        } else if lower.contains("book") || lower.contains("read") || lower.contains("article") {
+            return ("book.fill", "#3B82F6")
+        } else if lower.contains("code") || lower.contains("dev") || lower.contains("tech") {
+            return ("curlybraces", "#8B5CF6")
+        } else if lower.contains("work") || lower.contains("project") || lower.contains("task") {
+            return ("briefcase.fill", "#F59E0B")
+        } else if lower.contains("recipe") || lower.contains("food") || lower.contains("cook") {
+            return ("fork.knife", "#EC4899")
+        } else if lower.contains("idea") || lower.contains("note") {
+            return ("lightbulb.fill", "#FBBF24")
+        }
+        return ("folder.fill", "#F59E0B")
     }
 
     public func enrich(item: LBItem, context: ModelContext) async {
