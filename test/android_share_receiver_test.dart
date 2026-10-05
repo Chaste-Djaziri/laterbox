@@ -53,7 +53,7 @@ void main() {
       isTrue,
     );
     expect(find.text('https://example.com/a'), findsNothing);
-    expect(find.text('You’re all clear'), findsOneWidget);
+    expect(find.text('Your inbox is clear'), findsOneWidget);
 
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(milliseconds: 1));
@@ -83,7 +83,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('You’re all clear'), findsOneWidget);
+    expect(find.text('Your inbox is clear'), findsOneWidget);
 
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(milliseconds: 1));
