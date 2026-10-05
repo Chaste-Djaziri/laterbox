@@ -913,7 +913,7 @@ public struct SettingsView: View {
                             Text("LaterBox for iOS • Liquid Glass Edition")
                                 .font(.caption2)
                                 .foregroundColor(.secondary)
-                            Text("Version 1.0.170 (Build 172)")
+                            Text(AppVersion.displayString)
                                 .font(.caption2.monospaced())
                                 .foregroundColor(.secondary.opacity(0.6))
                         }
