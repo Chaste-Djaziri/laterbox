@@ -26,12 +26,13 @@ final class laterbox_iosUITests: XCTestCase {
         noReminder.tap()
         XCTAssertTrue(app.buttons["Save to Vault"].waitForExistence(timeout: 5))
         app.buttons["Save to Vault"].tap()
-        XCTAssertTrue(app.buttons["Undo"].waitForExistence(timeout: 5))
+        let undo = app.buttons.matching(NSPredicate(format: "label CONTAINS[c] %@", "Undo Save")).firstMatch
+        XCTAssertTrue(undo.waitForExistence(timeout: 5))
         let attachment = XCTAttachment(screenshot: app.screenshot())
         attachment.name = "Guided capture saved item"
         attachment.lifetime = .keepAlways
         add(attachment)
-        app.buttons["Undo"].tap()
+        undo.tap()
         XCTAssertTrue(app.descendants(matching: .any)["capture.content"].firstMatch.waitForExistence(timeout: 5))
     }
 }
