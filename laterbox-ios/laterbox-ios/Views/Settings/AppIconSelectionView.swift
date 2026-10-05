@@ -3,6 +3,7 @@ import SwiftUI
 /// Dedicated sub-page for browsing, previewing, and selecting alternate LaterBox app icons.
 public struct AppIconSelectionView: View {
     @Environment(\.dismiss) private var dismiss
+    @ObservedObject private var coordinator = SyncCoordinator.shared
     @StateObject private var iconManager = AppIconManager.shared
     @State private var selectedCategory: String = "All"
 
@@ -67,6 +68,9 @@ public struct AppIconSelectionView: View {
 
                 ScrollView {
                     VStack(alignment: .leading, spacing: 20) {
+                        // Pro Plan Banner (if not subscribed)
+                        proBannerCard
+
                         // Hero Spotlight Card
                         heroSpotlightCard
 
@@ -263,11 +267,91 @@ public struct AppIconSelectionView: View {
         .shadow(color: Color.black.opacity(0.04), radius: 8, x: 0, y: 3)
     }
 
+    // MARK: - Pro Banner
+    @ViewBuilder
+    private var proBannerCard: some View {
+        if !coordinator.isProUser {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(spacing: 10) {
+                    ZStack {
+                        Circle()
+                            .fill(LinearGradient(colors: [Color.purple, Color.indigo], startPoint: .topLeading, endPoint: .bottomTrailing))
+                            .frame(width: 36, height: 36)
+                        Image(systemName: "sparkles")
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundColor(.white)
+                    }
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        HStack(spacing: 6) {
+                            Text("LaterBox Pro Feature")
+                                .font(.subheadline.weight(.bold))
+                                .foregroundColor(AppTheme.textPrimary)
+
+                            Text("PRO")
+                                .font(.system(size: 10, weight: .black))
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(Capsule().fill(Color.purple))
+                        }
+
+                        Text("Unlock all 12 themed liquid glass & pop culture icons")
+                            .font(.caption2)
+                            .foregroundColor(AppTheme.textSecondary)
+                    }
+
+                    Spacer()
+                }
+
+                Button(action: {
+                    LBHaptic.medium()
+                    coordinator.showingPlansSheet = true
+                }) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "crown.fill")
+                            .font(.caption.weight(.bold))
+                        Text("Upgrade to Pro")
+                            .font(.subheadline.weight(.bold))
+                        Spacer()
+                        Image(systemName: "arrow.right")
+                            .font(.caption.weight(.bold))
+                    }
+                    .foregroundColor(.white)
+                    .padding(.vertical, 10)
+                    .padding(.horizontal, 14)
+                    .frame(maxWidth: .infinity)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .fill(AppTheme.darkSurface)
+                    )
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(14)
+            .background(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(AppTheme.cardBackground)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .strokeBorder(Color.purple.opacity(0.35), lineWidth: 1)
+            )
+            .shadow(color: Color.purple.opacity(0.06), radius: 8, x: 0, y: 2)
+        }
+    }
+
     // MARK: - Icon Row Card
     private func iconRowCard(for option: AppIconOption) -> some View {
         let isSelected = iconManager.currentIconId == option.id
+        let isLocked = option.isProOnly && !coordinator.isProUser
 
         return Button(action: {
+            if isLocked {
+                LBHaptic.medium()
+                coordinator.showingPlansSheet = true
+                return
+            }
             LBHaptic.medium()
             Task {
                 await iconManager.selectIcon(option)
@@ -312,6 +396,19 @@ public struct AppIconSelectionView: View {
                             .background(
                                 Capsule().fill(Color.black.opacity(0.05))
                             )
+
+                        if isLocked {
+                            HStack(spacing: 3) {
+                                Image(systemName: "lock.fill")
+                                    .font(.system(size: 8, weight: .bold))
+                                Text("PRO")
+                                    .font(.system(size: 9, weight: .black))
+                            }
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 5)
+                            .padding(.vertical, 1.5)
+                            .background(Capsule().fill(Color.purple))
+                        }
                     }
 
                     Text(option.subtitle)
@@ -337,6 +434,19 @@ public struct AppIconSelectionView: View {
                             .font(.system(size: 13, weight: .bold))
                             .foregroundColor(AppTheme.textPrimary)
                     }
+                } else if isLocked {
+                    HStack(spacing: 4) {
+                        Image(systemName: "lock.fill")
+                            .font(.system(size: 9, weight: .semibold))
+                        Text("PRO")
+                            .font(.system(size: 10, weight: .bold))
+                    }
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 5)
+                    .background(
+                        Capsule().fill(Color.purple)
+                    )
                 } else {
                     Text("Apply")
                         .font(.caption2.weight(.semibold))
