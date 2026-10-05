@@ -35,7 +35,10 @@ final class LaterAIConversation: ObservableObject {
         let input = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !input.isEmpty, !thinking else { return }
         lastInput = input
-        if !retry { messages.append(LaterAIMessage(text: input, isUser: true)) }
+        if (needsReturnDate || savedItem != nil), let parsed = RelativeDateParser.parse(input) {
+            schedule(parsed.date, intervalDescription: parsed.isRelative ? "(in \(parsed.intervalDescription))" : "(\(parsed.intervalDescription))", context: context)
+            return
+        }
         if needsReturnDate, let detector = try? NSDataDetector(types: NSTextCheckingResult.CheckingType.date.rawValue), let date = detector.firstMatch(in: input, range: NSRange(input.startIndex..., in: input))?.date {
             schedule(date, context: context); return
         }
@@ -183,7 +186,7 @@ final class LaterAIConversation: ObservableObject {
             }
         } catch { self.error = error.localizedDescription }
     }
-    func schedule(_ date: Date?, context: ModelContext) {
+    func schedule(_ date: Date?, intervalDescription: String? = nil, context: ModelContext) {
         guard let item = savedItem else { return }
         let oldDate = item.returnAt
         let oldStatus = item.status
@@ -191,8 +194,17 @@ final class LaterAIConversation: ObservableObject {
         item.returnAt = date; item.updatedAt = Date(); item.isSyncPending = true
         do {
             try context.save(); needsReturnDate = false
-            let desc = date.map { "for \($0.formatted(date: .abbreviated, time: .shortened))" } ?? "with no reminder (inbox)"
-            messages.append(LaterAIMessage(text: "Scheduled ‘\(item.title)’ \(desc).", isUser: false))
+            let desc: String
+            if let date {
+                if let intervalDescription {
+                    desc = "for \(date.formatted(date: .omitted, time: .shortened)) \(intervalDescription)"
+                } else {
+                    desc = "for \(date.formatted(date: .abbreviated, time: .shortened))"
+                }
+            } else {
+                desc = "with no reminder (inbox)"
+            }
+            messages.append(LaterAIMessage(text: "⏰ Scheduled ‘\(item.title)’ \(desc).", isUser: false))
             Task {
                 do {
                     let allowed = try await ReturnNotification.update(id: item.id, title: item.title, date: date)
