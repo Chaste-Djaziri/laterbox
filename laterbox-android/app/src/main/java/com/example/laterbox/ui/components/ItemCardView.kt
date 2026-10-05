@@ -30,7 +30,6 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -50,12 +49,14 @@ import androidx.compose.ui.unit.sp
 import com.example.laterbox.data.local.ItemEntity
 import com.example.laterbox.theme.LaterboxAccent
 import com.example.laterbox.theme.LaterboxAmber
+import com.example.laterbox.theme.LaterboxBorder
+import com.example.laterbox.theme.LaterboxCard
 import com.example.laterbox.theme.LaterboxDarkSurface
 import com.example.laterbox.theme.LaterboxEmerald
-import com.example.laterbox.theme.LaterboxIndigo
 import com.example.laterbox.theme.LaterboxRose
 import com.example.laterbox.theme.LaterboxTextPrimary
 import com.example.laterbox.theme.LaterboxTextSecondary
+import com.example.laterbox.theme.LaterboxTextTertiary
 import java.net.URI
 
 @Composable
@@ -91,13 +92,15 @@ fun ItemCardView(
             if (!item.url.isNullOrEmpty()) {
                 openBrowser(context, item.url)
             }
-        }
+        },
+        backgroundColor = LaterboxCard,
+        borderColor = LaterboxBorder
     ) {
         Column(
             modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            // Top Row: Domain / Type + Time + Favorite + Menu
+            // Top Row: Domain / Type + Favorite + Menu
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -114,7 +117,7 @@ fun ItemCardView(
                             text = domain,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onSurface,
+                            color = LaterboxTextPrimary,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -131,7 +134,7 @@ fun ItemCardView(
                         Icon(
                             imageVector = if (item.favorite) Icons.Default.Star else Icons.Outlined.StarBorder,
                             contentDescription = if (item.favorite) "Starred" else "Star",
-                            tint = if (item.favorite) LaterboxAmber else MaterialTheme.colorScheme.onSurfaceVariant,
+                            tint = if (item.favorite) LaterboxAmber else LaterboxTextTertiary,
                             modifier = Modifier.size(18.dp)
                         )
                     }
@@ -144,7 +147,7 @@ fun ItemCardView(
                             Icon(
                                 imageVector = Icons.Default.MoreVert,
                                 contentDescription = "More Options",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                tint = LaterboxTextSecondary,
                                 modifier = Modifier.size(18.dp)
                             )
                         }
@@ -200,12 +203,12 @@ fun ItemCardView(
                 }
             }
 
-            // Title
+            // Title (Bold High-Contrast)
             Text(
                 text = item.title ?: "Untitled",
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
+                color = LaterboxTextPrimary,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
                 lineHeight = 22.sp
@@ -214,14 +217,14 @@ fun ItemCardView(
             // Optional text note content
             if (!item.textContent.isNullOrEmpty()) {
                 Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                    shape = RoundedCornerShape(10.dp),
+                    color = Color.Black.copy(alpha = 0.03f),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
                         text = item.textContent,
                         fontSize = 13.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = LaterboxTextSecondary,
                         maxLines = 3,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.padding(10.dp)
@@ -270,14 +273,14 @@ fun ItemCardView(
                     Box(
                         modifier = Modifier
                             .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f))
+                            .background(Color.Black.copy(alpha = 0.04f))
                             .clickable { onScheduleReturn("tomorrow") }
                             .padding(6.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Default.Schedule,
                             contentDescription = "Schedule Return",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            tint = LaterboxTextSecondary,
                             modifier = Modifier.size(15.dp)
                         )
                     }
@@ -286,14 +289,14 @@ fun ItemCardView(
                     Box(
                         modifier = Modifier
                             .clip(CircleShape)
-                            .background(if (item.status == "done") LaterboxEmerald.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f))
+                            .background(if (item.status == "done") LaterboxEmerald.copy(alpha = 0.15f) else Color.Black.copy(alpha = 0.04f))
                             .clickable { onMarkDone() }
                             .padding(6.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Default.CheckCircle,
                             contentDescription = "Done",
-                            tint = if (item.status == "done") LaterboxEmerald else MaterialTheme.colorScheme.onSurfaceVariant,
+                            tint = if (item.status == "done") LaterboxEmerald else LaterboxTextSecondary,
                             modifier = Modifier.size(15.dp)
                         )
                     }
