@@ -9,6 +9,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 - **[macOS] System Status**: Settings now provides a single readiness view for Mac integrations, permissions, sync, notifications, and StoreKit billing, with retry guidance and copyable diagnostics.
 
 ### Fixed
+- **[iOS] Simulator AI availability**: Simulator captures use guided input without trying to load the physical-device Apple Intelligence model, keeping native validation deterministic.
 - **[iOS] Cloud sync entitlement guard**: Restored the verified Pro check at the native cloud synchronization boundary.
 - **[CI] Native iOS and web releases**: Path-scoped Swift iOS TestFlight uploads and Next.js Cloudflare deployment replace legacy multiplatform release jobs, preserving the existing iOS app identity.
 - **[Web & iOS] Cross-Platform Guest Item Migration & Cloud Sync Resilience**: Automatically migrates local guest captures created on web to authenticated user accounts upon login, immediately persisting them to Supabase so items saved on web are visible on iOS. Removed conflicting manual token refresh calls on web that prematurely triggered `SIGNED_OUT` events and forced users back into guest mode during initial sync. Streamlined iOS cloud sync to run for all authenticated users and made remote snapshot decoding resilient against optional and null fields.
