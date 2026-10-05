@@ -15,6 +15,7 @@ public struct SettingsView: View {
     @ObservedObject var coordinator = SyncCoordinator.shared
     @ObservedObject private var lockManager = AppLockManager.shared
     @ObservedObject private var modelManager = LaterAIModelManager.shared
+    @ObservedObject private var iconManager = AppIconManager.shared
 
     @State private var showingAuthSheet = false
     @State private var showingSignOutAlert = false
@@ -786,6 +787,79 @@ public struct SettingsView: View {
                             .shadow(color: Color.black.opacity(0.03), radius: 6, x: 0, y: 2)
                         }
 
+                        // App Icon & Appearance
+                        VStack(alignment: .leading, spacing: 14) {
+                            Text("App Icon & Appearance")
+                                .font(.caption.weight(.bold))
+                                .foregroundColor(.secondary)
+                                .textCase(.uppercase)
+
+                            NavigationLink(destination: AppIconSelectionView()) {
+                                HStack(spacing: 14) {
+                                    // Current App Icon Preview
+                                    let current = iconManager.currentIconOption
+                                    Image(current.previewImageName)
+                                        .resizable()
+                                        .scaledToFit()
+                                        .frame(width: 44, height: 44)
+                                        .clipShape(RoundedRectangle(cornerRadius: 11, style: .continuous))
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 11, style: .continuous)
+                                                .strokeBorder(Color.white.opacity(0.3), lineWidth: 1)
+                                        )
+                                        .shadow(color: Color.black.opacity(0.08), radius: 4, x: 0, y: 2)
+
+                                    VStack(alignment: .leading, spacing: 3) {
+                                        HStack(spacing: 6) {
+                                            Text(current.name)
+                                                .font(.subheadline.weight(.semibold))
+                                                .foregroundColor(AppTheme.textPrimary)
+
+                                            Circle()
+                                                .fill(current.accentColor)
+                                                .frame(width: 7, height: 7)
+
+                                            Text(current.badgeText)
+                                                .font(.system(size: 10, weight: .bold))
+                                                .foregroundColor(AppTheme.textSecondary)
+                                                .padding(.horizontal, 5)
+                                                .padding(.vertical, 1.5)
+                                                .background(
+                                                    Capsule().fill(Color.black.opacity(0.05))
+                                                )
+                                        }
+
+                                        Text("Customize home screen app icon")
+                                            .font(.caption2)
+                                            .foregroundColor(AppTheme.textSecondary)
+                                    }
+
+                                    Spacer()
+
+                                    HStack(spacing: 6) {
+                                        Text("\(AppIconManager.availableIcons.count) Icons")
+                                            .font(.caption2.weight(.medium))
+                                            .foregroundColor(AppTheme.textSecondary)
+
+                                        Image(systemName: "chevron.right")
+                                            .font(.caption.weight(.semibold))
+                                            .foregroundColor(AppTheme.textSecondary)
+                                    }
+                                }
+                                .padding(16)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                        .fill(AppTheme.cardBackground)
+                                )
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                        .strokeBorder(AppTheme.cardBorder, lineWidth: 1)
+                                )
+                                .shadow(color: Color.black.opacity(0.03), radius: 6, x: 0, y: 2)
+                            }
+                            .buttonStyle(.plain)
+                        }
+
                         // Local Storage Section
                         VStack(alignment: .leading, spacing: 14) {
                             HStack {
@@ -928,6 +1002,9 @@ public struct SettingsView: View {
                 .trackPullDownForLaterAI()
             }
             .navigationBarHidden(true)
+            .onAppear {
+                iconManager.refreshCurrentIcon()
+            }
             .sheet(isPresented: $showingAuthSheet) {
                 NavigationStack {
                     AuthView()
