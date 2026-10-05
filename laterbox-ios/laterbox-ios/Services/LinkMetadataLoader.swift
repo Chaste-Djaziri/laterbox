@@ -34,43 +34,93 @@ public enum LinkMetadataLoader {
     private static let webEnrichEndpoint = URL(string: "https://laterbox.dev/api/enrich")!
 
     public static func isGenericTitle(_ title: String?) -> Bool {
-        guard let title = title?.trimmingCharacters(in: .whitespacesAndNewlines), !title.isEmpty else { return true }
-        let lower = title.lowercased()
-        return lower == "youtube" ||
+        guard let raw = title?.trimmingCharacters(in: .whitespacesAndNewlines), !raw.isEmpty else { return true }
+        let stripped = raw.trimmingCharacters(in: CharacterSet(charactersIn: "-–—|: •\t\n\r"))
+        let lower = stripped.lowercased()
+        return lower.isEmpty ||
+               lower == "youtube" ||
+               lower == "- youtube" ||
+               (lower.hasSuffix("youtube") && lower.count <= 14) ||
+               lower == "video playlist" ||
                lower.contains("video playlist") ||
                lower == "untitled" ||
                lower.hasPrefix("http://") ||
                lower.hasPrefix("https://") ||
                lower == "watch" ||
-               lower == "before you continue to youtube"
+               lower == "watch video" ||
+               lower == "before you continue to youtube" ||
+               lower == "vimeo" ||
+               lower == "spotify" ||
+               lower == "soundcloud"
+    }
+
+    public static func cleanTitle(_ title: String?) -> String? {
+        guard let raw = title?.trimmingCharacters(in: .whitespacesAndNewlines), !raw.isEmpty else { return nil }
+        if isGenericTitle(raw) { return nil }
+        var cleaned = raw
+        for suffix in [" - YouTube", " | YouTube", " – YouTube", " — YouTube", " - Vimeo", " | Vimeo", " on Spotify"] {
+            if cleaned.hasSuffix(suffix) {
+                cleaned = String(cleaned.dropLast(suffix.count)).trimmingCharacters(in: .whitespacesAndNewlines)
+            }
+        }
+        return isGenericTitle(cleaned) ? nil : cleaned
+    }
+
+    public static func isGenericDescription(_ desc: String?) -> Bool {
+        guard let raw = desc?.lowercased().trimmingCharacters(in: .whitespacesAndNewlines), !raw.isEmpty else { return true }
+        return raw.contains("enjoy the videos and music you love") ||
+               raw.contains("upload original content") ||
+               raw.contains("share it all with friends, family")
     }
 
     public static func load(_ url: URL) async throws -> Metadata {
         guard ["http", "https"].contains(url.scheme?.lowercased() ?? "") else { throw URLError(.badURL) }
 
-        // 1. Query Next.js web /api/enrich for rich social graphs, rotating bot UAs, and OG images
-        if var enriched = await fetchFromEnrichAPI(url) {
-            if isGenericTitle(enriched.title), let oembed = await fetchOEmbed(url) {
-                enriched.title = oembed.title ?? enriched.title
-                enriched.image = oembed.image ?? enriched.image
-                enriched.site = oembed.site ?? enriched.site
-                if enriched.description == nil || enriched.description?.isEmpty == true {
-                    enriched.description = oembed.description
-                }
-                if !oembed.keywords.isEmpty {
-                    let merged = Set(enriched.keywords + oembed.keywords)
-                    enriched.keywords = Array(merged).sorted()
-                }
+        let host = url.host?.lowercased() ?? ""
+        let isMedia = host.contains("youtube.com") || host == "youtu.be" || host.contains("vimeo.com")
+
+        // 1. For media links, query oEmbed concurrently for authentic video title & author
+        async let oembedTask = isMedia ? fetchOEmbed(url) : nil
+        async let enrichTask = fetchFromEnrichAPI(url)
+
+        let oembed = await oembedTask
+        var enriched = await enrichTask
+
+        if var res = enriched {
+            let titleIsGeneric = isGenericTitle(res.title) || res.title?.hasSuffix("- YouTube") == true
+            if titleIsGeneric, let o = oembed, let realTitle = o.title, !realTitle.isEmpty {
+                res.title = realTitle
+            } else if let cleaned = cleanTitle(res.title) {
+                res.title = cleaned
             }
-            return enriched
+
+            if isGenericTitle(res.title), let o = oembed {
+                res.title = o.title ?? res.title
+            }
+
+            if (res.description == nil || res.description?.isEmpty == true || isGenericDescription(res.description)),
+               let o = oembed, let oDesc = o.description, !oDesc.isEmpty {
+                res.description = oDesc
+            }
+
+            if let o = oembed {
+                if res.image == nil || res.image?.isEmpty == true {
+                    res.image = o.image
+                }
+                let junkTags: Set<String> = ["sharing", "camera phone", "video phone", "free", "upload", "playlist", "video playlist"]
+                let filteredEnriched = res.keywords.filter { !junkTags.contains($0.lowercased()) }
+                let filteredOembed = o.keywords.filter { !junkTags.contains($0.lowercased()) }
+                res.keywords = Array(Set(filteredEnriched + filteredOembed)).sorted()
+            }
+
+            return res
         }
 
-        // 2. Fast-path direct oEmbed for media platforms (YouTube, Vimeo)
-        if let oembed = await fetchOEmbed(url) {
+        if let oembed {
             return oembed
         }
 
-        // 3. Fall back to local HTML scraper
+        // 2. Fall back to local HTML scraper
         return try await fetchLocalScrape(url)
     }
 
@@ -97,10 +147,12 @@ public enum LinkMetadataLoader {
             guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else { return nil }
             guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return nil }
 
-            let title = (json["title"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
+            let rawTitle = (json["title"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
             let author = (json["author_name"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
             let thumb = (json["thumbnail_url"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
             let provider = (json["provider_name"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? (host.contains("youtube") ? "YouTube" : host)
+
+            let title = cleanTitle(rawTitle) ?? rawTitle
 
             var tags: [String] = []
             if host.contains("youtube") || host == "youtu.be" {
@@ -113,12 +165,12 @@ public enum LinkMetadataLoader {
             if let title, !title.isEmpty {
                 let parts = title.components(separatedBy: CharacterSet(charactersIn: "|-:–—[]()•\""))
                     .map { $0.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() }
-                    .filter { $0.count > 2 && $0.count < 35 && $0 != "playlist" && $0 != "video playlist" }
+                    .filter { $0.count > 2 && $0.count < 35 && !["playlist", "video playlist", "sharing", "camera phone", "video phone", "free", "upload"].contains($0) }
                 tags.append(contentsOf: parts)
             }
 
             let uniqueTags = Array(Set(tags)).sorted()
-            let desc = author.map { "\(provider) by \($0)" } ?? "\(provider) content"
+            let desc = author.map { "Video by \($0) on \(provider)" } ?? "\(provider) content"
 
             return Metadata(
                 title: (title?.isEmpty == false && !isGenericTitle(title)) ? title : nil,
