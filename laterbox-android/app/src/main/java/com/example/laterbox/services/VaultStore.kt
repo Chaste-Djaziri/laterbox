@@ -13,6 +13,7 @@ import java.util.UUID
 class VaultStore(private val context: Context) {
     val database = AppDatabase.getDatabase(context)
     suspend fun save(draft: ItemEntity): ItemEntity {
+        require((0 until JSONArray(draft.attachments).length()).none { JSONArray(draft.attachments).getJSONObject(it).has("error") }) { "Some shared files could not be copied. Retry sharing those files before saving." }
         require(!draft.textContent.isNullOrBlank() || !draft.url.isNullOrBlank() || JSONArray(draft.attachments).length() > 0) { "Add content or an attachment first." }
         val item = database.withTransaction {
             val existing = database.itemDao().getItemById(draft.id)
@@ -54,7 +55,8 @@ class VaultStore(private val context: Context) {
         fun draft(content: String, title: String = "", tags: String = "", category: String = "", returnAt: String? = null, attachments: String = "[]", id: String = UUID.randomUUID().toString()): ItemEntity {
             val url = Regex("https?://[^\\s]+").find(content)?.value
             val host = url?.let { runCatching { java.net.URI(it).host }.getOrNull() }.orEmpty()
-            val type = when { attachments != "[]" -> "document"; url == null -> "note"; host.contains("youtube") || host.contains("youtu.be") -> "video"; host.contains("spotify") || host.contains("soundcloud") -> "music"; url.endsWith(".pdf") -> "document"; else -> "link" }
+            val mime = runCatching { JSONArray(attachments).optJSONObject(0)?.optString("mime") }.getOrNull().orEmpty()
+            val type = when { mime.startsWith("image/") -> "image"; mime.startsWith("video/") -> "video"; mime.startsWith("audio/") -> "music"; attachments != "[]" -> "document"; url == null -> "note"; host.contains("youtube") || host.contains("youtu.be") -> "video"; host.contains("spotify") || host.contains("soundcloud") -> "music"; url.endsWith(".pdf") -> "document"; else -> "link" }
             val hashtags = Regex("#([\\p{L}\\d_-]+)").findAll(content).map { it.groupValues[1] }.toList()
             val stamp = Instant.now().toString()
             return ItemEntity(id, title = title.ifBlank { host.ifBlank { content.lineSequence().firstOrNull().orEmpty().take(100).ifBlank { "Shared file" } } }, url = url,
