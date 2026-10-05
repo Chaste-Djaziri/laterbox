@@ -14,6 +14,9 @@ const extensionChromiumManifestPath = path.join(rootDir, 'extension', 'manifests
 const extensionFirefoxManifestPath = path.join(rootDir, 'extension', 'manifests', 'firefox.json');
 const extensionSafariManifestPath = path.join(rootDir, 'extension', 'manifests', 'safari.json');
 const innoSetupPath = path.join(rootDir, 'scripts', 'laterbox.iss');
+const iosPbxprojPath = path.join(rootDir, 'laterbox-ios', 'laterbox-ios.xcodeproj', 'project.pbxproj');
+const iosAppVersionSwiftPath = path.join(rootDir, 'laterbox-ios', 'laterbox-ios', 'AppVersion.swift');
+const iosShareInfoPlistPath = path.join(rootDir, 'laterbox-ios', 'LaterBoxShare', 'Info.plist');
 
 function loadVersion() {
   if (fs.existsSync(rootVersionJsonPath)) {
@@ -42,9 +45,12 @@ function loadVersion() {
 function bumpVersion() {
   const args = process.argv.slice(2);
   let manualVersion = null;
+  let syncOnly = false;
   if (args.length > 0) {
     if (args[0] === '--set' && args[1]) {
       manualVersion = args[1];
+    } else if (args[0] === '--sync-only' || args[0] === '--sync') {
+      syncOnly = true;
     } else if (!args[0].startsWith('-')) {
       manualVersion = args[0];
     }
@@ -56,30 +62,33 @@ function bumpVersion() {
   let patch = typeof current.patch === 'number' ? current.patch : 0;
   let buildNumber = typeof current.buildNumber === 'number' ? current.buildNumber : 1;
 
-  if (manualVersion) {
-    const parts = manualVersion.replace(/^v/, '').split('.').map((p) => parseInt(p, 10));
-    major = !isNaN(parts[0]) ? parts[0] : major;
-    minor = !isNaN(parts[1]) ? parts[1] : 0;
-    patch = !isNaN(parts[2]) ? parts[2] : 0;
-  } else {
-    // Check if user manually changed version in version.json
-    if (current.version && typeof current.version === 'string') {
-      const parts = current.version.replace(/^v/, '').split('.').map((p) => parseInt(p, 10));
-      if (parts.length >= 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
-        if (parts[0] !== major || parts[1] !== minor) {
-          major = parts[0];
-          minor = parts[1];
-          patch = 0;
+  if (!syncOnly) {
+    if (manualVersion) {
+      const parts = manualVersion.replace(/^v/, '').split('.').map((p) => parseInt(p, 10));
+      major = !isNaN(parts[0]) ? parts[0] : major;
+      minor = !isNaN(parts[1]) ? parts[1] : 0;
+      patch = !isNaN(parts[2]) ? parts[2] : 0;
+    } else {
+      // Check if user manually changed version in version.json
+      if (current.version && typeof current.version === 'string') {
+        const parts = current.version.replace(/^v/, '').split('.').map((p) => parseInt(p, 10));
+        if (parts.length >= 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+          if (parts[0] !== major || parts[1] !== minor) {
+            major = parts[0];
+            minor = parts[1];
+            patch = 0;
+          }
         }
       }
+      patch += 1;
     }
-    patch += 1;
+
+    buildNumber += 1;
   }
 
-  buildNumber += 1;
   const versionString = `${major}.${minor}.${patch}`;
   const flutterVersionString = `${versionString}+${buildNumber}`;
-  const buildTime = new Date().toISOString();
+  const buildTime = syncOnly && current.buildTime ? current.buildTime : new Date().toISOString();
 
   const versionData = {
     major,
@@ -174,7 +183,61 @@ export const VERSION_METADATA = {
     fs.writeFileSync(innoSetupPath, iss, 'utf8');
   }
 
-  console.log(`[LaterBox Version] Synchronized version across Mobile, Desktop, Web & Extensions: v${versionString} (build #${buildNumber})`);
+  // 9. laterbox-ios/laterbox-ios.xcodeproj/project.pbxproj (Native iOS app and extension targets)
+  if (fs.existsSync(iosPbxprojPath)) {
+    try {
+      let pbx = fs.readFileSync(iosPbxprojPath, 'utf8');
+      pbx = pbx.replace(/MARKETING_VERSION\s*=\s*[^;]+;/g, `MARKETING_VERSION = ${versionString};`);
+      pbx = pbx.replace(/CURRENT_PROJECT_VERSION\s*=\s*[^;]+;/g, `CURRENT_PROJECT_VERSION = ${buildNumber};`);
+      fs.writeFileSync(iosPbxprojPath, pbx, 'utf8');
+    } catch (err) {
+      console.warn('[LaterBox Version] Warning: Failed to update project.pbxproj:', err.message);
+    }
+  }
+
+  // 10. laterbox-ios/LaterBoxShare/Info.plist
+  if (fs.existsSync(iosShareInfoPlistPath)) {
+    try {
+      let shareInfo = fs.readFileSync(iosShareInfoPlistPath, 'utf8');
+      shareInfo = shareInfo.replace(/<key>CFBundleShortVersionString<\/key><string>[^<]+<\/string>/g, '<key>CFBundleShortVersionString</key><string>$(MARKETING_VERSION)</string>');
+      shareInfo = shareInfo.replace(/<key>CFBundleVersion<\/key><string>[^<]+<\/string>/g, '<key>CFBundleVersion</key><string>$(CURRENT_PROJECT_VERSION)</string>');
+      fs.writeFileSync(iosShareInfoPlistPath, shareInfo, 'utf8');
+    } catch (err) {
+      console.warn('[LaterBox Version] Warning: Failed to update LaterBoxShare Info.plist:', err.message);
+    }
+  }
+
+  // 11. laterbox-ios/laterbox-ios/AppVersion.swift (Native Swift Version Constants & Runtime Helper)
+  if (fs.existsSync(path.dirname(iosAppVersionSwiftPath))) {
+    const swiftContent = `// Auto-generated by scripts/bump_version.js on every build/deploy
+import Foundation
+
+/// Provides compile-time version metadata and dynamic bundle introspection for LaterBox iOS.
+public enum AppVersion {
+    public static let marketingVersion = "${versionString}"
+    public static let buildNumber = "${buildNumber}"
+    public static let buildTime = "${buildTime}"
+
+    /// Live version string from bundle (CFBundleShortVersionString), falling back to compile-time constant
+    public static var currentVersion: String {
+        (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String) ?? marketingVersion
+    }
+
+    /// Live build number from bundle (CFBundleVersion), falling back to compile-time constant
+    public static var currentBuild: String {
+        (Bundle.main.infoDictionary?["CFBundleVersion"] as? String) ?? buildNumber
+    }
+
+    /// Clean formatted string for settings and diagnostics: "Version X.Y.Z (Build N)"
+    public static var displayString: String {
+        "Version \\(currentVersion) (Build \\(currentBuild))"
+    }
+}
+`;
+    fs.writeFileSync(iosAppVersionSwiftPath, swiftContent, 'utf8');
+  }
+
+  console.log(`[LaterBox Version] Synchronized version across iOS, Web, Extensions & Desktop: v${versionString} (build #${buildNumber})`);
 }
 
 bumpVersion();
