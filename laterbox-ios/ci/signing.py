@@ -37,11 +37,21 @@ def main():
     import re
     project = Path("laterbox-ios/laterbox-ios.xcodeproj/project.pbxproj")
     text = project.read_text()
-    for bundle, name in profiles.items():
-        pattern = r"(PRODUCT_BUNDLE_IDENTIFIER = " + re.escape(bundle) + r";)"
-        escaped = name.replace("\\", "\\\\").replace('"', '\\"')
-        text, count = re.subn(pattern, lambda m: m[0] + '\n\t\t\t\tPROVISIONING_PROFILE_SPECIFIER = "' + escaped + '";', text)
-        if count != 2: raise ValueError("Expected Debug and Release signing configurations for " + bundle)
+    counts = {bundle: 0 for bundle in profiles}
+    def configure(match):
+        block = match[0]
+        for bundle, name in profiles.items():
+            if "PRODUCT_BUNDLE_IDENTIFIER = " + bundle + ";" not in block: continue
+            escaped = name.replace("\\", "\\\\").replace('"', '\\"')
+            setting = 'PROVISIONING_PROFILE_SPECIFIER = "' + escaped + '";'
+            if "PROVISIONING_PROFILE_SPECIFIER =" in block:
+                block = re.sub(r'PROVISIONING_PROFILE_SPECIFIER = [^;]*;', lambda _: setting, block)
+            else:
+                block = block.replace("PRODUCT_BUNDLE_IDENTIFIER = " + bundle + ";", "PRODUCT_BUNDLE_IDENTIFIER = " + bundle + ";\n\t\t\t\t" + setting)
+            counts[bundle] += 1
+        return block
+    text = re.sub(r"buildSettings = \{.*?\n\t\t\t\};", configure, text, flags=re.DOTALL)
+    if any(count != 2 for count in counts.values()): raise ValueError("Expected Debug and Release signing configurations")
     project.write_text(text)
     options = {"method": "app-store-connect", "signingStyle": "manual", "signingCertificate": "Apple Distribution",
                "teamID": TEAM, "provisioningProfiles": profiles, "uploadSymbols": True, "manageAppVersionAndBuildNumber": False}
