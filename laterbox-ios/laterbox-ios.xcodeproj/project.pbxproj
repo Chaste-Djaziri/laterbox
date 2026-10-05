@@ -57,7 +57,7 @@
 		5194A4F83072E2E100DE79B5 /* laterbox-ios.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "laterbox-ios.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		5194A5073072E2E100DE79B5 /* laterbox-iosTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "laterbox-iosTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		5194A5113072E2E100DE79B5 /* laterbox-iosUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "laterbox-iosUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
-		9CD0ABE6B11066E3BE4E19C1 /* LaterBoxShare.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; name = LaterBoxShare.appex; path = .appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		9CD0ABE6B11066E3BE4E19C1 /* LaterBoxShare.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = LaterBoxShare.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		9F81B1954BAF7A76CDFE5F0E /* ShareViewController.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
 		DAC0F63DC56B313D3701E636 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
 /* End PBXFileReference section */
@@ -65,22 +65,16 @@
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		5194A4FA3072E2E100DE79B5 /* laterbox-ios */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
 			path = "laterbox-ios";
 			sourceTree = "<group>";
 		};
 		5194A50A3072E2E100DE79B5 /* laterbox-iosTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
 			path = "laterbox-iosTests";
 			sourceTree = "<group>";
 		};
 		5194A5143072E2E100DE79B5 /* laterbox-iosUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
 			path = "laterbox-iosUITests";
 			sourceTree = "<group>";
 		};
