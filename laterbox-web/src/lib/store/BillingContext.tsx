@@ -86,7 +86,7 @@ export function BillingProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }, [session, user]);
+  }, [session?.access_token, user?.id]);
 
   useEffect(() => {
     if (!cacheKey) {
@@ -100,7 +100,7 @@ export function BillingProvider({ children }: { children: React.ReactNode }) {
       setEntitlement(FREE_ENTITLEMENT);
     }
     void refresh();
-  }, [cacheKey, refresh]);
+  }, [cacheKey]);
 
   const pollForPro = useCallback(async () => {
     if (!user) return;
