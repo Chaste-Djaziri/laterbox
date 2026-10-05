@@ -62,3 +62,49 @@ struct LaterAIComposer: View {
         }.background(.black).buttonStyle(.plain).colorScheme(.dark)
     }
 }
+
+struct LaterAIChatRow: View {
+    var text: String
+    var isUser: Bool
+    var timestamp: Date?
+    var body: some View {
+        if isUser {
+            HStack {
+                Spacer(minLength: 48)
+                Text(text).font(.system(size: 15)).foregroundStyle(.white)
+                    .padding(.horizontal, 16).padding(.vertical, 12)
+                    .background(Color(red: 39.0/255, green: 39.0/255, blue: 41.0/255), in: RoundedRectangle(cornerRadius: 18))
+            }
+        } else {
+            HStack(alignment: .top, spacing: 12) {
+                Image(systemName: "sparkles").font(.system(size: 13, weight: .semibold)).foregroundStyle(LaterAIStyle.accent)
+                    .frame(width: 30, height: 30).background(Color(white: 28.0/255), in: Circle())
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(text).font(.system(size: 15)).foregroundStyle(.white).lineSpacing(4)
+                    if let timestamp {
+                        Text(timestamp.formatted(date: .omitted, time: .shortened)).font(.system(size: 11)).foregroundStyle(Color.white.opacity(0.35))
+                    }
+                }
+                Spacer(minLength: 32)
+            }
+        }
+    }
+}
+struct LaterAIThinkingIndicator: View {
+    var thinking: Bool
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "sparkles").font(.system(size: 13, weight: .semibold)).foregroundStyle(LaterAIStyle.accent)
+                .frame(width: 30, height: 30).background(Color(white: 28.0/255), in: Circle())
+            HStack(spacing: 5) {
+                ForEach(0..<3) { i in
+                    Circle().fill(LaterAIStyle.accent.opacity(0.8)).frame(width: 7, height: 7)
+                        .scaleEffect(thinking ? 1 : 0.5)
+                        .animation(.easeInOut(duration: 0.6).repeatForever().delay(Double(i) * 0.2), value: thinking)
+                }
+            }.padding(.horizontal, 14).padding(.vertical, 10)
+                .background(Color(white: 26.0/255), in: RoundedRectangle(cornerRadius: 16))
+            Spacer()
+        }
+    }
+}
