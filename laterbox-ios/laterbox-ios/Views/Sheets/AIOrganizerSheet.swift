@@ -72,10 +72,21 @@ public struct AIOrganizerSheet: View {
         guard coordinator.isProUser, let index = suggestions.firstIndex(where: { $0.id == id }) else { return }
         let suggestion = suggestions[index]
         let item = suggestion.item
-        let old = (item.category, item.tags, item.summary)
-        item.category = suggestion.category; item.tags = suggestion.tags; item.summary = suggestion.summary
+        let old = (item.category, item.tags, item.summary, item.collectionName, item.collectionId)
+        item.category = suggestion.category
+        item.tags = suggestion.tags
+        item.summary = suggestion.summary
+        if !suggestion.category.isEmpty {
+            let coll = coordinator.ensureCollectionExists(named: suggestion.category, context: context)
+            item.collectionName = coll?.name ?? suggestion.category
+            item.collectionId = coll?.id ?? item.collectionId
+        }
         item.updatedAt = Date(); item.isSyncPending = true
         do { try context.save(); suggestions[index].applied = true; Task { await coordinator.syncPendingItems(context: context) } }
-        catch { item.category = old.0; item.tags = old.1; item.summary = old.2; self.error = error.localizedDescription }
+        catch {
+            item.category = old.0; item.tags = old.1; item.summary = old.2
+            item.collectionName = old.3; item.collectionId = old.4
+            self.error = error.localizedDescription
+        }
     }
 }
