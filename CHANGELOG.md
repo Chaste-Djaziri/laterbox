@@ -9,6 +9,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 - **[macOS] System Status**: Settings now provides a single readiness view for Mac integrations, permissions, sync, notifications, and StoreKit billing, with retry guidance and copyable diagnostics.
 
 ### Fixed
+- **[Android] Native feature parity**: Bringing the Swift app’s capture, Later AI, local search, collections, returns, sharing, item editing, and account settings to native Jetpack Compose with the shared warm canvas and green brand theme.
 - **[iOS] Simulator AI availability**: Simulator captures use guided input without trying to load the physical-device Apple Intelligence model, keeping native validation deterministic.
 - **[iOS] Cloud sync entitlement guard**: Restored the verified Pro check at the native cloud synchronization boundary.
 - **[CI] Native iOS and web releases**: Path-scoped Swift iOS TestFlight uploads and Next.js Cloudflare deployment replace legacy multiplatform release jobs, preserving the existing iOS app identity.
