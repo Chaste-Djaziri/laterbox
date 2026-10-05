@@ -112,14 +112,14 @@ public struct RichMediaBanner: View {
 
             case .note:
                 LinearGradient(
-                    colors: [Color.lbAmber.opacity(0.75), Color.lbAmberDark.opacity(0.9)],
+                    colors: [AppTheme.amber.opacity(0.85), Color(hex: "231F14")],
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
                 )
                 HStack(spacing: 12) {
                     Image(systemName: "pencil.and.scribble")
                         .font(.system(size: 24))
-                        .foregroundColor(.white)
+                        .foregroundColor(AppTheme.accent)
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Personal Note")
                             .font(.caption2.weight(.bold))
@@ -158,18 +158,18 @@ public struct RichMediaBanner: View {
 
             case .link:
                 LinearGradient(
-                    colors: [Color.lbAmber.opacity(0.35), Color.black.opacity(0.6)],
+                    colors: [AppTheme.darkSurface, Color(hex: "242426")],
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
                 )
                 HStack(spacing: 12) {
                     Image(systemName: "globe")
                         .font(.system(size: 24))
-                        .foregroundColor(Color.lbAmber)
+                        .foregroundColor(AppTheme.accent)
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Web Resource")
                             .font(.caption2.weight(.bold))
-                            .foregroundColor(.white.opacity(0.7))
+                            .foregroundColor(AppTheme.accent)
                         Text(title)
                             .font(.subheadline.weight(.semibold))
                             .foregroundColor(.white)
