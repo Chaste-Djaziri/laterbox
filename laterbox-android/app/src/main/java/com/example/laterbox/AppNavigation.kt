@@ -28,7 +28,7 @@ import java.time.Instant
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AppNavigation(context: android.content.Context = LocalContext.current, repository: DataRepository = remember { DefaultDataRepository(context, AppDatabase.getDatabase(context)) }) {
+fun AppNavigation(notificationItemId: String? = null, context: android.content.Context = LocalContext.current, repository: DataRepository = remember { DefaultDataRepository(context, AppDatabase.getDatabase(context)) }) {
     val preferences = remember { context.getSharedPreferences("laterbox", 0) }
     val account by AccountService.state.collectAsState()
     val allItems by repository.items.collectAsState(emptyList())
@@ -39,6 +39,9 @@ fun AppNavigation(context: android.content.Context = LocalContext.current, repos
     var organizer by remember { mutableStateOf(false) }; var trash by remember { mutableStateOf(false) }
     var selected by remember { mutableStateOf<ItemEntity?>(null) }
     val scope = rememberCoroutineScope()
+    LaunchedEffect(notificationItemId, items) {
+        if (notificationItemId != null) { tab = 1; selected = items.firstOrNull { it.id == notificationItemId } }
+    }
     LaunchedEffect(Unit) {
         AccountService.refresh()
         if (account.userId != null) entered = true
@@ -72,7 +75,7 @@ fun AppNavigation(context: android.content.Context = LocalContext.current, repos
         ModalBottomSheet(onDismissRequest = { trash = false }) {
             LazyColumn(Modifier.fillMaxWidth().padding(20.dp)) {
                 item { Text("Trash", style = MaterialTheme.typography.headlineLarge) }
-                items(deleted) { item -> ListItem(headlineContent = { Text(item.title.orEmpty()) }, supportingContent = { Text("Deleted capture") }, trailingContent = { TextButton(onClick = { scope.launch { AppDatabase.getDatabase(context).itemDao().restore(item.id, Instant.now().toString()); repository.syncNow() } }) { Text("Restore") } }) }
+                items(deleted.filter { it.userId == null || it.userId == account.userId }) { item -> ListItem(headlineContent = { Text(item.title.orEmpty()) }, supportingContent = { Text("Deleted capture") }, trailingContent = { TextButton(onClick = { scope.launch { AppDatabase.getDatabase(context).itemDao().restore(item.id, Instant.now().toString()); repository.syncNow() } }) { Text("Restore") } }) }
                 if (deleted.isEmpty()) item { Text("Trash is empty") }
             }
         }

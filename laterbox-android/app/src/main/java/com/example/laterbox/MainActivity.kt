@@ -17,15 +17,17 @@ import com.example.laterbox.theme.LaterboxTheme
 import io.github.jan.supabase.auth.handleDeeplinks
 
 class MainActivity : FragmentActivity() {
+    private var notificationItem by mutableStateOf<String?>(null)
     private var locked by mutableStateOf(false)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        notificationItem = intent.getStringExtra("item_id")
         locked = getSharedPreferences("laterbox", 0).getBoolean("app_lock", false)
         SupabaseClient.client.handleDeeplinks(intent)
         enableEdgeToEdge()
         setContent {
             LaterboxTheme {
-                if (!locked) AppNavigation()
+                if (!locked) AppNavigation(notificationItemId = notificationItem)
                 else {
                     var error by remember { mutableStateOf<String?>(null) }
                     Column(Modifier.fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
@@ -39,5 +41,5 @@ class MainActivity : FragmentActivity() {
     }
     override fun onStart() { super.onStart(); if (getSharedPreferences("laterbox", 0).getBoolean("screen_protection", false)) window.addFlags(WindowManager.LayoutParams.FLAG_SECURE) }
     override fun onStop() { super.onStop(); if (getSharedPreferences("laterbox", 0).getBoolean("app_lock", false)) locked = true }
-    override fun onNewIntent(newIntent: Intent) { super.onNewIntent(newIntent); intent = newIntent; SupabaseClient.client.handleDeeplinks(newIntent) }
+    override fun onNewIntent(newIntent: Intent) { super.onNewIntent(newIntent); intent = newIntent; notificationItem = newIntent.getStringExtra("item_id"); SupabaseClient.client.handleDeeplinks(newIntent) }
 }
