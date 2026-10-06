@@ -68,7 +68,6 @@ async function initialize(): Promise<void> {
     selectionElement.textContent = highlightText;
   }
   await updateConnectionState();
-  openPanelButton.hidden = !browserCapabilities.supportsSidePanel;
 
   // Check Pro entitlement in background to keep state updated
   const token = await getAccessToken();
@@ -134,6 +133,7 @@ openPanelButton.addEventListener("click", () => {
 });
 
 async function openSidePanel(): Promise<void> {
+  if (!browserCapabilities.supportsSidePanel) return;
   try {
     await browserCapabilities.openSidePanel();
   } catch (error) {
