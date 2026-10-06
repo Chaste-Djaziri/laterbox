@@ -57,13 +57,9 @@ Copy the printed production price IDs into `NEXT_PUBLIC_PADDLE_PRO_MONTHLY_PRICE
 
 Apply the Supabase migrations before enabling checkout. The billing launch migration grants accounts that already exist at migration time 30 days of Pro access.
 
-## Distribution flags
+## Native distribution
 
-Flutter builds accept `--dart-define=LATERBOX_DISTRIBUTION=direct|play|app-store`. Direct desktop builds open web billing. Google Play builds are consumption-only and show instructions without a checkout link. Apple App Store builds use StoreKit and enforce the normalized entitlement. `LATERBOX_WEB_URL` controls the entitlement API origin and defaults to `https://app.laterbox.dev`.
-
-Direct iOS, Android, macOS, Windows, and Linux builds open web pricing with the selected plan, source platform, and an allowlisted `laterbox://billing/complete` return URI. Web authentication preserves those parameters through sign-in. After Paddle confirms checkout and the verified webhook grants access, the browser reopens LaterBox; the app then refreshes entitlement for up to 20 seconds and displays the resulting Pro status. No session token or billing credential is placed in the return URI.
-
-The `laterbox` URL scheme is registered in the Apple and Android application metadata and by the Windows installer. Store-distributed Apple and Google Play builds do not use this web checkout return flow.
+Apple applications use native StoreKit and verified server entitlements. Android billing lives in the Kotlin app; configure Google Play products and signing for its distribution. Web checkout uses Paddle. Release behavior must be verified in each native client rather than selected through a shared compile-time distribution flag.
 
 ## Apple configuration
 
@@ -94,18 +90,7 @@ The current verification path uses Apple-signed StoreKit transaction JWS data an
 
 StoreKit purchases require an authenticated LaterBox account. The Supabase user UUID is sent as `appAccountToken`; the server rejects transactions that are missing it or belong to another user.
 
-Build Apple store releases with:
-
-```bash
-flutter build ipa --release --dart-define=LATERBOX_DISTRIBUTION=app-store
-flutter build macos --release --dart-define=LATERBOX_DISTRIBUTION=app-store
-```
-
-Build Google Play without any external checkout surface:
-
-```bash
-flutter build appbundle --release --dart-define=LATERBOX_DISTRIBUTION=play
-```
+Build Apple releases through the native Xcode workflow in [deployment](deployment.md). Build Android App Bundles in Android Studio with the appropriate release signing and Google Play billing configuration.
 
 ## Access behavior
 
