@@ -41,7 +41,7 @@ export async function enrichCapture(capture: Capture): Promise<Capture> {
   if (!capture.url || capture.kind === 'highlight' || capture.kind === 'social' || (capture.markdown && capture.previewImageUrl && capture.description)) return capture;
   try {
     const origin = import.meta.env.VITE_LATERBOX_WEB_URL || 'https://app.laterbox.dev';
-    const response = await fetch(`${origin}/api/enrich?url=${encodeURIComponent(capture.url.split('#')[0])}`, { signal: AbortSignal.timeout(5000) });
+    const response = await fetch(`${origin}/api/enrich`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({url:capture.url.split("#")[0]}), signal: AbortSignal.timeout(5000) });
     if (!response.ok) return capture;
     const data = await response.json();
     const raw = typeof data.markdown === 'string' ? data.markdown : '';
