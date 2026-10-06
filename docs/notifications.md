@@ -8,7 +8,7 @@ Notifications are opt-in per device/browser in **Settings → Device notificatio
 | --- | --- | --- |
 | iOS / macOS | OS-scheduled local notification | APNs, including while closed |
 | Android | OS-scheduled local notification | FCM, including while closed |
-| Windows / Linux | Timer while running, including tray | Authenticated outbox polling every 30 seconds while running |
+| Windows / Linux | Native implementation pending | Use web notifications |
 | Web | Notification while the page runs | Web Push/service worker, including while closed |
 
 Windows/Linux native apps do not install a background service. For closed-app delivery, enable Web Push in a supported browser. Linux requires a desktop notification daemon. Unpackaged Windows apps can display notifications, but Windows requires package identity/MSIX to remove already displayed toasts; timer cancellation still works.
@@ -41,7 +41,7 @@ Inspect `notification_deliveries.state`, `attempts`, `retry_at`, and `last_error
 
 ## Android setup
 
-Create/register the Android Firebase app with package ID `pro.micorp.laterbox`. Supply these public client values when building (for example through `--dart-define-from-file` in your release workflow):
+Create/register the Android Firebase app with package ID `pro.micorp.laterbox`. Supply these public client values when building in the native Android release configuration:
 
 ```json
 {
@@ -75,8 +75,6 @@ Account state and recently displayed event IDs are stored in IndexedDB for the s
 ## Verification
 
 ```sh
-flutter test test/notification_plan_test.dart test/inbox_deduplication_test.dart
-flutter analyze --no-pub
 cd laterbox-web
 npx tsc --noEmit
 npm test
@@ -86,6 +84,6 @@ npx --yes deno test -A supabase/tests/notifications.test.ts supabase/functions/n
 
 The SQL regression suite runs the actual outbox migration in embedded PostgreSQL (PGlite); it does not contact production. CI also runs the web and backend notification suites. Provider secrets are not needed for these tests.
 
-Validated during implementation: unsigned iOS and macOS compilation, native reminder planning and existing inbox tests, web TypeScript and unit tests, actual SQL outbox behavior, and Edge Function type checks/tests. Existing unrelated Flutter lint findings remain. Signed macOS build requires a new push-enabled provisioning profile. Android SDK and Windows/Linux toolchains were not available on the development machine. Real-device provider delivery is still a release acceptance step after credential provisioning.
+Validated during implementation: unsigned iOS and macOS compilation, native reminder planning and existing inbox tests, web TypeScript and unit tests, actual SQL outbox behavior, and Edge Function type checks/tests. Signed macOS build requires a new push-enabled provisioning profile. Android SDK and Windows/Linux toolchains were not available on the development machine. Real-device provider delivery is still a release acceptance step after credential provisioning.
 
 On each target device, test permission denial/revocation, a two-minute local reminder while offline, reschedule/archive cancellation, a remote save from a second device, background/closed-app delivery where supported, notification taps with and without an existing session, logout/account switching, duplicate/retried pushes, and expired provider tokens. Verify that scheduled returns notify every opted-in device and immediate saves omit their originating device.
