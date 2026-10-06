@@ -301,6 +301,13 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
     } catch (_) {}
   }
 
+  if (item.content) {
+    storedMarkdown = item.content.markdown || storedMarkdown;
+    if (item.content.markdown) storedHtml = null;
+    storedAuthor = item.content.author || storedAuthor;
+    storedPublishedTime = item.content.published_at || storedPublishedTime;
+  }
+
   const destinationUrl = item.url
     ? buildTextFragmentUrl(item.url, item.text_content, item.text_selector ? JSON.parse(item.text_selector).before : null)
     : null;
@@ -776,6 +783,9 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
               </div>
             )}
 
+            {item.content?.truncated && (
+              <p role="status" className="text-sm text-amber-700">This saved snapshot was shortened. Open the source for the full content.</p>
+            )}
             {/* Multi-Format Article Reader: Formatted, Markdown, HTML View */}
             {(storedMarkdown || storedHtml || (item.text_content && !item.text_selector)) && (
               <ArticleReader
