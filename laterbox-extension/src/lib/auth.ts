@@ -61,7 +61,7 @@ export async function connectLaterBoxViaTab(): Promise<string> {
   }
   await clearPendingConnection();
   const endpoint = getConnectionEndpoint();
-  const webUrl = import.meta.env.VITE_LATERBOX_WEB_URL || 'https://app.laterbox.dev';
+  const webUrl = import.meta.env?.VITE_LATERBOX_WEB_URL || 'https://app.laterbox.dev';
   const { requestId, requestSecret } = createConnectCredentials();
   await postConnection(endpoint,{ action: 'request', request_id: requestId, request_secret: requestSecret });
   const url = new URL('/extension/connect',webUrl);
@@ -136,16 +136,18 @@ export async function checkProEntitlement(): Promise<boolean> {
         authorization: `Bearer ${token}`,
         "content-type": "application/json",
       },
-      body: JSON.stringify({ action: "entitlement" }),
+      body: JSON.stringify({ action: "entitlement" }), signal: AbortSignal.timeout(10000),
     });
 
     if (!response.ok) {
-      if (response.status === 401) await clearConnection();
-      if (response.status === 403) await setIsPro(false);
+      if (response.status === 401 && await getAccessToken() === token) await clearConnection();
+      if (response.status === 403 && await getAccessToken() === token) await setIsPro(false);
       return false;
     }
 
-    const data = (await response.json()) as { isPro?: unknown };
+    if (await getAccessToken() !== token) return false;
+    const data = (await response.json()) as { isPro?: unknown; userId?: unknown };
+    if (typeof data.userId === "string" && data.userId !== await getConnectedUserId()) return false;
     const isPro = data?.isPro === true;
     await setIsPro(isPro);
     return isPro;
@@ -156,7 +158,7 @@ export async function checkProEntitlement(): Promise<boolean> {
 }
 
 export function getProUpgradeUrl(): string {
-  const webUrl = import.meta.env.VITE_LATERBOX_WEB_URL || "https://app.laterbox.dev";
+  const webUrl = import.meta.env?.VITE_LATERBOX_WEB_URL || "https://app.laterbox.dev";
   return `${webUrl.replace(/\/$/, "")}/pricing?checkout=true&source=extension`;
 }
 
@@ -199,9 +201,9 @@ export async function disconnectLaterBox(): Promise<void> {
 }
 
 function getConnectionEndpoint(): string {
-  const configured = import.meta.env.VITE_EXTENSION_CONNECT_URL ?? "";
+  const configured = import.meta.env?.VITE_EXTENSION_CONNECT_URL ?? "";
   if (configured) return configured;
-  return (import.meta.env.VITE_CAPTURE_API_URL ?? "").replace(
+  return (import.meta.env?.VITE_CAPTURE_API_URL ?? "").replace(
     /\/capture$/,
     "/extension-connect",
   );
