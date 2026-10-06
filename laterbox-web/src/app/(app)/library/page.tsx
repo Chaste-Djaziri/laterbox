@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { ItemCard } from '@/components/inbox/ItemCard';
 import { ItemListRow } from '@/components/inbox/ItemListRow';
 import { QuickCaptureModal } from '@/components/inbox/QuickCaptureModal';
-import { CloudSyncIndicator } from '@/components/ui/CloudSyncIndicator';
 import { useItems } from '@/lib/store/ItemContext';
 import {
   Star,
@@ -125,8 +124,6 @@ export default function LibraryPage() {
                 <List className="w-3.5 h-3.5" />
               </button>
             </div>
-
-            <CloudSyncIndicator />
 
             <Link
               href="/tutorial"
