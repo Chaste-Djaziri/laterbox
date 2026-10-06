@@ -26,7 +26,6 @@ import {
   ArrowLeft,
   LayoutGrid,
   List,
-  Sparkles,
   HelpCircle,
   Folder,
   Calendar,
@@ -132,7 +131,7 @@ function ItemCardRow({
 }
 
 export function ScheduleDashboard({ view }: { view?: ScheduleView }) {
-  const { items, inboxItems, now, loading, syncStatus, hasDemoItems, clearDemoItems } = useItems();
+  const { items, inboxItems, now, loading, syncStatus } = useItems();
   const { user, userName, setUserName } = useAuth();
   const router = useRouter();
   const [capture, setCapture] = useState(false);
@@ -606,21 +605,6 @@ export function ScheduleDashboard({ view }: { view?: ScheduleView }) {
           <p className="text-xs sm:text-sm text-[#8e8d87] font-medium">
             Here is what needs your attention.
           </p>
-          {hasDemoItems && (
-            <button
-              type="button"
-              onClick={() => {
-                if (window.confirm('Clear all demo cards to start fresh with an empty LaterBox?')) {
-                  clearDemoItems();
-                }
-              }}
-              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white hover:bg-[#ebe7dc] border border-[#e4e0d5] text-xs font-bold text-[#6c6b63] hover:text-[#171711] shadow-2xs transition-colors cursor-pointer"
-              title="Clear pre-seeded demo items"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-              <span>Clear Demo Cards (Start Fresh)</span>
-            </button>
-          )}
         </div>
       </div>
 
