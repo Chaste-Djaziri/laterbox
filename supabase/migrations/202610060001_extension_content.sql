@@ -1,5 +1,5 @@
 -- Native content snapshots: independent of enrichment metadata updates.
-create table public.item_content (
+create table if not exists public.item_content (
   item_id uuid primary key references public.items(id) on delete cascade,
   user_id uuid not null references auth.users(id) on delete cascade,
   capture_id uuid not null,
@@ -14,13 +14,14 @@ create table public.item_content (
   unique(user_id,capture_id)
 );
 alter table public.item_content enable row level security;
+drop policy if exists item_content_owner_read on public.item_content;
 create policy item_content_owner_read on public.item_content for select to authenticated
 using (user_id = auth.uid() and exists(select 1 from public.items i where i.id=item_id and i.user_id=auth.uid() and i.deleted_at is null));
 grant select on public.item_content to authenticated;
 grant all on public.item_content to service_role;
 
 -- Callable only by the capture endpoint after authentication and entitlement checks.
-create function public.save_extension_capture(p_user_id uuid, p_capture_id uuid, p_item jsonb, p_metadata jsonb, p_content jsonb)
+create or replace function public.save_extension_capture(p_user_id uuid, p_capture_id uuid, p_item jsonb, p_metadata jsonb, p_content jsonb)
 returns uuid language plpgsql security definer set search_path = public, pg_temp as $$
 declare v_id uuid; v_item public.items; v_metadata public.item_metadata;
 begin
