@@ -14,7 +14,8 @@
     "build:all": "npm run build:hosted && npm run build:safari && npm run build:firefox",
     "zip": "cd dist/chromium && zip -r ../laterbox-chrome-extension.zip . && cd ../safari && zip -r ../laterbox-safari-extension.zip . && cd ../firefox && zip -r ../laterbox-firefox-extension.zip .",
     "package": "npm run build:all && npm run zip",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test tests/*.test.ts"
   },
   "devDependencies": {
     "@types/chrome": "^0.0.325",
