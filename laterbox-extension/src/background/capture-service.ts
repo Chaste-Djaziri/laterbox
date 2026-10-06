@@ -29,7 +29,10 @@ export async function updateCaptureState(result: CaptureResult, pending: number)
   await browser.action.setBadgeText({ text });
   await browser.action.setBadgeBackgroundColor({ color });
   await browser.action.setTitle({ title: status === 'queued' ? `${pending} pending captures — offline or service unavailable` : status === 'needsAuth' ? 'Reconnect LaterBox to sync pending captures' : status === 'proRequired' ? 'LaterBox Pro required' : status === 'error' ? 'Could not capture this content' : 'Saved to LaterBox' });
-  await browser.action.setIcon({ path: status === 'queued' ? { 16: 'icons/offline-16.png', 32: 'icons/offline-32.png' } : { 16: 'icons/icon-16.png', 32: 'icons/icon-32.png' } });
+  if (status === 'queued' && typeof OffscreenCanvas !== 'undefined') {
+    const canvas=new OffscreenCanvas(32,32);const ctx=canvas.getContext('2d');
+    if(ctx){ctx.fillStyle='#777';ctx.fillRect(3,3,26,26);ctx.fillStyle='#ddd';ctx.font='bold 22px sans-serif';ctx.fillText('L',9,24);await browser.action.setIcon({imageData:ctx.getImageData(0,0,32,32)});}
+  } else { await browser.action.setIcon({path:{16:'icons/icon-16.png',32:'icons/icon-32.png'}}); }
   await browser.storage.local.set({ captureState: { status, pending, reason: result.reason || null } });
 }
 
