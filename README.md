@@ -31,7 +31,7 @@ Open `laterbox-ios/laterbox-ios.xcodeproj` in Xcode and select the `laterbox-ios
 Open `laterbox-android/` in Android Studio. The project uses JDK 17 and Android SDK 36. Set `SUPABASE_URL` and `SUPABASE_KEY` in its ignored `local.properties` file.
 
 ```sh
-cd extension
+cd laterbox-extension
 npm ci
 npm run typecheck
 npm run build:all
