@@ -44,13 +44,10 @@ export async function enrichCapture(capture: Capture): Promise<Capture> {
     const response = await fetch(`${origin}/api/enrich`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({url:capture.url.split("#")[0]}), signal: AbortSignal.timeout(5000) });
     if (!response.ok) return capture;
     const data = await response.json();
-    const raw = typeof data.markdown === 'string' ? data.markdown : '';
-    const bytes = new TextEncoder().encode(raw); const truncated = bytes.length > 204800;
-    const markdown = truncated ? new TextDecoder().decode(bytes.slice(0,204800)).replace(/\uFFFD$/,'') : raw;
     return { ...capture, title: capture.title || data.title, description: capture.description || data.description,
       previewImageUrl: capture.previewImageUrl || data.previewImageUrl || data.preview_image_url,
       faviconUrl: capture.faviconUrl || data.faviconUrl, siteName: capture.siteName || data.siteName,
-      markdown: capture.markdown || markdown, author: capture.author || data.author, publishedAt: capture.publishedAt || data.publishedTime,
-      truncated: capture.truncated || (!capture.markdown && truncated) };
+      author: capture.author || data.author, publishedAt: capture.publishedAt || data.publishedTime,
+      truncated: capture.truncated };
   } catch { return capture; }
 }
