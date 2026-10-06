@@ -7,7 +7,7 @@ LaterBox has separate native Apple and Android applications, a Next.js web appli
 - `laterbox-ios/`: Swift/SwiftUI views, SwiftData persistence, native capture, and Apple integrations. The release scheme currently targets iOS; macOS-specific source remains for native macOS work.
 - `laterbox-android/`: Kotlin/Jetpack Compose, Room persistence, and WorkManager synchronization.
 - `laterbox-web/`: Next.js/React, account-scoped local caching and pending capture queues, plus authenticated Supabase synchronization.
-- `extension/` and `safari_app/`: browser capture and its native Safari host. Extensions use scoped connection credentials rather than exposing service-role keys.
+- `laterbox-extension/` and `safari_app/`: browser capture and its native Safari host. Extensions use scoped connection credentials rather than exposing service-role keys.
 
 ## Shared services
 
