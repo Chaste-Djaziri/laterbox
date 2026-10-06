@@ -41,3 +41,8 @@ test('Reels action-rail audio thumbnails cannot become the capture root',()=>{
  w.history.pushState({},'','/reels/nextCode/');media[0].getBoundingClientRect=()=>({width:400,height:600,top:-700,bottom:-100}) as DOMRect;media[1].getBoundingClientRect=()=>({width:400,height:600,top:50,bottom:650}) as DOMRect;
  const next=findInstagramPosts(w.document,w.location.href);assert.equal(next.length,1);assert.equal(next[0].root.getAttribute('data-fixture'),'next');assert.equal(next[0].url,'https://www.instagram.com/reel/nextCode/');
 });
+
+test('Reel box gets its own rail slot between complete Share and Save wrappers',()=>{
+ const {window:w}=fixture('<div><video></video><a href="/reel/one/">Reel</a><aside><div><button><svg aria-label="Like"></svg></button><span>Likes</span></div><div><button><svg aria-label="Comment"></svg></button></div><div id="share-slot"><div><button><svg aria-label="Share"></svg></button></div></div><div id="bookmark-slot"><button><svg aria-label="Save"></svg></button></div></aside></div>','https://www.instagram.com/reels/one/');
+ const posts=findInstagramPosts(w.document,w.location.href);assert.equal(posts.length,1);assert.equal(posts[0].insertionPoint.id,'share-slot');const sync=createInstagramControls(w.document,()=>{const el=w.document.createElement('span');el.setAttribute('data-laterbox-control','');return el;});sync(true,w.location.href);const box=w.document.querySelector('[data-laterbox-control]')!;assert.equal(box.parentElement?.tagName,'ASIDE');assert.equal(box.previousElementSibling?.id,'share-slot');assert.equal(box.nextElementSibling?.id,'bookmark-slot');
+});
