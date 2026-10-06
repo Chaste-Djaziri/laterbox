@@ -151,12 +151,12 @@ def main():
             # Input field mockup
             ss_draw.rounded_rectangle([card_x1 + 70, content_y + 130, card_x2 - 70, content_y + 230], radius=16, fill=(23, 23, 17))
             ss_draw.text((card_x1 + 95, content_y + 165), "https://developer.android.com/jetpack/compose", fill=(231, 255, 87), anchor="lm")
-            ss_draw.text((card_x1 + 95, content_y + 200), "Flutter engine architecture reference", fill=(161, 161, 154), anchor="lm")
+            ss_draw.text((card_x1 + 95, content_y + 200), "Native Android architecture reference", fill=(161, 161, 154), anchor="lm")
             
             # Tags selection
             ss_draw.text((card_x1 + 70, content_y + 270), "Select Tags:", fill=(200, 200, 190), anchor="lm")
             tx = card_x1 + 70
-            for tag in ["#Dev", "#Flutter", "#OpenSource"]:
+            for tag in ["#Dev", "#Kotlin", "#OpenSource"]:
                 ss_draw.rounded_rectangle([tx, content_y + 300, tx + 160, content_y + 350], radius=16, fill=(231, 255, 87))
                 ss_draw.text((tx + 80, content_y + 325), tag, fill=(23, 23, 17), anchor="mm")
                 tx += 180
