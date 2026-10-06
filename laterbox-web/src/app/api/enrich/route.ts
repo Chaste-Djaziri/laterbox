@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { extractArticleContent } from '@/lib/reader/articleExtractor';
 
 const MAX_HTML_BYTES = 1_500_000;
 const FETCH_TIMEOUT_MS = 10_000;
@@ -318,9 +319,11 @@ export async function POST(req: NextRequest) {
 
     const oembed = await oembedPromise;
     const finalUri = new URL(finalUrl);
+    const article = html ? extractArticleContent(html, finalUrl) : null;
 
     let title =
       (oembed?.title && !isGenericTitle(oembed.title) ? oembed.title : null) ||
+      article?.title ||
       extractMeta(html, 'og:title') ||
       extractMeta(html, 'twitter:title') ||
       extractTitle(html);
@@ -336,16 +339,33 @@ export async function POST(req: NextRequest) {
       extractMeta(html, 'og:description') ||
       extractMeta(html, 'twitter:description') ||
       extractMeta(html, 'description') ||
+      article?.description ||
       oembed?.description ||
-      (oembed?.author_name ? `${oembed.provider_name || 'Media'} by ${oembed.author_name}` : null);
+      (oembed?.author_name ? `${oembed.provider_name || 'Media'} by ${oembed.author_name}` : null) ||
+      (article?.textContent ? article.textContent.slice(0, 240).trim() : null);
 
     const rawImage =
       extractMeta(html, 'og:image') ||
       extractMeta(html, 'og:image:url') ||
+      extractMeta(html, 'og:image:secure_url') ||
       extractMeta(html, 'twitter:image') ||
-      extractMeta(html, 'twitter:image:src');
+      extractMeta(html, 'twitter:image:src') ||
+      extractMeta(html, 'thumbnail') ||
+      extractMeta(html, 'image');
 
-    let previewImageUrl = resolveAbsoluteUrl(rawImage, finalUrl) || oembed?.thumbnail_url || null;
+    let previewImageUrl =
+      resolveAbsoluteUrl(rawImage, finalUrl) ||
+      oembed?.thumbnail_url ||
+      article?.previewImageUrl ||
+      null;
+
+    // Fallback: check link[rel="image_src"] or apple-touch-icon if no image found yet
+    if (!previewImageUrl && html) {
+      const linkImg = html.match(/<link[^>]+rel=["'](?:image_src|apple-touch-icon)["'][^>]+href=["']([^"']+)["']/i);
+      if (linkImg?.[1]) {
+        previewImageUrl = resolveAbsoluteUrl(decodeHtmlEntities(linkImg[1]), finalUrl);
+      }
+    }
 
     // For YouTube, ensure high-quality thumbnail if present
     const ytMatch = rawUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/))([\w-]{11})/);
@@ -363,6 +383,24 @@ export async function POST(req: NextRequest) {
     const ogType = extractMeta(html, 'og:type');
     const contentType = classifyUrl(finalUri, ogType);
     const embed = detectEmbed(rawUrl);
+
+    // Build author, publish time, and reading stats
+    const author =
+      article?.author ||
+      extractMeta(html, 'author') ||
+      extractMeta(html, 'article:author') ||
+      oembed?.author_name ||
+      null;
+
+    const publishedTime =
+      article?.publishedTime ||
+      extractMeta(html, 'article:published_time') ||
+      null;
+
+    const readingTimeMinutes = article?.readingTimeMinutes || 1;
+    const markdown = article?.markdown || '';
+    const htmlContent = article?.htmlContent || '';
+    const textContent = article?.textContent || '';
 
     // Build intelligent, contextual keywords from page and oEmbed metadata
     const extractedKeywords = extractKeywords(html);
@@ -403,6 +441,12 @@ export async function POST(req: NextRequest) {
       previewImageUrl,
       preview_image_url: previewImageUrl,
       keywords,
+      author,
+      publishedTime,
+      readingTimeMinutes,
+      markdown,
+      htmlContent,
+      textContent,
       embedProvider: embed?.embedProvider ?? oembed?.provider_name ?? null,
       embedUrl: embed?.embedUrl ?? null,
       embedHeight: embed?.embedHeight ?? null,
