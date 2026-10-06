@@ -34,6 +34,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 - **[Web] Music source labels**: Music cards and item actions now identify the originating service (including Apple Music and Spotify) and avoid presenting a Spotify label or icon for unrelated music links.
 
 ### Changed
+- **[Web] Dynamic Search Suggestions with Guaranteed Results**: Updated search suggestions on the Deep Search page (`/search`) to dynamically derive from the user's actual vault items (matching active content types, save dates, top domains, and prominent keywords). Guarantees every suggested pill returns verified matching results upon clicking.
 - **[Web] Extension Upgrade Notice Icon Standardization**: Replaced raw lightning emoji in browser extension upgrade banners across the plans and pricing pages with the Lucide `Zap` SVG icon.
 - **[Web] Schedule & Timeline Header Badge Icon Standardization**: Replaced raw emojis across the scheduled timeline views (Upcoming, Today, and Someday) with proper Lucide SVG icons (`Calendar`, `Clock`, `Zap`, and `Sparkles`) and standardized divider badges.
 - **[Web] Library Header Badge Icon Standardization**: Replaced raw book emoji in the library header pill with proper Lucide SVG icons (`BookOpen` and `Database`) for visual consistency with the search and system headers.
