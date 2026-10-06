@@ -40,6 +40,13 @@ export default defineConfig({
             },
           },
         });
+        await build({
+          configFile: false, publicDir: false,
+          build: {
+            outDir: resolve(rootDir, `dist/${browserTarget}`), emptyOutDir: false,
+            lib: { entry: resolve(rootDir, "src/content/index.ts"), name: "LaterBoxContent", formats: ["iife"], fileName: () => "content.js" },
+          },
+        });
       },
     },
   ],
