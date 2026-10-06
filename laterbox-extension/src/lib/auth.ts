@@ -37,123 +37,67 @@ export async function openApprovalTab(): Promise<void> {
   await browser.runtime.sendMessage({ type: "open-approval-tab" });
 }
 
-let activeConnectPromise: Promise<string> | null = null;
-let activeConnectCancel: (() => void) | null = null;
+let polling: Promise<string> | null = null;
+const CONNECT_TIMEOUT_MS = 5 * 60 * 1000;
 
 export async function cancelPendingConnection(): Promise<void> {
-  if (activeConnectCancel) {
-    activeConnectCancel();
-    activeConnectCancel = null;
-  }
   const pending = await getPendingConnection();
-  if (pending?.tabId !== undefined) {
-    await closeTab(pending.tabId);
-  }
   await clearPendingConnection();
+  if (pending?.tabId !== undefined) await closeTab(pending.tabId);
 }
-
 export async function openPendingApprovalTab(): Promise<void> {
   const pending = await getPendingConnection();
-  if (!pending?.connectUrl) {
-    await connectLaterBoxViaTab();
-    return;
-  }
+  if (!pending) { await connectLaterBoxViaTab(); return; }
   if (pending.tabId !== undefined) {
-    try {
-      await browser.tabs.update(pending.tabId, { active: true });
-      return;
-    } catch {}
+    try { await browser.tabs.update(pending.tabId,{ active: true }); return; } catch {}
   }
   const tab = await browser.tabs.create({ url: pending.connectUrl });
   await setPendingConnection({ ...pending, tabId: tab.id });
 }
-
-const POLL_INTERVAL_MS = 1_000;
-const CONNECT_TIMEOUT_MS = 5 * 60 * 1_000;
-
-/** Tab-based connect running in the background worker. */
 export async function connectLaterBoxViaTab(): Promise<string> {
-  if (activeConnectPromise) {
-    return activeConnectPromise;
+  const pending = await getPendingConnection();
+  if (pending && Date.now()-pending.createdAt < CONNECT_TIMEOUT_MS) {
+    await openPendingApprovalTab(); void resumePendingConnection(); return '';
   }
-
-  activeConnectPromise = (async () => {
-    const connectionEndpoint = getConnectionEndpoint();
-    const webUrl = import.meta.env.VITE_LATERBOX_WEB_URL ?? "";
-    if (!connectionEndpoint || !webUrl) {
-      throw new Error("laterbox connection is not configured");
+  await clearPendingConnection();
+  const endpoint = getConnectionEndpoint();
+  const webUrl = import.meta.env.VITE_LATERBOX_WEB_URL || 'https://app.laterbox.dev';
+  const { requestId, requestSecret } = createConnectCredentials();
+  await postConnection(endpoint,{ action: 'request', request_id: requestId, request_secret: requestSecret });
+  const url = new URL('/extension/connect',webUrl);
+  url.searchParams.set('request_id',requestId); url.searchParams.set('request_secret',requestSecret);
+  url.searchParams.set('redirect_uri',new URL('/extension/connected',webUrl).href);
+  // Persist before opening the tab so worker suspension cannot lose the request.
+  await setPendingConnection({ requestId, requestSecret, connectUrl: url.href, createdAt: Date.now() });
+  const tab = await browser.tabs.create({ url: url.href });
+  await setPendingConnection({ requestId, requestSecret, connectUrl: url.href, createdAt: Date.now(), tabId: tab.id });
+  void resumePendingConnection(); return '';
+}
+export function resumePendingConnection(): Promise<string> {
+  if (polling) return polling;
+  polling = pollConnection().finally(()=>{ polling=null; }); return polling;
+}
+async function pollConnection(): Promise<string> {
+  const pending = await getPendingConnection();
+  if (!pending) return '';
+  if (Date.now()-pending.createdAt >= CONNECT_TIMEOUT_MS) {
+    await clearPendingConnection();
+    await browser.storage.local.set({ connectionError: 'Approval expired. Connect again.' }); return '';
+  }
+  try {
+    const endpoint = getConnectionEndpoint();
+    const response = await postConnection(endpoint,{ action:'status', request_id:pending.requestId, request_secret:pending.requestSecret });
+    if ((await getPendingConnection())?.requestId !== pending.requestId) return '';
+    if (response.status === 'approved') {
+      const userId = await exchangeConnection(endpoint,pending.requestId,pending.requestSecret);
+      await clearPendingConnection(); await browser.storage.local.remove('connectionError'); return userId;
     }
-
-    const { requestId, requestSecret } = createConnectCredentials();
-    await postConnection(connectionEndpoint, {
-      action: "request",
-      request_id: requestId,
-      request_secret: requestSecret,
-    });
-
-    const connectUrl = new URL("/extension/connect", webUrl);
-    connectUrl.searchParams.set("request_id", requestId);
-    connectUrl.searchParams.set("request_secret", requestSecret);
-    connectUrl.searchParams.set(
-      "redirect_uri",
-      new URL("/extension/connected", webUrl).toString(),
-    );
-
-    const tab = await browser.tabs.create({ url: connectUrl.toString() });
-    await setPendingConnection({
-      requestId,
-      requestSecret,
-      connectUrl: connectUrl.toString(),
-      tabId: tab.id,
-      createdAt: Date.now(),
-    });
-
-    let cancelled = false;
-    activeConnectCancel = () => {
-      cancelled = true;
-    };
-
-    const deadline = Date.now() + CONNECT_TIMEOUT_MS;
-    let status = "pending";
-    try {
-      while (Date.now() < deadline && !cancelled) {
-        await sleep(POLL_INTERVAL_MS);
-        if (cancelled) break;
-        try {
-          const response = await postConnection(connectionEndpoint, {
-            action: "status",
-            request_id: requestId,
-            request_secret: requestSecret,
-          });
-          status = typeof response.status === "string" ? response.status : "pending";
-        } catch {
-          // Transient failures should not end the connection attempt.
-        }
-        if (status !== "pending") break;
-      }
-
-      if (cancelled) {
-        throw new Error("Connection request cancelled.");
-      }
-
-      if (status !== "approved") {
-        await closeTab(tab.id);
-        throw new Error("laterbox connection timed out or was not approved.");
-      }
-
-      const userId = await exchangeConnection(connectionEndpoint, requestId, requestSecret);
-      await clearPendingConnection();
-      return userId;
-    } finally {
-      activeConnectPromise = null;
-      activeConnectCancel = null;
-      if (status !== "approved") {
-        await clearPendingConnection();
-      }
+    if (response.status === 'used' || response.status === 'expired') {
+      await clearPendingConnection(); await browser.storage.local.set({ connectionError:'Approval unavailable. Connect again.' }); return '';
     }
-  })();
-
-  return activeConnectPromise;
+  } catch { /* transient errors stay pending until persistent alarm retries */ }
+  setTimeout(()=>void resumePendingConnection(),1000);
+  return '';
 }
 
 async function exchangeConnection(
@@ -170,15 +114,11 @@ async function exchangeConnection(
     throw new Error("laterbox did not return an extension credential");
   }
 
-  await setAccessToken(response.extensionToken);
   const userId = typeof response.userId === "string" ? response.userId : "";
-  await setConnectedUserId(userId);
-  if (typeof response.isPro === "boolean") {
-    await setIsPro(response.isPro);
-  } else {
-    // If not returned directly, check entitlement
-    void checkProEntitlement();
-  }
+  if (!userId) throw new Error('Connection did not identify an account.');
+  const pending = await getPendingConnection();
+  if (pending?.requestId !== requestId) throw new Error('Connection was cancelled.');
+  await browser.storage.local.set({ accessToken: response.extensionToken, connectedUserId: userId, hasProPlan: response.isPro === true });
   return userId;
 }
 
@@ -200,6 +140,8 @@ export async function checkProEntitlement(): Promise<boolean> {
     });
 
     if (!response.ok) {
+      if (response.status === 401) await clearConnection();
+      if (response.status === 403) await setIsPro(false);
       return false;
     }
 
@@ -214,7 +156,7 @@ export async function checkProEntitlement(): Promise<boolean> {
 }
 
 export function getProUpgradeUrl(): string {
-  const webUrl = import.meta.env.VITE_LATERBOX_WEB_URL || "https://laterbox.dev";
+  const webUrl = import.meta.env.VITE_LATERBOX_WEB_URL || "https://app.laterbox.dev";
   return `${webUrl.replace(/\/$/, "")}/pricing?checkout=true&source=extension`;
 }
 
@@ -241,6 +183,8 @@ function sleep(ms: number): Promise<void> {
 export async function disconnectLaterBox(): Promise<void> {
   const token = await getAccessToken();
   const connectionEndpoint = getConnectionEndpoint();
+  await clearConnection();
+  await cancelPendingConnection();
   if (token && connectionEndpoint) {
     await fetch(connectionEndpoint, {
       method: "POST",
@@ -248,8 +192,8 @@ export async function disconnectLaterBox(): Promise<void> {
         authorization: `Bearer ${token}`,
         "content-type": "application/json",
       },
-      body: JSON.stringify({ action: "revoke" }),
-    });
+      body: JSON.stringify({ action: "revoke" }), signal: AbortSignal.timeout(10000),
+    }).catch(()=>{});
   }
   await clearConnection();
 }
@@ -270,7 +214,7 @@ async function postConnection(
   const response = await fetch(endpoint, {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify(body),
+    body: JSON.stringify(body), signal: AbortSignal.timeout(10000),
   });
   if (response.status === 404 && endpoint.startsWith("http://127.0.0.1:")) {
     throw new Error(
