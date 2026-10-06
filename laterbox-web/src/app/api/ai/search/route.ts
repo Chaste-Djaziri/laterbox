@@ -187,7 +187,7 @@ Return valid JSON adhering strictly to:
       });
     }
 
-    const geminiData = await geminiRes.json();
+    const geminiData = (await geminiRes.json()) as any;
     const rawText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
     const parsed = JSON.parse(rawText);
 

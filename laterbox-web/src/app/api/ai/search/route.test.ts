@@ -133,7 +133,7 @@ test('allows Pro plan account to query Gemini and returns structured search resu
     );
     assert.equal(response.status, 200);
     assert.equal(geminiCalls, 1);
-    const data = await response.json();
+    const data = (await response.json()) as any;
     assert.equal(data.success, true);
     assert.equal(data.isAi, true);
     assert.equal(data.parsedFilters.contentType, 'video');

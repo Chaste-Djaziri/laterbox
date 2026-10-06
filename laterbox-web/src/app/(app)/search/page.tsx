@@ -1,10 +1,18 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Link from 'next/link';
 import { ItemCard } from '@/components/inbox/ItemCard';
 import { ItemListRow } from '@/components/inbox/ItemListRow';
 import { useItems } from '@/lib/store/ItemContext';
+import { useAuth } from '@/lib/store/AuthContext';
+import { useBilling } from '@/lib/store/BillingContext';
+import {
+  parseAmbiguousQuery,
+  filterAndRankAmbiguousItems,
+  type ParsedSearchQuery,
+  type AmbiguousContentType,
+} from '@/lib/search/ambiguousSearch';
 import {
   Search as SearchIcon,
   Database,
@@ -20,37 +28,153 @@ import {
   HelpCircle,
   Sparkles,
   Folder,
-  Tag,
+  Loader2,
+  Calendar,
+  Zap,
+  Lock,
 } from 'lucide-react';
+
+interface AiSearchResult {
+  summary: string;
+  model: string;
+  rankedItemIds: string[];
+  explanations: Record<string, string>;
+  parsedFilters?: {
+    contentType?: string;
+    dateRange?: { start?: string; end?: string; label: string };
+    semanticKeywords?: string[];
+  };
+}
 
 export default function SearchPage() {
   const { items } = useItems();
+  const { session } = useAuth();
+  const { isPro } = useBilling();
+
   const [query, setQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [layoutMode, setLayoutMode] = useState<'grid' | 'list'>('grid');
+  const [aiEnabled, setAiEnabled] = useState(true);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiResult, setAiResult] = useState<AiSearchResult | null>(null);
 
-  const filtered = items.filter((item) => {
-    // Type filter
-    if (typeFilter !== 'all') {
-      const cType = item.metadata?.content_type || (item.url ? 'link' : 'note');
-      const ext = item.url?.split('.').pop()?.toLowerCase() || '';
-      const isFile = item.type === 'file' || ['pdf', 'psd', 'zip', 'docx'].includes(ext);
+  // Parse ambiguous natural language query locally (instant, zero-latency)
+  const parsed = useMemo<ParsedSearchQuery>(() => {
+    return parseAmbiguousQuery(query);
+  }, [query]);
 
-      if (typeFilter === 'note' && (item.url || !item.text_content)) return false;
-      if (typeFilter === 'video' && cType !== 'video' && !item.url?.includes('youtube.com')) return false;
-      if (typeFilter === 'music' && cType !== 'music' && !item.url?.includes('spotify.com')) return false;
-      if (typeFilter === 'article' && cType !== 'article' && !item.url) return false;
-      if (typeFilter === 'file' && !isFile) return false;
+  // Synchronous client-side filter and ranking
+  const localRanked = useMemo(() => {
+    // If user clicked an explicit format chip, let that override parsed format
+    const effectiveParsed: ParsedSearchQuery = {
+      ...parsed,
+      contentType: typeFilter !== 'all' ? (typeFilter as AmbiguousContentType) : parsed.contentType,
+    };
+    return filterAndRankAmbiguousItems(items, effectiveParsed);
+  }, [items, parsed, typeFilter]);
+
+  // Debounced Gemini AI Semantic Search call when user has Pro plan
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
     }
 
-    if (!query.trim()) return true;
-    const q = query.toLowerCase();
-    const title = (item.metadata?.title || item.title || '').toLowerCase();
-    const domain = (item.metadata?.domain || item.url || '').toLowerCase();
-    const desc = (item.metadata?.description || item.text_content || '').toLowerCase();
-    const note = (item.note?.content || '').toLowerCase();
-    return title.includes(q) || domain.includes(q) || desc.includes(q) || note.includes(q);
-  });
+    const trimmed = query.trim();
+    if (!isPro || !aiEnabled || trimmed.length < 3) {
+      setAiLoading(false);
+      setAiResult(null);
+      return;
+    }
+
+    setAiLoading(true);
+
+    debounceTimerRef.current = setTimeout(async () => {
+      try {
+        const candidatePayload = items.slice(0, 40).map((item) => ({
+          id: item.id,
+          title: item.title || item.metadata?.title || 'Untitled',
+          type: item.type || item.metadata?.content_type || 'link',
+          url: item.url || undefined,
+          domain: item.metadata?.domain || (item.url ? new URL(item.url, 'http://localhost').hostname : undefined),
+          description: item.metadata?.description || item.text_content?.slice(0, 150) || undefined,
+          created_at: item.created_at,
+          note: item.note?.content?.slice(0, 100) || undefined,
+          collections: (item.collections || []).map((c) => c.name),
+        }));
+
+        const res = await fetch('/api/ai/search', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${session?.access_token || ''}`,
+          },
+          body: JSON.stringify({
+            query: trimmed,
+            items: candidatePayload,
+            referenceDate: new Date().toISOString(),
+          }),
+        });
+
+        if (res.ok) {
+          const data = (await res.json()) as any;
+          if (data.success) {
+            setAiResult({
+              summary: data.summary,
+              model: data.model || 'Gemini 3.5 Flash',
+              rankedItemIds: data.rankedItemIds || [],
+              explanations: data.explanations || {},
+              parsedFilters: data.parsedFilters,
+            });
+          } else {
+            setAiResult(null);
+          }
+        } else {
+          setAiResult(null);
+        }
+      } catch (err) {
+        console.warn('[AI Search] Failed to reach Gemini search endpoint:', err);
+        setAiResult(null);
+      } finally {
+        setAiLoading(false);
+      }
+    }, 450);
+
+    return () => {
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    };
+  }, [query, isPro, aiEnabled, items, session?.access_token]);
+
+  // Final sorted list combining AI ranking (if available) with local ranking
+  const finalFilteredItems = useMemo(() => {
+    if (!aiResult || aiResult.rankedItemIds.length === 0) {
+      return localRanked.map((r) => r.item);
+    }
+
+    // Map items ordered by Gemini's rank
+    const idToItemMap = new Map(items.map((it) => [it.id, it]));
+    const aiOrdered: typeof items = [];
+    const seenIds = new Set<string>();
+
+    for (const id of aiResult.rankedItemIds) {
+      const it = idToItemMap.get(id);
+      if (it && !seenIds.has(id)) {
+        aiOrdered.push(it);
+        seenIds.add(id);
+      }
+    }
+
+    // Append any locally ranked items not in Gemini's subset
+    for (const r of localRanked) {
+      if (!seenIds.has(r.item.id)) {
+        aiOrdered.push(r.item);
+        seenIds.add(r.item.id);
+      }
+    }
+
+    return aiOrdered;
+  }, [aiResult, localRanked, items]);
 
   const filterChips = [
     { id: 'all', label: `All (${items.length})`, icon: <Layers className="w-3.5 h-3.5" /> },
@@ -61,11 +185,18 @@ export default function SearchPage() {
     { id: 'file', label: 'Files', icon: <Folder className="w-3.5 h-3.5" /> },
   ];
 
-  const suggestedKeywords = ['PDF', 'Design', 'Video', 'Project', 'Article', 'Feedback', 'Music'];
+  const suggestedQueries = [
+    'a cideo i saved in october',
+    'saved between May and August',
+    'articles from last week',
+    'PDF files',
+    'Design inspiration',
+    'Spotify playlist',
+  ];
 
   return (
     <div className="max-w-6xl mx-auto p-6 sm:p-8 space-y-6">
-      {/* Top Omnibar */}
+      {/* Top Omnibar with Back, Gemini AI Status & Layout Mode */}
       <div className="flex flex-wrap items-center justify-between gap-3 pb-2 border-b border-[#e4e0d5]/60">
         <div className="flex items-center gap-3">
           <Link
@@ -79,6 +210,32 @@ export default function SearchPage() {
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Gemini AI Status Indicator / Pro Upgrade Badge */}
+          {isPro ? (
+            <button
+              type="button"
+              onClick={() => setAiEnabled(!aiEnabled)}
+              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer border ${
+                aiEnabled
+                  ? 'bg-[#e6edb0] border-[#d0db84] text-[#171711] shadow-2xs'
+                  : 'bg-white border-[#e4e0d5] text-[#8e8d87] hover:text-[#171711]'
+              }`}
+              title="Toggle Google Gemini Semantic Search for ambiguous natural language queries"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-[#171711]" />
+              <span>Gemini AI {aiEnabled ? 'On' : 'Off'}</span>
+            </button>
+          ) : (
+            <Link
+              href="/plans"
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white border border-[#e4e0d5] text-xs font-bold text-[#6c6b63] hover:text-[#171711] hover:border-[#171711] transition-all shadow-2xs"
+              title="Upgrade to LaterBox Pro to activate Google Gemini AI Semantic Search"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-[#bfa829]" />
+              <span>Gemini AI • Pro</span>
+            </Link>
+          )}
+
           {/* Grid vs List Toggle */}
           <div className="flex items-center gap-1 bg-[#ebe7dc]/60 p-1 rounded-full text-xs font-bold text-[#6c6b63]">
             <button
@@ -130,7 +287,7 @@ export default function SearchPage() {
           Deep Search
         </h1>
         <p className="text-xs sm:text-sm text-[#6c6b63] font-medium max-w-2xl leading-relaxed">
-          Search keywords, metadata, domains, and handwritten notes across your entire private vault without sending queries to the cloud.
+          Ask naturally (e.g. &ldquo;a cideo i saved in october&rdquo; or &ldquo;between May and August&rdquo;). Searches keywords, metadata, and vault notes with offline typo tolerance and Gemini AI reasoning.
         </p>
       </div>
 
@@ -142,13 +299,16 @@ export default function SearchPage() {
           data-search-input="true"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Type to search titles, keywords, domains, personal notes..."
+          placeholder="Type to search... e.g. “a cideo i saved in october”, dates, keywords"
           autoFocus
-          className="w-full pl-12 pr-12 py-3.5 text-sm bg-white border border-[#e4e0d5] rounded-2xl text-[#171711] placeholder:text-[#9e9b92] focus:outline-hidden focus:border-[#171711] shadow-2xs transition-colors"
+          className="w-full pl-12 pr-12 py-3.5 text-sm bg-white border border-[#e4e0d5] rounded-2xl text-[#171711] placeholder:text-[#9e9b92] focus:outline-hidden focus:border-[#171711] shadow-2xs transition-colors font-medium"
         />
         {query && (
           <button
-            onClick={() => setQuery('')}
+            onClick={() => {
+              setQuery('');
+              setAiResult(null);
+            }}
             className="absolute right-4 top-1/2 -translate-y-1/2 p-1 text-[#9e9b92] hover:text-[#171711] rounded-full cursor-pointer transition-colors"
             title="Clear search"
           >
@@ -157,19 +317,79 @@ export default function SearchPage() {
         )}
       </div>
 
-      {/* Suggested Search Query Pills */}
+      {/* Ambiguous Intent & AI Insights Banner */}
+      {query.trim().length > 0 && (parsed.hasAmbiguousFilters || aiResult || aiLoading) && (
+        <div className="rounded-2xl border border-[#d0db84] bg-[#fbffdc] p-4 text-xs space-y-2 shadow-2xs">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2 text-[#444a10] font-bold">
+              {aiLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin text-[#88961c]" />
+                  <span>Thinking with Gemini...</span>
+                </>
+              ) : aiResult ? (
+                <>
+                  <Sparkles className="w-4 h-4 text-[#88961c]" />
+                  <span>{aiResult.summary}</span>
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-4 h-4 text-[#88961c]" />
+                  <span>{parsed.explanation}</span>
+                </>
+              )}
+            </div>
+
+            {aiResult?.model && (
+              <span className="text-[10px] font-bold uppercase tracking-wider text-[#737e1b] bg-white/70 px-2 py-0.5 rounded-md border border-[#d0db84]/60">
+                {aiResult.model}
+              </span>
+            )}
+            {!isPro && (
+              <span className="text-[10px] font-bold text-[#737e1b] bg-white/70 px-2 py-0.5 rounded-md border border-[#d0db84]/60">
+                Local Ambiguous Engine
+              </span>
+            )}
+          </div>
+
+          {/* Parsed Criteria Breakdown Chips */}
+          <div className="flex items-center gap-1.5 flex-wrap pt-1 border-t border-[#d0db84]/40">
+            <span className="text-[10px] font-black uppercase tracking-wider text-[#687216]">
+              Extracted Filters:
+            </span>
+            {parsed.contentType && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-white text-[#171711] text-[11px] font-bold border border-[#d0db84] shadow-2xs">
+                Format: {parsed.contentType.toUpperCase()}
+              </span>
+            )}
+            {parsed.dateRange && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-white text-[#171711] text-[11px] font-bold border border-[#d0db84] shadow-2xs">
+                <Calendar className="w-3 h-3 text-[#687216]" />
+                {parsed.dateRange.label}
+              </span>
+            )}
+            {parsed.cleanedKeywords && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-white text-[#171711] text-[11px] font-bold border border-[#d0db84] shadow-2xs">
+                Keyword: &ldquo;{parsed.cleanedKeywords}&rdquo;
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Suggested Natural Language Search Queries */}
       <div className="flex items-center gap-2 flex-wrap">
         <span className="text-[11px] font-bold text-[#9e9b92] uppercase tracking-wider">
           Suggested:
         </span>
-        {suggestedKeywords.map((keyword) => (
+        {suggestedQueries.map((suggested) => (
           <button
-            key={keyword}
+            key={suggested}
             type="button"
-            onClick={() => setQuery(keyword)}
+            onClick={() => setQuery(suggested)}
             className="px-2.5 py-1 rounded-lg bg-white border border-[#e4e0d5] text-[11px] font-bold text-[#6c6b63] hover:text-[#171711] hover:border-[#171711] transition-all cursor-pointer shadow-2xs"
           >
-            {keyword}
+            {suggested}
           </button>
         ))}
       </div>
@@ -198,13 +418,13 @@ export default function SearchPage() {
       {/* Results Header */}
       <div className="flex items-center justify-between text-xs font-bold text-[#9e9b92] uppercase tracking-wider pt-2">
         <span>
-          {filtered.length} {filtered.length === 1 ? 'Result' : 'Results'} Found
+          {finalFilteredItems.length} {finalFilteredItems.length === 1 ? 'Result' : 'Results'} Found
           {query ? ` for “${query}”` : ''}
         </span>
       </div>
 
       {/* Results Grid / List */}
-      {filtered.length === 0 ? (
+      {finalFilteredItems.length === 0 ? (
         <div className="text-center py-20 px-4 rounded-3xl bg-white border border-dashed border-[#e4e0d5] space-y-3">
           <div className="w-12 h-12 mx-auto rounded-2xl bg-[#f7f5ee] border border-[#e4e0d5] flex items-center justify-center text-[#9e9b92]">
             <SearchIcon className="w-6 h-6" />
@@ -213,7 +433,7 @@ export default function SearchPage() {
             No results found
           </h3>
           <p className="text-xs text-[#6c6b63] max-w-sm mx-auto leading-relaxed">
-            We couldn’t find any saved items matching &ldquo;{query}&rdquo;. Try checking spelling or searching by domain or keyword.
+            We couldn’t find any saved items matching &ldquo;{query}&rdquo;. Try asking with different wording, a broader date range, or resetting filters.
           </p>
           {query && (
             <div className="pt-2">
@@ -222,6 +442,7 @@ export default function SearchPage() {
                 onClick={() => {
                   setQuery('');
                   setTypeFilter('all');
+                  setAiResult(null);
                 }}
                 className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#171711] text-white text-xs font-bold shadow-xs hover:bg-[#282723] transition-all cursor-pointer"
               >
@@ -232,13 +453,13 @@ export default function SearchPage() {
         </div>
       ) : layoutMode === 'grid' ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filtered.map((item) => (
+          {finalFilteredItems.map((item) => (
             <ItemCard key={item.id} item={item} />
           ))}
         </div>
       ) : (
         <div className="space-y-3">
-          {filtered.map((item) => (
+          {finalFilteredItems.map((item) => (
             <ItemListRow key={item.id} item={item} />
           ))}
         </div>
