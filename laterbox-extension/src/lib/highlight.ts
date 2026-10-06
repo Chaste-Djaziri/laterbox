@@ -34,6 +34,38 @@ export async function highlightTextInTab(
 }
 
 function locateAndSelect(selector: TextSelector): boolean {
+
+function rangeForText(
+  nodes: Text[],
+  starts: number[],
+  startIndex: number,
+  endIndex: number,
+): Range | null {
+  let startNode: Text | null = null;
+  let startOffset = 0;
+  let endNode: Text | null = null;
+  let endOffset = 0;
+
+  for (let i = 0; i < nodes.length; i++) {
+    const nodeStart = starts[i];
+    const nodeEnd = nodeStart + nodes[i].data.length;
+    if (startNode === null && startIndex >= nodeStart && startIndex <= nodeEnd) {
+      startNode = nodes[i];
+      startOffset = startIndex - nodeStart;
+    }
+    if (endIndex >= nodeStart && endIndex <= nodeEnd) {
+      endNode = nodes[i];
+      endOffset = endIndex - nodeStart;
+      break;
+    }
+  }
+
+  if (startNode === null || endNode === null) return null;
+  const range = document.createRange();
+  range.setStart(startNode, startOffset);
+  range.setEnd(endNode, endOffset);
+  return range;
+}
   const exact = selector.exact.trim();
   if (!exact) return false;
   const prefix = selector.prefix?.trim() || null;
@@ -104,36 +136,4 @@ function locateAndSelect(selector: TextSelector): boolean {
     block: "center",
   });
   return true;
-}
-
-function rangeForText(
-  nodes: Text[],
-  starts: number[],
-  startIndex: number,
-  endIndex: number,
-): Range | null {
-  let startNode: Text | null = null;
-  let startOffset = 0;
-  let endNode: Text | null = null;
-  let endOffset = 0;
-
-  for (let i = 0; i < nodes.length; i++) {
-    const nodeStart = starts[i];
-    const nodeEnd = nodeStart + nodes[i].data.length;
-    if (startNode === null && startIndex >= nodeStart && startIndex <= nodeEnd) {
-      startNode = nodes[i];
-      startOffset = startIndex - nodeStart;
-    }
-    if (endIndex >= nodeStart && endIndex <= nodeEnd) {
-      endNode = nodes[i];
-      endOffset = endIndex - nodeStart;
-      break;
-    }
-  }
-
-  if (startNode === null || endNode === null) return null;
-  const range = document.createRange();
-  range.setStart(startNode, startOffset);
-  range.setEnd(endNode, endOffset);
-  return range;
 }
