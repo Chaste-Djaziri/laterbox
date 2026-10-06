@@ -22,7 +22,7 @@ export default function robots(): MetadataRoute.Robots {
           '/library',
           '/search',
           '/settings',
-          '/extension/',
+          '/laterbox-extension/',
         ],
       },
     ],
