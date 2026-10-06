@@ -28,6 +28,8 @@ migrate_working_dir/
 /build/
 /coverage/
 *.zip
+/screenshot_*.png
+/screenshot_*.jpg
 
 # Symbolication related
 app.*.symbols
