@@ -1,5 +1,5 @@
 import { browser } from "../platform/api";
-import type { Capture } from "../types/capture";
+import type { QueuedCapture } from "../types/capture";
 
 const QUEUE_KEY = "pendingCaptures";
 const TOKEN_KEY = "accessToken";
@@ -37,17 +37,19 @@ export async function clearConnection(): Promise<void> {
   await browser.storage.local.remove([TOKEN_KEY, USER_ID_KEY, IS_PRO_KEY]);
 }
 
-export async function getPendingCaptures(): Promise<Capture[]> {
+export async function getPendingCaptures(): Promise<QueuedCapture[]> {
   const values = await browser.storage.local.get(QUEUE_KEY);
-  return Array.isArray(values[QUEUE_KEY]) ? values[QUEUE_KEY] : [];
+  const rows: unknown[] = Array.isArray(values[QUEUE_KEY]) ? values[QUEUE_KEY] : [];
+  // Old anonymous captures cannot safely be attributed to the current account.
+  const owned = rows.filter((row): row is QueuedCapture => !!row && typeof row === 'object' &&
+    typeof (row as QueuedCapture).userId === 'string' && !!(row as QueuedCapture).capture?.captureId);
+  const legacy = rows.filter(row=>!owned.includes(row as QueuedCapture));
+  if (legacy.length) {
+    await browser.storage.local.set({ legacyUnownedCaptures: legacy, [QUEUE_KEY]: owned });
+  }
+  return owned;
 }
-
-export async function enqueueCapture(capture: Capture): Promise<void> {
-  const queue = await getPendingCaptures();
-  await browser.storage.local.set({ [QUEUE_KEY]: [...queue, capture] });
-}
-
-export async function replacePendingCaptures(queue: Capture[]): Promise<void> {
+export async function replacePendingCaptures(queue: QueuedCapture[]): Promise<void> {
   await browser.storage.local.set({ [QUEUE_KEY]: queue });
 }
 
