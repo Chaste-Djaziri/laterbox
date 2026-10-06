@@ -70,6 +70,18 @@ export async function syncPendingCaptures(userId: string) {
           console.warn('[pending-captures] error upserting item:', error);
           throw error;
         }
+
+        if (item.metadata) {
+          const { error: metaError } = await client.from('item_metadata').upsert({
+            ...item.metadata,
+            item_id: item.id,
+            user_id: userId,
+            updated_at: new Date().toISOString(),
+          });
+          if (metaError) {
+            console.warn('[pending-captures] error upserting item_metadata:', metaError);
+          }
+        }
       });
     }
     if (!item.deleted_at && !remote?.deleted_at) {

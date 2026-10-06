@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState, useMemo, useCallback, ReactNode } from 'react';
 import { getSupabaseClient } from '../supabase/client';
-import { LaterBoxItem, ItemStatus, InboxFilterType, Collection, Attachment } from '../supabase/types';
+import { LaterBoxItem, ItemStatus, InboxFilterType, Collection, Attachment, ItemMetadata } from '../supabase/types';
 import { useAuth } from './AuthContext';
 import { normalizeUrl, isUrl, extractDomain } from '../utils/url';
 import { storeLocalAttachment } from '../utils/local-attachments';
@@ -272,6 +272,8 @@ export function ItemProvider({ children }: { children: ReactNode }) {
       });
 
       const cachedItems = JSON.parse(localStorage.getItem(`${LOCAL_ITEMS_KEY}_${user.id}`) || '[]') as LaterBoxItem[];
+      const remoteIds = new Set((itemRows || []).map((item) => item.id));
+
       const mappedItems: LaterBoxItem[] = (itemRows || []).map((item) => {
         const localCached = cachedItems.find(local => local.id === item.id && local.user_id === user.id);
         const remoteCols = itemColsMap.get(item.id) || [];
@@ -280,21 +282,51 @@ export function ItemProvider({ children }: { children: ReactNode }) {
           if (!combinedCols.some(c => c.id === lc.id)) combinedCols.push(lc);
         });
 
+        // Merge remote and local metadata safely so local enrichment is NEVER clobbered by empty remote rows
+        const remoteMeta = metaMap.get(item.id);
+        const localMeta = localCached?.metadata;
+        const mergedMeta: ItemMetadata | null = remoteMeta || localMeta
+          ? ({
+              ...(localMeta || {}),
+              ...(remoteMeta || {}),
+              preview_image_url: remoteMeta?.preview_image_url || localMeta?.preview_image_url || null,
+              title: remoteMeta?.title || localMeta?.title || null,
+              structured_data: remoteMeta?.structured_data || localMeta?.structured_data || null,
+              description: remoteMeta?.description || localMeta?.description || null,
+              favicon_url: remoteMeta?.favicon_url || localMeta?.favicon_url || null,
+            } as ItemMetadata)
+          : null;
+
+        // Resolve title: keep enriched local title if remote title is default or generic
+        const resolvedTitle =
+          item.title && item.title !== 'New Capture' && !item.title.startsWith('http')
+            ? item.title
+            : (localCached?.title || item.title);
+
+        // Resolve text_content: keep extracted reader content if remote has empty text
+        const resolvedTextContent = item.text_content || localCached?.text_content || null;
+
         return {
           ...migrateSchedule(item),
-          metadata: metaMap.get(item.id) || null,
-          note: noteMap.get(item.id) || null,
+          title: resolvedTitle,
+          text_content: resolvedTextContent,
+          metadata: mergedMeta,
+          note: noteMap.get(item.id) || localCached?.note || null,
           collections: combinedCols,
           attachments: [...new Map([...(localCached?.attachments || []), ...(attachmentMap.get(item.id) || [])].filter(attachment => !attachment.deleted_at).map(attachment => [attachment.id, attachment])).values()],
         };
       });
+
+      // Preserve newly captured local items that have not yet appeared in remote snapshot
+      const pendingLocals = cachedItems.filter(local => !remoteIds.has(local.id) && !local.deleted_at);
+      const combinedItems = [...pendingLocals, ...mappedItems];
 
       // Deduplicate items by ID and URL/text
       const seenIds = new Set<string>();
       const seenKeys = new Set<string>();
       const deduplicated: LaterBoxItem[] = [];
 
-      for (const item of mappedItems) {
+      for (const item of combinedItems) {
         if (seenIds.has(item.id)) continue;
         seenIds.add(item.id);
 
@@ -491,11 +523,24 @@ export function ItemProvider({ children }: { children: ReactNode }) {
           // Real keywords from page — use as tags
           const keywords: string[] = Array.isArray(enrichData.keywords) ? (enrichData.keywords as string[]) : [];
 
+          const markdown = typeof enrichData.markdown === 'string' ? enrichData.markdown : '';
+          const htmlContent = typeof enrichData.htmlContent === 'string' ? enrichData.htmlContent : '';
+          const textContent = typeof enrichData.textContent === 'string' ? enrichData.textContent : '';
+          const author = typeof enrichData.author === 'string' ? enrichData.author : null;
+          const publishedTime = typeof enrichData.publishedTime === 'string' ? enrichData.publishedTime : null;
+          const readingTimeMinutes = typeof enrichData.readingTimeMinutes === 'number' ? enrichData.readingTimeMinutes : null;
+
           const structuredData = {
             source: 'web',
             os: userOs,
             ...(keywords.length > 0 ? { tags: keywords } : {}),
             ...(embedProvider ? { embedProvider, embedUrl, embedHeight } : {}),
+            ...(author ? { author } : {}),
+            ...(publishedTime ? { publishedTime } : {}),
+            ...(readingTimeMinutes ? { readingTimeMinutes } : {}),
+            ...(markdown ? { markdown } : {}),
+            ...(htmlContent ? { htmlContent } : {}),
+            ...(textContent ? { textContent } : {}),
           };
 
           const metaUpdate: Partial<LaterBoxItem['metadata']> = {
@@ -512,18 +557,35 @@ export function ItemProvider({ children }: { children: ReactNode }) {
             enriched_at: new Date().toISOString(),
           };
 
-          // Update React state immediately for all users
-          setItems((prev) =>
-            prev.map((it) =>
-              it.id === newItem.id
-                ? {
-                    ...it,
-                    title: enrichedTitle || it.title,
-                    metadata: { ...it.metadata!, ...metaUpdate },
-                  }
-                : it
-            )
-          );
+          const enrichedTextContent = newItem.text_content || markdown || textContent || null;
+
+          let updatedEnrichedItem: LaterBoxItem = {
+            ...newItem,
+            title: enrichedTitle || newItem.title,
+            text_content: enrichedTextContent,
+            metadata: { ...newItem.metadata!, ...metaUpdate },
+          };
+
+          // Update React state immediately AND persist to local storage for ALL users
+          setItems((prev) => {
+            const next = prev.map((it) => {
+              if (it.id === newItem.id) {
+                updatedEnrichedItem = {
+                  ...it,
+                  title: enrichedTitle || it.title,
+                  text_content: enrichedTextContent || it.text_content,
+                  metadata: { ...(it.metadata || {}), ...metaUpdate } as LaterBoxItem['metadata'],
+                };
+                return updatedEnrichedItem;
+              }
+              return it;
+            });
+            saveLocalData(next);
+            return next;
+          });
+
+          // Keep offline sync queue in sync with enriched metadata
+          queueCapture(updatedEnrichedItem);
 
           // Persist to Supabase for logged-in users
           if (user) {
@@ -531,18 +593,9 @@ export function ItemProvider({ children }: { children: ReactNode }) {
               const supabase = getSupabaseClient();
 
               await uploadWithNotificationHandoff(newItem.id, newItem.return_at, async () => {
-                const { error: saveError } = await supabase.from('items').upsert(itemRow(newItem));
+                const { error: saveError } = await supabase.from('items').upsert(itemRow(updatedEnrichedItem));
                 if (saveError) throw saveError;
               });
-              await syncPendingCaptures(user.id);
-
-              // Update item title if it was generic
-              if (enrichedTitle && (newItem.title === domain || newItem.title === 'New Capture')) {
-                await supabase
-                  .from('items')
-                  .update({ title: enrichedTitle, updated_at: new Date().toISOString() })
-                  .eq('id', newItem.id);
-              }
 
               await supabase.from('item_metadata').upsert({
                 item_id: newItem.id,
@@ -551,6 +604,8 @@ export function ItemProvider({ children }: { children: ReactNode }) {
                 created_at: now,
                 updated_at: new Date().toISOString(),
               });
+
+              await syncPendingCaptures(user.id);
             } catch {
               setSyncStatus('error');
             }
