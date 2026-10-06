@@ -5,6 +5,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- **[Extensions] Instagram layout fixes**: Improve feed and scrolling-Reels detection, adapt save labels to available action-row space, and use a distinct LaterBox box icon.
 - **[Extensions] Instagram post saves**: Place Save to LaterBox beside Share on supported Instagram posts and Reels; pause injected post buttons on other social sites during the trial.
 - **[Extensions] Sidebar availability**: Hide sidebar controls and disable sidebar actions when the browser does not expose a supported sidebar API.
 - **[Extensions] Save controls**: Refined the popup page-button setting, floating quote toolbar, social-post buttons, and accessible save feedback.
