@@ -4,6 +4,9 @@ All notable user-facing changes to LaterBox will be documented in this file.
 
 ## [Unreleased]
 
+### Removed
+- **[All apps] Legacy cross-platform app**: Removed the root Flutter/Dart application, platform runners, tests, generated artifacts, and release tooling. Swift and Kotlin are the native app implementations; the Next.js web app, browser extensions, backend, and shared branding remain. Windows and Linux native replacements are not included in this cleanup.
+
 ### Release readiness
 - **[macOS] Paid MVP release baseline**: Mac App Store is the first paid distribution channel. LaterBox Pro is offered through StoreKit at $3.99/month or $39.99/year, each with a 14-day trial. The release scope includes every advertised macOS integration and requires verified capture recovery, permissions, notifications, sync, purchases, and restores before shipment.
 - **[macOS] System Status**: Settings now provides a single readiness view for Mac integrations, permissions, sync, notifications, and StoreKit billing, with retry guidance and copyable diagnostics.
