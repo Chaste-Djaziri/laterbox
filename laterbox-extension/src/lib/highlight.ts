@@ -33,7 +33,7 @@ export async function highlightTextInTab(
   return result === true;
 }
 
-function locateAndSelect(selector: TextSelector): boolean {
+export function locateAndSelect(selector: TextSelector): boolean {
 
 function rangeForText(
   nodes: Text[],
@@ -76,7 +76,7 @@ function rangeForText(
   let node: Node | null;
   while ((node = walker.nextNode())) {
     const textNode = node as Text;
-    if (textNode.data) nodes.push(textNode);
+    if (textNode.data && !textNode.parentElement?.closest('script,style,form,input,textarea,select,[contenteditable="true"],[hidden],[data-laterbox-control]')) nodes.push(textNode);
   }
   if (nodes.length === 0) return false;
 
