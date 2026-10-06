@@ -114,7 +114,7 @@ browser.commands.onCommand.addListener((command) => {
 async function handleCommand(command: string): Promise<void> {
   try {
     if (command === "open-sidepanel") {
-      await browserCapabilities.openSidePanel();
+      if (browserCapabilities.supportsSidePanel) await browserCapabilities.openSidePanel();
       return;
     }
     if (command !== 'save-current-page' && command !== 'save-selection') return;
