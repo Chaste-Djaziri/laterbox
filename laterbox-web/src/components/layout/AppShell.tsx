@@ -6,7 +6,6 @@ import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { AppSidebar } from './AppSidebar';
 import { QuickCaptureModal } from '../inbox/QuickCaptureModal';
-import { CloudSyncIndicator } from '../ui/CloudSyncIndicator';
 import { useItems } from '@/lib/store/ItemContext';
 import { Home, Inbox, BookMarked, Settings, Plus } from 'lucide-react';
 
@@ -116,7 +115,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <span className="text-lg font-black tracking-tight text-[#171711]">laterbox</span>
           </Link>
           <div className="flex items-center gap-2 shrink-0">
-            <CloudSyncIndicator compact />
             <button
               onClick={() => setCaptureOpen(true)}
               className="p-2 rounded-xl bg-[#171711] active:bg-black text-white font-bold shrink-0 shadow-xs"
