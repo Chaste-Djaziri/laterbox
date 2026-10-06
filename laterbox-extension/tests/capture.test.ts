@@ -1,6 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { JSDOM } from 'jsdom';
+import {readFileSync} from 'node:fs';
+import ts from 'typescript';
 (globalThis as any).chrome={};
 const {extractRenderedPage,buildScrollToTextFragment,captureFromPage}=await import('../src/lib/page');
 const {findSocialPosts}=await import('../src/content/social');
@@ -21,4 +23,4 @@ for(const [site,url,html] of [
  ['Facebook','https://www.facebook.com/','<div role="article"><a href="/person/posts/123">Post</a></div>'],
 ] as const) test(`${site}: targeted posts, dynamic additions, missing permalink fallback`,()=>{const w=dom(html+html,url);let posts=findSocialPosts(w.document,url);assert.equal(posts.length,2);assert.equal(posts[0].site,site);w.document.body.insertAdjacentHTML('beforeend',html);assert.equal(findSocialPosts(w.document,url).length,3);w.document.body.innerHTML='<article><p>Changed unsupported layout</p></article>';assert.equal(findSocialPosts(w.document,url).length,0);});
 
-test('serialized DOM fallback distinguishes repeated quotes across elements',async()=>{const w=dom('<p>First Hello <b>world</b> wrong</p><p>Second Hello <b>world</b> correct</p><form>Private</form>');(w.HTMLElement.prototype as any).scrollIntoView=()=>{};const {locateAndSelect}=await import('../src/lib/highlight');const injected=new Function('selector',`return (${locateAndSelect.toString()})(selector)`);assert.equal(injected({exact:'Hello world',prefix:'Second ',suffix:' correct'}),true);assert.equal(w.getSelection()?.toString(),'Hello world');assert.equal(w.getSelection()?.anchorNode?.parentElement?.closest('p')?.textContent,'Second Hello world correct');});
+test('serialized DOM fallback distinguishes repeated quotes across elements',async()=>{const w=dom('<p>First Hello <b>world</b> wrong</p><p>Second Hello <b>world</b> correct</p><form>Private</form>');(w.HTMLElement.prototype as any).scrollIntoView=()=>{};const source=readFileSync(new URL('../src/lib/highlight.ts',import.meta.url),'utf8').replace(/^import.*;$/m,'').replace(/export /g,'');const js=ts.transpileModule(source,{compilerOptions:{target:ts.ScriptTarget.ES2022}}).outputText;const injected=new Function('selector',js+';return locateAndSelect(selector);');assert.equal(injected({exact:'Hello world',prefix:'Second ',suffix:' correct'}),true);assert.equal(w.getSelection()?.toString(),'Hello world');assert.equal(w.getSelection()?.anchorNode?.parentElement?.closest('p')?.textContent,'Second Hello world correct');});
