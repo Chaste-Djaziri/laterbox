@@ -28,367 +28,35 @@ export const DOCS_SECTIONS: DocSection[] = [
     items: [
       {
         slug: 'introduction',
-        title: 'Introduction & Overview',
-        navTitle: 'Introduction',
-        description: 'Learn what LaterBox is, the local-first philosophy, and how it differs from traditional bookmarks.',
-        category: 'Getting Started',
-        headings: [
-          { id: 'what-is-laterbox', text: 'What is LaterBox?', level: 2 },
-          { id: 'core-philosophy', text: 'The Local-First Philosophy', level: 2 },
-          { id: 'key-features', text: 'Core Capabilities', level: 2 },
-          { id: 'ecosystem-matrix', text: 'Supported Ecosystem Matrix', level: 2 },
-          { id: 'next-steps', text: 'Next Steps', level: 2 },
-        ],
-        content: `
-## What is LaterBox?
-
-**LaterBox** is an open-source, local-first personal knowledge vault and universal save-for-later companion. It replaces cluttered browser tabs, forgotten reading lists, and siloed bookmark bars with a blazing-fast, unified system that works seamlessly across **macOS, Windows, Linux, iOS, Android, and all major web browsers**.
-
-Traditional bookmark managers store links on remote servers or obscure browser menus where saved items are quickly forgotten. LaterBox treats every captured link as an enriched, offline-available knowledge artifact with automatic metadata extraction, distraction-free reading mode, and native ad-free media playback.
-
----
-
-## The Local-First Philosophy
-
-LaterBox is architected from the ground up around **Local-First Software** principles:
-
-1. **Sub-10ms Responsiveness**: All reads and writes hit an embedded local SQLite database (powered by Drift ORM) immediately. No waiting on network roundtrips or spinning loaders.
-2. **100% Offline Resilience**: You can search, browse, tag, read cached articles, and capture new links on an airplane or subway without an internet connection.
-3. **Seamless Cloud Replication**: When connectivity is available, changes automatically synchronize bidirectionally to Supabase PostgreSQL with real-time updates and Row-Level Security.
-4. **Data Ownership & Sovereignty**: Your data stays on your device. You can export your entire vault to JSON or Markdown at any time with a single click.
-
----
-
-## Core Capabilities
-
-- **⚡ Universal Quick Capture**: System-wide global hotkeys (\`⌃ ⌥ Space\` on Mac, \`Ctrl + Shift + L\` on Windows, \`Alt+Space\` on Linux), mobile share sheets, and 1-click browser extension popups.
-- **🎬 Distraction-Free Media**: Watch YouTube videos and listen to audio without ads, algorithms, or tracking directly inside your vault.
-- **📖 Clean Reader Mode**: Read long-form articles with customizable typography, dark/light themes, and private markdown annotations.
-- **🏷️ Deep Search & Collections**: Instant full-text search across titles, URLs, summaries, and personal notes with custom visual collections.
-- **🛡️ Zero Telemetry & Privacy**: No tracking pixels, no third-party ad SDKs, and transparent PolyForm Noncommercial licensing.
-
----
-
-## Supported Ecosystem Matrix
-
-| Platform | Target Artifacts | Capabilities | Status |
-|---|---|---|---|
-| **macOS** | Universal \`.dmg\`, \`.pkg\` | Spotlight Quick Capture (\`⌃ ⌥ Space\`), System Tray, Native File Picker | **Production Ready** |
-| **Windows** | Inno Setup \`.exe\`, Portable Zip | Hotkey (\`Ctrl + Shift + L\`), Tray Minimization, Toast Alerts | **Production Ready** |
-| **Linux** | AppImage, Tarball | Hotkey (\`Alt+Space\`), SQLite FTS5 Local Storage | **Production Ready** |
-| **iOS** | TestFlight Beta / IPA | Native iOS Share Sheet Extension, Biometrics | **Beta** |
-| **Android** | Google Play Beta / APK | Android Share Intent Target, Offline Cache | **Beta** |
-| **Web** | Next.js 16 (Turbopack) | Instant Guest Sandbox, Cloud Sync, Reader Mode | **Production Ready** |
-| **Browser Extension** | Chrome, Firefox, Safari (MV3) | 1-Click Tab Saver, Token Handshake, Sidepanel | **Production Ready** |
-
----
-
-## Next Steps
-
-- Review the [Prerequisites & Tooling](/docs/prerequisites) before setting up your local environment.
-- Configure your [Environment Variables](/docs/environment-variables) for Next.js, Supabase, and Flutter.
-- Follow the [Quick Start Guide](/docs/quickstart) to run LaterBox locally in under 5 minutes.
-        `,
+        title: "Introduction & Overview",
+        description: "LaterBox native clients, web application, and shared backend.",
+        category: "Getting Started",
+        headings: [{"id": "what-is-laterbox", "text": "What is LaterBox?", "level": 2}, {"id": "applications", "text": "Applications", "level": 2}, {"id": "availability", "text": "Availability", "level": 2}, {"id": "next-steps", "text": "Next Steps", "level": 2}],
+        content: "## What is LaterBox?\nLaterBox is a local-first save-for-later app with independent native Apple and Android clients, a web application, and browser extensions.\n\n## Applications\n- Apple: Swift/SwiftUI in `laterbox-ios/`, with SwiftData persistence and native capture.\n- Android: Kotlin/Jetpack Compose in `laterbox-android/`, with Room persistence and WorkManager.\n- Web: Next.js, React, and TypeScript in `laterbox-web/`.\n- Extensions: TypeScript browser capture in `extension/` and a native Safari host in `safari_app/`.\n\n## Availability\nThe Apple release scheme currently targets iOS. macOS-specific source remains, but its standalone release target needs validation. Windows and Linux native replacements are future work. Platform source and capability do not imply a published release.\n\n## Next Steps\nRead [Prerequisites](/docs/prerequisites), [Quick Start](/docs/quickstart), and [Architecture](/docs/system-architecture).\n",
       },
       {
         slug: 'prerequisites',
-        title: 'Prerequisites & Tooling',
-        navTitle: 'Prerequisites',
-        description: 'Required runtimes, SDKs, compilers, and development tools for building LaterBox from source.',
-        category: 'Getting Started',
-        headings: [
-          { id: 'required-runtimes', text: 'Required Runtimes & SDKs', level: 2 },
-          { id: 'flutter-setup', text: 'Flutter & Dart Setup', level: 2 },
-          { id: 'node-setup', text: 'Node.js & Package Managers', level: 2 },
-          { id: 'supabase-tools', text: 'Supabase CLI & Docker', level: 2 },
-          { id: 'platform-toolchains', text: 'Platform Native Compilers', level: 2 },
-        ],
-        content: `
-## Required Runtimes & SDKs
-
-Before contributing or building LaterBox locally, verify that your machine has the following tools installed:
-
-| Tool | Minimum Version | Recommended Version | Purpose |
-|---|---|---|---|
-| **Flutter SDK** | \`3.29.0\` | \`3.29.1\` (Stable channel) | Core desktop, mobile, and native app runtime |
-| **Dart SDK** | \`3.7.0\` | \`3.7.1\` | Dart language & Drift code generation |
-| **Node.js** | \`20.0.0\` (LTS) | \`22.x\` | Next.js web application & browser extensions |
-| **npm / pnpm** | \`10.x\` | \`pnpm 9.x\` or \`npm 10.x\` | Package manager for web and extension suites |
-| **Supabase CLI** | \`1.150.0+\` | Latest via Homebrew / Scoop | Local database migrations and Edge Functions |
-| **Docker Desktop** | \`24.0.0+\` | Latest | Local Supabase PostgreSQL & Studio stack |
-| **Deno** | \`1.40.0+\` | \`1.45.0+\` | Supabase Edge Functions development & testing |
-
----
-
-## Flutter & Dart Setup
-
-Ensure Flutter is installed and accessible in your system \`$PATH\`:
-
-\`\`\`bash
-# Check your Flutter installation
-flutter doctor -v
-
-# Verify you are on the stable channel
-flutter channel stable
-flutter upgrade
-\`\`\`
-
-> **Note**: If developing for macOS or iOS, ensure Xcode command-line tools are installed (\`xcode-select --install\`). For Windows, install Visual Studio 2022 with **Desktop development with C++**.
-
----
-
-## Node.js & Package Managers
-
-The web dashboard and browser extensions use modern JavaScript/TypeScript tooling:
-
-\`\`\`bash
-# Verify Node.js version
-node -v # Should return v20.x or higher
-
-# Verify npm
-npm -v
-\`\`\`
-
----
-
-## Supabase CLI & Docker
-
-The Supabase CLI orchestrates local PostgreSQL, GoTrue authentication, Storage, and Deno Edge Functions in Docker containers:
-
-\`\`\`bash
-# macOS (Homebrew)
-brew install supabase/tap/supabase
-
-# Windows (Scoop / Winget)
-scoop bucket add supabase https://github.com/supabase/scoop-bucket.git
-scoop install supabase
-
-# Linux (Debian/Ubuntu)
-curl -fsSL https://github.com/supabase/cli/releases/latest/download/supabase_linux_amd64.deb -o supabase.deb
-sudo dpkg -i supabase.deb
-\`\`\`
-
----
-
-## Platform Native Compilers
-
-- **macOS Desktop**: Xcode 15 or 16, CocoaPods (\`sudo gem install cocoapods\`).
-- **Windows Desktop**: Visual Studio 2022 (MSVC v143, Windows 10/11 SDK), Inno Setup 6 (for packaging \`.exe\`).
-- **Linux Desktop**: \`clang\`, \`cmake\`, \`ninja-build\`, \`pkg-config\`, \`libgtk-3-dev\`, \`libsecret-1-dev\`.
-- **Android Mobile**: Android Studio Ladybug or newer, Android SDK Platform 34, JDK 17.
-- **iOS Mobile**: Apple Developer certificate / provision profile for physical device deployment.
-        `,
+        title: "Prerequisites & Tooling",
+        description: "Toolchains for native Apple, Android, web, and backend development.",
+        category: "Getting Started",
+        headings: [{"id": "native-apple", "text": "Native Apple", "level": 2}, {"id": "native-android", "text": "Native Android", "level": 2}, {"id": "web-and-extensions", "text": "Web and Extensions", "level": 2}, {"id": "backend", "text": "Backend", "level": 2}],
+        content: "## Native Apple\nInstall the Xcode toolchain configured in the repository's native Apple CI guide. Open `laterbox-ios/laterbox-ios.xcodeproj` and select `laterbox-ios`.\n\n## Native Android\nUse Android Studio, JDK 17, and Android SDK 36. Open `laterbox-android/`.\n\n## Web and Extensions\nUse Node.js 22 and npm. Install dependencies separately in `laterbox-web/` and `extension/` with `npm ci`.\n\n## Backend\nUse Supabase CLI for local services and migrations, and Deno for edge-function checks. Keep signing and service credentials outside source control.\n",
       },
       {
         slug: 'environment-variables',
-        title: 'Environment Variables & Configuration',
-        navTitle: 'Environment Variables',
-        description: 'Comprehensive guide to all required and optional environment keys across Web, Supabase, Flutter, and Extensions.',
-        category: 'Getting Started',
-        headings: [
-          { id: 'web-variables', text: 'Next.js Web Variables (.env.local & .dev.vars)', level: 2 },
-          { id: 'edge-variables', text: 'Supabase Edge Functions Secrets', level: 2 },
-          { id: 'flutter-variables', text: 'Flutter Client Configuration', level: 2 },
-          { id: 'extension-variables', text: 'Browser Extension Configuration', level: 2 },
-          { id: 'security-best-practices', text: 'Security & Key Handling Rules', level: 2 },
-        ],
-        content: `
-## Next.js Web Variables (.env.local & .dev.vars)
-
-Create a \`laterbox-web/.env.local\` file for local development or \`.dev.vars\` for Cloudflare Pages local testing:
-
-\`\`\`bash
-# ==============================================================================
-# Supabase Configuration
-# ==============================================================================
-# Your Supabase Project URL (local: http://127.0.0.1:54321, remote: https://xyz.supabase.co)
-NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-
-# Public Anonymous API Key (safe for client-side browsers)
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-
-# Service Role Secret Key (REQUIRED for admin tasks: account deletion cascade RPC)
-# CAUTION: NEVER expose this on client-side!
-SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-
-# ==============================================================================
-# Public App Settings
-# ==============================================================================
-# Canonical public application URL
-NEXT_PUBLIC_APP_URL=https://laterbox.dev
-
-# ==============================================================================
-# Optional Cloudflare / Proxy Tokens
-# ==============================================================================
-# Cloudflare API token for release caching & purge
-CLOUDFLARE_API_TOKEN=your_cf_api_token_here
-\`\`\`
-
----
-
-## Supabase Edge Functions Secrets
-
-The \`enrich-url\` edge function retrieves metadata and parses YouTube oEmbed links. Set these in your Supabase project:
-
-\`\`\`bash
-# Set secrets for local testing (supabase/functions/.env)
-supabase secrets set --env-file ./supabase/functions/.env
-
-# Or set individual remote project secrets:
-supabase secrets set SUPABASE_URL=https://your-project.supabase.co
-supabase secrets set SUPABASE_ANON_KEY=eyJhbGci...
-supabase secrets set SUPABASE_SERVICE_ROLE_KEY=eyJhbGci...
-
-# Optional: Google / YouTube Data API Key for fallback high-res metadata
-supabase secrets set YOUTUBE_API_KEY=AIzaSy...
-\`\`\`
-
----
-
-## Flutter Client Configuration
-
-The Flutter mobile and desktop apps can read credentials at compile time via \`--dart-define\` or from \`lib/core/constants/api_constants.dart\`:
-
-\`\`\`bash
-# Run with compile-time defines:
-flutter run -d macos \\
-  --dart-define=SUPABASE_URL=https://your-project.supabase.co \\
-  --dart-define=SUPABASE_ANON_KEY=eyJhbGciOi...
-\`\`\`
-
-| Variable | Description | Client Exposure |
-|---|---|---|
-| \`SUPABASE_URL\` | Supabase API Gateway endpoint | Safe (Public) |
-| \`SUPABASE_ANON_KEY\` | Row-Level Security enabled anonymous key | Safe (Public) |
-
----
-
-## Browser Extension Configuration
-
-In \`extension/.env\` (built into \`extension/dist/\`):
-
-\`\`\`bash
-# Base URL for OAuth token handshake and extension connect page
-VITE_LATERBOX_APP_URL=https://laterbox.dev
-VITE_SUPABASE_URL=https://your-project.supabase.co
-VITE_SUPABASE_ANON_KEY=eyJhbGciOi...
-\`\`\`
-
----
-
-## Security & Key Handling Rules
-
-1. **Never commit secrets**: Ensure \`.env\`, \`.env.local\`, \`.dev.vars\`, and \`*.key\` are in your \`.gitignore\`.
-2. **Anonymous vs Service Role**: The \`NEXT_PUBLIC_SUPABASE_ANON_KEY\` is constrained by PostgreSQL Row Level Security. The \`SUPABASE_SERVICE_ROLE_KEY\` bypasses all RLS and must strictly remain on server-side endpoints (such as \`/api/account/delete\`).
-3. **Rotating Keys**: If a service role key is compromised, regenerate it immediately in the Supabase Dashboard under **Project Settings > API**.
-        `,
+        title: "Environment Variables & Configuration",
+        description: "Configure the independent native and web clients safely.",
+        category: "Getting Started",
+        headings: [{"id": "web-configuration", "text": "Web Configuration", "level": 2}, {"id": "android-configuration", "text": "Android Configuration", "level": 2}, {"id": "apple-configuration", "text": "Apple Configuration", "level": 2}, {"id": "extensions-and-backend", "text": "Extensions and Backend", "level": 2}],
+        content: "## Web Configuration\nUse the web app's environment example and deployment configuration. Public client configuration includes `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`. Keep service-role, provider, and signing credentials server-side.\n\n## Android Configuration\nSet `SUPABASE_URL` and `SUPABASE_KEY` in ignored `laterbox-android/local.properties`. Preserve Android Studio's local SDK configuration in that file.\n\n## Apple Configuration\nUse the native Apple project's configuration and CI signing guide. Configure bundle identifiers, App Groups, entitlements, and App Store signing for the actual build target.\n\n## Extensions and Backend\nExtension build scripts select hosted or local capture and approval origins. Supabase functions use their own environment configuration. Never publish privileged keys in client apps.\n",
       },
       {
         slug: 'quickstart',
-        title: 'Quick Start & Installation',
-        navTitle: 'Quickstart',
-        description: 'Step-by-step instructions to install, build, and run LaterBox across all platforms.',
-        category: 'Getting Started',
-        headings: [
-          { id: 'clone-repo', text: '1. Clone Repository', level: 2 },
-          { id: 'start-supabase', text: '2. Start Supabase (Local or Cloud)', level: 2 },
-          { id: 'run-web', text: '3. Run Next.js Web App', level: 2 },
-          { id: 'run-flutter', text: '4. Run Flutter Desktop & Mobile', level: 2 },
-          { id: 'build-extensions', text: '5. Build Browser Extensions', level: 2 },
-        ],
-        content: `
-## 1. Clone Repository
-
-Clone the LaterBox monorepo to your local machine:
-
-\`\`\`bash
-git clone https://github.com/Chaste-Djaziri/laterbox.git
-cd laterbox
-\`\`\`
-
----
-
-## 2. Start Supabase (Local or Cloud)
-
-### Option A: Local Docker Stack (Recommended for offline development)
-\`\`\`bash
-# Start local PostgreSQL, GoTrue, Realtime, and Storage in Docker
-supabase start
-
-# Apply SQL migrations and RLS policies
-supabase db reset
-\`\`\`
-
-### Option B: Cloud Supabase Project
-1. Create a free project on **[supabase.com](https://supabase.com)**.
-2. Link your local CLI:
-   \`\`\`bash
-   supabase link --project-ref your-project-id
-   supabase db push
-   \`\`\`
-
----
-
-## 3. Run Next.js Web App
-
-Navigate to \`laterbox-web/\`, install dependencies, and start the Turbopack dev server:
-
-\`\`\`bash
-cd laterbox-web
-npm install
-
-# Copy sample environment variables
-cp .env.example .env.local
-
-# Start development server on port 3000
-npm run dev
-\`\`\`
-
-Open **[http://localhost:3000](http://localhost:3000)** in your browser. You can test the app in **Guest Sandbox Mode** immediately or sign in with your Supabase credentials.
-
----
-
-## 4. Run Flutter Desktop & Mobile
-
-In the root repository directory, fetch Flutter dependencies and start the app:
-
-\`\`\`bash
-# Fetch Dart & Flutter dependencies
-flutter pub get
-
-# Run on macOS Desktop
-flutter run -d macos
-
-# Run on Windows Desktop
-flutter run -d windows
-
-# Run on Linux Desktop
-flutter run -d linux
-
-# Run on iOS Simulator or Android Emulator
-flutter run -d ios
-flutter run -d android
-\`\`\`
-
----
-
-## 5. Build Browser Extensions
-
-Navigate to \`extension/\` to compile the Manifest V3 extension bundle:
-
-\`\`\`bash
-cd extension
-npm install
-
-# Build extension packages
-npm run package
-\`\`\`
-
-To load the extension into your browser:
-1. Open **Chrome** and navigate to \`chrome://extensions/\`.
-2. Toggle on **Developer mode** in the top right.
-3. Click **Load unpacked** and select the \`extension/dist/chromium/\` folder.
-        `,
+        title: "Quick Start & Installation",
+        description: "Run the maintained native apps, web app, and browser extensions.",
+        category: "Getting Started",
+        headings: [{"id": "web", "text": "Web", "level": 2}, {"id": "apple", "text": "Apple", "level": 2}, {"id": "android", "text": "Android", "level": 2}, {"id": "extensions", "text": "Extensions", "level": 2}],
+        content: "## Web\n```sh\ncd laterbox-web\nnpm ci\nnpm run dev\n```\n\n## Apple\nOpen `laterbox-ios/laterbox-ios.xcodeproj` in Xcode and run the `laterbox-ios` scheme on a supported simulator or device.\n\n## Android\nOpen `laterbox-android/` in Android Studio, configure its SDK and Supabase client values, and run on an emulator or device.\n\n## Extensions\n```sh\ncd extension\nnpm ci\nnpm run typecheck\nnpm run build:all\n```\nLocal extension builds expect the approval app at `http://localhost:8080`. Start Next.js with `npm run dev -- --port 8080` in `laterbox-web/` when using those builds.\n",
       },
       {
         slug: 'shortcuts',
@@ -448,60 +116,11 @@ When navigating the LaterBox web dashboard or desktop main window:
     items: [
       {
         slug: 'system-architecture',
-        title: 'System Architecture & Data Flow',
-        navTitle: 'System Architecture',
-        description: 'Deep dive into the monorepo architecture, Flutter core, Drift SQLite database, and Supabase integration.',
-        category: 'Architecture',
-        headings: [
-          { id: 'monorepo-structure', text: 'Monorepo Structure', level: 2 },
-          { id: 'data-flow', text: 'Data Flow & Synchronization', level: 2 },
-          { id: 'database-engine', text: 'Database Engine: Drift & SQLite', level: 2 },
-        ],
-        content: `
-## Monorepo Structure
-
-LaterBox is organized as a unified monorepo containing the Flutter core, Next.js web application, browser extensions, and Supabase edge backend:
-
-\`\`\`text
-laterbox/
-├── lib/                   # Flutter cross-platform core application
-│   ├── core/              # Database (Drift), theme, network, auth, desktop windowing
-│   ├── features/          # Feature slices: auth, inbox, quick_capture, reader, search
-│   └── main.dart          # App entry point with platform-adaptive initialization
-├── laterbox-web/          # Next.js 16 web app, landing page, download hub & docs reader
-│   ├── src/app/           # App Router routes (/inbox, /download, /docs, /guide, API proxy)
-│   ├── src/components/    # UI design system components
-│   └── src/lib/           # Store context, Supabase client, versioning, docs data
-├── extension/             # Manifest V3 browser extension suite
-│   ├── src/               # Background service worker, popup UI, sidepanel reader
-│   └── manifests/         # Chromium, Firefox, and Safari extension manifests
-├── supabase/              # Supabase infrastructure
-│   ├── migrations/        # SQL schema, RLS policies, indexes, and cascades
-│   └── functions/         # Deno Edge Functions (enrich-url with YouTube oEmbed)
-└── docs/                  # Markdown documentation & architectural specifications
-\`\`\`
-
----
-
-## Data Flow & Synchronization
-
-The data lifecycle in LaterBox follows a strict **optimistic local-first** pattern:
-
-1. **Capture Event**: User saves a link via Quick Capture bar, Share Sheet, or Web App.
-2. **Local Write**: The item is written immediately to the local Drift SQLite database with a temporary UUID and \`sync_status = 'pending'\`.
-3. **Instant UI Update**: The UI stream receives the updated SQLite entity and renders it in **< 10ms**.
-4. **Edge Enrichment**: A background worker dispatches a request to the \`enrich-url\` Supabase Edge Function to extract OpenGraph tags, title, favicons, and video thumbnails.
-5. **Bidirectional Sync**: When online, the sync manager pushes local changes to Supabase PostgreSQL and pulls remote updates.
-
----
-
-## Database Engine: Drift & SQLite
-
-The mobile and desktop applications utilize **[Drift](https://drift.simonbinder.eu/)** (formerly Moor), a reactive persistence library for Dart & SQLite.
-
-- **Reactive Queries**: UI components subscribe to Dart Streams that automatically emit fresh state whenever SQLite tables change.
-- **Optimized FTS5 Indexing**: Full-text search queries execute directly against SQLite's native FTS5 engine, providing instant fuzzy matching across thousands of saved items without network latency.
-        `,
+        title: "System Architecture & Data Flow",
+        description: "Independent native UIs and persistence backed by shared Supabase services.",
+        category: "Architecture",
+        headings: [{"id": "repository", "text": "Repository", "level": 2}, {"id": "local-persistence", "text": "Local Persistence", "level": 2}, {"id": "shared-backend", "text": "Shared Backend", "level": 2}, {"id": "platform-boundaries", "text": "Platform Boundaries", "level": 2}],
+        content: "## Repository\n`laterbox-ios/` contains Swift/SwiftUI, `laterbox-android/` contains Kotlin/Compose, `laterbox-web/` contains Next.js, and `extension/` contains browser capture. `supabase/` owns migrations and edge functions; `assets/` holds shared artwork.\n\n## Local Persistence\nApple clients use SwiftData, Android uses Room, and the web app uses account-scoped local caching and pending capture queues. Each client implements its own UI and synchronization behavior.\n\n## Shared Backend\nSupabase provides authentication, PostgreSQL with Row-Level Security, and storage. Web APIs provide enrichment, entitlement, and notification services. Share data contracts rather than UI runtime code.\n\n## Platform Boundaries\nThe current Apple release scheme targets iOS. macOS-specific source remains for native desktop work. Windows and Linux native clients are future work.\n",
       },
       {
         slug: 'offline-sync',
@@ -551,42 +170,11 @@ LaterBox utilizes **Last-Write-Wins (LWW)** with field-level merging based on UT
     items: [
       {
         slug: 'desktop-companions',
-        title: 'Desktop Companions (macOS & Windows)',
-        navTitle: 'Desktop Apps',
-        description: 'Window management, Spotlight Quick Capture bar, native file attachments picker, and system tray integration.',
-        category: 'Platforms',
-        headings: [
-          { id: 'quick-capture-architecture', text: 'Spotlight Quick Capture Architecture', level: 2 },
-          { id: 'window-layering', text: 'Window Layering & Native File Pickers', level: 2 },
-          { id: 'system-tray', text: 'System Tray & Background Running', level: 2 },
-        ],
-        content: `
-## Spotlight Quick Capture Architecture
-
-The LaterBox desktop companion features a floating Spotlight-style quick capture modal:
-
-- **Global Hotkey Daemon**: Registers native OS keybinds (\`⌃ ⌥ Space\` on Mac, \`Ctrl + Shift + L\` on Windows) using native platform channels.
-- **Frameless Window**: The window operates in a borderless, translucent floating mode centered horizontally in the upper third of the primary screen.
-- **Instant Focus**: When invoked, the window forces OS focus directly into the URL input field.
-
----
-
-## Window Layering & Native File Pickers
-
-To support attaching local screenshots, PDFs, and files from desktop:
-
-- **Layer Priority Management**: The Quick Capture bar uses \`setAlwaysOnTop(true)\` to remain above full-screen IDEs and browser windows.
-- **Modal Guard**: When the user opens the native OS file picker (\`pickFiles()\`), the window manager temporarily lowers \`setAlwaysOnTop(false)\` and sets \`isModalOpen = true\` to prevent the capture bar from auto-dismissing on blur.
-- **Focus Restoration**: Once a file is selected or canceled, \`setAlwaysOnTop(true)\` and focus are immediately restored.
-
----
-
-## System Tray & Background Running
-
-- Closing the main window minimizes LaterBox to the system tray / menu bar.
-- The global hotkey daemon continues operating with minimal RAM consumption (< 40MB idle).
-- Clicking the tray icon reveals quick status, recent items, and quick settings.
-        `,
+        title: "Native Desktop Applications",
+        description: "Native desktop source and remaining release work.",
+        category: "Platforms",
+        headings: [{"id": "macos", "text": "macOS", "level": 2}, {"id": "windows-and-linux", "text": "Windows and Linux", "level": 2}],
+        content: "## macOS\nmacOS-specific Swift source remains in the Apple project. The current release scheme targets iOS; establish and verify a native macOS target, entitlements, signing, and packaging before publishing a desktop app. Safari extension hosting remains in `safari_app/`.\n\n## Windows and Linux\nNative replacements are future work. The retired desktop runners and their build scripts have been removed. Use the web application while native clients are developed.\n",
       },
       {
         slug: 'browser-extensions',
@@ -641,37 +229,11 @@ Generated packages in \`extension/dist/\`:
       },
       {
         slug: 'mobile-apps',
-        title: 'Mobile Applications (iOS & Android)',
-        navTitle: 'Mobile Apps',
-        description: 'Native mobile companion features, OS Share Sheet integrations, and offline SQLite synchronization.',
-        category: 'Platforms',
-        headings: [
-          { id: 'share-sheet', text: 'OS Share Sheet Receiver', level: 2 },
-          { id: 'biometric-security', text: 'Biometric Security & Vault Locks', level: 2 },
-          { id: 'offline-caching', text: 'Mobile Offline Caching', level: 2 },
-        ],
-        content: `
-## OS Share Sheet Receiver
-
-LaterBox integrates directly into iOS and Android system share sheets:
-
-- **iOS Share Extension**: Native Swift extension that captures URLs from Safari, YouTube, Twitter/X, and Reddit without opening the full application.
-- **Android Intent Receiver**: Listens for \`android.intent.action.SEND\` with MIME type \`text/plain\`, performing immediate background SQLite writes.
-
----
-
-## Biometric Security & Vault Locks
-
-- Supports **Face ID / Touch ID** on iOS and **BiometricPrompt** on Android.
-- Allows users to lock private collections or the entire vault behind biometric authentication.
-
----
-
-## Mobile Offline Caching
-
-- Articles and metadata are cached in local SQLite.
-- Extracted hero images are stored locally using \`flutter_cache_manager\` with automatic LRU cache eviction.
-        `,
+        title: "Mobile Applications (iOS & Android)",
+        description: "Native mobile capture, persistence, and platform integration.",
+        category: "Platforms",
+        headings: [{"id": "apple", "text": "Apple", "level": 2}, {"id": "android", "text": "Android", "level": 2}, {"id": "verification", "text": "Verification", "level": 2}],
+        content: "## Apple\nThe Swift/SwiftUI application and share extension live in `laterbox-ios/`. Use the native Xcode scheme and CI guide for simulator tests, signing, archive validation, and TestFlight distribution.\n\n## Android\nThe Kotlin/Jetpack Compose application lives in `laterbox-android/`. Room handles local persistence and WorkManager supports background synchronization. Use Android Studio with the project's configured SDK and JDK.\n\n## Verification\nTest offline captures, account switching, attachment recovery, scheduled returns, permissions, and purchase restoration on supported native devices before release.\n",
       },
     ],
   },
@@ -936,7 +498,7 @@ This creates the \`items\`, \`collections\`, \`tags\`, and \`item_collections\` 
 In your self-hosted setup, configure your client apps:
 
 1. **Web Dashboard**: Set \`NEXT_PUBLIC_SUPABASE_URL=https://supabase.yourdomain.com\` and your self-hosted \`NEXT_PUBLIC_SUPABASE_ANON_KEY\`.
-2. **Desktop & Mobile Apps**: Pass your self-hosted URL and Anon Key via \`--dart-define\` during build or update settings in the app.
+2. **Desktop & Mobile Apps**: Configure your self-hosted URL and public client key in the native Apple or Android project configuration.
 3. **Browser Extensions**: Set your custom domain in \`extension/.env\`.
 
 ---
@@ -958,64 +520,11 @@ In your self-hosted setup, configure your client apps:
     items: [
       {
         slug: 'contributing',
-        title: 'Contributing Guide',
-        navTitle: 'Contributing',
-        description: 'How to set up your local development environment, run test suites, and submit pull requests.',
-        category: 'Developer',
-        headings: [
-          { id: 'dev-setup', text: 'Development Setup', level: 2 },
-          { id: 'testing-guidelines', text: 'Testing Guidelines', level: 2 },
-          { id: 'pull-requests', text: 'Submitting Pull Requests', level: 2 },
-        ],
-        content: `
-## Development Setup
-
-Follow these steps to set up your local development environment:
-
-### 1. Fork and Clone Repository
-
-\`\`\`bash
-git clone https://github.com/Chaste-Djaziri/laterbox.git
-cd laterbox
-\`\`\`
-
-### 2. Install Flutter & Web Dependencies
-
-\`\`\`bash
-# Install Flutter dependencies
-flutter pub get
-
-# Install Next.js web dependencies
-cd laterbox-web && npm install
-\`\`\`
-
-### 3. Run Static Analysis & Tests
-
-\`\`\`bash
-# Run Flutter analysis and unit tests
-flutter analyze
-flutter test
-
-# Verify Next.js production build
-cd laterbox-web && npm run build
-\`\`\`
-
----
-
-## Testing Guidelines
-
-- **Flutter Unit & Widget Tests**: Located in \`test/\`. Run with \`flutter test\`.
-- **Edge Function Tests**: Located in \`supabase/functions/enrich-url/classification.test.ts\`. Run with \`deno test\`.
-- **Next.js Production Build**: Run \`npm run build\` inside \`laterbox-web/\`.
-
----
-
-## Submitting Pull Requests
-
-- Use **Conventional Commits** (\`feat:\`, \`fix:\`, \`docs:\`, \`chore:\`).
-- Commit each modified file independently whenever making architectural changes.
-- Ensure all tests and static analysis checks pass before opening your PR.
-        `,
+        title: "Contributing Guide",
+        description: "Contribute to the maintained native, web, extension, and backend projects.",
+        category: "Developer",
+        headings: [{"id": "workflow", "text": "Workflow", "level": 2}, {"id": "verification", "text": "Verification", "level": 2}, {"id": "review", "text": "Review", "level": 2}],
+        content: "## Workflow\nFollow repository `AGENTS.md`: work directly on main, record user-facing changes in the changelog before implementation, and commit each logical edit immediately using conventional commits.\n\n## Verification\n- Web: `npx tsc --noEmit --incremental false` and `npm test` in `laterbox-web/`.\n- Extensions: `npm run typecheck` and `npm run build:all` in `extension/`.\n- Apple: native Swift/UI tests in Xcode and Python release preflight tests under `laterbox-ios/ci/`.\n- Android: Gradle unit tests and builds through Android Studio.\n- Backend: Deno checks and regression tests from the web release workflow.\n\n## Review\nDescribe the problem, resulting behavior, and actual validation. Keep generated artifacts, environment files, and signing credentials out of commits.\n",
       },
       {
         slug: 'license',
