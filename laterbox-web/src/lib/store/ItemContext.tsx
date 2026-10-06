@@ -9,6 +9,7 @@ import { storeLocalAttachment } from '../utils/local-attachments';
 import { itemRow, queueCapture, syncPendingCaptures, isAuthError } from '../utils/pending-captures';
 import { uploadWithNotificationHandoff } from '../notifications/client';
 import { isActive, isDue, migrateSchedule } from '../utils/schedule';
+import { createQueryRecovery } from '../utils/query-recovery';
 
 const LOCAL_ITEMS_KEY = 'laterbox_local_items';
 const LOCAL_COLLECTIONS_KEY = 'laterbox_local_collections';
@@ -52,37 +53,8 @@ const ItemContext = createContext<ItemContextType | undefined>(undefined);
 
 const DEFAULT_GUEST_ITEMS: LaterBoxItem[] = [];
 
-// Helper to retry queries rejected due to clock skew (PGRST303: "JWT issued at future")
-async function fetchWithRetry<T>(
-  queryFn: () => PromiseLike<{ data: T | null; error: any }>,
-  maxRetries = 10,
-  delayMs = 2500
-): Promise<{ data: T | null; error: any }> {
-  let attempt = 0;
-  while (true) {
-    const res = await queryFn();
-    if (!res.error) {
-      return res;
-    }
-    const isClockSkew =
-      res.error.code === 'PGRST303' ||
-      (typeof res.error.message === 'string' &&
-        res.error.message.toLowerCase().includes('future'));
-
-    if (isClockSkew && attempt < maxRetries) {
-      attempt++;
-      console.warn(
-        `[ItemContext] PostgREST clock skew (PGRST303: JWT issued at future). Retrying attempt ${attempt}/${maxRetries} in ${delayMs}ms...`
-      );
-      await new Promise((r) => setTimeout(r, delayMs));
-      continue;
-    }
-    return res;
-  }
-}
-
 export function ItemProvider({ children }: { children: ReactNode }) {
-  const { user, session: authSession } = useAuth();
+  const { user } = useAuth();
   const [items, setItems] = useState<LaterBoxItem[]>([]);
   const [now, setNow] = useState(() => new Date());
   const [collections, setCollections] = useState<Collection[]>([]);
@@ -195,7 +167,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
 
       // Ensure active and valid session before executing cloud operations
       const { data: sessionData } = await supabase.auth.getSession();
-      const currentSession = sessionData?.session ?? authSession;
+      const currentSession = sessionData?.session;
       if (!currentSession) {
         handleAuthFailure();
         return;
@@ -214,8 +186,16 @@ export function ItemProvider({ children }: { children: ReactNode }) {
         console.warn('[ItemContext] Non-fatal sync pending error:', syncErr);
       }
 
-      // Fetch items from Supabase with clock skew retry
-      const { data: itemRows, error: itemError } = await fetchWithRetry(() =>
+      const recoverQuery = createQueryRecovery(() => supabase.auth.refreshSession());
+      const fetchWithRetry: typeof recoverQuery = async query => {
+        const result = await recoverQuery(query);
+        // Publish/cache only complete snapshots; preserve local data on any query failure.
+        if (result.error) throw result.error;
+        return result;
+      };
+
+      // Fetch items from Supabase with bounded clock skew recovery
+      const { data: itemRows } = await fetchWithRetry(() =>
         supabase
           .from('items')
           .select('*')
@@ -223,23 +203,6 @@ export function ItemProvider({ children }: { children: ReactNode }) {
           .is('deleted_at', null)
           .order('created_at', { ascending: false })
       );
-
-      if (itemError) {
-        console.warn('[ItemContext] Error fetching items:', itemError);
-        const isClockSkew =
-          itemError.code === 'PGRST303' ||
-          (typeof itemError.message === 'string' &&
-            itemError.message.toLowerCase().includes('future'));
-        if (isClockSkew) {
-          setSyncStatus('syncing');
-          setTimeout(() => {
-            fetchData();
-          }, 3000);
-          return;
-        }
-        handleAuthFailure();
-        return;
-      }
 
       // Fetch metadata
       const { data: metaRows } = await fetchWithRetry(() =>
@@ -347,17 +310,13 @@ export function ItemProvider({ children }: { children: ReactNode }) {
       saveLocalData(deduplicated, colRows || []);
       setSyncStatus('synced');
     } catch (err) {
-      if (isAuthError(err)) {
-        handleAuthFailure();
-        return;
-      }
-      setSyncStatus('error');
-      loadLocalData();
+      console.warn('[ItemContext] Cloud snapshot failed; retaining cached data:', err);
+      handleAuthFailure();
     } finally {
       isFetchingRef.current = false;
       setLoading(false);
     }
-  }, [user?.id, authSession, loadLocalData, saveLocalData, handleAuthFailure, migrateGuestItems]);
+  }, [user?.id, loadLocalData, saveLocalData, handleAuthFailure, migrateGuestItems]);
 
   useEffect(() => {
     fetchData();
