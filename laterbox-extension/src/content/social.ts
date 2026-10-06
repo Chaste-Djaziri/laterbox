@@ -40,6 +40,7 @@ export function findInstagramPosts(doc: Document, pageUrl: string): InstagramPos
   const page=new URL(pageUrl);
   if (!/^(www\.)?instagram\.com$/.test(page.hostname) || page.pathname.startsWith('/stories/')) return [];
   const posts:InstagramPost[]=[];const seen=new Set<Element>();
+  const currentPostUrl=page.pathname.match(/^\/reels\/([^/]+)\/?$/) ? new URL(page.href.replace('/reels/','/reel/')).href : page.href;
   const permalink=(raw:string|null):string|null=>{
     if(!raw)return null;
     try{const url=new URL(raw,page);if(!/^(www\.)?instagram\.com$/.test(url.hostname) || !/^https?:$/.test(url.protocol) || !/^\/(p|reel)\/[^/]+\/?$/.test(url.pathname))return null;return url.origin+url.pathname;}catch{return null;}
@@ -54,7 +55,7 @@ export function findInstagramPosts(doc: Document, pageUrl: string): InstagramPos
     // ancestor enclosing this action and exactly one media/post source.
     if(!root){
       for(let node=share.parentElement;node && node!==doc.body;node=node.parentElement){
-        if(node.querySelector('video,img') && (node.querySelector('a[href*="/reel/"],a[href*="/p/"]') || node.matches('[role="dialog"]') || /^\/(p|reel)\//.test(page.pathname))){root=node;break;}
+        if(node.querySelector('video,img') && (node.querySelector('a[href*="/reel/"],a[href*="/p/"]') || node.matches('[role="dialog"]') || /^\/(p|reels?)\//.test(page.pathname))){root=node;break;}
       }
     }
     if(!root || seen.has(root))continue;
@@ -63,7 +64,7 @@ export function findInstagramPosts(doc: Document, pageUrl: string): InstagramPos
     const urls=[...new Set(links.map(link=>permalink(link.getAttribute('href'))).filter((url):url is string=>!!url))];
     let url=permalink(timed?.getAttribute('href') || null) || (urls.length===1 ? urls[0] : null);
     const dialog=root.closest('[role="dialog"]');
-    if(!url && urls.length===0 && ((dialog && dialog.querySelectorAll('article').length<=1) || doc.querySelectorAll('article,video').length===1))url=permalink(page.href);
+    if(!url && urls.length===0 && ((dialog && dialog.querySelectorAll('article').length<=1) || doc.querySelectorAll('article,video').length===1))url=permalink(currentPostUrl);
     if(!url)continue;
     const row=share.parentElement;if(!row || !root.contains(row))continue;
     // An icon's button can be wrapped by a single action slot. Insert after that
