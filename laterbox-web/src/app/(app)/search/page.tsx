@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { ItemCard } from '@/components/inbox/ItemCard';
 import { ItemListRow } from '@/components/inbox/ItemListRow';
 import { useItems } from '@/lib/store/ItemContext';
-import { CloudSyncIndicator } from '@/components/ui/CloudSyncIndicator';
 import {
   Search as SearchIcon,
   X,
@@ -106,8 +105,6 @@ export default function SearchPage() {
               <List className="w-3.5 h-3.5" />
             </button>
           </div>
-
-          <CloudSyncIndicator />
 
           <Link
             href="/tutorial"
