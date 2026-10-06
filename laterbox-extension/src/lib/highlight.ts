@@ -106,17 +106,17 @@ function rangeForText(
     let score = 0;
     if (prefix) {
       const before = fullText.slice(
-        Math.max(0, occurrence - prefix.length),
+        Math.max(0, occurrence - prefix.length - 300),
         occurrence,
       );
-      if (before.endsWith(prefix)) score += 2;
+      if (before.trimEnd().endsWith(prefix)) score += 2;
     }
     if (suffix) {
       const after = fullText.slice(
         occurrence + exact.length,
-        occurrence + exact.length + suffix.length,
+        occurrence + exact.length + suffix.length + 300,
       );
-      if (after.startsWith(suffix)) score += 2;
+      if (after.trimStart().startsWith(suffix)) score += 2;
     }
     if (score > bestScore) {
       bestScore = score;
