@@ -807,11 +807,11 @@ export default function SettingsPage() {
             <h2 className="text-base font-extrabold text-[#171711]">Connected Applications</h2>
           </div>
           <p className="text-xs sm:text-sm text-[#6c6b63] leading-relaxed">
-            Download our native desktop apps for macOS & Windows or install the browser extensions to capture from any tab.
+            Download our official iOS app from the App Store, pair browser extensions, or view platform status in the Download Center.
           </p>
           <div className="pt-2">
             <Link
-              href="/download"
+              href="/downloads"
               className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#ebe7dc] hover:bg-[#e0dbc9] text-[#171711] text-xs font-bold"
             >
               <Download className="w-3.5 h-3.5" />
