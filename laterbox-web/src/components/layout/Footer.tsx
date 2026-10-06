@@ -216,51 +216,62 @@ export function Footer() {
             </p>
             <ul className="space-y-2.5">
               <li>
+                <a
+                  href="https://apps.apple.com/us/app/laterbox-save-for-later/id6804139119"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-[#171711] transition-colors flex items-center justify-between group"
+                >
+                  <span>iOS (App Store)</span>
+                  <span className="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[9px] font-bold">
+                    Live
+                  </span>
+                </a>
+              </li>
+              <li>
                 <Link
-                  href="/download?platform=macos"
+                  href="/download"
                   className="hover:text-[#171711] transition-colors flex items-center justify-between"
                 >
-                  <span>macOS (DMG / PKG)</span>
+                  <span>Android</span>
+                  <span className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 text-[9px] font-bold">
+                    In Dev
+                  </span>
                 </Link>
               </li>
               <li>
                 <Link
-                  href="/download?platform=windows"
-                  className="hover:text-[#171711] transition-colors"
+                  href="/download"
+                  className="hover:text-[#171711] transition-colors flex items-center justify-between"
                 >
-                  Windows (Inno Setup)
+                  <span>macOS</span>
+                  <span className="text-[10px] text-[#9e9b92]">Soon</span>
                 </Link>
               </li>
               <li>
                 <Link
-                  href="/download?platform=linux"
-                  className="hover:text-[#171711] transition-colors"
+                  href="/download"
+                  className="hover:text-[#171711] transition-colors flex items-center justify-between"
                 >
-                  Linux (.tar.gz / .zip)
+                  <span>Windows</span>
+                  <span className="text-[10px] text-[#9e9b92]">Soon</span>
                 </Link>
               </li>
               <li>
                 <Link
-                  href="/download?platform=ios"
-                  className="hover:text-[#171711] transition-colors"
+                  href="/download"
+                  className="hover:text-[#171711] transition-colors flex items-center justify-between"
                 >
-                  iOS (TestFlight)
+                  <span>Linux</span>
+                  <span className="text-[10px] text-[#9e9b92]">Soon</span>
                 </Link>
               </li>
               <li>
                 <Link
-                  href="/download?platform=android"
+                  href="/extension/connect"
                   className="hover:text-[#171711] transition-colors"
                 >
-                  Android (Google Play)
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/download?platform=extensions"
-                  className="hover:text-[#171711] transition-colors"
-                >
-                  Chrome / Firefox Extension
+                  Browser Extensions
                 </Link>
               </li>
             </ul>
