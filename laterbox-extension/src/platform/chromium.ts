@@ -1,8 +1,6 @@
 import { browser } from "./api";
 import type { BrowserCapabilities } from "./capabilities";
 
-const SIDE_PANEL_PATH = "src/sidepanel/sidepanel.html";
-
 // Track the focused window so `sidePanel.open({ windowId })` can run with no
 // preceding await. Awaiting unrelated browser.* calls between a command gesture
 // and `sidePanel.open()` can invalidate the gesture ("may only be called in
@@ -26,7 +24,6 @@ export const chromiumCapabilities: BrowserCapabilities = {
 
   async openSidePanel(): Promise<void> {
     if (!browser.sidePanel?.open) {
-      await browser.tabs.create({ url: browser.runtime.getURL(SIDE_PANEL_PATH) });
       return;
     }
 
