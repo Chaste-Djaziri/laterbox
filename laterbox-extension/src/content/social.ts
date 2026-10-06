@@ -7,7 +7,7 @@ export function findSocialPosts(doc: Document, pageUrl: string): SocialPost[] {
     'reddit.com': { roots:'shreddit-post,article',links:'a[href*="/comments/"]',site:'Reddit',author:'[data-testid="post_author_link"],a[href*="/user/"]' },
     'old.reddit.com': { roots:'.thing.link',links:'a.comments',site:'Reddit',author:'a.author' },
     'linkedin.com': { roots:'.feed-shared-update-v2,[data-urn*="urn:li:activity:"]',links:'a[href*="/feed/update/"],a[href*="/posts/"]',site:'LinkedIn',author:'.update-components-actor__title,.feed-shared-actor__name' },
-    'instagram.com': { roots:'article',links:'a[href*="/p/"],a[href*="/reel/"]',site:'Instagram',author:'header a,h2 a' },
+    'instagram.com': { roots:'article',links:'a[href*="/p/"],a[href*="/reel/"],a[href*="/reels/"]',site:'Instagram',author:'header a,h2 a' },
     'facebook.com': { roots:'[role="article"]',links:'a[href*="/posts/"],a[href*="/permalink/"],a[href*="story_fbid="],a[href*="/reel/"]',site:'Facebook',author:'h2 a,h3 a,strong a' },
   };
   const config = configs[host]; if (!config) return [];
@@ -59,7 +59,7 @@ export function findInstagramPosts(doc: Document, pageUrl: string): InstagramPos
       }
     }
     if(!root || seen.has(root))continue;
-    const links=Array.from(root.querySelectorAll<HTMLAnchorElement>('a[href*="/p/"],a[href*="/reel/"]'));
+    const links=Array.from(root.querySelectorAll<HTMLAnchorElement>('a[href*="/p/"],a[href*="/reel/"],a[href*="/reels/"]'));
     const timed=links.find(link=>link.querySelector('time'));
     const urls=[...new Set(links.map(link=>permalink(link.getAttribute('href'))).filter((url):url is string=>!!url))];
     let url=permalink(root.getAttribute('data-permalink')) || permalink(root.getAttribute('data-shortcode') ? '/p/'+root.getAttribute('data-shortcode')+'/' : null) || permalink(timed?.getAttribute('href') || null) || (urls.length===1 ? urls[0] : null);
