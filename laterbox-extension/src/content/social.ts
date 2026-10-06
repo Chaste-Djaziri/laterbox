@@ -55,7 +55,7 @@ export function findInstagramPosts(doc: Document, pageUrl: string): InstagramPos
     // ancestor enclosing this action and exactly one media/post source.
     if(!root){
       for(let node=share.parentElement;node && node!==doc.body;node=node.parentElement){
-        if(node.querySelector('video,img') && (node.querySelector('a[href*="/reel/"],a[href*="/reels/"],a[href*="/p/"]') || node.matches('[role="dialog"]') || /^\/(p|reels?)\//.test(page.pathname) || node.hasAttribute('data-permalink') || node.hasAttribute('data-shortcode'))){root=node;break;}
+        if(node.querySelector(page.pathname.startsWith('/reels/') ? 'video,[aria-label="Video player"]' : 'video,img') && (node.querySelector('a[href*="/reel/"],a[href*="/reels/"],a[href*="/p/"]') || node.matches('[role="dialog"]') || /^\/(p|reels?)\//.test(page.pathname) || node.hasAttribute('data-permalink') || node.hasAttribute('data-shortcode'))){root=node;break;}
       }
     }
     if(!root || seen.has(root))continue;
@@ -64,7 +64,8 @@ export function findInstagramPosts(doc: Document, pageUrl: string): InstagramPos
     const urls=[...new Set(links.map(link=>permalink(link.getAttribute('href'))).filter((url):url is string=>!!url))];
     let url=permalink(root.getAttribute('data-permalink')) || permalink(root.getAttribute('data-shortcode') ? '/p/'+root.getAttribute('data-shortcode')+'/' : null) || permalink(timed?.getAttribute('href') || null) || (urls.length===1 ? urls[0] : null);
     const dialog=root.closest('[role="dialog"]');
-    const videos=root.querySelectorAll('video');const mediaRect=videos.length===1 ? videos[0].getBoundingClientRect() : null;
+    const media=Array.from(root.querySelectorAll('video,[aria-label="Video player"]'));
+    const mediaRect=media.map(element=>element.getBoundingClientRect()).filter(rect=>rect.width>0 && rect.height>0).sort((a,b)=>b.width*b.height-a.width*a.height)[0] || null;
     const viewportHeight=doc.defaultView?.innerHeight || 0;
     const activeReel=page.pathname.startsWith('/reels/') && mediaRect && mediaRect.height>0 && mediaRect.top<viewportHeight/2 && mediaRect.bottom>viewportHeight/2;
     if(!url && urls.length===0 && ((dialog && dialog.querySelectorAll('article').length<=1) || doc.querySelectorAll('article,video').length===1 || activeReel))url=permalink(currentPostUrl);
