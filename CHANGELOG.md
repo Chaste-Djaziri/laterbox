@@ -34,6 +34,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 - **[Web] Music source labels**: Music cards and item actions now identify the originating service (including Apple Music and Spotify) and avoid presenting a Spotify label or icon for unrelated music links.
 
 ### Changed
+- **[Web] Full-Width Sidebar Cloud Sync Indicator**: Updated the Cloud Sync indicator in the expanded sidebar to stretch full width with compact small corner radiuses (`rounded-lg`), matching the container geometry of neighboring plan and profile cards.
 - **[CI/CD] Streamlined Workflows for Native & Next.js Platforms**: Removed legacy Flutter build and test jobs (`analyze-and-test`, `macos-release-contract`, `build-macos`, `build-windows`, `build-linux`, `build-android`, `build-ios`) from GitHub Actions workflows (`ci.yml` and `release.yml`). Dedicated active CI/CD to Next.js web application verification, TypeScript compilation, web unit tests, Cloudflare deployment, and Supabase notification contracts ahead of the transition to Swift and Kotlin native platforms.
 
 ### Added
