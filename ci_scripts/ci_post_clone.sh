@@ -3,11 +3,15 @@ set -e
 
 echo "=== Xcode Cloud: ci_post_clone starting ==="
 
-# CI_PRIMARY_REPOSITORY_PATH is provided by Xcode Cloud; fallback to current directory or parent
-REPO_ROOT="${CI_PRIMARY_REPOSITORY_PATH:-$(pwd)}"
-if [ ! -f "$REPO_ROOT/extension/package.json" ] && [ -f "$REPO_ROOT/../../extension/package.json" ]; then
-  REPO_ROOT="$(cd "$REPO_ROOT/../.." && pwd)"
-fi
+# Xcode Cloud supplies the checkout root; local invocations find it from this script.
+REPO_ROOT="${CI_PRIMARY_REPOSITORY_PATH:-$(cd "$(dirname "$0")" && pwd)}"
+while [ ! -f "$REPO_ROOT/extension/package.json" ]; do
+  if [ "$REPO_ROOT" = / ]; then
+    echo "Could not locate the LaterBox repository" >&2
+    exit 1
+  fi
+  REPO_ROOT="$(dirname "$REPO_ROOT")"
+done
 
 echo "Repository Root: $REPO_ROOT"
 
