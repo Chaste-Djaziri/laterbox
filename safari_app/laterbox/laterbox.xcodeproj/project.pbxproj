@@ -45,6 +45,8 @@
 		CAD5B1C630399BD2005FB70C /* manifest.json in Resources */ = {isa = PBXBuildFile; fileRef = CAD5B1B630399BD2005FB70C /* manifest.json */; };
 		CAD5B1C730399BD2005FB70C /* assets in Resources */ = {isa = PBXBuildFile; fileRef = CAD5B1B730399BD2005FB70C /* assets */; };
 		CAD5B1C830399BD2005FB70C /* src in Resources */ = {isa = PBXBuildFile; fileRef = CAD5B1B830399BD2005FB70C /* src */; };
+		ABC000000000000000000001 /* content.js in Resources */ = {isa = PBXBuildFile; fileRef = ABC000000000000000000003 /* content.js */; };
+		ABC000000000000000000002 /* content.js in Resources */ = {isa = PBXBuildFile; fileRef = ABC000000000000000000003 /* content.js */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -119,6 +121,7 @@
 		CAD5B1B630399BD2005FB70C /* manifest.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; name = manifest.json; path = ../../../laterbox-extension/dist/safari/manifest.json; sourceTree = "<group>"; };
 		CAD5B1B730399BD2005FB70C /* assets */ = {isa = PBXFileReference; lastKnownFileType = folder; name = assets; path = ../../../laterbox-extension/dist/safari/assets; sourceTree = "<group>"; };
 		CAD5B1B830399BD2005FB70C /* src */ = {isa = PBXFileReference; lastKnownFileType = folder; name = src; path = ../../../laterbox-extension/dist/safari/src; sourceTree = "<group>"; };
+		ABC000000000000000000003 /* content.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = content.js; path = ../../../laterbox-extension/dist/safari/content.js; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -251,6 +254,7 @@
 				CAD5B1B130399BD2005FB70C /* popup.js */,
 				CAD5B1B230399BD2005FB70C /* sidepanel.js */,
 				CAD5B1B330399BD2005FB70C /* background.js */,
+				ABC000000000000000000003 /* content.js */,
 				CAD5B1B430399BD2005FB70C /* logo.png */,
 				CAD5B1B530399BD2005FB70C /* icons */,
 				CAD5B1B630399BD2005FB70C /* manifest.json */,
@@ -427,6 +431,7 @@
 				CAD5B1C730399BD2005FB70C /* assets in Resources */,
 				CAD5B1C830399BD2005FB70C /* src in Resources */,
 				CAD5B1C330399BD2005FB70C /* background.js in Resources */,
+				ABC000000000000000000001 /* content.js in Resources */,
 				CAD5B1C530399BD2005FB70C /* icons in Resources */,
 				CAD5B1C630399BD2005FB70C /* manifest.json in Resources */,
 				CAD5B1C130399BD2005FB70C /* popup.js in Resources */,
@@ -442,6 +447,7 @@
 				CAD5B1BF30399BD2005FB70C /* assets in Resources */,
 				CAD5B1C030399BD2005FB70C /* src in Resources */,
 				CAD5B1BB30399BD2005FB70C /* background.js in Resources */,
+				ABC000000000000000000002 /* content.js in Resources */,
 				CAD5B1BD30399BD2005FB70C /* icons in Resources */,
 				CAD5B1BE30399BD2005FB70C /* manifest.json in Resources */,
 				CAD5B1B930399BD2005FB70C /* popup.js in Resources */,
