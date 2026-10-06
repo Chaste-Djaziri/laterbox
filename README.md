@@ -9,7 +9,7 @@ A local-first save-for-later app with native clients, a web app, and browser ext
 | `laterbox-ios/` | Native Apple application and share extension in Swift/SwiftUI |
 | `laterbox-android/` | Native Android application in Kotlin/Jetpack Compose |
 | `laterbox-web/` | Next.js, React, and TypeScript web app |
-| `extension/` | TypeScript browser extensions for Chromium, Firefox, and Safari |
+| `laterbox-extension/` | TypeScript browser extensions for Chromium, Firefox, and Safari |
 | `safari_app/` | Native Safari extension host |
 | `supabase/` | PostgreSQL migrations and TypeScript edge functions |
 | `assets/` | Shared branding and store artwork |
@@ -37,7 +37,7 @@ npm run typecheck
 npm run build:all
 ```
 
-See [extension setup](extension/README.md), [deployment](docs/deployment.md), [architecture](docs/architecture.md), and [contributing](CONTRIBUTING.md).
+See [extension setup](laterbox-extension/README.md), [deployment](docs/deployment.md), [architecture](docs/architecture.md), and [contributing](CONTRIBUTING.md).
 
 ## License and support
 
