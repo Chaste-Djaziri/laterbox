@@ -23,7 +23,7 @@ Fixes #(issue)
 - [ ] Native Apple App (`laterbox-ios/`)
 - [ ] Native Android App (`laterbox-android/`)
 - [ ] Web Application & Docs (`laterbox-web/`)
-- [ ] Browser Extensions (`extension/`)
+- [ ] Browser Extensions (`laterbox-extension/`)
 - [ ] Backend & Edge Functions (`supabase/`)
 - [ ] CI/CD & Build Scripts (`scripts/`, `.github/`)
 
@@ -35,7 +35,7 @@ Please describe the tests that you ran to verify your changes:
 
 - [ ] Native tests for the changed Apple or Android app
 - [ ] `npm run build` in `laterbox-web/` (TypeScript & Next.js production build passed)
-- [ ] `npm run package` in `extension/` (Chrome, Firefox, Safari bundles built)
+- [ ] `npm run package` in `laterbox-extension/` (Chrome, Firefox, Safari bundles built)
 - [ ] Manual verification on target OS (e.g. macOS Sonoma, Windows 11, iOS, Android, Chrome)
 
 ---
