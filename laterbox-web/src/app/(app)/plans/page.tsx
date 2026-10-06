@@ -17,6 +17,7 @@ import {
   ShieldCheck,
   Layers,
   ArrowRight,
+  Zap,
 } from 'lucide-react';
 import { presentEntitlement } from '@/lib/billing/types';
 import { useAuth } from '@/lib/store/AuthContext';
@@ -141,8 +142,9 @@ function AppPlansContent() {
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-8 py-8 sm:py-10 space-y-8">
       {searchParams.get('source') === 'extension' && (
-        <div className="rounded-2xl border border-[#d0db84] bg-[#fbffdc] px-4 py-3 text-center text-xs font-bold text-[#444a10]">
-          ⚡ Upgrade to LaterBox Pro below to activate and use your browser extension.
+        <div className="rounded-2xl border border-[#d0db84] bg-[#fbffdc] px-4 py-3 text-center text-xs font-bold text-[#444a10] flex items-center justify-center gap-2">
+          <Zap className="w-3.5 h-3.5 text-[#444a10] shrink-0" />
+          <span>Upgrade to LaterBox Pro below to activate and use your browser extension.</span>
         </div>
       )}
 
