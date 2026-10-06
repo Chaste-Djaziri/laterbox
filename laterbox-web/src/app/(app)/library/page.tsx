@@ -380,7 +380,7 @@ export default function LibraryPage() {
                 type="text"
                 value={newColName}
                 onChange={(e) => setNewColName(e.target.value)}
-                placeholder="e.g. Flutter Guides, AI Research, Recipes..."
+                placeholder="e.g. Swift Guides, AI Research, Recipes..."
                 autoFocus
                 className="w-full px-4 py-2.5 text-xs bg-white border border-[#e4e0d5] rounded-xl text-[#171711] focus:outline-hidden focus:border-[#171711]"
               />
