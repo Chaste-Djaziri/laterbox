@@ -62,7 +62,7 @@ The popup connects through the LaterBox web approval screen. The extension store
 
 1. Run `npm run build:safari:local` (or `build:safari`).
 2. In Safari: Settings → Developer → enable "Show features for web developers" if the Developer tab is hidden.
-3. Use the temporary extension install flow and select `laterbox-extension/dist/safari`.
+3. Open `../safari_app/laterbox/laterbox.xcodeproj`, build and run the macOS app scheme. The Safari extension target bundles `dist/safari` assets. For local unsigned development, enable Safari’s Develop → Allow Unsigned Extensions.
 4. Enable the extension and grant website access under Safari Settings → Extensions.
 
 Safari has no WebExtension sidebar API; use the toolbar popup, right-click actions, and capture shortcuts. Native Safari packaging uses `safari_app/laterbox/laterbox.xcodeproj`, whose resource references include the built content script.
