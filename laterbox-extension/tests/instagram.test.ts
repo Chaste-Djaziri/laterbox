@@ -52,3 +52,19 @@ test('LaterBox icons follow native Share colors when Instagram changes theme',()
  const sync=createInstagramControls(w.document,()=>{const el=w.document.createElement('span');el.setAttribute('data-laterbox-control','');return el;});sync(true,w.location.href);const control=w.document.querySelector<HTMLElement>('[data-laterbox-control]')!;assert.equal(control.style.getPropertyValue('--lb-instagram-color'),'rgb(20, 20, 20)');assert.equal(control.style.getPropertyValue('--lb-instagram-size'),'24px');
  native.style.color='rgb(245, 245, 245)';sync(true,w.location.href);assert.equal(control.style.getPropertyValue('--lb-instagram-color'),'rgb(245, 245, 245)');assert.equal(w.document.querySelectorAll('[data-laterbox-control]').length,1);
 });
+
+test('Instagram post modal dialog brightens icon to match native action buttons',()=>{
+ const {window:w}=fixture('<div role="dialog"><article><p>Caption</p><img src="/preview.jpg"><section><div><button><svg aria-label="Like" color="rgb(245, 245, 245)"></svg></button></div><div id="share-slot"><button><svg aria-label="Share post" color="rgb(245, 245, 245)"></svg></button></div></section></article></div>','https://www.instagram.com/p/modal/');
+ const sync=createInstagramControls(w.document,()=>{const el=w.document.createElement('span');el.setAttribute('data-laterbox-control','');return el;});sync(true,w.location.href);
+ const control=w.document.querySelector<HTMLElement>('[data-laterbox-control]')!;
+ assert.equal(control.style.getPropertyValue('--lb-instagram-color'),'rgb(245, 245, 245)');
+});
+
+test('Instagram post modal elevates secondary text color to bright white',()=>{
+ const {window:w}=fixture('<div role="dialog"><article><section><div><button><svg aria-label="Like"></svg></button></div><div id="share-slot"><button><svg aria-label="Share post"></svg></button></div></section></article></div>','https://www.instagram.com/p/modal2/');
+ const share=w.document.querySelector<HTMLElement>('svg[aria-label="Share post"]')!;share.style.color='rgb(168, 179, 191)';
+ const sync=createInstagramControls(w.document,()=>{const el=w.document.createElement('span');el.setAttribute('data-laterbox-control','');return el;});sync(true,w.location.href);
+ const control=w.document.querySelector<HTMLElement>('[data-laterbox-control]')!;
+ assert.equal(control.style.getPropertyValue('--lb-instagram-color'),'rgb(245, 245, 245)');
+});
+

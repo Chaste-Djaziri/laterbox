@@ -16,8 +16,10 @@ button svg{width:15px;height:15px;flex-shrink:0}
 .quote-toolbar{position:fixed;z-index:2147483647;display:flex;align-items:center;gap:6px;padding:5px;background:#fff;border:1px solid #deded4;border-radius:13px;box-shadow:0 6px 24px #0002;max-width:calc(100vw - 16px)}
 .dismiss{min-width:28px;min-height:28px;padding:6px;border:0;background:transparent;color:#77766b;border-radius:7px}.dismiss:hover{background:#f1f0e8;color:#171711}
 .instagram-action{display:inline-flex;color:var(--lb-instagram-color,#171711)}
+.instagram-action.dark{color:var(--lb-instagram-color,#f5f5f5)}
+.instagram-action.light{color:var(--lb-instagram-color,#171711)}
 .instagram-action button{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;min-height:40px;padding:8px;border:0;border-radius:8px;background:transparent;box-shadow:none;color:inherit}
-.instagram-action button span{display:none}.instagram-action button svg{width:var(--lb-instagram-size,24px);height:var(--lb-instagram-size,24px);stroke-width:2}
+.instagram-action button span{display:none}.instagram-action button svg{width:var(--lb-instagram-size,24px);height:var(--lb-instagram-size,24px);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .instagram-action button:hover{background:transparent;opacity:.65}.instagram-action button:focus-visible{outline:2px solid currentColor;outline-offset:2px}
 .save-tooltip{position:fixed;inset:auto;margin:0;padding:7px 10px;max-width:170px;border:0;border-radius:6px;background:#171711;color:#fff;font:500 12px/1.4 system-ui;box-shadow:0 2px 8px #0003;pointer-events:none;white-space:nowrap}
 .instagram-action button[data-state=saved]{background:transparent;color:#3b9b62}.instagram-action button[data-state=queued]{background:transparent;color:#b88930}
@@ -29,7 +31,7 @@ button[data-state=saved]{background:#edf5ee;color:#25653c;border-color:#c3ddc6}b
 shadow.append(style);document.documentElement.append(host);
 function decorate(button:HTMLButtonElement,label:string) {
   button.replaceChildren();
-  const icon=document.createElementNS('http://www.w3.org/2000/svg','svg');icon.setAttribute('viewBox','0 0 24 24');icon.setAttribute('fill','none');icon.setAttribute('stroke','currentColor');icon.setAttribute('stroke-width','1.8');icon.setAttribute('aria-hidden','true');
+  const icon=document.createElementNS('http://www.w3.org/2000/svg','svg');icon.setAttribute('viewBox','0 0 24 24');icon.setAttribute('fill','none');icon.setAttribute('stroke','currentColor');icon.setAttribute('stroke-width','2');icon.setAttribute('stroke-linecap','round');icon.setAttribute('stroke-linejoin','round');icon.setAttribute('aria-hidden','true');
   const path=document.createElementNS(icon.namespaceURI,'path');path.setAttribute('d','M3 7l9-4 9 4v11l-9 4-9-4V7Zm0 0 9 4 9-4M12 11v11M7.5 5l9 4');icon.append(path);
   const text=document.createElement('span');text.textContent=label;button.append(icon,text);
 }
@@ -85,7 +87,8 @@ const syncInstagramControls=createInstagramControls(document,(post,resolve)=>{
   const local=container.attachShadow({mode:'closed'});local.append(style.cloneNode(true));
   const row=document.createElement('span');row.className='instagram-action';
   const color=getComputedStyle(post.share).color.match(/\d+/g)?.slice(0,3).map(Number);
-  if(color?.length===3)row.classList.add(color.reduce((sum,value)=>sum+value,0)>384 ? 'dark' : 'light');
+  const isDarkModal=Boolean(post.root.closest('[role="dialog"]') || post.share.closest('[role="dialog"]'));
+  if(isDarkModal || (color?.length===3 && color.reduce((sum,value)=>sum+value,0)>384)){row.classList.add('dark');}else{row.classList.add('light');}
   local.append(row);
   const button=document.createElement('button');button.type='button';decorate(button,'Save to LaterBox');button.title='Save to LaterBox';button.setAttribute('aria-label',`Save ${post.author ? post.author+'’s ' : ''}Instagram post to LaterBox`);row.append(button);
   const tooltip=document.createElement('div');tooltip.className='save-tooltip';tooltip.id='laterbox-save-tip';tooltip.setAttribute('role','tooltip');tooltip.textContent='Save to LaterBox';
