@@ -10,7 +10,7 @@ import {
   openApprovalTab,
 } from "../lib/auth";
 import { flushQueue, saveCapture, saveSelectionFromTab } from "../lib/capture";
-import { getPageContext, type PageContext } from "../lib/page";
+import { captureFromPage, getPageContext, type PageContext } from "../lib/page";
 import { getConnectedUserId } from "../lib/storage";
 import { browser } from "../platform/api";
 import { browserCapabilities } from "../platform";
@@ -77,7 +77,7 @@ async function initialize(): Promise<void> {
   }
 
   browser.storage.onChanged.addListener((changes, areaName) => {
-    if (areaName === "local") {
+    if (areaName === "local" && ["accessToken", "connectedUserId", "hasProPlan", "pendingConnection"].some(key => key in changes)) {
       void updateConnectionState();
     }
   });
@@ -161,7 +161,7 @@ async function updateConnectionState(): Promise<boolean> {
   disconnectButton.hidden = !connected || isProRequired;
   openPanelButton.hidden = !browserCapabilities.supportsSidePanel || isProRequired;
 
-  if (connected && isPro !== false) {
+  if (connected && isPro === true) {
     const flushed = await flushQueue();
     if (flushed > 0) {
       setStatus(`Synced ${flushed} queued capture${flushed === 1 ? "" : "s"}.`);
@@ -174,7 +174,7 @@ async function connect(): Promise<void> {
   connectButton.disabled = true;
   setStatus("Opening laterbox in browser...");
   try {
-    void connectLaterBox();
+    await connectLaterBox();
     await updateConnectionState();
   } catch (error) {
     setStatus(error instanceof Error ? error.message : "Connection cancelled.", "error");
@@ -214,17 +214,7 @@ async function saveCurrentPage(): Promise<void> {
 
   saveButton.disabled = true;
   setStatus("Saving...");
-  const result = await saveCapture({
-    url,
-    title: pageContext.title,
-    description: pageContext.description,
-    previewImageUrl: pageContext.previewImageUrl,
-    faviconUrl: pageContext.faviconUrl,
-    siteName: pageContext.siteName,
-    os: pageContext.os,
-    source: "browserExtension",
-    createdAt: new Date().toISOString(),
-  });
+  const result = await saveCapture(captureFromPage(pageContext));
 
   await showCaptureResult(result, saveButton);
 }
@@ -262,15 +252,14 @@ async function showCaptureResult(
     setStatus("Get Pro to use this extension.", "error");
     button.disabled = false;
   } else if (result.status === "needsAuth") {
-    await disconnectLaterBox();
     await updateConnectionState();
-    setStatus("Saved on this browser. Connect laterbox to sync.");
+    setStatus("Reconnect your LaterBox account. Pending captures stay assigned to their original account.", "error");
     button.disabled = false;
   } else {
     setStatus(
       result.reason === "server"
-        ? "Capture service unavailable. Saved on this browser."
-        : "Saved offline. It will sync when connected.",
+        ? "Capture service unavailable. Pending save will retry automatically."
+        : "Offline. Pending save will sync to your account when online.",
     );
     button.disabled = false;
   }
