@@ -62,12 +62,13 @@ export function findInstagramPosts(doc: Document, pageUrl: string): InstagramPos
     const timed=links.find(link=>link.querySelector('time'));
     const urls=[...new Set(links.map(link=>permalink(link.getAttribute('href'))).filter((url):url is string=>!!url))];
     let url=permalink(timed?.getAttribute('href') || null) || (urls.length===1 ? urls[0] : null);
-    if(!url && urls.length===0 && (root.closest('[role="dialog"]') || doc.querySelectorAll('article,video').length===1))url=permalink(page.href);
+    const dialog=root.closest('[role="dialog"]');
+    if(!url && urls.length===0 && ((dialog && dialog.querySelectorAll('article').length<=1) || doc.querySelectorAll('article,video').length===1))url=permalink(page.href);
     if(!url)continue;
     const row=share.parentElement;if(!row || !root.contains(row))continue;
     // An icon's button can be wrapped by a single action slot. Insert after that
     // slot, not inside the clickable Share control.
-    const insertionPoint=row.childElementCount===1 && row.parentElement && root.contains(row.parentElement) ? row : share;
+    const insertionPoint=/^(SPAN|DIV)$/.test(row.tagName) && row.childElementCount===1 && row.parentElement && root.contains(row.parentElement) && row.parentElement.querySelectorAll('button,[role="button"]').length>1 ? row : share;
     seen.add(root);posts.push({root,share,insertionPoint,url,site:'Instagram',
       author:root.querySelector('header a,h2 a,a[role="link"]')?.textContent?.trim().slice(0,500),
       publishedAt:root.querySelector('time')?.getAttribute('datetime') || undefined});
