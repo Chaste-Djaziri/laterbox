@@ -51,8 +51,8 @@ app.*.map.json
 **/key.properties
 
 # Browser extension dependencies
-extension/node_modules/
-extension/dist/
+laterbox-extension/node_modules/
+laterbox-extension/dist/
 
 # Installer and binary distribution
 /dist/
