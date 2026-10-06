@@ -66,12 +66,12 @@ export default function InAppDownloadsPage() {
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-8">
           <div className="space-y-4 max-w-xl">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#171711] text-[#E7FF57] text-xs font-bold">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#171711] text-white text-xs font-bold shadow-2xs">
                 <Apple className="w-3.5 h-3.5" />
                 <span>iOS & iPadOS</span>
               </span>
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 border border-emerald-200 text-emerald-800 text-xs font-bold">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#ebe7dc] border border-[#e4e0d5] text-[#171711] text-xs font-bold shadow-2xs">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#171711] animate-pulse" />
                 <span>Live on App Store</span>
               </span>
             </div>
