@@ -5,6 +5,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- **[Extensions] Instagram icon styling**: Use borderless, icon-only LaterBox actions that follow Instagram’s icon color and size across feed, Reels, and post dialogs.
 - **[Extensions] Reel action spacing**: Place LaterBox in its own centered action-rail slot with clear spacing from Instagram’s bookmark.
 - **[Extensions] Scrolling Reel grouping**: Associate Reel save actions with their video container rather than audio-cover thumbnails in the action rail.
 - **[Extensions] Instagram layout fixes**: Improve feed and scrolling-Reels detection, adapt save labels to available action-row space, and use a distinct LaterBox box icon.
