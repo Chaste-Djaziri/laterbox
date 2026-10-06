@@ -14,8 +14,8 @@ test('compiled controls isolate clicks, preserve keyboard focus, and show save f
  const {build}=await import('vite');const w=new JSDOM(post('one')+post('two'),{url:'https://www.instagram.com/',runScripts:'outside-only'}).window;
  const shadows:ShadowRoot[]=[];const attach=w.Element.prototype.attachShadow;
  w.Element.prototype.attachShadow=function(options){const shadow=attach.call(this,options);shadows.push(shadow);return shadow;};
- let saves=0,shares=0;w.document.querySelector('section')!.addEventListener('click',()=>shares++);
- (w as any).chrome={storage:{local:{get:async()=>({injectedControls:true})},onChanged:{addListener:()=>{}}},runtime:{sendMessage:async()=>{saves++;return {status:'saved'}}}};
+ let saves=0,shares=0;let captured:any;w.document.querySelector('section')!.addEventListener('click',()=>shares++);
+ (w as any).chrome={storage:{local:{get:async()=>({injectedControls:true})},onChanged:{addListener:()=>{}}},runtime:{sendMessage:async(message:any)=>{saves++;captured=message.capture;return {status:'saved'}}}};
  // Native trusted clicks are a browser check; fixture-only instrumentation lets
  // this compiled UI exercise its save states without contacting an account.
  const result=await build({configFile:false,publicDir:false,logLevel:'silent',build:{write:false,lib:{entry:new URL('../src/content/index.ts',import.meta.url).pathname,name:'FixtureControls',formats:['iife']}}});
@@ -23,5 +23,5 @@ test('compiled controls isolate clicks, preserve keyboard focus, and show save f
  const chunk=(bundle as any).output.find((entry:any)=>entry.type==='chunk');const script=chunk.code.replace(/([a-zA-Z_$][\w$]*)\.isTrusted/g,'true');
  w.eval(script);await new Promise(resolve=>setTimeout(resolve,10));
  const controls=Array.from(w.document.querySelectorAll('[data-laterbox-control]')).filter(el=>el.tagName==='SPAN');assert.equal(controls.length,2);
- const button=shadows.find(shadow=>shadow.host===controls[0])!.querySelector('button')!;assert.equal(button.getAttribute('type'),'button');assert.match(button.getAttribute('aria-label')!,/Writer one/);button.focus();assert.equal(w.document.activeElement,controls[0]);button.click();assert.equal(shares,0);assert.equal(button.getAttribute('aria-busy'),'true');await new Promise(resolve=>setTimeout(resolve,10));assert.equal(saves,1);assert.equal(button.dataset.state,'saved');assert.match(button.textContent!,/Saved/);w.close();
+ const button=shadows.find(shadow=>shadow.host===controls[0])!.querySelector('button')!;assert.equal(button.getAttribute('type'),'button');assert.match(button.getAttribute('aria-label')!,/Writer one/);button.focus();assert.equal(w.document.activeElement,controls[0]);button.click();assert.equal(shares,0);assert.equal(button.getAttribute('aria-busy'),'true');await new Promise(resolve=>setTimeout(resolve,10));assert.equal(saves,1);assert.equal(captured.url,'https://www.instagram.com/p/one/');assert.ok(captured.markdown.includes('Caption one'));assert.ok(!captured.markdown.includes('Caption two'));assert.equal(captured.author,'Writer one');assert.equal(captured.previewImageUrl,'https://www.instagram.com/one.jpg');assert.equal(button.dataset.state,'saved');assert.match(button.textContent!,/Saved/);w.close();
 });
