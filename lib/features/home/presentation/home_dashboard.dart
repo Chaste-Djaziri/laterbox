@@ -429,7 +429,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
     };
     final config = switch (widget.view) {
       ScheduleView.today => (
-        '⚡ Returned Today',
+        'Returned Today',
         'When later becomes now.',
         'LaterBox brings your saved items back right on schedule.',
         'Drop item',
@@ -437,7 +437,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
         'Nothing scheduled for today yet. Relax, or pick something from your Inbox or Someday Vault.',
       ),
       ScheduleView.upcoming => (
-        '📅 Scheduled Timeline',
+        'Scheduled Timeline',
         'Returning on schedule.',
         'Everything you’ve postponed, arranged by when it returns.',
         'Schedule item',
@@ -445,7 +445,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
         'Postponed items with future return times will appear here chronologically.',
       ),
       ScheduleView.someday => (
-        '✦ Someday Vault',
+        'Someday Vault',
         'Some things don’t need a deadline.',
         'Keep ideas and references safe without cluttering your daily view.',
         'Save to Someday',
