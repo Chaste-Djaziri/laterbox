@@ -1,236 +1,42 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { AndroidTesterModal } from '@/components/download/AndroidTesterModal';
+import { AppStoreButton, APP_STORE_URL } from '@/components/download/AppStoreButton';
 import {
-  Download,
   Apple,
   Laptop,
   Terminal,
-  Puzzle,
   Smartphone,
+  Puzzle,
   CheckCircle2,
-  Copy,
-  Check,
   ExternalLink,
   Sparkles,
-  Zap,
-  ShieldCheck,
-  HardDrive,
-  RefreshCw,
-  Search,
-  ChevronDown,
-  ChevronUp,
-  Calendar,
-  Layers,
   ArrowRight,
-  Package,
+  Clock,
+  Hammer,
+  ShieldCheck,
+  Zap,
 } from 'lucide-react';
 
-type PlatformId = 'macos' | 'windows' | 'linux' | 'android' | 'ios' | 'extensions';
-type HistoryTab = 'all' | 'desktop' | 'mobile' | 'extensions';
-
-function detectUserPlatform(): PlatformId {
-  if (typeof window === 'undefined') return 'macos';
-  const ua = window.navigator.userAgent || '';
-  const platform = (window.navigator as any).userAgentData?.platform || window.navigator.platform || '';
-  const maxTouchPoints = window.navigator.maxTouchPoints || 0;
-
-  if (/iPad|iPhone|iPod/.test(ua) || (platform === 'MacIntel' && maxTouchPoints > 1)) return 'ios';
-  if (/Android/i.test(ua)) return 'android';
-  if (/Win/i.test(ua) || /Win/i.test(platform)) return 'windows';
-  if (/Linux/i.test(ua) || /Linux/i.test(platform)) return 'linux';
-  if (/Mac/i.test(ua) || /Mac/i.test(platform)) return 'macos';
-  return 'macos';
-}
-
-function formatBytes(bytes?: number): string {
-  if (!bytes || bytes <= 0) return 'Direct Asset';
-  const k = 1024;
-  const sizes = ['B', 'KB', 'MB', 'GB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
-}
-
-interface ReleaseAsset {
-  id?: number;
-  name: string;
-  browser_download_url: string;
-  size?: number;
-}
-
-interface GitHubRelease {
-  id?: number;
-  tag_name: string;
-  name?: string;
-  published_at: string;
-  body?: string;
-  html_url?: string;
-  assets: ReleaseAsset[];
-}
-
 export default function InAppDownloadsPage() {
-  const [selectedPlatform, setSelectedPlatform] = useState<PlatformId>('macos');
-  const [detectedPlatform, setDetectedPlatform] = useState<PlatformId>('macos');
-  const [downloadingFile, setDownloadingFile] = useState<string | null>(null);
   const [isAndroidModalOpen, setIsAndroidModalOpen] = useState(false);
-  const [copiedKey, setCopiedKey] = useState<string | null>(null);
-  const [historyTab, setHistoryTab] = useState<HistoryTab>('all');
-  const [expandedVersions, setExpandedVersions] = useState<Set<string>>(new Set());
-  const [releases, setReleases] = useState<GitHubRelease[]>([]);
-  const [loadingReleases, setLoadingReleases] = useState<boolean>(true);
-  const [releaseSearchQuery, setReleaseSearchQuery] = useState<string>('');
-  const [latestVersionTag, setLatestVersionTag] = useState<string>('');
-
-  const previousReleasesRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const detected = detectUserPlatform();
-    setDetectedPlatform(detected);
-    setSelectedPlatform(detected);
-
-    setLoadingReleases(true);
-    fetch('/api/releases')
-      .then(async (res) => {
-        if (!res.ok) throw new Error('API unavailable');
-        return (await res.json()) as GitHubRelease[];
-      })
-      .then((data) => {
-        if (Array.isArray(data) && data.length > 0) {
-          setReleases(data);
-          const firstTag = data[0].tag_name.replace(/^v/, '');
-          setLatestVersionTag(firstTag);
-          const initialExpanded = new Set<string>();
-          data.slice(0, 2).forEach((r) => initialExpanded.add(r.tag_name.replace(/^v/, '')));
-          setExpandedVersions(initialExpanded);
-        }
-      })
-      .catch(async () => {
-        try {
-          const directRes = await fetch('https://api.github.com/repos/Chaste-Djaziri/laterbox/releases?per_page=30');
-          if (directRes.ok) {
-            const directData = (await directRes.json()) as GitHubRelease[];
-            if (Array.isArray(directData) && directData.length > 0) {
-              const mapped = directData.map((rel) => ({
-                id: rel.id,
-                tag_name: rel.tag_name,
-                name: rel.name || rel.tag_name,
-                body: rel.body,
-                html_url: rel.html_url || `https://github.com/Chaste-Djaziri/laterbox/releases/tag/${rel.tag_name}`,
-                published_at: rel.published_at,
-                assets: (rel.assets || []).map((a) => ({
-                  id: a.id,
-                  name: a.name,
-                  size: a.size,
-                  browser_download_url: a.id
-                    ? `/api/download/${encodeURIComponent(a.name)}?assetId=${a.id}`
-                    : `/api/download/${encodeURIComponent(a.name)}`,
-                })),
-              }));
-              setReleases(mapped);
-              const initialExpanded = new Set<string>();
-              mapped.slice(0, 2).forEach((r) => initialExpanded.add(r.tag_name.replace(/^v/, '')));
-              setExpandedVersions(initialExpanded);
-              return;
-            }
-          }
-        } catch {
-          // The public GitHub API is unavailable too. Do not show invented releases.
-        }
-
-        setReleases([]);
-        setExpandedVersions(new Set());
-        setLatestVersionTag('');
-      })
-      .finally(() => {
-        setLoadingReleases(false);
-      });
-  }, []);
-
-  const copyToClipboard = (text: string, key: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedKey(key);
-    setTimeout(() => setCopiedKey(null), 2000);
-  };
-
-  const handleDownload = (url: string, filename: string) => {
-    setDownloadingFile(filename);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setTimeout(() => setDownloadingFile(null), 2500);
-  };
-
-  const toggleVersion = (versionNum: string) => {
-    setExpandedVersions((prev) => {
-      const next = new Set(prev);
-      if (next.has(versionNum)) next.delete(versionNum);
-      else next.add(versionNum);
-      return next;
-    });
-  };
-
-  // Find latest asset for quick download
-  const latestRelease = releases[0];
-  const findAsset = (pattern: RegExp): ReleaseAsset | undefined => {
-    if (!latestRelease || !latestRelease.assets) return undefined;
-    return latestRelease.assets.find((a) => pattern.test(a.name));
-  };
-
-  // Filtered releases for history tab & search query
-  const filteredReleases = useMemo(() => {
-    let list = releases;
-    if (releaseSearchQuery.trim()) {
-      const q = releaseSearchQuery.toLowerCase().trim();
-      list = list.filter(
-        (r) =>
-          r.tag_name.toLowerCase().includes(q) ||
-          (r.name && r.name.toLowerCase().includes(q)) ||
-          (r.body && r.body.toLowerCase().includes(q)) ||
-          r.assets.some((a) => a.name.toLowerCase().includes(q))
-      );
-    }
-
-    if (historyTab === 'all') return list;
-
-    return list.map((rel) => {
-      let filteredAssets = rel.assets;
-      if (historyTab === 'mobile') {
-        filteredAssets = rel.assets.filter((a) => /android|ios|\.apk|\.ipa/i.test(a.name));
-      }
-      return { ...rel, assets: filteredAssets };
-    }).filter((r) => r.assets.length > 0);
-  }, [releases, historyTab, releaseSearchQuery]);
-
-  const platforms = [
-    { id: 'macos' as PlatformId, label: 'macOS', icon: <Apple className="w-4 h-4" /> },
-    { id: 'windows' as PlatformId, label: 'Windows', icon: <Laptop className="w-4 h-4" /> },
-    { id: 'linux' as PlatformId, label: 'Linux', icon: <Terminal className="w-4 h-4" /> },
-    { id: 'android' as PlatformId, label: 'Android', icon: <Smartphone className="w-4 h-4" /> },
-    { id: 'ios' as PlatformId, label: 'iOS', icon: <Smartphone className="w-4 h-4" /> },
-    { id: 'extensions' as PlatformId, label: 'Extensions', icon: <Puzzle className="w-4 h-4" /> },
-  ];
 
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-8">
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-10 space-y-10">
       {/* Header Banner */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-6 border-b border-[#e5e0d3] dark:border-[#2e2d27]">
         <div>
           <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-[#ebe7dc] dark:bg-[#282723] text-xs font-semibold text-[#6c6b63] dark:text-[#a09e94] mb-2">
             <Sparkles className="w-3.5 h-3.5 text-amber-600" />
-            <span>
-              Official Native Clients{latestVersionTag ? ` • v${latestVersionTag}` : ''}
-            </span>
+            <span>Official Client & Platform Roadmap</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-[#171711] dark:text-[#f4f2ea] tracking-tight">
             Apps & Downloads
           </h1>
           <p className="text-sm sm:text-base text-[#6c6b63] dark:text-[#a09e94] mt-1 max-w-xl">
-            Download verified native builds with offline-first SQLite sync, global ⌥Space quick capture, and extension pairing.
+            Download the official LaterBox iOS app directly from the Apple App Store, pair browser extensions, or track upcoming platforms.
           </p>
         </div>
 
@@ -243,752 +49,316 @@ export default function InAppDownloadsPage() {
             <span>Pair Extension</span>
           </Link>
           <a
-            href="https://github.com/Chaste-Djaziri/laterbox/releases"
+            href={APP_STORE_URL}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-[#6c6b63] dark:text-[#a09e94] bg-[#ebe7dc]/70 dark:bg-[#282723] hover:text-[#171711] dark:hover:text-[#f4f2ea] transition-colors"
           >
-            <span>GitHub Releases</span>
+            <span>App Store</span>
             <ExternalLink className="w-3.5 h-3.5" />
           </a>
         </div>
       </div>
 
-      {/* Platform Navigation Tabs */}
-      <div className="flex items-center gap-1.5 p-1.5 rounded-2xl bg-[#ebe7dc]/60 dark:bg-[#22211c] border border-[#e5e0d3] dark:border-[#2e2d27] overflow-x-auto">
-        {platforms.map((p) => {
-          const isActive = selectedPlatform === p.id;
-          const isDetected = detectedPlatform === p.id;
-          return (
-            <button
-              key={p.id}
-              onClick={() => setSelectedPlatform(p.id)}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap cursor-pointer ${
-                isActive
-                  ? 'bg-white dark:bg-[#2e2d27] text-[#171711] dark:text-[#f4f2ea] shadow-xs'
-                  : 'text-[#6c6b63] dark:text-[#a09e94] hover:text-[#171711] dark:hover:text-[#f4f2ea]'
-              }`}
-            >
-              {p.icon}
-              <span>{p.label}</span>
-              {isDetected && (
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" title="Your detected platform" />
-              )}
-            </button>
-          );
-        })}
-      </div>
+      {/* Featured iOS App Section */}
+      <section className="relative overflow-hidden rounded-3xl bg-white dark:bg-[#1e1e19] border border-[#e5e0d3] dark:border-[#2e2d27] p-6 sm:p-8 md:p-10 shadow-xs">
+        {/* Subtle decorative glow */}
+        <div className="absolute top-0 right-0 -mr-20 -mt-20 w-80 h-80 rounded-full bg-[#E7FF57]/15 dark:bg-[#E7FF57]/10 blur-3xl pointer-events-none" />
 
-      {/* Platform Content Panels */}
-      <div className="space-y-6">
-        {/* 1. macOS */}
-        {selectedPlatform === 'macos' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="p-6 rounded-2xl bg-white dark:bg-[#1e1e19] border border-[#e5e0d3] dark:border-[#2e2d27] shadow-xs space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-700 dark:text-amber-400">
-                  <Apple className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-[#171711] dark:text-[#f4f2ea]">macOS Apple Silicon & Intel</h3>
-                  <p className="text-xs text-[#6c6b63] dark:text-[#a09e94]">macOS 12 Monterey or later • Universal Build</p>
-                </div>
-              </div>
-
-              <div className="space-y-2 pt-2">
-                <button
-                  onClick={() =>
-                    handleDownload(
-                      findAsset(/apple-silicon\.dmg/i)?.browser_download_url || '/api/download/laterbox-macos-apple-silicon.dmg',
-                      'laterbox-macos-apple-silicon.dmg'
-                    )
-                  }
-                  className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-[#171711] hover:bg-[#282723] text-white font-bold text-sm transition-all cursor-pointer shadow-xs"
-                >
-                  <span className="flex items-center gap-2">
-                    {downloadingFile === 'laterbox-macos-apple-silicon.dmg' ? (
-                      <RefreshCw className="w-4 h-4 animate-spin text-amber-400" />
-                    ) : (
-                      <Download className="w-4 h-4 text-amber-400" />
-                    )}
-                    <span>Apple Silicon (M1/M2/M3/M4)</span>
-                  </span>
-                  <span className="text-xs text-white/70 font-mono">
-                    {formatBytes(findAsset(/apple-silicon\.dmg/i)?.size || 26650283)}
-                  </span>
-                </button>
-
-                <button
-                  onClick={() =>
-                    handleDownload(
-                      findAsset(/intel\.dmg/i)?.browser_download_url || '/api/download/laterbox-macos-intel.dmg',
-                      'laterbox-macos-intel.dmg'
-                    )
-                  }
-                  className="w-full flex items-center justify-between px-4 py-2.5 rounded-xl bg-[#ebe7dc] dark:bg-[#282723] hover:bg-[#e0dbcd] dark:hover:bg-[#33322d] text-[#171711] dark:text-[#f4f2ea] font-semibold text-xs transition-all cursor-pointer"
-                >
-                  <span className="flex items-center gap-2">
-                    <Download className="w-3.5 h-3.5" />
-                    <span>Intel x64 Mac (.dmg)</span>
-                  </span>
-                  <span className="text-xs text-[#6c6b63] dark:text-[#a09e94] font-mono">
-                    {formatBytes(findAsset(/intel\.dmg/i)?.size || 26650283)}
-                  </span>
-                </button>
-              </div>
-
-              <div className="pt-2 text-xs text-[#6c6b63] dark:text-[#a09e94] space-y-1.5">
-                <p className="flex items-center gap-1.5">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                  <span>Global Quick Capture shortcut (⌥Space)</span>
-                </p>
-                <p className="flex items-center gap-1.5">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                  <span>Menu Bar tray with sub-millisecond local search</span>
-                </p>
-              </div>
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-8">
+          <div className="space-y-4 max-w-xl">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#171711] dark:bg-[#2e2d27] text-[#E7FF57] text-xs font-bold">
+                <Apple className="w-3.5 h-3.5" />
+                <span>iOS & iPadOS</span>
+              </span>
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 text-xs font-bold">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span>Live on App Store</span>
+              </span>
             </div>
 
-            <div className="p-6 rounded-2xl bg-[#ebe7dc]/40 dark:bg-[#1a1a15] border border-[#e5e0d3] dark:border-[#2e2d27] space-y-4">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-[#6c6b63] dark:text-[#a09e94]">
-                Install via Terminal (Homebrew / Shell)
-              </h4>
-
-              <div className="space-y-3">
-                <div>
-                  <label className="text-xs font-medium text-[#6c6b63] dark:text-[#a09e94] mb-1 block">
-                    One-line Quick Installer:
-                  </label>
-                  <div className="flex items-center justify-between p-3 rounded-xl bg-[#171711] text-emerald-400 font-mono text-xs overflow-x-auto">
-                    <span>curl -fsSL https://laterbox.dev/install.sh | bash</span>
-                    <button
-                      onClick={() => copyToClipboard('curl -fsSL https://laterbox.dev/install.sh | bash', 'mac-curl')}
-                      className="p-1 rounded text-white/70 hover:text-white cursor-pointer"
-                      title="Copy command"
-                    >
-                      {copiedKey === 'mac-curl' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                    </button>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="text-xs font-medium text-[#6c6b63] dark:text-[#a09e94] mb-1 block">
-                    Homebrew Cask:
-                  </label>
-                  <div className="flex items-center justify-between p-3 rounded-xl bg-[#171711] text-emerald-400 font-mono text-xs overflow-x-auto">
-                    <span>brew install --cask laterbox</span>
-                    <button
-                      onClick={() => copyToClipboard('brew install --cask laterbox', 'mac-brew')}
-                      className="p-1 rounded text-white/70 hover:text-white cursor-pointer"
-                      title="Copy command"
-                    >
-                      {copiedKey === 'mac-brew' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* 2. Windows */}
-        {selectedPlatform === 'windows' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="p-6 rounded-2xl bg-white dark:bg-[#1e1e19] border border-[#e5e0d3] dark:border-[#2e2d27] shadow-xs space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-700 dark:text-blue-400">
-                  <Laptop className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-[#171711] dark:text-[#f4f2ea]">Windows 10 / 11 (64-bit)</h3>
-                  <p className="text-xs text-[#6c6b63] dark:text-[#a09e94]">Native Windows executable installer with auto-updater</p>
-                </div>
-              </div>
-
-              <div className="space-y-2 pt-2">
-                <button
-                  onClick={() =>
-                    handleDownload(
-                      findAsset(/windows-setup\.exe/i)?.browser_download_url || '/api/download/laterbox-windows-setup.exe',
-                      'laterbox-windows-setup.exe'
-                    )
-                  }
-                  className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-[#171711] hover:bg-[#282723] text-white font-bold text-sm transition-all cursor-pointer shadow-xs"
-                >
-                  <span className="flex items-center gap-2">
-                    {downloadingFile === 'laterbox-windows-setup.exe' ? (
-                      <RefreshCw className="w-4 h-4 animate-spin text-blue-400" />
-                    ) : (
-                      <Download className="w-4 h-4 text-blue-400" />
-                    )}
-                    <span>Download Windows Setup (.exe)</span>
-                  </span>
-                  <span className="text-xs text-white/70 font-mono">
-                    {formatBytes(findAsset(/windows-setup\.exe/i)?.size || 12863119)}
-                  </span>
-                </button>
-
-                <button
-                  onClick={() =>
-                    handleDownload(
-                      findAsset(/windows-x64\.zip/i)?.browser_download_url || '/api/download/laterbox-windows-x64.zip',
-                      'laterbox-windows-x64.zip'
-                    )
-                  }
-                  className="w-full flex items-center justify-between px-4 py-2.5 rounded-xl bg-[#ebe7dc] dark:bg-[#282723] hover:bg-[#e0dbcd] dark:hover:bg-[#33322d] text-[#171711] dark:text-[#f4f2ea] font-semibold text-xs transition-all cursor-pointer"
-                >
-                  <span className="flex items-center gap-2">
-                    <Download className="w-3.5 h-3.5" />
-                    <span>Portable Standalone Zip (.zip)</span>
-                  </span>
-                  <span className="text-xs text-[#6c6b63] dark:text-[#a09e94] font-mono">
-                    {formatBytes(findAsset(/windows-x64\.zip/i)?.size || 14988560)}
-                  </span>
-                </button>
-              </div>
-
-              <div className="pt-2 text-xs text-[#6c6b63] dark:text-[#a09e94] space-y-1.5">
-                <p className="flex items-center gap-1.5">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                  <span>Global Quick Capture hotkey (Alt+Space)</span>
-                </p>
-                <p className="flex items-center gap-1.5">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                  <span>System Tray background minimization</span>
-                </p>
-              </div>
-            </div>
-
-            <div className="p-6 rounded-2xl bg-[#ebe7dc]/40 dark:bg-[#1a1a15] border border-[#e5e0d3] dark:border-[#2e2d27] space-y-4">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-[#6c6b63] dark:text-[#a09e94]">
-                PowerShell / Winget Quick Install
-              </h4>
-
-              <div className="space-y-3">
-                <div>
-                  <label className="text-xs font-medium text-[#6c6b63] dark:text-[#a09e94] mb-1 block">
-                    PowerShell 1-Liner:
-                  </label>
-                  <div className="flex items-center justify-between p-3 rounded-xl bg-[#171711] text-emerald-400 font-mono text-xs overflow-x-auto">
-                    <span>iwr -useb https://laterbox.dev/install.ps1 | iex</span>
-                    <button
-                      onClick={() => copyToClipboard('iwr -useb https://laterbox.dev/install.ps1 | iex', 'win-ps')}
-                      className="p-1 rounded text-white/70 hover:text-white cursor-pointer"
-                      title="Copy command"
-                    >
-                      {copiedKey === 'win-ps' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                    </button>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="text-xs font-medium text-[#6c6b63] dark:text-[#a09e94] mb-1 block">
-                    Windows Package Manager (Winget):
-                  </label>
-                  <div className="flex items-center justify-between p-3 rounded-xl bg-[#171711] text-emerald-400 font-mono text-xs overflow-x-auto">
-                    <span>winget install LaterBox.LaterBox</span>
-                    <button
-                      onClick={() => copyToClipboard('winget install LaterBox.LaterBox', 'win-winget')}
-                      className="p-1 rounded text-white/70 hover:text-white cursor-pointer"
-                      title="Copy command"
-                    >
-                      {copiedKey === 'win-winget' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* 3. Linux */}
-        {selectedPlatform === 'linux' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="p-6 rounded-2xl bg-white dark:bg-[#1e1e19] border border-[#e5e0d3] dark:border-[#2e2d27] shadow-xs space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-[#e6edb0] border border-[#d0db84] flex items-center justify-center text-[#171711]">
-                  <Terminal className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-[#171711] dark:text-[#f4f2ea]">Linux AppImage & Debian Package</h3>
-                  <p className="text-xs text-[#6c6b63] dark:text-[#a09e94]">Ubuntu, Fedora, Arch, Debian, and all major distros</p>
-                </div>
-              </div>
-
-              <div className="space-y-2 pt-2">
-                <button
-                  onClick={() =>
-                    handleDownload(
-                      findAsset(/\.AppImage|linux-x64\.tar\.gz/i)?.browser_download_url || '/api/download/laterbox-linux.AppImage',
-                      'laterbox-linux.AppImage'
-                    )
-                  }
-                  className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-[#171711] hover:bg-[#282723] text-white font-bold text-sm transition-all cursor-pointer shadow-xs"
-                >
-                  <span className="flex items-center gap-2">
-                    {downloadingFile === 'laterbox-linux.AppImage' ? (
-                      <RefreshCw className="w-4 h-4 animate-spin text-[#e6edb0]" />
-                    ) : (
-                      <Download className="w-4 h-4 text-[#e6edb0]" />
-                    )}
-                    <span>Download Linux AppImage</span>
-                  </span>
-                  <span className="text-xs text-white/70 font-mono">
-                    {formatBytes(findAsset(/\.AppImage|linux-x64\.tar\.gz/i)?.size || 12703419)}
-                  </span>
-                </button>
-
-                <button
-                  onClick={() =>
-                    handleDownload(
-                      findAsset(/\.deb/i)?.browser_download_url || '/api/download/laterbox-linux.deb',
-                      'laterbox-linux.deb'
-                    )
-                  }
-                  className="w-full flex items-center justify-between px-4 py-2.5 rounded-xl bg-[#ebe7dc] dark:bg-[#282723] hover:bg-[#e0dbcd] dark:hover:bg-[#33322d] text-[#171711] dark:text-[#f4f2ea] font-semibold text-xs transition-all cursor-pointer"
-                >
-                  <span className="flex items-center gap-2">
-                    <Download className="w-3.5 h-3.5" />
-                    <span>Debian / Ubuntu Package (.deb)</span>
-                  </span>
-                  <span className="text-xs text-[#6c6b63] dark:text-[#a09e94] font-mono">
-                    {formatBytes(findAsset(/\.deb/i)?.size || 12703419)}
-                  </span>
-                </button>
-              </div>
-            </div>
-
-            <div className="p-6 rounded-2xl bg-[#ebe7dc]/40 dark:bg-[#1a1a15] border border-[#e5e0d3] dark:border-[#2e2d27] space-y-4">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-[#6c6b63] dark:text-[#a09e94]">
-                Install via Shell Script
-              </h4>
-              <div>
-                <label className="text-xs font-medium text-[#6c6b63] dark:text-[#a09e94] mb-1 block">
-                  Quick Linux Terminal Installer:
-                </label>
-                <div className="flex items-center justify-between p-3 rounded-xl bg-[#171711] text-emerald-400 font-mono text-xs overflow-x-auto">
-                  <span>curl -fsSL https://laterbox.dev/install.sh | bash</span>
-                  <button
-                    onClick={() => copyToClipboard('curl -fsSL https://laterbox.dev/install.sh | bash', 'linux-curl')}
-                    className="p-1 rounded text-white/70 hover:text-white cursor-pointer"
-                    title="Copy command"
-                  >
-                    {copiedKey === 'linux-curl' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* 4. Android */}
-        {selectedPlatform === 'android' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="p-6 rounded-2xl bg-white dark:bg-[#1e1e19] border border-[#e5e0d3] dark:border-[#2e2d27] shadow-xs space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-700 dark:text-emerald-400">
-                  <Smartphone className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-[#171711] dark:text-[#f4f2ea]">Android APK & Google Play Beta</h3>
-                  <p className="text-xs text-[#6c6b63] dark:text-[#a09e94]">Android 8.0 Oreo or higher • Arm64 & x86</p>
-                </div>
-              </div>
-
-              <div className="space-y-2 pt-2">
-                <button
-                  onClick={() => setIsAndroidModalOpen(true)}
-                  className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-[#171711] hover:bg-[#282723] text-white font-bold text-sm transition-all cursor-pointer shadow-xs"
-                >
-                  <span className="flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-emerald-400" />
-                    <span>Join Android Testers</span>
-                  </span>
-                  <ArrowRight className="w-4 h-4" />
-                </button>
-
-                <button
-                  onClick={() =>
-                    handleDownload(
-                      findAsset(/android.*\.apk/i)?.browser_download_url || '/api/download/laterbox-android.apk',
-                      'laterbox-android.apk'
-                    )
-                  }
-                  className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-[#171711] hover:bg-[#282723] text-white font-bold text-sm transition-all cursor-pointer shadow-xs"
-                >
-                  <span className="flex items-center gap-2">
-                    {downloadingFile === 'laterbox-android.apk' ? (
-                      <RefreshCw className="w-4 h-4 animate-spin text-amber-600" />
-                    ) : (
-                      <Download className="w-4 h-4 text-amber-600" />
-                    )}
-                    <span>Download Standalone APK</span>
-                  </span>
-                  <span className="text-xs text-[#6c6b63] dark:text-[#a09e94] font-mono">
-                    {formatBytes(findAsset(/android.*\.apk/i)?.size || 66794291)}
-                  </span>
-                </button>
-
-              </div>
-
-              <div className="pt-2 text-xs text-[#6c6b63] dark:text-[#a09e94] space-y-1.5">
-                <p className="flex items-center gap-1.5">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                  <span>Native System Share Sheet listener</span>
-                </p>
-                <p className="flex items-center gap-1.5">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                  <span>Offline SQLite Drift synchronization</span>
-                </p>
-              </div>
-            </div>
-
-            <div className="p-6 rounded-2xl bg-[#ebe7dc]/40 dark:bg-[#1a1a15] border border-[#e5e0d3] dark:border-[#2e2d27] space-y-4">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-[#6c6b63] dark:text-[#a09e94]">
-                Android closed testing
-              </h4>
-              <p className="text-xs text-[#6c6b63] dark:text-[#a09e94] leading-relaxed">
-                Join the tester group first, then download LaterBox from Google Play with the same Google account.
-              </p>
-              <div className="space-y-2">
-                <a
-                  href="https://groups.google.com/g/laterbox-testers"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#171711] dark:bg-[#383731] text-white font-bold text-xs hover:bg-[#282723] transition-colors"
-                >
-                  <span>1. Join the Tester Group</span>
-                  <ExternalLink className="w-3.5 h-3.5" />
-                </a>
-                <a
-                  href="https://play.google.com/store/apps/details?id=pro.micorp.laterbox"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-[#171711] text-[#171711] dark:text-[#f4f2ea] font-bold text-xs hover:bg-[#ebe7dc] dark:hover:bg-[#383731] transition-colors"
-                >
-                  <span>2. Download from Google Play</span>
-                  <ExternalLink className="w-3.5 h-3.5" />
-                </a>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* 5. iOS */}
-        {selectedPlatform === 'ios' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="p-6 rounded-2xl bg-white dark:bg-[#1e1e19] border border-[#e5e0d3] dark:border-[#2e2d27] shadow-xs space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-700 dark:text-purple-400">
-                  <Smartphone className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-[#171711] dark:text-[#f4f2ea]">iOS & iPadOS Beta</h3>
-                  <p className="text-xs text-[#6c6b63] dark:text-[#a09e94]">Apple TestFlight & Progressive Web App</p>
-                </div>
-              </div>
-
-              <div className="space-y-2 pt-2">
-                <a
-                  href="https://testflight.apple.com/join/laterbox"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center justify-between px-4 py-3 rounded-xl bg-[#171711] hover:bg-[#282723] text-white font-bold text-sm transition-all shadow-xs"
-                >
-                  <span className="flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-purple-400" />
-                    <span>Join Apple TestFlight Beta</span>
-                  </span>
-                  <ExternalLink className="w-4 h-4" />
-                </a>
-
-                <button
-                  onClick={() =>
-                    handleDownload(
-                      findAsset(/ios.*\.ipa/i)?.browser_download_url || '/api/download/laterbox-ios.ipa',
-                      'laterbox-ios.ipa'
-                    )
-                  }
-                  className="w-full flex items-center justify-between px-4 py-2.5 rounded-xl bg-[#ebe7dc] dark:bg-[#282723] hover:bg-[#e0dbcd] dark:hover:bg-[#33322d] text-[#171711] dark:text-[#f4f2ea] font-semibold text-xs transition-all cursor-pointer"
-                >
-                  <span className="flex items-center gap-2">
-                    <Download className="w-3.5 h-3.5" />
-                    <span>Direct IPA Package (.ipa)</span>
-                  </span>
-                  <span className="text-xs text-[#6c6b63] dark:text-[#a09e94] font-mono">
-                    {formatBytes(findAsset(/ios.*\.ipa/i)?.size || 25415861)}
-                  </span>
-                </button>
-              </div>
-            </div>
-
-            <div className="p-6 rounded-2xl bg-[#ebe7dc]/40 dark:bg-[#1a1a15] border border-[#e5e0d3] dark:border-[#2e2d27] space-y-3">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-[#6c6b63] dark:text-[#a09e94]">
-                Install as iPhone / iPad PWA
-              </h4>
-              <p className="text-xs text-[#6c6b63] dark:text-[#a09e94]">
-                1. Open <strong>app.laterbox.dev</strong> in Safari on your iPhone or iPad.
-              </p>
-              <p className="text-xs text-[#6c6b63] dark:text-[#a09e94]">
-                2. Tap the <strong>Share</strong> button in Safari toolbar.
-              </p>
-              <p className="text-xs text-[#6c6b63] dark:text-[#a09e94]">
-                3. Tap <strong>Add to Home Screen</strong> for a full-screen standalone app experience.
+            <div>
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-[#171711] dark:text-[#f4f2ea] tracking-tight">
+                LaterBox for iPhone & iPad
+              </h2>
+              <p className="text-xs sm:text-sm text-[#6c6b63] dark:text-[#a09e94] mt-2 leading-relaxed">
+                Save articles, videos, bookmarks, and notes from any app on your iPhone or iPad using the system Share Sheet with offline-first synchronization back to your vault.
               </p>
             </div>
-          </div>
-        )}
 
-        {/* 6. Browser Extensions */}
-        {selectedPlatform === 'extensions' && (
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-            <div className="p-6 rounded-2xl bg-white dark:bg-[#1e1e19] border border-[#e5e0d3] dark:border-[#2e2d27] shadow-xs space-y-4">
-              <div className="flex items-center gap-2 font-bold text-[#171711] dark:text-[#f4f2ea]">
-                <Puzzle className="w-5 h-5 text-blue-600" />
-                <span>Google Chrome & Brave</span>
+            {/* Highlights Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-2 text-xs text-[#171711] dark:text-[#f4f2ea]">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                <span className="font-medium">Native iOS Share Sheet extension</span>
               </div>
-              <p className="text-xs text-[#6c6b63] dark:text-[#a09e94]">
-                Chrome Web Store Manifest V3 extension with 1-click URL & tab capture.
-              </p>
-              <div className="space-y-2 pt-1">
-                <a
-                  href="https://chromewebstore.google.com/detail/laterbox/laterbox"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center justify-center gap-1.5 w-full py-2.5 rounded-xl bg-[#171711] text-white font-bold text-xs hover:bg-[#282723] transition-colors"
-                >
-                  <span>Install from Chrome Web Store</span>
-                  <ExternalLink className="w-3.5 h-3.5" />
-                </a>
-                <button
-                  onClick={() =>
-                    handleDownload(
-                      findAsset(/chrome-extension\.zip/i)?.browser_download_url || '/api/download/laterbox-chrome-extension.zip',
-                      'laterbox-chrome-extension.zip'
-                    )
-                  }
-                  className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl bg-[#ebe7dc] dark:bg-[#282723] text-[#171711] dark:text-[#f4f2ea] text-xs font-semibold cursor-pointer"
-                >
-                  <Download className="w-3 h-3" />
-                  <span>Manual .zip ({formatBytes(findAsset(/chrome-extension\.zip/i)?.size || 41255)})</span>
-                </button>
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                <span className="font-medium">Offline-first local cache & quick search</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                <span className="font-medium">Continuous cloud synchronization</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                <span className="font-medium">Biometric Face ID / Touch ID lock</span>
               </div>
             </div>
 
-            <div className="p-6 rounded-2xl bg-white dark:bg-[#1e1e19] border border-[#e5e0d3] dark:border-[#2e2d27] shadow-xs space-y-4">
-              <div className="flex items-center gap-2 font-bold text-[#171711] dark:text-[#f4f2ea]">
-                <Puzzle className="w-5 h-5 text-[#171711] dark:text-[#e6edb0]" />
-                <span>Mozilla Firefox</span>
-              </div>
-              <p className="text-xs text-[#6c6b63] dark:text-[#a09e94]">
-                Firefox Add-ons store extension compatible with Firefox Desktop & Mobile.
-              </p>
-              <div className="space-y-2 pt-1">
-                <a
-                  href="https://addons.mozilla.org/firefox/addon/laterbox"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center justify-center gap-1.5 w-full py-2.5 rounded-xl bg-[#171711] text-white font-bold text-xs hover:bg-[#282723] transition-colors"
-                >
-                  <span>Install from Firefox Add-ons</span>
-                  <ExternalLink className="w-3.5 h-3.5" />
-                </a>
-                <button
-                  onClick={() =>
-                    handleDownload(
-                      findAsset(/firefox-extension\.zip/i)?.browser_download_url || '/api/download/laterbox-firefox-extension.zip',
-                      'laterbox-firefox-extension.zip'
-                    )
-                  }
-                  className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl bg-[#ebe7dc] dark:bg-[#282723] text-[#171711] dark:text-[#f4f2ea] text-xs font-semibold cursor-pointer"
-                >
-                  <Download className="w-3 h-3" />
-                  <span>Manual .zip ({formatBytes(findAsset(/firefox-extension\.zip/i)?.size || 41245)})</span>
-                </button>
-              </div>
-            </div>
-
-            <div className="p-6 rounded-2xl bg-white dark:bg-[#1e1e19] border border-[#e5e0d3] dark:border-[#2e2d27] shadow-xs space-y-4">
-              <div className="flex items-center gap-2 font-bold text-[#171711] dark:text-[#f4f2ea]">
-                <Puzzle className="w-5 h-5 text-indigo-600" />
-                <span>Apple Safari</span>
-              </div>
-              <p className="text-xs text-[#6c6b63] dark:text-[#a09e94]">
-                Bundled automatically inside the macOS native client for Safari.
-              </p>
-              <div className="space-y-2 pt-1">
-                <Link
-                  href="/extension/connect"
-                  className="flex items-center justify-center gap-1.5 w-full py-2.5 rounded-xl bg-[#171711] text-white font-bold text-xs hover:bg-[#282723] transition-colors"
-                >
-                  <span>Connect Installed Extension</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </Link>
-                <button
-                  onClick={() =>
-                    handleDownload(
-                      findAsset(/safari-extension\.zip/i)?.browser_download_url || '/api/download/laterbox-safari-extension.zip',
-                      'laterbox-safari-extension.zip'
-                    )
-                  }
-                  className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl bg-[#ebe7dc] dark:bg-[#282723] text-[#171711] dark:text-[#f4f2ea] text-xs font-semibold cursor-pointer"
-                >
-                  <Download className="w-3 h-3" />
-                  <span>Manual .zip ({formatBytes(findAsset(/safari-extension\.zip/i)?.size || 41219)})</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Previous Releases History Table */}
-      <div ref={previousReleasesRef} className="space-y-4 pt-4">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div>
-            <h2 className="text-lg font-bold text-[#171711] dark:text-[#f4f2ea] flex items-center gap-2">
-              <Package className="w-4 h-4 text-amber-600" />
-              <span>Release History & Direct Assets</span>
-            </h2>
-            <p className="text-xs text-[#6c6b63] dark:text-[#a09e94]">
-              Browse previous builds, release changelogs, and binary asset downloads.
+            <p className="text-[11px] text-[#9e9b92] dark:text-[#7d7a71] pt-1">
+              Requires iOS 16.0 or iPadOS 16.0 or later.
             </p>
           </div>
 
+          {/* App Store Download Badge */}
+          <div className="flex flex-col items-start md:items-end justify-center gap-3 shrink-0">
+            <AppStoreButton size="large" theme="dark" />
+            <a
+              href={APP_STORE_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-[#6c6b63] dark:text-[#a09e94] hover:text-[#171711] dark:hover:text-[#f4f2ea] transition-colors"
+            >
+              <span>View product page on Apple.com</span>
+              <ExternalLink className="w-3.5 h-3.5" />
+            </a>
+          </div>
+        </div>
+      </section>
+
+      {/* Other Platforms Section */}
+      <section className="space-y-6 pt-2">
+        <div className="space-y-1">
           <div className="flex items-center gap-2">
-            <div className="relative">
-              <Search className="w-3.5 h-3.5 text-[#6c6b63] absolute left-3 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                placeholder="Search releases or files..."
-                value={releaseSearchQuery}
-                onChange={(e) => setReleaseSearchQuery(e.target.value)}
-                className="pl-8 pr-3 py-1.5 text-xs rounded-xl bg-[#ebe7dc]/50 dark:bg-[#282723] border border-[#e5e0d3] dark:border-[#2e2d27] text-[#171711] dark:text-[#f4f2ea] placeholder:text-[#6c6b63] focus:outline-hidden focus:border-[#171711] w-48 sm:w-60"
-              />
+            <h2 className="text-xl sm:text-2xl font-bold text-[#171711] dark:text-[#f4f2ea]">
+              Other Platforms
+            </h2>
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#ebe7dc] dark:bg-[#282723] text-[#6c6b63] dark:text-[#a09e94]">
+              Roadmap
+            </span>
+          </div>
+          <p className="text-xs sm:text-sm text-[#6c6b63] dark:text-[#a09e94]">
+            Native clients for desktop and Android are actively being developed.
+          </p>
+        </div>
+
+        {/* 4 Platform Status Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Android - Under Development */}
+          <div className="p-5 rounded-2xl bg-white dark:bg-[#1e1e19] border border-[#e5e0d3] dark:border-[#2e2d27] space-y-4 flex flex-col justify-between hover:border-[#171711]/40 dark:hover:border-white/20 transition-all shadow-2xs">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-700 dark:text-amber-400">
+                  <Smartphone className="w-5 h-5" />
+                </div>
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10.5px] font-bold bg-amber-100 dark:bg-amber-950/40 text-amber-800 dark:text-amber-400 border border-amber-300 dark:border-amber-800">
+                  <Hammer className="w-3 h-3 text-amber-700 dark:text-amber-400" />
+                  <span>Under Development</span>
+                </span>
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-[#171711] dark:text-[#f4f2ea]">Android</h3>
+                <p className="text-xs text-[#6c6b63] dark:text-[#a09e94] mt-1.5 leading-relaxed">
+                  Native Android app built with Jetpack Compose featuring system share sheet integration and offline sync.
+                </p>
+              </div>
+            </div>
+
+            <div className="pt-2 border-t border-[#f0ede4] dark:border-[#2e2d27]">
+              <button
+                type="button"
+                onClick={() => setIsAndroidModalOpen(true)}
+                className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-[#171711] dark:bg-[#2e2d27] hover:bg-[#282723] text-white text-xs font-bold transition-all cursor-pointer shadow-2xs"
+              >
+                <span>Join Android Testers</span>
+                <ArrowRight className="w-3.5 h-3.5 text-[#E7FF57]" />
+              </button>
+            </div>
+          </div>
+
+          {/* macOS - Coming Soon */}
+          <div className="p-5 rounded-2xl bg-white dark:bg-[#1e1e19] border border-[#e5e0d3] dark:border-[#2e2d27] space-y-4 flex flex-col justify-between hover:border-[#171711]/40 dark:hover:border-white/20 transition-all shadow-2xs">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="w-10 h-10 rounded-xl bg-[#ebe7dc] dark:bg-[#282723] flex items-center justify-center text-[#171711] dark:text-[#f4f2ea]">
+                  <Apple className="w-5 h-5" />
+                </div>
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10.5px] font-bold bg-[#ebe7dc] dark:bg-[#282723] text-[#6c6b63] dark:text-[#a09e94] border border-[#e5e0d3] dark:border-[#2e2d27]">
+                  <Clock className="w-3 h-3 text-[#6c6b63] dark:text-[#a09e94]" />
+                  <span>Coming Soon</span>
+                </span>
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-[#171711] dark:text-[#f4f2ea]">macOS</h3>
+                <p className="text-xs text-[#6c6b63] dark:text-[#a09e94] mt-1.5 leading-relaxed">
+                  Native Swift menu bar companion with global quick capture (⌥Space) and sub-millisecond local search.
+                </p>
+              </div>
+            </div>
+
+            <div className="pt-2 border-t border-[#f0ede4] dark:border-[#2e2d27]">
+              <div className="text-[11px] font-medium text-[#9e9b92] dark:text-[#7d7a71] text-center py-1">
+                Apple Silicon & Intel builds
+              </div>
+            </div>
+          </div>
+
+          {/* Windows - Coming Soon */}
+          <div className="p-5 rounded-2xl bg-white dark:bg-[#1e1e19] border border-[#e5e0d3] dark:border-[#2e2d27] space-y-4 flex flex-col justify-between hover:border-[#171711]/40 dark:hover:border-white/20 transition-all shadow-2xs">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="w-10 h-10 rounded-xl bg-[#ebe7dc] dark:bg-[#282723] flex items-center justify-center text-[#171711] dark:text-[#f4f2ea]">
+                  <Laptop className="w-5 h-5" />
+                </div>
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10.5px] font-bold bg-[#ebe7dc] dark:bg-[#282723] text-[#6c6b63] dark:text-[#a09e94] border border-[#e5e0d3] dark:border-[#2e2d27]">
+                  <Clock className="w-3 h-3 text-[#6c6b63] dark:text-[#a09e94]" />
+                  <span>Coming Soon</span>
+                </span>
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-[#171711] dark:text-[#f4f2ea]">Windows</h3>
+                <p className="text-xs text-[#6c6b63] dark:text-[#a09e94] mt-1.5 leading-relaxed">
+                  Native 64-bit Windows companion with system tray capture and global hotkeys.
+                </p>
+              </div>
+            </div>
+
+            <div className="pt-2 border-t border-[#f0ede4] dark:border-[#2e2d27]">
+              <div className="text-[11px] font-medium text-[#9e9b92] dark:text-[#7d7a71] text-center py-1">
+                Windows 10 & 11 (x64 / ARM64)
+              </div>
+            </div>
+          </div>
+
+          {/* Linux - Coming Soon */}
+          <div className="p-5 rounded-2xl bg-white dark:bg-[#1e1e19] border border-[#e5e0d3] dark:border-[#2e2d27] space-y-4 flex flex-col justify-between hover:border-[#171711]/40 dark:hover:border-white/20 transition-all shadow-2xs">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="w-10 h-10 rounded-xl bg-[#ebe7dc] dark:bg-[#282723] flex items-center justify-center text-[#171711] dark:text-[#f4f2ea]">
+                  <Terminal className="w-5 h-5" />
+                </div>
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10.5px] font-bold bg-[#ebe7dc] dark:bg-[#282723] text-[#6c6b63] dark:text-[#a09e94] border border-[#e5e0d3] dark:border-[#2e2d27]">
+                  <Clock className="w-3 h-3 text-[#6c6b63] dark:text-[#a09e94]" />
+                  <span>Coming Soon</span>
+                </span>
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-[#171711] dark:text-[#f4f2ea]">Linux</h3>
+                <p className="text-xs text-[#6c6b63] dark:text-[#a09e94] mt-1.5 leading-relaxed">
+                  Native Linux desktop package (.deb, AppImage) for Ubuntu, Fedora, Debian, and Arch.
+                </p>
+              </div>
+            </div>
+
+            <div className="pt-2 border-t border-[#f0ede4] dark:border-[#2e2d27]">
+              <div className="text-[11px] font-medium text-[#9e9b92] dark:text-[#7d7a71] text-center py-1">
+                Debian, AppImage & Tarball
+              </div>
             </div>
           </div>
         </div>
+      </section>
 
-        {/* Release History Tabs */}
-        <div className="flex items-center gap-1 border-b border-[#e5e0d3] dark:border-[#2e2d27] pb-2 text-xs">
-          {(['all', 'desktop', 'mobile', 'extensions'] as HistoryTab[]).map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setHistoryTab(tab)}
-              className={`px-3 py-1 rounded-lg font-bold capitalize transition-colors cursor-pointer ${
-                historyTab === tab
-                  ? 'bg-[#171711] text-white dark:bg-[#383731]'
-                  : 'text-[#6c6b63] dark:text-[#a09e94] hover:text-[#171711] dark:hover:text-[#f4f2ea]'
-              }`}
-            >
-              {tab}
-            </button>
-          ))}
+      <div className="border-b border-[#e5e0d3] dark:border-[#2e2d27]" />
+
+      {/* Browser Extensions Section */}
+      <section className="space-y-4">
+        <div className="flex items-center gap-2.5">
+          <h2 className="text-xl sm:text-2xl font-bold text-[#171711] dark:text-[#f4f2ea]">
+            Browser Integrations
+          </h2>
+          <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-mono font-bold bg-[#e6edb0] text-[#171711] border border-[#d0db84]">
+            Extensions
+          </span>
         </div>
 
-        {/* Release List Accordion */}
-        <div className="space-y-3">
-          {loadingReleases ? (
-            <div className="p-8 text-center text-xs text-[#6c6b63] dark:text-[#a09e94] flex items-center justify-center gap-2">
-              <RefreshCw className="w-4 h-4 animate-spin text-amber-600" />
-              <span>Fetching live release assets from GitHub...</span>
-            </div>
-          ) : filteredReleases.length === 0 ? (
-            <div className="p-8 text-center text-xs text-[#6c6b63] dark:text-[#a09e94]">
-              No release assets matched your search query.
-            </div>
-          ) : (
-            filteredReleases.map((rel) => {
-              const versionClean = rel.tag_name.replace(/^v/, '');
-              const isExpanded = expandedVersions.has(versionClean);
-              const formattedDate = new Date(rel.published_at).toLocaleDateString('en-US', {
-                month: 'short',
-                day: 'numeric',
-                year: 'numeric',
-              });
+        <p className="text-xs sm:text-sm text-[#6c6b63] dark:text-[#a09e94] max-w-2xl">
+          Capture articles, links, and text directly into your vault from desktop browsers.
+        </p>
 
-              return (
-                <div
-                  key={rel.tag_name}
-                  className="rounded-2xl bg-white dark:bg-[#1e1e19] border border-[#e5e0d3] dark:border-[#2e2d27] shadow-xs overflow-hidden"
-                >
-                  <button
-                    onClick={() => toggleVersion(versionClean)}
-                    className="w-full flex items-center justify-between p-4 text-left hover:bg-[#ebe7dc]/30 dark:hover:bg-[#282723]/30 transition-colors cursor-pointer"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="px-2.5 py-1 rounded-lg bg-[#ebe7dc] dark:bg-[#282723] font-mono text-xs font-bold text-[#171711] dark:text-[#f4f2ea]">
-                        {rel.tag_name}
-                      </div>
-                      <div>
-                        <div className="text-xs font-bold text-[#171711] dark:text-[#f4f2ea] flex items-center gap-2">
-                          <span>{rel.name || rel.tag_name}</span>
-                        </div>
-                        <div className="text-[11px] text-[#6c6b63] dark:text-[#a09e94] flex items-center gap-2 mt-0.5">
-                          <span className="flex items-center gap-1">
-                            <Calendar className="w-3 h-3" />
-                            <span>{formattedDate}</span>
-                          </span>
-                          <span>•</span>
-                          <span>{rel.assets.length} binary assets</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-semibold text-[#6c6b63] dark:text-[#a09e94]">
-                        {isExpanded ? 'Hide Assets' : 'Show Assets'}
-                      </span>
-                      {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                    </div>
-                  </button>
-
-                  {isExpanded && (
-                    <div className="p-4 pt-0 border-t border-[#e5e0d3]/50 dark:border-[#2e2d27]/50 space-y-3">
-                      {rel.body && (
-                        <p className="text-xs text-[#6c6b63] dark:text-[#a09e94] pt-3 leading-relaxed">
-                          {rel.body}
-                        </p>
-                      )}
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2">
-                        {rel.assets.map((asset) => (
-                          <div
-                            key={asset.name}
-                            className="flex items-center justify-between p-2.5 rounded-xl bg-[#ebe7dc]/30 dark:bg-[#171713] border border-[#e5e0d3]/60 dark:border-[#282721] text-xs"
-                          >
-                            <div className="min-w-0 pr-2">
-                              <div className="font-mono font-medium text-[#171711] dark:text-[#f4f2ea] truncate text-xs">
-                                {asset.name}
-                              </div>
-                              <div className="text-[10px] text-[#6c6b63] dark:text-[#a09e94]">
-                                {formatBytes(asset.size)}
-                              </div>
-                            </div>
-                            <button
-                              onClick={() => handleDownload(asset.browser_download_url, asset.name)}
-                              className="px-2.5 py-1 rounded-lg bg-[#171711] text-white hover:bg-[#282723] text-[11px] font-bold flex items-center gap-1 shrink-0 cursor-pointer shadow-2xs"
-                            >
-                              <Download className="w-3 h-3" />
-                              <span>Download</span>
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-1">
+          <div className="p-5 rounded-2xl bg-white dark:bg-[#1e1e19] border border-[#e5e0d3] dark:border-[#2e2d27] space-y-3 flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <div className="w-10 h-10 rounded-xl bg-[#e6edb0] flex items-center justify-center">
+                  <Puzzle className="w-5 h-5 text-[#171711]" />
                 </div>
-              );
-            })
-          )}
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#ebe7dc] dark:bg-[#282723] text-[#171711] dark:text-[#f4f2ea]">
+                  Manifest V3
+                </span>
+              </div>
+              <h3 className="text-base font-bold text-[#171711] dark:text-[#f4f2ea]">Chrome / Brave / Edge</h3>
+              <p className="text-xs text-[#6c6b63] dark:text-[#a09e94] mt-1">
+                1-click capture popup, keyboard shortcut (⌘+Shift+S), and right-click context menu.
+              </p>
+            </div>
+            <Link
+              href="/extension/connect"
+              className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#171711] dark:bg-[#383731] hover:bg-[#282723] text-white text-xs font-bold shadow-2xs transition-all cursor-pointer"
+            >
+              <span>Pair Extension</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+
+          <div className="p-5 rounded-2xl bg-white dark:bg-[#1e1e19] border border-[#e5e0d3] dark:border-[#2e2d27] space-y-3 flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <div className="w-10 h-10 rounded-xl bg-[#e6edb0] flex items-center justify-center">
+                  <Puzzle className="w-5 h-5 text-[#171711]" />
+                </div>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#ebe7dc] dark:bg-[#282723] text-[#171711] dark:text-[#f4f2ea]">
+                  Gecko Add-on
+                </span>
+              </div>
+              <h3 className="text-base font-bold text-[#171711] dark:text-[#f4f2ea]">Mozilla Firefox</h3>
+              <p className="text-xs text-[#6c6b63] dark:text-[#a09e94] mt-1">
+                Native Firefox add-on with quick capture sheet and auto-sync with your vault.
+              </p>
+            </div>
+            <Link
+              href="/extension/connect"
+              className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#ebe7dc] dark:bg-[#282723] hover:bg-[#e0dbcd] dark:hover:bg-[#33322d] text-[#171711] dark:text-[#f4f2ea] text-xs font-bold transition-all cursor-pointer"
+            >
+              <span>Firefox Add-on Info</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+
+          <div className="p-5 rounded-2xl bg-white dark:bg-[#1e1e19] border border-[#e5e0d3] dark:border-[#2e2d27] space-y-3 flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <div className="w-10 h-10 rounded-xl bg-[#e6edb0] flex items-center justify-center">
+                  <Apple className="w-5 h-5 text-[#171711]" />
+                </div>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#ebe7dc] dark:bg-[#282723] text-[#171711] dark:text-[#f4f2ea]">
+                  Safari Extension
+                </span>
+              </div>
+              <h3 className="text-base font-bold text-[#171711] dark:text-[#f4f2ea]">Apple Safari</h3>
+              <p className="text-xs text-[#6c6b63] dark:text-[#a09e94] mt-1">
+                Safari Web Extension bundle integrated directly with the LaterBox iOS app.
+              </p>
+            </div>
+            <a
+              href={APP_STORE_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#ebe7dc] dark:bg-[#282723] hover:bg-[#e0dbcd] dark:hover:bg-[#33322d] text-[#171711] dark:text-[#f4f2ea] text-xs font-bold transition-all cursor-pointer"
+            >
+              <span>Included in iOS App</span>
+              <ExternalLink className="w-3.5 h-3.5" />
+            </a>
+          </div>
         </div>
-      </div>
+      </section>
 
       {/* Android Tester Modal */}
       <AndroidTesterModal
         isOpen={isAndroidModalOpen}
         onClose={() => setIsAndroidModalOpen(false)}
-        onDownloadApk={() => handleDownload('/api/download/laterbox-android.apk', 'laterbox-android.apk')}
       />
     </div>
   );
