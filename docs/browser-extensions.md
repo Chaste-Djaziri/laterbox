@@ -41,7 +41,7 @@ Run these commands from within the `laterbox-extension/` directory:
 
 ### Install Dependencies
 ```bash
-cd extension
+cd laterbox-extension
 npm install
 ```
 
