@@ -77,7 +77,7 @@ void refreshSettings();
 
 // Browsers without native text directives still reopen saved highlight links.
 async function reopenFragment() {
-  if ('fragmentDirective' in document) return;
+  if (Reflect.has(document,'fragmentDirective')) return;
   const raw=location.hash.split(':~:text=')[1]?.split('&')[0];if(!raw)return;
   try {
     const parts=raw.split(',');let prefix='',suffix='';
