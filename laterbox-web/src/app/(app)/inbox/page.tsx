@@ -44,9 +44,6 @@ export default function InboxPage() {
     archivedItems,
     now,
     loading,
-    hasDemoItems,
-    clearDemoItems,
-    restoreDemoItems,
     saveNote,
     createCollection,
     addItemToCollection,
@@ -363,22 +360,6 @@ export default function InboxPage() {
           {/* Cloud Sync Indicator (Pro Mode) */}
           <CloudSyncIndicator />
 
-          {/* Clear Demo Cards Button (Guest/Local Mode) */}
-          {hasDemoItems && (
-            <button
-              type="button"
-              onClick={() => {
-                if (window.confirm('Clear all demo cards to start fresh in Guest Mode?')) {
-                  clearDemoItems();
-                }
-              }}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#fbfaf6] hover:bg-[#ebe7dc] border border-[#e4e0d5] text-xs font-bold text-[#6c6b63] hover:text-[#171711] shadow-2xs transition-colors cursor-pointer"
-              title="Clear demo items to start fresh"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-              <span>Clear Demo Cards</span>
-            </button>
-          )}
 
           {/* Tutorial Link */}
           <Link
@@ -574,16 +555,6 @@ export default function InboxPage() {
               <Plus className="w-3.5 h-3.5" />
               <span>Save Item</span>
             </button>
-            {!hasDemoItems && (
-              <button
-                type="button"
-                onClick={() => restoreDemoItems()}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white hover:bg-[#faf8f5] border border-[#e4e0d5] text-xs font-bold text-[#6c6b63] hover:text-[#171711] shadow-2xs transition-all cursor-pointer"
-              >
-                <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                <span>Restore Demo Cards</span>
-              </button>
-            )}
           </div>
         </div>
       ) : viewMode === 'grid' ? (
