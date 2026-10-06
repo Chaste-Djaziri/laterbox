@@ -16,9 +16,9 @@ done
 echo "Repository Root: $REPO_ROOT"
 
 # 1. Build Safari Web Extension assets
-if [ -d "$REPO_ROOT/extension" ]; then
+if [ -d "$REPO_ROOT/laterbox-extension" ]; then
   echo "--- Building Safari Web Extension ---"
-  cd "$REPO_ROOT/extension"
+  cd "$REPO_ROOT/laterbox-extension"
   npm ci
   npm run build:safari
   
