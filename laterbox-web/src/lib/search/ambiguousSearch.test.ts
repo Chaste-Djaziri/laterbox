@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { parseAmbiguousQuery, filterAndRankAmbiguousItems } from './ambiguousSearch';
+import { parseAmbiguousQuery, filterAndRankAmbiguousItems, generateSuggestedQueries } from './ambiguousSearch';
 import type { LaterBoxItem } from '@/lib/supabase/types';
 
 test('parses typo video and month in "a cideo i saved in october"', () => {
@@ -68,4 +68,46 @@ test('filterAndRankAmbiguousItems matches items by typo format and date range', 
   assert.equal(results[0].item.id, 'item-1');
   assert.ok(results[0].matchedFields.includes('format'));
   assert.ok(results[0].matchedFields.includes('date'));
+});
+
+test('generateSuggestedQueries produces suggestions that all guarantee results', () => {
+  const items: LaterBoxItem[] = [
+    {
+      id: 'item-1',
+      title: 'Next.js 16 Tutorial',
+      url: 'https://youtube.com/watch?v=123',
+      type: 'video',
+      status: 'inbox',
+      favorite: false,
+      created_at: '2026-10-04T12:00:00Z',
+      updated_at: '2026-10-04T12:00:00Z',
+      metadata: { item_id: 'item-1', content_type: 'video', domain: 'youtube.com', title: 'Next.js 16 Tutorial', created_at: '2026-10-04T12:00:00Z', updated_at: '2026-10-04T12:00:00Z', status: 'enriched', attempt_count: 1 },
+    },
+    {
+      id: 'item-2',
+      title: 'CSS Grid Guide',
+      url: 'https://css-tricks.com/guide',
+      type: 'link',
+      status: 'inbox',
+      favorite: false,
+      created_at: '2026-05-01T12:00:00Z',
+      updated_at: '2026-05-01T12:00:00Z',
+      metadata: { item_id: 'item-2', content_type: 'article', domain: 'css-tricks.com', title: 'CSS Grid Guide', created_at: '2026-05-01T12:00:00Z', updated_at: '2026-05-01T12:00:00Z', status: 'enriched', attempt_count: 1 },
+    },
+  ];
+
+  const suggestions = generateSuggestedQueries(items);
+  assert.ok(suggestions.length > 0);
+
+  // Every suggested query MUST return >= 1 result
+  for (const suggestion of suggestions) {
+    const parsed = parseAmbiguousQuery(suggestion);
+    const matches = filterAndRankAmbiguousItems(items, parsed);
+    assert.ok(matches.length > 0, `Expected suggestion "${suggestion}" to have matching results, got 0`);
+  }
+});
+
+test('generateSuggestedQueries returns empty array when no items exist', () => {
+  const suggestions = generateSuggestedQueries([]);
+  assert.deepEqual(suggestions, []);
 });

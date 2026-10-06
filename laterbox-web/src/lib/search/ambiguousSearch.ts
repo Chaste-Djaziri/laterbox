@@ -452,3 +452,167 @@ export function filterAndRankAmbiguousItems(
     return new Date(b.item.created_at).getTime() - new Date(a.item.created_at).getTime();
   });
 }
+
+/**
+ * Dynamically generates search suggestions derived from the user's actual items,
+ * guaranteeing every suggestion returns at least one verified matching result.
+ */
+export function generateSuggestedQueries(items: LaterBoxItem[]): string[] {
+  if (!items || items.length === 0) return [];
+
+  const candidates: string[] = [];
+
+  let videoCount = 0;
+  let articleCount = 0;
+  let musicCount = 0;
+  let noteCount = 0;
+  let fileCount = 0;
+
+  const monthCounts = new Map<string, number>();
+  const domainCounts = new Map<string, number>();
+  const wordCounts = new Map<string, number>();
+  const collectionNames = new Set<string>();
+
+  const titleStopWords = new Set([
+    'a', 'an', 'the', 'and', 'or', 'for', 'to', 'in', 'on', 'at', 'with', 'from', 'by',
+    'this', 'that', 'your', 'my', 'is', 'are', 'was', 'how', 'what', 'why', 'when',
+    'video', 'playlist', 'youtube', 'http', 'https', 'www', 'com', 'org', 'net',
+    'guide', 'full', 'tutorial', 'overview', 'about'
+  ]);
+
+  for (const item of items) {
+    const cType = item.metadata?.content_type || (item.url ? 'link' : 'note');
+    const ext = item.url?.split('.').pop()?.toLowerCase() || '';
+    const isFile = item.type === 'file' || ['pdf', 'psd', 'zip', 'docx', 'xlsx', 'txt'].includes(ext);
+    const isVideo = cType === 'video' || item.url?.includes('youtube.com') || item.url?.includes('youtu.be') || item.url?.includes('vimeo.com') || item.url?.includes('tiktok.com');
+    const isMusic = cType === 'music' || item.url?.includes('spotify.com') || item.url?.includes('music.apple.com') || item.url?.includes('soundcloud.com');
+    const isNote = !item.url && (item.type === 'note' || Boolean(item.text_content));
+    const isArticle = cType === 'article' || (Boolean(item.url) && !isVideo && !isMusic && !isFile);
+
+    if (isVideo) videoCount++;
+    if (isArticle) articleCount++;
+    if (isMusic) musicCount++;
+    if (isNote) noteCount++;
+    if (isFile) fileCount++;
+
+    if (item.created_at) {
+      const d = new Date(item.created_at);
+      if (!isNaN(d.getTime())) {
+        const monthName = d.toLocaleString('en-US', { month: 'long' });
+        monthCounts.set(monthName, (monthCounts.get(monthName) || 0) + 1);
+      }
+    }
+
+    const domain = item.metadata?.domain || (item.url ? (() => {
+      try {
+        return new URL(item.url).hostname.replace(/^www\./, '');
+      } catch {
+        return '';
+      }
+    })() : '');
+
+    if (domain && domain.length > 3) {
+      domainCounts.set(domain, (domainCounts.get(domain) || 0) + 1);
+    }
+
+    if (item.collections) {
+      for (const col of item.collections) {
+        if (col.name?.trim()) collectionNames.add(col.name.trim());
+      }
+    }
+
+    const title = item.metadata?.title || item.title || '';
+    const words = title
+      .toLowerCase()
+      .replace(/[^\w\s]/g, ' ')
+      .split(/\s+/)
+      .filter((w) => w.length >= 4 && !titleStopWords.has(w));
+    for (const w of words) {
+      wordCounts.set(w, (wordCounts.get(w) || 0) + 1);
+    }
+  }
+
+  // Find top month
+  let topMonth = '';
+  let topMonthCount = 0;
+  for (const [m, count] of monthCounts.entries()) {
+    if (count > topMonthCount) {
+      topMonthCount = count;
+      topMonth = m;
+    }
+  }
+
+  if (videoCount > 0) {
+    if (topMonth) {
+      candidates.push(`a video i saved in ${topMonth.toLowerCase()}`);
+    } else {
+      candidates.push('videos');
+    }
+  }
+
+  if (articleCount > 0) {
+    if (topMonth) {
+      candidates.push(`articles saved in ${topMonth.toLowerCase()}`);
+    } else {
+      candidates.push('articles');
+    }
+  }
+
+  if (topMonth && candidates.length === 0) {
+    candidates.push(`saved in ${topMonth.toLowerCase()}`);
+  }
+
+  if (fileCount > 0) {
+    candidates.push('PDF & files');
+  }
+
+  if (musicCount > 0) {
+    candidates.push('music');
+  }
+
+  if (noteCount > 0) {
+    candidates.push('personal notes');
+  }
+
+  const sortedDomains = Array.from(domainCounts.entries()).sort((a, b) => b[1] - a[1]);
+  if (sortedDomains.length > 0) {
+    candidates.push(sortedDomains[0][0]);
+  }
+
+  const sortedWords = Array.from(wordCounts.entries()).sort((a, b) => b[1] - a[1]);
+  if (sortedWords.length > 0) {
+    const cap = sortedWords[0][0].charAt(0).toUpperCase() + sortedWords[0][0].slice(1);
+    candidates.push(cap);
+  }
+
+  if (collectionNames.size > 0) {
+    const colName = Array.from(collectionNames)[0];
+    candidates.push(colName);
+  }
+
+  if (sortedWords.length > 1) {
+    const cap2 = sortedWords[1][0].charAt(0).toUpperCase() + sortedWords[1][0].slice(1);
+    candidates.push(cap2);
+  }
+
+  // Verify each candidate guaranteed to yield at least 1 result
+  const verified: string[] = [];
+  const seenLower = new Set<string>();
+
+  for (const cand of candidates) {
+    const lower = cand.toLowerCase();
+    if (seenLower.has(lower)) continue;
+
+    const parsedQuery = parseAmbiguousQuery(cand);
+    const matches = filterAndRankAmbiguousItems(items, parsedQuery);
+    if (matches.length > 0) {
+      verified.push(cand);
+      seenLower.add(lower);
+    }
+
+    if (verified.length >= 6) break;
+  }
+
+  return verified;
+}
+

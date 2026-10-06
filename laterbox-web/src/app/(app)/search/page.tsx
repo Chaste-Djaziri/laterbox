@@ -10,6 +10,7 @@ import { useBilling } from '@/lib/store/BillingContext';
 import {
   parseAmbiguousQuery,
   filterAndRankAmbiguousItems,
+  generateSuggestedQueries,
   type ParsedSearchQuery,
   type AmbiguousContentType,
 } from '@/lib/search/ambiguousSearch';
@@ -185,14 +186,10 @@ export default function SearchPage() {
     { id: 'file', label: 'Files', icon: <Folder className="w-3.5 h-3.5" /> },
   ];
 
-  const suggestedQueries = [
-    'a cideo i saved in october',
-    'saved between May and August',
-    'articles from last week',
-    'PDF files',
-    'Design inspiration',
-    'Spotify playlist',
-  ];
+  // Dynamically compute suggestions from user's actual items guaranteed to have results
+  const suggestedQueries = useMemo(() => {
+    return generateSuggestedQueries(items);
+  }, [items]);
 
   return (
     <div className="max-w-6xl mx-auto p-6 sm:p-8 space-y-6">
@@ -377,22 +374,24 @@ export default function SearchPage() {
         </div>
       )}
 
-      {/* Suggested Natural Language Search Queries */}
-      <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-[11px] font-bold text-[#9e9b92] uppercase tracking-wider">
-          Suggested:
-        </span>
-        {suggestedQueries.map((suggested) => (
-          <button
-            key={suggested}
-            type="button"
-            onClick={() => setQuery(suggested)}
-            className="px-2.5 py-1 rounded-lg bg-white border border-[#e4e0d5] text-[11px] font-bold text-[#6c6b63] hover:text-[#171711] hover:border-[#171711] transition-all cursor-pointer shadow-2xs"
-          >
-            {suggested}
-          </button>
-        ))}
-      </div>
+      {/* Suggested Natural Language Search Queries (Guaranteed Results) */}
+      {suggestedQueries.length > 0 && (
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-[11px] font-bold text-[#9e9b92] uppercase tracking-wider">
+            Suggested:
+          </span>
+          {suggestedQueries.map((suggested) => (
+            <button
+              key={suggested}
+              type="button"
+              onClick={() => setQuery(suggested)}
+              className="px-2.5 py-1 rounded-lg bg-white border border-[#e4e0d5] text-[11px] font-bold text-[#6c6b63] hover:text-[#171711] hover:border-[#171711] transition-all cursor-pointer shadow-2xs"
+            >
+              {suggested}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Content Type Filter Chips */}
       <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none pt-1">
