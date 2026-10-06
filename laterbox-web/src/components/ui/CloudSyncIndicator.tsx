@@ -24,6 +24,13 @@ export function CloudSyncIndicator({ compact = false }: { compact?: boolean }) {
           tooltip: 'Syncing with Supabase cloud…',
           color: 'bg-[#e6edb0] border border-[#d0db84] text-[#171711]',
         };
+      case 'offline':
+        return {
+          icon: <CloudOff className="w-3.5 h-3.5 text-amber-700" />,
+          label: 'Offline',
+          tooltip: 'Cloud sync unavailable. Showing cached data. Click to retry.',
+          color: 'bg-amber-100 border border-amber-300 text-amber-900',
+        };
       case 'error':
         return {
           icon: <AlertCircle className="w-3.5 h-3.5 text-amber-700" />,
