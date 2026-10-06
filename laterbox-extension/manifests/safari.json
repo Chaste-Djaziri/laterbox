@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "LaterBox - Save for Later",
-  "description": "Save the current page to laterbox.",
+  "description": "Save pages, readable articles, social posts, and source-linked highlights to your LaterBox Pro account.",
   "version": "1.0.173",
   "browser_specific_settings": {
     "safari": {
@@ -19,14 +19,13 @@
     "contextMenus",
     "scripting",
     "storage",
-    "tabs"
+    "tabs",
+    "alarms"
   ],
   "host_permissions": [
     "https://*.supabase.co/*",
     "http://127.0.0.1:54321/*",
-    "http://localhost:54321/*"
-  ],
-  "optional_permissions": [
+    "http://localhost:54321/*",
     "http://*/*",
     "https://*/*"
   ],
@@ -36,7 +35,8 @@
       "https://www.laterbox.dev/*",
       "https://laterbox.micorp.pro/*",
       "https://app.laterbox.com/*",
-      "http://localhost/*"
+      "http://localhost/*",
+      "https://app.laterbox.dev/*"
     ]
   },
   "action": {
@@ -50,15 +50,34 @@
     }
   },
   "commands": {
-    "_execute_action": {
+    "save-current-page": {
       "suggested_key": {
-        "default": "Ctrl+Shift+L",
-        "mac": "Command+Shift+L"
+        "default": "Alt+Shift+S",
+        "mac": "Alt+Shift+S"
       },
-      "description": "Open laterbox popup"
+      "description": "Save current page to LaterBox"
+    },
+    "save-selection": {
+      "suggested_key": {
+        "default": "Alt+Shift+H",
+        "mac": "Alt+Shift+H"
+      },
+      "description": "Save selected text with its source highlight"
     }
   },
   "background": {
     "service_worker": "background.js"
-  }
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "http://*/*",
+        "https://*/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ]
 }
