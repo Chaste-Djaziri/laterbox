@@ -261,3 +261,29 @@ button:disabled {
   color: #ffffff;
 }
 
+
+.card { padding: 16px; border: 1px solid #e4e0d5; border-radius: 16px; background: #fff; }
+.domain { margin: 0; color: #6c6b63; font-size: 10px; font-weight: 750; letter-spacing: .08em; }
+.settings-panel { margin-top: 20px; padding: 16px; border: 1px solid #e4e0d5; border-radius: 16px; background: #fff; }
+.settings-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 16px; }
+.settings-heading h2 { margin: 0; font-size: 13px; font-weight: 750; }
+.settings-tag { padding: 4px 6px; border-radius: 5px; background: #f1f0e8; color: #6c6b63; font-size: 9px; font-weight: 750; letter-spacing: .06em; }
+.toggle-row { position: relative; display: flex; align-items: flex-start; gap: 14px; cursor: pointer; }
+.toggle-copy { flex: 1; }
+.toggle-title { display: block; font-size: 13px; font-weight: 650; }
+.toggle-description { display: block; margin-top: 5px; font-size: 12px; line-height: 1.5; color: #6c6b63; }
+.toggle-row input { position: absolute; right: 0; top: 0; width: 38px; height: 24px; margin: 0; opacity: 0; cursor: pointer; }
+.toggle-track { flex: 0 0 38px; height: 24px; padding: 3px; border-radius: 99px; background: #d5d3c9; transition: background .15s; }
+.toggle-track::after { content: ''; display: block; width: 18px; height: 18px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px #0002; transition: transform .15s; }
+.toggle-row input:checked + .toggle-track { background: #26734d; }
+.toggle-row input:checked + .toggle-track::after { transform: translateX(14px); }
+.toggle-row input:focus-visible + .toggle-track { outline: 3px solid #171711; outline-offset: 3px; }
+.controls-examples { display: grid; gap: 8px; margin-top: 14px; padding: 11px; border-radius: 10px; background: #f7f5ee; color: #3d3c31; font-size: 11px; }
+.controls-examples span span { display: inline-block; width: 20px; color: #26734d; font-weight: 800; }
+.settings-hint { margin: 10px 0 0; font-size: 11px; line-height: 1.5; color: #6c6b63; }
+.shortcuts-section { margin-top: 14px; padding-top: 12px; border-top: 1px solid #eceae2; }
+.shortcuts-section .status { margin: 0 0 8px; font-size: 11px; line-height: 1.65; white-space: pre-line; }
+.shortcuts-section button { width: 100%; padding: 9px 10px; font-size: 11px; text-align: left; }
+.shortcuts-section button span { float: right; }
+button:focus-visible { outline: 3px solid #26734d; outline-offset: 3px; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
