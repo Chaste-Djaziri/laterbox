@@ -81,7 +81,21 @@ export interface CollectionItem {
   deleted_at?: string | null;
 }
 
+export interface ItemContent {
+  item_id: string;
+  user_id: string;
+  capture_id: string;
+  kind: 'page' | 'link' | 'highlight' | 'social';
+  source_url?: string | null;
+  canonical_url?: string | null;
+  markdown: string;
+  author?: string | null;
+  published_at?: string | null;
+  truncated: boolean;
+}
+
 export interface LaterBoxItem {
+  content?: ItemContent | null;
   id: string;
   user_id?: string | null;
   url?: string | null;
