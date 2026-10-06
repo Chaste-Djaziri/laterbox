@@ -8,10 +8,10 @@ const rootVersionJsonPath = path.join(rootDir, 'version.json');
 const webVersionJsonPath = path.join(rootDir, 'laterbox-web', 'version.json');
 const webPublicVersionJsonPath = path.join(rootDir, 'laterbox-web', 'public', 'version.json');
 const webVersionTsPath = path.join(rootDir, 'laterbox-web', 'src', 'lib', 'version.ts');
-const extensionPackageJsonPath = path.join(rootDir, 'extension', 'package.json');
-const extensionChromiumManifestPath = path.join(rootDir, 'extension', 'manifests', 'chromium.json');
-const extensionFirefoxManifestPath = path.join(rootDir, 'extension', 'manifests', 'firefox.json');
-const extensionSafariManifestPath = path.join(rootDir, 'extension', 'manifests', 'safari.json');
+const extensionPackageJsonPath = path.join(rootDir, 'laterbox-extension', 'package.json');
+const extensionChromiumManifestPath = path.join(rootDir, 'laterbox-extension', 'manifests', 'chromium.json');
+const extensionFirefoxManifestPath = path.join(rootDir, 'laterbox-extension', 'manifests', 'firefox.json');
+const extensionSafariManifestPath = path.join(rootDir, 'laterbox-extension', 'manifests', 'safari.json');
 const iosPbxprojPath = path.join(rootDir, 'laterbox-ios', 'laterbox-ios.xcodeproj', 'project.pbxproj');
 const iosAppVersionSwiftPath = path.join(rootDir, 'laterbox-ios', 'laterbox-ios', 'AppVersion.swift');
 const iosShareInfoPlistPath = path.join(rootDir, 'laterbox-ios', 'LaterBoxShare', 'Info.plist');
@@ -141,7 +141,7 @@ export const VERSION_METADATA = {
     fs.writeFileSync(webVersionTsPath, tsContent, 'utf8');
   }
 
-  // 6. extension/package.json
+  // 6. laterbox-extension/package.json
   if (fs.existsSync(extensionPackageJsonPath)) {
     try {
       const extPkg = JSON.parse(fs.readFileSync(extensionPackageJsonPath, 'utf8'));
