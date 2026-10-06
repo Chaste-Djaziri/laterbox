@@ -32,7 +32,6 @@ import {
 import { AiOrganizeModal } from '@/components/inbox/AiOrganizeModal';
 import { OrganizeSuggestion, OrganizeResponse } from '@/app/api/ai/organize/route';
 import { resolveReturnPreset } from '@/lib/utils/schedule';
-import { CloudSyncIndicator } from '@/components/ui/CloudSyncIndicator';
 
 export default function InboxPage() {
   const router = useRouter();
@@ -356,9 +355,6 @@ export default function InboxPage() {
               <List className="w-3.5 h-3.5" />
             </button>
           </div>
-
-          {/* Cloud Sync Indicator (Pro Mode) */}
-          <CloudSyncIndicator />
 
 
           {/* Tutorial Link */}
