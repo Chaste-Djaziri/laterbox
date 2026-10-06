@@ -249,11 +249,6 @@ export function ItemProvider({ children }: { children: ReactNode }) {
           .is('deleted_at', null)
       );
 
-      const { data: contentRows } = await fetchWithRetry(() =>
-        supabase.from('item_content').select('*').eq('user_id', user.id)
-      );
-      const contentMap = new Map((contentRows || []).map(content => [content.item_id, content]));
-
       const colMap = new Map((colRows || []).map((c) => [c.id, c]));
       const itemColsMap = new Map<string, Collection[]>();
       (colItemRows || []).forEach((ci) => {
