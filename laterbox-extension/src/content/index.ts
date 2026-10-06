@@ -102,7 +102,10 @@ function addSocialControls(){syncInstagramControls(enabled,location.href);}
 const observer=new MutationObserver(()=>{
   if(scheduled || !enabled)return;scheduled=true;setTimeout(()=>{scheduled=false;addSocialControls();},500);
 });
-observer.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['href','aria-label','hidden']});
+observer.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['href','aria-label','aria-hidden','hidden','data-permalink','data-shortcode']});
+window.addEventListener('scroll',()=>{
+  if(scheduled || !enabled)return;scheduled=true;setTimeout(()=>{scheduled=false;addSocialControls();},200);
+},{passive:true,capture:true});
 window.addEventListener('popstate',addSocialControls);
 window.addEventListener('hashchange',addSocialControls);
 let lastPageUrl=location.href;setInterval(()=>{if(location.href!==lastPageUrl){lastPageUrl=location.href;addSocialControls();}},1000);
