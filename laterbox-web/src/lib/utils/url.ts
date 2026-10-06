@@ -41,17 +41,13 @@ export function buildTextFragmentUrl(
 ): string {
   if (url.includes(':~:text=')) return url;
   if (!text || text.trim().length === 0) return url;
-  const baseUrl = url.split('#')[0];
-  const parts: string[] = [];
-  if (before && before.trim().length > 0) {
-    parts.push(`${encodeURIComponent(before.trim())}-,`);
-  }
-  const cleanSnippet = text.trim().slice(0, 120);
-  parts.push(encodeURIComponent(cleanSnippet));
-  if (after && after.trim().length > 0) {
-    parts.push(`,-${encodeURIComponent(after.trim())}`);
-  }
-  return `${baseUrl}#:~:text=${parts.join('')}`;
+  const baseUrl = url.split(':~:')[0];
+  const encode = (value: string) => encodeURIComponent(value).replace(/[-!'()*]/g,c=>'%'+c.charCodeAt(0).toString(16).toUpperCase());
+  const words = text.trim().split(/\s+/);
+  const quote = text.length > 150 && words.length > 8 ? encode(words.slice(0,4).join(' '))+','+encode(words.slice(-4).join(' ')) : encode(text.trim());
+  const prefix = before?.trim().split(/\s+/).slice(-4).join(' ');
+  const suffix = after?.trim().split(/\s+/).slice(0,4).join(' ');
+  return baseUrl+(baseUrl.includes('#') ? ':~:text=' : '#:~:text=')+(prefix ? encode(prefix)+'-,' : '')+quote+(suffix ? ',-'+encode(suffix) : '');
 }
 
 export function formatTimeAgo(dateString: string): string {
