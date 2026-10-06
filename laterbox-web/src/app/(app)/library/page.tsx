@@ -22,6 +22,7 @@ import {
   Sparkles,
   Layers,
   BookOpen,
+  Database,
 } from 'lucide-react';
 
 type LibraryTab = 'collections' | 'starred' | 'saved' | 'archived';
@@ -138,8 +139,12 @@ export default function LibraryPage() {
         {/* View Header with Signature Style */}
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pt-1">
           <div className="space-y-2">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#e6edb0] border border-[#d0db84] text-[#171711] text-xs font-black">
-              <span>📚 Permanent Knowledge Base • Local-First Storage</span>
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#e6edb0] border border-[#d0db84] text-[#171711] text-xs font-bold shadow-2xs">
+              <BookOpen className="w-3.5 h-3.5 text-[#171711] shrink-0" />
+              <span>Permanent Knowledge Base</span>
+              <span className="w-1 h-1 rounded-full bg-[#171711]/40" />
+              <Database className="w-3.5 h-3.5 text-[#171711] shrink-0" />
+              <span>Local-First Storage</span>
             </div>
             <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-[#171711]">
               Library
