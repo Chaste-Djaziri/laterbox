@@ -48,7 +48,7 @@ test('Reel box gets its own rail slot between complete Share and Save wrappers',
 });
 
 test('LaterBox icons follow native Share colors when Instagram changes theme',()=>{
- const {window:w}=fixture(post('theme'));const native=w.document.querySelector<SVGElement>('svg[aria-label="Share"]')!;native.style.color='rgb(20, 20, 20)';native.style.width='24px';
+ const {window:w}=fixture(post('theme'));const native=w.document.querySelector<SVGElement>('svg[aria-label="Share"]')!;native.style.fill='currentColor';native.style.color='rgb(20, 20, 20)';native.style.width='24px';
  const sync=createInstagramControls(w.document,()=>{const el=w.document.createElement('span');el.setAttribute('data-laterbox-control','');return el;});sync(true,w.location.href);const control=w.document.querySelector<HTMLElement>('[data-laterbox-control]')!;assert.equal(control.style.getPropertyValue('--lb-instagram-color'),'rgb(20, 20, 20)');assert.equal(control.style.getPropertyValue('--lb-instagram-size'),'24px');
  native.style.color='rgb(245, 245, 245)';sync(true,w.location.href);assert.equal(control.style.getPropertyValue('--lb-instagram-color'),'rgb(245, 245, 245)');assert.equal(w.document.querySelectorAll('[data-laterbox-control]').length,1);
 });
