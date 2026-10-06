@@ -1,3 +1,5 @@
+<!-- Historical design for the retired cross-platform implementation. Native attachment work lives in laterbox-ios/ and laterbox-android/; the commands and implementation paths below are not current setup instructions. -->
+
 # 0001. Local attachments import
 
 **Date**: 2026-08-20
