@@ -88,11 +88,11 @@ async function pollConnection(): Promise<string> {
     const endpoint = getConnectionEndpoint();
     const response = await postConnection(endpoint,{ action:'status', request_id:pending.requestId, request_secret:pending.requestSecret });
     if ((await getPendingConnection())?.requestId !== pending.requestId) return '';
-    if (response.status === 'approved') {
+    if (response.status === 'approved' || response.status === 'used') {
       const userId = await exchangeConnection(endpoint,pending.requestId,pending.requestSecret);
       await clearPendingConnection(); await browser.storage.local.remove('connectionError'); return userId;
     }
-    if (response.status === 'used' || response.status === 'expired') {
+    if (response.status === 'expired') {
       await clearPendingConnection(); await browser.storage.local.set({ connectionError:'Approval unavailable. Connect again.' }); return '';
     }
   } catch { /* transient errors stay pending until persistent alarm retries */ }
