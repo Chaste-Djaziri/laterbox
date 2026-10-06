@@ -27,6 +27,7 @@ migrate_working_dir/
 # Build artifacts
 /build/
 /coverage/
+*.zip
 
 # Symbolication related
 app.*.symbols
