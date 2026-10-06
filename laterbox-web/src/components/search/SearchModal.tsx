@@ -2,7 +2,15 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useItems } from '@/lib/store/ItemContext';
+import { useBilling } from '@/lib/store/BillingContext';
+import {
+  parseAmbiguousQuery,
+  filterAndRankAmbiguousItems,
+  type ParsedSearchQuery,
+  type AmbiguousContentType,
+} from '@/lib/search/ambiguousSearch';
 import { LaterBoxItem } from '@/lib/supabase/types';
 import {
   Search,
@@ -32,6 +40,7 @@ interface SearchModalProps {
 export function SearchModal({ isOpen, onClose }: SearchModalProps) {
   const router = useRouter();
   const { items } = useItems();
+  const { isPro } = useBilling();
   const [query, setQuery] = useState('');
   const [formatFilter, setFormatFilter] = useState<'all' | 'article' | 'video' | 'music' | 'note' | 'file'>('all');
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -60,41 +69,22 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
     { label: 'Full Deep Search Engine', href: '/search', icon: <Search className="w-4 h-4" />, badge: 'Vault' },
   ], []);
 
-  // Filtered items based on query & format
+  // Parse ambiguous search query
+  const parsed = useMemo(() => parseAmbiguousQuery(query), [query]);
+
+  // Filtered & ranked items based on ambiguous query & format
   const matchingItems = useMemo(() => {
-    const q = query.trim().toLowerCase();
+    if (!query.trim()) {
+      return items;
+    }
 
-    return items.filter((item) => {
-      // Content format filter
-      if (formatFilter !== 'all') {
-        const cType = item.metadata?.content_type || (item.url ? 'link' : 'note');
-        const ext = item.url?.split('.').pop()?.toLowerCase() || '';
-        const isFile = item.type === 'file' || ['pdf', 'psd', 'zip', 'docx'].includes(ext);
+    const effectiveParsed: ParsedSearchQuery = {
+      ...parsed,
+      contentType: formatFilter !== 'all' ? (formatFilter as AmbiguousContentType) : parsed.contentType,
+    };
 
-        if (formatFilter === 'note' && (item.url || !item.text_content)) return false;
-        if (formatFilter === 'video' && cType !== 'video' && !item.url?.includes('youtube.com')) return false;
-        if (formatFilter === 'music' && cType !== 'music' && !item.url?.includes('spotify.com')) return false;
-        if (formatFilter === 'article' && cType !== 'article' && !item.url) return false;
-        if (formatFilter === 'file' && !isFile) return false;
-      }
-
-      if (!q) return true;
-
-      const title = (item.metadata?.title || item.title || '').toLowerCase();
-      const domain = (item.metadata?.domain || item.url || '').toLowerCase();
-      const desc = (item.metadata?.description || item.text_content || '').toLowerCase();
-      const note = (item.note?.content || '').toLowerCase();
-      const collections = (item.collections || []).map((c) => c.name).join(' ').toLowerCase();
-
-      return (
-        title.includes(q) ||
-        domain.includes(q) ||
-        desc.includes(q) ||
-        note.includes(q) ||
-        collections.includes(q)
-      );
-    });
-  }, [items, query, formatFilter]);
+    return filterAndRankAmbiguousItems(items, effectiveParsed).map((r) => r.item);
+  }, [items, query, formatFilter, parsed]);
 
   // If query is empty, show top 4 recent items + nav shortcuts
   const displayedItems = useMemo(() => {
@@ -253,6 +243,21 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
             ESC
           </kbd>
         </div>
+
+        {/* Ambiguous query interpretation pill */}
+        {query.trim().length > 0 && parsed.hasAmbiguousFilters && (
+          <div className="px-4 py-2 bg-[#fbffdc] border-b border-[#d0db84] flex items-center justify-between text-xs text-[#444a10]">
+            <div className="flex items-center gap-1.5 font-bold truncate">
+              <Sparkles className="w-3.5 h-3.5 text-[#88961c] shrink-0" />
+              <span className="truncate">{parsed.explanation}</span>
+            </div>
+            {parsed.contentType && (
+              <span className="px-2 py-0.5 rounded-full bg-white text-[10px] font-bold border border-[#d0db84] shrink-0">
+                {parsed.contentType.toUpperCase()}
+              </span>
+            )}
+          </div>
+        )}
 
         {/* Content Format Filter Pills */}
         <div className="flex items-center gap-1.5 px-4 py-2 bg-[#f7f5ee] border-b border-[#e4e0d5]/60 overflow-x-auto scrollbar-none">
@@ -432,17 +437,36 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
             </span>
           </div>
 
-          <button
-            type="button"
-            onClick={() => {
-              onClose();
-              router.push('/search');
-            }}
-            className="text-[11px] font-bold text-[#171711] hover:underline cursor-pointer flex items-center gap-1"
-          >
-            <span>Deep Search</span>
-            <ExternalLink className="w-3 h-3" />
-          </button>
+          <div className="flex items-center gap-3">
+            {isPro ? (
+              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-[#444a10] bg-[#e6edb0] border border-[#d0db84] px-2 py-0.5 rounded-full">
+                <Sparkles className="w-3 h-3 text-[#171711]" />
+                <span>Gemini AI Search Active</span>
+              </span>
+            ) : (
+              <Link
+                href="/plans"
+                onClick={onClose}
+                className="inline-flex items-center gap-1 text-[10px] font-bold text-[#6c6b63] hover:text-[#171711] bg-white border border-[#e4e0d5] px-2 py-0.5 rounded-full shadow-2xs transition-colors"
+                title="Upgrade to LaterBox Pro to activate Google Gemini AI search"
+              >
+                <Sparkles className="w-3 h-3 text-[#bfa829]" />
+                <span>Gemini AI • Pro</span>
+              </Link>
+            )}
+
+            <button
+              type="button"
+              onClick={() => {
+                onClose();
+                router.push('/search');
+              }}
+              className="text-[11px] font-bold text-[#171711] hover:underline cursor-pointer flex items-center gap-1"
+            >
+              <span>Deep Search</span>
+              <ExternalLink className="w-3 h-3" />
+            </button>
+          </div>
         </div>
       </div>
     </div>
