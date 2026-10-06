@@ -122,7 +122,7 @@ def main():
             # Item Cards
             card_items = [
                 ("Designing for Spatial Computing", "apple.developer.com • 8 min read", "Tech", (231, 255, 87)),
-                ("State Management in Flutter with Riverpod", "flutter.dev • 5 min read", "Flutter", (90, 200, 250)),
+                ("State Management with Kotlin and Compose", "developer.android.com • 5 min read", "Kotlin", (90, 200, 250)),
                 ("The Architecture of Modern Databases", "highscalability.com • 12 min read", "Architecture", (255, 149, 0)),
                 ("Minimalist UI Design Principles for 2026", "uxdesign.cc • 6 min read", "Design", (175, 82, 222)),
                 ("Understanding Vector Indexes & Embeddings", "arxiv.org • 15 min read", "AI", (52, 199, 89))
@@ -150,7 +150,7 @@ def main():
             
             # Input field mockup
             ss_draw.rounded_rectangle([card_x1 + 70, content_y + 130, card_x2 - 70, content_y + 230], radius=16, fill=(23, 23, 17))
-            ss_draw.text((card_x1 + 95, content_y + 165), "https://github.com/flutter/flutter", fill=(231, 255, 87), anchor="lm")
+            ss_draw.text((card_x1 + 95, content_y + 165), "https://developer.android.com/jetpack/compose", fill=(231, 255, 87), anchor="lm")
             ss_draw.text((card_x1 + 95, content_y + 200), "Flutter engine architecture reference", fill=(161, 161, 154), anchor="lm")
             
             # Tags selection
