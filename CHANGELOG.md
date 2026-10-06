@@ -23,6 +23,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 - **[macOS] System Status**: Settings now provides a single readiness view for Mac integrations, permissions, sync, notifications, and StoreKit billing, with retry guidance and copyable diagnostics.
 
 ### Fixed
+- **[Extensions] Instagram Post Modal Icon Brightness**: Brightened the LaterBox save icon in Instagram post modals and dark surfaces to match the primary crisp white color of native Like, Comment, and Share action buttons instead of falling back to dim secondary text color.
 - **[Web] Web Capture Enrichment Persistence & Multi-Format Reader**: Fixed web URL capture enrichment disappearing after capture or sync by saving enriched titles, preview images, and metadata directly to localStorage and pending sync queues, preventing cloud sync hydrations from clobbering local metadata, expanding the backend enrichment route with clean article body, Markdown, and sanitized HTML extraction, and adding Formatted, Markdown, and HTML Reader views to item details.
 - **[Web] Accurate offline sync status**: Cloud sync indicators now show Offline with retry guidance when cached data is retained after an authentication or connection failure.
 - **[Web] Bounded JWT recovery**: Refresh future-issued sessions once, cap query retries, and preserve cached data when any cloud snapshot query fails instead of restarting synchronization indefinitely.
