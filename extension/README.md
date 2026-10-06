@@ -12,7 +12,7 @@ npm run build:firefox       # Firefox
 npm run build:safari        # Safari
 ```
 
-Build against local Supabase and the local Flutter web app:
+Build against local Supabase and the local Next.js web app:
 
 ```bash
 npm run build:local         # Chromium
@@ -20,10 +20,11 @@ npm run build:firefox:local # Firefox
 npm run build:safari:local  # Safari
 ```
 
-Run the local Flutter web app on the matching fixed port:
+Run the local Next.js web app on the matching fixed port:
 
 ```bash
-flutter run -d chrome --web-port 8080
+cd ../laterbox-web
+npm run dev -- --port 8080
 ```
 
 The local extension opens `http://localhost:8080` for approval. If the old
