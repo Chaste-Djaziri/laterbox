@@ -4,7 +4,7 @@ interface QueryError {
 }
 
 export function isFutureIssuedJwt(error: QueryError | null): boolean {
-  return !!error && /jwt issued (?:at|in (?:the )?)future/i.test(error.message || '');
+  return !!error && /jwt issued (?:at |in (?:the )?)future/i.test(error.message || '');
 }
 
 // One recovery instance per sync prevents multiple refreshes across snapshot queries.
