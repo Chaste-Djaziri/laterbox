@@ -50,176 +50,37 @@ interface ItemContextType {
 
 const ItemContext = createContext<ItemContextType | undefined>(undefined);
 
-const DEFAULT_GUEST_ITEMS: LaterBoxItem[] = [
-  {
-    id: 'guest-item-1',
-    user_id: null,
-    title: 'Design Inspiration.psd',
-    type: 'document',
-    status: 'deferred',
-    favorite: false,
-    created_at: new Date(Date.now() - 3 * 86400000).toISOString(),
-    updated_at: new Date(Date.now() - 3 * 86400000).toISOString(),
-    return_at: null, // Someday Vault (no deadline)
-    metadata: {
-      item_id: 'guest-item-1',
-      title: 'Design Inspiration.psd',
-      description: 'PSD File • 12.4 MB',
-      status: 'enriched',
-      attempt_count: 1,
-      content_type: 'design',
-      structured_data: JSON.stringify({ tags: ['design', 'inspiration', 'ui', 'creative'], size: '12.4 MB', ext: 'psd' }),
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    },
-    attachments: [
-      {
-        id: 'att-1',
-        item_id: 'guest-item-1',
-        original_file_name: 'Design Inspiration.psd',
-        file_extension: 'psd',
-        mime_type: 'image/vnd.adobe.photoshop',
-        byte_size: 12400000,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      },
-    ],
-  },
-  {
-    id: 'guest-item-2',
-    user_id: null,
-    title: 'ClientFeedback.pdf',
-    type: 'document',
-    status: 'inbox',
-    favorite: false,
-    created_at: new Date(Date.now() - 2 * 86400000).toISOString(),
-    updated_at: new Date(Date.now() - 2 * 86400000).toISOString(),
-    return_at: new Date(Date.now() - 2 * 3600000).toISOString(), // Returned today (2 hours ago)
-    metadata: {
-      item_id: 'guest-item-2',
-      title: 'ClientFeedback.pdf',
-      description: 'PDF Document • 1.2 MB',
-      status: 'enriched',
-      attempt_count: 1,
-      content_type: 'document',
-      structured_data: JSON.stringify({ tags: ['feedback', 'client', 'product'], size: '1.2 MB', ext: 'pdf' }),
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    },
-    attachments: [
-      {
-        id: 'att-2',
-        item_id: 'guest-item-2',
-        original_file_name: 'ClientFeedback.pdf',
-        file_extension: 'pdf',
-        mime_type: 'application/pdf',
-        byte_size: 1200000,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      },
-    ],
-  },
-  {
-    id: 'guest-item-3',
-    user_id: null,
-    title: 'Building Distributed Edge Apps with Cloudflare & Supabase',
-    url: 'https://youtube.com/watch?v=edge-apps',
-    type: 'video',
-    status: 'deferred',
-    favorite: false,
-    created_at: new Date(Date.now() - 86400000).toISOString(),
-    updated_at: new Date(Date.now() - 86400000).toISOString(),
-    return_at: new Date(Date.now() + 86400000).toISOString(), // Upcoming (Tomorrow)
-    metadata: {
-      item_id: 'guest-item-3',
-      title: 'Building Distributed Edge Apps with Cloudflare & Supabase',
-      domain: 'youtube.com',
-      site_name: 'YouTube',
-      description: 'Watch video in distraction-free player with zero ads',
-      preview_image_url: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=800&q=80',
-      status: 'enriched',
-      attempt_count: 1,
-      content_type: 'video',
-      structured_data: JSON.stringify({ tags: ['cloudflare', 'supabase', 'development', 'edge'] }),
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    },
-  },
-  {
-    id: 'guest-item-4',
-    user_id: null,
-    title: 'Ideas for side project',
-    type: 'note',
-    status: 'deferred',
-    favorite: false,
-    text_content: 'Some quick ideas I want to explore:\n• A minimal reading app\n• Browser extension for saving tweets\n• Maybe a weekly newsletter?\n...',
-    created_at: new Date(Date.now() - 86400000).toISOString(),
-    updated_at: new Date(Date.now() - 86400000).toISOString(),
-    return_at: null, // Someday Vault (no deadline)
-    metadata: {
-      item_id: 'guest-item-4',
-      title: 'Ideas for side project',
-      description: 'Some quick ideas I want to explore: • A minimal reading app • Browser extension for saving tweets • Maybe a weekly newsletter?',
-      status: 'enriched',
-      attempt_count: 1,
-      content_type: 'note',
-      structured_data: JSON.stringify({ tags: ['ideas', 'side project', 'notes'] }),
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    },
-  },
-  {
-    id: 'guest-item-5',
-    user_id: null,
-    title: 'Good Days',
-    url: 'https://open.spotify.com/track/good-days',
-    type: 'music',
-    status: 'deferred',
-    favorite: false,
-    created_at: new Date(Date.now() - 2 * 86400000).toISOString(),
-    updated_at: new Date(Date.now() - 2 * 86400000).toISOString(),
-    return_at: new Date(Date.now() + 2 * 86400000).toISOString(), // Upcoming (Weekend)
-    metadata: {
-      item_id: 'guest-item-5',
-      title: 'Good Days',
-      domain: 'spotify.com',
-      site_name: 'Spotify',
-      description: 'SZA • SOS',
-      preview_image_url: 'https://images.unsplash.com/photo-1518495973542-4542c06a5843?w=800&q=80',
-      status: 'enriched',
-      attempt_count: 1,
-      content_type: 'music',
-      structured_data: JSON.stringify({ tags: ['music', 'chill', 'r&b'], artist: 'SZA', album: 'SOS' }),
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    },
-  },
-  {
-    id: 'guest-item-6',
-    user_id: null,
-    title: 'The Power of a Focused Life',
-    url: 'https://notion.so/power-of-focused-life',
-    type: 'article',
-    status: 'inbox',
-    favorite: true,
-    created_at: new Date(Date.now() - 3 * 86400000).toISOString(),
-    updated_at: new Date(Date.now() - 3 * 86400000).toISOString(),
-    return_at: new Date(Date.now() - 4 * 3600000).toISOString(), // Returned today (inbox active)
-    metadata: {
-      item_id: 'guest-item-6',
-      title: 'The Power of a Focused Life',
-      domain: 'notion.so',
-      site_name: 'Notion',
-      description: 'A thoughtful guide on building a more intentional and fulfilling life in a world of constant distraction.',
-      status: 'enriched',
-      attempt_count: 1,
-      content_type: 'article',
-      structured_data: JSON.stringify({ tags: ['productivity', 'focus', 'mindset', 'reading'] }),
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    },
-  },
-];
+const DEFAULT_GUEST_ITEMS: LaterBoxItem[] = [];
+
+// Helper to retry queries rejected due to clock skew (PGRST303: "JWT issued at future")
+async function fetchWithRetry<T>(
+  queryFn: () => PromiseLike<{ data: T | null; error: any }>,
+  maxRetries = 4,
+  initialDelayMs = 1200
+): Promise<{ data: T | null; error: any }> {
+  let attempt = 0;
+  while (true) {
+    const res = await queryFn();
+    if (!res.error) {
+      return res;
+    }
+    const isClockSkew =
+      res.error.code === 'PGRST303' ||
+      (typeof res.error.message === 'string' &&
+        res.error.message.toLowerCase().includes('future'));
+
+    if (isClockSkew && attempt < maxRetries) {
+      attempt++;
+      const delay = initialDelayMs * attempt;
+      console.warn(
+        `[ItemContext] PostgREST clock skew (PGRST303: JWT issued at future). Retrying attempt ${attempt}/${maxRetries} in ${delay}ms...`
+      );
+      await new Promise((r) => setTimeout(r, delay));
+      continue;
+    }
+    return res;
+  }
+}
 
 export function ItemProvider({ children }: { children: ReactNode }) {
   const { user, session: authSession } = useAuth();
@@ -238,17 +99,10 @@ export function ItemProvider({ children }: { children: ReactNode }) {
     try {
       const stored = localStorage.getItem(`${LOCAL_ITEMS_KEY}_${user?.id || 'guest'}`) || localStorage.getItem(LOCAL_ITEMS_KEY);
       if (stored) {
-        const parsed = (JSON.parse(stored) as LaterBoxItem[]).filter(item => (item.user_id || null) === (user?.id || null));
-        const isLegacyGuestAllInbox = !user && parsed.length > 0 && parsed.every(i => i.id.startsWith('guest-item-')) && parsed.every(i => i.status === 'inbox');
-        if (isLegacyGuestAllInbox) {
-          setItems(DEFAULT_GUEST_ITEMS);
-          localStorage.setItem(`${LOCAL_ITEMS_KEY}_guest`, JSON.stringify(DEFAULT_GUEST_ITEMS));
-        } else {
-          setItems(parsed.map(migrateSchedule));
-        }
-      } else if (!user) {
-        setItems(DEFAULT_GUEST_ITEMS);
-        localStorage.setItem(`${LOCAL_ITEMS_KEY}_guest`, JSON.stringify(DEFAULT_GUEST_ITEMS));
+        const parsed = (JSON.parse(stored) as LaterBoxItem[])
+          .filter(item => (item.user_id || null) === (user?.id || null))
+          .filter(item => !item.id.startsWith('guest-item-'));
+        setItems(parsed.map(migrateSchedule));
       }
       const storedCols = localStorage.getItem(`${LOCAL_COLLECTIONS_KEY}_${user?.id || 'guest'}`) || localStorage.getItem(LOCAL_COLLECTIONS_KEY);
       if (storedCols) {
@@ -316,7 +170,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
         }
       }
       // Reset guest storage once migrated
-      localStorage.setItem(`${LOCAL_ITEMS_KEY}_guest`, JSON.stringify(DEFAULT_GUEST_ITEMS));
+      localStorage.setItem(`${LOCAL_ITEMS_KEY}_guest`, JSON.stringify([]));
     } catch (err) {
       console.warn('[ItemContext] Error migrating guest items:', err);
     }
@@ -356,13 +210,15 @@ export function ItemProvider({ children }: { children: ReactNode }) {
         console.warn('[ItemContext] Non-fatal sync pending error:', syncErr);
       }
 
-      // Fetch items from Supabase
-      let { data: itemRows, error: itemError } = await supabase
-        .from('items')
-        .select('*')
-        .eq('user_id', user.id)
-        .is('deleted_at', null)
-        .order('created_at', { ascending: false });
+      // Fetch items from Supabase with clock skew retry
+      const { data: itemRows, error: itemError } = await fetchWithRetry(() =>
+        supabase
+          .from('items')
+          .select('*')
+          .eq('user_id', user.id)
+          .is('deleted_at', null)
+          .order('created_at', { ascending: false })
+      );
 
       if (itemError) {
         console.warn('[ItemContext] Error fetching items:', itemError);
@@ -371,39 +227,49 @@ export function ItemProvider({ children }: { children: ReactNode }) {
       }
 
       // Fetch metadata
-      const { data: metaRows } = await supabase
-        .from('item_metadata')
-        .select('*')
-        .eq('user_id', user.id);
+      const { data: metaRows } = await fetchWithRetry(() =>
+        supabase
+          .from('item_metadata')
+          .select('*')
+          .eq('user_id', user.id)
+      );
 
       // Fetch notes
-      const { data: noteRows } = await supabase
-        .from('item_notes')
-        .select('*')
-        .eq('user_id', user.id)
-        .is('deleted_at', null);
+      const { data: noteRows } = await fetchWithRetry(() =>
+        supabase
+          .from('item_notes')
+          .select('*')
+          .eq('user_id', user.id)
+          .is('deleted_at', null)
+      );
 
       // Fetch attachments
-      const { data: attachmentRows } = await supabase
-        .from('attachments')
-        .select('*')
-        .eq('user_id', user.id)
-        .is('deleted_at', null);
+      const { data: attachmentRows } = await fetchWithRetry(() =>
+        supabase
+          .from('attachments')
+          .select('*')
+          .eq('user_id', user.id)
+          .is('deleted_at', null)
+      );
 
       // Fetch collections
-      const { data: colRows } = await supabase
-        .from('collections')
-        .select('*')
-        .eq('user_id', user.id)
-        .is('deleted_at', null)
-        .order('created_at', { ascending: false });
+      const { data: colRows } = await fetchWithRetry(() =>
+        supabase
+          .from('collections')
+          .select('*')
+          .eq('user_id', user.id)
+          .is('deleted_at', null)
+          .order('created_at', { ascending: false })
+      );
 
       // Fetch collection items join
-      const { data: colItemRows } = await supabase
-        .from('collection_items')
-        .select('*')
-        .eq('user_id', user.id)
-        .is('deleted_at', null);
+      const { data: colItemRows } = await fetchWithRetry(() =>
+        supabase
+          .from('collection_items')
+          .select('*')
+          .eq('user_id', user.id)
+          .is('deleted_at', null)
+      );
 
       const colMap = new Map((colRows || []).map((c) => [c.id, c]));
       const itemColsMap = new Map<string, Collection[]>();
@@ -983,7 +849,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
     });
   }, [inboxItems, activeFilter]);
 
-  const hasDemoItems = items.some((item) => item.id.startsWith('guest-item-'));
+  const hasDemoItems = false;
 
   const clearDemoItems = useCallback(() => {
     setItems((prev) => {
@@ -994,13 +860,8 @@ export function ItemProvider({ children }: { children: ReactNode }) {
   }, [saveLocalData]);
 
   const restoreDemoItems = useCallback(() => {
-    setItems((prev) => {
-      const userItems = prev.filter((item) => !item.id.startsWith('guest-item-'));
-      const combined = [...userItems, ...DEFAULT_GUEST_ITEMS];
-      saveLocalData(combined);
-      return combined;
-    });
-  }, [saveLocalData]);
+    // No-op: Guest demo items have been removed
+  }, []);
 
   return (
     <ItemContext.Provider
