@@ -159,7 +159,6 @@ elif [ "$OS" = "Linux" ]; then
 Name=LaterBox
 Comment=Smart reading inbox and autonomous content library
 Exec=\${INSTALL_DIR}/laterbox %U
-Icon=\${INSTALL_DIR}/data/flutter_assets/assets/branding/laterbox-icon.png
 Terminal=false
 Type=Application
 Categories=Utility;Office;
