@@ -7,7 +7,7 @@ laterbox includes Manifest V3 browser extensions for **Google Chrome / Chromium 
 ## Directory Structure
 
 ```text
-extension/
+laterbox-extension/
 ├── manifests/
 │   ├── chromium.json   # Chrome Web Store & Chromium MV3 Manifest
 │   ├── safari.json     # Safari Web Extension Manifest
@@ -37,7 +37,7 @@ extension/
 
 ## Building and Packaging
 
-Run these commands from within the `extension/` directory:
+Run these commands from within the `laterbox-extension/` directory:
 
 ### Install Dependencies
 ```bash
@@ -55,10 +55,10 @@ npm run build:all
 npm run package
 ```
 
-The output archives will be generated in `extension/dist/`:
-- `extension/dist/laterbox-chrome-extension.zip` (Chrome Web Store)
-- `extension/dist/laterbox-safari-extension.zip` (Safari Web Extension)
-- `extension/dist/laterbox-firefox-extension.zip` (Firefox Add-ons)
+The output archives will be generated in `laterbox-extension/dist/`:
+- `laterbox-extension/dist/laterbox-chrome-extension.zip` (Chrome Web Store)
+- `laterbox-extension/dist/laterbox-safari-extension.zip` (Safari Web Extension)
+- `laterbox-extension/dist/laterbox-firefox-extension.zip` (Firefox Add-ons)
 
 ---
 
@@ -67,7 +67,7 @@ The output archives will be generated in `extension/dist/`:
 ### Google Chrome
 1. Navigate to `chrome://extensions`.
 2. Enable **Developer mode** (top-right toggle).
-3. Click **Load unpacked** and select `extension/dist/chromium`.
+3. Click **Load unpacked** and select `laterbox-extension/dist/chromium`.
 
 ### Safari
 1. Open **Safari Settings → Advanced** and enable **Show features for web developers**.
@@ -76,4 +76,4 @@ The output archives will be generated in `extension/dist/`:
 
 ### Firefox
 1. Navigate to `about:debugging#/runtime/this-firefox`.
-2. Click **Load Temporary Add-on...** and select `extension/dist/firefox/manifest.json`.
+2. Click **Load Temporary Add-on...** and select `laterbox-extension/dist/firefox/manifest.json`.
