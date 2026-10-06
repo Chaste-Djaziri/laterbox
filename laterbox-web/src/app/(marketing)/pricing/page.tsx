@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { Check, Cloud, Database, Loader2, LockKeyhole, Sparkles } from 'lucide-react';
+import { Check, Cloud, Database, Loader2, LockKeyhole, Sparkles, Zap } from 'lucide-react';
 import { presentEntitlement } from '@/lib/billing/types';
 import { useAuth } from '@/lib/store/AuthContext';
 import { useBilling } from '@/lib/store/BillingContext';
@@ -127,8 +127,9 @@ function PricingContent() {
     <main className="min-h-screen bg-[#f7f5ee] px-5 py-14 text-[#171711] sm:py-20">
       <div className="mx-auto max-w-6xl">
         {searchParams.get('source') === 'extension' && (
-          <div className="mx-auto mb-6 max-w-xl rounded-2xl border border-[#d0db84] bg-[#fbffdc] px-4 py-3 text-center text-xs font-bold text-[#444a10]">
-            ⚡ Upgrade to LaterBox Pro to use the browser extension across all your tabs.
+          <div className="mx-auto mb-6 max-w-xl rounded-2xl border border-[#d0db84] bg-[#fbffdc] px-4 py-3 text-center text-xs font-bold text-[#444a10] flex items-center justify-center gap-2">
+            <Zap className="size-3.5 text-[#444a10] shrink-0" />
+            <span>Upgrade to LaterBox Pro to use the browser extension across all your tabs.</span>
           </div>
         )}
         <header className="mx-auto max-w-3xl text-center">
