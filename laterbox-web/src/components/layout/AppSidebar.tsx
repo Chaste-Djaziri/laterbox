@@ -270,8 +270,8 @@ export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
 
         {/* Sync Indicator (Pro Mode) */}
         {isPro && (
-          <div className="flex items-center justify-center">
-            <CloudSyncIndicator compact={collapsed} />
+          <div className={collapsed ? "flex items-center justify-center" : "w-full"}>
+            <CloudSyncIndicator compact={collapsed} fullWidth={!collapsed} />
           </div>
         )}
 
