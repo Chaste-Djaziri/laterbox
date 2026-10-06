@@ -19,6 +19,7 @@ export function extractRenderedPage(rootSelector: string | null = null): PageCon
     try { const u = new URL(value || '', location.href); return /^https?:$/.test(u.protocol) && value ? u.href : ''; } catch { return ''; }
   };
   const meta = (selector: string) => document.querySelector<HTMLMetaElement>(selector)?.content.trim() || '';
+  const quoteBytes = (value: string) => new TextDecoder().decode(new TextEncoder().encode(value).slice(0,10000)).replace(/\uFFFD$/,'');
   const selection = window.getSelection();
   let selected = selection?.toString().trim() || '';
   let selector: TextSelector | null = null;
@@ -29,7 +30,7 @@ export function extractRenderedPage(rootSelector: string | null = null): PageCon
     let element = range.commonAncestorContainer.nodeType === Node.ELEMENT_NODE ? range.commonAncestorContainer as Element : range.commonAncestorContainer.parentElement;
     for (let i=0; element && i<5; i++, element=element.parentElement) {
       const full = element.textContent || ''; const index = full.indexOf(selected);
-      if (index >= 0) { selector = { exact: selected.slice(0,10000), before: full.slice(Math.max(0,index-300),index).trim(), after: full.slice(index+selected.length,index+selected.length+300).trim() }; break; }
+      if (index >= 0) { selector = { exact: quoteBytes(selected), before: full.slice(Math.max(0,index-300),index).trim(), after: full.slice(index+selected.length,index+selected.length+300).trim() }; break; }
     }
   }
   const root = rootSelector ? document.querySelector(rootSelector) : document.querySelector('article,[role="main"],main') || document.body;
@@ -57,10 +58,10 @@ export function extractRenderedPage(rootSelector: string | null = null): PageCon
     return text;
   };
   let markdown = root ? render(root).replace(/\n[ \t]+/g,'\n').replace(/\n{3,}/g,'\n\n').trim() : '';
-  const bytes = new TextEncoder().encode(markdown); const truncated = bytes.length > 204800 || selected.length > 10000 || visited > 15000;
+  const bytes = new TextEncoder().encode(markdown); const truncated = bytes.length > 204800 || new TextEncoder().encode(selected).length > 10000 || visited > 15000;
   if (bytes.length > 204800) markdown = new TextDecoder().decode(bytes.slice(0,204800)).replace(/\uFFFD$/,'');
   return { url: location.href, title: meta('meta[property="og:title"]') || document.title,
-    selection: selected.slice(0,10000), selector, markdown, truncated,
+    selection: quoteBytes(selected), selector, markdown, truncated,
     canonicalUrl: absolute(document.querySelector('link[rel="canonical"]')?.getAttribute('href') || null) || location.href.split('#')[0],
     description: meta('meta[property="og:description"]') || meta('meta[name="description"]'),
     previewImageUrl: absolute(meta('meta[property="og:image"]') || meta('meta[name="twitter:image"]')),
@@ -83,9 +84,9 @@ export function buildScrollToTextFragment(baseUrl: string, exact: string, select
   return base+(base.includes('#') ? ':~:text=' : '#:~:text=')+(prefix ? encode(prefix)+'-,' : '')+quote+(suffix ? ',-'+encode(suffix) : '');
 }
 export function captureFromPage(page: PageContext, kind: CaptureKind = 'page', exact = page.selection): Capture {
-  const selector = exact ? { exact: exact.slice(0,10000), before: page.selector?.before || '', after: page.selector?.after || '' } : undefined;
+  const selector = exact ? { exact: new TextDecoder().decode(new TextEncoder().encode(exact).slice(0,10000)).replace(/\uFFFD$/,''), before: page.selector?.before || '', after: page.selector?.after || '' } : undefined;
   const url = kind === 'highlight' ? buildScrollToTextFragment(page.url,exact,selector) : page.url;
-  if (url.length > 8192) throw new Error('The source URL is too long to save. Select a shorter quote.');
-  return { ...page, url, kind, text: kind === 'highlight' ? exact.slice(0,10000) : undefined,
+  if (new TextEncoder().encode(url).length > 8192) throw new Error('The source URL is too long to save. Select a shorter quote.');
+  return { ...page, url, kind, text: kind === 'highlight' ? new TextDecoder().decode(new TextEncoder().encode(exact).slice(0,10000)).replace(/\uFFFD$/,'') : undefined,
     selector: kind === 'highlight' ? selector : undefined, captureId: crypto.randomUUID(), source: 'browserExtension', createdAt: new Date().toISOString() };
 }
