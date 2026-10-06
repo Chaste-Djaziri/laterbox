@@ -4,6 +4,9 @@ All notable user-facing changes to LaterBox will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+- **[Extensions & Web] Rich paid-account capture**: Unified page, highlight, and social capture with readable Markdown snapshots, source references, account-scoped offline retries, connection recovery, and selection controls. Renamed the shared browser extension project to `laterbox-extension/`.
+
 ### Removed
 - **[All apps] Legacy cross-platform app**: Removed the root Flutter/Dart application, platform runners, tests, generated artifacts, and release tooling. Swift and Kotlin are the native app implementations; the Next.js web app, browser extensions, backend, and shared branding remain. Windows and Linux native replacements are not included in this cleanup.
 
