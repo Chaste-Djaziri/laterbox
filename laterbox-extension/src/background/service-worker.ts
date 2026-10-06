@@ -162,8 +162,8 @@ type ParsedHighlightRequest = {
   suffix: string | null;
 };
 
-const MAX_URL_LENGTH = 2000;
-const MAX_SELECTOR_EXACT = 5000;
+const MAX_URL_LENGTH = 8192;
+const MAX_SELECTOR_EXACT = 10000;
 const MAX_SELECTOR_CONTEXT = 2000;
 
 const ALLOWED_EXTERNAL_HOSTS = new Set([
@@ -233,8 +233,8 @@ function parseHighlightRequest(raw: unknown): ParsedHighlightRequest | null {
   const exact = typeof parts.exact === "string" ? parts.exact.trim() : "";
   if (!exact || exact.length > MAX_SELECTOR_EXACT) return null;
 
-  const prefix = typeof parts.prefix === "string" ? parts.prefix.trim() : "";
-  const suffix = typeof parts.suffix === "string" ? parts.suffix.trim() : "";
+  const prefix = typeof parts.prefix === "string" ? parts.prefix.trim() : typeof parts.before === "string" ? parts.before.trim() : "";
+  const suffix = typeof parts.suffix === "string" ? parts.suffix.trim() : typeof parts.after === "string" ? parts.after.trim() : "";
   if (prefix.length > MAX_SELECTOR_CONTEXT || suffix.length > MAX_SELECTOR_CONTEXT) {
     return null;
   }
