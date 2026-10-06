@@ -34,6 +34,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 - **[Web] Music source labels**: Music cards and item actions now identify the originating service (including Apple Music and Spotify) and avoid presenting a Spotify label or icon for unrelated music links.
 
 ### Changed
+- **[Web] Marketing Header Plans Link Alignment**: Updated the Plans navigation item in the marketing header to route to the marketing `/pricing` page instead of the in-app dashboard plans page (`/plans`).
 - **[Web] Light Theme Standardization for Downloads Hub**: Standardized all downloads center components to the signature warm cream light theme (`bg-white` cards with `border-[#e4e0d5]`, crisp `#171711` typography, and harmonious status badges), eliminating conflicting dark mode overrides so typography and roadmap cards render clearly.
 - **[Web] Dashboard Downloads Center Route Alignment**: Ensured the download page is fully available and seamless within the authenticated dashboard (`/downloads`), updating navigation links in the application sidebar and account settings to route to the in-app download center without exiting the dashboard shell.
 - **[Web] App Store iOS Download Hub & Platform Availability Status**: Streamlined web downloads to feature the live Apple App Store release (`id6804139119`) with an authentic App Store themed download badge for iOS and iPadOS. Replaced legacy direct binary downloads for desktop and Android with platform status cards labeling Android as "Under Development" and macOS, Windows, and Linux as "Coming Soon".
