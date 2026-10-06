@@ -2,10 +2,18 @@ import {
   cancelPendingConnection,
   connectLaterBoxViaTab,
   openPendingApprovalTab,
+  resumePendingConnection,
+  checkProEntitlement,
 } from "../lib/auth";
-import { flushQueue, saveCapture } from "../lib/capture";
+import { captureQueue, enrichCapture } from "./capture-service";
+import type { Capture, CaptureResult } from "../types/capture";
+const flushQueue = () => captureQueue.flush();
+async function saveCapture(capture: Capture): Promise<CaptureResult> {
+  if (!capture || typeof capture !== "object" || (capture.url && !/^https?:\/\//i.test(capture.url)) || (capture.url?.length || 0) > 8192 || (capture.text?.length || 0) > 10000 || new TextEncoder().encode(capture.markdown || "").length > 204800) return { status: "error", reason: "invalid" };
+  return captureQueue.save(await enrichCapture(capture));
+}
 import { highlightTextInTab } from "../lib/highlight";
-import { buildScrollToTextFragment, getPageContext } from "../lib/page";
+import { captureFromPage, getPageContext } from "../lib/page";
 import type { PageContext } from "../lib/page";
 import { browser } from "../platform/api";
 import { browserCapabilities } from "../platform";
@@ -29,6 +37,13 @@ browser.contextMenus.onClicked.addListener((info, tab) => {
 });
 
 browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (sender.id !== browser.runtime.id) return false;
+  if (message?.type === 'capture') {
+    void saveCapture(message.capture).then(sendResponse).catch(()=>sendResponse({status:'error',reason:'server'})); return true;
+  }
+  if (message?.type === 'flush-captures') {
+    void flushQueue().then(count=>sendResponse({count})).catch(()=>sendResponse({count:0})); return true;
+  }
   if (message?.type === "connect-laterbox") {
     connectLaterBoxViaTab()
       .then((userId) => {
@@ -102,35 +117,13 @@ async function handleCommand(command: string): Promise<void> {
       await browserCapabilities.openSidePanel();
       return;
     }
-    if (command !== "save-current-page") return;
-
+    if (command !== 'save-current-page' && command !== 'save-selection') return;
     const [tab] = await browser.tabs.query({ active: true, lastFocusedWindow: true });
-    if (tab.id === undefined) return;
-    let page = { url: tab.url ?? "", title: tab.title ?? "", selection: "" };
-    try {
-      page = await getPageContext(tab.id, page);
-    } catch (error) {
-      console.warn("Could not read active page context", error);
-    }
-    if (browserCapabilities.isRestrictedUrl(page.url)) {
-      await setCommandBadge("!");
-      return;
-    }
-    const result = await saveCapture({
-      url: page.url,
-      title: page.title,
-      source: "browserExtension",
-      createdAt: new Date().toISOString(),
-    });
-    const badgeText =
-      result.status === "saved"
-        ? "✓"
-        : result.status === "proRequired"
-          ? "PRO"
-          : result.status === "needsAuth"
-            ? "!"
-            : "…";
-    await setCommandBadge(badgeText);
+    if (tab?.id === undefined) return;
+    const page = await getPageContext(tab.id,{ url:tab.url || '', title:tab.title || '', selection:'' });
+    if (browserCapabilities.isRestrictedUrl(page.url)) { await setCommandBadge('!'); return; }
+    if (command === 'save-selection' && !page.selection) { await setCommandBadge('!'); return; }
+    await saveCapture(captureFromPage(page,command === 'save-selection' ? 'highlight' : 'page'));
   } catch (error) {
     console.error("[LaterBox command] failed", command, error);
   }
@@ -149,12 +142,9 @@ async function savePageMessage(
 ) {
   const url = typeof message.url === "string" ? message.url : sender.tab?.url;
   if (!url || !/^https?:\/\//i.test(url)) return { status: "needsAuth" };
-  return saveCapture({
-    url,
-    title: typeof message.title === "string" ? message.title : sender.tab?.title,
-    source: "browserExtension",
-    createdAt: new Date().toISOString(),
-  });
+  const [tab] = await browser.tabs.query({ active:true,lastFocusedWindow:true });
+  const page = tab?.id !== undefined && tab.url === url ? await getPageContext(tab.id) : { url,title:typeof message.title === 'string' ? message.title : '',selection:'' };
+  return saveCapture(captureFromPage(page));
 }
 
 type OpenWithHighlightMessage = {
@@ -178,6 +168,7 @@ const MAX_SELECTOR_CONTEXT = 2000;
 
 const ALLOWED_EXTERNAL_HOSTS = new Set([
   "laterbox.dev",
+  "app.laterbox.dev",
   "www.laterbox.dev",
   "laterbox.micorp.pro",
   "app.laterbox.com",
@@ -190,6 +181,7 @@ function isTrustedSender(sender: chrome.runtime.MessageSender): boolean {
   try {
     const url = new URL(origin);
     if (
+      url.hostname === "app.laterbox.dev" ||
       url.hostname === "laterbox.dev" ||
       url.hostname === "www.laterbox.dev" ||
       url.hostname === "laterbox.micorp.pro" ||
@@ -347,75 +339,27 @@ async function createContextMenus(): Promise<void> {
   });
 }
 
-async function handleContextMenu(
-  info: chrome.contextMenus.OnClickData,
-  tab?: chrome.tabs.Tab,
-): Promise<void> {
-  let result: Awaited<ReturnType<typeof saveCapture>> | null = null;
-
-  if (info.menuItemId === SELECTION_MENU) {
-    const selectedText = (info.selectionText || "").trim();
-    if (selectedText) {
-      let pageContext: PageContext = {
-        url: info.pageUrl ?? tab?.url ?? "",
-        title: tab?.title ?? "",
-        selection: selectedText,
-        selector: null,
-      };
-      if (tab?.id !== undefined) {
-        try {
-          pageContext = await getPageContext(tab.id, pageContext);
-        } catch (error) {
-          console.warn("Could not read full selection context", error);
-        }
-      }
-      const rawUrl = pageContext.url || info.pageUrl || tab?.url || "";
-      const highlightedUrl = buildScrollToTextFragment(
-        rawUrl,
-        selectedText,
-        pageContext.selector,
-      );
-      result = await saveCapture({
-        text: selectedText,
-        url: highlightedUrl,
-        title: pageContext.title || tab?.title,
-        selector: pageContext.selector ?? undefined,
-        source: "browserExtension",
-        createdAt: new Date().toISOString(),
-      });
+async function handleContextMenu(info: chrome.contextMenus.OnClickData, tab?: chrome.tabs.Tab): Promise<void> {
+  try {
+    const fallback = { url: info.pageUrl || tab?.url || '', title:tab?.title || '',selection:info.selectionText || '' };
+    const page = tab?.id !== undefined ? await getPageContext(tab.id,fallback) : fallback;
+    if (info.menuItemId === SELECTION_MENU && info.selectionText) {
+      await saveCapture(captureFromPage(page,'highlight',info.selectionText));
+    } else if (info.menuItemId === LINK_MENU && info.linkUrl) {
+      await saveCapture(captureFromPage({ url:info.linkUrl,title:'',selection:'' },'link'));
+    } else if (info.menuItemId === PAGE_MENU && !browserCapabilities.isRestrictedUrl(page.url)) {
+      await saveCapture(captureFromPage(page));
     }
-  } else if (info.menuItemId === LINK_MENU && info.linkUrl) {
-    result = await saveCapture({
-      url: info.linkUrl,
-      source: "browserExtension",
-      createdAt: new Date().toISOString(),
-    });
-  } else if (info.menuItemId === PAGE_MENU && (info.pageUrl ?? tab?.url)) {
-    result = await saveCapture({
-      url: info.pageUrl ?? tab?.url,
-      title: tab?.title,
-      source: "browserExtension",
-      createdAt: new Date().toISOString(),
-    });
-  }
-
-  if (!result) return;
-
-  const badgeText =
-    result.status === "saved"
-      ? "✓"
-      : result.status === "proRequired"
-        ? "PRO"
-        : result.status === "needsAuth"
-          ? "!"
-          : "…";
-  await browser.action.setBadgeText({ text: badgeText });
-  await browser.action.setBadgeBackgroundColor({
-    color:
-      result.status === "saved"
-        ? "#171711"
-        : result.status === "proRequired"
-          ? "#a33a32"
-          : "#6c6b63",
-  });
+  } catch { await setCommandBadge('!'); }
 }
+
+// Alarms wake a suspended MV3 worker; page online events provide an immediate retry.
+async function recover() {
+  await resumePendingConnection();
+  await checkProEntitlement();
+  await flushQueue();
+}
+browser.alarms.onAlarm.addListener(alarm=>{ if(alarm.name==='laterbox-recovery')void recover().catch(()=>{}); });
+browser.tabs.onUpdated.addListener((_id,change)=>{ if(change.status==='complete')void resumePendingConnection().catch(()=>{}); });
+void browser.alarms.create('laterbox-recovery',{periodInMinutes:0.5});
+void resumePendingConnection().catch(()=>{});
