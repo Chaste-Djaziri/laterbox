@@ -19,6 +19,7 @@ button svg{width:15px;height:15px;flex-shrink:0}
 .instagram-action button{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;min-height:40px;padding:8px;border:0;border-radius:8px;background:transparent;box-shadow:none;color:inherit}
 .instagram-action button span{display:none}.instagram-action button svg{width:var(--lb-instagram-size,24px);height:var(--lb-instagram-size,24px);stroke-width:2}
 .instagram-action button:hover{background:transparent;opacity:.65}.instagram-action button:focus-visible{outline:2px solid currentColor;outline-offset:2px}
+.save-tooltip{position:fixed;inset:auto;margin:0;padding:7px 10px;max-width:170px;border:0;border-radius:6px;background:#171711;color:#fff;font:500 12px/1.4 system-ui;box-shadow:0 2px 8px #0003;pointer-events:none;white-space:nowrap}
 .instagram-action button[data-state=saved]{background:transparent;color:#3b9b62}.instagram-action button[data-state=queued]{background:transparent;color:#b88930}
 button[data-state=saved]{background:#edf5ee;color:#25653c;border-color:#c3ddc6}button[data-state=queued]{background:#fff6de;color:#805b12;border-color:#ebd6a3}
 .notice{position:fixed;bottom:24px;right:24px;display:flex;align-items:flex-start;gap:12px;max-width:min(360px,calc(100vw - 32px));font:13px/1.5 system-ui;background:#fff;color:#171711;padding:14px 14px 14px 17px;border:1px solid #deded4;border-left:4px solid #26734d;border-radius:12px;box-shadow:0 6px 28px #0002;z-index:2147483647}
@@ -41,6 +42,11 @@ const noticeCopy=document.createElement('div');noticeCopy.setAttribute('role','s
 const dismissNotice=document.createElement('button');dismissNotice.type='button';dismissNotice.className='dismiss';dismissNotice.textContent='×';dismissNotice.setAttribute('aria-label','Dismiss save message');notice.append(dismissNotice);dismissNotice.addEventListener('click',()=>{notice.hidden=true;});
 let enabled = true; let quote = ''; let context = extractRenderedPage(); let timer: ReturnType<typeof setTimeout> | undefined;
 let scheduled = false;
+let activeTooltip:HTMLElement|undefined;
+function hideTooltip(){try{activeTooltip?.hidePopover();}catch{}activeTooltip=undefined;}
+window.addEventListener('scroll',hideTooltip,{passive:true,capture:true});
+window.addEventListener('resize',hideTooltip);
+document.addEventListener('keydown',event=>{if(event.key==='Escape')hideTooltip();});
 function show(message:string,state='error',title='Could not save') {
   const heading=document.createElement('strong');heading.textContent=title;const detail=document.createElement('p');detail.textContent=message;
   noticeCopy.replaceChildren(heading,detail);notice.dataset.state=state;notice.hidden=false;clearTimeout(timer);timer=setTimeout(()=>{notice.hidden=true;},8000);
@@ -82,6 +88,18 @@ const syncInstagramControls=createInstagramControls(document,(post,resolve)=>{
   if(color?.length===3)row.classList.add(color.reduce((sum,value)=>sum+value,0)>384 ? 'dark' : 'light');
   local.append(row);
   const button=document.createElement('button');button.type='button';decorate(button,'Save to LaterBox');button.title='Save to LaterBox';button.setAttribute('aria-label',`Save ${post.author ? post.author+'’s ' : ''}Instagram post to LaterBox`);row.append(button);
+  const tooltip=document.createElement('div');tooltip.className='save-tooltip';tooltip.id='laterbox-save-tip';tooltip.setAttribute('role','tooltip');tooltip.textContent='Save to LaterBox';
+  if(typeof tooltip.showPopover==='function'){
+    tooltip.setAttribute('popover','manual');local.append(tooltip);button.removeAttribute('title');button.setAttribute('aria-describedby',tooltip.id);
+    const reveal=()=>{
+      hideTooltip();if(!container.isConnected)return;
+      const rect=button.getBoundingClientRect();tooltip.style.left=Math.max(8,Math.min(rect.left+rect.width/2-65,innerWidth-150))+'px';tooltip.style.top=(rect.top>=44 ? rect.top-38 : rect.bottom+8)+'px';
+      tooltip.textContent=button.dataset.state==='saved' ? 'Saved to LaterBox' : button.dataset.state==='queued' ? 'Pending · will sync when online' : button.disabled ? 'Saving to LaterBox…' : 'Save to LaterBox';
+      tooltip.style.whiteSpace='normal';tooltip.showPopover();activeTooltip=tooltip;
+    };
+    button.addEventListener('mouseenter',reveal);button.addEventListener('focus',reveal);
+    button.addEventListener('mouseleave',hideTooltip);button.addEventListener('blur',hideTooltip);button.addEventListener('click',hideTooltip);
+  }
   container.addEventListener('click',event=>event.stopPropagation());
   button.addEventListener('click',event=>{
     event.stopPropagation();if(!event.isTrusted)return;
