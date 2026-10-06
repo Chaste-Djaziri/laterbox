@@ -1,124 +1,25 @@
-# laterbox Deployment Guide
+# Deployment
 
-This guide describes how to build, package, and deploy laterbox across all supported platforms.
+## Web
 
----
+The Next.js application lives in `laterbox-web/`. `.github/workflows/release.yml` validates types, unit tests, and backend contracts, then builds and deploys through OpenNext to Cloudflare Workers. Configure the workflow's Cloudflare secrets before deployment.
 
-## 1. Web Application (Cloudflare Pages)
+For a local preview run `npm run dev` in `laterbox-web/`. For a production build use the existing package scripts; version metadata is managed by `scripts/bump_version.js`.
 
-The web app is hosted on Cloudflare Pages (`https://laterbox.dev`).
+## Apple
 
-### Automated Deployment & Version Stamping
-We provide an automated deployment script that auto-increments the build version in `web/version.json`, compiles Flutter Web, and deploys directly to Cloudflare Pages:
+Open `laterbox-ios/laterbox-ios.xcodeproj` and select `laterbox-ios`. `.github/workflows/ios.yml` runs native tests, validates signing, archives the app and share extension, and uploads to TestFlight. See [the native CI guide](../laterbox-ios/ci/README.md).
 
-```bash
-python3 scripts/deploy_web.py
-```
+The current release scheme targets iOS. macOS-specific source does not by itself establish a signed macOS product; configure and validate a native macOS release target before publishing.
 
-### Manual Deployment
-```bash
-flutter build web --release
-npx wrangler pages deploy build/web --project-name=laterbox
-```
+## Android
 
----
+Open `laterbox-android/` in Android Studio using JDK 17 and SDK 36. Configure public Supabase client values in ignored `local.properties`, then build a signed Android App Bundle using Android Studio. Configure release signing and Play Console separately.
 
-## 2. iOS (App Store & TestFlight)
+## Extensions and backend
 
-### Prerequisites
-- macOS machine with Xcode 26+ installed.
-- Apple Developer Account with Team ID configured (`LS42X27YFY`).
+Build browser bundles from `extension/` using `npm run build:all`. The Safari host remains in `safari_app/`; the Xcode Cloud post-clone hook builds and copies its extension assets.
 
-### Build Release Archive & IPA
-```bash
-DEVELOPER_DIR=/Applications/Xcode-26.6.0.app/Contents/Developer flutter build ipa --release
-```
+Deploy migrations and functions from `supabase/` using the project's existing Supabase workflow. Preserve Row-Level Security and keep service credentials server-side.
 
-- **Output Archive**: `build/ios/archive/Runner.xcarchive`
-- **Output IPA**: `build/ios/ipa/laterbox.ipa`
-
-### Uploading to TestFlight
-1. Open the **Apple Transporter** app on macOS.
-2. Drag and drop `build/ios/ipa/laterbox.ipa` into Transporter.
-3. Click **Deliver**.
-4. Check build processing under **App Store Connect → TestFlight → iOS**.
-
-### App Store Review Information
-For the **App Review Information** section in App Store Connect:
-- **Sign-in Required**: Checked
-- **Demo credentials**: Create a fresh, least-privileged review account for each submission and provide its credentials only in App Store Connect review notes. Never store the account email or password in this repository.
-- **Contact Information**: Use the current support owner from App Store Connect.
-- **Review Notes**: Explain the sign-in flow, StoreKit sandbox products, and any permission-dependent feature needed for review.
-
----
-
-## 3. macOS Desktop (App Store & Direct Distribution)
-
-### Build Release Application & Archive
-```bash
-DEVELOPER_DIR=/Applications/Xcode-26.6.0.app/Contents/Developer flutter build macos --release
-
-DEVELOPER_DIR=/Applications/Xcode-26.6.0.app/Contents/Developer xcodebuild archive \
-  -workspace macos/Runner.xcworkspace \
-  -scheme Runner \
-  -configuration Release \
-  -destination 'generic/platform=macOS' \
-  -archivePath build/macos/archive/Runner.xcarchive
-```
-
-- **Output App**: `build/macos/Build/Products/Release/laterbox.app`
-- **Output Archive**: `build/macos/archive/Runner.xcarchive`
-
-### Notarized DMG (Direct Distribution) + Sparkle Auto-Update
-Direct builds are ad-hoc signed by default. When a **Developer ID Application** certificate and notarization secrets are present, CI automatically:
-
-1. Codesigns with `--options runtime --timestamp` (hardened runtime)
-2. Creates a DMG via `hdiutil create -format UDZO`
-3. Notarizes with `xcrun notarytool submit --wait` + `xcrun stapler staple`
-4. Generates a Sparkle `appcast.xml` via `generate_appcast` when `SPARKLE_PRIVATE_KEY` is set.
-
-**Required GitHub Secrets for direct DMG + Sparkle:**
-
-| Secret | Purpose |
-|---|---|
-| `APPLE_CERTIFICATE_BASE64` | Developer ID Application .p12 |
-| `APPLE_CERTIFICATE_PASSWORD` | .p12 password |
-| `APPLE_ID` | Apple ID for notarytool |
-| `APPLE_APP_SPECIFIC_PASSWORD` | App-specific password |
-| `APPLE_TEAM_ID` | `LS42X27YFY` |
-| `SPARKLE_PRIVATE_KEY` | Ed25519 private key (`generate_keys` output) |
-| `SPARKLE_PUBLIC_KEY` | Goes in `macos/Runner/Info.plist` `SUPublicEDKey` |
-
-**Local Sparkle key generation:**
-```bash
-# Install Sparkle tools
-brew install sparkle
-generate_keys  # prints public key for Info.plist, private key for secret
-```
-
-**Enabling Sparkle in Xcode (one-time):**
-1. Open `macos/Runner.xcworkspace` → Runner → Package Dependencies → `+` → `https://github.com/sparkle-project/Sparkle` (Up to Next Major 2.6.0)
-2. Add `Sparkle` to Runner target → Build Phases → Link Binary
-3. `UpdaterService.swift` is already wired; no code change needed. Without the package it compiles as a no-op.
-
-SPARKLE feed lives at `https://laterbox.dev/api/appcast.xml` (`SUFeedURL` in `Info.plist`). The CI-generated `dist/appcast.xml` should be deployed alongside the DMG.
-
-### Mac App Store Packaging
-MAS builds are **not** Sparkle-based (updates via App Store). Create a separate `Release MAS` xcconfig with `app-sandbox true` and provisioning profile injection; upload via `xcrun altool --upload-app` as in the iOS lane. Do not notarize MAS builds.
-
----
-
-## 4. Browser Extensions
-
-From the `extension/` directory:
-
-```bash
-cd extension
-npm install
-npm run package
-```
-
-Upload the generated `.zip` files in `extension/dist/` to:
-- **Chrome Web Store Developer Dashboard**: `laterbox-chrome-extension.zip`
-- **Safari Web Extension Packager / App Store**: `laterbox-safari-extension.zip`
-- **Firefox Add-on Developer Hub**: `laterbox-firefox-extension.zip`
+Windows and Linux native packaging is future work; the legacy platform runners and packaging scripts have been removed.
