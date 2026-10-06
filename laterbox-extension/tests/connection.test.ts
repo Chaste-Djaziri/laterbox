@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 let store:Record<string,any>={};
-(globalThis as any).chrome={storage:{local:{get:async(key:string)=>({[key]:store[key]}),set:async(values:any)=>{Object.assign(store,values)},remove:async(keys:string|string[])=>{for(const key of Array.isArray(keys)?keys:[keys])delete store[key]}},tabs:{remove:async()=>{},create:async()=>({id:1}),update:async()=>({})}};
+(globalThis as any).chrome={storage:{local:{get:async(key:string)=>({[key]:store[key]}),set:async(values:any)=>{Object.assign(store,values)},remove:async(keys:string|string[])=>{for(const key of Array.isArray(keys)?keys:[keys])delete store[key]}}},tabs:{remove:async()=>{},create:async()=>({id:1}),update:async()=>({})}};
 const auth=await import('../src/lib/auth');
 const pending=()=>({requestId:'request',requestSecret:'secret',createdAt:Date.now(),connectUrl:'https://app.laterbox.dev/extension/connect'});
 test('persisted approval resumes with same request after worker restart',async()=>{store={pendingConnection:pending()};let calls=0;globalThis.fetch=async(_url,init)=>{const body=JSON.parse(String(init?.body));calls++;return Response.json(body.action==='status'?{status:'used'}:{extensionToken:'lb_ext_token',userId:'owner',isPro:true})};assert.equal(await auth.resumePendingConnection(),'owner');assert.equal(calls,2);assert.equal(store.accessToken,'lb_ext_token');assert.equal(store.pendingConnection,undefined);});
