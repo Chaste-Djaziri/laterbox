@@ -72,7 +72,7 @@ export function findInstagramPosts(doc: Document, pageUrl: string): InstagramPos
     const row=share.parentElement;if(!row || !root.contains(row))continue;
     // An icon's button can be wrapped by a single action slot. Insert after that
     // slot, not inside the clickable Share control.
-    const insertionPoint=/^(SPAN|DIV)$/.test(row.tagName) && row.childElementCount===1 && row.parentElement && root.contains(row.parentElement) && row.parentElement.querySelectorAll('button,[role="button"]').length>1 ? row : share;
+    const insertionPoint=/^(SPAN|DIV)$/.test(row.tagName) && row.querySelectorAll('button,[role="button"],[tabindex="0"]').length===1 && row.parentElement && root.contains(row.parentElement) && row.parentElement.querySelectorAll('button,[role="button"]').length>1 ? row : share;
     seen.add(root);posts.push({root,share,insertionPoint,url,site:'Instagram',compact:page.pathname.startsWith('/reels/') && !root.closest('[role="dialog"]'),
       author:root.querySelector('header a,h2 a,a[role="link"]')?.textContent?.trim().slice(0,500),
       publishedAt:root.querySelector('time')?.getAttribute('datetime') || undefined});
