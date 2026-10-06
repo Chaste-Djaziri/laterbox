@@ -81,7 +81,7 @@ The output archives will be generated in `laterbox-extension/dist/`:
 
 ## Rich capture and connection
 
-Rendered pages become readable Markdown snapshots with source metadata. Explicit selection buttons save exact quotes with source highlights; social buttons target individual posts on X, Reddit, LinkedIn, Instagram, and Facebook. Injected controls can be disabled in the popup, and restricted or changed layouts retain page/selection capture where permitted.
+Rendered pages become readable Markdown snapshots with source metadata. Explicit selection buttons save exact quotes with source highlights; Instagram buttons appear beside Share on supported feed posts, opened dialogs, and Reels. Other injected social-post buttons are paused during the Instagram trial. Injected controls can be disabled in the popup, and restricted or changed layouts retain page/selection capture where permitted.
 
 Every save requires a connected Pro account. Offline saves are Pending, show an amber count and muted toolbar icon, and replay automatically for their originating account. Saved means the server acknowledged the item. Approval survives popup closure and worker suspension.
 
