@@ -34,7 +34,7 @@ export function findSocialPosts(doc: Document, pageUrl: string): SocialPost[] {
   return posts;
 }
 
-export interface InstagramPost extends SocialPost { share: HTMLElement; insertionPoint: HTMLElement }
+export interface InstagramPost extends SocialPost { share: HTMLElement; insertionPoint: HTMLElement; compact?: boolean }
 /** Semantic controls are deliberately conservative: ambiguous layouts get no button. */
 export function findInstagramPosts(doc: Document, pageUrl: string): InstagramPost[] {
   const page=new URL(pageUrl);
@@ -43,26 +43,26 @@ export function findInstagramPosts(doc: Document, pageUrl: string): InstagramPos
   const currentPostUrl=page.pathname.match(/^\/reels\/([^/]+)\/?$/) ? new URL(page.href.replace('/reels/','/reel/')).href : page.href;
   const permalink=(raw:string|null):string|null=>{
     if(!raw)return null;
-    try{const url=new URL(raw,page);if(!/^(www\.)?instagram\.com$/.test(url.hostname) || !/^https?:$/.test(url.protocol) || !/^\/(p|reel)\/[^/]+\/?$/.test(url.pathname))return null;return url.origin+url.pathname;}catch{return null;}
+    try{const url=new URL(raw,page);if(!/^(www\.)?instagram\.com$/.test(url.hostname) || !/^https?:$/.test(url.protocol) || !/^\/(p|reels?)\/[^/]+\/?$/.test(url.pathname))return null;return url.origin+url.pathname.replace(/^\/reels\//,'/reel/');}catch{return null;}
   };
   for(const icon of doc.querySelectorAll('[aria-label],svg title')) {
     const label=(icon.getAttribute('aria-label') || icon.textContent || '').trim();
-    if(!/^(share|share post|share reel|send post|send reel)$/i.test(label))continue;
-    if(icon.closest('[data-laterbox-control],[hidden],[aria-hidden="true"]'))continue;
-    const share=icon.closest<HTMLElement>('button,[role="button"]');if(!share)continue;
+    if(!/^(share|share post|share reel|send|send post|send reel|send to|share to)$/i.test(label))continue;
+    if(icon.closest('[data-laterbox-control],[hidden]') || icon.parentElement?.closest('[aria-hidden="true"]'))continue;
+    const share=icon.closest<HTMLElement>('button,[role="button"],[tabindex="0"]');if(!share)continue;
     let root:Element|null=share.closest('article');
     // Reels and modal layouts sometimes omit article. Find the smallest content
     // ancestor enclosing this action and exactly one media/post source.
     if(!root){
       for(let node=share.parentElement;node && node!==doc.body;node=node.parentElement){
-        if(node.querySelector('video,img') && (node.querySelector('a[href*="/reel/"],a[href*="/p/"]') || node.matches('[role="dialog"]') || /^\/(p|reels?)\//.test(page.pathname))){root=node;break;}
+        if(node.querySelector('video,img') && (node.querySelector('a[href*="/reel/"],a[href*="/reels/"],a[href*="/p/"]') || node.matches('[role="dialog"]') || /^\/(p|reels?)\//.test(page.pathname) || node.hasAttribute('data-permalink') || node.hasAttribute('data-shortcode'))){root=node;break;}
       }
     }
     if(!root || seen.has(root))continue;
     const links=Array.from(root.querySelectorAll<HTMLAnchorElement>('a[href*="/p/"],a[href*="/reel/"]'));
     const timed=links.find(link=>link.querySelector('time'));
     const urls=[...new Set(links.map(link=>permalink(link.getAttribute('href'))).filter((url):url is string=>!!url))];
-    let url=permalink(timed?.getAttribute('href') || null) || (urls.length===1 ? urls[0] : null);
+    let url=permalink(root.getAttribute('data-permalink')) || permalink(root.getAttribute('data-shortcode') ? '/p/'+root.getAttribute('data-shortcode')+'/' : null) || permalink(timed?.getAttribute('href') || null) || (urls.length===1 ? urls[0] : null);
     const dialog=root.closest('[role="dialog"]');
     if(!url && urls.length===0 && ((dialog && dialog.querySelectorAll('article').length<=1) || doc.querySelectorAll('article,video').length===1))url=permalink(currentPostUrl);
     if(!url)continue;
@@ -70,7 +70,7 @@ export function findInstagramPosts(doc: Document, pageUrl: string): InstagramPos
     // An icon's button can be wrapped by a single action slot. Insert after that
     // slot, not inside the clickable Share control.
     const insertionPoint=/^(SPAN|DIV)$/.test(row.tagName) && row.childElementCount===1 && row.parentElement && root.contains(row.parentElement) && row.parentElement.querySelectorAll('button,[role="button"]').length>1 ? row : share;
-    seen.add(root);posts.push({root,share,insertionPoint,url,site:'Instagram',
+    seen.add(root);posts.push({root,share,insertionPoint,url,site:'Instagram',compact:page.pathname.startsWith('/reels/') && !root.closest('[role="dialog"]'),
       author:root.querySelector('header a,h2 a,a[role="link"]')?.textContent?.trim().slice(0,500),
       publishedAt:root.querySelector('time')?.getAttribute('datetime') || undefined});
   }
