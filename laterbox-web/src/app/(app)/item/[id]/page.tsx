@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { MediaEmbed } from '@/components/item/MediaEmbed';
 import { getMusicSource, MusicSourceIcon, musicSourceLabel } from '@/components/music/MusicSource';
 import { NoteEditor } from '@/components/item/NoteEditor';
+import { ArticleReader } from '@/components/item/ArticleReader';
 import { AddToCollectionModal } from '@/components/collections/AddToCollectionModal';
 import { ReturnTimePicker } from '@/components/scheduling/ReturnTimePicker';
 import { isDue } from '@/lib/utils/schedule';
@@ -271,11 +272,17 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
   const isNote = item.type === 'note' || item.metadata?.content_type === 'note' || (!item.url && !primaryAttachment && item.text_content);
   const isArticle = item.type === 'article' || item.metadata?.content_type === 'article' || (domain && (domain.includes('notion.so') || domain.includes('medium.com')));
 
-  // Structured tags + embed info parsing
+  // Structured tags + embed info + article reader content parsing
   let tags: string[] = [];
   let storedEmbedProvider: string | null = null;
   let storedEmbedUrl: string | null = null;
   let storedEmbedHeight: number | null = null;
+  let storedMarkdown: string | null = null;
+  let storedHtml: string | null = null;
+  let storedAuthor: string | null = null;
+  let storedPublishedTime: string | null = null;
+  let storedReadingTime: number | null = null;
+
   if (item.metadata?.structured_data) {
     try {
       const data =
@@ -286,6 +293,11 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
       if (data?.embedProvider) storedEmbedProvider = data.embedProvider;
       if (data?.embedUrl) storedEmbedUrl = data.embedUrl;
       if (data?.embedHeight) storedEmbedHeight = data.embedHeight;
+      if (typeof data?.markdown === 'string' && data.markdown.trim().length > 0) storedMarkdown = data.markdown;
+      if (typeof data?.htmlContent === 'string' && data.htmlContent.trim().length > 0) storedHtml = data.htmlContent;
+      if (typeof data?.author === 'string') storedAuthor = data.author;
+      if (typeof data?.publishedTime === 'string') storedPublishedTime = data.publishedTime;
+      if (typeof data?.readingTimeMinutes === 'number') storedReadingTime = data.readingTimeMinutes;
     } catch (_) {}
   }
 
@@ -539,14 +551,33 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
                 <span>Note</span>
               </div>
             </div>
+          ) : previewImage && !imgError ? (
+            /* FORMAT 6: Rich OpenGraph Hero Image for Web Articles & Links */
+            <div className="relative w-full h-52 sm:h-72 bg-neutral-900 overflow-hidden border-b border-[#e4e0d5]">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={previewImage}
+                alt={title}
+                className="w-full h-full object-cover"
+                onError={() => setImgError(true)}
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20" />
+              {domain && (
+                <div className="absolute top-4 left-4 px-3 py-1 rounded-full bg-black/60 backdrop-blur-md text-white text-xs font-semibold flex items-center gap-1.5 shadow-sm">
+                  <span>{domain}</span>
+                </div>
+              )}
+              <div className="absolute top-4 right-4 px-3 py-1 rounded-full bg-white/95 backdrop-blur-md text-[#171711] text-xs font-bold flex items-center gap-1.5 shadow-sm">
+                <Globe className="w-3.5 h-3.5 text-[#0369a1]" />
+                <span className="capitalize">{item.metadata?.content_type || 'Web'}</span>
+              </div>
+            </div>
           ) : isArticle ? (
-            /* FORMAT 6: Article Banner */
+            /* FORMAT 7: Article Banner (fallback when no preview image) */
             <div className="p-6 bg-[#fbfaf6] border-b border-[#e4e0d5] flex items-center justify-between">
               <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white border border-[#e4e0d5] text-xs font-bold text-[#171711] shadow-2xs">
-                <div className="w-4 h-4 rounded-xs bg-black text-white flex items-center justify-center text-[10px] font-black">
-                  N
-                </div>
-                <span>{domain || 'notion.so'}</span>
+                <Globe className="w-4 h-4 text-[#0369a1]" />
+                <span>{domain || 'Article'}</span>
               </div>
               <div className="px-3 py-1 rounded-full bg-[#ebe7dc] text-[#171711] text-xs font-bold flex items-center gap-1.5">
                 <span>Article</span>
@@ -712,8 +743,8 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
               />
             )}
 
-            {/* Highlighted Quote Fragment */}
-            {item.url && item.text_content && (
+            {/* Highlighted Quote Fragment (if user specifically captured a highlight) */}
+            {item.url && item.text_content && item.text_selector && (
               <div className="p-4 rounded-2xl bg-[#fef3c7]/60 border border-[#fde68a] text-[#b45309] space-y-2">
                 <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#b45309]">
                   <Quote className="w-4 h-4" />
@@ -738,11 +769,24 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
               </div>
             )}
 
-            {/* Note text content if pure note */}
-            {!item.url && item.text_content && !primaryAttachment && (
+            {/* Note text content if pure note without structured reader data */}
+            {!item.url && item.text_content && !primaryAttachment && !storedMarkdown && !storedHtml && (
               <div className="p-4 rounded-2xl bg-[#faf9f5] border border-[#e4e0d5] text-[#171711] text-sm whitespace-pre-wrap leading-relaxed font-mono">
                 {item.text_content}
               </div>
+            )}
+
+            {/* Multi-Format Article Reader: Formatted, Markdown, HTML View */}
+            {(storedMarkdown || storedHtml || (item.text_content && !item.text_selector)) && (
+              <ArticleReader
+                markdown={storedMarkdown || (!item.text_selector ? item.text_content : null)}
+                htmlContent={storedHtml}
+                rawText={item.text_content}
+                author={storedAuthor}
+                publishedTime={storedPublishedTime}
+                readingTimeMinutes={storedReadingTime}
+                sourceUrl={destinationUrl || item.url}
+              />
             )}
 
             {/* Attached Files & Assets */}
