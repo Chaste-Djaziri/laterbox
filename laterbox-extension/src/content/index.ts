@@ -74,3 +74,22 @@ async function refreshSettings() {
 browser.storage.onChanged.addListener((changes,area)=>{if(area==='local' && changes.injectedControls)void refreshSettings();});
 window.addEventListener('online',()=>{void browser.runtime.sendMessage({type:'flush-captures'}).catch(()=>{});});
 void refreshSettings();
+
+// Browsers without native text directives still reopen saved highlight links.
+async function reopenFragment() {
+  if ('fragmentDirective' in document) return;
+  const raw=location.hash.split(':~:text=')[1]?.split('&')[0];if(!raw)return;
+  try {
+    const parts=raw.split(',');let prefix='',suffix='';
+    if(parts[0]?.endsWith('-'))prefix=decodeURIComponent(parts.shift()!.slice(0,-1));
+    if(parts.at(-1)?.startsWith('-'))suffix=decodeURIComponent(parts.pop()!.slice(1));
+    let exact=decodeURIComponent(parts[0] || '');
+    if(parts.length>1){
+      const end=decodeURIComponent(parts[1]);const text=document.body.textContent || '';const start=text.indexOf(exact);const finish=text.indexOf(end,start+exact.length);
+      if(start<0 || finish<0)return;exact=text.slice(start,finish+end.length);
+    }
+    const {locateAndSelect}=await import('../lib/highlight');
+    locateAndSelect({exact,prefix,suffix});
+  } catch { /* malformed or changed source: retain the normal page */ }
+}
+void reopenFragment();
