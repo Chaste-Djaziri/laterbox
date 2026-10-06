@@ -32,7 +32,7 @@ export const DOCS_SECTIONS: DocSection[] = [
         description: "LaterBox native clients, web application, and shared backend.",
         category: "Getting Started",
         headings: [{"id": "what-is-laterbox", "text": "What is LaterBox?", "level": 2}, {"id": "applications", "text": "Applications", "level": 2}, {"id": "availability", "text": "Availability", "level": 2}, {"id": "next-steps", "text": "Next Steps", "level": 2}],
-        content: "## What is LaterBox?\nLaterBox is a local-first save-for-later app with independent native Apple and Android clients, a web application, and browser extensions.\n\n## Applications\n- Apple: Swift/SwiftUI in `laterbox-ios/`, with SwiftData persistence and native capture.\n- Android: Kotlin/Jetpack Compose in `laterbox-android/`, with Room persistence and WorkManager.\n- Web: Next.js, React, and TypeScript in `laterbox-web/`.\n- Extensions: TypeScript browser capture in `extension/` and a native Safari host in `safari_app/`.\n\n## Availability\nThe Apple release scheme currently targets iOS. macOS-specific source remains, but its standalone release target needs validation. Windows and Linux native replacements are future work. Platform source and capability do not imply a published release.\n\n## Next Steps\nRead [Prerequisites](/docs/prerequisites), [Quick Start](/docs/quickstart), and [Architecture](/docs/system-architecture).\n",
+        content: "## What is LaterBox?\nLaterBox is a local-first save-for-later app with independent native Apple and Android clients, a web application, and browser extensions.\n\n## Applications\n- Apple: Swift/SwiftUI in `laterbox-ios/`, with SwiftData persistence and native capture.\n- Android: Kotlin/Jetpack Compose in `laterbox-android/`, with Room persistence and WorkManager.\n- Web: Next.js, React, and TypeScript in `laterbox-web/`.\n- Extensions: TypeScript browser capture in `laterbox-extension/` and a native Safari host in `safari_app/`.\n\n## Availability\nThe Apple release scheme currently targets iOS. macOS-specific source remains, but its standalone release target needs validation. Windows and Linux native replacements are future work. Platform source and capability do not imply a published release.\n\n## Next Steps\nRead [Prerequisites](/docs/prerequisites), [Quick Start](/docs/quickstart), and [Architecture](/docs/system-architecture).\n",
       },
       {
         slug: 'prerequisites',
@@ -40,7 +40,7 @@ export const DOCS_SECTIONS: DocSection[] = [
         description: "Toolchains for native Apple, Android, web, and backend development.",
         category: "Getting Started",
         headings: [{"id": "native-apple", "text": "Native Apple", "level": 2}, {"id": "native-android", "text": "Native Android", "level": 2}, {"id": "web-and-extensions", "text": "Web and Extensions", "level": 2}, {"id": "backend", "text": "Backend", "level": 2}],
-        content: "## Native Apple\nInstall the Xcode toolchain configured in the repository's native Apple CI guide. Open `laterbox-ios/laterbox-ios.xcodeproj` and select `laterbox-ios`.\n\n## Native Android\nUse Android Studio, JDK 17, and Android SDK 36. Open `laterbox-android/`.\n\n## Web and Extensions\nUse Node.js 22 and npm. Install dependencies separately in `laterbox-web/` and `extension/` with `npm ci`.\n\n## Backend\nUse Supabase CLI for local services and migrations, and Deno for edge-function checks. Keep signing and service credentials outside source control.\n",
+        content: "## Native Apple\nInstall the Xcode toolchain configured in the repository's native Apple CI guide. Open `laterbox-ios/laterbox-ios.xcodeproj` and select `laterbox-ios`.\n\n## Native Android\nUse Android Studio, JDK 17, and Android SDK 36. Open `laterbox-android/`.\n\n## Web and Extensions\nUse Node.js 22 and npm. Install dependencies separately in `laterbox-web/` and `laterbox-extension/` with `npm ci`.\n\n## Backend\nUse Supabase CLI for local services and migrations, and Deno for edge-function checks. Keep signing and service credentials outside source control.\n",
       },
       {
         slug: 'environment-variables',
@@ -120,7 +120,7 @@ When navigating the LaterBox web dashboard or desktop main window:
         description: "Independent native UIs and persistence backed by shared Supabase services.",
         category: "Architecture",
         headings: [{"id": "repository", "text": "Repository", "level": 2}, {"id": "local-persistence", "text": "Local Persistence", "level": 2}, {"id": "shared-backend", "text": "Shared Backend", "level": 2}, {"id": "platform-boundaries", "text": "Platform Boundaries", "level": 2}],
-        content: "## Repository\n`laterbox-ios/` contains Swift/SwiftUI, `laterbox-android/` contains Kotlin/Compose, `laterbox-web/` contains Next.js, and `extension/` contains browser capture. `supabase/` owns migrations and edge functions; `assets/` holds shared artwork.\n\n## Local Persistence\nApple clients use SwiftData, Android uses Room, and the web app uses account-scoped local caching and pending capture queues. Each client implements its own UI and synchronization behavior.\n\n## Shared Backend\nSupabase provides authentication, PostgreSQL with Row-Level Security, and storage. Web APIs provide enrichment, entitlement, and notification services. Share data contracts rather than UI runtime code.\n\n## Platform Boundaries\nThe current Apple release scheme targets iOS. macOS-specific source remains for native desktop work. Windows and Linux native clients are future work.\n",
+        content: "## Repository\n`laterbox-ios/` contains Swift/SwiftUI, `laterbox-android/` contains Kotlin/Compose, `laterbox-web/` contains Next.js, and `laterbox-extension/` contains browser capture. `supabase/` owns migrations and edge functions; `assets/` holds shared artwork.\n\n## Local Persistence\nApple clients use SwiftData, Android uses Room, and the web app uses account-scoped local caching and pending capture queues. Each client implements its own UI and synchronization behavior.\n\n## Shared Backend\nSupabase provides authentication, PostgreSQL with Row-Level Security, and storage. Web APIs provide enrichment, entitlement, and notification services. Share data contracts rather than UI runtime code.\n\n## Platform Boundaries\nThe current Apple release scheme targets iOS. macOS-specific source remains for native desktop work. Windows and Linux native clients are future work.\n",
       },
       {
         slug: 'offline-sync',
@@ -221,7 +221,7 @@ npm install
 npm run package
 \`\`\`
 
-Generated packages in \`extension/dist/\`:
+Generated packages in \`laterbox-extension/dist/\`:
 - \`laterbox-chrome-extension.zip\`
 - \`laterbox-firefox-extension.zip\`
 - \`laterbox-safari-extension.zip\`
@@ -499,7 +499,7 @@ In your self-hosted setup, configure your client apps:
 
 1. **Web Dashboard**: Set \`NEXT_PUBLIC_SUPABASE_URL=https://supabase.yourdomain.com\` and your self-hosted \`NEXT_PUBLIC_SUPABASE_ANON_KEY\`.
 2. **Desktop & Mobile Apps**: Configure your self-hosted URL and public client key in the native Apple or Android project configuration.
-3. **Browser Extensions**: Set your custom domain in \`extension/.env\`.
+3. **Browser Extensions**: Set your custom domain in \`laterbox-extension/.env\`.
 
 ---
 
@@ -524,7 +524,7 @@ In your self-hosted setup, configure your client apps:
         description: "Contribute to the maintained native, web, extension, and backend projects.",
         category: "Developer",
         headings: [{"id": "workflow", "text": "Workflow", "level": 2}, {"id": "verification", "text": "Verification", "level": 2}, {"id": "review", "text": "Review", "level": 2}],
-        content: "## Workflow\nFollow repository `AGENTS.md`: work directly on main, record user-facing changes in the changelog before implementation, and commit each logical edit immediately using conventional commits.\n\n## Verification\n- Web: `npx tsc --noEmit --incremental false` and `npm test` in `laterbox-web/`.\n- Extensions: `npm run typecheck` and `npm run build:all` in `extension/`.\n- Apple: native Swift/UI tests in Xcode and Python release preflight tests under `laterbox-ios/ci/`.\n- Android: Gradle unit tests and builds through Android Studio.\n- Backend: Deno checks and regression tests from the web release workflow.\n\n## Review\nDescribe the problem, resulting behavior, and actual validation. Keep generated artifacts, environment files, and signing credentials out of commits.\n",
+        content: "## Workflow\nFollow repository `AGENTS.md`: work directly on main, record user-facing changes in the changelog before implementation, and commit each logical edit immediately using conventional commits.\n\n## Verification\n- Web: `npx tsc --noEmit --incremental false` and `npm test` in `laterbox-web/`.\n- Extensions: `npm run typecheck` and `npm run build:all` in `laterbox-extension/`.\n- Apple: native Swift/UI tests in Xcode and Python release preflight tests under `laterbox-ios/ci/`.\n- Android: Gradle unit tests and builds through Android Studio.\n- Backend: Deno checks and regression tests from the web release workflow.\n\n## Review\nDescribe the problem, resulting behavior, and actual validation. Keep generated artifacts, environment files, and signing credentials out of commits.\n",
       },
       {
         slug: 'license',
