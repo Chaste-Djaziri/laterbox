@@ -15,12 +15,11 @@ button:hover{background:#34342b}button:focus-visible{outline:3px solid #9cb550;o
 button svg{width:15px;height:15px;flex-shrink:0}
 .quote-toolbar{position:fixed;z-index:2147483647;display:flex;align-items:center;gap:6px;padding:5px;background:#fff;border:1px solid #deded4;border-radius:13px;box-shadow:0 6px 24px #0002;max-width:calc(100vw - 16px)}
 .dismiss{min-width:28px;min-height:28px;padding:6px;border:0;background:transparent;color:#77766b;border-radius:7px}.dismiss:hover{background:#f1f0e8;color:#171711}
-.instagram-action{display:inline-flex;color-scheme:light dark}.instagram-action button{min-height:32px;padding:6px 9px;font-size:11px;background:#fff;color:#171711;border-color:#dcdcd3;white-space:nowrap}.instagram-action button:hover{background:#f0f3df;border-color:#b1c483}
-@media(prefers-color-scheme:dark){.instagram-action:not(.light) button{background:#242424;color:#f5f5f5;border-color:#555}.instagram-action:not(.light) button:hover{background:#333}}
-.instagram-action.dark button{background:#242424;color:#f5f5f5;border-color:#555}.instagram-action.dark button:hover{background:#333}
-:host([data-compact="true"]) .instagram-action button span{display:none}:host([data-compact="true"]) .instagram-action button{width:34px;height:34px;padding:7px;border-radius:10px}:host([data-compact="true"]) .instagram-action button svg{width:20px;height:20px}
-:host([data-reel-action]) .instagram-action button{width:40px;height:40px;border:0;background:transparent;box-shadow:none;padding:8px;color:inherit}:host([data-reel-action]) .instagram-action button svg{width:24px;height:24px}:host([data-reel-action]) .instagram-action button:hover{background:#8882}:host([data-reel-action]) .instagram-action.dark{color:#f5f5f5}:host([data-reel-action]) .instagram-action.light{color:#171711}
-@media(max-width:480px){.instagram-action button span{display:none}.instagram-action button{min-width:34px}}
+.instagram-action{display:inline-flex;color:var(--lb-instagram-color,#171711)}
+.instagram-action button{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;min-height:40px;padding:8px;border:0;border-radius:8px;background:transparent;box-shadow:none;color:inherit}
+.instagram-action button span{display:none}.instagram-action button svg{width:var(--lb-instagram-size,24px);height:var(--lb-instagram-size,24px);stroke-width:2}
+.instagram-action button:hover{background:transparent;opacity:.65}.instagram-action button:focus-visible{outline:2px solid currentColor;outline-offset:2px}
+.instagram-action button[data-state=saved]{background:transparent;color:#3b9b62}.instagram-action button[data-state=queued]{background:transparent;color:#b88930}
 button[data-state=saved]{background:#edf5ee;color:#25653c;border-color:#c3ddc6}button[data-state=queued]{background:#fff6de;color:#805b12;border-color:#ebd6a3}
 .notice{position:fixed;bottom:24px;right:24px;display:flex;align-items:flex-start;gap:12px;max-width:min(360px,calc(100vw - 32px));font:13px/1.5 system-ui;background:#fff;color:#171711;padding:14px 14px 14px 17px;border:1px solid #deded4;border-left:4px solid #26734d;border-radius:12px;box-shadow:0 6px 28px #0002;z-index:2147483647}
 .notice[data-state=queued]{border-left-color:#b7791f}.notice[data-state=error]{border-left-color:#a33a32}.notice strong{display:block;font-size:13px}.notice p{margin:3px 0 0;color:#6c6b63;font-size:12px}.notice .dismiss{flex-shrink:0}
@@ -104,7 +103,7 @@ function addSocialControls(){syncInstagramControls(enabled,location.href);}
 const observer=new MutationObserver(()=>{
   if(scheduled || !enabled)return;scheduled=true;setTimeout(()=>{scheduled=false;addSocialControls();},500);
 });
-observer.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['href','aria-label','aria-hidden','hidden','data-permalink','data-shortcode']});
+observer.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['href','aria-label','aria-hidden','hidden','data-permalink','data-shortcode','class','style']});
 window.addEventListener('scroll',()=>{
   if(scheduled || !enabled)return;scheduled=true;setTimeout(()=>{scheduled=false;addSocialControls();},200);
 },{passive:true,capture:true});
