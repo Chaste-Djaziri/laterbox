@@ -4,8 +4,8 @@ Complete this checklist for each macOS submission. Record the build number, hard
 
 ## Build and signing
 
-- [ ] Run `flutter analyze` and `flutter test`.
-- [ ] Build with `--dart-define=LATERBOX_DISTRIBUTION=app-store`.
+- [ ] Configure and verify a native macOS Xcode target; the current Apple release scheme targets iOS.
+- [ ] Run native Swift tests and archive the macOS target using Xcode with App Store signing.
 - [ ] Archive Apple Silicon and Intel-compatible output, then verify the main app and embedded Share/Safari extensions have the expected App Sandbox, App Group, network, file-access, and APNs entitlements.
 - [ ] Validate the signed package with App Store Connect before upload.
 - [ ] Confirm the build version is new and release notes match `CHANGELOG.md`.
