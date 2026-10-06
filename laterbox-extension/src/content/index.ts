@@ -18,7 +18,8 @@ button svg{width:15px;height:15px;flex-shrink:0}
 .instagram-action{display:inline-flex;color-scheme:light dark}.instagram-action button{min-height:32px;padding:6px 9px;font-size:11px;background:#fff;color:#171711;border-color:#dcdcd3;white-space:nowrap}.instagram-action button:hover{background:#f0f3df;border-color:#b1c483}
 @media(prefers-color-scheme:dark){.instagram-action:not(.light) button{background:#242424;color:#f5f5f5;border-color:#555}.instagram-action:not(.light) button:hover{background:#333}}
 .instagram-action.dark button{background:#242424;color:#f5f5f5;border-color:#555}.instagram-action.dark button:hover{background:#333}
-@media(max-width:480px){.instagram-action button:not([data-state]) span{display:none}.instagram-action button{min-width:32px}}
+:host([data-compact="true"]) .instagram-action button span{display:none}:host([data-compact="true"]) .instagram-action button{width:34px;height:34px;padding:7px;border-radius:10px}:host([data-compact="true"]) .instagram-action button svg{width:20px;height:20px}
+@media(max-width:480px){.instagram-action button span{display:none}.instagram-action button{min-width:34px}}
 button[data-state=saved]{background:#edf5ee;color:#25653c;border-color:#c3ddc6}button[data-state=queued]{background:#fff6de;color:#805b12;border-color:#ebd6a3}
 .notice{position:fixed;bottom:24px;right:24px;display:flex;align-items:flex-start;gap:12px;max-width:min(360px,calc(100vw - 32px));font:13px/1.5 system-ui;background:#fff;color:#171711;padding:14px 14px 14px 17px;border:1px solid #deded4;border-left:4px solid #26734d;border-radius:12px;box-shadow:0 6px 28px #0002;z-index:2147483647}
 .notice[data-state=queued]{border-left-color:#b7791f}.notice[data-state=error]{border-left-color:#a33a32}.notice strong{display:block;font-size:13px}.notice p{margin:3px 0 0;color:#6c6b63;font-size:12px}.notice .dismiss{flex-shrink:0}
@@ -28,7 +29,7 @@ shadow.append(style);document.documentElement.append(host);
 function decorate(button:HTMLButtonElement,label:string) {
   button.replaceChildren();
   const icon=document.createElementNS('http://www.w3.org/2000/svg','svg');icon.setAttribute('viewBox','0 0 24 24');icon.setAttribute('fill','none');icon.setAttribute('stroke','currentColor');icon.setAttribute('stroke-width','1.8');icon.setAttribute('aria-hidden','true');
-  const path=document.createElementNS(icon.namespaceURI,'path');path.setAttribute('d','M6 4h12v17l-6-4-6 4V4Z');icon.append(path);
+  const path=document.createElementNS(icon.namespaceURI,'path');path.setAttribute('d','M3 7l9-4 9 4v11l-9 4-9-4V7Zm0 0 9 4 9-4M12 11v11M7.5 5l9 4');icon.append(path);
   const text=document.createElement('span');text.textContent=label;button.append(icon,text);
 }
 const quoteToolbar=document.createElement('div');quoteToolbar.className='quote-toolbar';quoteToolbar.setAttribute('role','group');quoteToolbar.setAttribute('aria-label','Save selected text');quoteToolbar.hidden=true;shadow.append(quoteToolbar);
@@ -73,13 +74,13 @@ document.addEventListener('selectionchange',()=>{
 document.addEventListener('keydown',event=>{if(event.key==='Escape')quoteToolbar.hidden=true;});
 window.addEventListener('scroll',()=>{quoteToolbar.hidden=true;},{passive:true});
 const syncInstagramControls=createInstagramControls(document,(post,resolve)=>{
-  const container=document.createElement('span');container.setAttribute('data-laterbox-control','');container.style.cssText='display:inline-flex;align-items:center;flex-shrink:0;margin:0 6px;vertical-align:middle';
+  const container=document.createElement('span');container.setAttribute('data-laterbox-control','');container.style.cssText='display:inline-flex;align-items:center;flex-shrink:0;margin:0 4px;vertical-align:middle;max-width:100%';
   const local=container.attachShadow({mode:'closed'});local.append(style.cloneNode(true));
   const row=document.createElement('span');row.className='instagram-action';
   const color=getComputedStyle(post.share).color.match(/\d+/g)?.slice(0,3).map(Number);
   if(color?.length===3)row.classList.add(color.reduce((sum,value)=>sum+value,0)>384 ? 'dark' : 'light');
   local.append(row);
-  const button=document.createElement('button');button.type='button';decorate(button,'Save to LaterBox');button.title='Save this Instagram post to LaterBox';button.setAttribute('aria-label',`Save ${post.author ? post.author+'’s ' : ''}Instagram post to LaterBox`);row.append(button);
+  const button=document.createElement('button');button.type='button';decorate(button,'Save to LaterBox');button.title='Save to LaterBox';button.setAttribute('aria-label',`Save ${post.author ? post.author+'’s ' : ''}Instagram post to LaterBox`);row.append(button);
   container.addEventListener('click',event=>event.stopPropagation());
   button.addEventListener('click',event=>{
     event.stopPropagation();if(!event.isTrusted)return;
