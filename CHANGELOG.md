@@ -9,6 +9,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 - **[macOS] System Status**: Settings now provides a single readiness view for Mac integrations, permissions, sync, notifications, and StoreKit billing, with retry guidance and copyable diagnostics.
 
 ### Fixed
+- **[Web] Web Capture Enrichment Persistence & Multi-Format Reader**: Fixed web URL capture enrichment disappearing after capture or sync by saving enriched titles, preview images, and metadata directly to localStorage and pending sync queues, preventing cloud sync hydrations from clobbering local metadata, expanding the backend enrichment route with clean article body, Markdown, and sanitized HTML extraction, and adding Formatted, Markdown, and HTML Reader views to item details.
 - **[Web] Accurate offline sync status**: Cloud sync indicators now show Offline with retry guidance when cached data is retained after an authentication or connection failure.
 - **[Web] Bounded JWT recovery**: Refresh future-issued sessions once, cap query retries, and preserve cached data when any cloud snapshot query fails instead of restarting synchronization indefinitely.
 - **[Web] Next.js 16 Proxy Convention & Extended Clock Skew Resilience**: Migrated deprecated Next.js `middleware.ts` to `proxy.ts` using the new `export function proxy` convention. Extended query retry thresholds in `ItemContext` to tolerate wider local clock drift margins (up to 30s) against PostgREST `PGRST303` rejections, avoiding premature fallback to offline state while authentication tokens normalize.
