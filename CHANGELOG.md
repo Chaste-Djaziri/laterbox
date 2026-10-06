@@ -5,6 +5,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- **[Extensions] Instagram post saves**: Place Save to LaterBox beside Share on supported Instagram posts and Reels; pause injected post buttons on other social sites during the trial.
 - **[Extensions] Sidebar availability**: Hide sidebar controls and disable sidebar actions when the browser does not expose a supported sidebar API.
 - **[Extensions] Save controls**: Refined the popup page-button setting, floating quote toolbar, social-post buttons, and accessible save feedback.
 - **[Extensions & Web] Rich paid-account capture**: Unified page, highlight, and social capture with readable Markdown snapshots, source references, account-scoped offline retries, connection recovery, and selection controls. Renamed the shared browser extension project to `laterbox-extension/`.
