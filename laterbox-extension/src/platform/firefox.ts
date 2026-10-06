@@ -1,8 +1,6 @@
 import { browser } from "./api";
 import type { BrowserCapabilities } from "./capabilities";
 
-const SIDE_PANEL_PATH = "src/sidepanel/sidepanel.html";
-
 // `sidebarAction` is a Firefox-only API absent from the Chromium typings.
 const firefox = browser as unknown as {
   sidebarAction?: { open(): Promise<void> };
@@ -10,7 +8,7 @@ const firefox = browser as unknown as {
 };
 
 export const firefoxCapabilities: BrowserCapabilities = {
-  supportsSidePanel: true,
+  supportsSidePanel: typeof firefox.sidebarAction?.open === "function",
 
   async openSidePanel(): Promise<void> {
     if (typeof firefox.sidebarAction?.open === "function") {
@@ -18,7 +16,7 @@ export const firefoxCapabilities: BrowserCapabilities = {
       await firefox.sidebarAction.open();
       return;
     }
-    await browser.tabs.create({ url: browser.runtime.getURL(SIDE_PANEL_PATH) });
+    // Unsupported browsers have no sidebar action.
   },
 
   isRestrictedUrl(url?: string): boolean {
