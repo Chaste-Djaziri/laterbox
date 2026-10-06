@@ -57,7 +57,7 @@ function addSocialControls() {
       page.url=current.url;page.canonicalUrl=current.url;page.siteName=current.site;page.author=current.author;page.publishedAt=current.publishedAt;
       page.title=(current.author ? current.author+' on ' : 'Post on ')+current.site;
       // Feed-wide descriptions/previews must not be mistaken for this specific post.
-      page.description=current.root.innerText?.trim().slice(0,500);page.previewImageUrl=current.root.querySelector<HTMLImageElement>('img')?.src || '';
+      page.description=(current.root as HTMLElement).innerText?.trim().slice(0,500);page.previewImageUrl=current.root.querySelector<HTMLImageElement>('img')?.src || '';
       void submit(captureFromPage(page,'social'),button);
     });
   }
