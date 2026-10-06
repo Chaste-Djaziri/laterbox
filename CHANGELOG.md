@@ -34,6 +34,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 - **[Web] Music source labels**: Music cards and item actions now identify the originating service (including Apple Music and Spotify) and avoid presenting a Spotify label or icon for unrelated music links.
 
 ### Changed
+- **[Web] Inbox Page Header Streamlining**: Removed the redundant back button from the main Inbox header to keep the primary dashboard landing view clean and focused.
 - **[Web] Download Hub Badge Styling Refinements**: Updated "Live on App Store" and "iOS & iPadOS" badges across both marketing and in-app download pages with compact small corner radiuses (`rounded-lg`) and warm neutral theme styling (`bg-[#ebe7dc]` border-framed badge with charcoal indicator), removing green styling.
 - **[Web] Marketing Header Plans Link Alignment**: Updated the Plans navigation item in the marketing header to route to the marketing `/pricing` page instead of the in-app dashboard plans page (`/plans`).
 - **[Web] Light Theme Standardization for Downloads Hub**: Standardized all downloads center components to the signature warm cream light theme (`bg-white` cards with `border-[#e4e0d5]`, crisp `#171711` typography, and harmonious status badges), eliminating conflicting dark mode overrides so typography and roadmap cards render clearly.
