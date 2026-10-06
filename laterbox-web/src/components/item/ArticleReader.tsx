@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import ReactMarkdown from 'react-markdown';
 import {
   BookOpen,
   Code2,
@@ -170,16 +171,11 @@ export function ArticleReader({
         {/* VIEW 1: Formatted Reader */}
         {activeTab === 'formatted' && (
           <div className="space-y-4 max-w-none text-[#171711] font-serif leading-relaxed text-base sm:text-lg">
-            {effectiveHtml ? (
-              <div
-                className="prose prose-neutral max-w-none [&_h1]:text-2xl [&_h1]:font-black [&_h1]:font-sans [&_h1]:text-[#171711] [&_h1]:mb-4 [&_h2]:text-xl [&_h2]:font-bold [&_h2]:font-sans [&_h2]:text-[#171711] [&_h2]:mt-6 [&_h2]:mb-3 [&_h3]:text-lg [&_h3]:font-bold [&_h3]:font-sans [&_h3]:mt-4 [&_h3]:mb-2 [&_p]:mb-4 [&_p]:leading-relaxed [&_p]:text-[#2c2b28] [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:mb-4 [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:mb-4 [&_li]:mb-1 [&_blockquote]:border-l-4 [&_blockquote]:border-[#171711]/30 [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:my-4 [&_pre]:p-4 [&_pre]:rounded-xl [&_pre]:bg-[#171711] [&_pre]:text-[#fbfaf6] [&_pre]:font-mono [&_pre]:text-xs [&_pre]:overflow-x-auto [&_code]:font-mono [&_code]:text-xs [&_code]:bg-[#ebe7dc] [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded-sm [&_a]:text-[#0369a1] [&_a]:underline [&_figure]:my-6 [&_img]:rounded-xl [&_img]:max-w-full [&_img]:border [&_img]:border-[#e4e0d5] [&_figcaption]:text-xs [&_figcaption]:text-[#8c897f] [&_figcaption]:mt-1 [&_figcaption]:text-center"
-                dangerouslySetInnerHTML={{ __html: effectiveHtml }}
-              />
-            ) : (
-              <div className="whitespace-pre-wrap font-sans text-sm sm:text-base leading-relaxed text-[#2c2b28]">
+            <div className="prose prose-neutral max-w-none [&_a]:text-sky-700 [&_a]:underline [&_img]:max-w-full [&_pre]:overflow-x-auto [&_pre]:whitespace-pre-wrap [&_blockquote]:border-l-4 [&_blockquote]:pl-4 [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6">
+              <ReactMarkdown skipHtml components={{ a: ({children,...props}) => <a {...props} target="_blank" rel="noopener noreferrer">{children}</a> }}>
                 {effectiveMarkdown}
-              </div>
-            )}
+              </ReactMarkdown>
+            </div>
           </div>
         )}
 
@@ -210,7 +206,7 @@ export function ArticleReader({
         )}
       </div>
 
-      {sourceUrl && (
+      {sourceUrl && /^https?:\/\//i.test(sourceUrl) && (
         <div className="flex items-center justify-end text-xs text-[#8c897f] pt-1">
           <a
             href={sourceUrl}
