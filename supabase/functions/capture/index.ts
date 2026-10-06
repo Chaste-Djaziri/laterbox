@@ -306,7 +306,7 @@ export function validateCaptureBody(body: CaptureBody): {
   const markdown = typeof body.markdown === "string" ? body.markdown : "";
   if (new TextEncoder().encode(markdown).length > 204800) return null;
   const canonicalUrl = typeof body.canonicalUrl === "string" ? body.canonicalUrl : null;
-  if (canonicalUrl && (!isHttpUrl(canonicalUrl) || canonicalUrl.length > 8192)) return null;
+  if (canonicalUrl && (!isHttpUrl(canonicalUrl) || new TextEncoder().encode(canonicalUrl).length > 8192)) return null;
   const author = typeof body.author === "string" ? body.author.slice(0,500) : null;
   const publishedAt = typeof body.publishedAt === "string" ? body.publishedAt.slice(0,100) : null;
   let url = typeof body.url === "string" ? body.url.trim() : "";
@@ -327,6 +327,7 @@ export function validateCaptureBody(body: CaptureBody): {
     : "";
   const source = typeof body.source === "string" ? body.source : "api";
   const selector = parseSelector(body.selector);
+  if (selector?.exact && new TextEncoder().encode(selector.exact).length > 10000) return null;
 
   if (url.length === 0 && text.length === 0) return null;
 
@@ -353,7 +354,7 @@ export function validateCaptureBody(body: CaptureBody): {
   }
 
   if (url.length > 0 && !isHttpUrl(url)) return null;
-  if (url.length > 8192 || text.length > 10000 || title.length > 500) return null;
+  if (new TextEncoder().encode(url).length > 8192 || new TextEncoder().encode(text).length > 10000 || title.length > 500) return null;
   if (!CAPTURE_SOURCES.has(source)) return null;
 
   return {
