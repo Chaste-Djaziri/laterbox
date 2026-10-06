@@ -18,7 +18,7 @@ Open `laterbox-android/` in Android Studio using JDK 17 and SDK 36. Configure pu
 
 ## Extensions and backend
 
-Build browser bundles from `extension/` using `npm run build:all`. The Safari host remains in `safari_app/`; the Xcode Cloud post-clone hook builds and copies its extension assets.
+Build browser bundles from `laterbox-extension/` using `npm run build:all`. The Safari host remains in `safari_app/`; the Xcode Cloud post-clone hook builds and copies its extension assets.
 
 Deploy migrations and functions from `supabase/` using the project's existing Supabase workflow. Preserve Row-Level Security and keep service credentials server-side.
 
