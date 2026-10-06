@@ -25,10 +25,10 @@ laterbox-extension/
 ## Features
 
 1. **One-Click Page & Link Capture**:
-   - Save the active tab URL, title, and selection directly from the toolbar popup or shortcut (`Cmd+Shift+L`).
+   - Save the active tab URL, title, and selection directly from the toolbar popup or shortcut (`Option/Alt+Shift+S`).
    - Context menu items: "Save page to laterbox", "Save link to laterbox", "Save selection to laterbox".
 2. **Sidepanel Support**:
-   - Integrated sidepanel for Chromium and Safari, allowing users to browse their saved library while reading articles.
+   - Integrated sidepanel for Chromium and Firefox, allowing users to browse their saved library while reading articles.
 3. **Secure Web-to-Extension Authentication Handshake**:
    - Uses `externally_connectable` and web redirects to pair the browser extension with your active web session securely.
    - Pending status, cancellation, and retry flows built right into the popup.
@@ -77,3 +77,14 @@ The output archives will be generated in `laterbox-extension/dist/`:
 ### Firefox
 1. Navigate to `about:debugging#/runtime/this-firefox`.
 2. Click **Load Temporary Add-on...** and select `laterbox-extension/dist/firefox/manifest.json`.
+
+
+## Rich capture and connection
+
+Rendered pages become readable Markdown snapshots with source metadata. Explicit selection buttons save exact quotes with source highlights; social buttons target individual posts on X, Reddit, LinkedIn, Instagram, and Facebook. Injected controls can be disabled in the popup, and restricted or changed layouts retain page/selection capture where permitted.
+
+Every save requires a connected Pro account. Offline saves are Pending, show an amber count and muted toolbar icon, and replay automatically for their originating account. Saved means the server acknowledged the item. Approval survives popup closure and worker suspension.
+
+Use Option+Shift+S on macOS or Alt+Shift+S on Windows/Linux to save the page; Option/Alt+Shift+H saves selected text. Side-panel commands are unbound. The popup lists registered shortcuts and remapping guidance for conflicts.
+
+Reload unpacked installations from the renamed `laterbox-extension/` directory. Apply the content migration and deploy the updated capture/connection functions and web reader before account smoke testing. See [the extension README](../laterbox-extension/README.md) for rollout and verification commands.
