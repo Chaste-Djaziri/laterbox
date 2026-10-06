@@ -49,20 +49,20 @@ The popup connects through the LaterBox web approval screen. The extension store
 2. Open `chrome://extensions`.
 3. Enable Developer mode.
 4. Choose Load unpacked.
-5. Select `extension/dist/chromium`.
+5. Select `laterbox-extension/dist/chromium`.
 
 ### Firefox
 
 1. Run `npm run build:firefox:local` (or `build:firefox`).
 2. Open `about:debugging#/runtime/this-firefox`.
 3. Choose Load Temporary Add-on.
-4. Select `extension/dist/firefox/manifest.json`.
+4. Select `laterbox-extension/dist/firefox/manifest.json`.
 
 ### Safari
 
 1. Run `npm run build:safari:local` (or `build:safari`).
 2. In Safari: Settings → Developer → enable "Show features for web developers" if the Developer tab is hidden.
-3. Use the temporary extension install flow and select `extension/dist/safari`.
+3. Use the temporary extension install flow and select `laterbox-extension/dist/safari`.
 4. Enable the extension and grant website access under Safari Settings → Extensions.
 
 Safari has no WebExtension sidebar API, so the side panel button is hidden and capture runs through the toolbar popup, context menus, and the `Command+Shift+L` popup shortcut.
