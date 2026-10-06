@@ -232,6 +232,8 @@ async function showResult(
     await updateConnectionState();
     setStatus("Reconnect your LaterBox account. Pending captures stay assigned to their original account.", "error");
     button.disabled = false;
+  } else if (result.status === "error") {
+    setStatus("Could not save this content. Reload the page and try again.", "error"); button.disabled=false;
   } else {
     setStatus(result.reason === "server"
       ? "Capture service unavailable. Pending save will retry automatically."
