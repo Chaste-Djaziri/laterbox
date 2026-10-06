@@ -5,7 +5,7 @@ import type { Capture, CaptureResult } from '../types/capture';
 
 const captureEndpoint = import.meta.env.VITE_CAPTURE_API_URL || '';
 export const captureQueue = createAccountQueue({
-  connection: async () => ({ userId: await getConnectedUserId(), token: await getAccessToken(), isPro: await getIsPro() }),
+  connection: async () => { const values=await browser.storage.local.get(['connectedUserId','accessToken','hasProPlan']);return {userId:values.connectedUserId || '',token:values.accessToken || '',isPro:values.hasProPlan ?? null}; },
   read: getPendingCaptures, write: replacePendingCaptures, send: sendCapture, state: updateCaptureState,
 });
 
@@ -13,7 +13,7 @@ async function sendCapture(capture: Capture, token: string): Promise<CaptureResu
   try {
     const response = await fetch(captureEndpoint, { method: 'POST', headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' }, body: JSON.stringify(capture), signal: AbortSignal.timeout(15000) });
     if (response.status === 401) return { status: 'needsAuth' };
-    if (response.status === 403) { await setIsPro(false); return { status: 'proRequired' }; }
+    if (response.status === 403) { if (await getAccessToken() === token) await setIsPro(false); return { status: 'proRequired' }; }
     if (response.status === 400 || response.status === 413) return { status: 'error', reason: 'invalid' };
     if (!response.ok) return { status: 'queued', reason: 'server' };
     const body = await response.json();
