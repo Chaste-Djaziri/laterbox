@@ -1,0 +1,9 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+let store:Record<string,any>={};
+(globalThis as any).chrome={storage:{local:{get:async(key:string)=>({[key]:store[key]}),set:async(values:any)=>{Object.assign(store,values)},remove:async(keys:string|string[])=>{for(const key of Array.isArray(keys)?keys:[keys])delete store[key]}},tabs:{remove:async()=>{},create:async()=>({id:1}),update:async()=>({})}};
+const auth=await import('../src/lib/auth');
+const pending=()=>({requestId:'request',requestSecret:'secret',createdAt:Date.now(),connectUrl:'https://app.laterbox.dev/extension/connect'});
+test('persisted approval resumes with same request after worker restart',async()=>{store={pendingConnection:pending()};let calls=0;globalThis.fetch=async(_url,init)=>{const body=JSON.parse(String(init?.body));calls++;return Response.json(body.action==='status'?{status:'used'}:{extensionToken:'lb_ext_token',userId:'owner',isPro:true})};assert.equal(await auth.resumePendingConnection(),'owner');assert.equal(calls,2);assert.equal(store.accessToken,'lb_ext_token');assert.equal(store.pendingConnection,undefined);});
+test('cancellation while status is in flight never installs credentials',async()=>{store={pendingConnection:pending()};let resolve!:(response:Response)=>void;globalThis.fetch=()=>new Promise(r=>{resolve=r});const resumed=auth.resumePendingConnection();while(!resolve)await new Promise(r=>setTimeout(r,0));await auth.cancelPendingConnection();resolve(Response.json({status:'approved'}));assert.equal(await resumed,'');assert.equal(store.accessToken,undefined);});
+test('expired approval terminates without network requests',async()=>{store={pendingConnection:{...pending(),createdAt:Date.now()-600000}};globalThis.fetch=async()=>{throw new Error('unexpected network')};assert.equal(await auth.resumePendingConnection(),'');assert.equal(store.pendingConnection,undefined);assert.match(store.connectionError,/expired/);});
