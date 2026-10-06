@@ -18,7 +18,9 @@ import { LessMentalClutterSection } from '@/components/marketing/LessMentalClutt
 import { UltimateWindowsOrganizerSection } from '@/components/marketing/UltimateWindowsOrganizerSection';
 import { WontForgetItLaterSection } from '@/components/marketing/WontForgetItLaterSection';
 import { LandingFaqSection } from '@/components/marketing/LandingFaqSection';
+import { AppStoreButton } from '@/components/download/AppStoreButton';
 import {
+  Apple,
   Sparkles,
   ArrowRight,
   Download,
@@ -80,8 +82,8 @@ export default function LandingPage() {
               href="/download"
               className="inline-flex items-center gap-2 px-6 py-3.5 rounded-full bg-white border border-[#e4e0d5] text-[#171711] hover:bg-[#ebe7dc]/50 font-bold text-sm sm:text-base shadow-xs transition-all"
             >
-              <Download className="w-4 h-4 text-[#171711]" />
-              <span>Download Desktop & Mobile</span>
+              <Apple className="w-4 h-4 text-[#171711]" />
+              <span>Get for iOS & Downloads</span>
             </Link>
 
             <Link
@@ -286,31 +288,42 @@ export default function LandingPage() {
             One Unified Vault Across All Your Devices
           </p>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
-            <Link
-              href="/download"
+            <a
+              href="https://apps.apple.com/us/app/laterbox-save-for-later/id6804139119"
+              target="_blank"
+              rel="noopener noreferrer"
               className="p-5 rounded-2xl bg-[#f7f5ee] border border-[#e4e0d5] hover:border-[#171711] transition-all flex flex-col items-center gap-2 group"
             >
-              <Laptop className="w-7 h-7 text-[#171711] transition-transform group-hover:scale-110" />
-              <span className="text-sm font-bold text-[#171711]">macOS & Windows</span>
-              <span className="text-xs text-[#6c6b63]">DMG, PKG, EXE & Inno Setup</span>
-            </Link>
+              <Apple className="w-7 h-7 text-[#171711] transition-transform group-hover:scale-110" />
+              <div className="flex items-center gap-1.5">
+                <span className="text-sm font-bold text-[#171711]">iOS & iPadOS</span>
+                <span className="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[9px] font-bold">Live</span>
+              </div>
+              <span className="text-xs text-[#6c6b63]">Official App Store Release</span>
+            </a>
 
             <Link
               href="/download"
               className="p-5 rounded-2xl bg-[#f7f5ee] border border-[#e4e0d5] hover:border-[#171711] transition-all flex flex-col items-center gap-2 group"
             >
               <Smartphone className="w-7 h-7 text-[#171711] transition-transform group-hover:scale-110" />
-              <span className="text-sm font-bold text-[#171711]">iOS & Android</span>
-              <span className="text-xs text-[#6c6b63]">App Store & Google Play Beta</span>
+              <div className="flex items-center gap-1.5">
+                <span className="text-sm font-bold text-[#171711]">Android</span>
+                <span className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 text-[9px] font-bold">Dev</span>
+              </div>
+              <span className="text-xs text-[#6c6b63]">Under Active Development</span>
             </Link>
 
             <Link
               href="/download"
               className="p-5 rounded-2xl bg-[#f7f5ee] border border-[#e4e0d5] hover:border-[#171711] transition-all flex flex-col items-center gap-2 group"
             >
-              <Puzzle className="w-7 h-7 text-[#171711] transition-transform group-hover:scale-110" />
-              <span className="text-sm font-bold text-[#171711]">Browser Extensions</span>
-              <span className="text-xs text-[#6c6b63]">Chrome, Firefox & Safari MV3</span>
+              <Laptop className="w-7 h-7 text-[#171711] transition-transform group-hover:scale-110" />
+              <div className="flex items-center gap-1.5">
+                <span className="text-sm font-bold text-[#171711]">macOS & Windows</span>
+                <span className="text-[10px] text-[#9e9b92]">Soon</span>
+              </div>
+              <span className="text-xs text-[#6c6b63]">Companions Coming Soon</span>
             </Link>
 
             <Link
@@ -344,17 +357,13 @@ export default function LandingPage() {
 
             {/* Action Buttons */}
             <div className="flex flex-wrap items-center justify-center gap-3.5 sm:gap-4 w-full">
+              <AppStoreButton size="large" theme="dark" />
               <Link
-                href="/download?platform=windows"
-                className="px-8 sm:px-9 py-4 rounded-full bg-[#e6edb0] text-[#171711] hover:bg-[#d8e09e] font-extrabold text-xs sm:text-sm tracking-wider uppercase shadow-md hover:scale-102 transition-all cursor-pointer"
+                href="/download"
+                className="px-8 sm:px-9 py-4 rounded-2xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs sm:text-sm tracking-wider uppercase transition-all border border-white/10 hover:scale-102 flex items-center gap-2"
               >
-                Download for Windows
-              </Link>
-              <Link
-                href="/download?platform=macos"
-                className="px-8 sm:px-9 py-4 rounded-full bg-white/10 hover:bg-white/20 text-white font-bold text-xs sm:text-sm tracking-wider uppercase transition-all border border-white/10 hover:scale-102"
-              >
-                Download for Mac
+                <span>Other Platforms</span>
+                <ArrowRight className="w-4 h-4 text-[#E7FF57]" />
               </Link>
             </div>
 
