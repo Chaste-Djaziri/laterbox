@@ -34,6 +34,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 - **[Web] Music source labels**: Music cards and item actions now identify the originating service (including Apple Music and Spotify) and avoid presenting a Spotify label or icon for unrelated music links.
 
 ### Changed
+- **[Web] Dashboard Downloads Center Route Alignment**: Ensured the download page is fully available and seamless within the authenticated dashboard (`/downloads`), updating navigation links in the application sidebar and account settings to route to the in-app download center without exiting the dashboard shell.
 - **[Web] App Store iOS Download Hub & Platform Availability Status**: Streamlined web downloads to feature the live Apple App Store release (`id6804139119`) with an authentic App Store themed download badge for iOS and iPadOS. Replaced legacy direct binary downloads for desktop and Android with platform status cards labeling Android as "Under Development" and macOS, Windows, and Linux as "Coming Soon".
 - **[Web] Top Header Cloud Sync Indicator Removal**: Removed redundant Cloud Sync indicators from page headers (inbox, dashboard, library, search, and mobile top bar) in favor of the dedicated sidebar status indicator.
 - **[Web] Full-Width Sidebar Cloud Sync Indicator**: Updated the Cloud Sync indicator in the expanded sidebar to stretch full width with compact small corner radiuses (`rounded-lg`), matching the container geometry of neighboring plan and profile cards.
