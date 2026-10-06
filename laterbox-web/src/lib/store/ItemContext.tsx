@@ -55,8 +55,8 @@ const DEFAULT_GUEST_ITEMS: LaterBoxItem[] = [];
 // Helper to retry queries rejected due to clock skew (PGRST303: "JWT issued at future")
 async function fetchWithRetry<T>(
   queryFn: () => PromiseLike<{ data: T | null; error: any }>,
-  maxRetries = 4,
-  initialDelayMs = 1200
+  maxRetries = 10,
+  delayMs = 2500
 ): Promise<{ data: T | null; error: any }> {
   let attempt = 0;
   while (true) {
@@ -71,11 +71,10 @@ async function fetchWithRetry<T>(
 
     if (isClockSkew && attempt < maxRetries) {
       attempt++;
-      const delay = initialDelayMs * attempt;
       console.warn(
-        `[ItemContext] PostgREST clock skew (PGRST303: JWT issued at future). Retrying attempt ${attempt}/${maxRetries} in ${delay}ms...`
+        `[ItemContext] PostgREST clock skew (PGRST303: JWT issued at future). Retrying attempt ${attempt}/${maxRetries} in ${delayMs}ms...`
       );
-      await new Promise((r) => setTimeout(r, delay));
+      await new Promise((r) => setTimeout(r, delayMs));
       continue;
     }
     return res;
@@ -94,8 +93,6 @@ export function ItemProvider({ children }: { children: ReactNode }) {
 
   // Load from local storage
   const loadLocalData = useCallback(() => {
-    setItems([]);
-    setCollections([]);
     try {
       const stored = localStorage.getItem(`${LOCAL_ITEMS_KEY}_${user?.id || 'guest'}`) || localStorage.getItem(LOCAL_ITEMS_KEY);
       if (stored) {
@@ -103,10 +100,14 @@ export function ItemProvider({ children }: { children: ReactNode }) {
           .filter(item => (item.user_id || null) === (user?.id || null))
           .filter(item => !item.id.startsWith('guest-item-'));
         setItems(parsed.map(migrateSchedule));
+      } else {
+        setItems([]);
       }
       const storedCols = localStorage.getItem(`${LOCAL_COLLECTIONS_KEY}_${user?.id || 'guest'}`) || localStorage.getItem(LOCAL_COLLECTIONS_KEY);
       if (storedCols) {
         setCollections((JSON.parse(storedCols) as Collection[]).filter(collection => (collection.user_id || null) === (user?.id || null)));
+      } else {
+        setCollections([]);
       }
     } catch {
       // ignore
@@ -200,6 +201,9 @@ export function ItemProvider({ children }: { children: ReactNode }) {
         return;
       }
 
+      // Pre-hydrate from local storage immediately so items remain visible while syncing
+      loadLocalData();
+
       // Automatically migrate any items saved while in guest mode to user account
       await migrateGuestItems(user.id);
 
@@ -222,6 +226,17 @@ export function ItemProvider({ children }: { children: ReactNode }) {
 
       if (itemError) {
         console.warn('[ItemContext] Error fetching items:', itemError);
+        const isClockSkew =
+          itemError.code === 'PGRST303' ||
+          (typeof itemError.message === 'string' &&
+            itemError.message.toLowerCase().includes('future'));
+        if (isClockSkew) {
+          setSyncStatus('syncing');
+          setTimeout(() => {
+            fetchData();
+          }, 3000);
+          return;
+        }
         handleAuthFailure();
         return;
       }
