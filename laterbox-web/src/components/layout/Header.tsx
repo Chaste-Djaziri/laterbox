@@ -18,7 +18,7 @@ export function Header() {
   }, [pathname]);
 
   const navLinks = [
-    { href: '/plans', label: 'Plans' },
+    { href: '/pricing', label: 'Plans' },
     { href: '/download', label: 'Downloads' },
     { href: '/docs', label: 'Docs' },
     { href: '/guide', label: 'Guide' },
@@ -48,7 +48,7 @@ export function Header() {
           {/* Nav Links (Pages Only) */}
           <nav className="hidden md:flex items-center gap-7 text-[14px] font-semibold text-[#6c6b63] justify-self-center">
             {navLinks.map((link) => {
-              const isActive = pathname === link.href;
+              const isActive = pathname === link.href || (link.href === '/pricing' && pathname === '/plans');
               return (
                 <Link
                   key={link.href}
@@ -120,7 +120,7 @@ export function Header() {
             <div className="p-3.5 sm:p-4 rounded-2xl bg-white border border-[#e4e0d5] shadow-xl shadow-black/[0.04]">
               <div className="space-y-1">
                 {navLinks.map((link) => {
-                  const isActive = pathname === link.href;
+                  const isActive = pathname === link.href || (link.href === '/pricing' && pathname === '/plans');
                   return (
                     <Link
                       key={link.href}
