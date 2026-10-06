@@ -5,7 +5,6 @@ const path = require('path');
 const rootDir = path.resolve(__dirname, '..');
 
 const rootVersionJsonPath = path.join(rootDir, 'version.json');
-const pubspecPath = path.join(rootDir, 'pubspec.yaml');
 const webVersionJsonPath = path.join(rootDir, 'laterbox-web', 'version.json');
 const webPublicVersionJsonPath = path.join(rootDir, 'laterbox-web', 'public', 'version.json');
 const webVersionTsPath = path.join(rootDir, 'laterbox-web', 'src', 'lib', 'version.ts');
@@ -13,7 +12,6 @@ const extensionPackageJsonPath = path.join(rootDir, 'extension', 'package.json')
 const extensionChromiumManifestPath = path.join(rootDir, 'extension', 'manifests', 'chromium.json');
 const extensionFirefoxManifestPath = path.join(rootDir, 'extension', 'manifests', 'firefox.json');
 const extensionSafariManifestPath = path.join(rootDir, 'extension', 'manifests', 'safari.json');
-const innoSetupPath = path.join(rootDir, 'scripts', 'laterbox.iss');
 const iosPbxprojPath = path.join(rootDir, 'laterbox-ios', 'laterbox-ios.xcodeproj', 'project.pbxproj');
 const iosAppVersionSwiftPath = path.join(rootDir, 'laterbox-ios', 'laterbox-ios', 'AppVersion.swift');
 const iosShareInfoPlistPath = path.join(rootDir, 'laterbox-ios', 'LaterBoxShare', 'Info.plist');
@@ -87,7 +85,6 @@ function bumpVersion() {
   }
 
   const versionString = `${major}.${minor}.${patch}`;
-  const flutterVersionString = `${versionString}+${buildNumber}`;
   const buildTime = syncOnly && current.buildTime ? current.buildTime : new Date().toISOString();
 
   const versionData = {
@@ -101,13 +98,6 @@ function bumpVersion() {
 
   // 1. Root version.json
   fs.writeFileSync(rootVersionJsonPath, JSON.stringify(versionData, null, 2) + '\n', 'utf8');
-
-  // 2. pubspec.yaml (Flutter Mobile & Desktop)
-  if (fs.existsSync(pubspecPath)) {
-    let pubspec = fs.readFileSync(pubspecPath, 'utf8');
-    pubspec = pubspec.replace(/^version:\s*.+$/m, `version: ${flutterVersionString}`);
-    fs.writeFileSync(pubspecPath, pubspec, 'utf8');
-  }
 
   // 3. laterbox-web/version.json
   if (fs.existsSync(path.dirname(webVersionJsonPath))) {
@@ -174,13 +164,6 @@ export const VERSION_METADATA = {
         // ignore
       }
     }
-  }
-
-  // 8. scripts/laterbox.iss (Windows Inno Setup Installer)
-  if (fs.existsSync(innoSetupPath)) {
-    let iss = fs.readFileSync(innoSetupPath, 'utf8');
-    iss = iss.replace(/#define\s+AppVersion\s+"[^"]+"/g, `#define AppVersion "${versionString}"`);
-    fs.writeFileSync(innoSetupPath, iss, 'utf8');
   }
 
   // 9. laterbox-ios/laterbox-ios.xcodeproj/project.pbxproj (Native iOS app and extension targets)
