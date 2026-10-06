@@ -57,7 +57,7 @@ export function extractRenderedPage(rootSelector: string | null = null): PageCon
     return text;
   };
   let markdown = root ? render(root).replace(/\n[ \t]+/g,'\n').replace(/\n{3,}/g,'\n\n').trim() : '';
-  const bytes = new TextEncoder().encode(markdown); const truncated = bytes.length > 204800 || visited > 15000;
+  const bytes = new TextEncoder().encode(markdown); const truncated = bytes.length > 204800 || selected.length > 10000 || visited > 15000;
   if (bytes.length > 204800) markdown = new TextDecoder().decode(bytes.slice(0,204800)).replace(/\uFFFD$/,'');
   return { url: location.href, title: meta('meta[property="og:title"]') || document.title,
     selection: selected.slice(0,10000), selector, markdown, truncated,
