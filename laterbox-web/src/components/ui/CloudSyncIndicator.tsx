@@ -6,7 +6,15 @@ import { useAuth } from '@/lib/store/AuthContext';
 import { useBilling } from '@/lib/store/BillingContext';
 import { Cloud, CloudOff, RefreshCw, AlertCircle } from 'lucide-react';
 
-export function CloudSyncIndicator({ compact = false }: { compact?: boolean }) {
+export function CloudSyncIndicator({
+  compact = false,
+  fullWidth = false,
+  className = '',
+}: {
+  compact?: boolean;
+  fullWidth?: boolean;
+  className?: string;
+}) {
   const { syncStatus, syncNow } = useItems();
   const { user, isGuest } = useAuth();
   const { isPro } = useBilling();
@@ -56,7 +64,7 @@ export function CloudSyncIndicator({ compact = false }: { compact?: boolean }) {
       <button
         onClick={() => isPro ? syncNow() : window.location.assign('/plans')}
         title={status.tooltip}
-        className="p-1.5 rounded-lg hover:bg-[#ebe7dc]/70 transition-colors focus:outline-none cursor-pointer"
+        className={`p-1.5 rounded-lg hover:bg-[#ebe7dc]/70 transition-colors focus:outline-none cursor-pointer ${className}`}
       >
         {status.icon}
       </button>
@@ -67,7 +75,11 @@ export function CloudSyncIndicator({ compact = false }: { compact?: boolean }) {
     <button
       onClick={() => isPro ? syncNow() : window.location.assign('/plans')}
       title={status.tooltip}
-      className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold tracking-tight transition-all duration-150 hover:opacity-85 cursor-pointer shadow-xs ${status.color}`}
+      className={`inline-flex items-center gap-1.5 px-3 ${
+        fullWidth
+          ? 'w-full justify-center py-2 rounded-lg'
+          : 'py-1 rounded-full'
+      } text-xs font-semibold tracking-tight transition-all duration-150 hover:opacity-85 cursor-pointer shadow-xs ${status.color} ${className}`}
     >
       {status.icon}
       <span>{status.label}</span>
