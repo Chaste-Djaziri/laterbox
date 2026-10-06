@@ -5,7 +5,7 @@ export function createInstagramControls(doc:Document, create:(post:InstagramPost
     const posts=enabled ? findInstagramPosts(doc,pageUrl):[];
     for(const [root,record] of controls){
       const current=posts.find(post=>post.root===root);
-      if(!current || current.url!==record.post.url || current.share!==record.post.share || !record.container.isConnected){record.observer?.disconnect();record.container.remove();controls.delete(root);}
+      if(!current || current.url!==record.post.url || current.share!==record.post.share || current.insertionPoint!==record.post.insertionPoint || current.compact!==record.post.compact || !record.container.isConnected){record.observer?.disconnect();record.container.remove();controls.delete(root);}
     }
     for(const post of posts){
       let record=controls.get(post.root);
