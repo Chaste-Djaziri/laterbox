@@ -31,7 +31,7 @@ export function createAccountQueue(deps: QueueDependencies) {
   const flush = (): Promise<number> => serial(async () => {
     const account = await deps.connection();
     if (!account.userId || !account.token || account.isPro !== true) return 0;
-    let queue = await deps.read(); let count = 0; let last: CaptureResult = { status: 'saved' };
+    let queue = await deps.read(); if (!matching(queue,account.userId)) return 0; let count = 0; let last: CaptureResult = { status: 'saved' };
     for (const entry of [...queue]) {
       if (entry.userId !== account.userId) continue;
       const current = await deps.connection();
