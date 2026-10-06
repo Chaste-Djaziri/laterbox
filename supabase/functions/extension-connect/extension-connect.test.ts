@@ -194,3 +194,14 @@ async function sha256Hex(value: string): Promise<string> {
     byte.toString(16).padStart(2, "0"),
   ).join("");
 }
+
+Deno.test('exchange resumes a lost response but rejects revoked credentials and expiry',async()=>{
+ let revoked=false,used=false,expired=false;let insertions=0;
+ const handler=createConnectionHandler({supabaseUrl:'https://project.supabase.co',serviceRoleKey:'service',hasProAccess:async()=>true,
+ fetch:async(input,init)=>{const url=String(input);if(url.includes('extension_connection_requests') && init?.method==='PATCH'){used=true;return Response.json({});}
+ if(url.includes('extension_connection_requests'))return Response.json([{user_id:'owner',secret_hash:await sha256Hex(requestSecret),expires_at:new Date(Date.now()+(expired ? -1000:60000)).toISOString(),used_at:used ? new Date().toISOString():null}]);
+ if(init?.method==='POST'){insertions++;return Response.json({}, {status:201});}return Response.json(revoked ? []:[{user_id:'owner'}]);}});
+ const exchange=()=>handler(new Request('https://example.test/extension-connect',{method:'POST',body:JSON.stringify({action:'exchange',request_id:requestId,request_secret:requestSecret})}));
+ const first=await exchange();assertEquals(first.status,200);const original=await first.json();const retry=await exchange();assertEquals(await retry.json(),original);assertEquals(insertions,1);
+ revoked=true;assertEquals((await exchange()).status,409);expired=true;assertEquals((await exchange()).status,410);
+});
