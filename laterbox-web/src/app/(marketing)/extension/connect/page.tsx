@@ -95,6 +95,12 @@ function ExtensionConnectContent() {
       let targetUrl: URL;
       try {
         targetUrl = new URL(redirectUri, window.location.origin);
+        const trusted = new Set(['app.laterbox.dev', 'laterbox.dev', 'www.laterbox.dev', 'laterbox.micorp.pro', 'app.laterbox.com']);
+        const local = targetUrl.hostname === 'localhost' && window.location.hostname === 'localhost';
+        if ((!trusted.has(targetUrl.hostname) || targetUrl.protocol !== 'https:') && !local) {
+          targetUrl = new URL('/extension/connected', window.location.origin);
+        }
+        if (targetUrl.pathname !== '/extension/connected') targetUrl = new URL('/extension/connected', window.location.origin);
       } catch {
         targetUrl = new URL('/extension/connected', window.location.origin);
       }
