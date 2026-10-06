@@ -46,10 +46,28 @@
         <button id="open-panel" class="secondary-button" type="button">Open side panel</button>
         <button id="disconnect" class="link-button" type="button">Disconnect</button>
       </section>
-      <section class="card">
-        <label><input id="injected-controls" type="checkbox" checked /> Show selection and social save buttons</label>
+      <section class="settings-panel" aria-labelledby="page-controls-title">
+        <div class="settings-heading">
+          <h2 id="page-controls-title">Save buttons on pages</h2>
+          <span class="settings-tag">ON-PAGE</span>
+        </div>
+        <label class="toggle-row" for="injected-controls">
+          <span class="toggle-copy">
+            <span class="toggle-title">Quick save controls</span>
+            <span id="controls-description" class="toggle-description">Save selected text and individual social posts without opening the extension.</span>
+          </span>
+          <input id="injected-controls" type="checkbox" role="switch" aria-describedby="controls-description" checked />
+          <span class="toggle-track" aria-hidden="true"></span>
+        </label>
+        <div class="controls-examples" aria-label="Available page controls">
+          <span><span aria-hidden="true">❞</span> Select text · Save quote</span>
+          <span><span aria-hidden="true">＋</span> Social post · Save post</span>
+        </div>
+        <p class="settings-hint">Appears on supported sites with website access. Right-click actions and shortcuts stay available when disabled.</p>
+        <div class="shortcuts-section">
         <p id="shortcuts" class="status"></p>
-        <button id="configure-shortcuts" class="secondary-button" type="button">Keyboard shortcuts</button>
+        <button id="configure-shortcuts" class="secondary-button" type="button">Manage keyboard shortcuts <span aria-hidden="true">↗</span></button>
+        </div>
       </section>
       <p id="status" class="status" role="status"></p>
     </main>
