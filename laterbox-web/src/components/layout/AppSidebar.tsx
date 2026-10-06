@@ -100,7 +100,7 @@ export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
       icon: <Compass className="w-4 h-4" />,
     },
     {
-      href: '/download',
+      href: '/downloads',
       label: 'Apps',
       icon: <Download className="w-4 h-4" />,
     },
@@ -118,6 +118,7 @@ export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
 
   const isLinkActive = (href: string) => {
     if (href === '/home') return pathname === '/home' || pathname === '/';
+    if (href === '/downloads') return pathname === '/downloads' || pathname === '/download';
     return pathname === href || pathname.startsWith(`${href}/`);
   };
 
