@@ -12,6 +12,13 @@ const json = (data: unknown, status: number): Response =>
   });
 
 type CaptureBody = {
+  captureId?: unknown;
+  kind?: unknown;
+  markdown?: unknown;
+  canonicalUrl?: unknown;
+  author?: unknown;
+  publishedAt?: unknown;
+  truncated?: unknown;
   url?: unknown;
   text?: unknown;
   title?: unknown;
@@ -129,7 +136,7 @@ export const createCaptureHandler = (
       text_selector: capture.selector === null
         ? null
         : JSON.stringify(capture.selector),
-      type: capture.text !== null ? "note" : "link",
+      type: capture.kind === "highlight" ? "link" : capture.kind === "social" ? "link" : capture.text !== null ? "note" : "link",
       favorite: false,
       status: "deferred",
       return_at: null,
@@ -143,70 +150,52 @@ export const createCaptureHandler = (
       ? dependencies.serviceRoleKey
       : dependencies.anonKey;
 
-    const insertResponse = await dependencies.fetch(
-      `${dependencies.supabaseUrl}/rest/v1/items`,
-      {
+    const domain = capture.url ? new URL(capture.url).hostname.replace(/^www\./i, "") : null;
+    const metaRow = domain ? {
+      item_id: itemId, user_id: userId, domain,
+      site_name: capture.siteName ?? domain, title: capture.title ?? domain,
+      description: capture.description, favicon_url: capture.faviconUrl,
+      preview_image_url: capture.previewImageUrl,
+      status: capture.markdown || capture.previewImageUrl ? "enriched" : "pending",
+      content_type: capture.kind === "social" ? "link" : capture.markdown ? "article" : "link",
+      classification_source: capture.source,
+      structured_data: JSON.stringify({ source: capture.source, os: capture.os ?? "Desktop" }),
+      created_at: timestamp, updated_at: timestamp,
+    } : null;
+    let savedId = itemId;
+    if (capture.captureId) {
+      // Do not downgrade to non-atomic writes if migration is missing or RPC fails.
+      const response = await dependencies.fetch(`${dependencies.supabaseUrl}/rest/v1/rpc/save_extension_capture`, {
         method: "POST",
-        headers: {
-          apikey: databaseKey,
-          authorization: `Bearer ${databaseToken}`,
-          "content-type": "application/json",
-          prefer: "return=representation",
-        },
-        body: JSON.stringify(row),
-      },
-    );
-
-    if (!insertResponse.ok) {
-      console.error("capture insert failed", insertResponse.status);
-      return json({ error: "Could not save capture" }, 502);
-    }
-
-    // Insert metadata row if a URL was captured
-    if (capture.url) {
-      try {
-        const domain = new URL(capture.url).hostname.replace(/^www\./i, "");
-        const metaRow = {
-          item_id: itemId,
-          user_id: userId,
-          domain: domain,
-          site_name: capture.siteName ?? domain,
-          title: capture.title ?? domain,
-          description: capture.description ?? null,
-          favicon_url: capture.faviconUrl ?? `https://www.google.com/s2/favicons?domain=${domain}&sz=128`,
-          preview_image_url: capture.previewImageUrl ?? null,
-          status: capture.previewImageUrl ? "enriched" : "pending",
-          content_type: "link",
-          classification_source: capture.source,
-          structured_data: JSON.stringify({
-            source: capture.source,
-            os: capture.os ?? "Desktop",
-          }),
-          created_at: timestamp,
-          updated_at: timestamp,
-        };
-
-        await dependencies.fetch(
-          `${dependencies.supabaseUrl}/rest/v1/item_metadata`,
-          {
-            method: "POST",
-            headers: {
-              apikey: databaseKey,
-              authorization: `Bearer ${databaseToken}`,
-              "content-type": "application/json",
-              prefer: "resolution=merge-duplicates",
-            },
-            body: JSON.stringify(metaRow),
-          },
-        );
-      } catch (err) {
-        console.warn("Could not insert initial item_metadata", err);
+        headers: { apikey: dependencies.serviceRoleKey, authorization: `Bearer ${dependencies.serviceRoleKey}`, "content-type": "application/json" },
+        body: JSON.stringify({ p_user_id: userId, p_capture_id: capture.captureId, p_item: row,
+          p_metadata: metaRow, p_content: { kind: capture.kind, sourceUrl: capture.url,
+            canonicalUrl: capture.canonicalUrl, markdown: capture.markdown, author: capture.author,
+            publishedAt: capture.publishedAt, truncated: capture.truncated } }),
+      });
+      if (!response.ok) return json({ error: "Could not save capture snapshot" }, 502);
+      const id = await response.json();
+      if (typeof id !== "string") return json({ error: "Invalid capture acknowledgement" }, 502);
+      savedId = id;
+    } else {
+      // Compatibility for native clients and old extensions without a capture ID.
+      const headers = { apikey: databaseKey, authorization: `Bearer ${databaseToken}`, "content-type": "application/json" };
+      const response = await dependencies.fetch(`${dependencies.supabaseUrl}/rest/v1/items`, {
+        method: "POST", headers, body: JSON.stringify(row),
+      });
+      if (!response.ok) return json({ error: "Could not save capture" }, 502);
+      if (metaRow) {
+        try {
+          await dependencies.fetch(`${dependencies.supabaseUrl}/rest/v1/item_metadata`, {
+            method: "POST", headers: { ...headers, prefer: "resolution=merge-duplicates" }, body: JSON.stringify(metaRow),
+          });
+        } catch { console.warn("Could not insert initial item metadata"); }
       }
     }
 
     return json(
       {
-        id: itemId,
+        id: savedId,
         status: "saved",
         source: capture.source,
       },
@@ -290,7 +279,14 @@ async function hash(value: string): Promise<string> {
   ).join("");
 }
 
-function validateCaptureBody(body: CaptureBody): {
+export function validateCaptureBody(body: CaptureBody): {
+  captureId: string | null;
+  kind: string;
+  markdown: string;
+  canonicalUrl: string | null;
+  author: string | null;
+  publishedAt: string | null;
+  truncated: boolean;
   url: string | null;
   text: string | null;
   title: string | null;
@@ -299,9 +295,20 @@ function validateCaptureBody(body: CaptureBody): {
   faviconUrl: string | null;
   siteName: string | null;
   os: string | null;
-  selector: { before: string; after: string } | null;
+  selector: { before: string; after: string; exact?: string } | null;
   source: string;
 } | null {
+  if (!body || typeof body !== "object") return null;
+  const captureId = typeof body.captureId === "string" ? body.captureId : null;
+  if (body.captureId !== undefined && (!captureId || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(captureId))) return null;
+  const kind = typeof body.kind === "string" ? body.kind : "page";
+  if (!["page","link","highlight","social"].includes(kind)) return null;
+  const markdown = typeof body.markdown === "string" ? body.markdown : "";
+  if (new TextEncoder().encode(markdown).length > 204800) return null;
+  const canonicalUrl = typeof body.canonicalUrl === "string" ? body.canonicalUrl : null;
+  if (canonicalUrl && (!isHttpUrl(canonicalUrl) || canonicalUrl.length > 8192)) return null;
+  const author = typeof body.author === "string" ? body.author.slice(0,500) : null;
+  const publishedAt = typeof body.publishedAt === "string" ? body.publishedAt.slice(0,100) : null;
   let url = typeof body.url === "string" ? body.url.trim() : "";
   let text = typeof body.text === "string" ? body.text.trim() : "";
   const title = typeof body.title === "string" ? body.title.trim() : "";
@@ -338,7 +345,7 @@ function validateCaptureBody(body: CaptureBody): {
   }
 
   // Construct W3C scroll-to-text fragment if both url and text are present
-  if (url.length > 0 && text.length > 0 && isHttpUrl(url) && !url.includes(":~:text=")) {
+  if ((body.kind === undefined || kind === "highlight") && url.length > 0 && text.length > 0 && isHttpUrl(url) && !url.includes(":~:text=")) {
     const snippet = text.slice(0, 120);
     const encoded = encodeURIComponent(snippet);
     const separator = url.includes("#") ? ":~:text=" : "#:~:text=";
@@ -346,10 +353,11 @@ function validateCaptureBody(body: CaptureBody): {
   }
 
   if (url.length > 0 && !isHttpUrl(url)) return null;
-  if (url.length > 2048 || text.length > 10000 || title.length > 500) return null;
+  if (url.length > 8192 || text.length > 10000 || title.length > 500) return null;
   if (!CAPTURE_SOURCES.has(source)) return null;
 
   return {
+    captureId, kind, markdown, canonicalUrl, author, publishedAt, truncated: body.truncated === true,
     url: url.length > 0 ? url : null,
     text: text.length > 0 ? text : null,
     title: title.length > 0 ? title : null,
@@ -365,13 +373,14 @@ function validateCaptureBody(body: CaptureBody): {
 
 function parseSelector(
   value: unknown,
-): { before: string; after: string } | null {
+): { before: string; after: string; exact?: string } | null {
   if (typeof value !== "object" || value === null) return null;
   const raw = value as Record<string, unknown>;
   const before = typeof raw.before === "string" ? raw.before.trim().slice(0, 300) : "";
   const after = typeof raw.after === "string" ? raw.after.trim().slice(0, 300) : "";
-  if (!before && !after) return null;
-  return { before, after };
+  const exact = typeof raw.exact === "string" ? raw.exact.trim().slice(0,10000) : undefined;
+  if (!before && !after && !exact) return null;
+  return { before, after, ...(exact ? { exact } : {}) };
 }
 
 function isHttpUrl(value: string): boolean {
