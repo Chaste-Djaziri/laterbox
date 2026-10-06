@@ -12,7 +12,7 @@ export function createInstagramControls(doc:Document, create:(post:InstagramPost
       const appearance=doc.defaultView?.getComputedStyle(icon);
       const color=appearance?.fill && !['none','currentColor',''].includes(appearance.fill) ? appearance.fill : appearance?.color;
       const size=Math.max(16,Math.min(32,parseFloat(appearance?.width || '') || 24))+'px';
-      for(const [name,value] of [['--lb-instagram-color',color],['--lb-instagram-size',size]]){
+      for(const [name,value] of [['--lb-instagram-color',color],['--lb-instagram-size',size]] as const){
         if(value && container.style.getPropertyValue(name)!==value)container.style.setProperty(name,value);
       }
     };
