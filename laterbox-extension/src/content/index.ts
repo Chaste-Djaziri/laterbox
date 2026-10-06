@@ -90,7 +90,8 @@ const syncInstagramControls=createInstagramControls(document,(post,resolve)=>{
     page.url=current.url;page.canonicalUrl=current.url;page.siteName=current.site;page.author=current.author;page.publishedAt=current.publishedAt;
     page.title=(current.author ? current.author+' on ' : 'Post on ')+current.site;
     page.description=(current.root as HTMLElement).innerText?.trim().slice(0,500);
-    const image=current.root.querySelector<HTMLImageElement>('img');const video=current.root.querySelector<HTMLVideoElement>('video');
+    const images=Array.from(current.root.querySelectorAll<HTMLImageElement>('img')).filter(image=>!image.closest('header') && !/profile picture/i.test(image.alt));
+    const image=images.sort((a,b)=>(b.naturalWidth || b.width)-(a.naturalWidth || a.width))[0];const video=current.root.querySelector<HTMLVideoElement>('video');
     page.previewImageUrl=video?.poster || image?.currentSrc || image?.src || '';
     void submit(captureFromPage(page,'social'),button);
   });
