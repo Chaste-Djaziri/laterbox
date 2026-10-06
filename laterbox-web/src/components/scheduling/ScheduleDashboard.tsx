@@ -8,7 +8,6 @@ import { useAuth } from '@/lib/store/AuthContext';
 import { scheduleItems, returnLabel, type ScheduleView } from '@/lib/utils/schedule';
 import { ItemListRow } from '../inbox/ItemListRow';
 import { QuickCaptureModal } from '../inbox/QuickCaptureModal';
-import { CloudSyncIndicator } from '../ui/CloudSyncIndicator';
 import type { LaterBoxItem } from '@/lib/supabase/types';
 import { ItemCard } from '../inbox/ItemCard';
 import {
@@ -293,8 +292,6 @@ export function ScheduleDashboard({ view }: { view?: ScheduleView }) {
                 <List className="w-3.5 h-3.5" />
               </button>
             </div>
-
-            <CloudSyncIndicator />
 
             <Link
               href="/tutorial"
