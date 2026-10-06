@@ -111,14 +111,14 @@
 		CAD5B18730399BD1005FB70C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		CAD5B18C30399BD1005FB70C /* laterbox Extension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "laterbox Extension.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
 		CAD5B19130399BD1005FB70C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		CAD5B1B130399BD2005FB70C /* popup.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = popup.js; path = ../../../extension/dist/safari/popup.js; sourceTree = "<group>"; };
-		CAD5B1B230399BD2005FB70C /* sidepanel.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = sidepanel.js; path = ../../../extension/dist/safari/sidepanel.js; sourceTree = "<group>"; };
-		CAD5B1B330399BD2005FB70C /* background.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = background.js; path = ../../../extension/dist/safari/background.js; sourceTree = "<group>"; };
-		CAD5B1B430399BD2005FB70C /* logo.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = logo.png; path = ../../../extension/dist/safari/logo.png; sourceTree = "<group>"; };
-		CAD5B1B530399BD2005FB70C /* icons */ = {isa = PBXFileReference; lastKnownFileType = folder; name = icons; path = ../../../extension/dist/safari/icons; sourceTree = "<group>"; };
-		CAD5B1B630399BD2005FB70C /* manifest.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; name = manifest.json; path = ../../../extension/dist/safari/manifest.json; sourceTree = "<group>"; };
-		CAD5B1B730399BD2005FB70C /* assets */ = {isa = PBXFileReference; lastKnownFileType = folder; name = assets; path = ../../../extension/dist/safari/assets; sourceTree = "<group>"; };
-		CAD5B1B830399BD2005FB70C /* src */ = {isa = PBXFileReference; lastKnownFileType = folder; name = src; path = ../../../extension/dist/safari/src; sourceTree = "<group>"; };
+		CAD5B1B130399BD2005FB70C /* popup.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = popup.js; path = ../../../laterbox-extension/dist/safari/popup.js; sourceTree = "<group>"; };
+		CAD5B1B230399BD2005FB70C /* sidepanel.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = sidepanel.js; path = ../../../laterbox-extension/dist/safari/sidepanel.js; sourceTree = "<group>"; };
+		CAD5B1B330399BD2005FB70C /* background.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = background.js; path = ../../../laterbox-extension/dist/safari/background.js; sourceTree = "<group>"; };
+		CAD5B1B430399BD2005FB70C /* logo.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = logo.png; path = ../../../laterbox-extension/dist/safari/logo.png; sourceTree = "<group>"; };
+		CAD5B1B530399BD2005FB70C /* icons */ = {isa = PBXFileReference; lastKnownFileType = folder; name = icons; path = ../../../laterbox-extension/dist/safari/icons; sourceTree = "<group>"; };
+		CAD5B1B630399BD2005FB70C /* manifest.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; name = manifest.json; path = ../../../laterbox-extension/dist/safari/manifest.json; sourceTree = "<group>"; };
+		CAD5B1B730399BD2005FB70C /* assets */ = {isa = PBXFileReference; lastKnownFileType = folder; name = assets; path = ../../../laterbox-extension/dist/safari/assets; sourceTree = "<group>"; };
+		CAD5B1B830399BD2005FB70C /* src */ = {isa = PBXFileReference; lastKnownFileType = folder; name = src; path = ../../../laterbox-extension/dist/safari/src; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
