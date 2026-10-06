@@ -7,6 +7,7 @@ import { ItemListRow } from '@/components/inbox/ItemListRow';
 import { useItems } from '@/lib/store/ItemContext';
 import {
   Search as SearchIcon,
+  Database,
   X,
   FileText,
   PlayCircle,
@@ -118,8 +119,12 @@ export default function SearchPage() {
 
       {/* View Header with Signature Style */}
       <div className="space-y-2 pt-1">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#e6edb0] border border-[#d0db84] text-[#171711] text-xs font-black">
-          <span>🔍 Instant Offline Search • 100% Local SQLite Core</span>
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#e6edb0] border border-[#d0db84] text-[#171711] text-xs font-bold shadow-2xs">
+          <SearchIcon className="w-3.5 h-3.5 text-[#171711] shrink-0" />
+          <span>Instant Offline Search</span>
+          <span className="w-1 h-1 rounded-full bg-[#171711]/40" />
+          <Database className="w-3.5 h-3.5 text-[#171711] shrink-0" />
+          <span>100% Local SQLite Core</span>
         </div>
         <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-[#171711]">
           Deep Search
