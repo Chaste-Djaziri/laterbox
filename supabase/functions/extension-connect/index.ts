@@ -189,26 +189,34 @@ async function exchangeRequest(
   }
 
   const connection = await findRequest(requestId, requestSecret, dependencies);
-  if (connection === null || connection.user_id === null || connection.used_at !== null) {
+  if (connection === null || connection.user_id === null) {
     return json({ error: "Connection request is not approved" }, 409);
   }
   if (new Date(connection.expires_at).getTime() <= dependencies.now().getTime()) {
     return json({ error: "Connection request expired" }, 410);
   }
 
-  const token = dependencies.createToken();
+  // Derive a retryable credential from the high-entropy approval secret, not a user token.
+  const token = `lb_ext_${await hash(`connection:${requestId}:${requestSecret}`)}`;
+  const tokenHash = await hash(token);
+  if (connection.used_at !== null) {
+    const existing = await adminFetch(`/rest/v1/extension_sessions?select=user_id&token_hash=eq.${tokenHash}&revoked_at=is.null&expires_at=gt.${encodeURIComponent(dependencies.now().toISOString())}`,dependencies);
+    const rows = existing.ok ? await existing.json() : [];
+    if (rows[0]?.user_id !== connection.user_id) return json({error:'Connection unavailable; approve again'},409);
+    return json({extensionToken:token,userId:connection.user_id,isPro:await dependencies.hasProAccess(connection.user_id)},200);
+  }
   const now = dependencies.now();
   const inserted = await adminFetch(
-    "/rest/v1/extension_sessions",
+    "/rest/v1/extension_sessions?on_conflict=token_hash",
     dependencies,
     {
       method: "POST",
-      headers: { prefer: "return=minimal" },
+      headers: { prefer: "return=minimal,resolution=ignore-duplicates" },
       body: JSON.stringify({
         id: dependencies.createId(),
         user_id: connection.user_id,
         origin_installation_id: connection.origin_installation_id ?? null,
-        token_hash: await hash(token),
+        token_hash: tokenHash,
         created_at: now.toISOString(),
         expires_at: new Date(now.getTime() + SESSION_TTL_MS).toISOString(),
       }),
@@ -225,6 +233,7 @@ async function exchangeRequest(
       body: JSON.stringify({ used_at: now.toISOString() }),
     },
   );
+  if (!markedUsed.ok) return json({error:"Could not finalize connection"},502);
   const isPro = await dependencies.hasProAccess(connection.user_id);
   return json({ extensionToken: token, userId: connection.user_id, isPro }, 200);
 }
