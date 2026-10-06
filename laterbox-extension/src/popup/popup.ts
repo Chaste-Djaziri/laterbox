@@ -255,6 +255,8 @@ async function showCaptureResult(
     await updateConnectionState();
     setStatus("Reconnect your LaterBox account. Pending captures stay assigned to their original account.", "error");
     button.disabled = false;
+  } else if (result.status === "error") {
+    setStatus("Could not save this content. Reload the page and try again.", "error"); button.disabled=false;
   } else {
     setStatus(
       result.reason === "server"
@@ -277,3 +279,25 @@ function domainFor(value: string): string {
     return "CURRENT PAGE";
   }
 }
+
+const injectedToggle = document.querySelector<HTMLInputElement>('#injected-controls')!;
+void browser.storage.local.get('injectedControls').then(values=>{ injectedToggle.checked=values.injectedControls!==false; });
+injectedToggle.addEventListener('change',()=>{void browser.storage.local.set({injectedControls:injectedToggle.checked});});
+void browser.commands.getAll().then(commands=>{
+  document.querySelector<HTMLElement>('#shortcuts')!.textContent=commands.filter(command=>command.name==='save-current-page' || command.name==='save-selection').map(command=>`${command.name==='save-selection' ? 'Highlight' : 'Page'}: ${command.shortcut || 'Unassigned — choose a shortcut'}`).join(' · ');
+});
+document.querySelector('#configure-shortcuts')!.addEventListener('click',()=>{
+  const firefox=!!(globalThis as {browser?:unknown}).browser;
+  if(browserCapabilities.supportsSidePanel) void browser.tabs.create({url:firefox ? 'about:addons' : 'chrome://extensions/shortcuts'});
+  else setStatus('Configure extension keyboard shortcuts in your browser extension settings.');
+});
+function renderCaptureState(state:{status?:string;pending?:number}) {
+  if(state.status==='queued')setStatus(`Offline or service unavailable. ${state.pending || 0} pending saves will sync to your account automatically.`, 'error');
+  if(state.status==='needsAuth')setStatus('Reconnect your account to resume pending saves.', 'error');
+  if(state.status==='proRequired')setStatus('LaterBox Pro is required to save and sync.', 'error');
+}
+void browser.storage.local.get(['captureState','connectionError']).then(values=>{if(values.captureState)renderCaptureState(values.captureState);if(values.connectionError)setStatus(values.connectionError,'error');});
+browser.storage.onChanged.addListener((changes,area)=>{
+  if(area==='local' && changes.captureState?.newValue)renderCaptureState(changes.captureState.newValue);
+  if(area==='local' && changes.connectionError?.newValue)setStatus(changes.connectionError.newValue,'error');
+});
