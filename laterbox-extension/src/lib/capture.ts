@@ -1,119 +1,18 @@
-import { getAccessToken } from "./auth";
-import { buildScrollToTextFragment, getPageContext } from "./page";
-import {
-  enqueueCapture,
-  getPendingCaptures,
-  replacePendingCaptures,
-  setIsPro,
-} from "./storage";
-import type { Capture, CaptureResult } from "../types/capture";
-
-const captureEndpoint = import.meta.env.VITE_CAPTURE_API_URL ?? "";
-
-export async function saveSelectionFromTab(
-  tab: chrome.tabs.Tab,
-): Promise<CaptureResult> {
-  if (tab.id === undefined) throw new Error("Missing active tab.");
-
-  const page = await getPageContext(tab.id, {
-    url: tab.url ?? "",
-    title: tab.title ?? "",
-    selection: "",
-  });
-
-  const selectedText = page.selection.trim();
-  if (!selectedText) throw new Error("No text selected.");
-
-  const rawUrl = page.url || tab.url || "";
-  const highlightedUrl = buildScrollToTextFragment(
-    rawUrl,
-    selectedText,
-    page.selector,
-  );
-
-  return saveCapture({
-    text: selectedText,
-    url: highlightedUrl,
-    title: page.title || tab.title || undefined,
-    description: page.description,
-    previewImageUrl: page.previewImageUrl,
-    faviconUrl: page.faviconUrl,
-    siteName: page.siteName,
-    os: page.os,
-    selector: page.selector ?? undefined,
-    source: "browserExtension",
-    createdAt: new Date().toISOString(),
-  });
-}
-
+import { browser } from '../platform/api';
+import { captureFromPage, getPageContext } from './page';
+import type { Capture, CaptureResult } from '../types/capture';
+// UI contexts never mutate the queue. The worker owns persistence and replay.
 export async function saveCapture(capture: Capture): Promise<CaptureResult> {
-  const token = await getAccessToken();
-  if (!captureEndpoint || !token) {
-    await enqueueCapture(capture);
-    return { status: token ? "queued" : "needsAuth" };
-  }
-
-  try {
-    const id = await sendCapture(capture, token);
-    return { id, status: "saved" };
-  } catch (error) {
-    if (error instanceof ProRequiredError) {
-      await setIsPro(false);
-      return { status: "proRequired", reason: "proRequired" };
-    }
-    await enqueueCapture(capture);
-    if (error instanceof AuthenticationError) return { status: "needsAuth" };
-    return {
-      status: "queued",
-      reason: error instanceof TypeError ? "network" : "server",
-    };
-  }
+  try { return await browser.runtime.sendMessage({ type: 'capture', capture }); }
+  catch { return { status: 'error', reason: 'server' }; }
 }
-
 export async function flushQueue(): Promise<number> {
-  const token = await getAccessToken();
-  if (!captureEndpoint || !token) return 0;
-
-  const pending = await getPendingCaptures();
-  const remaining: Capture[] = [];
-  let flushed = 0;
-  for (const capture of pending) {
-    try {
-      await sendCapture(capture, token);
-      flushed++;
-    } catch (error) {
-      if (error instanceof ProRequiredError) {
-        await setIsPro(false);
-        remaining.push(capture);
-        break;
-      }
-      remaining.push(capture);
-    }
-  }
-  await replacePendingCaptures(remaining);
-  return flushed;
+  try { const result = await browser.runtime.sendMessage({ type: 'flush-captures' }); return result?.count || 0; }
+  catch { return 0; }
 }
-
-async function sendCapture(capture: Capture, token: string): Promise<string> {
-  const response = await fetch(captureEndpoint, {
-    method: "POST",
-    headers: {
-      authorization: `Bearer ${token}`,
-      "content-type": "application/json",
-    },
-    body: JSON.stringify(capture),
-  });
-  if (response.status === 403) {
-    throw new ProRequiredError();
-  }
-  if (response.status === 401) {
-    throw new AuthenticationError();
-  }
-  if (!response.ok) throw new Error(`Capture failed with ${response.status}`);
-
-  const body = await response.json() as { id?: unknown };
-  return typeof body.id === "string" ? body.id : "";
+export async function saveSelectionFromTab(tab: chrome.tabs.Tab): Promise<CaptureResult> {
+  if (tab.id === undefined) throw new Error('Missing active tab.');
+  const page = await getPageContext(tab.id);
+  if (!page.selection) throw new Error('No text selected.');
+  return saveCapture(captureFromPage(page,'highlight'));
 }
-
-export class AuthenticationError extends Error {}
-export class ProRequiredError extends Error {}
