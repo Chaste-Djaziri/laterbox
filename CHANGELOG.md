@@ -34,6 +34,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 - **[Web] Music source labels**: Music cards and item actions now identify the originating service (including Apple Music and Spotify) and avoid presenting a Spotify label or icon for unrelated music links.
 
 ### Changed
+- **[Web] Schedule & Timeline Header Badge Icon Standardization**: Replaced raw emojis across the scheduled timeline views (Upcoming, Today, and Someday) with proper Lucide SVG icons (`Calendar`, `Clock`, `Zap`, and `Sparkles`) and standardized divider badges.
 - **[Web] Library Header Badge Icon Standardization**: Replaced raw book emoji in the library header pill with proper Lucide SVG icons (`BookOpen` and `Database`) for visual consistency with the search and system headers.
 - **[Web] Search Page Header Icon Standardization**: Replaced raw unicode search emoji in the offline search header pill with proper Lucide SVG icons (`Search` and `Database`) for a polished, cohesive UI.
 - **[Web] Inbox Page Header Streamlining**: Removed the redundant back button from the main Inbox header to keep the primary dashboard landing view clean and focused.
