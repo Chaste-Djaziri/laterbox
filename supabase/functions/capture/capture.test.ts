@@ -168,3 +168,18 @@ Deno.test("capture rejects connected capture without Pro", async () => {
     error: "LaterBox Pro is required for connected capture",
   });
 });
+
+Deno.test('rich captures require atomic RPC acknowledgement and preserve snapshots',async()=>{
+ let rpcBody:Record<string,unknown>={};let fail=false;
+ const handler=createCaptureHandler({supabaseUrl:'https://project.supabase.co',anonKey:'anon',serviceRoleKey:'service',hasProAccess:async()=>true,
+ fetch:async(input,init)=>{const url=String(input);if(url.endsWith('/auth/v1/user'))return Response.json({id:userId});assert(url.endsWith('/rpc/save_extension_capture'));rpcBody=JSON.parse(String(init?.body));return fail ? Response.json({}, {status:500}):Response.json('00000000-0000-4000-8000-000000000099');}});
+ const send=()=>handler(new Request('https://example.test/capture',{method:'POST',headers:{authorization:`Bearer ${token}`},body:JSON.stringify({captureId:'00000000-0000-4000-8000-000000000010',kind:'social',url:'https://example.com/post',markdown:'# Post',author:'Writer',text:'Visible post',source:'browserExtension'})}));
+ assertEquals((await send()).status,201);assertEquals((rpcBody.p_content as Record<string,unknown>).markdown,'# Post');assertEquals((rpcBody.p_item as Record<string,unknown>).url,'https://example.com/post');fail=true;assertEquals((await send()).status,502);
+});
+Deno.test('capture validates UTF-8 content limits before network writes',async()=>{
+ const {validateCaptureBody}=await import('./index.ts');
+ assertEquals(validateCaptureBody({url:'https://example.com',markdown:'é'.repeat(102401)}),null);
+ assertEquals(validateCaptureBody({url:'https://example.com',text:'é'.repeat(5001),kind:'highlight'}),null);
+ assertEquals(validateCaptureBody({url:'https://example.com/'+ 'é'.repeat(4100)}),null);
+ assert(validateCaptureBody({url:'https://example.com',markdown:'x'.repeat(204800),kind:'page'}));
+});
