@@ -5,6 +5,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- **[Extensions] Reel action spacing**: Place LaterBox in its own centered action-rail slot with clear spacing from Instagram’s bookmark.
 - **[Extensions] Scrolling Reel grouping**: Associate Reel save actions with their video container rather than audio-cover thumbnails in the action rail.
 - **[Extensions] Instagram layout fixes**: Improve feed and scrolling-Reels detection, adapt save labels to available action-row space, and use a distinct LaterBox box icon.
 - **[Extensions] Instagram post saves**: Place Save to LaterBox beside Share on supported Instagram posts and Reels; pause injected post buttons on other social sites during the trial.
