@@ -11,7 +11,6 @@ import { useAuth } from '@/lib/store/AuthContext';
 import { QuickCaptureModal } from '@/components/inbox/QuickCaptureModal';
 import { scheduleItems } from '@/lib/utils/schedule';
 import {
-  ArrowLeft,
   Search,
   LayoutGrid,
   List,
@@ -193,19 +192,10 @@ export default function InboxPage() {
       {/* Top Header & Omnibar Controls */}
       {/* ========================================================================= */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-        {/* Left Title & Back button */}
-        <div className="flex items-center gap-3.5">
-          <button
-            type="button"
-            onClick={() => router.back()}
-            className="w-8 h-8 rounded-xl bg-white border border-[#e4e0d5] hover:border-[#171711]/40 flex items-center justify-center text-[#171711] shadow-2xs transition-all cursor-pointer shrink-0"
-            title="Go back"
-          >
-            <ArrowLeft className="w-4 h-4" />
-          </button>
-          <div>
-            <div className="flex items-center gap-2.5">
-              <h1 className="text-3xl font-black text-[#171711] tracking-tight">Inbox</h1>
+        {/* Left Title */}
+        <div>
+          <div className="flex items-center gap-2.5">
+            <h1 className="text-3xl font-black text-[#171711] tracking-tight">Inbox</h1>
               {userName ? (
                 isEditingName ? (
                   <form
@@ -308,7 +298,6 @@ export default function InboxPage() {
                 : 'Capture everything. Review when it matters.'}
             </p>
           </div>
-        </div>
 
         {/* Right Controls */}
         <div className="flex items-center gap-2.5 flex-wrap">
