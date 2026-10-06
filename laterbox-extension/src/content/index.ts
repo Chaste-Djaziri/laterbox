@@ -16,7 +16,9 @@ button svg{width:15px;height:15px;flex-shrink:0}
 .quote-toolbar{position:fixed;z-index:2147483647;display:flex;align-items:center;gap:6px;padding:5px;background:#fff;border:1px solid #deded4;border-radius:13px;box-shadow:0 6px 24px #0002;max-width:calc(100vw - 16px)}
 .dismiss{min-width:28px;min-height:28px;padding:6px;border:0;background:transparent;color:#77766b;border-radius:7px}.dismiss:hover{background:#f1f0e8;color:#171711}
 .instagram-action{display:inline-flex;color-scheme:light dark}.instagram-action button{min-height:32px;padding:6px 9px;font-size:11px;background:#fff;color:#171711;border-color:#dcdcd3;white-space:nowrap}.instagram-action button:hover{background:#f0f3df;border-color:#b1c483}
-@media(prefers-color-scheme:dark){.instagram-action button{background:#242424;color:#f5f5f5;border-color:#555}.instagram-action button:hover{background:#333}}
+@media(prefers-color-scheme:dark){.instagram-action:not(.light) button{background:#242424;color:#f5f5f5;border-color:#555}.instagram-action:not(.light) button:hover{background:#333}}
+.instagram-action.dark button{background:#242424;color:#f5f5f5;border-color:#555}.instagram-action.dark button:hover{background:#333}
+@media(max-width:480px){.instagram-action button:not([data-state]) span{display:none}.instagram-action button{min-width:32px}}
 button[data-state=saved]{background:#edf5ee;color:#25653c;border-color:#c3ddc6}button[data-state=queued]{background:#fff6de;color:#805b12;border-color:#ebd6a3}
 .notice{position:fixed;bottom:24px;right:24px;display:flex;align-items:flex-start;gap:12px;max-width:min(360px,calc(100vw - 32px));font:13px/1.5 system-ui;background:#fff;color:#171711;padding:14px 14px 14px 17px;border:1px solid #deded4;border-left:4px solid #26734d;border-radius:12px;box-shadow:0 6px 28px #0002;z-index:2147483647}
 .notice[data-state=queued]{border-left-color:#b7791f}.notice[data-state=error]{border-left-color:#a33a32}.notice strong{display:block;font-size:13px}.notice p{margin:3px 0 0;color:#6c6b63;font-size:12px}.notice .dismiss{flex-shrink:0}
@@ -73,7 +75,10 @@ window.addEventListener('scroll',()=>{quoteToolbar.hidden=true;},{passive:true})
 const syncInstagramControls=createInstagramControls(document,(post,resolve)=>{
   const container=document.createElement('span');container.setAttribute('data-laterbox-control','');container.style.cssText='display:inline-flex;align-items:center;flex-shrink:0;margin:0 6px;vertical-align:middle';
   const local=container.attachShadow({mode:'closed'});local.append(style.cloneNode(true));
-  const row=document.createElement('span');row.className='instagram-action';local.append(row);
+  const row=document.createElement('span');row.className='instagram-action';
+  const color=getComputedStyle(post.share).color.match(/\d+/g)?.slice(0,3).map(Number);
+  if(color?.length===3)row.classList.add(color.reduce((sum,value)=>sum+value,0)>384 ? 'dark' : 'light');
+  local.append(row);
   const button=document.createElement('button');button.type='button';decorate(button,'Save to LaterBox');button.title='Save this Instagram post to LaterBox';button.setAttribute('aria-label',`Save ${post.author ? post.author+'’s ' : ''}Instagram post to LaterBox`);row.append(button);
   container.addEventListener('click',event=>event.stopPropagation());
   button.addEventListener('click',event=>{
