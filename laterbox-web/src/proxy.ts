@@ -86,6 +86,7 @@ export function proxy(request: NextRequest) {
       url.pathname.startsWith('/library') ||
       url.pathname.startsWith('/search') ||
       url.pathname.startsWith('/settings') ||
+      url.pathname.startsWith('/downloads') ||
       url.pathname.startsWith('/item') ||
       url.pathname.startsWith('/login') ||
       url.pathname.startsWith('/extension');
