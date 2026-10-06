@@ -195,7 +195,7 @@ Return valid JSON adhering strictly to:
       success: true,
       isAi: true,
       model: modelName,
-      summary: parsed.summary || `Gemini identified: ${localParsed.explanation}`,
+      summary: parsed.summary || `Later AI identified: ${localParsed.explanation}`,
       parsedFilters: {
         contentType: parsed.contentType || localParsed.contentType,
         dateRange: parsed.dateRange || (localParsed.dateRange ? {

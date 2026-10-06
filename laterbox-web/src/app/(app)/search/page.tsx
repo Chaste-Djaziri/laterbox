@@ -207,7 +207,7 @@ export default function SearchPage() {
         </div>
 
         <div className="flex items-center gap-2">
-          {/* Gemini AI Status Indicator / Pro Upgrade Badge */}
+          {/* Later AI Status Indicator / Pro Upgrade Badge */}
           {isPro ? (
             <button
               type="button"
@@ -217,19 +217,19 @@ export default function SearchPage() {
                   ? 'bg-[#e6edb0] border-[#d0db84] text-[#171711] shadow-2xs'
                   : 'bg-white border-[#e4e0d5] text-[#8e8d87] hover:text-[#171711]'
               }`}
-              title="Toggle Google Gemini Semantic Search for ambiguous natural language queries"
+              title="Toggle Later AI Semantic Search for ambiguous natural language queries"
             >
               <Sparkles className="w-3.5 h-3.5 text-[#171711]" />
-              <span>Gemini AI {aiEnabled ? 'On' : 'Off'}</span>
+              <span>Later AI {aiEnabled ? 'On' : 'Off'}</span>
             </button>
           ) : (
             <Link
               href="/plans"
               className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white border border-[#e4e0d5] text-xs font-bold text-[#6c6b63] hover:text-[#171711] hover:border-[#171711] transition-all shadow-2xs"
-              title="Upgrade to LaterBox Pro to activate Google Gemini AI Semantic Search"
+              title="Upgrade to LaterBox Pro to activate Later AI Semantic Search"
             >
               <Sparkles className="w-3.5 h-3.5 text-[#bfa829]" />
-              <span>Gemini AI • Pro</span>
+              <span>Later AI • Pro</span>
             </Link>
           )}
 
@@ -284,7 +284,7 @@ export default function SearchPage() {
           Deep Search
         </h1>
         <p className="text-xs sm:text-sm text-[#6c6b63] font-medium max-w-2xl leading-relaxed">
-          Ask naturally (e.g. &ldquo;a cideo i saved in october&rdquo; or &ldquo;between May and August&rdquo;). Searches keywords, metadata, and vault notes with offline typo tolerance and Gemini AI reasoning.
+          Ask naturally (e.g. &ldquo;a cideo i saved in october&rdquo; or &ldquo;between May and August&rdquo;). Searches keywords, metadata, and vault notes with offline typo tolerance and Later AI reasoning.
         </p>
       </div>
 
@@ -322,7 +322,7 @@ export default function SearchPage() {
               {aiLoading ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin text-[#88961c]" />
-                  <span>Thinking with Gemini...</span>
+                  <span>Searching with Later AI...</span>
                 </>
               ) : aiResult ? (
                 <>
@@ -337,11 +337,6 @@ export default function SearchPage() {
               )}
             </div>
 
-            {aiResult?.model && (
-              <span className="text-[10px] font-bold uppercase tracking-wider text-[#737e1b] bg-white/70 px-2 py-0.5 rounded-md border border-[#d0db84]/60">
-                {aiResult.model}
-              </span>
-            )}
             {!isPro && (
               <span className="text-[10px] font-bold text-[#737e1b] bg-white/70 px-2 py-0.5 rounded-md border border-[#d0db84]/60">
                 Local Ambiguous Engine

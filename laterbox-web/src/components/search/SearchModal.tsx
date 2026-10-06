@@ -441,17 +441,17 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
             {isPro ? (
               <span className="inline-flex items-center gap-1 text-[10px] font-bold text-[#444a10] bg-[#e6edb0] border border-[#d0db84] px-2 py-0.5 rounded-full">
                 <Sparkles className="w-3 h-3 text-[#171711]" />
-                <span>Gemini AI Search Active</span>
+                <span>Later AI Search Active</span>
               </span>
             ) : (
               <Link
                 href="/plans"
                 onClick={onClose}
                 className="inline-flex items-center gap-1 text-[10px] font-bold text-[#6c6b63] hover:text-[#171711] bg-white border border-[#e4e0d5] px-2 py-0.5 rounded-full shadow-2xs transition-colors"
-                title="Upgrade to LaterBox Pro to activate Google Gemini AI search"
+                title="Upgrade to LaterBox Pro to activate Later AI search"
               >
                 <Sparkles className="w-3 h-3 text-[#bfa829]" />
-                <span>Gemini AI • Pro</span>
+                <span>Later AI • Pro</span>
               </Link>
             )}
 
