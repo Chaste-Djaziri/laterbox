@@ -20,7 +20,8 @@ Fixes #(issue)
 
 ## 🎯 Target Subsystems
 
-- [ ] Flutter Core App (`lib/`)
+- [ ] Native Apple App (`laterbox-ios/`)
+- [ ] Native Android App (`laterbox-android/`)
 - [ ] Web Application & Docs (`laterbox-web/`)
 - [ ] Browser Extensions (`extension/`)
 - [ ] Backend & Edge Functions (`supabase/`)
@@ -32,8 +33,7 @@ Fixes #(issue)
 
 Please describe the tests that you ran to verify your changes:
 
-- [ ] `flutter test` (All unit and widget tests passed)
-- [ ] `flutter analyze` (Zero lint / analysis issues)
+- [ ] Native tests for the changed Apple or Android app
 - [ ] `npm run build` in `laterbox-web/` (TypeScript & Next.js production build passed)
 - [ ] `npm run package` in `extension/` (Chrome, Firefox, Safari bundles built)
 - [ ] Manual verification on target OS (e.g. macOS Sonoma, Windows 11, iOS, Android, Chrome)
