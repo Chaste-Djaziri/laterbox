@@ -64,7 +64,10 @@ export function findInstagramPosts(doc: Document, pageUrl: string): InstagramPos
     const urls=[...new Set(links.map(link=>permalink(link.getAttribute('href'))).filter((url):url is string=>!!url))];
     let url=permalink(root.getAttribute('data-permalink')) || permalink(root.getAttribute('data-shortcode') ? '/p/'+root.getAttribute('data-shortcode')+'/' : null) || permalink(timed?.getAttribute('href') || null) || (urls.length===1 ? urls[0] : null);
     const dialog=root.closest('[role="dialog"]');
-    if(!url && urls.length===0 && ((dialog && dialog.querySelectorAll('article').length<=1) || doc.querySelectorAll('article,video').length===1))url=permalink(currentPostUrl);
+    const videos=root.querySelectorAll('video');const mediaRect=videos.length===1 ? videos[0].getBoundingClientRect() : null;
+    const viewportHeight=doc.defaultView?.innerHeight || 0;
+    const activeReel=page.pathname.startsWith('/reels/') && mediaRect && mediaRect.height>0 && mediaRect.top<viewportHeight/2 && mediaRect.bottom>viewportHeight/2;
+    if(!url && urls.length===0 && ((dialog && dialog.querySelectorAll('article').length<=1) || doc.querySelectorAll('article,video').length===1 || activeReel))url=permalink(currentPostUrl);
     if(!url)continue;
     const row=share.parentElement;if(!row || !root.contains(row))continue;
     // An icon's button can be wrapped by a single action slot. Insert after that
