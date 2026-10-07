@@ -56,9 +56,8 @@ fun LaterAIScreen(
     BackHandler(onBack = onDismiss)
 
     val density = LocalDensity.current
-    val imeBottom = WindowInsets.ime.getBottom(density)
-    val navBottom = WindowInsets.navigationBars.getBottom(density)
-    val bottomInset = with(density) { maxOf(imeBottom, navBottom).toDp() }
+    val isKeyboardOpen = WindowInsets.ime.getBottom(density) > 0
+    val navBottom = with(density) { WindowInsets.navigationBars.getBottom(density).toDp() }
 
     Box(
         modifier = Modifier
@@ -69,7 +68,7 @@ fun LaterAIScreen(
                 indication = null
             ) { /* Absorb clicks to prevent click-through to underlying views */ }
             .statusBarsPadding()
-            .padding(bottom = bottomInset)
+            .padding(bottom = if (isKeyboardOpen) 0.dp else navBottom)
     ) {
         LaterAIContent(
             items = items,
@@ -191,7 +190,7 @@ fun LaterAIContent(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(start = 20.dp, end = 20.dp, top = 12.dp, bottom = if (isImeVisible) 6.dp else 12.dp),
+            .padding(start = 20.dp, end = 20.dp, top = 12.dp, bottom = if (isImeVisible) 8.dp else 12.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         // Top Drag Handle (iOS style)
