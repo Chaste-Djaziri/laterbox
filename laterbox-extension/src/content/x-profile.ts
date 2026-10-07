@@ -23,7 +23,14 @@ export function createXProfileControls(doc:Document,create:(profile:XProfile,res
     if(control && (!profile || profile.url!==control.profile.url || profile.insertionPoint!==control.profile.insertionPoint || !control.container.isConnected)){control.container.remove();control=undefined;}
     if(!profile)return;
     if(!control)control={profile,container:create(profile,()=>{const current=findXProfile(doc,doc.location.href);return current?.url===profile.url ? current:undefined;})};
-    const color=doc.defaultView?.getComputedStyle(profile.insertionPoint).color;if(color && control.container.style.color!==color)control.container.style.color=color;
+    // X aligns its native controls at the top of the row. The shared profile
+    // host's vertical margin otherwise pushes this button below those controls.
+    const container=control.container;
+    const appearance=doc.defaultView?.getComputedStyle(profile.insertionPoint);
+    const height=profile.insertionPoint.getBoundingClientRect().height || parseFloat(appearance?.height || '') || 36;
+    const css='display:inline-flex;align-items:center;align-self:flex-start;flex:0 0 auto;margin:0 8px 0 0;vertical-align:top;max-width:100%;height:'+Math.max(32,Math.min(48,height))+'px';
+    if(container.style.cssText!==css)container.style.cssText=css;
+    const color=appearance?.color;if(color && container.style.color!==color)container.style.color=color;
     if(profile.insertionPoint.nextElementSibling!==control.container)profile.insertionPoint.after(control.container);
   };
 }
