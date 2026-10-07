@@ -28,6 +28,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 - **[Android] Welcome screen legal disclaimer styling**: Centered the legal disclaimer on the onboarding welcome screen and adjusted to a compact caption2 font size.
 
 ### Fixed
+- **[Web] Paddle billing**: Configure checkout builds, distinguish checkout readiness errors, and add authenticated subscription management and cancellation links.
 - **[Android] Later AI nested scroll layout crash**: Resolved IllegalStateException by preventing nested vertical scroll modifiers inside GuidedCapture when rendered within Later AI scrollable container.
 
 ### Added
