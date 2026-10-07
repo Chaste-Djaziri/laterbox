@@ -49,7 +49,9 @@ class ReturnWorker(context: Context, parameters: WorkerParameters) : CoroutineWo
         if (ContextCompat.checkSelfPermission(applicationContext, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED || android.os.Build.VERSION.SDK_INT < 33) {
             val intent = Intent(applicationContext, MainActivity::class.java).putExtra("item_id", item.id)
             val pending = PendingIntent.getActivity(applicationContext, item.id.hashCode(), intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-            manager.notify(item.id.hashCode(), NotificationCompat.Builder(applicationContext, ReturnsService.CHANNEL_ID).setSmallIcon(R.drawable.ic_launcher_foreground)
+            manager.notify(item.id.hashCode(), NotificationCompat.Builder(applicationContext, ReturnsService.CHANNEL_ID)
+                .setSmallIcon(R.drawable.ic_notification)
+                .setColor(ContextCompat.getColor(applicationContext, R.color.laterbox_accent))
                 .setContentTitle("Time to return to this").setContentText(item.title).setContentIntent(pending).setAutoCancel(true).build())
         }
         return Result.success()

@@ -92,7 +92,9 @@ internal fun NotificationAccess() {
             runCatching {
                 val pending = PendingIntent.getActivity(context, 0, Intent(context, MainActivity::class.java), PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
                 NotificationManagerCompat.from(context).notify(987654, NotificationCompat.Builder(context, ReturnsService.CHANNEL_ID)
-                    .setSmallIcon(R.drawable.ic_launcher_foreground).setContentTitle("LaterBox reminders are ready")
+                    .setSmallIcon(R.drawable.ic_notification)
+                    .setColor(ContextCompat.getColor(context, R.color.laterbox_accent))
+                    .setContentTitle("LaterBox reminders are ready")
                     .setContentText("You'll receive alerts when scheduled items return to your Inbox.")
                     .setContentIntent(pending).setAutoCancel(true).build())
             }.onSuccess { message = "Test notification sent. Check your notification shade." }

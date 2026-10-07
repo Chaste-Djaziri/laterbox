@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="laterbox_accent">#6AE08A</color>
+    <color name="laterbox_green">#E6EDB0</color>
+    <color name="splash_background">#0C0C0D</color>
+    <color name="launcher_background">#171711</color>
+</resources>
