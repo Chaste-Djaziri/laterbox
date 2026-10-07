@@ -155,17 +155,27 @@ class DefaultDataRepository(
             require(database.collectionDao().getAllCollections().none { it.id != id && it.deletedAt == null && it.userId == current.userId && it.name.equals(trimmed, true) }) { "A collection with this name already exists." }
             val now = Instant.now().toString()
             database.collectionDao().updateCollection(current.copy(name = trimmed, updatedAt = now, syncStatus = "pending"))
-            database.itemDao().getAllItems().filter { it.collectionId == id }.forEach {
-                database.itemDao().updateItem(it.copy(category = trimmed, updatedAt = now, syncStatus = "pending"))
+            database.itemDao().getAllItems().filter {
+                (it.userId == null || it.userId == com.example.laterbox.services.AccountService.state.value.userId) &&
+                    (it.collectionId == id || it.collectionId == null && it.category.trim().equals(current.name, true))
+            }.forEach {
+                database.itemDao().updateItem(it.copy(collectionId = id, category = trimmed, updatedAt = now, syncStatus = "pending"))
             }
         }
         syncNow()
     }
 
     override suspend fun deleteCollection(id: String) {
-        val now = Instant.now().toString()
-        database.collectionDao().deleteCollection(id, now)
-        database.itemDao().getAllItems().filter { it.collectionId == id }.forEach { database.itemDao().updateItem(it.copy(collectionId = null, category = "", updatedAt = now, syncStatus = "pending")) }
+        database.withTransaction {
+            val current = database.collectionDao().getCollectionById(id) ?: error("Collection no longer exists.")
+            require(current.userId == null || current.userId == com.example.laterbox.services.AccountService.state.value.userId)
+            val now = Instant.now().toString()
+            database.collectionDao().deleteCollection(id, now)
+            database.itemDao().getAllItems().filter {
+                (it.userId == null || it.userId == com.example.laterbox.services.AccountService.state.value.userId) &&
+                    (it.collectionId == id || it.collectionId == null && it.category.trim().equals(current.name, true))
+            }.forEach { database.itemDao().updateItem(it.copy(collectionId = null, category = "", updatedAt = now, syncStatus = "pending")) }
+        }
         syncNow()
     }
 
