@@ -22,6 +22,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 - **[Android] Welcome screen legal disclaimer styling**: Centered the legal disclaimer on the onboarding welcome screen and adjusted to a compact caption2 font size.
 
 ### Added
+- **[Android] Full-screen Later AI overlay on plus action**: Replaced modal bottom sheet with a full-screen Later AI overlay matching the iOS interface with glowing brand orb, quick prompt suggestions, conversational assistant, and seamless dismiss gestures when clicking '+'.
 - **[Android] Profile avatar menu & quick logout**: Added profile avatar icon in the top right corner of the vault header that opens account details and quick options including logout.
 - **[Android] Home 'Waiting For You' section**: Added dedicated 'Waiting For You' section below overview metrics featuring a 3-bar item preview for inbox waiting items and caught-up state.
 - **[Android] Dedicated search page**: Added a dedicated search experience with back navigation, automatic keyboard focus, live query expansion, type filters, and clear actions when activating the search input.
