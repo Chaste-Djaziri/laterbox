@@ -219,11 +219,37 @@ data class AIAction(val intent: String, val reply: String, val content: String, 
             val start = text.indexOf('{'); val end = text.lastIndexOf('}')
             require(start >= 0 && end >= start) { "The model returned an invalid response. Retry or continue manually." }
             val data = JSONObject(text.substring(start, end + 1))
-            val intent = data.getString("intent")
-            require(intent in setOf("chat", "capture", "search", "clarify")) { "Unsupported AI action" }
-            val date = data.optString("returnDate").ifBlank { null }?.let { Instant.parse(it).also { value -> require(value.isAfter(Instant.now())) { "The suggested date has passed. Choose a return date." } }.toString() }
-            val tags = data.optJSONArray("tags")?.let { values -> (0 until values.length().coerceAtMost(20)).map { values.getString(it).removePrefix("#").take(80) }.joinToString(", ") }.orEmpty()
-            return AIAction(intent, data.optString("reply").take(6000), data.optString("content"), data.optString("title").take(200), data.optString("category").take(100), tags, data.optString("summary"), data.optString("formattedContent"), data.optString("query"), date)
+            val intent = data.optString("intent", "chat").takeIf { it in setOf("chat", "capture", "search", "clarify") } ?: "chat"
+            val rawDate = if (data.isNull("returnDate")) "" else data.optString("returnDate", "")
+            val date = rawDate.takeIf { it.isNotBlank() && it != "null" }?.let {
+                runCatching {
+                    Instant.parse(it).takeIf { value -> value.isAfter(Instant.now()) }?.toString()
+                }.getOrNull()
+            }
+            val tags = data.optJSONArray("tags")?.let { values ->
+                (0 until values.length().coerceAtMost(20)).mapNotNull { i ->
+                    values.optString(i, "").takeIf { it.isNotBlank() && it != "null" }?.removePrefix("#")?.take(80)
+                }.joinToString(", ")
+            }.orEmpty()
+
+            fun cleanStr(key: String, limit: Int = 6000): String {
+                if (data.isNull(key)) return ""
+                val s = data.optString(key, "")
+                return if (s == "null") "" else s.take(limit)
+            }
+
+            return AIAction(
+                intent = intent,
+                reply = cleanStr("reply"),
+                content = cleanStr("content"),
+                title = cleanStr("title", 200),
+                category = cleanStr("category", 100),
+                tags = tags,
+                summary = cleanStr("summary"),
+                formatted = cleanStr("formattedContent"),
+                query = cleanStr("query"),
+                returnAt = date
+            )
         }
     }
 }
