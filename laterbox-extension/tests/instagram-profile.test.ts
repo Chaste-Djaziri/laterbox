@@ -19,3 +19,11 @@ test('actionless profiles use the name while non-profile routes and hidden heade
   for(const path of ['/explore/','/accounts/','/p/123/','/reels/'])assert.equal(findInstagramProfile(doc,'https://www.instagram.com'+path),undefined);
   doc.querySelector('header')!.setAttribute('hidden','');assert.equal(findInstagramProfile(doc,doc.location.href),undefined);
 });
+
+test('Instagram profile control switches black and white when the surface theme changes',()=>{
+  const doc=new JSDOM(markup,{url:'https://www.instagram.com/profile.person/'}).window.document;
+  const sync=createInstagramProfileControls(doc,()=>{const host=doc.createElement('span');host.dataset.laterboxControl='';return host;});
+  doc.body.style.backgroundColor='rgb(10, 10, 10)';sync(true,doc.location.href);
+  const host=doc.querySelector<HTMLElement>('[data-laterbox-control]')!;assert.equal(host.style.getPropertyValue('--lb-profile-color'),'#ffffff');
+  doc.body.style.backgroundColor='rgb(255, 255, 255)';sync(true,doc.location.href);assert.equal(host.style.getPropertyValue('--lb-profile-color'),'#000000');assert.equal(doc.querySelectorAll('[data-laterbox-control]').length,1);
+});
