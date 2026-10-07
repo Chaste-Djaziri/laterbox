@@ -5,6 +5,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 ## [Unreleased]
 
 ### Changed
+- **[Android] Vault header refinement & overlay click containment**: Removed header '+' button, restricted greeting text to a single line with ellipsis overflow, and prevented profile clicks when Later AI full-screen overlay is active.
 - **[Android] Themed document type icons in Waiting For You**: Styled document and content type icons (PDF, presentations, spreadsheets, documents, audio, video, notes, code, and images) in the Waiting For You inbox preview using dynamic app theme colors.
 - **[Android] Themed favicons in Waiting For You**: Restyled link favicons and fallback icons to use the app's signature pastel green accent squircle and dynamic white card surface.
 - **[Android] Dynamic centralized AppTheme**: Unified theme system across all screens and components, making green, white, black, and canvas background colors fully dynamic and configurable via `AppTheme` with instant Compose recomposition.
