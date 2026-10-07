@@ -173,7 +173,7 @@ fun GuidedCapture(
     }
 
     Column(
-        modifier = modifier.fillMaxSize(),
+        modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.SpaceBetween
     ) {
         // Step title & content container (takes weight(1f) to give full room)
