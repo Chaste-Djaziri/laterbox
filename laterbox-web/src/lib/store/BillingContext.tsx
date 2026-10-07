@@ -1,7 +1,7 @@
 'use client';
 
 import { initializePaddle, type Environments, type Paddle } from '@paddle/paddle-js';
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { FREE_ENTITLEMENT, hasProAccess, type Entitlement } from '@/lib/billing/types';
 import { useAuth } from './AuthContext';
 import { getSupabaseClient } from '../supabase/client';
@@ -15,7 +15,9 @@ type BillingContextValue = {
   error: string | null;
   refresh: () => Promise<void>;
   subscribe: (interval: Interval, returnTo?: string) => Promise<void>;
-  manage: () => Promise<void>;
+  manage: (action?: 'manage' | 'cancel') => Promise<void>;
+  checkoutReady: boolean;
+  checkoutError: string | null;
   checkoutState: CheckoutState;
   previewPrices: (priceIds: string[]) => Promise<Record<string, string>>;
 };
@@ -26,6 +28,8 @@ export function BillingProvider({ children }: { children: React.ReactNode }) {
   const { user, session } = useAuth();
   const [entitlement, setEntitlement] = useState<Entitlement>(FREE_ENTITLEMENT);
   const [paddle, setPaddle] = useState<Paddle>();
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
+  const paddleInitialization = useRef<Promise<Paddle | undefined> | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [checkoutState, setCheckoutState] = useState<CheckoutState>('idle');
@@ -147,20 +151,36 @@ export function BillingProvider({ children }: { children: React.ReactNode }) {
     };
   }, [refresh]);
 
+  const pollForProRef = useRef(pollForPro);
+  pollForProRef.current = pollForPro;
+
   useEffect(() => {
+    let active = true;
     const environment = (process.env.NEXT_PUBLIC_PADDLE_ENV || 'sandbox') as Environments;
     const token = environment === 'production'
       ? process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN_PROD || process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN
       : process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN;
-    if (!token) return;
-    initializePaddle({
-      token,
-      environment,
-      eventCallback: (event) => {
-        if (event.name === 'checkout.completed') void pollForPro();
-      },
-    }).then((instance) => instance && setPaddle(instance));
-  }, [pollForPro]);
+    if (!token) {
+      setCheckoutError('Checkout is unavailable because billing configuration is missing. Please contact support.');
+      return;
+    }
+    if (!paddleInitialization.current) {
+      paddleInitialization.current = initializePaddle({
+        token,
+        environment,
+        eventCallback: (event) => {
+          if (event.name === 'checkout.completed') void pollForProRef.current();
+        },
+      });
+    }
+    paddleInitialization.current.then((instance) => {
+      if (!instance) throw new Error('Paddle did not initialize.');
+      if (active) setPaddle(instance);
+    }).catch(() => {
+      if (active) setCheckoutError('Unable to load secure checkout. Reload the page and check that your browser allows Paddle.');
+    });
+    return () => { active = false; };
+  }, []);
 
   const authenticatedRequest = useCallback(
     async (path: string, init?: RequestInit) => {
@@ -183,13 +203,13 @@ export function BillingProvider({ children }: { children: React.ReactNode }) {
   const subscribe = useCallback(
     async (interval: Interval, returnTo?: string) => {
       setError(null);
-      if (!paddle) throw new Error('Checkout is not configured yet.');
+      if (!paddle) throw new Error(checkoutError || 'Secure checkout is still loading. Please try again shortly.');
       const result = await authenticatedRequest('/api/billing/checkout', {
         method: 'POST',
         body: JSON.stringify({ interval }),
       });
       if (!result.transactionId) throw new Error('Checkout transaction was not created.');
-      const successUrl = new URL('/pricing', window.location.origin);
+      const successUrl = new URL(window.location.pathname === '/plans' ? '/plans' : '/pricing', window.location.origin);
       successUrl.searchParams.set('checkout', 'success');
       successUrl.searchParams.set('plan', interval);
       if (returnTo) successUrl.searchParams.set('return_to', returnTo);
@@ -198,11 +218,11 @@ export function BillingProvider({ children }: { children: React.ReactNode }) {
         settings: { variant: 'one-page', successUrl: successUrl.toString() },
       });
     },
-    [authenticatedRequest, paddle]
+    [authenticatedRequest, paddle, checkoutError]
   );
 
-  const manage = useCallback(async () => {
-    const result = await authenticatedRequest('/api/billing/portal', { method: 'POST', body: '{}' });
+  const manage = useCallback(async (action: 'manage' | 'cancel' = 'manage') => {
+    const result = await authenticatedRequest('/api/billing/portal', { method: 'POST', body: JSON.stringify({ action }) });
     if (!result.url) throw new Error('Subscription portal was not created.');
     window.location.assign(result.url);
   }, [authenticatedRequest]);
@@ -219,8 +239,8 @@ export function BillingProvider({ children }: { children: React.ReactNode }) {
   }, [paddle]);
 
   const value = useMemo(
-    () => ({ entitlement, isPro: hasProAccess(entitlement), loading, error, refresh, subscribe, manage, checkoutState, previewPrices }),
-    [entitlement, loading, error, refresh, subscribe, manage, checkoutState, previewPrices]
+    () => ({ entitlement, isPro: hasProAccess(entitlement), loading, error, refresh, subscribe, manage, checkoutState, previewPrices, checkoutReady: !!paddle, checkoutError }),
+    [entitlement, loading, error, refresh, subscribe, manage, checkoutState, previewPrices, paddle, checkoutError]
   );
   return <BillingContext.Provider value={value}>{children}</BillingContext.Provider>;
 }
