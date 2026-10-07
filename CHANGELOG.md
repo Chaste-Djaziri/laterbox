@@ -36,6 +36,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 - **[Android] Later AI nested scroll layout crash**: Resolved IllegalStateException by preventing nested vertical scroll modifiers inside GuidedCapture when rendered within Later AI scrollable container.
 
 ### Added
+- **[Android] Dedicated item details**: Replace the item modal with a full-screen detail page, live metadata, editing and organization actions, and supported media/document previews.
 - **[Android] iOS-style Inbox**: Add the branded Inbox header, inline search, counted format filters, FIFO review queue, and rich media cards with collection badges and quick actions.
 - **[Android] Full-screen Later AI overlay on plus action**: Replaced modal bottom sheet with a full-screen Later AI overlay matching the iOS interface with glowing brand orb, quick prompt suggestions, conversational assistant, and seamless dismiss gestures when clicking '+'.
 - **[Android] Profile avatar menu & quick logout**: Added profile avatar icon in the top right corner of the vault header that opens account details and quick options including logout.
