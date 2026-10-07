@@ -64,8 +64,8 @@ fun InboxQueueScreen(repository: DataRepository, onItem: (ItemEntity) -> Unit, o
     val queue = if (query.isBlank()) candidates.sortedBy { inboxArrival(it) } else LocalSearch.search(query, candidates)
     val syncTitle = when {
         !account.pro -> "Local only"
-        inbox.any { it.syncStatus == "pending" } -> "Pending sync"
-        inbox.any { it.syncStatus == "error" } -> "Sync needs attention"
+        allItems.any { it.syncStatus == "pending" } -> "Pending sync"
+        allItems.any { it.syncStatus == "error" } -> "Sync needs attention"
         else -> "Synced"
     }
     fun action(block: suspend () -> Unit) {
@@ -125,7 +125,7 @@ fun InboxQueueScreen(repository: DataRepository, onItem: (ItemEntity) -> Unit, o
             }
         }
         items(queue, key = { it.id }) { item ->
-            val metadata by produceState<ItemMetadataEntity?>(null, item.id, item.updatedAt) { value = runCatching { repository.getMetadata(item.id) }.getOrNull() }
+            val metadata by remember(repository, item.id) { repository.watchMetadata(item.id) }.collectAsState(null)
             InboxRichItemCard(item, metadata, collections.find { it.id == item.collectionId }?.name,
                 onOpen = { onItem(item) },
                 onFavorite = { action { repository.toggleFavorite(item.id, item.favorite) } },
