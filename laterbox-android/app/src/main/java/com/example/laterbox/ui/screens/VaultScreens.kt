@@ -247,8 +247,44 @@ fun DedicatedSearchScreen(
 
     BackHandler(onBack = onClose)
 
-    val filtered = remember(allItems, type, query, interpreted) {
-        val eligible = allItems.filter { type == "All" || it.type == type.lowercase() }
+    val activeItems = remember(allItems) {
+        allItems.filter { it.deletedAt == null && it.status != "deleted" }
+    }
+
+    val availableFilters = remember(activeItems) {
+        val types = activeItems
+            .map { it.type.trim() }
+            .filter { it.isNotBlank() && !it.equals("unknown", ignoreCase = true) }
+            .map { it.replaceFirstChar { c -> c.uppercase() } }
+            .distinct()
+
+        val tags = activeItems
+            .flatMap { item ->
+                item.tags.split(",")
+                    .map { it.trim() }
+                    .filter { it.isNotBlank() }
+            }
+            .distinctBy { it.lowercase() }
+
+        (types + tags).distinctBy { it.lowercase() }
+    }
+
+    LaunchedEffect(availableFilters) {
+        if (type != "All" && availableFilters.none { it.equals(type, ignoreCase = true) }) {
+            type = "All"
+        }
+    }
+
+    val filtered = remember(activeItems, type, query, interpreted) {
+        val eligible = activeItems.filter { item ->
+            if (type == "All") {
+                true
+            } else {
+                item.type.equals(type, ignoreCase = true) ||
+                item.tags.split(",").map { it.trim() }.any { it.equals(type, ignoreCase = true) } ||
+                item.category.equals(type, ignoreCase = true)
+            }
+        }
         val expanded = if (interpreted.first == query) interpreted.second else ""
         LocalSearch.search(listOf(query, expanded).filter { it.isNotBlank() }.joinToString(" "), eligible)
             .sortedByDescending { it.createdAt }
@@ -347,20 +383,22 @@ fun DedicatedSearchScreen(
             }
         }
 
-        // Filter Chips Row
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp, vertical = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            listOf("All", "Link", "Article", "Video", "Music", "Note", "Document", "Image").forEach { option ->
-                FilterChip(
-                    selected = type == option,
-                    onClick = { type = option },
-                    label = { Text(option) }
-                )
+        // Filter Chips Row (only from available content)
+        if (availableFilters.isNotEmpty()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState())
+                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                (listOf("All") + availableFilters).forEach { option ->
+                    FilterChip(
+                        selected = type.equals(option, ignoreCase = true),
+                        onClick = { type = option },
+                        label = { Text(option) }
+                    )
+                }
             }
         }
 
