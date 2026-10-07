@@ -1,5 +1,6 @@
 package com.example.laterbox.ui.auth
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -11,30 +12,30 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Email
-import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -46,28 +47,25 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.laterbox.R
 import com.example.laterbox.SupabaseClient
-import com.example.laterbox.theme.LaterboxAccent
-import com.example.laterbox.theme.LaterboxAmber
 import com.example.laterbox.theme.LaterboxBg
 import com.example.laterbox.theme.LaterboxBorder
 import com.example.laterbox.theme.LaterboxCard
 import com.example.laterbox.theme.LaterboxDarkSurface
 import com.example.laterbox.theme.LaterboxEmerald
-import com.example.laterbox.theme.LaterboxIndigo
 import com.example.laterbox.theme.LaterboxTextPrimary
 import com.example.laterbox.theme.LaterboxTextSecondary
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.providers.builtin.OTP
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @Composable
@@ -76,194 +74,170 @@ fun WelcomeScreen(
     onOpenSignIn: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Column(
+    val uriHandler = LocalUriHandler.current
+
+    Box(
         modifier = modifier
             .fillMaxSize()
             .background(LaterboxBg)
-            .padding(horizontal = 24.dp, vertical = 24.dp)
-            .verticalScroll(rememberScrollState()),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.SpaceBetween
     ) {
-        // Top Bar: Official Logo & Sign In Button
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Image(
-                painter = painterResource(id = R.drawable.laterbox_logo),
-                contentDescription = "Laterbox",
-                modifier = Modifier.height(34.dp),
-                contentScale = ContentScale.Fit
-            )
-
-            Surface(
-                shape = RoundedCornerShape(20.dp),
-                color = LaterboxCard,
-                border = androidx.compose.foundation.BorderStroke(1.dp, LaterboxBorder)
-            ) {
-                Text(
-                    text = "Sign In",
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = LaterboxTextPrimary,
-                    modifier = Modifier
-                        .clickable { onOpenSignIn() }
-                        .padding(horizontal = 16.dp, vertical = 7.dp)
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Center Hero Section with Official Illustration
         Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .safeDrawingPadding()
+                .padding(top = 12.dp, bottom = 16.dp)
+                .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(20.dp),
-            modifier = Modifier.fillMaxWidth()
+            verticalArrangement = Arrangement.SpaceBetween
         ) {
+            // Top Bar: Official Logo & Sign In Pill Button (guaranteed below notch & in safe area)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Image(
+                    painter = painterResource(id = R.drawable.laterbox_logo),
+                    contentDescription = "LaterBox",
+                    modifier = Modifier.height(34.dp),
+                    contentScale = ContentScale.Fit
+                )
+
+                Surface(
+                    shape = CircleShape,
+                    color = Color.White,
+                    border = BorderStroke(1.dp, Color.Black.copy(alpha = 0.08f)),
+                    modifier = Modifier.clickable { onOpenSignIn() }
+                ) {
+                    Text(
+                        text = "Sign In",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color.Black,
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Hero Illustration (Identical to iOS OnboardingHero)
             Image(
                 painter = painterResource(id = R.drawable.onboarding_hero),
-                contentDescription = "Laterbox Onboarding",
+                contentDescription = "LaterBox Onboarding Hero",
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(280.dp)
-                    .clip(RoundedCornerShape(24.dp)),
+                    .heightIn(max = 380.dp)
+                    .padding(horizontal = 16.dp),
                 contentScale = ContentScale.Fit
             )
 
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Headline matching iOS WelcomeView
             Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Text(
-                    text = "The calm place for everything you want later",
-                    fontSize = 26.sp,
-                    fontWeight = FontWeight.Black,
-                    textAlign = TextAlign.Center,
-                    lineHeight = 32.sp,
-                    color = LaterboxTextPrimary
-                )
-                Text(
-                    text = "Save links, videos, and articles in one tap. Schedule deliberate returns when you're truly ready to read.",
-                    fontSize = 14.sp,
-                    textAlign = TextAlign.Center,
-                    lineHeight = 20.sp,
-                    color = LaterboxTextSecondary
-                )
-            }
-
-            // Value props
-            Column(
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                FeatureRow(
-                    icon = Icons.Default.Schedule,
-                    iconColor = LaterboxAmber,
-                    title = "Scheduled Returns",
-                    subtitle = "Never lose content in bottomless bookmark lists"
-                )
-                FeatureRow(
-                    icon = Icons.Default.AutoAwesome,
-                    iconColor = LaterboxIndigo,
-                    title = "Later AI Intelligence",
-                    subtitle = "Ask questions and organize your saved vault effortlessly"
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // Bottom CTA Buttons
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            Button(
-                onClick = onContinueAsGuest,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(52.dp),
-                shape = RoundedCornerShape(16.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = LaterboxDarkSurface,
-                    contentColor = Color.White
-                )
+                    .padding(horizontal = 24.dp)
+                    .padding(bottom = 24.dp),
+                horizontalAlignment = Alignment.Start,
+                verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 Text(
-                    text = "Get Started",
+                    text = "Save it now.\nRead it later.",
+                    fontSize = 36.sp,
+                    fontWeight = FontWeight.Bold,
+                    lineHeight = 38.sp,
+                    color = Color.Black
+                )
+
+                Text(
+                    text = "Your personal knowledge vault.",
                     fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Normal,
+                    color = Color.Black.copy(alpha = 0.6f)
                 )
             }
 
-            OutlinedButton(
-                onClick = onOpenSignIn,
+            // Action Buttons: Black Continue & Guest Option & Legal Disclaimer
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(52.dp),
-                shape = RoundedCornerShape(16.dp),
-                border = androidx.compose.foundation.BorderStroke(1.dp, LaterboxBorder),
-                colors = ButtonDefaults.outlinedButtonColors(
-                    containerColor = LaterboxCard,
-                    contentColor = LaterboxTextPrimary
-                )
+                    .padding(horizontal = 24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Text(
-                    text = "Sign In with Email",
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.SemiBold
-                )
+                // Solid Black Continue Button
+                Button(
+                    onClick = onOpenSignIn,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(54.dp),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF1A1A1A),
+                        contentColor = Color.White
+                    ),
+                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
+                ) {
+                    Text(
+                        text = "Continue",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+
+                // Continue without account
+                TextButton(
+                    onClick = onContinueAsGuest,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 2.dp),
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = Color.Black.copy(alpha = 0.85f)
+                    )
+                ) {
+                    Text(
+                        text = "Continue without account",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Normal
+                    )
+                }
+
+                // Legal Disclaimer matching iOS
+                Row(
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(top = 2.dp)
+                ) {
+                    Text(
+                        text = "By continuing, you agree to our ",
+                        fontSize = 12.sp,
+                        color = Color.Black.copy(alpha = 0.45f)
+                    )
+                    Text(
+                        text = "Terms",
+                        fontSize = 12.sp,
+                        color = Color.Black,
+                        textDecoration = TextDecoration.Underline,
+                        modifier = Modifier.clickable { uriHandler.openUri("https://laterbox.dev/terms") }
+                    )
+                    Text(
+                        text = " & ",
+                        fontSize = 12.sp,
+                        color = Color.Black.copy(alpha = 0.45f)
+                    )
+                    Text(
+                        text = "Privacy Policy",
+                        fontSize = 12.sp,
+                        color = Color.Black,
+                        textDecoration = TextDecoration.Underline,
+                        modifier = Modifier.clickable { uriHandler.openUri("https://laterbox.dev/privacy") }
+                    )
+                }
             }
-        }
-    }
-}
-
-@Composable
-private fun FeatureRow(
-    icon: ImageVector,
-    iconColor: Color,
-    title: String,
-    subtitle: String
-) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(14.dp),
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .background(LaterboxCard)
-            .padding(14.dp)
-    ) {
-        Box(
-            modifier = Modifier
-                .size(36.dp)
-                .clip(CircleShape)
-                .background(iconColor.copy(alpha = 0.12f)),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = iconColor,
-                modifier = Modifier.size(18.dp)
-            )
-        }
-
-        Column {
-            Text(
-                text = title,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold,
-                color = LaterboxTextPrimary
-            )
-            Text(
-                text = subtitle,
-                fontSize = 12.sp,
-                color = LaterboxTextSecondary
-            )
         }
     }
 }
@@ -293,8 +267,9 @@ fun AuthSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .navigationBarsPadding()
                 .padding(horizontal = 24.dp, vertical = 8.dp)
-                .padding(bottom = 36.dp),
+                .padding(bottom = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(18.dp)
         ) {
