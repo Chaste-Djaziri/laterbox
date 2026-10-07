@@ -5,6 +5,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 ## [Unreleased]
 
 ### Changed
+- **[Android] Pro AI model selection**: Offer common model presets and custom model names, use the selected model for Later AI and enhanced search, and restrict configuration to Pro members.
 - **[Android] Library label**: Rename Recently Deleted to Deleted.
 - **[Android] Web subscriptions and Pro sync**: Open web login and plans for subscription purchases and management, refresh access after returning to Android, and restrict cloud sync to signed-in Pro members. iOS purchasing remains unchanged.
 - **[Android] Settings design**: Match the iOS-style branded header, centered profile, plan card, and grouped settings sections while preserving native security, notifications, AI, and backup controls.
