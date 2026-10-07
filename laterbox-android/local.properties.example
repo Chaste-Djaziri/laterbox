@@ -1,0 +1,24 @@
+## Template for local.properties
+# Copy this file to local.properties and update the values as needed.
+
+# Location of your local Android SDK
+sdk.dir=/Users/YOUR_USERNAME/Library/Android/sdk
+
+# Supabase Backend Configuration
+SUPABASE_URL=https://ltjisrgldssqskcylcbj.supabase.co
+SUPABASE_KEY=sb_publishable_Rc4e_ik2LE4SR0UrfX-OEQ_5Mu_lw9p
+SUPABASE_ANON_KEY=sb_publishable_Rc4e_ik2LE4SR0UrfX-OEQ_5Mu_lw9p
+
+# LaterBox Web Backend & API URL
+WEB_BASE_URL=https://laterbox.dev
+LATERBOX_WEB_URL=https://laterbox.dev
+
+# AI Integration (Optional Gemini Fallback)
+GEMINI_API_KEY=
+GEMINI_MODEL=gemini-1.5-flash
+
+# Android Keystore Signing Configuration (Optional for debug, required for release signing)
+KEYSTORE_PATH=
+KEYSTORE_PASSWORD=
+KEY_ALIAS=
+KEY_PASSWORD=
