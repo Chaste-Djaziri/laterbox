@@ -5,32 +5,31 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
-// Default LaterBox Warm Light Color Scheme (1:1 with iOS AppTheme)
-private val LightColorScheme = lightColorScheme(
-    primary = LaterboxDarkSurface,
-    onPrimary = Color.White,
-    primaryContainer = LaterboxAccent,
-    onPrimaryContainer = LaterboxDarkSurface,
-    secondary = LaterboxIndigo,
-    onSecondary = Color.White,
-    secondaryContainer = LaterboxAccent,
-    onSecondaryContainer = LaterboxDarkSurface,
-    background = LaterboxBg,
-    onBackground = LaterboxTextPrimary,
-    surface = LaterboxCard,
-    onSurface = LaterboxTextPrimary,
-    surfaceVariant = LaterboxBg,
-    onSurfaceVariant = LaterboxTextSecondary,
-    outline = LaterboxBorder,
-    outlineVariant = LaterboxCardBorder
-)
-
 @Composable
 fun LaterboxTheme(
     content: @Composable () -> Unit
 ) {
+    val colorScheme = lightColorScheme(
+        primary = LaterboxDarkSurface,
+        onPrimary = AppTheme.white,
+        primaryContainer = LaterboxAccent,
+        onPrimaryContainer = LaterboxDarkSurface,
+        secondary = LaterboxIndigo,
+        onSecondary = AppTheme.white,
+        secondaryContainer = LaterboxAccent,
+        onSecondaryContainer = LaterboxDarkSurface,
+        background = LaterboxBg,
+        onBackground = LaterboxTextPrimary,
+        surface = LaterboxCard,
+        onSurface = LaterboxTextPrimary,
+        surfaceVariant = LaterboxBg,
+        onSurfaceVariant = LaterboxTextSecondary,
+        outline = LaterboxBorder,
+        outlineVariant = LaterboxCardBorder
+    )
+
     MaterialTheme(
-        colorScheme = LightColorScheme,
+        colorScheme = colorScheme,
         typography = Typography,
         content = content
     )
