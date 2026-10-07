@@ -16,6 +16,7 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.Color
@@ -43,6 +44,7 @@ fun AppNavigation(notificationItemId: String? = null, context: android.content.C
     var tab by rememberSaveable { mutableIntStateOf(if ((context as? android.app.Activity)?.intent?.hasExtra("item_id") == true) 1 else 0) }
     var capture by remember { mutableStateOf(false) }; var ai by remember { mutableStateOf(false) }; var auth by remember { mutableStateOf(false) }
     var organizer by remember { mutableStateOf(false) }; var trash by remember { mutableStateOf(false) }
+    val vaultState = rememberSaveableStateHolder()
     var selected by remember { mutableStateOf<ItemEntity?>(null) }
     val scope = rememberCoroutineScope()
     LaunchedEffect(notificationItemId, items) {
@@ -71,7 +73,9 @@ fun AppNavigation(notificationItemId: String? = null, context: android.content.C
         }
     }, floatingActionButton = { if (tab != 4) FloatingActionButton(onClick = { ai = true }, shape = CircleShape, containerColor = LaterboxDarkSurface, contentColor = LaterboxAccent) { Icon(Icons.Default.Add, "Later AI") } }) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
-            if (tab < 4) VaultScreen(
+            if (tab < 4) {
+                vaultState.SaveableStateProvider("${account.userId ?: "guest"}:$tab") {
+                    VaultScreen(
                 tab = tab,
                 repository = repository,
                 onCapture = { capture = true },
@@ -84,8 +88,9 @@ fun AppNavigation(notificationItemId: String? = null, context: android.content.C
                 },
                 onAuth = { auth = true },
                 profileEnabled = !ai
-            )
-            else NativeSettings(repository, { auth = true }, { trash = true })
+                    )
+                }
+            } else NativeSettings(repository, { auth = true }, { trash = true })
         }
     }
     if (capture) QuickCaptureSheet(repository, { capture = false }, { repository.syncNow() })
