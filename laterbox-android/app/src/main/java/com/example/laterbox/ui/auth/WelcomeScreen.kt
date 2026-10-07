@@ -232,7 +232,7 @@ fun WelcomeScreen(
                         color = Color.Black.copy(alpha = 0.45f)
                     )
                     Text(
-                        text = "Privacy Policy",
+                        text = "Policy",
                         fontSize = 11.sp,
                         color = Color.Black,
                         textDecoration = TextDecoration.Underline,
