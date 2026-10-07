@@ -149,7 +149,8 @@ fun LaterAIContent(
                 when (action.intent) {
                     "capture" -> {
                         val exact = action.content.takeIf { it.isNotBlank() && original.contains(it) } ?: original
-                        var draft = VaultStore.draft(exact, action.title, action.tags, action.category, action.returnAt, attachments, captureID)
+                        val cleanTitle = action.title.ifBlank { original.lines().firstOrNull()?.take(50) ?: "Saved Note" }
+                        var draft = VaultStore.draft(exact, cleanTitle, action.tags, action.category, action.returnAt, attachments, captureID)
                         draft = draft.copy(summary = action.summary, formattedContent = action.formatted)
                         busy = false
                         save(draft)
@@ -166,7 +167,8 @@ fun LaterAIContent(
                         messages.add(action.reply to false)
                     }
                 }
-            } catch (_: Exception) {
+            } catch (failure: Exception) {
+                android.util.Log.e("LaterAI", "AI response failed", failure)
                 messages.add("Something went wrong on our end. Please use Guided capture to save your content." to false)
                 suggestGuided = true
             } finally {
