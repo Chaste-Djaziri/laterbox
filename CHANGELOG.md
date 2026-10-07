@@ -21,6 +21,9 @@ All notable user-facing changes to LaterBox will be documented in this file.
 - **[Android] Welcome screen disclaimer copy**: Updated legal disclaimer link text to "Terms & Policy".
 - **[Android] Welcome screen legal disclaimer styling**: Centered the legal disclaimer on the onboarding welcome screen and adjusted to a compact caption2 font size.
 
+### Fixed
+- **[Android] Later AI nested scroll layout crash**: Resolved IllegalStateException by preventing nested vertical scroll modifiers inside GuidedCapture when rendered within Later AI scrollable container.
+
 ### Added
 - **[Android] Full-screen Later AI overlay on plus action**: Replaced modal bottom sheet with a full-screen Later AI overlay matching the iOS interface with glowing brand orb, quick prompt suggestions, conversational assistant, and seamless dismiss gestures when clicking '+'.
 - **[Android] Profile avatar menu & quick logout**: Added profile avatar icon in the top right corner of the vault header that opens account details and quick options including logout.
