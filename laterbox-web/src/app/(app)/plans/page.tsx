@@ -130,13 +130,13 @@ function AppPlansContent() {
   const autoCheckoutTriggered = useRef(false);
   useEffect(() => {
     const shouldCheckout = searchParams.get('checkout') === 'true';
-    if (!shouldCheckout || !user || isPro || autoCheckoutTriggered.current || busy !== null || billingLoading) return;
-    autoCheckoutTriggered.current = true;
+    if (!shouldCheckout || !checkoutReady || !user || isPro || autoCheckoutTriggered.current || busy !== null || billingLoading) return;
     const timer = window.setTimeout(() => {
+      autoCheckoutTriggered.current = true;
       void handleAction(interval);
     }, 400);
     return () => window.clearTimeout(timer);
-  }, [billingLoading, busy, interval, isPro, searchParams, user]);
+  }, [billingLoading, busy, checkoutReady, interval, isPro, searchParams, user]);
 
   const selectedId = interval === 'month' ? monthlyId : annualId;
   const localizedPrice = prices[selectedId] || (interval === 'month' ? '$3.99' : '$39.99');
