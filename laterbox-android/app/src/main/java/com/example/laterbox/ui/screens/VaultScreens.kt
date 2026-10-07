@@ -141,10 +141,12 @@ fun VaultScreen(
                 }
             }
         }
-        item {
-            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                listOf("All", "Link", "Article", "Video", "Music", "Note", "Document", "Image").forEach { option ->
-                    FilterChip(selected = type == option, onClick = { type = option }, label = { Text(option) })
+        if (tab != 0 || query.isNotEmpty()) {
+            item {
+                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf("All", "Link", "Article", "Video", "Music", "Note", "Document", "Image").forEach { option ->
+                        FilterChip(selected = type == option, onClick = { type = option }, label = { Text(option) })
+                    }
                 }
             }
         }
@@ -166,23 +168,29 @@ fun VaultScreen(
             }
             if (collection != null) item { TextButton(onClick = { scope.launch { repository.deleteCollection(collection!!); collection = null } }) { Text("Delete collection") } }
         }
-        item { TextButton(onClick = { sort = if (sort == "Newest") "Oldest" else "Newest" }) { Text("Sort: $sort") } }
-        if (filtered.isEmpty()) item {
-            Column(Modifier.fillMaxWidth().background(Color.White, RoundedCornerShape(20.dp)).padding(24.dp)) {
-                Text(if (query.isEmpty()) "Nothing here yet" else "No matches", style = MaterialTheme.typography.titleLarge)
-                Text("Add a capture or try a topic, tag, or phrase you remember.")
-                TextButton(onClick = onCapture) { Text("Save something") }
+        if (tab != 0 || query.isNotEmpty()) {
+            item { TextButton(onClick = { sort = if (sort == "Newest") "Oldest" else "Newest" }) { Text("Sort: $sort") } }
+        }
+        if (filtered.isEmpty() && (tab != 0 || query.isNotEmpty())) {
+            item {
+                Column(Modifier.fillMaxWidth().background(Color.White, RoundedCornerShape(20.dp)).padding(24.dp)) {
+                    Text(if (query.isEmpty()) "Nothing here yet" else "No matches", style = MaterialTheme.typography.titleLarge)
+                    Text("Add a capture or try a topic, tag, or phrase you remember.")
+                    TextButton(onClick = onCapture) { Text("Save something") }
+                }
             }
         }
-        items(if (tab == 0 && query.isEmpty()) filtered.take(10) else filtered, key = { it.id }) { item ->
-            ItemCardView(
-                item = item,
-                onToggleFavorite = { scope.launch { repository.toggleFavorite(item.id, item.favorite) } },
-                onMarkDone = { scope.launch { repository.updateItemStatus(item.id, "done") } },
-                onScheduleReturn = { date -> scope.launch { repository.scheduleReturn(item.id, date) } },
-                onDelete = { scope.launch { repository.deleteItem(item.id) } },
-                onClick = { onItem(item) }
-            )
+        if (tab != 0 || query.isNotEmpty()) {
+            items(filtered, key = { it.id }) { item ->
+                ItemCardView(
+                    item = item,
+                    onToggleFavorite = { scope.launch { repository.toggleFavorite(item.id, item.favorite) } },
+                    onMarkDone = { scope.launch { repository.updateItemStatus(item.id, "done") } },
+                    onScheduleReturn = { date -> scope.launch { repository.scheduleReturn(item.id, date) } },
+                    onDelete = { scope.launch { repository.deleteItem(item.id) } },
+                    onClick = { onItem(item) }
+                )
+            }
         }
     }
     if (addCollection) com.example.laterbox.ui.capture.DialogContent("New collection", { addCollection = false }) {
