@@ -69,13 +69,15 @@ function AppPlansContent() {
     manage,
     checkoutState,
     previewPrices,
+    checkoutReady,
+    checkoutError,
     loading: billingLoading,
   } = useBilling();
 
   const [interval, setInterval] = useState<Interval>(() =>
     searchParams.get('plan') === 'month' ? 'month' : 'year'
   );
-  const [busy, setBusy] = useState<Interval | 'manage' | null>(null);
+  const [busy, setBusy] = useState<Interval | 'manage' | 'cancel' | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [prices, setPrices] = useState<Record<string, string>>({});
 
@@ -105,12 +107,12 @@ function AppPlansContent() {
     };
   }, [monthlyId, annualId, previewPrices]);
 
-  async function handleAction(action: Interval | 'manage') {
+  async function handleAction(action: Interval | 'manage' | 'cancel') {
     setBusy(action);
     setMessage(null);
     try {
-      if (action === 'manage') {
-        await manage();
+      if (action === 'manage' || action === 'cancel') {
+        await manage(action);
       } else {
         if (!user) {
           window.location.assign(`/login?next=${encodeURIComponent('/plans?plan=' + action)}`);
@@ -196,22 +198,26 @@ function AppPlansContent() {
                 />
               </div>
             )}
+            {(entitlement.willCancel || entitlement.status === 'canceled') && entitlement.accessEndsAt && (
+              <p className="text-xs font-bold text-amber-300 mt-1">Cancellation scheduled · Pro access ends {new Date(entitlement.accessEndsAt).toLocaleDateString()}.</p>
+            )}
             {entitlement.billingWarning && (
               <p className="text-xs font-bold text-amber-300 flex items-center gap-1.5 mt-1">
                 <AlertCircle className="w-3.5 h-3.5" />
                 <span>Payment needs attention. Update your payment method to avoid losing Pro access.</span>
               </p>
             )}
-            {message && (
+            {(message || checkoutError) && (
               <p className="text-xs font-bold text-red-300 flex items-center gap-1.5 mt-1">
                 <AlertCircle className="w-3.5 h-3.5" />
-                <span>{message}</span>
+                <span>{message || checkoutError}</span>
               </p>
             )}
           </div>
 
           <div className="shrink-0 flex items-center gap-3">
             {isPro && entitlement.provider === 'paddle' ? (
+              <div className="flex flex-wrap gap-2">
               <button
                 type="button"
                 disabled={busy !== null || billingLoading}
@@ -219,8 +225,15 @@ function AppPlansContent() {
                 className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white hover:bg-zinc-100 text-[#171711] text-xs font-black transition-colors disabled:opacity-50 cursor-pointer shadow-sm"
               >
                 {busy === 'manage' && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                <span>{presentation.actionLabel || 'Manage Subscription'}</span>
+                <span>{entitlement.billingWarning ? 'Fix payment' : 'Manage subscription'}</span>
               </button>
+              {!entitlement.willCancel && entitlement.status !== 'canceled' && (
+                <button type="button" disabled={busy !== null || billingLoading} onClick={() => handleAction('cancel')} className="px-4 py-2.5 rounded-xl border border-white/30 text-white text-xs font-bold disabled:opacity-50">
+                  {busy === 'cancel' && <Loader2 className="mr-2 inline w-3.5 h-3.5 animate-spin" />}
+                  Cancel subscription
+                </button>
+              )}
+              </div>
             ) : isPro && entitlement.provider === 'apple' ? (
               <div className="rounded-xl border border-white/20 px-4 py-2 text-xs font-bold text-zinc-200">
                 Managed via Apple ID
@@ -394,7 +407,7 @@ function AppPlansContent() {
                 className="w-full py-3 rounded-xl bg-white hover:bg-zinc-100 text-[#171711] text-center text-xs font-black transition-colors disabled:opacity-50 cursor-pointer shadow-sm flex items-center justify-center gap-2"
               >
                 {busy === 'manage' && <Loader2 className="w-4 h-4 animate-spin" />}
-                <span>Manage in Billing Portal</span>
+                <span>Manage subscription</span>
               </button>
             ) : isPro && entitlement.provider === 'apple' ? (
               <div className="w-full py-3 rounded-xl border border-white/20 text-center text-xs font-bold text-zinc-300">
@@ -403,12 +416,12 @@ function AppPlansContent() {
             ) : (
               <button
                 type="button"
-                disabled={busy !== null}
+                disabled={busy !== null || billingLoading || (Boolean(user) && !checkoutReady)}
                 onClick={() => handleAction(interval)}
                 className="w-full py-3 rounded-xl bg-[#e6edb0] hover:bg-[#d8e09e] text-[#171711] text-center text-xs font-black transition-colors disabled:opacity-50 cursor-pointer shadow-sm flex items-center justify-center gap-2"
               >
                 {busy === interval && <Loader2 className="w-4 h-4 animate-spin" />}
-                <span>Start 14-Day Free Trial</span>
+                <span>{user && !checkoutReady ? checkoutError ? 'Checkout unavailable' : 'Loading secure checkout…' : 'Start 14-Day Free Trial'}</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </button>
             )}
