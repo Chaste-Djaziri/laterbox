@@ -776,9 +776,9 @@ fun resolveItemDocType(item: ItemEntity): ItemDocType {
 
 private data class ItemIconStyle(
     val icon: androidx.compose.ui.graphics.vector.ImageVector,
-    val iconColor: Color,
-    val containerBg: Color,
-    val allowsFavicon: Boolean
+    val iconColor: Color = LaterboxDarkSurface,
+    val containerBg: Color = LaterboxAccent,
+    val allowsFavicon: Boolean = false
 )
 
 @Composable
@@ -789,16 +789,16 @@ fun WaitingItemBar(
 ) {
     val docType = remember(item) { resolveItemDocType(item) }
     val iconStyle = when (docType) {
-        ItemDocType.LINK -> ItemIconStyle(Icons.Default.Link, LaterboxDarkSurface, LaterboxAccent, true)
-        ItemDocType.PDF -> ItemIconStyle(Icons.Default.PictureAsPdf, LaterboxRose, LaterboxRose.copy(alpha = 0.12f), false)
-        ItemDocType.PPT -> ItemIconStyle(Icons.Default.Slideshow, LaterboxAmber, LaterboxAmber.copy(alpha = 0.12f), false)
-        ItemDocType.SHEETS -> ItemIconStyle(Icons.Default.TableChart, LaterboxEmerald, LaterboxEmerald.copy(alpha = 0.12f), false)
-        ItemDocType.DOCS -> ItemIconStyle(Icons.AutoMirrored.Filled.Article, LaterboxSky, LaterboxSky.copy(alpha = 0.12f), false)
-        ItemDocType.AUDIO -> ItemIconStyle(Icons.Default.MusicNote, LaterboxIndigo, LaterboxIndigo.copy(alpha = 0.12f), false)
-        ItemDocType.VIDEO -> ItemIconStyle(Icons.Default.Videocam, LaterboxIndigo, LaterboxIndigo.copy(alpha = 0.12f), false)
-        ItemDocType.IMAGE -> ItemIconStyle(Icons.Default.Image, LaterboxEmerald, LaterboxEmerald.copy(alpha = 0.12f), false)
-        ItemDocType.CODE -> ItemIconStyle(Icons.Default.Code, LaterboxEmerald, LaterboxEmerald.copy(alpha = 0.12f), false)
-        ItemDocType.NOTE -> ItemIconStyle(Icons.Default.Description, LaterboxAmber, LaterboxAmber.copy(alpha = 0.12f), false)
+        ItemDocType.LINK -> ItemIconStyle(Icons.Default.Link, allowsFavicon = true)
+        ItemDocType.PDF -> ItemIconStyle(Icons.Default.PictureAsPdf)
+        ItemDocType.PPT -> ItemIconStyle(Icons.Default.Slideshow)
+        ItemDocType.SHEETS -> ItemIconStyle(Icons.Default.TableChart)
+        ItemDocType.DOCS -> ItemIconStyle(Icons.AutoMirrored.Filled.Article)
+        ItemDocType.AUDIO -> ItemIconStyle(Icons.Default.MusicNote)
+        ItemDocType.VIDEO -> ItemIconStyle(Icons.Default.Videocam)
+        ItemDocType.IMAGE -> ItemIconStyle(Icons.Default.Image)
+        ItemDocType.CODE -> ItemIconStyle(Icons.Default.Code)
+        ItemDocType.NOTE -> ItemIconStyle(Icons.Default.Description)
     }
 
     val domain = remember(item.url) {
