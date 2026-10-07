@@ -18,6 +18,15 @@ import java.time.Instant
 import java.util.concurrent.TimeUnit
 
 object ReturnsService {
+    const val CHANNEL_ID = "returns"
+    fun ensureChannel(context: Context) {
+        context.getSystemService(NotificationManager::class.java).createNotificationChannel(
+            NotificationChannel(CHANNEL_ID, "Saved item returns", NotificationManager.IMPORTANCE_DEFAULT).apply {
+                description = "Reminders for saved items scheduled to return to your Inbox"
+            }
+        )
+    }
+
     fun schedule(context: Context, item: ItemEntity) {
         val manager = WorkManager.getInstance(context)
         val date = item.returnAt?.let { runCatching { Instant.parse(it) }.getOrNull() }
@@ -36,11 +45,11 @@ class ReturnWorker(context: Context, parameters: WorkerParameters) : CoroutineWo
         if (date.isAfter(Instant.now())) { ReturnsService.schedule(applicationContext, item); return Result.success() }
         dao.updateStatus(item.id, "inbox", Instant.now().toString())
         val manager = applicationContext.getSystemService(NotificationManager::class.java)
-        manager.createNotificationChannel(NotificationChannel("returns", "Saved item returns", NotificationManager.IMPORTANCE_DEFAULT))
+        ReturnsService.ensureChannel(applicationContext)
         if (ContextCompat.checkSelfPermission(applicationContext, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED || android.os.Build.VERSION.SDK_INT < 33) {
             val intent = Intent(applicationContext, MainActivity::class.java).putExtra("item_id", item.id)
             val pending = PendingIntent.getActivity(applicationContext, item.id.hashCode(), intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-            manager.notify(item.id.hashCode(), NotificationCompat.Builder(applicationContext, "returns").setSmallIcon(R.drawable.ic_launcher_foreground)
+            manager.notify(item.id.hashCode(), NotificationCompat.Builder(applicationContext, ReturnsService.CHANNEL_ID).setSmallIcon(R.drawable.ic_launcher_foreground)
                 .setContentTitle("Time to return to this").setContentText(item.title).setContentIntent(pending).setAutoCancel(true).build())
         }
         return Result.success()
