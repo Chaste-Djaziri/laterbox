@@ -3,6 +3,7 @@ import { sendRuntimeMessage } from '../platform/messaging';
 import { captureFromPage, extractRenderedPage } from '../lib/page';
 import { createInstagramControls } from './instagram-controls';
 import { createLinkedInControls } from './linkedin-controls';
+import { createXControls } from './x-controls';
 import { createLinkedInProfileControls } from './linkedin-profile';
 import type { InstagramPost } from './social';
 import type { Capture, CaptureResult } from '../types/capture';
@@ -126,6 +127,7 @@ const createPostControl=(post:InstagramPost,resolve:()=>InstagramPost|undefined)
 };
 const syncInstagramControls=createInstagramControls(document,createPostControl);
 const syncLinkedInControls=createLinkedInControls(document,createPostControl);
+const syncXControls=createXControls(document,createPostControl);
 const syncLinkedInProfileControls=createLinkedInProfileControls(document,(profile,resolve)=>{
   const container=document.createElement('span');container.setAttribute('data-laterbox-control','');container.style.cssText='display:inline-flex;margin:4px;vertical-align:middle;max-width:100%';
   const local=container.attachShadow({mode:'closed'});local.append(style.cloneNode(true));
@@ -141,7 +143,7 @@ const syncLinkedInProfileControls=createLinkedInProfileControls(document,(profil
   });
   return container;
 });
-function addSocialControls(){syncInstagramControls(enabled,location.href);syncLinkedInControls(enabled,location.href);syncLinkedInProfileControls(enabled,location.href);}
+function addSocialControls(){syncInstagramControls(enabled,location.href);syncLinkedInControls(enabled,location.href);syncLinkedInProfileControls(enabled,location.href);syncXControls(enabled,location.href);}
 const observer=new MutationObserver(()=>{
   if(scheduled || !enabled)return;scheduled=true;setTimeout(()=>{scheduled=false;addSocialControls();},500);
 });
