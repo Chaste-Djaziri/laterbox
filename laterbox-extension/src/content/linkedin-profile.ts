@@ -1,5 +1,5 @@
 export interface LinkedInProfile {root:Element;insertionPoint:HTMLElement;url:string;name:string;company?:boolean}
-const excluded='[hidden],[aria-hidden="true"],nav,[role="navigation"],[aria-label="Sidebar"],[aria-label="Aside"],[data-laterbox-control]';
+const excluded='[hidden],[aria-hidden="true"],nav,[role="navigation"],[data-laterbox-control]';
 function visible(doc:Document,element:Element){
   if(element.closest(excluded))return false;
   for(let node:Element|null=element;node;node=node.parentElement){const style=doc.defaultView?.getComputedStyle(node);if(style?.display==='none' || style?.visibility==='hidden')return false;}
@@ -18,7 +18,7 @@ export function findLinkedInProfile(doc:Document,pageUrl:string):LinkedInProfile
   const primary=Array.from(doc.querySelectorAll('main,[role="main"],[aria-label="Primary content"]')).find(element=>visible(doc,element));
   const scope=primary || doc.body;
   const candidates=Array.from(scope.querySelectorAll('h1,h2,a[href*="/in/"],a[href*="/company/"]')).filter(element=>{
-    if(!visible(doc,element) || !nameOf(element))return false;
+    if(!visible(doc,element) || element.closest('aside,[aria-label="Sidebar"],[aria-label="Aside"]') || !nameOf(element))return false;
     if(element.tagName==='H1')return true;
     return element.matches('a') && profileUrl(element.getAttribute('href')!,page)?.url===identity.url;
   }).sort((a,b)=>Number(b.tagName==='H1')-Number(a.tagName==='H1'));
