@@ -64,8 +64,8 @@ fun InboxQueueScreen(repository: DataRepository, onItem: (ItemEntity) -> Unit, o
     val queue = if (query.isBlank()) candidates.sortedBy { inboxArrival(it) } else LocalSearch.search(query, candidates)
     val syncTitle = when {
         !account.pro -> "Local only"
+        allItems.any { it.syncStatus == "failed" } -> "Sync needs attention"
         allItems.any { it.syncStatus == "pending" } -> "Pending sync"
-        allItems.any { it.syncStatus == "error" } -> "Sync needs attention"
         else -> "Synced"
     }
     fun action(block: suspend () -> Unit) {
