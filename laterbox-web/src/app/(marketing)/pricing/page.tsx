@@ -43,7 +43,7 @@ export default function PricingPage() {
 function PricingContent() {
   const { user } = useAuth();
   const searchParams = useSearchParams();
-  const { entitlement, isPro, subscribe, manage, checkoutState, previewPrices } = useBilling();
+  const { entitlement, isPro, subscribe, manage, checkoutState, previewPrices, checkoutReady, checkoutError } = useBilling();
   const [interval, setInterval] = useState<Interval>(() => searchParams.get('plan') === 'month' ? 'month' : 'year');
   const [busy, setBusy] = useState<Interval | 'manage' | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -102,13 +102,13 @@ function PricingContent() {
   const autoCheckoutTriggered = useRef(false);
   useEffect(() => {
     const shouldCheckout = searchParams.get('checkout') === 'true';
-    if (!shouldCheckout || !user || isPro || autoCheckoutTriggered.current || busy !== null) return;
+    if (!shouldCheckout || !checkoutReady || !user || isPro || autoCheckoutTriggered.current || busy !== null) return;
     autoCheckoutTriggered.current = true;
     const timer = window.setTimeout(() => {
       void run(interval);
     }, 400);
     return () => window.clearTimeout(timer);
-  }, [busy, interval, isPro, searchParams, user]);
+  }, [busy, checkoutReady, interval, isPro, searchParams, user]);
 
   const loginNext = useMemo(() => {
     const params = new URLSearchParams({ plan: interval });
@@ -144,14 +144,14 @@ function PricingContent() {
 
         <div className="mt-10 grid gap-5 lg:grid-cols-2">
           <PlanCard title="LaterBox Free" price="Free forever" description="A calm, private library that works without an account or internet connection." features={freeFeatures} action={<Link href="/inbox" className="block rounded-2xl border border-[#d7d2c5] px-5 py-3 text-center text-sm font-black">Open LaterBox Free</Link>} />
-          <PlanCard featured title="LaterBox Pro" badge="14-day trial for eligible subscribers" price={localizedPrice} suffix={interval === 'month' ? '/month' : '/year'} description="Sync everywhere and capture useful content before it slips away." features={proFeatures} action={isPro ? appReturn ? <a href={appReturn} className="block rounded-2xl bg-[#d7ff27] px-5 py-3 text-center text-sm font-black text-black">Return to LaterBox</a> : entitlement.provider === 'paddle' ? <button type="button" onClick={() => void run('manage')} disabled={busy !== null} className="w-full rounded-2xl bg-[#d7ff27] px-5 py-3 text-sm font-black text-black disabled:opacity-50">{busy === 'manage' && <Loader2 className="mr-2 inline size-4 animate-spin" />}{presentation.actionLabel}</button> : <div className="rounded-2xl border border-white/15 px-5 py-3 text-center text-sm font-bold text-zinc-200">Pro is active · Manage in the App Store</div> : user ? <button type="button" onClick={() => void run(interval)} disabled={busy !== null} className="w-full rounded-2xl bg-[#d7ff27] px-5 py-3 text-sm font-black text-black disabled:opacity-50">{busy === interval && <Loader2 className="mr-2 inline size-4 animate-spin" />}Start free trial</button> : <Link href={`/login?next=${encodeURIComponent(loginNext)}`} className="block rounded-2xl bg-[#d7ff27] px-5 py-3 text-center text-sm font-black text-black">Sign in to start trial</Link>} />
+          <PlanCard featured title="LaterBox Pro" badge="14-day trial for eligible subscribers" price={localizedPrice} suffix={interval === 'month' ? '/month' : '/year'} description="Sync everywhere and capture useful content before it slips away." features={proFeatures} action={isPro ? appReturn ? <a href={appReturn} className="block rounded-2xl bg-[#d7ff27] px-5 py-3 text-center text-sm font-black text-black">Return to LaterBox</a> : entitlement.provider === 'paddle' ? <button type="button" onClick={() => void run('manage')} disabled={busy !== null} className="w-full rounded-2xl bg-[#d7ff27] px-5 py-3 text-sm font-black text-black disabled:opacity-50">{busy === 'manage' && <Loader2 className="mr-2 inline size-4 animate-spin" />}{presentation.actionLabel}</button> : <div className="rounded-2xl border border-white/15 px-5 py-3 text-center text-sm font-bold text-zinc-200">Pro is active · Manage in the App Store</div> : user ? <button type="button" onClick={() => void run(interval)} disabled={busy !== null || !checkoutReady} className="w-full rounded-2xl bg-[#d7ff27] px-5 py-3 text-sm font-black text-black disabled:opacity-50">{busy === interval && <Loader2 className="mr-2 inline size-4 animate-spin" />}{checkoutReady ? 'Start free trial' : checkoutError ? 'Checkout unavailable' : 'Loading secure checkout…'}</button> : <Link href={`/login?next=${encodeURIComponent(loginNext)}`} className="block rounded-2xl bg-[#d7ff27] px-5 py-3 text-center text-sm font-black text-black">Sign in to start trial</Link>} />
         </div>
 
         {accountMismatch && <p className="mx-auto mt-5 max-w-2xl rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-center text-sm font-bold text-red-700" role="alert">This browser is signed in to a different LaterBox account. Sign out and use the same account that opened this page.</p>}
 
         {checkoutState !== 'idle' && <div role="status" className={`mx-auto mt-6 max-w-2xl rounded-2xl border px-5 py-4 text-center text-sm font-bold ${checkoutState === 'confirmed' ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-amber-200 bg-amber-50 text-amber-900'}`}>{checkoutState === 'processing' && 'Payment received. Confirming Pro with the billing service…'}{checkoutState === 'confirmed' && 'LaterBox Pro is active on your account.'}{checkoutState === 'delayed' && 'Your payment is complete, but activation is still processing. It will appear automatically after the verified webhook arrives.'}</div>}
         {appReturn && checkoutState === 'delayed' && <a href={appReturn.replace('status=success', 'status=processing')} className="mx-auto mt-3 block w-fit text-sm font-black underline">Return to LaterBox while activation finishes</a>}
-        {message && <p className="mt-5 text-center text-sm font-bold text-red-700" role="alert">{message}</p>}
+        {(message || checkoutError) && <p className="mt-5 text-center text-sm font-bold text-red-700" role="alert">{message || checkoutError}</p>}
         {!prices[selectedId] && <p className="mt-3 text-center text-xs text-[#77746d]">USD reference price shown. Your localized total and applicable tax appear in Paddle checkout.</p>}
 
         <section className="mt-16 grid gap-4 sm:grid-cols-3">
