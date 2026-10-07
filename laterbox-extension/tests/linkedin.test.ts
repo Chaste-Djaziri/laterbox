@@ -43,3 +43,13 @@ test('nested post wrappers do not duplicate controls and details can use their o
   assert.equal(findLinkedInPosts(doc,doc.location.href)[0].root.tagName,'ARTICLE');
   assert.equal(findLinkedInPosts(doc,'https://www.linkedin.com/feed/').length,0);
 });
+
+test('live SDUI list-item cards with opaque keys and Send links still save individual snapshots',()=>{
+  const card=(key:string,author:string)=>`<div role="listitem" componentkey="update-card-focus${key}FeedType_MAIN_FEED_RELEVANCE"><h2>Feed post</h2><a href="/in/${key}/">${author}</a><p>A sufficiently long unique caption from ${author} on the redesigned feed.</p><div><button aria-label="Comment"></button><button aria-label="Repost"></button><a aria-label="Send" href="/feed/"><svg id="send-privately-feed-compact" aria-hidden="true"></svg></a></div></div>`;
+  const doc=new JSDOM(card('opaqueOne','First Author')+card('opaqueTwo','Second Author'),{url:'https://www.linkedin.com/feed/'}).window.document;
+  const posts=findLinkedInPosts(doc,doc.location.href);assert.equal(posts.length,2);
+  assert.equal(posts[0].share.tagName,'A');assert.equal(posts[0].insertionPoint,posts[0].share);
+  assert.match(decodeURIComponent(posts[0].url),/First Author/);assert.match(decodeURIComponent(posts[1].url),/Second Author/);
+  const sync=createLinkedInControls(doc,()=>{const host=doc.createElement('span');host.dataset.laterboxControl='';return host;});sync(true,doc.location.href);sync(true,doc.location.href);
+  assert.equal(doc.querySelectorAll('[data-laterbox-control]').length,2);assert.equal(posts[0].share.nextElementSibling?.getAttribute('data-laterbox-control'),'');
+});
