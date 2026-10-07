@@ -28,8 +28,8 @@ export function createXProfileControls(doc:Document,create:(profile:XProfile,res
     const container=control.container;
     const appearance=doc.defaultView?.getComputedStyle(profile.insertionPoint);
     const height=profile.insertionPoint.getBoundingClientRect().height || parseFloat(appearance?.height || '') || 36;
-    const css='display:inline-flex;align-items:center;align-self:flex-start;flex:0 0 auto;margin:0 8px 0 0;vertical-align:top;max-width:100%;height:'+Math.max(32,Math.min(48,height))+'px';
-    if(container.style.cssText!==css)container.style.cssText=css;
+    const layout:Record<string,string>={display:'inline-flex',alignItems:'center',alignSelf:'flex-start',flex:'0 0 auto',margin:'0px 8px 0px 0px',verticalAlign:'top',maxWidth:'100%',height:Math.max(32,Math.min(48,height))+'px'};
+    for(const [property,value] of Object.entries(layout)){const key=property as keyof CSSStyleDeclaration;if(container.style[key]!==value)Reflect.set(container.style,property,value);}
     const color=appearance?.color;if(color && container.style.color!==color)container.style.color=color;
     if(profile.insertionPoint.nextElementSibling!==control.container)profile.insertionPoint.after(control.container);
   };
