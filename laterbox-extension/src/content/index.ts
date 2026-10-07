@@ -2,6 +2,7 @@ import { browser } from '../platform/api';
 import { sendRuntimeMessage } from '../platform/messaging';
 import { captureFromPage, extractRenderedPage } from '../lib/page';
 import { createInstagramControls } from './instagram-controls';
+import { createInstagramProfileControls } from './instagram-profile';
 import { createLinkedInControls } from './linkedin-controls';
 import { createXControls } from './x-controls';
 import { createXProfileControls } from './x-profile';
@@ -146,7 +147,8 @@ const createProfileControl=(profile:{root:Element;insertionPoint:HTMLElement;url
 };
 const syncLinkedInProfileControls=createLinkedInProfileControls(document,createProfileControl);
 const syncXProfileControls=createXProfileControls(document,(profile,resolve)=>createProfileControl(profile,resolve,'X'));
-function addSocialControls(){syncInstagramControls(enabled,location.href);syncLinkedInControls(enabled,location.href);syncLinkedInProfileControls(enabled,location.href);syncXControls(enabled,location.href);syncXProfileControls(enabled,location.href);}
+const syncInstagramProfileControls=createInstagramProfileControls(document,(profile,resolve)=>createProfileControl(profile,resolve,'Instagram'));
+function addSocialControls(){syncInstagramControls(enabled,location.href);syncLinkedInControls(enabled,location.href);syncLinkedInProfileControls(enabled,location.href);syncXControls(enabled,location.href);syncXProfileControls(enabled,location.href);syncInstagramProfileControls(enabled,location.href);}
 const observer=new MutationObserver(()=>{
   if(scheduled || !enabled)return;scheduled=true;setTimeout(()=>{scheduled=false;addSocialControls();},500);
 });
