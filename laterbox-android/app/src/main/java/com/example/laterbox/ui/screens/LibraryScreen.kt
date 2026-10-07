@@ -42,7 +42,7 @@ import java.time.ZoneId
 
 internal enum class LibrarySection(val label: String, val icon: ImageVector) {
     FAVORITES("Favorites", Icons.Default.Star), KEPT("Kept", Icons.Default.Bookmark),
-    ARCHIVED("Archived", Icons.Default.Archive), DELETED("Recently Deleted", Icons.Default.Delete)
+    ARCHIVED("Archived", Icons.Default.Archive), DELETED("Deleted", Icons.Default.Delete)
 }
 internal data class LibraryFolder(val key: String, val name: String, val collectionId: String?)
 internal fun libraryFolders(collections: List<CollectionEntity>, items: List<ItemEntity>): List<LibraryFolder> {
