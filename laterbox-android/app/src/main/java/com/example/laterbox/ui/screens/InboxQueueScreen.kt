@@ -80,7 +80,7 @@ fun InboxQueueScreen(repository: DataRepository, onItem: (ItemEntity) -> Unit, o
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Image(painterResource(R.drawable.laterbox_icon_green), "LaterBox logo", Modifier.size(28.dp).clip(RoundedCornerShape(7.dp)))
                 Spacer(Modifier.width(8.dp))
-                Text("Inbox", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = LaterboxTextPrimary, modifier = Modifier.weight(1f))
+                Text("Inbox", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = LaterboxTextPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
                     Box(Modifier.size(7.dp).background(if (syncTitle == "Synced") LaterboxEmerald else LaterboxAmber, CircleShape))
                     Text(syncTitle, fontSize = 10.sp, color = LaterboxTextSecondary)
@@ -199,6 +199,11 @@ private fun InboxRichItemCard(item: ItemEntity, metadata: ItemMetadataEntity?, c
                         DropdownMenuItem(text = { Text("Return tomorrow") }, onClick = { menu = false; onSchedule(1) })
                         DropdownMenuItem(text = { Text("Return next week") }, onClick = { menu = false; onSchedule(7) })
                         item.url?.let { url -> DropdownMenuItem(text = { Text("Open in browser") }, onClick = { menu = false; runCatching { context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(url))) } }) }
+                        item.url?.let { url -> DropdownMenuItem(text = { Text("Copy link") }, onClick = {
+                            menu = false
+                            val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                            clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Saved link", url))
+                        }) }
                         DropdownMenuItem(text = { Text("Delete", color = MaterialTheme.colorScheme.error) }, onClick = { menu = false; onDelete() })
                     }
                 }
