@@ -14,6 +14,15 @@ class LibraryScreenTest {
         assertEquals(listOf("archive"), librarySectionItems(LibrarySection.ARCHIVED, items).map { it.id })
         assertEquals(listOf("trash"), librarySectionItems(LibrarySection.DELETED, items).map { it.id })
     }
+    @Test fun `recently deleted list and search preserve the counted trash`() {
+        val deleted = item("trash", deleted = "2026-10-07T12:00:00Z").copy(title = "Deleted recipe")
+        val base = librarySectionItems(LibrarySection.DELETED, listOf(item("active"), deleted))
+        assertEquals(1, base.size)
+        assertEquals(base, com.example.laterbox.services.LocalSearch.search("", base, includeDeleted = true))
+        assertEquals(base, com.example.laterbox.services.LocalSearch.search("recipe", base, includeDeleted = true))
+        assertTrue(com.example.laterbox.services.LocalSearch.search("unrelated", base, includeDeleted = true).isEmpty())
+        assertTrue(com.example.laterbox.services.LocalSearch.search("recipe", base).isEmpty())
+    }
     @Test fun `folders include empty stored collections and legacy categories without duplicates`() {
         val collection = CollectionEntity("folder", name = "Reading", createdAt = "now", updatedAt = "now")
         val folders = libraryFolders(listOf(collection), listOf(item("one", category = "reading"), item("two", category = "Work"), item("deleted", category = "Trash category", deleted = "now")))
