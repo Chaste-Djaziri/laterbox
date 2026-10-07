@@ -134,6 +134,7 @@ const createProfileControl=(profile:{root:Element;insertionPoint:HTMLElement;url
   const container=document.createElement('span');container.setAttribute('data-laterbox-control','');container.style.cssText='display:inline-flex;margin:4px;vertical-align:middle;max-width:100%';
   const local=container.attachShadow({mode:'closed'});local.append(style.cloneNode(true));
   const appearance=document.createElement('style');appearance.textContent='button{color:inherit;background:transparent;border:1px solid currentColor;border-radius:24px;min-height:36px;padding:6px 14px}button:hover{background:rgba(128,128,128,.12)}';local.append(appearance);
+  if(site==='Instagram'){container.style.margin='0 0 0 10px';container.style.alignSelf='center';appearance.textContent+='button{border-radius:6px;min-height:32px;padding:5px 10px;white-space:nowrap}';}
   if(site==='X')appearance.textContent+=':host{box-sizing:border-box}button{box-sizing:border-box;height:100%;min-height:0;display:inline-flex;align-items:center;justify-content:center;white-space:nowrap}';
   const button=document.createElement('button');button.type='button';button.dataset.saveLabel=profile.company ? 'Save company' : 'Save profile';button.title='Save this '+site+' '+(profile.company ? 'company' : 'profile')+' to LaterBox';button.setAttribute('aria-label','Save '+profile.name+' to LaterBox');decorate(button,button.dataset.saveLabel);local.append(button);
   button.addEventListener('click',event=>{
