@@ -5,6 +5,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 ## [Unreleased]
 
 ### Changed
+- **[Android] Search page header layout**: Positioned the search input at the very top of the screen, replaced the left back button with a dedicated close action on the right.
 - **[Android] Home screen items list removal**: Streamlined the Home dashboard by removing the general items list, keeping greeting, search bar, and data overview metrics focused.
 - **[Android] Home greeting display name**: Prioritize Supabase auth user metadata display name for the home personalized greeting, with fallback to email prefix.
 - **[Android] Home layout reordering**: Repositioned the search bar to the top of the Home screen directly above the data overview metrics.
