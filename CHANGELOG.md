@@ -25,6 +25,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 - **[macOS] System Status**: Settings now provides a single readiness view for Mac integrations, permissions, sync, notifications, and StoreKit billing, with retry guidance and copyable diagnostics.
 
 ### Fixed
+- **[Extensions] LinkedIn people and companies**: Show save actions on personal and company profile pages and individual profile cards, including layouts without a More button.
 - **[Extensions] LinkedIn redesigned feed**: Support the live list-item/component-key feed and link-based Send actions. Preserve individual snapshots with a source text reference when LinkedIn exposes no post permalink.
 - **[Extensions] LinkedIn feed and photo dialogs**: Recognize additional post containers, icon-only Send actions, and post identifiers without changing Instagram controls.
 - **[Extensions] Stale page messaging**: Handle unavailable extension messaging after reloads without uncaught errors when a page reconnects.
