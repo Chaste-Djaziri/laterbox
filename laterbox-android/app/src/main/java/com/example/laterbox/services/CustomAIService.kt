@@ -14,26 +14,16 @@ object CustomAIService {
         check(AccountService.state.value.pro) { "Custom AI models require verified Pro access." }
         val settings = SecureSettings(context)
         val customKey = settings.apiKey()
-        val key = if (customKey.isNotBlank()) customKey else com.example.laterbox.BuildConfig.GEMINI_API_KEY
-        require(key.isNotBlank()) { "Gemini API key is not configured." }
-        val provider = if (customKey.isNotBlank() && settings.provider != "device") settings.provider else "gemini"
-        val model = if (customKey.isNotBlank()) settings.model else com.example.laterbox.BuildConfig.GEMINI_MODEL.ifBlank { "gemini-3.5-flash-lite" }
-
-        val candidateModels = if (provider == "gemini") {
-            listOf(model, "gemini-3.5-flash-lite", "gemini-flash-lite-latest", "gemini-3.8-flash").distinct()
-        } else {
-            listOf(model)
+        val provider = settings.provider
+        val key = if (customKey.isNotBlank()) customKey else {
+            require(provider == "gemini") { "Add your $provider API key to use this provider." }
+            com.example.laterbox.BuildConfig.GEMINI_API_KEY
         }
-
-        var lastException: Exception? = null
-        for (currentModel in candidateModels) {
-            try {
-                return@withContext requestModel(provider, currentModel, key, prompt)
-            } catch (e: Exception) {
-                lastException = e
-            }
-        }
-        throw lastException ?: RuntimeException("Provider request failed.")
+        require(key.isNotBlank()) { "Add an API key to use this model." }
+        val model = settings.model.trim()
+        require(model.isNotBlank()) { "Choose a model or enter its model name." }
+        // Both Later AI and enhanced search call this shared entry point.
+        requestModel(provider, model, key, prompt)
     }
 
     private fun requestModel(provider: String, model: String, key: String, prompt: String): String {
