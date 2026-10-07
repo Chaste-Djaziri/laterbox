@@ -206,32 +206,34 @@ fun WelcomeScreen(
                     )
                 }
 
-                // Legal Disclaimer matching iOS
+                // Legal Disclaimer matching iOS (centered and smaller caption size)
                 Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 2.dp),
                     horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(top = 2.dp)
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
                         text = "By continuing, you agree to our ",
-                        fontSize = 12.sp,
+                        fontSize = 11.sp,
                         color = Color.Black.copy(alpha = 0.45f)
                     )
                     Text(
                         text = "Terms",
-                        fontSize = 12.sp,
+                        fontSize = 11.sp,
                         color = Color.Black,
                         textDecoration = TextDecoration.Underline,
                         modifier = Modifier.clickable { uriHandler.openUri("https://laterbox.dev/terms") }
                     )
                     Text(
                         text = " & ",
-                        fontSize = 12.sp,
+                        fontSize = 11.sp,
                         color = Color.Black.copy(alpha = 0.45f)
                     )
                     Text(
                         text = "Privacy Policy",
-                        fontSize = 12.sp,
+                        fontSize = 11.sp,
                         color = Color.Black,
                         textDecoration = TextDecoration.Underline,
                         modifier = Modifier.clickable { uriHandler.openUri("https://laterbox.dev/privacy") }
