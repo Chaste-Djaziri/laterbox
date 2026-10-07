@@ -108,7 +108,7 @@ fun LaterAIContent(
     LaunchedEffect(ai) {
         status = runCatching { ai.status() }.getOrDefault(FeatureStatus.UNAVAILABLE)
         checking = false
-        guided = status != FeatureStatus.AVAILABLE
+        guided = false
     }
 
     fun save(item: ItemEntity) {
@@ -422,7 +422,7 @@ fun LaterAIContent(
             }
 
             if (guided && saved == null && !checking) {
-                key(captureID) { GuidedCapture(capturedInput, attachments, true, ::save) }
+                key(captureID) { GuidedCapture(capturedInput, attachments, true, scrollable = false, onSave = ::save) }
             }
 
             if (clarify) {

@@ -62,7 +62,14 @@ fun DialogContent(title: String, onDismiss: () -> Unit, content: @Composable Col
     }
 }
 @Composable
-fun GuidedCapture(initial: String = "", attachments: String = "[]", dark: Boolean = false, onSave: (ItemEntity) -> Unit) {
+fun GuidedCapture(
+    initial: String = "",
+    attachments: String = "[]",
+    dark: Boolean = false,
+    scrollable: Boolean = true,
+    modifier: Modifier = Modifier,
+    onSave: (ItemEntity) -> Unit
+) {
     var content by rememberSaveable { mutableStateOf(initial) }
     var title by rememberSaveable { mutableStateOf(VaultStore.draft(initial).title.orEmpty()) }
     var tags by rememberSaveable { mutableStateOf(VaultStore.draft(initial).tags) }
@@ -71,7 +78,13 @@ fun GuidedCapture(initial: String = "", attachments: String = "[]", dark: Boolea
     var step by rememberSaveable { mutableIntStateOf(0) }
     val id = rememberSaveable { UUID.randomUUID().toString() }
     val text = if (dark) Color.White else Color.Black
-    Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    val scrollModifier = if (scrollable) Modifier.verticalScroll(rememberScrollState()) else Modifier
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .then(scrollModifier),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
         Text(listOf("What would you like to save?", "Give it a title", "Organize your capture", "When should it return?", "Ready to save")[step], color = text, style = MaterialTheme.typography.titleLarge)
         when (step) {
             0 -> { Field(content, { content = it }, "Content or URL", dark); if (attachments != "[]") Text("Shared attachments are ready to save", color = text) }
