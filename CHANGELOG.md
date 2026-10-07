@@ -5,6 +5,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 ## [Unreleased]
 
 ### Changed
+- **[Android] Themed document type icons in Waiting For You**: Styled document and content type icons (PDF, presentations, spreadsheets, documents, audio, video, notes, code, and images) in the Waiting For You inbox preview using dynamic app theme colors.
 - **[Android] Themed favicons in Waiting For You**: Restyled link favicons and fallback icons to use the app's signature pastel green accent squircle and dynamic white card surface.
 - **[Android] Dynamic centralized AppTheme**: Unified theme system across all screens and components, making green, white, black, and canvas background colors fully dynamic and configurable via `AppTheme` with instant Compose recomposition.
 - **[Android] Item icons and favicon enrichment**: Display site favicons for web links and specialized icons for specific document types including PDF, Audio, Video, Docs, Presentations (PPT), Spreadsheets, Code, and Images in inbox previews.
