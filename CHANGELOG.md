@@ -34,6 +34,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 - **[Android] Welcome screen legal disclaimer styling**: Centered the legal disclaimer on the onboarding welcome screen and adjusted to a compact caption2 font size.
 
 ### Fixed
+- **[Android] Library cards and trash**: Keep all four overview cards equal in size and show deleted items in Recently Deleted, including search results.
 - **[Android] YouTube previews**: Provide the app identity required by embedded playback and replace failed players with a Play on YouTube action.
 - **[Android] Later AI Gemini API model upgrade & JSON null safety**: Upgraded Gemini default model to gemini-3.5-flash-lite, added multi-model fallback resiliency, fixed local properties typo, and fortified AIAction JSON parsing to safely handle null values and dates without throwing exceptions.
 - **[Web] Paddle billing**: Configure checkout builds, distinguish checkout readiness errors, and add authenticated subscription management and cancellation links.
