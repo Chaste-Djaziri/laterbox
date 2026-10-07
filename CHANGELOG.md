@@ -5,6 +5,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 ## [Unreleased]
 
 ### Changed
+- **[Android] Minimalist Later AI view & floating suggestions**: Cleared default center empty-state artwork and copy, replacing it with compact, pill-shaped prompt suggestions with rounded corners matching the input bar, floating horizontally above the keyboard.
 - **[Android] Later AI header mode switcher & composer alignment**: Added segmented mode switcher in Later AI top header to toggle between conversational Later AI and structured Guided Capture, and aligned the send button in the chat input with symmetric padding and clean spacing.
 - **[Android] Vault header refinement & overlay click containment**: Removed header '+' button, restricted greeting text to a single line with ellipsis overflow, and prevented profile clicks when Later AI full-screen overlay is active.
 - **[Android] Themed document type icons in Waiting For You**: Styled document and content type icons (PDF, presentations, spreadsheets, documents, audio, video, notes, code, and images) in the Waiting For You inbox preview using dynamic app theme colors.
