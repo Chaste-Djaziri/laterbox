@@ -28,6 +28,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 - **[macOS] System Status**: Settings now provides a single readiness view for Mac integrations, permissions, sync, notifications, and StoreKit billing, with retry guidance and copyable diagnostics.
 
 ### Fixed
+- **[Extensions] Instagram profile theme contrast**: Switch the profile save button between white on dark surfaces and black on light surfaces as the theme changes.
 - **[Extensions] Instagram profile button placement**: Place Save profile beside the username with compact rounded corners.
 - **[Extensions] X profile button alignment**: Align Save profile with the native profile actions and match their control height.
 - **[Extensions] LinkedIn people and companies**: Show save actions on personal and company profile pages and individual profile cards, including layouts without a More button.
