@@ -12,7 +12,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
@@ -260,25 +259,14 @@ fun DedicatedSearchScreen(
             .background(LaterboxBg)
             .statusBarsPadding()
     ) {
-        // Search Header Row: Back Button + Live Search Input
+        // Search Header Row: Search Input + Close Button on right
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 10.dp),
+                .padding(start = 16.dp, end = 8.dp, top = 4.dp, bottom = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            IconButton(
-                onClick = onClose,
-                modifier = Modifier.size(40.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Back",
-                    tint = LaterboxTextPrimary
-                )
-            }
-
             Surface(
                 modifier = Modifier
                     .weight(1f)
@@ -343,6 +331,18 @@ fun DedicatedSearchScreen(
                         }
                     }
                 }
+            }
+
+            IconButton(
+                onClick = onClose,
+                modifier = Modifier.size(40.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = "Close search",
+                    tint = LaterboxTextPrimary,
+                    modifier = Modifier.size(22.dp)
+                )
             }
         }
 
