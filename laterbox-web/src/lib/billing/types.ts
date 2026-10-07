@@ -89,6 +89,16 @@ export function presentEntitlement(
       progress,
     };
   }
+  if (entitlement.willCancel || entitlement.status === 'canceled') {
+    return {
+      label: `Pro${time ? ` · ${time}` : ''}`,
+      description: 'Your plan stays active until the end of this period.',
+      actionLabel: 'Manage',
+      tone: 'warning',
+      remainingDays,
+      progress,
+    };
+  }
   if (entitlement.status === 'trialing') {
     return {
       label: `Pro trial${time ? ` · ${time}` : ''}`,
@@ -105,16 +115,6 @@ export function presentEntitlement(
       description: 'Temporary launch access includes all Pro features.',
       actionLabel: 'View plans',
       tone: 'success',
-      remainingDays,
-      progress,
-    };
-  }
-  if (entitlement.willCancel) {
-    return {
-      label: `Pro${time ? ` · ${time}` : ''}`,
-      description: 'Your plan stays active until the end of this period.',
-      actionLabel: 'Manage',
-      tone: 'warning',
       remainingDays,
       progress,
     };
