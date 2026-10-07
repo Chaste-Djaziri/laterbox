@@ -33,7 +33,7 @@ android {
             ?: System.getenv("LATERBOX_WEB_URL")
             ?: localProperties.getProperty("WEB_BASE_URL", localProperties.getProperty("LATERBOX_WEB_URL", "https://laterbox.dev"))
         val geminiApiKey = System.getenv("GEMINI_API_KEY") ?: localProperties.getProperty("GEMINI_API_KEY", "")
-        val geminiModel = System.getenv("GEMINI_MODEL") ?: localProperties.getProperty("GEMINI_MODEL", "gemini-1.5-flash")
+        val geminiModel = System.getenv("GEMINI_MODEL") ?: localProperties.getProperty("GEMINI_MODEL", "gemini-3.5-flash-lite")
 
         buildConfigField("String", "SUPABASE_URL", "\"${supabaseUrl}\"")
         buildConfigField("String", "SUPABASE_KEY", "\"${supabaseKey}\"")
