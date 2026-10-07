@@ -25,6 +25,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.laterbox.data.DataRepository
@@ -388,12 +389,16 @@ fun DedicatedSearchScreen(
                             text = "Search across your entire vault",
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
-                            color = LaterboxTextPrimary
+                            color = LaterboxTextPrimary,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth()
                         )
                         Text(
                             text = "Search titles, links, text content, tags, or topics",
                             fontSize = 13.sp,
-                            color = LaterboxTextSecondary
+                            color = LaterboxTextSecondary,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth()
                         )
                     }
                 }
@@ -411,12 +416,16 @@ fun DedicatedSearchScreen(
                             text = "No matches for \"$query\"",
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
-                            color = LaterboxTextPrimary
+                            color = LaterboxTextPrimary,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth()
                         )
                         Text(
                             text = "Try searching with a different keyword, tag, or domain.",
                             fontSize = 13.sp,
-                            color = LaterboxTextSecondary
+                            color = LaterboxTextSecondary,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth()
                         )
                     }
                 }
