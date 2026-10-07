@@ -75,8 +75,10 @@ fun VaultScreen(
         if (query.isNotBlank()) results else if (sort == "Oldest") results.sortedBy { it.createdAt } else if (tab == 2) results.sortedBy { it.returnAt } else results.sortedByDescending { it.createdAt }
     }
     val account by com.example.laterbox.services.AccountService.state.collectAsState()
-    val userName = remember(account.email) {
-        account.email?.takeIf { it.isNotBlank() }?.substringBefore("@")?.replaceFirstChar { it.uppercase() } ?: "Guest"
+    val userName = remember(account.displayName, account.email) {
+        account.displayName?.takeIf { it.isNotBlank() }
+            ?: account.email?.takeIf { it.isNotBlank() }?.substringBefore("@")?.replaceFirstChar { it.uppercase() }
+            ?: "Guest"
     }
     val greetingText = remember {
         val hour = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)
