@@ -1,6 +1,8 @@
 import { browser } from '../platform/api';
 import { captureFromPage, extractRenderedPage } from '../lib/page';
 import { createInstagramControls } from './instagram-controls';
+import { createLinkedInControls } from './linkedin-controls';
+import type { InstagramPost } from './social';
 import type { Capture, CaptureResult } from '../types/capture';
 
 const host = document.createElement('div');
@@ -81,7 +83,7 @@ document.addEventListener('selectionchange',()=>{
 });
 document.addEventListener('keydown',event=>{if(event.key==='Escape')quoteToolbar.hidden=true;});
 window.addEventListener('scroll',()=>{quoteToolbar.hidden=true;},{passive:true});
-const syncInstagramControls=createInstagramControls(document,(post,resolve)=>{
+const createPostControl=(post:InstagramPost,resolve:()=>InstagramPost|undefined)=>{
   const container=document.createElement('span');container.setAttribute('data-laterbox-control','');container.style.cssText='display:inline-flex;align-items:center;flex-shrink:0;margin:0 4px;vertical-align:middle;max-width:100%';
   if(post.compact){container.setAttribute('data-reel-action','');container.style.cssText='display:flex;align-items:center;justify-content:center;align-self:center;flex:0 0 auto;width:100%;min-height:44px;margin:8px 0;box-sizing:border-box';}
   const local=container.attachShadow({mode:'closed'});local.append(style.cloneNode(true));
@@ -90,7 +92,7 @@ const syncInstagramControls=createInstagramControls(document,(post,resolve)=>{
   const isDarkModal=Boolean(post.root.closest('[role="dialog"]') || post.share.closest('[role="dialog"]'));
   if(isDarkModal || (color?.length===3 && color.reduce((sum,value)=>sum+value,0)>384)){row.classList.add('dark');}else{row.classList.add('light');}
   local.append(row);
-  const button=document.createElement('button');button.type='button';decorate(button,'Save to LaterBox');button.title='Save to LaterBox';button.setAttribute('aria-label',`Save ${post.author ? post.author+'’s ' : ''}Instagram post to LaterBox`);row.append(button);
+  const button=document.createElement('button');button.type='button';decorate(button,'Save to LaterBox');button.title='Save to LaterBox';button.setAttribute('aria-label',`Save ${post.author ? post.author+'’s ' : ''}${post.site} post to LaterBox`);row.append(button);
   const tooltip=document.createElement('div');tooltip.className='save-tooltip';tooltip.id='laterbox-save-tip';tooltip.setAttribute('role','tooltip');tooltip.textContent='Save to LaterBox';
   if(typeof tooltip.showPopover==='function'){
     tooltip.setAttribute('popover','manual');local.append(tooltip);button.removeAttribute('title');button.setAttribute('aria-describedby',tooltip.id);
@@ -119,12 +121,14 @@ const syncInstagramControls=createInstagramControls(document,(post,resolve)=>{
     void submit(captureFromPage(page,'social'),button);
   });
   return container;
-});
-function addSocialControls(){syncInstagramControls(enabled,location.href);}
+};
+const syncInstagramControls=createInstagramControls(document,createPostControl);
+const syncLinkedInControls=createLinkedInControls(document,createPostControl);
+function addSocialControls(){syncInstagramControls(enabled,location.href);syncLinkedInControls(enabled,location.href);}
 const observer=new MutationObserver(()=>{
   if(scheduled || !enabled)return;scheduled=true;setTimeout(()=>{scheduled=false;addSocialControls();},500);
 });
-observer.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['href','aria-label','aria-hidden','hidden','data-permalink','data-shortcode','class','style']});
+observer.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['href','aria-label','aria-hidden','hidden','data-permalink','data-shortcode','data-urn','class','style']});
 window.addEventListener('scroll',()=>{
   if(scheduled || !enabled)return;scheduled=true;setTimeout(()=>{scheduled=false;addSocialControls();},200);
 },{passive:true,capture:true});
