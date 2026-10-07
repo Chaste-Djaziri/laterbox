@@ -5,6 +5,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 ## [Unreleased]
 
 ### Changed
+- **[Android] Home search bar redesign**: Replaced generic outlined text field with a polished, native vault search component with rounded card container, search icon, clear button, and proper typography and sizing.
 - **[Android] Home screen layout cleanup**: Removed the "Make room for later" promo card and removed the redundant "Home" page title header on the main Android vault screen.
 - **[Android] Sign-in modal simplification**: Removed the circular hero illustration from the sign-in modal sheet for a cleaner, more compact authentication layout.
 - **[Android] Welcome screen disclaimer copy**: Updated legal disclaimer link text to "Terms & Policy".
