@@ -84,6 +84,8 @@ fun LaterAIContent(
     val context = LocalContext.current
     val store = remember { VaultStore(context) }
     val ai = remember { LaterAIService(context) }
+    val nanoStatus by NanoAIService.status.collectAsState()
+    LaunchedEffect(Unit) { NanoAIService.refresh() }
     val scope = rememberCoroutineScope()
     var guided by rememberSaveable { mutableStateOf(false) }
     var input by rememberSaveable { mutableStateOf(initial) }
@@ -314,7 +316,7 @@ fun LaterAIContent(
                         "Gemini AI · Pro enabled"
                     }
                 } else {
-                    "Later Assistant · Standard"
+                    if (nanoStatus == "Gemini Nano ready") "Gemini Nano · On device" else "Local assistant · $nanoStatus"
                 },
                 color = Color(0xFFA1A1AA),
                 fontSize = 11.sp,
