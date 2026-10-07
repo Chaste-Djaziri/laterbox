@@ -24,6 +24,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 - **[macOS] System Status**: Settings now provides a single readiness view for Mac integrations, permissions, sync, notifications, and StoreKit billing, with retry guidance and copyable diagnostics.
 
 ### Fixed
+- **[Extensions] LinkedIn feed and photo dialogs**: Recognize additional post containers, icon-only Send actions, and post identifiers without changing Instagram controls.
 - **[Extensions] Stale page messaging**: Handle unavailable extension messaging after reloads without uncaught errors when a page reconnects.
 - **[Web & CI] OpenNext Cloudflare Edge Middleware Compatibility & Decoupled Local Builds**: Restored Edge Middleware convention (`src/middleware.ts`) required by `@opennextjs/cloudflare` to eliminate `ERROR Node.js middleware is not currently supported` during Cloudflare worker bundling. Decoupled version bumper from local `prebuild` scripts so local builds run fast and clean without triggering repository-wide version bumps.
 - **[Web] Cloud Snapshot Schema Cache Query Recovery**: Removed unused query to unmigrated table `item_content` in `ItemContext`, resolving `PGRST205: Could not find the table 'public.item_content' in the schema cache` errors that prevented cloud synchronization from completing.
