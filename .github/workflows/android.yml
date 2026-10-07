@@ -60,6 +60,8 @@ jobs:
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+          WEB_BASE_URL: ${{ secrets.WEB_BASE_URL }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
 
       - name: Upload Android App Bundle (AAB)
         uses: actions/upload-artifact@v4
