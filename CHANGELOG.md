@@ -5,6 +5,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 ## [Unreleased]
 
 ### Changed
+- **[Android] Later AI keyboard alignment, input sizing & header leveling**: Ensured Later AI input and suggestions sit directly above the active keyboard without double navigation-bar inset padding, normalized empty input field height to match typed text, and aligned the close button to the exact level of the mode switchers.
 - **[Android] Minimalist Later AI view & floating suggestions**: Cleared default center empty-state artwork and copy, replacing it with compact, pill-shaped prompt suggestions with rounded corners matching the input bar, floating horizontally above the keyboard.
 - **[Android] Later AI header mode switcher & composer alignment**: Added segmented mode switcher in Later AI top header to toggle between conversational Later AI and structured Guided Capture, and aligned the send button in the chat input with symmetric padding and clean spacing.
 - **[Android] Vault header refinement & overlay click containment**: Removed header '+' button, restricted greeting text to a single line with ellipsis overflow, and prevented profile clicks when Later AI full-screen overlay is active.
