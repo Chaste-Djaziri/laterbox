@@ -12,7 +12,9 @@ export function findXProfile(doc:Document,pageUrl:string):XProfile|undefined{
   const anchor=actions.find(element=>element.matches('[data-testid="userActions"]')) || actions[0] || name;
   let insertionPoint=anchor;
   if(anchor!==name && anchor.parentElement?.closest('button,[role="button"],a'))insertionPoint=anchor.parentElement.closest<HTMLElement>('button,[role="button"],a')!;
-  return {root:primary,insertionPoint,url:page.origin+'/'+match[1],name:displayName.slice(0,500)};
+  let root:Element=name;
+  for(let node=name.parentElement;node && primary.contains(node);node=node.parentElement){if(node.querySelector('article[data-testid="tweet"]'))break;root=node;if(node===primary)break;}
+  return {root,insertionPoint,url:page.origin+'/'+match[1],name:displayName.slice(0,500)};
 }
 export function createXProfileControls(doc:Document,create:(profile:XProfile,resolve:()=>XProfile|undefined)=>HTMLElement){
   let control:{profile:XProfile;container:HTMLElement}|undefined;
