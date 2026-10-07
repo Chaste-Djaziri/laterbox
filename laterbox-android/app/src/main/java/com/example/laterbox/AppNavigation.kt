@@ -30,6 +30,9 @@ import com.example.laterbox.ui.ai.LaterAIScreen
 import com.example.laterbox.ui.auth.*
 import com.example.laterbox.ui.capture.QuickCaptureSheet
 import com.example.laterbox.ui.screens.*
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import kotlinx.coroutines.launch
 import java.time.Instant
 
@@ -47,6 +50,17 @@ fun AppNavigation(notificationItemId: String? = null, context: android.content.C
     val vaultState = rememberSaveableStateHolder()
     var selected by remember { mutableStateOf<ItemEntity?>(null) }
     val scope = rememberCoroutineScope()
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner, repository) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) scope.launch {
+                AccountService.refresh()
+                repository.syncNow()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
     LaunchedEffect(notificationItemId, items) {
         if (notificationItemId != null) { tab = 1; selected = items.firstOrNull { it.id == notificationItemId } }
     }
