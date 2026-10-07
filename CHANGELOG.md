@@ -5,6 +5,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- **[Android] Welcome screen simplification & notch safe area**: Aligned the native Android onboarding welcome screen with the minimal iOS design, adding safe-drawing insets for camera notches and status bars, hero illustration layout, and streamlined action hierarchy.
 - **[Extensions] Instagram profile saves**: Add Save profile beside Instagram profile controls, capturing visible profile details and their canonical source URL.
 - **[Extensions] X profile saves**: Add Save profile controls to X/Twitter profiles with canonical URLs, visible profile snapshots, and account save feedback.
 - **[Extensions] X and Twitter post saves**: Add explicit LaterBox save buttons to feed posts and post details, preserving the individual post permalink, visible text, author, timestamp, and media previews.
