@@ -5,6 +5,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 ## [Unreleased]
 
 ### Changed
+- **[Android] Web subscriptions and Pro sync**: Open web login and plans for subscription purchases and management, refresh access after returning to Android, and restrict cloud sync to signed-in Pro members. iOS purchasing remains unchanged.
 - **[Android] Settings design**: Match the iOS-style branded header, centered profile, plan card, and grouped settings sections while preserving native security, notifications, AI, and backup controls.
 - **[Android] Pro AI search with Gemini & free upgrade banner**: Pro users receive Gemini-powered AI search term expansion combined with normal search for comprehensive results with visual AI enhancement indicators, while free users receive standard local search accompanied by an upgrade banner to go Pro for AI search.
 - **[Android] Inbox search**: Open the shared dedicated search page from the Inbox search bar and header icon, matching Home.
