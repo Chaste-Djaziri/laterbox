@@ -330,152 +330,159 @@ fun LaterAIContent(
             )
         }
 
-        // Main Scrollable Area
-        Column(
-            modifier = Modifier
-                .weight(1f)
-                .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            if (attachments != "[]") {
-                val files = runCatching { JSONArray(attachments) }.getOrNull()
-                files?.let { values ->
-                    for (index in 0 until values.length()) {
-                        Choice("📎 ${values.getJSONObject(index).optString("name", "Shared file")}", "Attached to this capture", true) {}
+        if (guided && saved == null && !checking) {
+            key(captureID) {
+                GuidedCapture(
+                    initial = capturedInput,
+                    attachments = attachments,
+                    dark = true,
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
+                    onSave = ::save
+                )
+            }
+        } else {
+            // Main Scrollable Area
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                if (attachments != "[]") {
+                    val files = runCatching { JSONArray(attachments) }.getOrNull()
+                    files?.let { values ->
+                        for (index in 0 until values.length()) {
+                            Choice("📎 ${values.getJSONObject(index).optString("name", "Shared file")}", "Attached to this capture", true) {}
+                        }
                     }
                 }
-            }
 
-
-
-            // Messages List
-            messages.forEach { (text, user) ->
-                Box(
-                    modifier = Modifier.fillMaxWidth(),
-                    contentAlignment = if (user) Alignment.CenterEnd else Alignment.CenterStart
-                ) {
-                    Surface(
-                        shape = RoundedCornerShape(16.dp),
-                        color = if (user) Color(0xFF242424) else Color(0xFF141416),
-                        border = if (user) null else BorderStroke(1.dp, Color.White.copy(alpha = 0.06f)),
-                        modifier = Modifier.widthIn(max = 300.dp)
+                // Messages List
+                messages.forEach { (text, user) ->
+                    Box(
+                        modifier = Modifier.fillMaxWidth(),
+                        contentAlignment = if (user) Alignment.CenterEnd else Alignment.CenterStart
                     ) {
+                        Surface(
+                            shape = RoundedCornerShape(16.dp),
+                            color = if (user) Color(0xFF242424) else Color(0xFF141416),
+                            border = if (user) null else BorderStroke(1.dp, Color.White.copy(alpha = 0.06f)),
+                            modifier = Modifier.widthIn(max = 300.dp)
+                        ) {
+                            Text(
+                                text = text,
+                                color = Color.White,
+                                fontSize = 14.sp,
+                                modifier = Modifier.padding(14.dp)
+                            )
+                        }
+                    }
+                }
+
+                if (checking || busy) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.padding(vertical = 4.dp)
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(14.dp),
+                            color = LaterboxAccent,
+                            strokeWidth = 2.dp
+                        )
                         Text(
-                            text = text,
-                            color = Color.White,
-                            fontSize = 14.sp,
-                            modifier = Modifier.padding(14.dp)
+                            text = if (checking) "Checking model…" else "Thinking…",
+                            color = Color.White.copy(alpha = 0.6f),
+                            fontSize = 12.sp
                         )
                     }
                 }
-            }
 
-            if (checking || busy) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.padding(vertical = 4.dp)
-                ) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(14.dp),
-                        color = LaterboxAccent,
-                        strokeWidth = 2.dp
-                    )
-                    Text(
-                        text = if (checking) "Checking model…" else "Thinking…",
-                        color = Color.White.copy(alpha = 0.6f),
-                        fontSize = 12.sp
-                    )
+                if (status == FeatureStatus.DOWNLOADABLE && !busy) {
+                    Choice("Download on-device model", "Enable free Later AI on this device", true) {
+                        scope.launch {
+                            busy = true
+                            try {
+                                ai.download { error = it }
+                                status = ai.status()
+                                guided = status != FeatureStatus.AVAILABLE
+                                error = null
+                            } catch (failure: Exception) {
+                                error = failure.message
+                            } finally {
+                                busy = false
+                            }
+                        }
+                    }
                 }
-            }
 
-            if (status == FeatureStatus.DOWNLOADABLE && !busy) {
-                Choice("Download on-device model", "Enable free Later AI on this device", true) {
-                    scope.launch {
-                        busy = true
-                        try {
-                            ai.download { error = it }
-                            status = ai.status()
+                error?.let {
+                    Text(it, color = Color(0xFFFFB4AB))
+                    if (status == FeatureStatus.AVAILABLE) {
+                        Choice("Retry", dark = true) { input = capturedInput; send() }
+                    }
+                    Choice("Continue manually", "Keep your content and attachments", true) { guided = true }
+                }
+
+                if (clarify) {
+                    Choice("Save this", dark = true) { save(VaultStore.draft(capturedInput, attachments = attachments, id = captureID)) }
+                    Choice("Just chatting", dark = true) { clarify = false; input = "" }
+                }
+
+                matches.forEach { item ->
+                    Choice(item.title.orEmpty(), item.summary, true) {
+                        saved = item
+                        edit = true
+                        returnQuestion = false
+                    }
+                }
+
+                saved?.let { item ->
+                    if (returnQuestion) {
+                        Text("When would you like to see it again?", color = Color.White)
+                        ReturnChoices(true) { date ->
+                            scope.launch {
+                                try {
+                                    val updated = item.copy(returnAt = date, status = if (date == null) "inbox" else "deferred")
+                                    store.edit(updated)
+                                    saved = updated
+                                    returnQuestion = false
+                                    onSaved()
+                                } catch (failure: Exception) {
+                                    error = failure.message
+                                }
+                            }
+                        }
+                    } else {
+                        Choice("Edit", "Review saved content and metadata", true) { edit = true }
+                        Choice("Undo save", "Remove this capture", true) {
+                            scope.launch {
+                                try {
+                                    store.undo(item)
+                                    saved = null
+                                    captureID = UUID.randomUUID().toString()
+                                    guided = true
+                                    onSaved()
+                                } catch (failure: Exception) {
+                                    error = failure.message
+                                }
+                            }
+                        }
+                        Choice("Save another", dark = true) {
+                            saved = null
+                            captureID = UUID.randomUUID().toString()
+                            capturedInput = ""
+                            input = ""
                             guided = status != FeatureStatus.AVAILABLE
-                            error = null
-                        } catch (failure: Exception) {
-                            error = failure.message
-                        } finally {
-                            busy = false
                         }
                     }
                 }
             }
 
-            error?.let {
-                Text(it, color = Color(0xFFFFB4AB))
-                if (status == FeatureStatus.AVAILABLE) {
-                    Choice("Retry", dark = true) { input = capturedInput; send() }
-                }
-                Choice("Continue manually", "Keep your content and attachments", true) { guided = true }
-            }
-
-            if (guided && saved == null && !checking) {
-                key(captureID) { GuidedCapture(capturedInput, attachments, true, scrollable = false, onSave = ::save) }
-            }
-
-            if (clarify) {
-                Choice("Save this", dark = true) { save(VaultStore.draft(capturedInput, attachments = attachments, id = captureID)) }
-                Choice("Just chatting", dark = true) { clarify = false; input = "" }
-            }
-
-            matches.forEach { item ->
-                Choice(item.title.orEmpty(), item.summary, true) {
-                    saved = item
-                    edit = true
-                    returnQuestion = false
-                }
-            }
-
-            saved?.let { item ->
-                if (returnQuestion) {
-                    Text("When would you like to see it again?", color = Color.White)
-                    ReturnChoices(true) { date ->
-                        scope.launch {
-                            try {
-                                val updated = item.copy(returnAt = date, status = if (date == null) "inbox" else "deferred")
-                                store.edit(updated)
-                                saved = updated
-                                returnQuestion = false
-                                onSaved()
-                            } catch (failure: Exception) {
-                                error = failure.message
-                            }
-                        }
-                    }
-                } else {
-                    Choice("Edit", "Review saved content and metadata", true) { edit = true }
-                    Choice("Undo save", "Remove this capture", true) {
-                        scope.launch {
-                            try {
-                                store.undo(item)
-                                saved = null
-                                captureID = UUID.randomUUID().toString()
-                                guided = true
-                                onSaved()
-                            } catch (failure: Exception) {
-                                error = failure.message
-                            }
-                        }
-                    }
-                    Choice("Save another", dark = true) {
-                        saved = null
-                        captureID = UUID.randomUUID().toString()
-                        capturedInput = ""
-                        input = ""
-                        guided = status != FeatureStatus.AVAILABLE
-                    }
-                }
-            }
-        }
-
-        // Bottom Chat Input Composer (iOS Style) with floating suggestions above keyboard
-        if (!guided && saved == null) {
+            // Bottom Chat Input Composer (iOS Style) with floating suggestions above keyboard
+            if (!guided && saved == null) {
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -587,6 +594,8 @@ fun LaterAIContent(
                 }
             }
         }
+    }
+
     }
 
     if (edit && saved != null) {
