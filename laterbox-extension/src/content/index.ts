@@ -1,4 +1,5 @@
 import { browser } from '../platform/api';
+import { sendRuntimeMessage } from '../platform/messaging';
 import { captureFromPage, extractRenderedPage } from '../lib/page';
 import { createInstagramControls } from './instagram-controls';
 import { createLinkedInControls } from './linkedin-controls';
@@ -58,7 +59,7 @@ function show(message:string,state='error',title='Could not save') {
 async function submit(capture:Capture,button:HTMLButtonElement) {
   const label=button===quoteButton ? 'Save quote' : 'Save to LaterBox';button.disabled=true;button.setAttribute('aria-busy','true');decorate(button,'Saving…');
   try {
-    const result:CaptureResult=await browser.runtime.sendMessage({type:'capture',capture});
+    const result:CaptureResult=await sendRuntimeMessage<CaptureResult>({type:'capture',capture});
     button.dataset.state=result.status;
     if(result.status==='saved'){decorate(button,'Saved');show('Available in your LaterBox account.','saved','Saved to LaterBox');}
     else if(result.status==='queued'){decorate(button,'Pending');show('Your capture is queued and will sync when the connection returns.','queued','Pending save');}
@@ -141,7 +142,7 @@ async function refreshSettings() {
   addSocialControls();
 }
 browser.storage.onChanged.addListener((changes,area)=>{if(area==='local' && changes.injectedControls)void refreshSettings();});
-window.addEventListener('online',()=>{void browser.runtime.sendMessage({type:'flush-captures'}).catch(()=>{});});
+window.addEventListener('online',()=>{void sendRuntimeMessage({type:'flush-captures'}).catch(()=>{});});
 void refreshSettings();
 
 // Browsers without native text directives still reopen saved highlight links.
