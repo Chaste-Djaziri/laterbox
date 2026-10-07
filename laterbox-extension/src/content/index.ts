@@ -4,6 +4,7 @@ import { captureFromPage, extractRenderedPage } from '../lib/page';
 import { createInstagramControls } from './instagram-controls';
 import { createLinkedInControls } from './linkedin-controls';
 import { createXControls } from './x-controls';
+import { createXProfileControls } from './x-profile';
 import { createLinkedInProfileControls } from './linkedin-profile';
 import type { InstagramPost } from './social';
 import type { Capture, CaptureResult } from '../types/capture';
@@ -128,22 +129,24 @@ const createPostControl=(post:InstagramPost,resolve:()=>InstagramPost|undefined)
 const syncInstagramControls=createInstagramControls(document,createPostControl);
 const syncLinkedInControls=createLinkedInControls(document,createPostControl);
 const syncXControls=createXControls(document,createPostControl);
-const syncLinkedInProfileControls=createLinkedInProfileControls(document,(profile,resolve)=>{
+const createProfileControl=(profile:{root:Element;insertionPoint:HTMLElement;url:string;name:string;company?:boolean},resolve:()=>typeof profile|undefined,site='LinkedIn')=>{
   const container=document.createElement('span');container.setAttribute('data-laterbox-control','');container.style.cssText='display:inline-flex;margin:4px;vertical-align:middle;max-width:100%';
   const local=container.attachShadow({mode:'closed'});local.append(style.cloneNode(true));
   const appearance=document.createElement('style');appearance.textContent='button{color:inherit;background:transparent;border:1px solid currentColor;border-radius:24px;min-height:36px;padding:6px 14px}button:hover{background:rgba(128,128,128,.12)}';local.append(appearance);
-  const button=document.createElement('button');button.type='button';button.dataset.saveLabel=profile.company ? 'Save company' : 'Save profile';button.title='Save this LinkedIn '+(profile.company ? 'company' : 'profile')+' to LaterBox';button.setAttribute('aria-label','Save '+profile.name+' to LaterBox');decorate(button,button.dataset.saveLabel);local.append(button);
+  const button=document.createElement('button');button.type='button';button.dataset.saveLabel=profile.company ? 'Save company' : 'Save profile';button.title='Save this '+site+' '+(profile.company ? 'company' : 'profile')+' to LaterBox';button.setAttribute('aria-label','Save '+profile.name+' to LaterBox');decorate(button,button.dataset.saveLabel);local.append(button);
   button.addEventListener('click',event=>{
     event.stopPropagation();if(!event.isTrusted || button.disabled)return;
     const current=resolve();if(!current){show('This profile changed. Try its updated save button.');return;}
     const marker='lb-'+crypto.randomUUID();current.root.setAttribute('data-laterbox-post',marker);
     const page=extractRenderedPage(`[data-laterbox-post="${marker}"]`);current.root.removeAttribute('data-laterbox-post');
-    page.url=current.url;page.canonicalUrl=current.url;page.title=current.name+' on LinkedIn';page.author=current.name;page.siteName='LinkedIn';page.selection='';page.selector=null;
+    page.url=current.url;page.canonicalUrl=current.url;page.title=current.name+' on '+site;page.author=current.name;page.siteName=site;page.selection='';page.selector=null;
     void submit(captureFromPage(page,'page'),button);
   });
   return container;
-});
-function addSocialControls(){syncInstagramControls(enabled,location.href);syncLinkedInControls(enabled,location.href);syncLinkedInProfileControls(enabled,location.href);syncXControls(enabled,location.href);}
+};
+const syncLinkedInProfileControls=createLinkedInProfileControls(document,createProfileControl);
+const syncXProfileControls=createXProfileControls(document,(profile,resolve)=>createProfileControl(profile,resolve,'X'));
+function addSocialControls(){syncInstagramControls(enabled,location.href);syncLinkedInControls(enabled,location.href);syncLinkedInProfileControls(enabled,location.href);syncXControls(enabled,location.href);syncXProfileControls(enabled,location.href);}
 const observer=new MutationObserver(()=>{
   if(scheduled || !enabled)return;scheduled=true;setTimeout(()=>{scheduled=false;addSocialControls();},500);
 });
