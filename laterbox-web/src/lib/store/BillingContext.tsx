@@ -3,6 +3,7 @@
 import { initializePaddle, type Environments, type Paddle } from '@paddle/paddle-js';
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { FREE_ENTITLEMENT, hasProAccess, type Entitlement } from '@/lib/billing/types';
+import { loadCheckout, checkoutSuccessUrl, CHECKOUT_CONFIGURATION_ERROR, CHECKOUT_LOADING_ERROR } from '@/lib/billing/checkout';
 import { useAuth } from './AuthContext';
 import { getSupabaseClient } from '../supabase/client';
 
@@ -161,23 +162,23 @@ export function BillingProvider({ children }: { children: React.ReactNode }) {
       ? process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN_PROD || process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN
       : process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN;
     if (!token) {
-      setCheckoutError('Checkout is unavailable because billing configuration is missing. Please contact support.');
+      setCheckoutError(CHECKOUT_CONFIGURATION_ERROR);
       return;
     }
     if (!paddleInitialization.current) {
-      paddleInitialization.current = initializePaddle({
+      paddleInitialization.current = loadCheckout(() => initializePaddle({
         token,
         environment,
         eventCallback: (event) => {
           if (event.name === 'checkout.completed') void pollForProRef.current();
         },
-      });
+      }));
     }
     paddleInitialization.current.then((instance) => {
       if (!instance) throw new Error('Paddle did not initialize.');
       if (active) setPaddle(instance);
     }).catch(() => {
-      if (active) setCheckoutError('Unable to load secure checkout. Reload the page and check that your browser allows Paddle.');
+      if (active) setCheckoutError(CHECKOUT_LOADING_ERROR);
     });
     return () => { active = false; };
   }, []);
@@ -209,13 +210,10 @@ export function BillingProvider({ children }: { children: React.ReactNode }) {
         body: JSON.stringify({ interval }),
       });
       if (!result.transactionId) throw new Error('Checkout transaction was not created.');
-      const successUrl = new URL(window.location.pathname === '/plans' ? '/plans' : '/pricing', window.location.origin);
-      successUrl.searchParams.set('checkout', 'success');
-      successUrl.searchParams.set('plan', interval);
-      if (returnTo) successUrl.searchParams.set('return_to', returnTo);
+      const successUrl = checkoutSuccessUrl(window.location.origin, window.location.pathname, interval, returnTo);
       paddle.Checkout.open({
         transactionId: result.transactionId,
-        settings: { variant: 'one-page', successUrl: successUrl.toString() },
+        settings: { variant: 'one-page', successUrl },
       });
     },
     [authenticatedRequest, paddle, checkoutError]
