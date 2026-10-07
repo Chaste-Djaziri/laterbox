@@ -41,7 +41,7 @@ export function extractRenderedPage(rootSelector: string | null = null): PageCon
     if (node.nodeType === Node.TEXT_NODE) return escape((node.textContent || '').replace(/\s+/g,' '));
     if (!(node instanceof Element)) return '';
     const tag = node.tagName.toLowerCase();
-    if (node.hasAttribute('data-laterbox-control') || node.closest('form,[contenteditable="true"]') || /^(script|style|noscript|nav|footer|header|form|input|textarea|select|button|svg|iframe)$/.test(tag)) return '';
+    if (node.hasAttribute('data-laterbox-control') || node.closest('form,[contenteditable="true"]') || (tag === 'header' && node !== root) || /^(script|style|noscript|nav|footer|form|input|textarea|select|button|svg|iframe)$/.test(tag)) return '';
     if (node.hasAttribute('hidden') || node.getAttribute('aria-hidden') === 'true' || getComputedStyle(node).display === 'none' || getComputedStyle(node).visibility === 'hidden') return '';
     if (tag === 'pre') return '\n\n```\n'+(node.textContent || '').replace(/```/g,'``\\`')+'\n```\n\n';
     if (tag === 'img') { const src = absolute(node.getAttribute('src')); return src ? `\n![${escape(node.getAttribute('alt') || '')}](${src.replace(/\(/g,'%28').replace(/\)/g,'%29')})\n` : ''; }
