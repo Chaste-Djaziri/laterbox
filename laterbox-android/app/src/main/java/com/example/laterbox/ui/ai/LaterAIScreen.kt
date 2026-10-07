@@ -29,6 +29,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -54,6 +55,11 @@ fun LaterAIScreen(
     val items by repository.items.collectAsState(initial = emptyList())
     BackHandler(onBack = onDismiss)
 
+    val density = LocalDensity.current
+    val imeBottom = WindowInsets.ime.getBottom(density)
+    val navBottom = WindowInsets.navigationBars.getBottom(density)
+    val bottomInset = with(density) { maxOf(imeBottom, navBottom).toDp() }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -63,8 +69,7 @@ fun LaterAIScreen(
                 indication = null
             ) { /* Absorb clicks to prevent click-through to underlying views */ }
             .statusBarsPadding()
-            .navigationBarsPadding()
-            .imePadding()
+            .padding(bottom = bottomInset)
     ) {
         LaterAIContent(
             items = items,
@@ -181,10 +186,12 @@ fun LaterAIContent(
         }
     }
 
+    val isImeVisible = WindowInsets.ime.getBottom(LocalDensity.current) > 0
+
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 20.dp, vertical = 12.dp),
+            .padding(start = 20.dp, end = 20.dp, top = 12.dp, bottom = if (isImeVisible) 6.dp else 12.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         // Top Drag Handle (iOS style)
@@ -201,14 +208,17 @@ fun LaterAIContent(
         }
 
         // Header Bar
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 4.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+            verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 Surface(
                     shape = RoundedCornerShape(14.dp),
                     color = Color(0xFF1B1B1E),
@@ -280,44 +290,44 @@ fun LaterAIContent(
                     }
                 }
 
-                Text(
-                    text = if (guided) {
-                        "Step-by-step structured capture"
-                    } else if (status == FeatureStatus.AVAILABLE) {
-                        if (SecureSettings(context).provider != "device" && AccountService.state.value.pro) {
-                            "${SecureSettings(context).provider.replaceFirstChar { it.uppercase() }} · Your API key"
-                        } else {
-                            "On-device · Private & free"
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    if (messages.isNotEmpty()) {
+                        TextButton(onClick = { messages.clear(); saved = null; matches = emptyList(); clarify = false }) {
+                            Text("Clear", color = Color(0xFFA1A1AA), fontSize = 13.sp)
                         }
-                    } else {
-                        "Conversational assistant"
-                    },
-                    color = Color(0xFFA1A1AA),
-                    fontSize = 11.sp,
-                    modifier = Modifier.padding(start = 2.dp)
-                )
-            }
-
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                if (messages.isNotEmpty()) {
-                    TextButton(onClick = { messages.clear(); saved = null; matches = emptyList(); clarify = false }) {
-                        Text("Clear", color = Color(0xFFA1A1AA), fontSize = 13.sp)
+                    }
+                    IconButton(
+                        onClick = onDismiss,
+                        modifier = Modifier
+                            .size(32.dp)
+                            .background(Color.White.copy(alpha = 0.08f), CircleShape)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Close",
+                            tint = Color.White,
+                            modifier = Modifier.size(16.dp)
+                        )
                     }
                 }
-                IconButton(
-                    onClick = onDismiss,
-                    modifier = Modifier
-                        .size(32.dp)
-                        .background(Color.White.copy(alpha = 0.08f), CircleShape)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Close,
-                        contentDescription = "Close",
-                        tint = Color.White,
-                        modifier = Modifier.size(16.dp)
-                    )
-                }
             }
+
+            Text(
+                text = if (guided) {
+                    "Step-by-step structured capture"
+                } else if (status == FeatureStatus.AVAILABLE) {
+                    if (SecureSettings(context).provider != "device" && AccountService.state.value.pro) {
+                        "${SecureSettings(context).provider.replaceFirstChar { it.uppercase() }} · Your API key"
+                    } else {
+                        "On-device · Private & free"
+                    }
+                } else {
+                    "Conversational assistant"
+                },
+                color = Color(0xFFA1A1AA),
+                fontSize = 11.sp,
+                modifier = Modifier.padding(start = 2.dp)
+            )
         }
 
         // Main Scrollable Area
@@ -535,19 +545,23 @@ fun LaterAIContent(
                                 maxLines = 4,
                                 textStyle = TextStyle(
                                     fontSize = 15.sp,
+                                    lineHeight = 20.sp,
                                     color = Color.White
                                 ),
                                 cursorBrush = SolidColor(LaterboxAccent),
                                 modifier = Modifier.fillMaxWidth(),
                                 decorationBox = { innerTextField ->
-                                    if (input.isEmpty()) {
-                                        Text(
-                                            text = "Message Later AI…",
-                                            fontSize = 15.sp,
-                                            color = Color.White.copy(alpha = 0.4f)
-                                        )
+                                    Box(contentAlignment = Alignment.CenterStart) {
+                                        if (input.isEmpty()) {
+                                            Text(
+                                                text = "Message Later AI…",
+                                                fontSize = 15.sp,
+                                                lineHeight = 20.sp,
+                                                color = Color.White.copy(alpha = 0.4f)
+                                            )
+                                        }
+                                        innerTextField()
                                     }
-                                    innerTextField()
                                 }
                             )
                         }
