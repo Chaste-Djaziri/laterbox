@@ -28,7 +28,7 @@ data class EnrichmentResponse(
 )
 
 object LaterBoxApiService {
-    var webBaseUrl: String = "https://laterbox.dev"
+    var webBaseUrl: String = if (BuildConfig.WEB_BASE_URL.isNotEmpty()) BuildConfig.WEB_BASE_URL else "https://laterbox.dev"
     val supabaseUrl: String = if (BuildConfig.SUPABASE_URL.isNotEmpty()) BuildConfig.SUPABASE_URL else "https://ltjisrgldssqskcylcbj.supabase.co"
     val supabaseAnonKey: String = if (BuildConfig.SUPABASE_KEY.isNotEmpty()) BuildConfig.SUPABASE_KEY else "sb_publishable_Rc4e_ik2LE4SR0UrfX-OEQ_5Mu_lw9p"
 
