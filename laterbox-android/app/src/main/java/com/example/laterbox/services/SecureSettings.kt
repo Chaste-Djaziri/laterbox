@@ -13,10 +13,10 @@ import javax.crypto.spec.GCMParameterSpec
 class SecureSettings(context: Context) {
     private val preferences = context.getSharedPreferences("laterbox_ai", 0)
     var provider: String
-        get() = preferences.getString("provider", "device") ?: "device"
+        get() = preferences.getString("provider", "gemini")?.takeIf { it != "device" } ?: "gemini"
         set(value) { preferences.edit().putString("provider", value).apply() }
     var model: String
-        get() = preferences.getString("model", "gemini-2.5-flash") ?: "gemini-2.5-flash"
+        get() = preferences.getString("model", "gemini-1.5-flash") ?: "gemini-1.5-flash"
         set(value) { preferences.edit().putString("model", value).apply() }
     private fun key(): SecretKey {
         val store = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
