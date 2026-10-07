@@ -171,7 +171,7 @@ fun VaultScreen(
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     listOf("Inbox" to allItems.count { it.status == "inbox" }, "Returns" to allItems.count { it.status == "deferred" }, "Starred" to allItems.count { it.favorite }).forEach { (title, count) ->
                         Column(
-                            Modifier.weight(1f).background(Color.White, RoundedCornerShape(18.dp)).padding(16.dp)
+                            Modifier.weight(1f).background(LaterboxCard, RoundedCornerShape(18.dp)).padding(16.dp)
                         ) {
                             Text(count.toString(), style = MaterialTheme.typography.headlineMedium)
                             Text(title, style = MaterialTheme.typography.labelMedium, color = LaterboxTextSecondary)
@@ -220,7 +220,7 @@ fun VaultScreen(
                         Surface(
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(18.dp),
-                            color = Color.White,
+                            color = LaterboxCard,
                             border = BorderStroke(1.dp, LaterboxBorder)
                         ) {
                             Column(
@@ -233,13 +233,13 @@ fun VaultScreen(
                                 Box(
                                     modifier = Modifier
                                         .size(40.dp)
-                                        .background(LaterboxEmerald.copy(alpha = 0.15f), CircleShape),
+                                        .background(LaterboxAccent, CircleShape),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.CheckCircle,
                                         contentDescription = null,
-                                        tint = LaterboxEmerald,
+                                        tint = LaterboxDarkSurface,
                                         modifier = Modifier.size(20.dp)
                                     )
                                 }
@@ -292,7 +292,7 @@ fun VaultScreen(
         }
         if (filtered.isEmpty() && (tab != 0 || query.isNotEmpty())) {
             item {
-                Column(Modifier.fillMaxWidth().background(Color.White, RoundedCornerShape(20.dp)).padding(24.dp)) {
+                Column(Modifier.fillMaxWidth().background(LaterboxCard, RoundedCornerShape(20.dp)).padding(24.dp)) {
                     Text(if (query.isEmpty()) "Nothing here yet" else "No matches", style = MaterialTheme.typography.titleLarge)
                     Text("Add a capture or try a topic, tag, or phrase you remember.")
                     TextButton(onClick = onCapture) { Text("Save something") }
@@ -410,7 +410,7 @@ fun DedicatedSearchScreen(
                     .weight(1f)
                     .height(48.dp),
                 shape = RoundedCornerShape(16.dp),
-                color = Color.White,
+                color = LaterboxCard,
                 border = BorderStroke(1.dp, LaterboxBorder)
             ) {
                 Row(
@@ -546,7 +546,7 @@ fun DedicatedSearchScreen(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .background(Color.White, RoundedCornerShape(20.dp))
+                            .background(LaterboxCard, RoundedCornerShape(20.dp))
                             .padding(24.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(6.dp)
@@ -607,7 +607,7 @@ fun VaultSearchBar(
             .height(48.dp)
             .then(if (onClick != null) Modifier.clickable { onClick() } else Modifier),
         shape = RoundedCornerShape(16.dp),
-        color = Color.White,
+        color = LaterboxCard,
         border = BorderStroke(1.dp, LaterboxBorder)
     ) {
         Row(
@@ -828,7 +828,7 @@ fun WaitingItemBar(
             .fillMaxWidth()
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(16.dp),
-        color = Color.White,
+        color = LaterboxCard,
         border = BorderStroke(1.dp, LaterboxBorder)
     ) {
         Row(
