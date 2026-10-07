@@ -26,9 +26,20 @@ android {
         versionName = release["version"].toString()
         
         val supabaseUrl = System.getenv("SUPABASE_URL") ?: localProperties.getProperty("SUPABASE_URL", "https://ltjisrgldssqskcylcbj.supabase.co")
-        val supabaseKey = System.getenv("SUPABASE_KEY") ?: localProperties.getProperty("SUPABASE_KEY", "")
+        val supabaseKey = System.getenv("SUPABASE_KEY")
+            ?: System.getenv("SUPABASE_ANON_KEY")
+            ?: localProperties.getProperty("SUPABASE_KEY", localProperties.getProperty("SUPABASE_ANON_KEY", "sb_publishable_Rc4e_ik2LE4SR0UrfX-OEQ_5Mu_lw9p"))
+        val webBaseUrl = System.getenv("WEB_BASE_URL")
+            ?: System.getenv("LATERBOX_WEB_URL")
+            ?: localProperties.getProperty("WEB_BASE_URL", localProperties.getProperty("LATERBOX_WEB_URL", "https://laterbox.dev"))
+        val geminiApiKey = System.getenv("GEMINI_API_KEY") ?: localProperties.getProperty("GEMINI_API_KEY", "")
+        val geminiModel = System.getenv("GEMINI_MODEL") ?: localProperties.getProperty("GEMINI_MODEL", "gemini-1.5-flash")
+
         buildConfigField("String", "SUPABASE_URL", "\"${supabaseUrl}\"")
         buildConfigField("String", "SUPABASE_KEY", "\"${supabaseKey}\"")
+        buildConfigField("String", "WEB_BASE_URL", "\"${webBaseUrl}\"")
+        buildConfigField("String", "GEMINI_API_KEY", "\"${geminiApiKey}\"")
+        buildConfigField("String", "GEMINI_MODEL", "\"${geminiModel}\"")
     }
 
     signingConfigs {
