@@ -5,6 +5,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 ## [Unreleased]
 
 ### Changed
+- **[Android] Item icons and favicon enrichment**: Display site favicons for web links and specialized icons for specific document types including PDF, Audio, Video, Docs, Presentations (PPT), Spreadsheets, Code, and Images in inbox previews.
 - **[Android] Dynamic search filter tags**: Replaced static content type chips with dynamically populated filter chips based strictly on tags and types from available vault content, hiding filters for content not present in the vault.
 - **[Android] Search page text alignment**: Centered text alignment across search placeholder description ("Search titles, links, text content, tags, or topics") and empty state messaging.
 - **[Android] Search page header layout**: Positioned the search input at the very top of the screen, replaced the left back button with a dedicated close action on the right.
