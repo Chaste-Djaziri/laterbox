@@ -218,7 +218,7 @@ fun ItemCardView(
             if (!item.textContent.isNullOrEmpty()) {
                 Surface(
                     shape = RoundedCornerShape(10.dp),
-                    color = Color.Black.copy(alpha = 0.03f),
+                    color = LaterboxTextPrimary.copy(alpha = 0.03f),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
@@ -273,7 +273,7 @@ fun ItemCardView(
                     Box(
                         modifier = Modifier
                             .clip(CircleShape)
-                            .background(Color.Black.copy(alpha = 0.04f))
+                            .background(LaterboxTextPrimary.copy(alpha = 0.04f))
                             .clickable { onScheduleReturn("tomorrow") }
                             .padding(6.dp)
                     ) {
@@ -289,7 +289,7 @@ fun ItemCardView(
                     Box(
                         modifier = Modifier
                             .clip(CircleShape)
-                            .background(if (item.status == "done") LaterboxEmerald.copy(alpha = 0.15f) else Color.Black.copy(alpha = 0.04f))
+                            .background(if (item.status == "done") LaterboxEmerald.copy(alpha = 0.15f) else LaterboxTextPrimary.copy(alpha = 0.04f))
                             .clickable { onMarkDone() }
                             .padding(6.dp)
                     ) {
