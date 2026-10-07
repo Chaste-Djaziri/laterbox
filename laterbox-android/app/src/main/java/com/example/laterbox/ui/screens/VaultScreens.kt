@@ -61,24 +61,17 @@ fun VaultScreen(tab: Int, repository: DataRepository, onCapture: () -> Unit, onA
         if (query.isNotBlank()) results else if (sort == "Oldest") results.sortedBy { it.createdAt } else if (tab == 2) results.sortedBy { it.returnAt } else results.sortedByDescending { it.createdAt }
     }
     LazyColumn(Modifier.fillMaxSize().background(LaterboxBg), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        item {
-            Text(listOf("Home", "Inbox", "Returns", "Library")[tab], style = MaterialTheme.typography.headlineLarge)
-            Text(if (tab == 0) "Your personal vault, ready when you are." else "${filtered.size} saved items", color = LaterboxTextSecondary)
+        if (tab != 0) {
+            item {
+                Text(listOf("Home", "Inbox", "Returns", "Library")[tab], style = MaterialTheme.typography.headlineLarge)
+                Text("${filtered.size} saved items", color = LaterboxTextSecondary)
+            }
         }
         if (tab == 0) {
             item {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     listOf("Inbox" to allItems.count { it.status == "inbox" }, "Returns" to allItems.count { it.status == "deferred" }, "Starred" to allItems.count { it.favorite }).forEach { (title, count) ->
                         Column(Modifier.weight(1f).background(Color.White, RoundedCornerShape(18.dp)).padding(16.dp)) { Text(count.toString(), style = MaterialTheme.typography.headlineMedium); Text(title, style = MaterialTheme.typography.labelMedium) }
-                    }
-                }
-            }
-            item {
-                Card(colors = CardDefaults.cardColors(containerColor = LaterboxDarkSurface), modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(24.dp)) {
-                    Column(Modifier.padding(22.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Text("Make room for later.", color = Color.White, style = MaterialTheme.typography.headlineMedium)
-                        Text("Save a thought, a link, or something worth coming back to.", color = Color.LightGray)
-                        Row { Button(onClick = onCapture, colors = ButtonDefaults.buttonColors(containerColor = LaterboxAccent, contentColor = Color.Black)) { Text("Add item") }; TextButton(onClick = onAI) { Text("✦ Later AI", color = LaterboxAccent) } }
                     }
                 }
             }
