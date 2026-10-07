@@ -61,7 +61,19 @@ fun AppNavigation(notificationItemId: String? = null, context: android.content.C
         }
     }, floatingActionButton = { if (tab != 4) FloatingActionButton(onClick = { capture = true }, shape = CircleShape, containerColor = LaterboxDarkSurface, contentColor = LaterboxAccent) { Icon(Icons.Default.Add, "Add item") } }) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
-            if (tab < 4) VaultScreen(tab, repository, { capture = true }, { ai = true }, { selected = it }, { organizer = true })
+            if (tab < 4) VaultScreen(
+                tab = tab,
+                repository = repository,
+                onCapture = { capture = true },
+                onAI = { ai = true },
+                onItem = { selected = it },
+                onOrganizer = { organizer = true },
+                onSignOut = {
+                    preferences.edit().putBoolean("entered", false).apply()
+                    entered = false
+                },
+                onAuth = { auth = true }
+            )
             else NativeSettings(repository, { auth = true }, { trash = true })
         }
     }

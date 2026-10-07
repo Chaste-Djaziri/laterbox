@@ -45,8 +45,14 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import androidx.compose.foundation.border
+import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.filled.Login
+import androidx.compose.material.icons.filled.Person
 import com.example.laterbox.data.DataRepository
 import com.example.laterbox.data.local.ItemEntity
+import com.example.laterbox.services.AccountService
+import com.example.laterbox.services.AccountState
 import com.example.laterbox.services.LaterAIService
 import com.example.laterbox.services.LocalSearch
 import com.example.laterbox.theme.*
@@ -64,7 +70,9 @@ fun VaultScreen(
     onCapture: () -> Unit,
     onAI: () -> Unit,
     onItem: (ItemEntity) -> Unit,
-    onOrganizer: () -> Unit
+    onOrganizer: () -> Unit,
+    onSignOut: () -> Unit = {},
+    onAuth: () -> Unit = {}
 ) {
     val allItems by repository.items.collectAsState(emptyList())
     val collections by repository.collections.collectAsState(emptyList())
@@ -133,29 +141,57 @@ fun VaultScreen(
     ) {
         if (tab == 0) {
             item {
-                Column(
+                Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.Start,
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = "$greetingText, $userName",
-                        fontSize = 22.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = LaterboxTextPrimary
-                    )
-                    Text(
-                        text = "Your personal knowledge vault",
-                        fontSize = 13.sp,
-                        color = LaterboxTextSecondary
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        horizontalAlignment = Alignment.Start,
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(
+                            text = "$greetingText, $userName",
+                            fontSize = 22.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = LaterboxTextPrimary
+                        )
+                        Text(
+                            text = "Your personal knowledge vault",
+                            fontSize = 13.sp,
+                            color = LaterboxTextSecondary
+                        )
+                    }
+
+                    ProfileMenuButton(
+                        userName = userName,
+                        account = account,
+                        onSignOut = onSignOut,
+                        onAuth = onAuth
                     )
                 }
             }
         }
         if (tab != 0) {
             item {
-                Text(listOf("Home", "Inbox", "Returns", "Library")[tab], style = MaterialTheme.typography.headlineLarge)
-                Text("${filtered.size} saved items", color = LaterboxTextSecondary)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(listOf("Home", "Inbox", "Returns", "Library")[tab], style = MaterialTheme.typography.headlineLarge)
+                        Text("${filtered.size} saved items", color = LaterboxTextSecondary)
+                    }
+
+                    ProfileMenuButton(
+                        userName = userName,
+                        account = account,
+                        onSignOut = onSignOut,
+                        onAuth = onAuth
+                    )
+                }
             }
         }
         item {
@@ -909,4 +945,155 @@ fun WaitingItemBar(
         }
     }
 }
+
+@Composable
+private fun ProfileMenuButton(
+    userName: String,
+    account: AccountState,
+    onSignOut: () -> Unit,
+    onAuth: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+    val isGuest = account.userId == null
+
+    Box(modifier = modifier) {
+        Surface(
+            modifier = Modifier
+                .size(40.dp)
+                .clip(CircleShape)
+                .clickable { expanded = true },
+            shape = CircleShape,
+            color = LaterboxCard,
+            border = BorderStroke(1.dp, LaterboxBorder),
+            shadowElevation = 1.dp
+        ) {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier.fillMaxSize()
+            ) {
+                if (!isGuest && userName.isNotBlank() && userName != "Guest") {
+                    Text(
+                        text = userName.take(1).uppercase(),
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = LaterboxTextPrimary
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Default.Person,
+                        contentDescription = "Profile options",
+                        tint = LaterboxTextSecondary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
+        }
+
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            modifier = Modifier
+                .background(LaterboxCard)
+                .border(1.dp, LaterboxBorder, RoundedCornerShape(12.dp))
+                .widthIn(min = 210.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
+            ) {
+                Text(
+                    text = if (isGuest) "Guest Mode" else userName,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = LaterboxTextPrimary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                if (!isGuest && !account.email.isNullOrBlank()) {
+                    Text(
+                        text = account.email,
+                        fontSize = 12.sp,
+                        color = LaterboxTextSecondary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+                Spacer(modifier = Modifier.height(4.dp))
+                Surface(
+                    shape = RoundedCornerShape(6.dp),
+                    color = if (account.pro) LaterboxAccent.copy(alpha = 0.25f) else LaterboxTextPrimary.copy(alpha = 0.06f)
+                ) {
+                    Text(
+                        text = if (account.pro) "LaterBox Pro" else if (isGuest) "Local Vault" else "Free Account",
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = if (account.pro) LaterboxDarkSurface else LaterboxTextSecondary,
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                    )
+                }
+            }
+
+            HorizontalDivider(
+                modifier = Modifier.padding(vertical = 4.dp),
+                thickness = 0.5.dp,
+                color = LaterboxBorder
+            )
+
+            if (!isGuest) {
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            text = "Log out",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = LaterboxRose
+                        )
+                    },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.Logout,
+                            contentDescription = "Log out",
+                            tint = LaterboxRose,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    },
+                    onClick = {
+                        expanded = false
+                        scope.launch {
+                            AccountService.signOut()
+                            onSignOut()
+                        }
+                    }
+                )
+            } else {
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            text = "Sign in",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = LaterboxTextPrimary
+                        )
+                    },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.Login,
+                            contentDescription = "Sign in",
+                            tint = LaterboxTextPrimary,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    },
+                    onClick = {
+                        expanded = false
+                        onAuth()
+                    }
+                )
+            }
+        }
+    }
+}
+
 
