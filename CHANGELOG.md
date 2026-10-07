@@ -5,6 +5,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 ## [Unreleased]
 
 ### Changed
+- **[Android] Guided Capture keyboard resizing & action bar elevation**: Dynamically resizes the Guided Capture freeform input view when the software keyboard opens and anchors the Continue and attachment actions directly above the keyboard.
 - **[Android] Later AI input keyboard tracking with safeDrawing insets**: Switched to Compose's unified safeDrawing bottom insets so the Later AI input animates upward with the software keyboard and floats comfortably above it without dropping down or double-padding.
 - **[Android] Guided Capture full-height editor & keyboard-anchored continue button**: Expanded Guided Capture to provide a full-height freeform input supporting Markdown, HTML, links, and code, anchored the Continue button to the bottom so it raises with the software keyboard, and added a companion circular attachment button with system file picker support.
 - **[Android] Later AI keyboard alignment, input sizing & header leveling**: Ensured Later AI input and suggestions sit directly above the active keyboard without double navigation-bar inset padding, normalized empty input field height to match typed text, and aligned the close button to the exact level of the mode switchers.
