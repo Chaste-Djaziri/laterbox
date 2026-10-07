@@ -26,7 +26,18 @@ export function createInstagramProfileControls(doc:Document,create:(profile:XPro
     if(control && (!profile || profile.url!==control.profile.url || profile.insertionPoint!==control.profile.insertionPoint || !control.container.isConnected)){control.container.remove();control=undefined;}
     if(!profile)return;
     if(!control)control={profile,container:create(profile,()=>{const current=findInstagramProfile(doc,doc.location.href);return current?.url===profile.url ? current:undefined;})};
-    const color=doc.defaultView?.getComputedStyle(profile.insertionPoint).color;if(color && control.container.style.color!==color)control.container.style.color=color;
+    let dark=false;
+    for(let node:Element|null=profile.insertionPoint;node;node=node.parentElement){
+      const background=doc.defaultView?.getComputedStyle(node).backgroundColor;
+      const rgba=background?.match(/[\d.]+/g)?.map(Number);
+      if(rgba && rgba.length>=3 && (rgba[3]===undefined || rgba[3]>.5)){dark=(rgba[0]*.299+rgba[1]*.587+rgba[2]*.114)<140;break;}
+      if(node===doc.documentElement){
+        const text=doc.defaultView?.getComputedStyle(profile.insertionPoint).color.match(/\d+/g)?.map(Number);
+        dark=!!text && text.length>=3 && text[0]+text[1]+text[2]>384;
+      }
+    }
+    const color=dark ? '#ffffff':'#000000';
+    if(control.container.style.getPropertyValue('--lb-profile-color')!==color)control.container.style.setProperty('--lb-profile-color',color);
     if(profile.insertionPoint.nextElementSibling!==control.container)profile.insertionPoint.after(control.container);
   };
 }
