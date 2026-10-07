@@ -23,7 +23,7 @@ export function findLinkedInPosts(doc:Document,pageUrl:string):InstagramPost[]{
     if(!url)continue;
     let insertionPoint=share;
     const wrapper=share.parentElement;
-    if(wrapper && wrapper!==root && wrapper.querySelectorAll('button,[role="button"]').length===1 && wrapper.parentElement?.querySelectorAll('button,[role="button"]').length!>1)insertionPoint=wrapper;
+    if(wrapper && wrapper!==root && wrapper.querySelectorAll('button,[role="button"]').length===1 && (wrapper.parentElement?.querySelectorAll('button,[role="button"]').length || 0)>1)insertionPoint=wrapper;
     posts.push({root,url,site:'LinkedIn',share,insertionPoint,
       author:root.querySelector('.update-components-actor__title,.feed-shared-actor__name')?.textContent?.trim().slice(0,500),
       publishedAt:root.querySelector('time')?.getAttribute('datetime') || undefined});
