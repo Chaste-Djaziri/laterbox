@@ -64,13 +64,6 @@ fun NativeSettings(repository: DataRepository, onAuth: () -> Unit, onTrash: () -
     var busy by remember { mutableStateOf(false) }
     var bytes by remember { mutableLongStateOf(0) }
     var storageRefresh by remember { mutableIntStateOf(0) }
-    var notifications by remember { mutableStateOf(NotificationManagerCompat.from(context).areNotificationsEnabled()) }
-    val lifecycle = LocalLifecycleOwner.current.lifecycle
-    DisposableEffect(lifecycle) {
-        val observer = LifecycleEventObserver { _, event -> if (event == Lifecycle.Event.ON_RESUME) notifications = NotificationManagerCompat.from(context).areNotificationsEnabled() }
-        lifecycle.addObserver(observer)
-        onDispose { lifecycle.removeObserver(observer) }
-    }
     LaunchedEffect(items.size, trash.size, storageRefresh) {
         bytes = withContext(Dispatchers.IO) { File(context.filesDir, "captures").walkTopDown().filter { it.isFile }.sumOf { it.length() } }
     }
@@ -79,10 +72,6 @@ fun NativeSettings(repository: DataRepository, onAuth: () -> Unit, onTrash: () -
         scope.launch { busy = true; try { block() } catch (cancelled: kotlinx.coroutines.CancellationException) { throw cancelled } catch (failure: Exception) { message = failure.message ?: "Unable to complete this action. Please try again." } finally { busy = false } }
     }
     fun open(intent: Intent) { runCatching { context.startActivity(intent) }.onFailure { message = "No app is available to open this page." } }
-    val permissions = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-        notifications = NotificationManagerCompat.from(context).areNotificationsEnabled()
-        message = if (granted) "Return notifications enabled" else "Notifications are off. You can allow them in Android settings."
-    }
     val importer = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> if (uri != null) task {
         val count = BackupService.import(context, uri); message = "Imported $count captures"; repository.syncNow(); storageRefresh++
     } }
@@ -166,14 +155,7 @@ fun NativeSettings(repository: DataRepository, onAuth: () -> Unit, onTrash: () -
         }
         item {
             SettingsGroup("NOTIFICATIONS & ALERTS", Icons.Default.Notifications) {
-                SettingsValue("Notification status", if (notifications) "Allowed" else "Disabled")
-                SettingsValue("Reminders & snooze", "Return dates enabled")
-                Text("Receive an alert when scheduled items return to your Inbox.", fontSize = 12.sp, color = LaterboxTextSecondary)
-                SettingsAction(Icons.Default.NotificationsActive, if (notifications) "Configure in Android Settings" else "Allow Notifications", "Control alerts for saved-item reminders") {
-                    if (!notifications && Build.VERSION.SDK_INT >= 33) permissions.launch(Manifest.permission.POST_NOTIFICATIONS)
-                    else open(Intent(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, context.packageName))
-                }
-                if (!notifications) SettingsAction(Icons.Default.Settings, "Open Android Notification Settings", "Allow alerts or change notification channels") { open(Intent(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, context.packageName)) }
+                NotificationAccess()
             }
         }
         item {
