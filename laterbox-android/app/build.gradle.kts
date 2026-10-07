@@ -8,6 +8,12 @@ plugins {
   alias(libs.plugins.ksp)
 }
 
+val localProperties = Properties()
+val localPropertiesFile = rootProject.file("local.properties")
+if (localPropertiesFile.exists()) {
+    localProperties.load(FileInputStream(localPropertiesFile))
+}
+
 android {
     namespace = "com.example.laterbox"
     compileSdk = 36
@@ -19,11 +25,6 @@ android {
         versionCode = (release["buildNumber"] as Number).toInt()
         versionName = release["version"].toString()
         
-        val localProperties = Properties()
-        val localPropertiesFile = rootProject.file("local.properties")
-        if (localPropertiesFile.exists()) {
-            localProperties.load(FileInputStream(localPropertiesFile))
-        }
         val supabaseUrl = System.getenv("SUPABASE_URL") ?: localProperties.getProperty("SUPABASE_URL", "https://ltjisrgldssqskcylcbj.supabase.co")
         val supabaseKey = System.getenv("SUPABASE_KEY") ?: localProperties.getProperty("SUPABASE_KEY", "")
         buildConfigField("String", "SUPABASE_URL", "\"${supabaseUrl}\"")
@@ -32,8 +33,8 @@ android {
 
     signingConfigs {
         create("release") {
-            val keystorePath = System.getenv("ANDROID_KEYSTORE_PATH") ?: localProperties.getProperty("KEYSTORE_PATH")
-            if (keystorePath != null && file(keystorePath).exists()) {
+            val keystorePath: String? = System.getenv("ANDROID_KEYSTORE_PATH") ?: localProperties.getProperty("KEYSTORE_PATH")
+            if (!keystorePath.isNullOrBlank() && file(keystorePath).exists()) {
                 storeFile = file(keystorePath)
                 storePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD") ?: localProperties.getProperty("KEYSTORE_PASSWORD")
                 keyAlias = System.getenv("ANDROID_KEY_ALIAS") ?: localProperties.getProperty("KEY_ALIAS")
