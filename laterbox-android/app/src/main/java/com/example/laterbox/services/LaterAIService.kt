@@ -12,9 +12,6 @@ class LaterAIService(private val context: Context? = null) : AutoCloseable {
     suspend fun respond(input: String, items: List<ItemEntity>, history: String = ""): AIAction {
         require(input.length <= 6000) { "This content is too long for AI. Continue manually to save it in full." }
         val isPro = context != null && AccountService.state.value.pro
-        if (!isPro) {
-            return handleKeywordResponse(input, items)
-        }
 
         val facts = LocalSearch.search(input, items).take(6).joinToString("\n") { "${it.id}: ${it.title}; ${it.summary.take(200)}; tags=${it.tags}; return=${it.returnAt}" }
         val prompt = """
@@ -29,6 +26,15 @@ class LaterAIService(private val context: Context? = null) : AutoCloseable {
             Recent conversation: ${history.takeLast(1000)}
             User input: $input
         """.trimIndent()
+        if (!isPro) {
+            if (context != null) {
+                val local = NanoAIService.generate(prompt)
+                if (local != null) {
+                    runCatching { AIAction.parse(local) }.getOrNull()?.let { return it }
+                }
+            }
+            return handleKeywordResponse(input, items)
+        }
         val response = withTimeout(45000) {
             CustomAIService.generate(context, prompt)
         }
