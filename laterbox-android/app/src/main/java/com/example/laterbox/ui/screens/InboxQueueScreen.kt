@@ -137,7 +137,7 @@ fun InboxQueueScreen(repository: DataRepository, onItem: (ItemEntity) -> Unit, o
 }
 
 @Composable
-private fun InboxRichItemCard(item: ItemEntity, metadata: ItemMetadataEntity?, collectionName: String?, onOpen: () -> Unit, onFavorite: () -> Unit, onDone: () -> Unit, onSchedule: (Long) -> Unit, onDelete: () -> Unit) {
+internal fun InboxRichItemCard(item: ItemEntity, metadata: ItemMetadataEntity?, collectionName: String?, onOpen: () -> Unit, onFavorite: () -> Unit, onDone: () -> Unit, onSchedule: (Long) -> Unit, onDelete: () -> Unit) {
     var menu by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val domain = metadata?.domain?.takeIf { it.isNotBlank() } ?: runCatching { URI(item.url.orEmpty()).host?.removePrefix("www.") }.getOrNull()
