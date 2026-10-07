@@ -18,8 +18,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Article
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.filled.PictureAsPdf
+import androidx.compose.material.icons.filled.Slideshow
+import androidx.compose.material.icons.filled.TableChart
 import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -72,9 +76,14 @@ fun LaterboxCard(
 @Composable
 fun TypeBadge(type: String, modifier: Modifier = Modifier) {
     val badgeInfo: Triple<ImageVector, Color, String> = when (type.lowercase()) {
-        "video" -> Triple(Icons.Default.Videocam, LaterboxRose, "Video")
+        "pdf" -> Triple(Icons.Default.PictureAsPdf, LaterboxRose, "PDF")
+        "ppt", "presentation", "slides" -> Triple(Icons.Default.Slideshow, LaterboxAmber, "Presentation")
+        "spreadsheet", "sheet", "csv" -> Triple(Icons.Default.TableChart, LaterboxEmerald, "Spreadsheet")
+        "doc", "document" -> Triple(Icons.AutoMirrored.Filled.Article, LaterboxSky, "Document")
+        "video" -> Triple(Icons.Default.Videocam, Color(0xFF9333EA), "Video")
         "music", "audio" -> Triple(Icons.Default.MusicNote, LaterboxIndigo, "Music")
         "article" -> Triple(Icons.AutoMirrored.Filled.Article, LaterboxSky, "Article")
+        "image" -> Triple(Icons.Default.Image, Color(0xFF0D9488), "Image")
         "repository", "repo", "github" -> Triple(Icons.Default.Code, LaterboxEmerald, "Code")
         "note" -> Triple(Icons.Default.Description, LaterboxAmber, "Note")
         else -> Triple(Icons.Default.Link, LaterboxTextSecondary, "Link")
