@@ -92,7 +92,6 @@ fun LibraryScreen(repository: DataRepository, onItem: (ItemEntity) -> Unit) {
     val base = when { section != null -> librarySectionItems(section, items + trash); folder != null -> libraryFolderItems(folder, items); else -> emptyList() }
     val formats = base.map { it.type }.distinct().sorted()
     LaunchedEffect(formats) { if (format !in formats) format = null }
-    LaunchedEffect(page, folders) { if (page?.startsWith("folder:") == true && folder == null) page = null }
     val filtered = LocalSearch.search(query, base.filter { format == null || it.type == format }).sortedByDescending { it.createdAt }
     BackHandler(enabled = page != null) { page = null }
     fun action(block: suspend () -> Unit) {
@@ -142,11 +141,7 @@ fun LibraryScreen(repository: DataRepository, onItem: (ItemEntity) -> Unit) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     row.forEach { entry ->
                         Column(Modifier.weight(1f)) {
-                            LibraryOverviewCard(entry.name, Icons.Default.Folder, libraryFolderItems(entry, items).size, Modifier.fillMaxWidth()) { page = "folder:${entry.key}" }
-                            Row {
-                                TextButton(onClick = { rename(entry) }, enabled = !busy) { Text("Rename", fontSize = 11.sp) }
-                                TextButton(onClick = { deleteFolder = entry }, enabled = !busy) { Text("Delete", fontSize = 11.sp) }
-                            }
+                            LibraryOverviewCard(entry.name, Icons.Default.Folder, libraryFolderItems(entry, items).size, Modifier.fillMaxWidth(), onRename = { rename(entry) }, onDelete = { deleteFolder = entry }) { page = "folder:${entry.key}" }
                         }
                     }
                     if (row.size == 1) Spacer(Modifier.weight(1f))
@@ -210,15 +205,25 @@ fun LibraryScreen(repository: DataRepository, onItem: (ItemEntity) -> Unit) {
 }
 
 @Composable
-private fun LibraryOverviewCard(title: String, icon: ImageVector, count: Int?, modifier: Modifier, onClick: () -> Unit) {
+private fun LibraryOverviewCard(title: String, icon: ImageVector, count: Int?, modifier: Modifier, onRename: (() -> Unit)? = null, onDelete: (() -> Unit)? = null, onClick: () -> Unit) {
+    var options by remember { mutableStateOf(false) }
     Surface(onClick = onClick, modifier = modifier, shape = RoundedCornerShape(18.dp), color = LaterboxCard, border = BorderStroke(1.dp, LaterboxBorder)) {
         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                 Box(Modifier.size(38.dp).background(LaterboxAccent, RoundedCornerShape(10.dp)), contentAlignment = Alignment.Center) { Icon(icon, null, Modifier.size(18.dp), tint = LaterboxTextPrimary) }
-                count?.let { Text(it.toString(), fontSize = 18.sp, fontWeight = FontWeight.Bold, color = LaterboxTextPrimary) }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    count?.let { Text(it.toString(), fontSize = 18.sp, fontWeight = FontWeight.Bold, color = LaterboxTextPrimary) }
+                    if (onRename != null || onDelete != null) Box {
+                        IconButton(onClick = { options = true }, modifier = Modifier.size(36.dp)) { Icon(Icons.Default.MoreVert, "$title folder options", modifier = Modifier.size(18.dp)) }
+                        DropdownMenu(options, { options = false }) {
+                            onRename?.let { DropdownMenuItem(text = { Text("Rename folder") }, onClick = { options = false; it() }) }
+                            onDelete?.let { DropdownMenuItem(text = { Text("Delete folder") }, onClick = { options = false; it() }) }
+                        }
+                    }
+                }
             }
             Text(title, fontWeight = FontWeight.Bold, color = LaterboxTextPrimary, maxLines = 2, overflow = TextOverflow.Ellipsis, fontSize = 14.sp)
-            Text("View items ›", fontSize = 11.sp, color = LaterboxTextSecondary)
+            Text(if (count == null) "Open item ›" else "View items ›", fontSize = 11.sp, color = LaterboxTextSecondary)
         }
     }
 }
