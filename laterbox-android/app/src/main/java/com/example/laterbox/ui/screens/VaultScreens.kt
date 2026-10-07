@@ -14,6 +14,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Article
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Code
@@ -46,8 +47,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import androidx.compose.foundation.border
+import androidx.compose.material.icons.automirrored.filled.Login
 import androidx.compose.material.icons.automirrored.filled.Logout
-import androidx.compose.material.icons.filled.Login
 import androidx.compose.material.icons.filled.Person
 import com.example.laterbox.data.DataRepository
 import com.example.laterbox.data.local.ItemEntity
@@ -72,7 +73,8 @@ fun VaultScreen(
     onItem: (ItemEntity) -> Unit,
     onOrganizer: () -> Unit,
     onSignOut: () -> Unit = {},
-    onAuth: () -> Unit = {}
+    onAuth: () -> Unit = {},
+    onPlus: () -> Unit = onAI
 ) {
     val allItems by repository.items.collectAsState(emptyList())
     val collections by repository.collections.collectAsState(emptyList())
@@ -164,12 +166,37 @@ fun VaultScreen(
                         )
                     }
 
-                    ProfileMenuButton(
-                        userName = userName,
-                        account = account,
-                        onSignOut = onSignOut,
-                        onAuth = onAuth
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Surface(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(CircleShape)
+                                .clickable { onPlus() },
+                            shape = CircleShape,
+                            color = LaterboxCard,
+                            border = BorderStroke(1.dp, LaterboxBorder),
+                            shadowElevation = 1.dp
+                        ) {
+                            Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                                Icon(
+                                    imageVector = Icons.Default.Add,
+                                    contentDescription = "Later AI",
+                                    tint = LaterboxTextPrimary,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
+
+                        ProfileMenuButton(
+                            userName = userName,
+                            account = account,
+                            onSignOut = onSignOut,
+                            onAuth = onAuth
+                        )
+                    }
                 }
             }
         }
@@ -185,12 +212,37 @@ fun VaultScreen(
                         Text("${filtered.size} saved items", color = LaterboxTextSecondary)
                     }
 
-                    ProfileMenuButton(
-                        userName = userName,
-                        account = account,
-                        onSignOut = onSignOut,
-                        onAuth = onAuth
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Surface(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(CircleShape)
+                                .clickable { onPlus() },
+                            shape = CircleShape,
+                            color = LaterboxCard,
+                            border = BorderStroke(1.dp, LaterboxBorder),
+                            shadowElevation = 1.dp
+                        ) {
+                            Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                                Icon(
+                                    imageVector = Icons.Default.Add,
+                                    contentDescription = "Later AI",
+                                    tint = LaterboxTextPrimary,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
+
+                        ProfileMenuButton(
+                            userName = userName,
+                            account = account,
+                            onSignOut = onSignOut,
+                            onAuth = onAuth
+                        )
+                    }
                 }
             }
         }
@@ -1080,7 +1132,7 @@ private fun ProfileMenuButton(
                     },
                     leadingIcon = {
                         Icon(
-                            imageVector = Icons.Default.Login,
+                            imageVector = Icons.AutoMirrored.Filled.Login,
                             contentDescription = "Sign in",
                             tint = LaterboxTextPrimary,
                             modifier = Modifier.size(18.dp)

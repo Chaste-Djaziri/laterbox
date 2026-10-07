@@ -1,5 +1,10 @@
 package com.example.laterbox
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -59,7 +64,7 @@ fun AppNavigation(notificationItemId: String? = null, context: android.content.C
                 names.forEachIndexed { index, name -> NavigationBarItem(selected = tab == index, onClick = { tab = index }, icon = { Icon(icons[index], contentDescription = name) }, label = { Text(name, style = MaterialTheme.typography.labelSmall) }, colors = NavigationBarItemDefaults.colors(indicatorColor = LaterboxAccent, selectedIconColor = Color.Black)) }
             }
         }
-    }, floatingActionButton = { if (tab != 4) FloatingActionButton(onClick = { capture = true }, shape = CircleShape, containerColor = LaterboxDarkSurface, contentColor = LaterboxAccent) { Icon(Icons.Default.Add, "Add item") } }) { padding ->
+    }, floatingActionButton = { if (tab != 4) FloatingActionButton(onClick = { ai = true }, shape = CircleShape, containerColor = LaterboxDarkSurface, contentColor = LaterboxAccent) { Icon(Icons.Default.Add, "Later AI") } }) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
             if (tab < 4) VaultScreen(
                 tab = tab,
@@ -72,13 +77,20 @@ fun AppNavigation(notificationItemId: String? = null, context: android.content.C
                     preferences.edit().putBoolean("entered", false).apply()
                     entered = false
                 },
-                onAuth = { auth = true }
+                onAuth = { auth = true },
+                onPlus = { ai = true }
             )
             else NativeSettings(repository, { auth = true }, { trash = true })
         }
     }
     if (capture) QuickCaptureSheet(repository, { capture = false }, { repository.syncNow() })
-    if (ai) LaterAIScreen(repository, { ai = false })
+    AnimatedVisibility(
+        visible = ai,
+        enter = slideInVertically(initialOffsetY = { -it }) + fadeIn(),
+        exit = slideOutVertically(targetOffsetY = { -it }) + fadeOut()
+    ) {
+        LaterAIScreen(repository = repository, onDismiss = { ai = false })
+    }
     if (auth) AuthSheet(onDismiss = { auth = false }, onAuthenticated = { entered = true; preferences.edit().putBoolean("entered", true).apply(); repository.syncNow() })
     if (organizer) OrganizerSheet(items, { organizer = false }, { repository.syncNow() })
     selected?.let { item -> ItemDetailSheet(item, { selected = null }, { repository.syncNow() }) }
