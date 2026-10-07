@@ -16,7 +16,7 @@ class SecureSettings(context: Context) {
         get() = preferences.getString("provider", "gemini")?.takeIf { it != "device" } ?: "gemini"
         set(value) { preferences.edit().putString("provider", value).apply() }
     var model: String
-        get() = preferences.getString("model", "gemini-1.5-flash") ?: "gemini-1.5-flash"
+        get() = preferences.getString("model", "gemini-3.5-flash-lite")?.takeIf { it != "gemini-1.5-flash" && it != "gemini-2.5-flash" } ?: "gemini-3.5-flash-lite"
         set(value) { preferences.edit().putString("model", value).apply() }
     private fun key(): SecretKey {
         val store = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
