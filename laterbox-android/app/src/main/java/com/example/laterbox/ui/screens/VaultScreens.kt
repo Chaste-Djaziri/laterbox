@@ -74,11 +74,44 @@ fun VaultScreen(
         val results = LocalSearch.search(listOf(query, expanded).filter { it.isNotBlank() }.joinToString(" "), eligible)
         if (query.isNotBlank()) results else if (sort == "Oldest") results.sortedBy { it.createdAt } else if (tab == 2) results.sortedBy { it.returnAt } else results.sortedByDescending { it.createdAt }
     }
+    val account by com.example.laterbox.services.AccountService.state.collectAsState()
+    val userName = remember(account.email) {
+        account.email?.takeIf { it.isNotBlank() }?.substringBefore("@")?.replaceFirstChar { it.uppercase() } ?: "Guest"
+    }
+    val greetingText = remember {
+        val hour = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)
+        when {
+            hour < 12 -> "Good Morning"
+            hour < 18 -> "Good Afternoon"
+            else -> "Good Evening"
+        }
+    }
     LazyColumn(
         Modifier.fillMaxSize().background(LaterboxBg),
         contentPadding = PaddingValues(20.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        if (tab == 0) {
+            item {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.Start,
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(
+                        text = "$greetingText, $userName",
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = LaterboxTextPrimary
+                    )
+                    Text(
+                        text = "Your personal knowledge vault",
+                        fontSize = 13.sp,
+                        color = LaterboxTextSecondary
+                    )
+                }
+            }
+        }
         if (tab != 0) {
             item {
                 Text(listOf("Home", "Inbox", "Returns", "Library")[tab], style = MaterialTheme.typography.headlineLarge)
