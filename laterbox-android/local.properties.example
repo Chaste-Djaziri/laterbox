@@ -15,7 +15,7 @@ LATERBOX_WEB_URL=https://laterbox.dev
 
 # AI Integration (Optional Gemini Fallback)
 GEMINI_API_KEY=
-GEMINI_MODEL=gemini-1.5-flash
+GEMINI_MODEL=gemini-3.5-flash-lite
 
 # Android Keystore Signing Configuration (Optional for debug, required for release signing)
 KEYSTORE_PATH=
