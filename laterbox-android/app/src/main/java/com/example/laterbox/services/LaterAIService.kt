@@ -30,7 +30,7 @@ class LaterAIService(private val context: Context? = null) : AutoCloseable {
             User input: $input
         """.trimIndent()
         val response = withTimeout(45000) {
-            CustomAIService.generate(context!!, prompt)
+            CustomAIService.generate(context, prompt)
         }
         return AIAction.parse(response)
     }
