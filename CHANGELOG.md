@@ -18,6 +18,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 - **[Android] Welcome screen legal disclaimer styling**: Centered the legal disclaimer on the onboarding welcome screen and adjusted to a compact caption2 font size.
 
 ### Added
+- **[Android] Home 'Waiting For You' section**: Added dedicated 'Waiting For You' section below overview metrics featuring a 3-bar item preview for inbox waiting items and caught-up state.
 - **[Android] Dedicated search page**: Added a dedicated search experience with back navigation, automatic keyboard focus, live query expansion, type filters, and clear actions when activating the search input.
 - **[Android] Home personalized greeting header**: Added dynamic top-left greeting ("Good Morning/Afternoon/Evening, [Name]") and vault subtitle matching the iOS home header.
 - **[Android] Welcome screen simplification & notch safe area**: Aligned the native Android onboarding welcome screen with the minimal iOS design, adding safe-drawing insets for camera notches and status bars, hero illustration layout, and streamlined action hierarchy.
