@@ -39,6 +39,7 @@ interface DataRepository {
     suspend fun toggleFavorite(id: String, currentFavorite: Boolean)
     suspend fun scheduleReturn(id: String, returnAt: String?)
     suspend fun deleteItem(id: String)
+    fun watchMetadata(itemId: String): Flow<ItemMetadataEntity?> = kotlinx.coroutines.flow.flow { emit(getMetadata(itemId)) }
     suspend fun getMetadata(itemId: String): ItemMetadataEntity?
 
     suspend fun addCollection(name: String, colorHex: String = "#F59E0B", iconName: String = "folder"): CollectionEntity
@@ -117,6 +118,8 @@ class DefaultDataRepository(
         androidx.work.WorkManager.getInstance(context).cancelUniqueWork("return-$id")
         syncNow()
     }
+
+    override fun watchMetadata(itemId: String): Flow<ItemMetadataEntity?> = database.itemMetadataDao().watchMetadataById(itemId)
 
     override suspend fun getMetadata(itemId: String): ItemMetadataEntity? {
         return database.itemMetadataDao().getMetadataById(itemId)
