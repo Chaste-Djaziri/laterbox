@@ -5,6 +5,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 ## [Unreleased]
 
 ### Changed
+- **[Android] Later AI input keyboard position fix**: Fixed an issue where the Later AI input jumped to the top of the screen when the keyboard opened due to duplicate IME height padding on top of activity resize; now smoothly sits slightly above the keyboard with a compact margin.
 - **[Android] Guided Capture full-height editor & keyboard-anchored continue button**: Expanded Guided Capture to provide a full-height freeform input supporting Markdown, HTML, links, and code, anchored the Continue button to the bottom so it raises with the software keyboard, and added a companion circular attachment button with system file picker support.
 - **[Android] Later AI keyboard alignment, input sizing & header leveling**: Ensured Later AI input and suggestions sit directly above the active keyboard without double navigation-bar inset padding, normalized empty input field height to match typed text, and aligned the close button to the exact level of the mode switchers.
 - **[Android] Minimalist Later AI view & floating suggestions**: Cleared default center empty-state artwork and copy, replacing it with compact, pill-shaped prompt suggestions with rounded corners matching the input bar, floating horizontally above the keyboard.
