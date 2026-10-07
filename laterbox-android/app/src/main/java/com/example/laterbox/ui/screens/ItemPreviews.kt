@@ -85,6 +85,10 @@ internal fun ItemAudioPreview(source: String) {
 
 @Composable
 internal fun HostedItemPreview(url: String) {
+    youtubePreviewId(url)?.let { videoId ->
+        YouTubeItemPreview(videoId)
+        return
+    }
     var error by remember(url) { mutableStateOf(false) }
     var loading by remember(url) { mutableStateOf(true) }
     val lifecycle = LocalLifecycleOwner.current.lifecycle
