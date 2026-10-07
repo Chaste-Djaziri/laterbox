@@ -293,16 +293,6 @@ fun AuthSheet(
                 }
             }
 
-            // Auth Hero Artwork
-            Image(
-                painter = painterResource(id = R.drawable.auth_hero),
-                contentDescription = "Sign In Illustration",
-                modifier = Modifier
-                    .size(130.dp)
-                    .clip(CircleShape),
-                contentScale = ContentScale.Crop
-            )
-
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(6.dp)
