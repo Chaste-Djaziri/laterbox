@@ -87,6 +87,7 @@ kotlin {
 }
 
 dependencies {
+  implementation("com.google.mlkit:genai-prompt:1.0.0-beta4")
   implementation("org.jsoup:jsoup:1.18.3")
   implementation("androidx.biometric:biometric:1.1.0")
   implementation("io.coil-kt:coil-compose:2.7.0")
