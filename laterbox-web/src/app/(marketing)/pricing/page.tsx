@@ -103,8 +103,8 @@ function PricingContent() {
   useEffect(() => {
     const shouldCheckout = searchParams.get('checkout') === 'true';
     if (!shouldCheckout || !checkoutReady || !user || isPro || autoCheckoutTriggered.current || busy !== null) return;
-    autoCheckoutTriggered.current = true;
     const timer = window.setTimeout(() => {
+      autoCheckoutTriggered.current = true;
       void run(interval);
     }, 400);
     return () => window.clearTimeout(timer);
