@@ -20,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import com.example.laterbox.data.*
 import com.example.laterbox.data.local.*
 import com.example.laterbox.services.*
@@ -78,7 +79,7 @@ fun AppNavigation(notificationItemId: String? = null, context: android.content.C
                     entered = false
                 },
                 onAuth = { auth = true },
-                onPlus = { ai = true }
+                profileEnabled = !ai
             )
             else NativeSettings(repository, { auth = true }, { trash = true })
         }
@@ -86,6 +87,7 @@ fun AppNavigation(notificationItemId: String? = null, context: android.content.C
     if (capture) QuickCaptureSheet(repository, { capture = false }, { repository.syncNow() })
     AnimatedVisibility(
         visible = ai,
+        modifier = Modifier.fillMaxSize().zIndex(200f),
         enter = slideInVertically(initialOffsetY = { -it }) + fadeIn(),
         exit = slideOutVertically(targetOffsetY = { -it }) + fadeOut()
     ) {
