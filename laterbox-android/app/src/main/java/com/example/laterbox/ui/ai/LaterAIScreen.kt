@@ -5,6 +5,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -335,98 +336,7 @@ fun LaterAIContent(
                 }
             }
 
-            // Empty State (Glowing Brand Orb + Prompts like iOS)
-            if (messages.isEmpty() && saved == null && !guided && !checking) {
-                Spacer(modifier = Modifier.height(16.dp))
 
-                Box(
-                    modifier = Modifier.fillMaxWidth(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(120.dp)
-                            .background(
-                                Brush.radialGradient(
-                                    listOf(LaterboxAccent.copy(alpha = 0.35f), Color.Transparent)
-                                ),
-                                CircleShape
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(68.dp)
-                                .background(Color(0xFF1C1C1E), CircleShape)
-                                .border(1.dp, Color.White.copy(alpha = 0.12f), CircleShape),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.AutoAwesome,
-                                contentDescription = null,
-                                tint = LaterboxAccent,
-                                modifier = Modifier.size(28.dp)
-                            )
-                        }
-                    }
-                }
-
-                Text(
-                    text = "How can I help you today?",
-                    color = Color.White,
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                Text(
-                    text = "Ask about your saved items, upcoming return dates, or organize your vault.",
-                    color = Color.White.copy(alpha = 0.6f),
-                    fontSize = 14.sp,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 24.dp)
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    promptSuggestions.forEach { prompt ->
-                        Surface(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(14.dp))
-                                .clickable { send(prompt) },
-                            shape = RoundedCornerShape(14.dp),
-                            color = Color(0xFF171717),
-                            border = BorderStroke(1.dp, Color.White.copy(alpha = 0.08f))
-                        ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 16.dp, vertical = 14.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = prompt,
-                                    fontSize = 14.sp,
-                                    color = Color.White.copy(alpha = 0.9f),
-                                    modifier = Modifier.weight(1f)
-                                )
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                                    contentDescription = null,
-                                    tint = Color.White.copy(alpha = 0.4f),
-                                    modifier = Modifier.size(14.dp)
-                                )
-                            }
-                        }
-                    }
-                }
-            }
 
             // Messages List
             messages.forEach { (text, user) ->
@@ -554,67 +464,111 @@ fun LaterAIContent(
             }
         }
 
-        // Bottom Chat Input Composer (iOS Style)
+        // Bottom Chat Input Composer (iOS Style) with floating suggestions above keyboard
         if (!guided && saved == null) {
-            Surface(
+            Column(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(26.dp),
-                color = Color(0xFF1C1C1E),
-                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.12f))
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(start = 16.dp, end = 6.dp, top = 6.dp, bottom = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    Box(
+                if (messages.isEmpty()) {
+                    Row(
                         modifier = Modifier
-                            .weight(1f)
-                            .padding(vertical = 6.dp),
-                        contentAlignment = Alignment.CenterStart
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        BasicTextField(
-                            value = input,
-                            onValueChange = { input = it },
-                            singleLine = false,
-                            maxLines = 4,
-                            textStyle = TextStyle(
-                                fontSize = 15.sp,
-                                color = Color.White
-                            ),
-                            cursorBrush = SolidColor(LaterboxAccent),
-                            modifier = Modifier.fillMaxWidth(),
-                            decorationBox = { innerTextField ->
-                                if (input.isEmpty()) {
+                        promptSuggestions.forEach { prompt ->
+                            Surface(
+                                shape = RoundedCornerShape(26.dp),
+                                color = Color(0xFF1C1C1E),
+                                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.12f)),
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(26.dp))
+                                    .clickable { send(prompt) }
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
                                     Text(
-                                        text = "Message Later AI…",
-                                        fontSize = 15.sp,
-                                        color = Color.White.copy(alpha = 0.4f)
+                                        text = prompt,
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        color = Color.White.copy(alpha = 0.85f)
+                                    )
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                                        contentDescription = null,
+                                        tint = LaterboxAccent,
+                                        modifier = Modifier.size(12.dp)
                                     )
                                 }
-                                innerTextField()
                             }
-                        )
+                        }
                     }
+                }
 
-                    Box(
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(26.dp),
+                    color = Color(0xFF1C1C1E),
+                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.12f))
+                ) {
+                    Row(
                         modifier = Modifier
-                            .size(36.dp)
-                            .clip(CircleShape)
+                            .fillMaxWidth()
+                            .padding(start = 16.dp, end = 6.dp, top = 6.dp, bottom = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(vertical = 6.dp),
+                            contentAlignment = Alignment.CenterStart
+                        ) {
+                            BasicTextField(
+                                value = input,
+                                onValueChange = { input = it },
+                                singleLine = false,
+                                maxLines = 4,
+                                textStyle = TextStyle(
+                                    fontSize = 15.sp,
+                                    color = Color.White
+                                ),
+                                cursorBrush = SolidColor(LaterboxAccent),
+                                modifier = Modifier.fillMaxWidth(),
+                                decorationBox = { innerTextField ->
+                                    if (input.isEmpty()) {
+                                        Text(
+                                            text = "Message Later AI…",
+                                            fontSize = 15.sp,
+                                            color = Color.White.copy(alpha = 0.4f)
+                                        )
+                                    }
+                                    innerTextField()
+                                }
+                            )
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(CircleShape)
                             .background(
                                 if (!busy && input.isNotBlank()) LaterboxAccent else Color.White.copy(alpha = 0.1f)
                             )
                             .clickable(enabled = !busy && input.isNotBlank()) { send() },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.ArrowUpward,
-                            contentDescription = "Send",
-                            tint = if (!busy && input.isNotBlank()) LaterboxDarkSurface else Color.White.copy(alpha = 0.35f),
-                            modifier = Modifier.size(18.dp)
-                        )
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.ArrowUpward,
+                                contentDescription = "Send",
+                                tint = if (!busy && input.isNotBlank()) LaterboxDarkSurface else Color.White.copy(alpha = 0.35f),
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
                     }
                 }
             }
