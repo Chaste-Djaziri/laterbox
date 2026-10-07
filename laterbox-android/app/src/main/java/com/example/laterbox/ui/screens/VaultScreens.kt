@@ -76,6 +76,10 @@ fun VaultScreen(
     onAuth: () -> Unit = {},
     profileEnabled: Boolean = true
 ) {
+    if (tab == 1) {
+        InboxQueueScreen(repository, onItem, onOrganizer, onCapture)
+        return
+    }
     val allItems by repository.items.collectAsState(emptyList())
     val collections by repository.collections.collectAsState(emptyList())
     var query by rememberSaveable(tab) { mutableStateOf("") }
