@@ -85,6 +85,13 @@ fun VaultScreen(
                 Text("${filtered.size} saved items", color = LaterboxTextSecondary)
             }
         }
+        item {
+            VaultSearchBar(
+                query = query,
+                onQueryChange = { query = it },
+                placeholder = "Search your vault..."
+            )
+        }
         if (tab == 0) {
             item {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -98,13 +105,6 @@ fun VaultScreen(
                     }
                 }
             }
-        }
-        item {
-            VaultSearchBar(
-                query = query,
-                onQueryChange = { query = it },
-                placeholder = "Search your vault..."
-            )
         }
         item {
             Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
