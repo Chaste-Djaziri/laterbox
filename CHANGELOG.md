@@ -5,6 +5,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 ## [Unreleased]
 
 ### Changed
+- **[Android] Pro AI search with Gemini & free upgrade banner**: Pro users receive Gemini-powered AI search term expansion combined with normal search for comprehensive results with visual AI enhancement indicators, while free users receive standard local search accompanied by an upgrade banner to go Pro for AI search.
 - **[Android] Inbox search**: Open the shared dedicated search page from the Inbox search bar and header icon, matching Home.
 - **[Android] Later AI on-device replacement with Gemini API & keyword-based assistant**: Removed on-device MLKit model downloads. Free accounts use responsive keyword-based prompts for greetings, library questions, search, and direct captures; Pro accounts use the Gemini API for intelligent conversational assistance and automatic metadata extraction. Failures in AI or saving gracefully present polite in-chat fallback guidance directing users to Guided capture with zero red error alerts.
 - **[Android] Guided Capture keyboard resizing & action bar elevation**: Dynamically resizes the Guided Capture freeform input view when the software keyboard opens and anchors the Continue and attachment actions directly above the keyboard.
