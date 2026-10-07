@@ -92,7 +92,7 @@ fun LibraryScreen(repository: DataRepository, onItem: (ItemEntity) -> Unit) {
     val base = when { section != null -> librarySectionItems(section, items + trash); folder != null -> libraryFolderItems(folder, items); else -> emptyList() }
     val formats = base.map { it.type }.distinct().sorted()
     LaunchedEffect(formats) { if (format !in formats) format = null }
-    val filtered = LocalSearch.search(query, base.filter { format == null || it.type == format }).sortedByDescending { it.createdAt }
+    val filtered = LocalSearch.search(query, base.filter { format == null || it.type == format }, includeDeleted = section == LibrarySection.DELETED).sortedByDescending { it.createdAt }
     BackHandler(enabled = page != null) { page = null }
     fun action(block: suspend () -> Unit) {
         if (busy) return
