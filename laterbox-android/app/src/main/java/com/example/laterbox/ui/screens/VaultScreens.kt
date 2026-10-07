@@ -1,7 +1,9 @@
 package com.example.laterbox.ui.screens
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -10,6 +12,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
@@ -17,6 +20,8 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
@@ -46,6 +51,7 @@ fun VaultScreen(
     val allItems by repository.items.collectAsState(emptyList())
     val collections by repository.collections.collectAsState(emptyList())
     var query by rememberSaveable(tab) { mutableStateOf("") }
+    var searchActive by rememberSaveable(tab) { mutableStateOf(false) }
     var type by rememberSaveable(tab) { mutableStateOf("All") }
     var collection by rememberSaveable(tab) { mutableStateOf<String?>(null) }
     var category by rememberSaveable(tab) { mutableStateOf("All") }
@@ -88,6 +94,17 @@ fun VaultScreen(
             else -> "Good Evening"
         }
     }
+
+    if (searchActive) {
+        DedicatedSearchScreen(
+            allItems = allItems,
+            repository = repository,
+            onClose = { searchActive = false },
+            onItemClick = onItem
+        )
+        return
+    }
+
     LazyColumn(
         Modifier.fillMaxSize().background(LaterboxBg),
         contentPadding = PaddingValues(20.dp),
@@ -124,7 +141,8 @@ fun VaultScreen(
             VaultSearchBar(
                 query = query,
                 onQueryChange = { query = it },
-                placeholder = "Search your vault..."
+                placeholder = "Search your vault...",
+                onClick = { searchActive = true }
             )
         }
         if (tab == 0) {
@@ -201,16 +219,245 @@ fun VaultScreen(
 }
 
 @Composable
+fun DedicatedSearchScreen(
+    allItems: List<ItemEntity>,
+    repository: DataRepository,
+    onClose: () -> Unit,
+    onItemClick: (ItemEntity) -> Unit
+) {
+    var query by rememberSaveable { mutableStateOf("") }
+    var type by rememberSaveable { mutableStateOf("All") }
+    val focusRequester = remember { FocusRequester() }
+    val scope = rememberCoroutineScope()
+    val model = remember { LaterAIService() }
+    var interpreted by remember { mutableStateOf("" to "") }
+    DisposableEffect(model) { onDispose { model.close() } }
+
+    LaunchedEffect(query) {
+        interpreted = query to ""
+        if (query.trim().length >= 4) {
+            delay(400)
+            interpreted = query to model.interpretQuery(query)
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        focusRequester.requestFocus()
+    }
+
+    BackHandler(onBack = onClose)
+
+    val filtered = remember(allItems, type, query, interpreted) {
+        val eligible = allItems.filter { type == "All" || it.type == type.lowercase() }
+        val expanded = if (interpreted.first == query) interpreted.second else ""
+        LocalSearch.search(listOf(query, expanded).filter { it.isNotBlank() }.joinToString(" "), eligible)
+            .sortedByDescending { it.createdAt }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(LaterboxBg)
+            .statusBarsPadding()
+    ) {
+        // Search Header Row: Back Button + Live Search Input
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            IconButton(
+                onClick = onClose,
+                modifier = Modifier.size(40.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Back",
+                    tint = LaterboxTextPrimary
+                )
+            }
+
+            Surface(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(48.dp),
+                shape = RoundedCornerShape(16.dp),
+                color = Color.White,
+                border = BorderStroke(1.dp, LaterboxBorder)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Search,
+                        contentDescription = "Search",
+                        tint = LaterboxTextSecondary,
+                        modifier = Modifier.size(20.dp)
+                    )
+
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight(),
+                        contentAlignment = Alignment.CenterStart
+                    ) {
+                        if (query.isEmpty()) {
+                            Text(
+                                text = "Search your vault...",
+                                fontSize = 15.sp,
+                                color = LaterboxTextSecondary
+                            )
+                        }
+                        BasicTextField(
+                            value = query,
+                            onValueChange = { query = it },
+                            singleLine = true,
+                            textStyle = TextStyle(
+                                fontSize = 15.sp,
+                                color = LaterboxTextPrimary,
+                                fontWeight = FontWeight.Normal
+                            ),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .focusRequester(focusRequester)
+                        )
+                    }
+
+                    if (query.isNotEmpty()) {
+                        IconButton(
+                            onClick = { query = "" },
+                            modifier = Modifier.size(28.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Clear search",
+                                tint = LaterboxTextSecondary,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // Filter Chips Row
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            listOf("All", "Link", "Article", "Video", "Music", "Note", "Document", "Image").forEach { option ->
+                FilterChip(
+                    selected = type == option,
+                    onClick = { type = option },
+                    label = { Text(option) }
+                )
+            }
+        }
+
+        // Search Results List
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            if (query.isBlank()) {
+                item {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 48.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Search,
+                            contentDescription = null,
+                            tint = LaterboxTextSecondary,
+                            modifier = Modifier.size(36.dp)
+                        )
+                        Text(
+                            text = "Search across your entire vault",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = LaterboxTextPrimary
+                        )
+                        Text(
+                            text = "Search titles, links, text content, tags, or topics",
+                            fontSize = 13.sp,
+                            color = LaterboxTextSecondary
+                        )
+                    }
+                }
+            } else if (filtered.isEmpty()) {
+                item {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(Color.White, RoundedCornerShape(20.dp))
+                            .padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Text(
+                            text = "No matches for \"$query\"",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = LaterboxTextPrimary
+                        )
+                        Text(
+                            text = "Try searching with a different keyword, tag, or domain.",
+                            fontSize = 13.sp,
+                            color = LaterboxTextSecondary
+                        )
+                    }
+                }
+            } else {
+                item {
+                    Text(
+                        text = "SEARCH RESULTS (${filtered.size})",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = LaterboxTextSecondary,
+                        modifier = Modifier.padding(bottom = 2.dp)
+                    )
+                }
+                items(filtered, key = { it.id }) { item ->
+                    ItemCardView(
+                        item = item,
+                        onToggleFavorite = { scope.launch { repository.toggleFavorite(item.id, item.favorite) } },
+                        onMarkDone = { scope.launch { repository.updateItemStatus(item.id, "done") } },
+                        onScheduleReturn = { date -> scope.launch { repository.scheduleReturn(item.id, date) } },
+                        onDelete = { scope.launch { repository.deleteItem(item.id) } },
+                        onClick = { onItemClick(item) }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
 fun VaultSearchBar(
     query: String,
     onQueryChange: (String) -> Unit,
     modifier: Modifier = Modifier,
-    placeholder: String = "Search your vault..."
+    placeholder: String = "Search your vault...",
+    onClick: (() -> Unit)? = null
 ) {
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .height(48.dp),
+            .height(48.dp)
+            .then(if (onClick != null) Modifier.clickable { onClick() } else Modifier),
         shape = RoundedCornerShape(16.dp),
         color = Color.White,
         border = BorderStroke(1.dp, LaterboxBorder)
@@ -242,20 +489,28 @@ fun VaultSearchBar(
                         color = LaterboxTextSecondary
                     )
                 }
-                BasicTextField(
-                    value = query,
-                    onValueChange = onQueryChange,
-                    singleLine = true,
-                    textStyle = TextStyle(
+                if (onClick != null) {
+                    Text(
+                        text = query.ifEmpty { placeholder },
                         fontSize = 15.sp,
-                        color = LaterboxTextPrimary,
-                        fontWeight = FontWeight.Normal
-                    ),
-                    modifier = Modifier.fillMaxWidth()
-                )
+                        color = if (query.isEmpty()) LaterboxTextSecondary else LaterboxTextPrimary
+                    )
+                } else {
+                    BasicTextField(
+                        value = query,
+                        onValueChange = onQueryChange,
+                        singleLine = true,
+                        textStyle = TextStyle(
+                            fontSize = 15.sp,
+                            color = LaterboxTextPrimary,
+                            fontWeight = FontWeight.Normal
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
             }
 
-            if (query.isNotEmpty()) {
+            if (query.isNotEmpty() && onClick == null) {
                 IconButton(
                     onClick = { onQueryChange("") },
                     modifier = Modifier.size(28.dp)
