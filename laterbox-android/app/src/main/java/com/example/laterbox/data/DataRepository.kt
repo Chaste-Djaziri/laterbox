@@ -180,7 +180,8 @@ class DefaultDataRepository(
     }
 
     override fun syncNow() {
-        if (!com.example.laterbox.services.AccountService.state.value.pro) return
+        val account = com.example.laterbox.services.AccountService.state.value
+        if (account.userId == null || !account.pro) return
         try {
             val syncRequest = OneTimeWorkRequestBuilder<SyncWorker>().build()
             WorkManager.getInstance(context).enqueueUniqueWork("cloud-sync", androidx.work.ExistingWorkPolicy.KEEP, syncRequest)
