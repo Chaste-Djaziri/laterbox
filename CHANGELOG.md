@@ -5,6 +5,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 ## [Unreleased]
 
 ### Changed
+- **[Android] Dynamic centralized AppTheme**: Unified theme system across all screens and components, making green, white, black, and canvas background colors fully dynamic and configurable via `AppTheme` with instant Compose recomposition.
 - **[Android] Item icons and favicon enrichment**: Display site favicons for web links and specialized icons for specific document types including PDF, Audio, Video, Docs, Presentations (PPT), Spreadsheets, Code, and Images in inbox previews.
 - **[Android] Dynamic search filter tags**: Replaced static content type chips with dynamically populated filter chips based strictly on tags and types from available vault content, hiding filters for content not present in the vault.
 - **[Android] Search page text alignment**: Centered text alignment across search placeholder description ("Search titles, links, text content, tags, or topics") and empty state messaging.
