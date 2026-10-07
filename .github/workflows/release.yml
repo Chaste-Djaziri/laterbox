@@ -40,6 +40,10 @@ jobs:
         working-directory: laterbox-web
         env:
           LATERBOX_SKIP_VERSION_BUMP: '1'
+          NEXT_PUBLIC_PADDLE_ENV: production
+          NEXT_PUBLIC_PADDLE_CLIENT_TOKEN_PROD: ${{ secrets.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN_PROD }}
+          NEXT_PUBLIC_PADDLE_PRO_MONTHLY_PRICE_ID_PROD: ${{ vars.NEXT_PUBLIC_PADDLE_PRO_MONTHLY_PRICE_ID_PROD }}
+          NEXT_PUBLIC_PADDLE_PRO_YEARLY_PRICE_ID_PROD: ${{ vars.NEXT_PUBLIC_PADDLE_PRO_YEARLY_PRICE_ID_PROD }}
         run: npx opennextjs-cloudflare build
       - name: Deploy Cloudflare application
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
