@@ -12,11 +12,13 @@ object CustomAIService {
     suspend fun generate(context: Context, prompt: String): String = withContext(Dispatchers.IO) {
         check(AccountService.state.value.pro) { "Custom AI models require verified Pro access." }
         val settings = SecureSettings(context)
-        val key = settings.apiKey(); require(key.isNotBlank()) { "Add your API key in AI settings." }
-        val model = settings.model
-        val provider = settings.provider
+        val customKey = settings.apiKey()
+        val key = if (customKey.isNotBlank()) customKey else com.example.laterbox.BuildConfig.GEMINI_API_KEY
+        require(key.isNotBlank()) { "Gemini API key is not configured." }
+        val provider = if (customKey.isNotBlank() && settings.provider != "device") settings.provider else "gemini"
+        val model = if (customKey.isNotBlank()) settings.model else com.example.laterbox.BuildConfig.GEMINI_MODEL.ifBlank { "gemini-1.5-flash" }
         val endpoint = when(provider) {
-            "gemini" -> "https://generativelanguage.googleapis.com/v1beta/models/${java.net.URLEncoder.encode(model, "UTF-8")}:generateContent"
+            "gemini" -> "https://generativelanguage.googleapis.com/v1beta/models/${java.net.URLEncoder.encode(model, "UTF-8")}:generateContent?key=${java.net.URLEncoder.encode(key, "UTF-8")}"
             "openai" -> "https://api.openai.com/v1/chat/completions"
             "claude" -> "https://api.anthropic.com/v1/messages"
             else -> error("Select a supported AI provider")
