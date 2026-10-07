@@ -74,7 +74,7 @@ fun VaultScreen(
     onOrganizer: () -> Unit,
     onSignOut: () -> Unit = {},
     onAuth: () -> Unit = {},
-    onPlus: () -> Unit = onAI
+    profileEnabled: Boolean = true
 ) {
     val allItems by repository.items.collectAsState(emptyList())
     val collections by repository.collections.collectAsState(emptyList())
@@ -149,7 +149,9 @@ fun VaultScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(end = 12.dp),
                         horizontalAlignment = Alignment.Start,
                         verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
@@ -157,46 +159,26 @@ fun VaultScreen(
                             text = "$greetingText, $userName",
                             fontSize = 22.sp,
                             fontWeight = FontWeight.Bold,
-                            color = LaterboxTextPrimary
+                            color = LaterboxTextPrimary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                         Text(
                             text = "Your personal knowledge vault",
                             fontSize = 13.sp,
-                            color = LaterboxTextSecondary
+                            color = LaterboxTextSecondary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
 
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Surface(
-                            modifier = Modifier
-                                .size(40.dp)
-                                .clip(CircleShape)
-                                .clickable { onPlus() },
-                            shape = CircleShape,
-                            color = LaterboxCard,
-                            border = BorderStroke(1.dp, LaterboxBorder),
-                            shadowElevation = 1.dp
-                        ) {
-                            Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                                Icon(
-                                    imageVector = Icons.Default.Add,
-                                    contentDescription = "Later AI",
-                                    tint = LaterboxTextPrimary,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
-                        }
-
-                        ProfileMenuButton(
-                            userName = userName,
-                            account = account,
-                            onSignOut = onSignOut,
-                            onAuth = onAuth
-                        )
-                    }
+                    ProfileMenuButton(
+                        userName = userName,
+                        account = account,
+                        onSignOut = onSignOut,
+                        onAuth = onAuth,
+                        enabled = profileEnabled
+                    )
                 }
             }
         }
@@ -207,42 +189,22 @@ fun VaultScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column(modifier = Modifier.weight(1f)) {
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(end = 12.dp)
+                    ) {
                         Text(listOf("Home", "Inbox", "Returns", "Library")[tab], style = MaterialTheme.typography.headlineLarge)
                         Text("${filtered.size} saved items", color = LaterboxTextSecondary)
                     }
 
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Surface(
-                            modifier = Modifier
-                                .size(40.dp)
-                                .clip(CircleShape)
-                                .clickable { onPlus() },
-                            shape = CircleShape,
-                            color = LaterboxCard,
-                            border = BorderStroke(1.dp, LaterboxBorder),
-                            shadowElevation = 1.dp
-                        ) {
-                            Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                                Icon(
-                                    imageVector = Icons.Default.Add,
-                                    contentDescription = "Later AI",
-                                    tint = LaterboxTextPrimary,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
-                        }
-
-                        ProfileMenuButton(
-                            userName = userName,
-                            account = account,
-                            onSignOut = onSignOut,
-                            onAuth = onAuth
-                        )
-                    }
+                    ProfileMenuButton(
+                        userName = userName,
+                        account = account,
+                        onSignOut = onSignOut,
+                        onAuth = onAuth,
+                        enabled = profileEnabled
+                    )
                 }
             }
         }
@@ -1004,7 +966,8 @@ private fun ProfileMenuButton(
     account: AccountState,
     onSignOut: () -> Unit,
     onAuth: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true
 ) {
     var expanded by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
@@ -1015,7 +978,7 @@ private fun ProfileMenuButton(
             modifier = Modifier
                 .size(40.dp)
                 .clip(CircleShape)
-                .clickable { expanded = true },
+                .clickable(enabled = enabled) { expanded = true },
             shape = CircleShape,
             color = LaterboxCard,
             border = BorderStroke(1.dp, LaterboxBorder),
