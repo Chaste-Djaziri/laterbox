@@ -88,8 +88,10 @@ fun NativeSettings(repository: DataRepository, onAuth: () -> Unit, onTrash: () -
     } }
     val sync = when { !account.pro -> "Local only"; items.any { it.syncStatus == "failed" } -> "Needs attention"; items.any { it.syncStatus == "pending" } -> "Pending sync"; else -> "Synced" }
     val secure = remember { SecureSettings(context) }
+    val nanoStatus by NanoAIService.status.collectAsState()
+    LaunchedEffect(Unit) { NanoAIService.refresh() }
     val aiProvider = remember(aiSettings, account.pro) { secure.provider }
-    val aiModel = remember(aiSettings, account.pro) { if (!account.pro) "Keyword assistant" else secure.model }
+    val aiModel = remember(aiSettings, account.pro) { if (!account.pro) "Gemini Nano (when ready), local fallback" else secure.model }
     LazyColumn(Modifier.fillMaxSize().background(LaterboxBg), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
         item {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -153,7 +155,7 @@ fun NativeSettings(repository: DataRepository, onAuth: () -> Unit, onTrash: () -
         }
         item {
             SettingsGroup("LATER AI & INTELLIGENCE", Icons.Default.AutoAwesome) {
-                SettingsValue("Active engine", if (!account.pro) "Local keyword assistant" else aiProvider.replaceFirstChar { it.uppercase() })
+                SettingsValue("Active engine", if (!account.pro) nanoStatus else aiProvider.replaceFirstChar { it.uppercase() })
                 SettingsValue("Selected model", aiModel)
                 Text(if (account.pro) "Ask questions, enrich captures, and organize saved content using your configured AI provider." else "Guided capture and keyword search are available locally. Pro adds AI answers and organization.", fontSize = 12.sp, color = LaterboxTextSecondary)
                 SettingsAction(Icons.Default.Tune, "Configure AI Models & Keys", "Model selection and encrypted custom keys") { aiSettings = true }
