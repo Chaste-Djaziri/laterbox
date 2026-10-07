@@ -5,6 +5,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- **[Extensions] Instagram profile saves**: Add Save profile beside Instagram profile controls, capturing visible profile details and their canonical source URL.
 - **[Extensions] X profile saves**: Add Save profile controls to X/Twitter profiles with canonical URLs, visible profile snapshots, and account save feedback.
 - **[Extensions] X and Twitter post saves**: Add explicit LaterBox save buttons to feed posts and post details, preserving the individual post permalink, visible text, author, timestamp, and media previews.
 - **[Extensions] LinkedIn profile saves**: Add a Save profile action beside profile controls, preserving the visible profile snapshot and canonical source URL.
