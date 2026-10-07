@@ -126,7 +126,7 @@ fun LibraryScreen(repository: DataRepository, onItem: (ItemEntity) -> Unit) {
             items(LibrarySection.entries.chunked(2)) { row ->
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     row.forEach { category ->
-                        LibraryOverviewCard(category.label, category.icon, librarySectionItems(category, items + trash).size, Modifier.weight(1f)) { page = "section:${category.name}" }
+                        LibraryOverviewCard(category.label, category.icon, librarySectionItems(category, items + trash).size, Modifier.weight(1f).height(176.dp)) { page = "section:${category.name}" }
                     }
                 }
             }
