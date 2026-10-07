@@ -57,6 +57,41 @@ Copy the printed production price IDs into `NEXT_PUBLIC_PADDLE_PRO_MONTHLY_PRICE
 
 Apply the Supabase migrations before enabling checkout. The billing launch migration grants accounts that already exist at migration time 30 days of Pro access.
 
+## Web deployment configuration
+
+Next.js embeds `NEXT_PUBLIC_*` values at build time. Setting only Worker runtime
+secrets cannot configure a browser bundle that was already built. The web release
+workflow sets `NEXT_PUBLIC_PADDLE_ENV=production` and reads:
+
+- GitHub Actions secret `NEXT_PUBLIC_PADDLE_CLIENT_TOKEN_PROD` (a `live_` client-side token).
+- GitHub Actions variables `NEXT_PUBLIC_PADDLE_PRO_MONTHLY_PRICE_ID_PROD` and
+  `NEXT_PUBLIC_PADDLE_PRO_YEARLY_PRICE_ID_PROD` (live catalog price IDs).
+
+Configure these before running the release workflow. Production builds reject
+missing public billing configuration and sandbox client tokens. Rebuild after
+changing public values.
+
+Configure these separately as Cloudflare Worker runtime secrets:
+
+- `PADDLE_API_KEY`: live runtime key with transaction creation and customer portal session permissions.
+- `PADDLE_NOTIFICATION_WEBHOOK_SECRET_PROD`: signing secret for the live notification destination.
+- `SUPABASE_SERVICE_ROLE_KEY`: server-only key for billing storage.
+
+Never put API keys, webhook secrets, or the service-role key in `NEXT_PUBLIC_*`
+variables. Confirm the correct Cloudflare account and existing Worker before
+checking secret names with `npx wrangler secret list` from `laterbox-web/`.
+
+In Paddle live settings, confirm `app.laterbox.dev` is approved, set the default
+payment link to `https://app.laterbox.dev/plans`, and register
+`https://app.laterbox.dev/api/billing/webhook` for the events listed above.
+Dashboard checkout styling and payment methods do not initialize Paddle.js.
+
+The plans page waits for secure checkout to load and reports missing configuration
+or initialization failures. Active Paddle subscriptions show separate management
+and cancellation actions. Cancellation opens Paddle's hosted confirmation form;
+webhook updates supply the scheduled cancellation and access end date. Portal
+sessions are created for each action and scoped to the authenticated account.
+
 ## Native distribution
 
 Apple applications use native StoreKit and verified server entitlements. Android billing lives in the Kotlin app; configure Google Play products and signing for its distribution. Web checkout uses Paddle. Release behavior must be verified in each native client rather than selected through a shared compile-time distribution flag.
