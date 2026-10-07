@@ -3,6 +3,10 @@ import test from 'node:test';
 import { POST as portal } from '../../app/api/billing/portal/route';
 import { POST as checkout } from '../../app/api/billing/checkout/route';
 
+async function payload(response: Response): Promise<{ url?: string; transactionId?: string }> {
+  return await response.json() as { url?: string; transactionId?: string };
+}
+
 function request(body: unknown, authenticated = true) {
   return new Request('https://app.laterbox.dev/api/billing', {
     method: 'POST',
@@ -44,15 +48,15 @@ test('billing routes authenticate, scope subscriptions, and handle Paddle failur
     assert.equal((await portal(request({}, false))).status, 401);
     assert.equal((await portal(request({ action: 'invalid' }))).status, 400);
     assert.equal((await portal(new Request('https://app.laterbox.dev/api/billing', { method: 'POST', headers: { Authorization: 'Bearer test-session' }, body: '{' }))).status, 400);
-    assert.equal((await (await portal(request({}))).json()).url, 'https://customer-portal.paddle.com/manage');
-    assert.equal((await (await portal(request({ action: 'cancel', subscriptionId: 'sub_someone_else' }))).json()).url, 'https://customer-portal.paddle.com/cancel');
+    assert.equal((await payload(await portal(request({})))).url, 'https://customer-portal.paddle.com/manage');
+    assert.equal((await payload(await portal(request({ action: 'cancel', subscriptionId: 'sub_someone_else' })))).url, 'https://customer-portal.paddle.com/cancel');
     assert.deepEqual(paddleRequests.at(-1)?.body, { subscription_ids: ['sub_owned'] });
     assert.ok(subscriptionQueries.every((query) => query.includes('user_id=eq.user-123') && query.includes('customer_id=eq.ctm_owned') && query.includes('provider=eq.paddle')));
     mode = 'scheduled';
     assert.equal((await portal(request({ action: 'cancel' }))).status, 409);
     mode = 'no-subscription';
     assert.equal((await portal(request({ action: 'cancel' }))).status, 409);
-    assert.equal((await (await portal(request({}))).json()).url, 'https://customer-portal.paddle.com/overview');
+    assert.equal((await payload(await portal(request({})))).url, 'https://customer-portal.paddle.com/overview');
     mode = 'no-customer';
     assert.equal((await portal(request({}))).status, 404);
     mode = 'paddle-failure';
@@ -62,7 +66,7 @@ test('billing routes authenticate, scope subscriptions, and handle Paddle failur
     assert.equal((await checkout(request({ interval: 'week' }))).status, 400);
     assert.equal((await checkout(request({ interval: 'month' }, false))).status, 401);
     for (const interval of ['month', 'year']) {
-      assert.equal((await (await checkout(request({ interval }))).json()).transactionId, 'txn_created');
+      assert.equal((await payload(await checkout(request({ interval })))).transactionId, 'txn_created');
       assert.equal(paddleRequests.at(-1)?.body.items[0].price_id, `pri_${interval}`);
       assert.equal(paddleRequests.at(-1)?.body.custom_data.user_id, 'user-123');
     }
