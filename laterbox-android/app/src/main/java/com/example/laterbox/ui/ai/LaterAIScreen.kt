@@ -42,7 +42,6 @@ import com.example.laterbox.theme.LaterboxAccent
 import com.example.laterbox.theme.LaterboxDarkSurface
 import com.example.laterbox.ui.capture.*
 import com.example.laterbox.ui.screens.ItemDetailSheet
-import com.google.mlkit.genai.common.FeatureStatus
 import kotlinx.coroutines.launch
 import org.json.JSONArray
 import java.util.UUID
@@ -86,14 +85,12 @@ fun LaterAIContent(
     val store = remember { VaultStore(context) }
     val ai = remember { LaterAIService(context) }
     val scope = rememberCoroutineScope()
-    var status by remember { mutableIntStateOf(FeatureStatus.UNAVAILABLE) }
-    var checking by remember { mutableStateOf(true) }
     var guided by rememberSaveable { mutableStateOf(false) }
     var input by rememberSaveable { mutableStateOf(initial) }
     var capturedInput by rememberSaveable { mutableStateOf(initial) }
     var saving by remember { mutableStateOf(false) }
     var busy by remember { mutableStateOf(false) }
-    var error by remember { mutableStateOf<String?>(null) }
+    var suggestGuided by remember { mutableStateOf(false) }
     var saved by remember { mutableStateOf<ItemEntity?>(null) }
     var edit by remember { mutableStateOf(false) }
     var clarify by remember { mutableStateOf(false) }
@@ -112,17 +109,12 @@ fun LaterAIContent(
     }
 
     DisposableEffect(ai) { onDispose { ai.close() } }
-    LaunchedEffect(ai) {
-        status = runCatching { ai.status() }.getOrDefault(FeatureStatus.UNAVAILABLE)
-        checking = false
-        guided = false
-    }
 
     fun save(item: ItemEntity) {
         if (saving) return
         saving = true
         busy = true
-        error = null
+        suggestGuided = false
         scope.launch {
             try {
                 saved = store.save(item)
@@ -132,8 +124,9 @@ fun LaterAIContent(
                 messages.add("Saved ‘${saved?.title}’ to your vault." to false)
                 onSaved()
                 scope.launch { saved?.let { store.metadata(it); onSaved() } }
-            } catch (failure: Exception) {
-                error = failure.message ?: "Save failed. Your content is still here."
+            } catch (_: Exception) {
+                messages.add("Something went wrong on our end. Please use Guided capture to save your content." to false)
+                suggestGuided = true
             } finally {
                 saving = false
                 busy = false
@@ -147,7 +140,7 @@ fun LaterAIContent(
         capturedInput = original
         messages.add(original to true)
         busy = true
-        error = null
+        suggestGuided = false
         matches = emptyList()
         input = ""
         scope.launch {
@@ -167,14 +160,15 @@ fun LaterAIContent(
                     }
                     "clarify" -> {
                         clarify = true
-                        messages.add("Would you like to save this or just chat?" to false)
+                        messages.add(action.reply.ifBlank { "Would you like to save this or just chat?" } to false)
                     }
                     else -> {
                         messages.add(action.reply to false)
                     }
                 }
-            } catch (failure: Exception) {
-                error = failure.message ?: "The local model failed. Retry or continue manually."
+            } catch (_: Exception) {
+                messages.add("Something went wrong on our end. Please use Guided capture to save your content." to false)
+                suggestGuided = true
             } finally {
                 if (!saving) busy = false
             }
@@ -287,7 +281,7 @@ fun LaterAIContent(
 
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     if (messages.isNotEmpty()) {
-                        TextButton(onClick = { messages.clear(); saved = null; matches = emptyList(); clarify = false }) {
+                        TextButton(onClick = { messages.clear(); saved = null; matches = emptyList(); clarify = false; suggestGuided = false }) {
                             Text("Clear", color = Color(0xFFA1A1AA), fontSize = 13.sp)
                         }
                     }
@@ -310,14 +304,15 @@ fun LaterAIContent(
             Text(
                 text = if (guided) {
                     "Step-by-step structured capture"
-                } else if (status == FeatureStatus.AVAILABLE) {
-                    if (SecureSettings(context).provider != "device" && AccountService.state.value.pro) {
-                        "${SecureSettings(context).provider.replaceFirstChar { it.uppercase() }} · Your API key"
+                } else if (AccountService.state.value.pro) {
+                    val customKey = SecureSettings(context).apiKey()
+                    if (customKey.isNotBlank()) {
+                        "${SecureSettings(context).provider.replaceFirstChar { it.uppercase() }} · Pro enabled"
                     } else {
-                        "On-device · Private & free"
+                        "Gemini AI · Pro enabled"
                     }
                 } else {
-                    "Conversational assistant"
+                    "Later Assistant · Standard"
                 },
                 color = Color(0xFFA1A1AA),
                 fontSize = 11.sp,
@@ -325,7 +320,7 @@ fun LaterAIContent(
             )
         }
 
-        if (guided && saved == null && !checking) {
+        if (guided && saved == null) {
             key(captureID) {
                 GuidedCapture(
                     initial = capturedInput,
@@ -376,7 +371,7 @@ fun LaterAIContent(
                     }
                 }
 
-                if (checking || busy) {
+                if (busy) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -388,37 +383,18 @@ fun LaterAIContent(
                             strokeWidth = 2.dp
                         )
                         Text(
-                            text = if (checking) "Checking model…" else "Thinking…",
+                            text = "Thinking…",
                             color = Color.White.copy(alpha = 0.6f),
                             fontSize = 12.sp
                         )
                     }
                 }
 
-                if (status == FeatureStatus.DOWNLOADABLE && !busy) {
-                    Choice("Download on-device model", "Enable free Later AI on this device", true) {
-                        scope.launch {
-                            busy = true
-                            try {
-                                ai.download { error = it }
-                                status = ai.status()
-                                guided = status != FeatureStatus.AVAILABLE
-                                error = null
-                            } catch (failure: Exception) {
-                                error = failure.message
-                            } finally {
-                                busy = false
-                            }
-                        }
+                if (suggestGuided) {
+                    Choice("Switch to Guided capture", "Keep your input and save step-by-step", dark = true) {
+                        guided = true
+                        suggestGuided = false
                     }
-                }
-
-                error?.let {
-                    Text(it, color = Color(0xFFFFB4AB))
-                    if (status == FeatureStatus.AVAILABLE) {
-                        Choice("Retry", dark = true) { input = capturedInput; send() }
-                    }
-                    Choice("Continue manually", "Keep your content and attachments", true) { guided = true }
                 }
 
                 if (clarify) {
@@ -445,8 +421,9 @@ fun LaterAIContent(
                                     saved = updated
                                     returnQuestion = false
                                     onSaved()
-                                } catch (failure: Exception) {
-                                    error = failure.message
+                                } catch (_: Exception) {
+                                    messages.add("Something went wrong on our end. Please use Guided capture to save your content." to false)
+                                    suggestGuided = true
                                 }
                             }
                         }
@@ -460,8 +437,9 @@ fun LaterAIContent(
                                     captureID = UUID.randomUUID().toString()
                                     guided = true
                                     onSaved()
-                                } catch (failure: Exception) {
-                                    error = failure.message
+                                } catch (_: Exception) {
+                                    messages.add("Something went wrong on our end. Please use Guided capture to save your content." to false)
+                                    suggestGuided = true
                                 }
                             }
                         }
@@ -470,7 +448,7 @@ fun LaterAIContent(
                             captureID = UUID.randomUUID().toString()
                             capturedInput = ""
                             input = ""
-                            guided = status != FeatureStatus.AVAILABLE
+                            suggestGuided = false
                         }
                     }
                 }
