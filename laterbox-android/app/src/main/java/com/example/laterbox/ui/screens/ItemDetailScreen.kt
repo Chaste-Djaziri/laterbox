@@ -50,6 +50,11 @@ fun ItemDetailScreen(initialItem: ItemEntity, repository: DataRepository, onBack
     val collections by repository.collections.collectAsState(emptyList())
     val item = items.find { it.id == initialItem.id } ?: initialItem
     val metadata by remember(repository, item.id) { repository.watchMetadata(item.id) }.collectAsState(null)
+    val account by com.example.laterbox.services.AccountService.state.collectAsState()
+    if (item.userId != null && item.userId != account.userId) {
+        LaunchedEffect(item.id, account.userId) { onBack() }
+        return
+    }
     val context = LocalContext.current
     val store = remember { VaultStore(context) }
     val scope = rememberCoroutineScope()
@@ -151,7 +156,7 @@ fun ItemDetailScreen(initialItem: ItemEntity, repository: DataRepository, onBack
                                         mime.startsWith("audio/") -> ItemAudioPreview(file.path)
                                         mime == "application/pdf" || file.extension.equals("pdf", true) -> ItemPdfPreview(file)
                                         mime.startsWith("text/") || file.extension.lowercase() in listOf("txt", "md", "csv", "json", "xml", "html", "kt", "swift", "js", "py") -> {
-                                            val text by produceState<String?>(null, file.path) { value = withContext(Dispatchers.IO) { runCatching { file.inputStream().use { String(it.readNBytes(128 * 1024), Charsets.UTF_8) } }.getOrDefault("Unable to read this file.") } }
+                                            val text by produceState<String?>(null, file.path) { value = withContext(Dispatchers.IO) { runCatching { file.inputStream().use { it.reader(Charsets.UTF_8).use { reader -> val buffer = CharArray(128 * 1024); val count = reader.read(buffer); if (count < 0) "" else String(buffer, 0, count) } } }.getOrDefault("Unable to read this file.") } }
                                             text?.let { DetailContent(it) }
                                             if (file.length() > 128 * 1024) Text("Showing the first 128 KB. Open the file to view all content.")
                                         }
@@ -211,7 +216,7 @@ private fun DetailContent(source: String) {
     SelectionContainer {
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             var code = false
-            text.lineSequence().forEach { line ->
+            text.lineSequence().take(500).forEach { line ->
                 if (line.startsWith("```")) code = !code
                 else {
                     val heading = if (!code) line.takeWhile { it == '#' }.length.coerceAtMost(6) else 0
@@ -221,6 +226,7 @@ private fun DetailContent(source: String) {
                         fontFamily = if (code) FontFamily.Monospace else FontFamily.Default, color = LaterboxTextPrimary)
                 }
             }
+            if (text.lineSequence().drop(500).any()) Text("Preview limited to 500 lines. Edit or open the original to access the full content.", color = LaterboxTextSecondary)
         }
     }
 }
