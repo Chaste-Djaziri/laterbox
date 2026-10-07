@@ -5,6 +5,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- **[Extensions] LinkedIn post saves**: Add explicit Save to LaterBox actions to LinkedIn feed posts and post details, capturing the individual post and following dynamic navigation.
 - **[Extensions] Instagram save tooltip**: Explain the LaterBox box icon with a tooltip on hover and keyboard focus.
 - **[Extensions] Instagram icon styling**: Use borderless, icon-only LaterBox actions that follow Instagram’s icon color and size across feed, Reels, and post dialogs.
 - **[Extensions] Reel action spacing**: Place LaterBox in its own centered action-rail slot with clear spacing from Instagram’s bookmark.
