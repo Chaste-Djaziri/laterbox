@@ -4,7 +4,7 @@ import type {InstagramPost} from './social';
 export function findLinkedInPosts(doc:Document,pageUrl:string):InstagramPost[]{
   const page=new URL(pageUrl);
   if(!/^(www\.)?linkedin\.com$/.test(page.hostname))return [];
-  const rootSelector='.feed-shared-update-v2,[data-urn*="urn:li:activity:"],[data-urn*="urn:li:ugcPost:"],[data-id*="urn:li:activity:"],[data-id*="urn:li:ugcPost:"],[data-view-name="feed-full-update"],article,[role="article"],[role="dialog"]';
+  const rootSelector='.feed-shared-update-v2,[data-urn*="urn:li:activity:"],[data-urn*="urn:li:ugcPost:"],[data-id*="urn:li:activity:"],[data-id*="urn:li:ugcPost:"],[data-view-name="feed-full-update"],article,[role="article"],[role="listitem"][componentkey^="update-card-focus"],[role="dialog"]';
   const roots=Array.from(doc.querySelectorAll(rootSelector));
   const posts:InstagramPost[]=[];
   const permalink=(raw:string|null):string|undefined=>{
@@ -32,10 +32,18 @@ export function findLinkedInPosts(doc:Document,pageUrl:string):InstagramPost[]{
       if(candidates.size===1)url=[...candidates][0];
       if(!url && candidates.size===0 && (root.matches('[role="dialog"]') || roots.filter(candidate=>!candidate.matches('[role="dialog"]')).length===1))url=permalink(page.href);
     }
+    if(!url && (root.matches('[role="listitem"][componentkey^="update-card-focus"]') || root.matches('[role="dialog"]'))){
+      // SDUI cards expose opaque component keys, not activity URNs. Keep an
+      // honest source-page text reference rather than inventing a permalink.
+      const caption=Array.from(root.querySelectorAll('p')).filter(element=>!element.closest('button,[role="button"],form,[contenteditable="true"]')).map(element=>element.textContent?.trim() || '').find(text=>text.length>25);
+      const author=root.querySelector('a[href*="/in/"],a[href*="/company/"]')?.textContent?.trim();
+      const reference=(caption || author || '').slice(0,180);
+      if(reference)url=page.origin+page.pathname+'#:~:text='+encodeURIComponent(reference).replace(/[-!'()*]/g,char=>'%'+char.charCodeAt(0).toString(16).toUpperCase());
+    }
     if(!url)continue;
     let insertionPoint=share;
     const wrapper=share.parentElement;
-    if(wrapper && wrapper!==root && wrapper.querySelectorAll('button,[role="button"]').length===1 && (wrapper.parentElement?.querySelectorAll('button,[role="button"]').length || 0)>1)insertionPoint=wrapper;
+    if(wrapper && wrapper!==root && wrapper.querySelectorAll('button,[role="button"],a[aria-label]').length===1 && (wrapper.parentElement?.querySelectorAll('button,[role="button"],a[aria-label]').length || 0)>1)insertionPoint=wrapper;
     posts.push({root,url,site:'LinkedIn',share,insertionPoint,
       author:root.querySelector('.update-components-actor__title,.feed-shared-actor__name,[data-view-name*="actor"] a,a[href*="/in/"],a[href*="/company/"]')?.textContent?.trim().slice(0,500),
       publishedAt:root.querySelector('time')?.getAttribute('datetime') || undefined});
