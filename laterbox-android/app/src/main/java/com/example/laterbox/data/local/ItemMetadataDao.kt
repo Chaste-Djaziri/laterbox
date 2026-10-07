@@ -21,6 +21,9 @@ interface ItemMetadataDao {
     @Query("SELECT * FROM item_metadata WHERE item_id = :itemId")
     suspend fun getMetadataById(itemId: String): ItemMetadataEntity?
 
+    @Query("SELECT * FROM item_metadata WHERE item_id = :itemId")
+    fun watchMetadataById(itemId: String): Flow<ItemMetadataEntity?>
+
     @Query("SELECT * FROM item_metadata")
     suspend fun getAllMetadata(): List<ItemMetadataEntity>
 }
