@@ -6,22 +6,31 @@ import io.github.jan.supabase.auth.auth
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonPrimitive
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
 
-data class AccountState(val userId: String? = null, val email: String? = null, val pro: Boolean = false)
+data class AccountState(val userId: String? = null, val email: String? = null, val displayName: String? = null, val pro: Boolean = false)
 object AccountService {
     val state = MutableStateFlow(AccountState())
     suspend fun refresh() {
         SupabaseClient.client.auth.awaitInitialization()
         val user = SupabaseClient.client.auth.currentUserOrNull()
-        state.value = AccountState(user?.id, user?.email)
+        val metaName = user?.userMetadata?.let { meta ->
+            meta["display_name"]?.jsonPrimitive?.contentOrNull
+                ?: meta["name"]?.jsonPrimitive?.contentOrNull
+                ?: meta["full_name"]?.jsonPrimitive?.contentOrNull
+                ?: meta["user_name"]?.jsonPrimitive?.contentOrNull
+        }?.takeIf { it.isNotBlank() }
+
+        state.value = AccountState(user?.id, user?.email, metaName)
         if (user == null) return
         val pro = runCatching {
             NativeApi.call("${LaterBoxApiService.supabaseUrl}/rest/v1/rpc/has_pro_entitlement", "POST", JSONObject().put("target_user_id", user.id)).trim() == "true"
         }.getOrDefault(false)
-        if (SupabaseClient.client.auth.currentUserOrNull()?.id == user.id) state.value = AccountState(user.id, user.email, pro)
+        if (SupabaseClient.client.auth.currentUserOrNull()?.id == user.id) state.value = AccountState(user.id, user.email, metaName, pro)
     }
     suspend fun signOut() { SupabaseClient.client.auth.signOut(); state.value = AccountState() }
 }
