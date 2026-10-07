@@ -9,11 +9,20 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Article
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Code
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Link
+import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -26,6 +35,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.laterbox.data.DataRepository
@@ -35,6 +45,7 @@ import com.example.laterbox.services.LocalSearch
 import com.example.laterbox.theme.*
 import com.example.laterbox.ui.capture.Field
 import com.example.laterbox.ui.components.ItemCardView
+import java.net.URI
 import java.time.Instant
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -93,6 +104,9 @@ fun VaultScreen(
             hour < 18 -> "Good Afternoon"
             else -> "Good Evening"
         }
+    }
+    val inboxWaitingItems = remember(allItems) {
+        allItems.filter { it.status == "inbox" && it.deletedAt == null }
     }
 
     if (searchActive) {
@@ -154,6 +168,86 @@ fun VaultScreen(
                         ) {
                             Text(count.toString(), style = MaterialTheme.typography.headlineMedium)
                             Text(title, style = MaterialTheme.typography.labelMedium, color = LaterboxTextSecondary)
+                        }
+                    }
+                }
+            }
+
+            item {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 6.dp, bottom = 2.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = "WAITING FOR YOU",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = LaterboxTextSecondary,
+                            letterSpacing = 0.8.sp
+                        )
+                        if (inboxWaitingItems.isNotEmpty()) {
+                            Text(
+                                text = "${inboxWaitingItems.size} in inbox",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = LaterboxTextSecondary
+                            )
+                        }
+                    }
+
+                    if (inboxWaitingItems.isNotEmpty()) {
+                        inboxWaitingItems.take(3).forEach { item ->
+                            WaitingItemBar(
+                                item = item,
+                                onClick = { onItem(item) }
+                            )
+                        }
+                    } else {
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(18.dp),
+                            color = Color.White,
+                            border = BorderStroke(1.dp, LaterboxBorder)
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(24.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .background(LaterboxEmerald.copy(alpha = 0.15f), CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.CheckCircle,
+                                        contentDescription = null,
+                                        tint = LaterboxEmerald,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                                Text(
+                                    text = "All caught up",
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = LaterboxTextPrimary
+                                )
+                                Text(
+                                    text = "Nothing waiting in your inbox right now.",
+                                    fontSize = 12.sp,
+                                    color = LaterboxTextSecondary
+                                )
+                            }
                         }
                     }
                 }
@@ -573,3 +667,100 @@ fun VaultSearchBar(
         }
     }
 }
+
+@Composable
+fun WaitingItemBar(
+    item: ItemEntity,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val (icon, iconColor) = when (item.type.lowercase()) {
+        "video" -> Icons.Default.Videocam to LaterboxRose
+        "music", "audio" -> Icons.Default.MusicNote to LaterboxIndigo
+        "article" -> Icons.AutoMirrored.Filled.Article to LaterboxSky
+        "repository", "repo", "github" -> Icons.Default.Code to LaterboxEmerald
+        "note" -> Icons.Default.Description to LaterboxAmber
+        else -> Icons.Default.Link to LaterboxTextSecondary
+    }
+
+    val domain = remember(item.url) {
+        if (!item.url.isNullOrEmpty()) {
+            try {
+                val uri = URI(item.url)
+                val host = uri.host ?: ""
+                host.removePrefix("www.")
+            } catch (e: Exception) {
+                ""
+            }
+        } else {
+            ""
+        }
+    }
+
+    val subtitle = when {
+        domain.isNotBlank() -> domain
+        item.tags.isNotBlank() -> item.tags
+        item.textContent?.isNotBlank() == true -> item.textContent.trim().take(40)
+        else -> item.type.replaceFirstChar { it.uppercase() }
+    }
+
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(16.dp),
+        color = Color.White,
+        border = BorderStroke(1.dp, LaterboxBorder)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(38.dp)
+                    .background(iconColor.copy(alpha = 0.12f), RoundedCornerShape(12.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = iconColor,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                Text(
+                    text = item.title?.takeIf { it.isNotBlank() } ?: "Untitled",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = LaterboxTextPrimary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = subtitle,
+                    fontSize = 12.sp,
+                    color = LaterboxTextSecondary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+
+            Icon(
+                imageVector = Icons.Default.Schedule,
+                contentDescription = null,
+                tint = LaterboxTextTertiary,
+                modifier = Modifier.size(15.dp)
+            )
+        }
+    }
+}
+
