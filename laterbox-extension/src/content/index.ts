@@ -3,6 +3,7 @@ import { sendRuntimeMessage } from '../platform/messaging';
 import { captureFromPage, extractRenderedPage } from '../lib/page';
 import { createInstagramControls } from './instagram-controls';
 import { createLinkedInControls } from './linkedin-controls';
+import { createLinkedInProfileControls } from './linkedin-profile';
 import type { InstagramPost } from './social';
 import type { Capture, CaptureResult } from '../types/capture';
 
@@ -57,7 +58,7 @@ function show(message:string,state='error',title='Could not save') {
   noticeCopy.replaceChildren(heading,detail);notice.dataset.state=state;notice.hidden=false;clearTimeout(timer);timer=setTimeout(()=>{notice.hidden=true;},8000);
 }
 async function submit(capture:Capture,button:HTMLButtonElement) {
-  const label=button===quoteButton ? 'Save quote' : 'Save to LaterBox';button.disabled=true;button.setAttribute('aria-busy','true');decorate(button,'Saving…');
+  const label=button.dataset.saveLabel || (button===quoteButton ? 'Save quote' : 'Save to LaterBox');button.disabled=true;button.setAttribute('aria-busy','true');decorate(button,'Saving…');
   try {
     const result:CaptureResult=await sendRuntimeMessage<CaptureResult>({type:'capture',capture});
     button.dataset.state=result.status;
@@ -125,7 +126,22 @@ const createPostControl=(post:InstagramPost,resolve:()=>InstagramPost|undefined)
 };
 const syncInstagramControls=createInstagramControls(document,createPostControl);
 const syncLinkedInControls=createLinkedInControls(document,createPostControl);
-function addSocialControls(){syncInstagramControls(enabled,location.href);syncLinkedInControls(enabled,location.href);}
+const syncLinkedInProfileControls=createLinkedInProfileControls(document,(profile,resolve)=>{
+  const container=document.createElement('span');container.setAttribute('data-laterbox-control','');container.style.cssText='display:inline-flex;margin:4px;vertical-align:middle;max-width:100%';
+  const local=container.attachShadow({mode:'closed'});local.append(style.cloneNode(true));
+  const appearance=document.createElement('style');appearance.textContent='button{color:inherit;background:transparent;border:1px solid currentColor;border-radius:24px;min-height:36px;padding:6px 14px}button:hover{background:rgba(128,128,128,.12)}';local.append(appearance);
+  const button=document.createElement('button');button.type='button';button.dataset.saveLabel='Save profile';button.title='Save this LinkedIn profile to LaterBox';button.setAttribute('aria-label','Save '+profile.name+'’s LinkedIn profile to LaterBox');decorate(button,'Save profile');local.append(button);
+  button.addEventListener('click',event=>{
+    event.stopPropagation();if(!event.isTrusted || button.disabled)return;
+    const current=resolve();if(!current){show('This profile changed. Try its updated save button.');return;}
+    const marker='lb-'+crypto.randomUUID();current.root.setAttribute('data-laterbox-post',marker);
+    const page=extractRenderedPage(`[data-laterbox-post="${marker}"]`);current.root.removeAttribute('data-laterbox-post');
+    page.url=current.url;page.canonicalUrl=current.url;page.title=current.name+' on LinkedIn';page.author=current.name;page.siteName='LinkedIn';page.selection='';page.selector=null;
+    void submit(captureFromPage(page,'page'),button);
+  });
+  return container;
+});
+function addSocialControls(){syncInstagramControls(enabled,location.href);syncLinkedInControls(enabled,location.href);syncLinkedInProfileControls(enabled,location.href);}
 const observer=new MutationObserver(()=>{
   if(scheduled || !enabled)return;scheduled=true;setTimeout(()=>{scheduled=false;addSocialControls();},500);
 });
