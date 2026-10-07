@@ -54,6 +54,7 @@ fun NativeSettings(repository: DataRepository, onAuth: () -> Unit, onTrash: () -
     val trash by repository.trash.collectAsState(emptyList())
     val preferences = remember { context.getSharedPreferences("laterbox", 0) }
     var lock by remember { mutableStateOf(preferences.getBoolean("app_lock", false)) }
+    var fallback by remember { mutableStateOf(preferences.getBoolean("gemini_fallback", false)) }
     var protect by remember { mutableStateOf(preferences.getBoolean("screen_protection", false)) }
     var message by remember { mutableStateOf<String?>(null) }
     var clearing by remember { mutableStateOf(false) }
@@ -135,6 +136,7 @@ fun NativeSettings(repository: DataRepository, onAuth: () -> Unit, onTrash: () -
         item {
             SettingsGroup("CLOUD SYNC & DIAGNOSTICS", Icons.Default.CloudSync) {
                 SettingsValue("Sync status", sync)
+                SettingsValue("Last updated", items.mapNotNull { it.lastSyncedAt }.maxOrNull()?.let { stamp -> runCatching { java.time.Instant.parse(stamp).atZone(java.time.ZoneId.systemDefault()).format(java.time.format.DateTimeFormatter.ofPattern("MMM d · HH:mm")) }.getOrDefault(stamp) } ?: "Not synced yet")
                 SettingsAction(Icons.Default.Public, "LaterBox Web Platform", status.label) { repository.refreshWebStatus(); message = "Refreshing platform status…" }
                 SettingsAction(Icons.Default.Sync, if (account.pro) "Trigger Sync Now" else "Get Pro to Enable Cloud Sync", if (account.pro) "Sync saved items across your devices" else "Your local vault stays available offline") {
                     if (account.pro) { repository.syncNow(); message = "Sync queued" } else plans = true
@@ -147,6 +149,9 @@ fun NativeSettings(repository: DataRepository, onAuth: () -> Unit, onTrash: () -
                 SettingsValue("Selected model", aiModel)
                 Text(if (account.pro) "Ask questions, enrich captures, and organize saved content using your configured AI provider." else "Guided capture and keyword search are available locally. Pro adds AI answers and organization.", fontSize = 12.sp, color = LaterboxTextSecondary)
                 SettingsAction(Icons.Default.Tune, "Configure AI Models & Keys", "Model selection and encrypted custom keys") { aiSettings = true }
+                if (RemoteAIService.ENABLED && account.pro) SettingsToggle("Pro Gemini fallback", "Use cloud AI after local failures", fallback) { enabled ->
+                    fallback = enabled; preferences.edit().putBoolean("gemini_fallback", enabled).apply()
+                }
             }
         }
         item {
