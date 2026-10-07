@@ -17,8 +17,7 @@ export function findInstagramProfile(doc:Document,pageUrl:string):XProfile|undef
       if(node.querySelector('a[href$="/followers/"],a[href$="/following/"]'))break;
     }
   }
-  const actions=Array.from(root.querySelectorAll<HTMLElement>('button,[role="button"],a')).filter(element=>!element.closest('[hidden],[aria-hidden="true"],[data-laterbox-control]') && /^(follow|following|message|edit profile|options|more|share profile)(\b|$)/i.test((element.getAttribute('aria-label') || element.textContent || '').trim()));
-  return {root,insertionPoint:actions.at(-1) || name,url:page.origin+'/'+match[1]+'/',name:match[1]};
+  return {root,insertionPoint:name,url:page.origin+'/'+match[1]+'/',name:match[1]};
 }
 export function createInstagramProfileControls(doc:Document,create:(profile:XProfile,resolve:()=>XProfile|undefined)=>HTMLElement){
   let control:{profile:XProfile;container:HTMLElement}|undefined;
