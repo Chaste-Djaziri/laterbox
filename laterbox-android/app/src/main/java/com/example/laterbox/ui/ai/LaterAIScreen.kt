@@ -55,10 +55,6 @@ fun LaterAIScreen(
     val items by repository.items.collectAsState(initial = emptyList())
     BackHandler(onBack = onDismiss)
 
-    val density = LocalDensity.current
-    val isKeyboardOpen = WindowInsets.ime.getBottom(density) > 0
-    val navBottom = with(density) { WindowInsets.navigationBars.getBottom(density).toDp() }
-
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -68,7 +64,7 @@ fun LaterAIScreen(
                 indication = null
             ) { /* Absorb clicks to prevent click-through to underlying views */ }
             .statusBarsPadding()
-            .padding(bottom = if (isKeyboardOpen) 0.dp else navBottom)
+            .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom))
     ) {
         LaterAIContent(
             items = items,
