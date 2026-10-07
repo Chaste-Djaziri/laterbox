@@ -38,7 +38,6 @@ import com.example.laterbox.data.DataRepository
 import com.example.laterbox.data.local.ItemEntity
 import com.example.laterbox.data.local.ItemMetadataEntity
 import com.example.laterbox.services.AccountService
-import com.example.laterbox.services.LocalSearch
 import com.example.laterbox.theme.*
 import kotlinx.coroutines.launch
 import java.net.URI
@@ -53,7 +52,6 @@ fun InboxQueueScreen(repository: DataRepository, onItem: (ItemEntity) -> Unit, o
     val collections by repository.collections.collectAsState(emptyList())
     val account by AccountService.state.collectAsState()
     var showingSearch by rememberSaveable { mutableStateOf(false) }
-    var query by rememberSaveable { mutableStateOf("") }
     var selectedType by rememberSaveable { mutableStateOf<String?>(null) }
     var actionError by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
@@ -61,7 +59,7 @@ fun InboxQueueScreen(repository: DataRepository, onItem: (ItemEntity) -> Unit, o
     val formats = inbox.map { it.type }.distinct().sorted()
     LaunchedEffect(formats) { if (selectedType !in formats) selectedType = null }
     val candidates = inbox.filter { selectedType == null || it.type == selectedType }
-    val queue = if (query.isBlank()) candidates.sortedBy { inboxArrival(it) } else LocalSearch.search(query, candidates)
+    val queue = candidates.sortedBy { inboxArrival(it) }
     val syncTitle = when {
         !account.pro -> "Local only"
         allItems.any { it.syncStatus == "failed" } -> "Sync needs attention"
@@ -70,6 +68,10 @@ fun InboxQueueScreen(repository: DataRepository, onItem: (ItemEntity) -> Unit, o
     }
     fun action(block: suspend () -> Unit) {
         scope.launch { try { block(); actionError = null } catch (_: Exception) { actionError = "Unable to update this item. Please try again." } }
+    }
+    if (showingSearch) {
+        DedicatedSearchScreen(allItems = allItems, repository = repository, onClose = { showingSearch = false }, onItemClick = onItem)
+        return
     }
     LazyColumn(
         modifier = Modifier.fillMaxSize().background(LaterboxBg),
@@ -86,17 +88,15 @@ fun InboxQueueScreen(repository: DataRepository, onItem: (ItemEntity) -> Unit, o
                     Text(syncTitle, fontSize = 10.sp, color = LaterboxTextSecondary)
                 }
                 IconButton(onClick = onOrganizer) { Icon(Icons.Default.AutoAwesome, "AI Inbox Organizer", tint = LaterboxTextSecondary, modifier = Modifier.size(20.dp)) }
-                IconButton(onClick = { showingSearch = !showingSearch; if (!showingSearch) query = "" }) {
-                    Box(Modifier.size(32.dp).background(if (showingSearch) LaterboxAccent else Color.Transparent, CircleShape), contentAlignment = Alignment.Center) {
-                        Icon(Icons.Default.Search, if (showingSearch) "Close inbox search" else "Search inbox", tint = LaterboxTextPrimary, modifier = Modifier.size(18.dp))
+                IconButton(onClick = { showingSearch = true }) {
+                    Box(Modifier.size(32.dp).background(Color.Transparent, CircleShape), contentAlignment = Alignment.Center) {
+                        Icon(Icons.Default.Search, "Search inbox", tint = LaterboxTextPrimary, modifier = Modifier.size(18.dp))
                     }
                 }
             }
         }
-        if (showingSearch) item {
-            OutlinedTextField(value = query, onValueChange = { query = it }, placeholder = { Text("Search inbox…") }, singleLine = true,
-                leadingIcon = { Icon(Icons.Default.Search, null) }, trailingIcon = { if (query.isNotEmpty()) IconButton(onClick = { query = "" }) { Icon(Icons.Default.Close, "Clear search") } },
-                shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth())
+        item {
+            VaultSearchBar(query = "", onQueryChange = {}, placeholder = "Search your vault...", onClick = { showingSearch = true })
         }
         if (formats.isNotEmpty()) item {
             Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -110,7 +110,7 @@ fun InboxQueueScreen(repository: DataRepository, onItem: (ItemEntity) -> Unit, o
         item {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Text("QUEUE • ${queue.size} TO REVIEW", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = LaterboxTextSecondary, modifier = Modifier.weight(1f))
-                Text(if (query.isBlank()) "FIFO Sorted" else "Search Results", fontSize = 10.sp, color = LaterboxAmber)
+                Text("FIFO Sorted", fontSize = 10.sp, color = LaterboxAmber)
             }
         }
         actionError?.let { message -> item { Text(message, color = MaterialTheme.colorScheme.error) } }
