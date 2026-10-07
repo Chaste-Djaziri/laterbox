@@ -5,7 +5,7 @@ import {findInstagramProfile,createInstagramProfileControls} from '../src/conten
 const markup='<main><header><h2>profile.person</h2><div><button>Follow</button><button>Message</button></div><p>Visible biography</p><a href="/profile.person/followers/">100 followers</a></header><article><a href="/p/123/">Grid post</a></article></main>';
 test('Instagram profile captures header and canonical URL without the post grid',()=>{
   const doc=new JSDOM(markup,{url:'https://www.instagram.com/profile.person/?tracking=1'}).window.document;
-  const profile=findInstagramProfile(doc,doc.location.href)!;assert.equal(profile.name,'profile.person');assert.equal(profile.url,'https://www.instagram.com/profile.person/');assert.equal(profile.root.tagName,'HEADER');assert.equal(profile.root.querySelector('article'),null);assert.equal(profile.insertionPoint.textContent,'Message');
+  const profile=findInstagramProfile(doc,doc.location.href)!;assert.equal(profile.name,'profile.person');assert.equal(profile.url,'https://www.instagram.com/profile.person/');assert.equal(profile.root.tagName,'HEADER');assert.equal(profile.root.querySelector('article'),null);assert.equal(profile.insertionPoint.textContent,'profile.person');
 });
 test('Instagram profile controls avoid duplicates and reject stale navigation',()=>{
   const dom=new JSDOM(markup,{url:'https://www.instagram.com/profile.person/'});const doc=dom.window.document;let resolve:(()=>unknown)|undefined;
