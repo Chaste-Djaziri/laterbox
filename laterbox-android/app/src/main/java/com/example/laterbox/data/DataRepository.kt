@@ -1,6 +1,7 @@
 package com.example.laterbox.data
 
 import android.content.Context
+import androidx.room.withTransaction
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import com.example.laterbox.data.api.LaterBoxApiService
@@ -23,6 +24,7 @@ import java.util.UUID
 
 interface DataRepository {
     val items: Flow<List<ItemEntity>>
+    val trash: Flow<List<ItemEntity>> get() = kotlinx.coroutines.flow.flowOf(emptyList())
     val collections: Flow<List<CollectionEntity>>
     val webStatus: StateFlow<SystemStatusResponse>
 
@@ -43,6 +45,7 @@ interface DataRepository {
     suspend fun getMetadata(itemId: String): ItemMetadataEntity?
 
     suspend fun addCollection(name: String, colorHex: String = "#F59E0B", iconName: String = "folder"): CollectionEntity
+    suspend fun renameCollection(id: String, name: String) { error("Collection renaming is unavailable.") }
     suspend fun deleteCollection(id: String)
 
     fun syncNow()
@@ -69,6 +72,7 @@ class DefaultDataRepository(
     }
 
     override val items: Flow<List<ItemEntity>> = kotlinx.coroutines.flow.combine(database.itemDao().watchAllItems(), com.example.laterbox.services.AccountService.state) { items, account -> items.filter { it.userId == null || it.userId == account.userId } }
+    override val trash: Flow<List<ItemEntity>> = kotlinx.coroutines.flow.combine(database.itemDao().watchTrash(), com.example.laterbox.services.AccountService.state) { items, account -> items.filter { it.userId == null || it.userId == account.userId } }
     override val collections: Flow<List<CollectionEntity>> = kotlinx.coroutines.flow.combine(database.collectionDao().watchAllCollections(), com.example.laterbox.services.AccountService.state) { collections, account -> collections.filter { it.userId == null || it.userId == account.userId } }
 
     override fun refreshWebStatus() {
@@ -140,6 +144,22 @@ class DefaultDataRepository(
         database.collectionDao().insertCollection(collection)
         syncNow()
         return collection
+    }
+
+    override suspend fun renameCollection(id: String, name: String) {
+        val trimmed = name.trim()
+        require(trimmed.isNotBlank()) { "Enter a collection name." }
+        database.withTransaction {
+            val current = database.collectionDao().getCollectionById(id) ?: error("Collection no longer exists.")
+            require(current.userId == null || current.userId == com.example.laterbox.services.AccountService.state.value.userId)
+            require(database.collectionDao().getAllCollections().none { it.id != id && it.deletedAt == null && it.userId == current.userId && it.name.equals(trimmed, true) }) { "A collection with this name already exists." }
+            val now = Instant.now().toString()
+            database.collectionDao().updateCollection(current.copy(name = trimmed, updatedAt = now, syncStatus = "pending"))
+            database.itemDao().getAllItems().filter { it.collectionId == id }.forEach {
+                database.itemDao().updateItem(it.copy(category = trimmed, updatedAt = now, syncStatus = "pending"))
+            }
+        }
+        syncNow()
     }
 
     override suspend fun deleteCollection(id: String) {
