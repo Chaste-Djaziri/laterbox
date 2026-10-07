@@ -1,32 +1,48 @@
 package com.example.laterbox.ui.screens
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.laterbox.data.DataRepository
 import com.example.laterbox.data.local.ItemEntity
+import com.example.laterbox.services.LaterAIService
 import com.example.laterbox.services.LocalSearch
 import com.example.laterbox.theme.*
 import com.example.laterbox.ui.capture.Field
 import com.example.laterbox.ui.components.ItemCardView
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.delay
-import com.example.laterbox.services.LaterAIService
-import androidx.compose.ui.platform.LocalContext
 import java.time.Instant
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @Composable
-fun VaultScreen(tab: Int, repository: DataRepository, onCapture: () -> Unit, onAI: () -> Unit, onItem: (ItemEntity) -> Unit, onOrganizer: () -> Unit) {
+fun VaultScreen(
+    tab: Int,
+    repository: DataRepository,
+    onCapture: () -> Unit,
+    onAI: () -> Unit,
+    onItem: (ItemEntity) -> Unit,
+    onOrganizer: () -> Unit
+) {
     val allItems by repository.items.collectAsState(emptyList())
     val collections by repository.collections.collectAsState(emptyList())
     var query by rememberSaveable(tab) { mutableStateOf("") }
@@ -43,10 +59,8 @@ fun VaultScreen(tab: Int, repository: DataRepository, onCapture: () -> Unit, onA
     LaunchedEffect(query) {
         interpreted = query to ""
         if (query.trim().length >= 4) {
-            delay(500)
-            try { interpreted = query to model.interpretQuery(query) }
-            catch (cancelled: kotlinx.coroutines.CancellationException) { throw cancelled }
-            catch (_: Exception) { /* Lexical search remains available. */ }
+            delay(400)
+            interpreted = query to model.interpretQuery(query)
         }
     }
     val filtered = remember(allItems, tab, type, category, collection, query, sort, interpreted) {
@@ -60,7 +74,11 @@ fun VaultScreen(tab: Int, repository: DataRepository, onCapture: () -> Unit, onA
         val results = LocalSearch.search(listOf(query, expanded).filter { it.isNotBlank() }.joinToString(" "), eligible)
         if (query.isNotBlank()) results else if (sort == "Oldest") results.sortedBy { it.createdAt } else if (tab == 2) results.sortedBy { it.returnAt } else results.sortedByDescending { it.createdAt }
     }
-    LazyColumn(Modifier.fillMaxSize().background(LaterboxBg), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    LazyColumn(
+        Modifier.fillMaxSize().background(LaterboxBg),
+        contentPadding = PaddingValues(20.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
         if (tab != 0) {
             item {
                 Text(listOf("Home", "Inbox", "Returns", "Library")[tab], style = MaterialTheme.typography.headlineLarge)
@@ -71,16 +89,39 @@ fun VaultScreen(tab: Int, repository: DataRepository, onCapture: () -> Unit, onA
             item {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     listOf("Inbox" to allItems.count { it.status == "inbox" }, "Returns" to allItems.count { it.status == "deferred" }, "Starred" to allItems.count { it.favorite }).forEach { (title, count) ->
-                        Column(Modifier.weight(1f).background(Color.White, RoundedCornerShape(18.dp)).padding(16.dp)) { Text(count.toString(), style = MaterialTheme.typography.headlineMedium); Text(title, style = MaterialTheme.typography.labelMedium) }
+                        Column(
+                            Modifier.weight(1f).background(Color.White, RoundedCornerShape(18.dp)).padding(16.dp)
+                        ) {
+                            Text(count.toString(), style = MaterialTheme.typography.headlineMedium)
+                            Text(title, style = MaterialTheme.typography.labelMedium, color = LaterboxTextSecondary)
+                        }
                     }
                 }
             }
         }
-        item { Field(query, { query = it }, "Search titles, content, tags, topics…") }
-        item { Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) { listOf("All", "Link", "Article", "Video", "Music", "Note", "Document", "Image").forEach { option -> FilterChip(selected = type == option, onClick = { type = option }, label = { Text(option) }) } } }
+        item {
+            VaultSearchBar(
+                query = query,
+                onQueryChange = { query = it },
+                placeholder = "Search your vault..."
+            )
+        }
+        item {
+            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                listOf("All", "Link", "Article", "Video", "Music", "Note", "Document", "Image").forEach { option ->
+                    FilterChip(selected = type == option, onClick = { type = option }, label = { Text(option) })
+                }
+            }
+        }
         if (tab == 1) item { OutlinedButton(onClick = onOrganizer) { Text("✦ Organize inbox") } }
         if (tab == 3) {
-            item { Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) { listOf("All", "Starred", "Archive", "Done").forEach { option -> FilterChip(category == option, { category = option }, label = { Text(option) }) } } }
+            item {
+                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf("All", "Starred", "Archive", "Done").forEach { option ->
+                        FilterChip(category == option, { category = option }, label = { Text(option) })
+                    }
+                }
+            }
             item {
                 Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     FilterChip(collection == null, { collection = null }, label = { Text("All collections") })
@@ -92,18 +133,98 @@ fun VaultScreen(tab: Int, repository: DataRepository, onCapture: () -> Unit, onA
         }
         item { TextButton(onClick = { sort = if (sort == "Newest") "Oldest" else "Newest" }) { Text("Sort: $sort") } }
         if (filtered.isEmpty()) item {
-            Column(Modifier.fillMaxWidth().background(Color.White, RoundedCornerShape(20.dp)).padding(24.dp)) { Text(if (query.isEmpty()) "Nothing here yet" else "No matches", style = MaterialTheme.typography.titleLarge); Text("Add a capture or try a topic, tag, or phrase you remember."); TextButton(onClick = onCapture) { Text("Save something") } }
+            Column(Modifier.fillMaxWidth().background(Color.White, RoundedCornerShape(20.dp)).padding(24.dp)) {
+                Text(if (query.isEmpty()) "Nothing here yet" else "No matches", style = MaterialTheme.typography.titleLarge)
+                Text("Add a capture or try a topic, tag, or phrase you remember.")
+                TextButton(onClick = onCapture) { Text("Save something") }
+            }
         }
         items(if (tab == 0 && query.isEmpty()) filtered.take(10) else filtered, key = { it.id }) { item ->
-            ItemCardView(item = item, onToggleFavorite = { scope.launch { repository.toggleFavorite(item.id, item.favorite) } },
+            ItemCardView(
+                item = item,
+                onToggleFavorite = { scope.launch { repository.toggleFavorite(item.id, item.favorite) } },
                 onMarkDone = { scope.launch { repository.updateItemStatus(item.id, "done") } },
                 onScheduleReturn = { date -> scope.launch { repository.scheduleReturn(item.id, date) } },
-                onDelete = { scope.launch { repository.deleteItem(item.id) } }, onClick = { onItem(item) })
+                onDelete = { scope.launch { repository.deleteItem(item.id) } },
+                onClick = { onItem(item) }
+            )
         }
     }
     if (addCollection) com.example.laterbox.ui.capture.DialogContent("New collection", { addCollection = false }) {
         Field(newName, { newName = it }, "Collection name")
         error?.let { Text(it) }
         Button(onClick = { scope.launch { try { require(newName.isNotBlank()); repository.addCollection(newName.trim()); addCollection = false; newName = "" } catch (failure: Exception) { error = "Enter a collection name and retry." } } }) { Text("Create") }
+    }
+}
+
+@Composable
+fun VaultSearchBar(
+    query: String,
+    onQueryChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    placeholder: String = "Search your vault..."
+) {
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(48.dp),
+        shape = RoundedCornerShape(16.dp),
+        color = Color.White,
+        border = BorderStroke(1.dp, LaterboxBorder)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Search,
+                contentDescription = "Search",
+                tint = LaterboxTextSecondary,
+                modifier = Modifier.size(20.dp)
+            )
+
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight(),
+                contentAlignment = Alignment.CenterStart
+            ) {
+                if (query.isEmpty()) {
+                    Text(
+                        text = placeholder,
+                        fontSize = 15.sp,
+                        color = LaterboxTextSecondary
+                    )
+                }
+                BasicTextField(
+                    value = query,
+                    onValueChange = onQueryChange,
+                    singleLine = true,
+                    textStyle = TextStyle(
+                        fontSize = 15.sp,
+                        color = LaterboxTextPrimary,
+                        fontWeight = FontWeight.Normal
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+
+            if (query.isNotEmpty()) {
+                IconButton(
+                    onClick = { onQueryChange("") },
+                    modifier = Modifier.size(28.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Clear search",
+                        tint = LaterboxTextSecondary,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+            }
+        }
     }
 }
