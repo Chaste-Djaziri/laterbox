@@ -42,7 +42,7 @@ internal fun ItemVideoPreview(source: String) {
     var error by remember(source) { mutableStateOf<String?>(null) }
     var view by remember(source) { mutableStateOf<VideoView?>(null) }
     val lifecycle = LocalLifecycleOwner.current.lifecycle
-    DisposableEffect(lifecycle, view) {
+    DisposableEffect(lifecycle) {
         val observer = LifecycleEventObserver { _, event -> if (event == Lifecycle.Event.ON_PAUSE) view?.pause() }
         lifecycle.addObserver(observer)
         onDispose { lifecycle.removeObserver(observer); view?.stopPlayback() }
@@ -50,6 +50,7 @@ internal fun ItemVideoPreview(source: String) {
     key(source) {
         AndroidView(factory = { context -> VideoView(context).apply {
             view = this
+            setOnPreparedListener { it.seekTo(1) }
             setVideoURI(android.net.Uri.parse(source))
             setMediaController(MediaController(context).also { it.setAnchorView(this) })
             setOnErrorListener { _, _, _ -> error = "Video preview unavailable. Try opening the original."; true }
@@ -88,7 +89,7 @@ internal fun HostedItemPreview(url: String) {
     var loading by remember(url) { mutableStateOf(true) }
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     var browser by remember(url) { mutableStateOf<WebView?>(null) }
-    DisposableEffect(lifecycle, browser) {
+    DisposableEffect(lifecycle) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_PAUSE) browser?.onPause()
             if (event == Lifecycle.Event.ON_RESUME) browser?.onResume()
