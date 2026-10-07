@@ -14,6 +14,7 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.Article
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Close
@@ -206,25 +207,93 @@ fun LaterAIContent(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Surface(
+                    shape = RoundedCornerShape(14.dp),
+                    color = Color(0xFF1B1B1E),
+                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.12f))
+                ) {
+                    Row(
+                        modifier = Modifier.padding(3.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(2.dp)
+                    ) {
+                        // Later AI mode tab
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(if (!guided) LaterboxAccent else Color.Transparent)
+                                .clickable { guided = false }
+                                .padding(horizontal = 9.dp, vertical = 5.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.AutoAwesome,
+                                    contentDescription = null,
+                                    tint = if (!guided) LaterboxDarkSurface else Color.White.copy(alpha = 0.6f),
+                                    modifier = Modifier.size(13.dp)
+                                )
+                                Text(
+                                    text = "Later AI",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (!guided) LaterboxDarkSurface else Color.White.copy(alpha = 0.7f)
+                                )
+                            }
+                        }
+
+                        // Guided Capture mode tab
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(if (guided) LaterboxAccent else Color.Transparent)
+                                .clickable {
+                                    guided = true
+                                    capturedInput = input
+                                }
+                                .padding(horizontal = 9.dp, vertical = 5.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.Article,
+                                    contentDescription = null,
+                                    tint = if (guided) LaterboxDarkSurface else Color.White.copy(alpha = 0.6f),
+                                    modifier = Modifier.size(13.dp)
+                                )
+                                Text(
+                                    text = "Guided",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (guided) LaterboxDarkSurface else Color.White.copy(alpha = 0.7f)
+                                )
+                            }
+                        }
+                    }
+                }
+
                 Text(
-                    text = "✦ Later AI",
-                    color = Color.White,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = if (status == FeatureStatus.AVAILABLE) {
+                    text = if (guided) {
+                        "Step-by-step structured capture"
+                    } else if (status == FeatureStatus.AVAILABLE) {
                         if (SecureSettings(context).provider != "device" && AccountService.state.value.pro) {
                             "${SecureSettings(context).provider.replaceFirstChar { it.uppercase() }} · Your API key"
                         } else {
                             "On-device · Private & free"
                         }
                     } else {
-                        "Guided capture"
+                        "Conversational assistant"
                     },
                     color = Color(0xFFA1A1AA),
-                    fontSize = 12.sp
+                    fontSize = 11.sp,
+                    modifier = Modifier.padding(start = 2.dp)
                 )
             }
 
@@ -496,59 +565,57 @@ fun LaterAIContent(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 14.dp, vertical = 6.dp),
+                        .padding(start = 16.dp, end = 6.dp, top = 6.dp, bottom = 6.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    BasicTextField(
-                        value = input,
-                        onValueChange = { input = it },
-                        singleLine = false,
-                        maxLines = 4,
-                        textStyle = TextStyle(
-                            fontSize = 15.sp,
-                            color = Color.White
-                        ),
-                        cursorBrush = SolidColor(LaterboxAccent),
-                        modifier = Modifier.weight(1f),
-                        decorationBox = { innerTextField ->
-                            if (input.isEmpty()) {
-                                Text(
-                                    text = "Message Later AI…",
-                                    fontSize = 15.sp,
-                                    color = Color.White.copy(alpha = 0.4f)
-                                )
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(vertical = 6.dp),
+                        contentAlignment = Alignment.CenterStart
+                    ) {
+                        BasicTextField(
+                            value = input,
+                            onValueChange = { input = it },
+                            singleLine = false,
+                            maxLines = 4,
+                            textStyle = TextStyle(
+                                fontSize = 15.sp,
+                                color = Color.White
+                            ),
+                            cursorBrush = SolidColor(LaterboxAccent),
+                            modifier = Modifier.fillMaxWidth(),
+                            decorationBox = { innerTextField ->
+                                if (input.isEmpty()) {
+                                    Text(
+                                        text = "Message Later AI…",
+                                        fontSize = 15.sp,
+                                        color = Color.White.copy(alpha = 0.4f)
+                                    )
+                                }
+                                innerTextField()
                             }
-                            innerTextField()
-                        }
-                    )
+                        )
+                    }
 
-                    IconButton(
-                        onClick = { send() },
-                        enabled = !busy && input.isNotBlank(),
+                    Box(
                         modifier = Modifier
                             .size(36.dp)
+                            .clip(CircleShape)
                             .background(
-                                if (!busy && input.isNotBlank()) LaterboxAccent else Color.White.copy(alpha = 0.1f),
-                                CircleShape
+                                if (!busy && input.isNotBlank()) LaterboxAccent else Color.White.copy(alpha = 0.1f)
                             )
+                            .clickable(enabled = !busy && input.isNotBlank()) { send() },
+                        contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Default.ArrowUpward,
                             contentDescription = "Send",
-                            tint = if (!busy && input.isNotBlank()) LaterboxDarkSurface else Color.White.copy(alpha = 0.3f),
+                            tint = if (!busy && input.isNotBlank()) LaterboxDarkSurface else Color.White.copy(alpha = 0.35f),
                             modifier = Modifier.size(18.dp)
                         )
                     }
-                }
-            }
-
-            if (status != FeatureStatus.AVAILABLE) {
-                TextButton(
-                    onClick = { capturedInput = input; guided = true },
-                    modifier = Modifier.align(Alignment.CenterHorizontally)
-                ) {
-                    Text("Guided capture", color = LaterboxAccent, fontSize = 13.sp)
                 }
             }
         }
