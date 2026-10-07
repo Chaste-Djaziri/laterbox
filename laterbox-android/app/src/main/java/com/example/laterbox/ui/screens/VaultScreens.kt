@@ -15,6 +15,7 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Article
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Code
@@ -80,6 +81,10 @@ fun VaultScreen(
         InboxQueueScreen(repository, onItem, onOrganizer, onCapture)
         return
     }
+    if (tab == 3) {
+        LibraryScreen(repository, onItem)
+        return
+    }
     val allItems by repository.items.collectAsState(emptyList())
     val collections by repository.collections.collectAsState(emptyList())
     var query by rememberSaveable(tab) { mutableStateOf("") }
@@ -91,28 +96,41 @@ fun VaultScreen(
     var addCollection by remember { mutableStateOf(false) }
     var newName by remember { mutableStateOf("") }; var error by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
-    val model = remember { LaterAIService() }
+    val context = LocalContext.current
+    val account by com.example.laterbox.services.AccountService.state.collectAsState()
+    val isPro = account.pro
+    val model = remember(context) { LaterAIService(context) }
     var interpreted by remember { mutableStateOf("" to "") }
     DisposableEffect(model) { onDispose { model.close() } }
-    LaunchedEffect(query) {
+    LaunchedEffect(query, isPro) {
         interpreted = query to ""
-        if (query.trim().length >= 4) {
-            delay(400)
+        if (isPro && query.trim().length >= 3) {
+            delay(350)
             interpreted = query to model.interpretQuery(query)
         }
     }
-    val filtered = remember(allItems, tab, type, category, collection, query, sort, interpreted) {
+    val filtered = remember(allItems, tab, type, category, collection, query, sort, interpreted, isPro) {
         val eligible = allItems.filter { item -> when(tab) {
             1 -> item.status == "inbox"
             2 -> item.returnAt != null && item.status != "deleted" && item.status != "done" && item.status != "archived"
             3 -> when(category) { "Starred" -> item.favorite; "Archive" -> item.status == "archived"; "Done" -> item.status == "done"; else -> true }
             else -> true
         } }.filter { type == "All" || it.type == type.lowercase() }.filter { collection == null || it.collectionId == collection }
-        val expanded = if (interpreted.first == query) interpreted.second else ""
-        val results = LocalSearch.search(listOf(query, expanded).filter { it.isNotBlank() }.joinToString(" "), eligible)
-        if (query.isNotBlank()) results else if (sort == "Oldest") results.sortedBy { it.createdAt } else if (tab == 2) results.sortedBy { it.returnAt } else results.sortedByDescending { it.createdAt }
+        if (query.isBlank()) {
+            if (sort == "Oldest") eligible.sortedBy { it.createdAt } else if (tab == 2) eligible.sortedBy { it.returnAt } else eligible.sortedByDescending { it.createdAt }
+        } else if (isPro) {
+            val expanded = if (interpreted.first == query) interpreted.second else ""
+            val exact = LocalSearch.search(query, eligible)
+            val aiMatches = if (expanded.isNotBlank() && expanded != query) {
+                LocalSearch.search(expanded, eligible)
+            } else {
+                emptyList()
+            }
+            (exact + aiMatches).distinctBy { it.id }
+        } else {
+            LocalSearch.search(query, eligible).sortedByDescending { it.createdAt }
+        }
     }
-    val account by com.example.laterbox.services.AccountService.state.collectAsState()
     val userName = remember(account.displayName, account.email) {
         account.displayName?.takeIf { it.isNotBlank() }
             ?: account.email?.takeIf { it.isNotBlank() }?.substringBefore("@")?.replaceFirstChar { it.uppercase() }
@@ -380,19 +398,28 @@ fun DedicatedSearchScreen(
     onClose: () -> Unit,
     onItemClick: (ItemEntity) -> Unit
 ) {
+    val context = LocalContext.current
+    val account by AccountService.state.collectAsState()
+    val isPro = account.pro
+    var showPlans by remember { mutableStateOf(false) }
     var query by rememberSaveable { mutableStateOf("") }
     var type by rememberSaveable { mutableStateOf("All") }
     val focusRequester = remember { FocusRequester() }
     val scope = rememberCoroutineScope()
-    val model = remember { LaterAIService() }
+    val model = remember(context) { LaterAIService(context) }
     var interpreted by remember { mutableStateOf("" to "") }
+    var isSearchingAi by remember { mutableStateOf(false) }
     DisposableEffect(model) { onDispose { model.close() } }
 
-    LaunchedEffect(query) {
+    LaunchedEffect(query, isPro) {
         interpreted = query to ""
-        if (query.trim().length >= 4) {
-            delay(400)
-            interpreted = query to model.interpretQuery(query)
+        isSearchingAi = false
+        if (isPro && query.trim().length >= 3) {
+            delay(350)
+            isSearchingAi = true
+            val expanded = model.interpretQuery(query)
+            interpreted = query to expanded
+            isSearchingAi = false
         }
     }
 
@@ -430,7 +457,7 @@ fun DedicatedSearchScreen(
         }
     }
 
-    val filtered = remember(activeItems, type, query, interpreted) {
+    val filtered = remember(activeItems, type, query, interpreted, isPro) {
         val eligible = activeItems.filter { item ->
             if (type == "All") {
                 true
@@ -440,9 +467,20 @@ fun DedicatedSearchScreen(
                 item.category.equals(type, ignoreCase = true)
             }
         }
-        val expanded = if (interpreted.first == query) interpreted.second else ""
-        LocalSearch.search(listOf(query, expanded).filter { it.isNotBlank() }.joinToString(" "), eligible)
-            .sortedByDescending { it.createdAt }
+        if (query.isBlank()) {
+            eligible.sortedByDescending { it.createdAt }
+        } else if (isPro) {
+            val expanded = if (interpreted.first == query) interpreted.second else ""
+            val exact = LocalSearch.search(query, eligible)
+            val aiMatches = if (expanded.isNotBlank() && expanded != query) {
+                LocalSearch.search(expanded, eligible)
+            } else {
+                emptyList()
+            }
+            (exact + aiMatches).distinctBy { it.id }
+        } else {
+            LocalSearch.search(query, eligible).sortedByDescending { it.createdAt }
+        }
     }
 
     Column(
@@ -563,6 +601,68 @@ fun DedicatedSearchScreen(
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
+            if (!isPro) {
+                item {
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(16.dp))
+                            .clickable { showPlans = true },
+                        color = Color(0xFF1B1B1E),
+                        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.12f))
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(14.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .background(LaterboxAccent.copy(alpha = 0.15f), CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.AutoAwesome,
+                                    contentDescription = null,
+                                    tint = LaterboxAccent,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                            Column(
+                                modifier = Modifier.weight(1f),
+                                verticalArrangement = Arrangement.spacedBy(2.dp)
+                            ) {
+                                Text(
+                                    text = "AI-Powered Search",
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White
+                                )
+                                Text(
+                                    text = "Go Pro for best search results using Gemini AI topic and meaning matching.",
+                                    fontSize = 12.sp,
+                                    color = LaterboxTextSecondary,
+                                    lineHeight = 16.sp
+                                )
+                            }
+                            Surface(
+                                shape = RoundedCornerShape(10.dp),
+                                color = LaterboxAccent
+                            ) {
+                                Text(
+                                    text = "Go Pro",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = LaterboxDarkSurface,
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
             if (query.isBlank()) {
                 item {
                     Column(
@@ -603,7 +703,7 @@ fun DedicatedSearchScreen(
                             .background(LaterboxCard, RoundedCornerShape(20.dp))
                             .padding(24.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Text(
                             text = "No matches for \"$query\"",
@@ -614,23 +714,70 @@ fun DedicatedSearchScreen(
                             modifier = Modifier.fillMaxWidth()
                         )
                         Text(
-                            text = "Try searching with a different keyword, tag, or domain.",
+                            text = if (!isPro) "Standard search looks for exact text and tags. Go Pro to search with Gemini AI by concept and meaning!" else "Try searching with a different keyword, tag, or domain.",
                             fontSize = 13.sp,
                             color = LaterboxTextSecondary,
                             textAlign = TextAlign.Center,
                             modifier = Modifier.fillMaxWidth()
                         )
+                        if (!isPro) {
+                            Button(
+                                onClick = { showPlans = true },
+                                colors = ButtonDefaults.buttonColors(containerColor = LaterboxAccent),
+                                shape = RoundedCornerShape(12.dp),
+                                modifier = Modifier.padding(top = 4.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.AutoAwesome,
+                                    contentDescription = null,
+                                    tint = LaterboxDarkSurface,
+                                    modifier = Modifier.size(16.dp).padding(end = 4.dp)
+                                )
+                                Text(
+                                    text = "Go Pro for AI Search",
+                                    color = LaterboxDarkSurface,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 13.sp
+                                )
+                            }
+                        }
                     }
                 }
             } else {
                 item {
-                    Text(
-                        text = "SEARCH RESULTS (${filtered.size})",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = LaterboxTextSecondary,
-                        modifier = Modifier.padding(bottom = 2.dp)
-                    )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 2.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = "SEARCH RESULTS (${filtered.size})",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = LaterboxTextSecondary
+                        )
+                        if (isPro) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.AutoAwesome,
+                                    contentDescription = null,
+                                    tint = LaterboxAccent,
+                                    modifier = Modifier.size(12.dp)
+                                )
+                                Text(
+                                    text = if (isSearchingAi) "Gemini expanding…" else "Gemini AI enhanced",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = LaterboxAccent
+                                )
+                            }
+                        }
+                    }
                 }
                 items(filtered, key = { it.id }) { item ->
                     ItemCardView(
@@ -644,6 +791,10 @@ fun DedicatedSearchScreen(
                 }
             }
         }
+    }
+
+    if (showPlans) {
+        PlansSheet(onDismiss = { showPlans = false })
     }
 }
 
