@@ -18,19 +18,25 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Slideshow
+import androidx.compose.material.icons.filled.TableChart
 import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -38,6 +44,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import com.example.laterbox.data.DataRepository
 import com.example.laterbox.data.local.ItemEntity
 import com.example.laterbox.services.LaterAIService
@@ -668,19 +675,123 @@ fun VaultSearchBar(
     }
 }
 
+enum class ItemDocType(val label: String) {
+    PDF("PDF"),
+    PPT("Presentation"),
+    DOCS("Document"),
+    SHEETS("Spreadsheet"),
+    AUDIO("Audio"),
+    VIDEO("Video"),
+    IMAGE("Image"),
+    CODE("Code"),
+    NOTE("Note"),
+    LINK("Link")
+}
+
+fun resolveItemDocType(item: ItemEntity): ItemDocType {
+    val type = item.type.lowercase().trim()
+    val url = item.url?.lowercase()?.trim().orEmpty()
+    val title = item.title?.lowercase()?.trim().orEmpty()
+    val attachments = item.attachments.lowercase()
+
+    // 1. PDF
+    if (type == "pdf" ||
+        url.endsWith(".pdf") || url.contains(".pdf?") || url.contains(".pdf#") ||
+        title.endsWith(".pdf") || title.contains("[pdf]") ||
+        attachments.contains(".pdf")
+    ) {
+        return ItemDocType.PDF
+    }
+
+    // 2. PPT / Presentation
+    if (type in listOf("presentation", "ppt", "pptx", "slides", "keynote") ||
+        url.endsWith(".ppt") || url.endsWith(".pptx") || url.endsWith(".key") || url.endsWith(".odp") ||
+        title.endsWith(".ppt") || title.endsWith(".pptx") || title.endsWith(".key") ||
+        attachments.contains(".ppt") || attachments.contains(".pptx") || attachments.contains(".key") ||
+        url.contains("slides.google.com") || url.contains("pitch.com")
+    ) {
+        return ItemDocType.PPT
+    }
+
+    // 3. Spreadsheets / Sheets / Excel
+    if (type in listOf("spreadsheet", "sheet", "csv", "excel", "numbers") ||
+        url.endsWith(".xls") || url.endsWith(".xlsx") || url.endsWith(".csv") || url.endsWith(".numbers") ||
+        attachments.contains(".xls") || attachments.contains(".xlsx") || attachments.contains(".csv") ||
+        url.contains("sheets.google.com") || url.contains("airtable.com")
+    ) {
+        return ItemDocType.SHEETS
+    }
+
+    // 4. Audio
+    if (type in listOf("audio", "music", "podcast") ||
+        url.endsWith(".mp3") || url.endsWith(".wav") || url.endsWith(".m4a") || url.endsWith(".aac") || url.endsWith(".flac") || url.endsWith(".ogg") ||
+        attachments.contains(".mp3") || attachments.contains(".wav") || attachments.contains(".m4a") ||
+        url.contains("spotify.com") || url.contains("soundcloud.com") || url.contains("podcasts.apple.com")
+    ) {
+        return ItemDocType.AUDIO
+    }
+
+    // 5. Video
+    if (type in listOf("video", "movie") ||
+        url.endsWith(".mp4") || url.endsWith(".mov") || url.endsWith(".webm") || url.endsWith(".mkv") || url.endsWith(".avi") ||
+        attachments.contains(".mp4") || attachments.contains(".mov") ||
+        url.contains("youtube.com") || url.contains("youtu.be") || url.contains("vimeo.com") || url.contains("tiktok.com")
+    ) {
+        return ItemDocType.VIDEO
+    }
+
+    // 6. Docs / Text documents
+    if (type in listOf("document", "doc", "docx", "word") ||
+        url.endsWith(".doc") || url.endsWith(".docx") || url.endsWith(".odt") || url.endsWith(".rtf") || url.endsWith(".pages") || url.endsWith(".txt") ||
+        attachments.contains(".doc") || attachments.contains(".docx") || attachments.contains(".txt") ||
+        url.contains("docs.google.com")
+    ) {
+        return ItemDocType.DOCS
+    }
+
+    // 7. Image
+    if (type == "image" ||
+        url.endsWith(".jpg") || url.endsWith(".jpeg") || url.endsWith(".png") || url.endsWith(".gif") || url.endsWith(".webp") || url.endsWith(".svg") ||
+        attachments.contains(".jpg") || attachments.contains(".jpeg") || attachments.contains(".png")
+    ) {
+        return ItemDocType.IMAGE
+    }
+
+    // 8. Code
+    if (type in listOf("code", "repository", "repo", "github", "gitlab") ||
+        url.contains("github.com") || url.contains("gitlab.com") ||
+        url.endsWith(".json") || url.endsWith(".py") || url.endsWith(".js") || url.endsWith(".ts") || url.endsWith(".kt")
+    ) {
+        return ItemDocType.CODE
+    }
+
+    // 9. Note
+    if (type == "note" || (item.url.isNullOrBlank() && item.textContent?.isNotBlank() == true)) {
+        return ItemDocType.NOTE
+    }
+
+    // 10. Link (web URL or default)
+    return ItemDocType.LINK
+}
+
 @Composable
 fun WaitingItemBar(
     item: ItemEntity,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val (icon, iconColor) = when (item.type.lowercase()) {
-        "video" -> Icons.Default.Videocam to LaterboxRose
-        "music", "audio" -> Icons.Default.MusicNote to LaterboxIndigo
-        "article" -> Icons.AutoMirrored.Filled.Article to LaterboxSky
-        "repository", "repo", "github" -> Icons.Default.Code to LaterboxEmerald
-        "note" -> Icons.Default.Description to LaterboxAmber
-        else -> Icons.Default.Link to LaterboxTextSecondary
+    val docType = remember(item) { resolveItemDocType(item) }
+    val (icon, iconColor, allowsFavicon) = when (docType) {
+        ItemDocType.PDF -> Triple(Icons.Default.PictureAsPdf, LaterboxRose, false)
+        ItemDocType.PPT -> Triple(Icons.Default.Slideshow, LaterboxAmber, false)
+        ItemDocType.SHEETS -> Triple(Icons.Default.TableChart, LaterboxEmerald, false)
+        ItemDocType.DOCS -> Triple(Icons.AutoMirrored.Filled.Article, LaterboxSky, false)
+        ItemDocType.AUDIO -> Triple(Icons.Default.MusicNote, LaterboxIndigo, false)
+        ItemDocType.VIDEO -> Triple(Icons.Default.Videocam, Color(0xFF9333EA), false)
+        ItemDocType.IMAGE -> Triple(Icons.Default.Image, Color(0xFF0D9488), false)
+        ItemDocType.CODE -> Triple(Icons.Default.Code, LaterboxEmerald, false)
+        ItemDocType.NOTE -> Triple(Icons.Default.Description, LaterboxAmber, false)
+        ItemDocType.LINK -> Triple(Icons.Default.Link, LaterboxSky, true)
     }
 
     val domain = remember(item.url) {
@@ -697,11 +808,19 @@ fun WaitingItemBar(
         }
     }
 
+    val faviconUrl = remember(item.url, domain, allowsFavicon) {
+        if (allowsFavicon && domain.isNotBlank()) {
+            "https://www.google.com/s2/favicons?domain=$domain&sz=128"
+        } else {
+            null
+        }
+    }
+
     val subtitle = when {
         domain.isNotBlank() -> domain
         item.tags.isNotBlank() -> item.tags
         item.textContent?.isNotBlank() == true -> item.textContent.trim().take(40)
-        else -> item.type.replaceFirstChar { it.uppercase() }
+        else -> docType.label
     }
 
     Surface(
@@ -731,6 +850,17 @@ fun WaitingItemBar(
                     tint = iconColor,
                     modifier = Modifier.size(18.dp)
                 )
+
+                if (faviconUrl != null) {
+                    AsyncImage(
+                        model = faviconUrl,
+                        contentDescription = null,
+                        modifier = Modifier
+                            .size(20.dp)
+                            .clip(RoundedCornerShape(4.dp)),
+                        contentScale = ContentScale.Fit
+                    )
+                }
             }
 
             Column(
