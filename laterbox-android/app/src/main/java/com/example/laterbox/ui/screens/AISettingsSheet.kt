@@ -31,6 +31,8 @@ fun AISettingsSheet(onDismiss: () -> Unit) {
     var message by remember { mutableStateOf<String?>(null) }
     var busy by remember { mutableStateOf(false) }
     val account by AccountService.state.collectAsState()
+    val nanoStatus by NanoAIService.status.collectAsState()
+    LaunchedEffect(Unit) { NanoAIService.refresh() }
     fun save() {
         check(AccountService.state.value.pro) { "Model configuration requires Pro." }
         require(model.isNotBlank()) { "Choose a model or enter a model name." }
@@ -43,7 +45,20 @@ fun AISettingsSheet(onDismiss: () -> Unit) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(20.dp).imePadding(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text("AI model", style = MaterialTheme.typography.headlineSmall)
-            Text("Your selected model is used for Later AI and enhanced search on this device.")
+            Text("Free on-device assistant", style = MaterialTheme.typography.titleMedium)
+            Text(nanoStatus)
+            Text("Guests and free members use Gemini Nano when available, with a local keyword assistant as fallback. Cloud models and enhanced search require Pro.")
+            if (nanoStatus == "Gemini Nano download available") TextButton(onClick = {
+                scope.launch {
+                    busy = true
+                    try { NanoAIService.download() }
+                    catch (cancelled: kotlinx.coroutines.CancellationException) { throw cancelled }
+                    catch (_: Exception) { message = "Download could not finish. Check your connection and try again."; NanoAIService.refresh() }
+                    finally { busy = false }
+                }
+            }, enabled = !busy) { Text("Download Gemini Nano") }
+            TextButton(onClick = { scope.launch { NanoAIService.refresh() } }, enabled = !busy) { Text("Check device support") }
+            Text("Your selected cloud model is used for Pro Later AI and enhanced search on this device.")
             if (account.pro) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     commonModels.keys.forEach { name ->
