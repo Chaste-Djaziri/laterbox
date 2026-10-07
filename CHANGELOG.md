@@ -5,6 +5,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 ## [Unreleased]
 
 ### Changed
+- **[Android] Home screen items list removal**: Streamlined the Home dashboard by removing the general items list, keeping greeting, search bar, and data overview metrics focused.
 - **[Android] Home greeting display name**: Prioritize Supabase auth user metadata display name for the home personalized greeting, with fallback to email prefix.
 - **[Android] Home layout reordering**: Repositioned the search bar to the top of the Home screen directly above the data overview metrics.
 - **[Android] Home search bar redesign**: Replaced generic outlined text field with a polished, native vault search component with rounded card container, search icon, clear button, and proper typography and sizing.
