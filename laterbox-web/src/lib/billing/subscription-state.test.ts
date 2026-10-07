@@ -59,3 +59,21 @@ test('Apple billing retry with grace maps to past due', () => {
   assert.equal(state.status, 'past_due');
   assert.ok(state.graceEnd);
 });
+
+test('Paddle plan presentation preserves provider and billing states', () => {
+  const now = new Date('2026-10-07T12:00:00Z');
+  const active: Entitlement = {
+    ...FREE_ENTITLEMENT, tier: 'pro', provider: 'paddle', status: 'active',
+    accessEndsAt: '2026-11-07T12:00:00Z', phaseEndsAt: '2026-11-07T12:00:00Z',
+  };
+  assert.equal(presentEntitlement(active, now).actionLabel, 'Manage');
+  assert.equal(presentEntitlement({ ...active, status: 'past_due' }, now).actionLabel, 'Fix payment');
+  for (const status of ['active', 'trialing', 'canceled'] as const) {
+    const value = presentEntitlement({ ...active, status, willCancel: true }, now);
+    assert.equal(value.tone, 'warning');
+    assert.equal(value.description, 'Your plan stays active until the end of this period.');
+  }
+  assert.equal(presentEntitlement({ ...active, status: 'granted', provider: null }, now).actionLabel, 'View plans');
+  assert.equal(presentEntitlement({ ...active, provider: 'apple' }, now).actionLabel, 'Manage');
+  assert.equal(presentEntitlement(active, new Date('2026-12-01')).label, 'Free');
+});
