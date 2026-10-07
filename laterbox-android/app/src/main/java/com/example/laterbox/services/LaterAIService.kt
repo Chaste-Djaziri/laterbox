@@ -204,8 +204,10 @@ class LaterAIService(private val context: Context? = null) : AutoCloseable {
         if (query.isBlank() || !AccountService.state.value.pro) return query
         return runCatching {
             withTimeout(15000) {
-                val response = CustomAIService.generate(queryContext, "Expand this saved-item search into 3 to 8 relevant topic words and synonyms. Do not answer the question. Return only the search words. Query: ${query.take(300)}")
-                response.take(300).ifBlank { query }
+                val prompt = "Expand this saved-item search into 3 to 8 relevant topic words, synonyms, and related tags. Do not answer the question. Return only space-separated keywords without punctuation. Query: ${query.take(300)}"
+                val response = CustomAIService.generate(queryContext, prompt)
+                val clean = response.replace(Regex("""[`"'{}:,\n]"""), " ").replace(Regex("""\s+"""), " ").trim()
+                clean.take(300).ifBlank { query }
             }
         }.getOrDefault(query)
     }
