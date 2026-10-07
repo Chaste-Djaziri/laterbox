@@ -23,6 +23,7 @@ export function findLinkedInPosts(doc:Document,pageUrl:string):InstagramPost[]{
     // keeps a photo dialog independent from its underlying feed card.
     if(roots.some(other=>other!==root && root.contains(other) && other.contains(share)))continue;
     const identity=(element:Element)=>['data-urn','data-id','data-entity-urn'].map(name=>element.getAttribute(name)?.match(/urn:li:(activity|ugcPost):\d+/)?.[0]).find(Boolean);
+    const postAuthor=root.querySelector('.update-components-actor__title,.feed-shared-actor__name,[data-view-name*="actor"] a')?.textContent?.trim() || Array.from(root.querySelectorAll('a[href*="/in/"],a[href*="/company/"]')).map(link=>link.textContent?.trim()).find(Boolean);
     const urn=identity(root);
     let url=urn ? 'https://www.linkedin.com/feed/update/'+urn+'/':undefined;
     if(!url){
@@ -36,7 +37,7 @@ export function findLinkedInPosts(doc:Document,pageUrl:string):InstagramPost[]{
       // SDUI cards expose opaque component keys, not activity URNs. Keep an
       // honest source-page text reference rather than inventing a permalink.
       const caption=Array.from(root.querySelectorAll('p')).filter(element=>!element.closest('button,[role="button"],form,[contenteditable="true"]')).map(element=>element.textContent?.trim() || '').find(text=>text.length>25);
-      const author=root.querySelector('a[href*="/in/"],a[href*="/company/"]')?.textContent?.trim();
+      const author=postAuthor;
       const reference=(caption || author || '').slice(0,180);
       if(reference)url=page.origin+page.pathname+'#:~:text='+encodeURIComponent(reference).replace(/[-!'()*]/g,char=>'%'+char.charCodeAt(0).toString(16).toUpperCase());
     }
@@ -45,7 +46,7 @@ export function findLinkedInPosts(doc:Document,pageUrl:string):InstagramPost[]{
     const wrapper=share.parentElement;
     if(wrapper && wrapper!==root && wrapper.querySelectorAll('button,[role="button"],a[aria-label]').length===1 && (wrapper.parentElement?.querySelectorAll('button,[role="button"],a[aria-label]').length || 0)>1)insertionPoint=wrapper;
     posts.push({root,url,site:'LinkedIn',share,insertionPoint,
-      author:root.querySelector('.update-components-actor__title,.feed-shared-actor__name,[data-view-name*="actor"] a,a[href*="/in/"],a[href*="/company/"]')?.textContent?.trim().slice(0,500),
+      author:postAuthor?.slice(0,500),
       publishedAt:root.querySelector('time')?.getAttribute('datetime') || undefined});
   }
   return posts;
