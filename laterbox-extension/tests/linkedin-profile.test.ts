@@ -14,7 +14,8 @@ test('profile controls avoid duplicates, respect settings and reject stale navig
   let resolve:(()=>unknown)|undefined;
   const sync=createLinkedInProfileControls(doc,(_,get)=>{resolve=get;const host=doc.createElement('span');host.dataset.laterboxControl='';return host;});
   sync(true,doc.location.href);sync(true,doc.location.href);assert.equal(doc.querySelectorAll('[data-laterbox-control]').length,1);
-  dom.reconfigure({url:'https://www.linkedin.com/in/another/'});assert.equal(resolve!(),undefined);sync(true,doc.location.href);assert.equal(doc.querySelectorAll('[data-laterbox-control]').length,0);
+  dom.reconfigure({url:'https://www.linkedin.com/in/another/'});assert.equal(resolve!(),undefined);sync(true,doc.location.href);assert.equal(doc.querySelectorAll('[data-laterbox-control]').length,1); // The still-rendered old person is now a card with its original URL.
+  assert.equal((resolve!() as {url:string}).url,'https://www.linkedin.com/in/person/');
   dom.reconfigure({url:'https://www.linkedin.com/in/person/'});sync(true,doc.location.href);sync(false,doc.location.href);assert.equal(doc.querySelectorAll('[data-laterbox-control]').length,0);
 });
 test('legacy h1 profiles and SDUI primary-content regions qualify; hidden profiles do not',()=>{
