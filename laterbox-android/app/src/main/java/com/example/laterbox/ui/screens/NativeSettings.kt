@@ -6,72 +6,250 @@ import android.net.Uri
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.core.content.FileProvider
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.FileProvider
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.example.laterbox.BuildConfig
+import com.example.laterbox.R
 import com.example.laterbox.data.DataRepository
 import com.example.laterbox.services.*
-import com.example.laterbox.ui.capture.Choice
-import com.example.laterbox.ui.capture.DialogContent
-import com.example.laterbox.theme.LaterboxBg
+import com.example.laterbox.theme.*
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 
 @Composable
 fun NativeSettings(repository: DataRepository, onAuth: () -> Unit, onTrash: () -> Unit) {
-    val context = LocalContext.current; val scope = rememberCoroutineScope()
-    val account by AccountService.state.collectAsState(); val status by repository.webStatus.collectAsState()
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val account by AccountService.state.collectAsState()
+    val status by repository.webStatus.collectAsState()
+    val items by repository.items.collectAsState(emptyList())
+    val trash by repository.trash.collectAsState(emptyList())
     val preferences = remember { context.getSharedPreferences("laterbox", 0) }
     var lock by remember { mutableStateOf(preferences.getBoolean("app_lock", false)) }
     var protect by remember { mutableStateOf(preferences.getBoolean("screen_protection", false)) }
-    var message by remember { mutableStateOf<String?>(null) }; var clearing by remember { mutableStateOf(false) }
+    var message by remember { mutableStateOf<String?>(null) }
+    var clearing by remember { mutableStateOf(false) }
+    var signOut by remember { mutableStateOf(false) }
     var plans by remember { mutableStateOf(false) }
     var aiSettings by remember { mutableStateOf(false) }
-    var bytes by remember { mutableLongStateOf(File(context.filesDir, "captures").walkTopDown().filter { it.isFile }.sumOf { it.length() }) }
-    val permissions = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted -> message = if (granted) "Return notifications enabled" else "Notifications are off. Returns still appear in your inbox." }
-    val importer = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> if (uri != null) scope.launch { try { val count = BackupService.import(context, uri); message = "Imported $count captures"; repository.syncNow() } catch (failure: Exception) { message = failure.message } } }
-    LazyColumn(Modifier.fillMaxSize().background(LaterboxBg), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        item { Text("Settings", style = MaterialTheme.typography.headlineLarge) }
-        item { Choice(account.email ?: "Guest mode", if (account.pro) "LaterBox Pro active" else "Free local vault") { if (account.userId == null) onAuth() } }
-        item { if (account.userId != null) TextButton(onClick = { scope.launch { AccountService.signOut(); message = "Signed out. Your local captures are preserved." } }) { Text("Sign out") } }
-        item { Text("Plans & cloud sync", style = MaterialTheme.typography.titleLarge) }
-        item { Choice(if (account.pro) "Manage LaterBox Pro" else "View Pro plans", "Cloud sync and AI Inbox Organizer") { plans = true } }
-        item { Choice("Restore purchases", "Verify existing access for this account") { plans = true } }
-        item { Choice("Sync now", if (account.pro) "Verified Pro account" else "Pro is required") { if (account.pro) { repository.syncNow(); message = "Sync queued" } else plans = true } }
-        item { Choice("Platform status", status.label) { repository.refreshWebStatus() } }
-        item { Text("Later AI", style = MaterialTheme.typography.titleLarge) }
-        item { Choice("On-device Gemini Nano", "Free where supported. Guided capture is always available.") { message = "Open Later AI to check availability or download the local model. Cloud AI is disabled by default." } }
-        item { Choice("Configure AI models & keys", "On-device and Pro custom providers") { aiSettings = true } }
-        if (RemoteAIService.ENABLED && account.pro) item {
-            var fallback by remember { mutableStateOf(preferences.getBoolean("gemini_fallback", false)) }
-            Row { Text("Use Pro Gemini after local failures", Modifier.weight(1f)); Switch(fallback, { fallback = it; preferences.edit().putBoolean("gemini_fallback", it).apply() }) }
+    var busy by remember { mutableStateOf(false) }
+    var bytes by remember { mutableLongStateOf(0) }
+    var storageRefresh by remember { mutableIntStateOf(0) }
+    var notifications by remember { mutableStateOf(NotificationManagerCompat.from(context).areNotificationsEnabled()) }
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
+    DisposableEffect(lifecycle) {
+        val observer = LifecycleEventObserver { _, event -> if (event == Lifecycle.Event.ON_RESUME) notifications = NotificationManagerCompat.from(context).areNotificationsEnabled() }
+        lifecycle.addObserver(observer)
+        onDispose { lifecycle.removeObserver(observer) }
+    }
+    LaunchedEffect(items.size, trash.size, storageRefresh) {
+        bytes = withContext(Dispatchers.IO) { File(context.filesDir, "captures").walkTopDown().filter { it.isFile }.sumOf { it.length() } }
+    }
+    fun task(block: suspend () -> Unit) {
+        if (busy) return
+        scope.launch { busy = true; try { block() } catch (cancelled: kotlinx.coroutines.CancellationException) { throw cancelled } catch (failure: Exception) { message = failure.message ?: "Unable to complete this action. Please try again." } finally { busy = false } }
+    }
+    fun open(intent: Intent) { runCatching { context.startActivity(intent) }.onFailure { message = "No app is available to open this page." } }
+    val permissions = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        notifications = NotificationManagerCompat.from(context).areNotificationsEnabled()
+        message = if (granted) "Return notifications enabled" else "Notifications are off. You can allow them in Android settings."
+    }
+    val importer = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> if (uri != null) task {
+        val count = BackupService.import(context, uri); message = "Imported $count captures"; repository.syncNow(); storageRefresh++
+    } }
+    val sync = when { !account.pro -> "Local only"; items.any { it.syncStatus == "failed" } -> "Needs attention"; items.any { it.syncStatus == "pending" } -> "Pending sync"; else -> "Synced" }
+    val secure = remember { SecureSettings(context) }
+    val custom = remember(aiSettings, account.pro) { account.pro && secure.apiKey().isNotBlank() && secure.provider != "device" }
+    val aiModel = if (!account.pro) "Keyword assistant" else if (custom) secure.model else BuildConfig.GEMINI_MODEL.ifBlank { "gemini-3.5-flash-lite" }
+    LazyColumn(Modifier.fillMaxSize().background(LaterboxBg), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
+        item {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Image(painterResource(R.drawable.laterbox_icon_green), "LaterBox", Modifier.size(28.dp).clip(RoundedCornerShape(7.dp)))
+                Text("Settings", Modifier.weight(1f).padding(start = 8.dp), fontSize = 24.sp, fontWeight = FontWeight.Bold, color = LaterboxTextPrimary)
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                    Box(Modifier.size(7.dp).background(if (sync == "Synced") LaterboxEmerald else LaterboxAmber, CircleShape))
+                    Text(sync, fontSize = 10.sp, color = LaterboxTextSecondary)
+                }
+            }
         }
-        item { Text("Privacy & alerts", style = MaterialTheme.typography.titleLarge) }
-        item { Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text("Lock with biometrics or device PIN"); Switch(lock, { enabled -> if (!enabled || AppLockService.supported(context)) { lock = enabled; preferences.edit().putBoolean("app_lock", enabled).apply() } else message = "Set up a screen lock or biometrics first." }) } }
-        item { Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text("Hide screenshots and previews"); Switch(protect, { protect = it; preferences.edit().putBoolean("screen_protection", it).apply(); val activity = context as? android.app.Activity; if (it) activity?.window?.addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE) else activity?.window?.clearFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE) }) } }
-        item { Choice("Return notifications", "Enable alerts when saved items are due") { if (Build.VERSION.SDK_INT >= 33) permissions.launch(Manifest.permission.POST_NOTIFICATIONS) else message = "Return notifications are available in Android notification settings." } }
-        item { Text("Storage & backups", style = MaterialTheme.typography.titleLarge) }
-        item { Text("Attachments: ${bytes / 1048576} MB · Items remain available offline") }
-        item { Choice("Export vault backup", "Includes notes, metadata, and attachments") { scope.launch { try { val file = BackupService.export(context); val uri = FileProvider.getUriForFile(context, context.packageName + ".files", file); context.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).setType("application/zip").putExtra(Intent.EXTRA_STREAM, uri).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION), "Export LaterBox backup")) } catch (failure: Exception) { message = failure.message } } } }
-        item { Choice("Import vault backup", "Keep existing items; restore missing captures") { importer.launch(arrayOf("application/zip", "application/octet-stream")) } }
-        item { Choice("Trash", "Restore deleted items") { onTrash() } }
-        item { Choice("Empty trash", "Permanently remove deleted items and unreferenced files") { clearing = true } }
-        item { Text("LaterBox ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE}) · Native Android", style = MaterialTheme.typography.bodySmall) }
-        item { Choice("Privacy policy") { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://laterbox.dev/privacy"))) } }
-        item { Choice("Terms of service") { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://laterbox.dev/terms"))) } }
-        message?.let { item { Text(it) } }
+        message?.let { text -> item {
+            Surface(color = LaterboxAccent.copy(alpha = 0.4f), shape = RoundedCornerShape(14.dp)) {
+                Row(Modifier.padding(start = 14.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text(text, Modifier.weight(1f), fontSize = 13.sp, color = LaterboxTextPrimary)
+                    IconButton(onClick = { message = null }) { Icon(Icons.Default.Close, "Dismiss message", Modifier.size(18.dp)) }
+                }
+            }
+        } }
+        item {
+            Column(Modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Box(Modifier.size(72.dp).background(LaterboxAccent, CircleShape), contentAlignment = Alignment.Center) { Icon(Icons.Default.Person, null, Modifier.size(34.dp), tint = LaterboxTextPrimary) }
+                Text(account.displayName?.takeIf { it.isNotBlank() } ?: account.email ?: "Guest Mode", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = LaterboxTextPrimary, textAlign = TextAlign.Center)
+                account.email?.let { Text(it, fontSize = 13.sp, color = LaterboxTextSecondary, textAlign = TextAlign.Center) }
+                Text(if (account.pro) "LaterBox Pro Active" else if (account.userId == null) "Local saving active · Sign in for cloud sync" else "Free local vault", fontSize = 13.sp, color = LaterboxTextSecondary, textAlign = TextAlign.Center)
+                if (account.userId == null) Button(onClick = onAuth) { Text("Sign In") }
+                else TextButton(onClick = { signOut = true }, enabled = !busy) { Text("Sign Out", color = LaterboxTextSecondary) }
+            }
+        }
+        item {
+            SettingsGroup("YOUR PLAN", Icons.Default.WorkspacePremium) {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text(if (account.pro) "LaterBox Pro" else "LaterBox Local", fontSize = 19.sp, fontWeight = FontWeight.Bold, color = LaterboxTextPrimary)
+                        Text(if (account.pro) "Connected features unlocked" else "Offline storage on this device", fontSize = 12.sp, color = LaterboxTextSecondary)
+                    }
+                    Surface(color = LaterboxAccent, shape = RoundedCornerShape(50)) { Text(if (account.pro) "Active" else "Free Forever", Modifier.padding(horizontal = 10.dp, vertical = 5.dp), fontSize = 10.sp, fontWeight = FontWeight.Bold) }
+                }
+                Text(if (account.pro) "Cloud sync, connected extensions, and AI organization are available with your plan." else "Save, read, organize, and export your items offline. Upgrade for cloud sync and connected features.", fontSize = 13.sp, color = LaterboxTextSecondary)
+                Button(onClick = { plans = true }, modifier = Modifier.fillMaxWidth()) { Text(if (account.pro) "View Plans & Subscriptions" else "Get Pro to Sync") }
+                SettingsAction(Icons.Default.Restore, "Restore purchases", "Verify existing access for your account") { plans = true }
+            }
+        }
+        item {
+            SettingsGroup("CLOUD SYNC & DIAGNOSTICS", Icons.Default.CloudSync) {
+                SettingsValue("Sync status", sync)
+                SettingsAction(Icons.Default.Public, "LaterBox Web Platform", status.label) { repository.refreshWebStatus(); message = "Refreshing platform status…" }
+                SettingsAction(Icons.Default.Sync, if (account.pro) "Trigger Sync Now" else "Get Pro to Enable Cloud Sync", if (account.pro) "Sync saved items across your devices" else "Your local vault stays available offline") {
+                    if (account.pro) { repository.syncNow(); message = "Sync queued" } else plans = true
+                }
+            }
+        }
+        item {
+            SettingsGroup("LATER AI & INTELLIGENCE", Icons.Default.AutoAwesome) {
+                SettingsValue("Active engine", if (!account.pro) "Local keyword assistant" else if (custom) secure.provider.replaceFirstChar { it.uppercase() } else "Gemini")
+                SettingsValue("Selected model", aiModel)
+                Text(if (account.pro) "Ask questions, enrich captures, and organize saved content using your configured AI provider." else "Guided capture and keyword search are available locally. Pro adds AI answers and organization.", fontSize = 12.sp, color = LaterboxTextSecondary)
+                SettingsAction(Icons.Default.Tune, "Configure AI Models & Keys", "Model selection and encrypted custom keys") { aiSettings = true }
+            }
+        }
+        item {
+            SettingsGroup("NOTIFICATIONS & ALERTS", Icons.Default.Notifications) {
+                SettingsValue("Notification status", if (notifications) "Allowed" else "Disabled")
+                SettingsValue("Reminders & snooze", "Return dates enabled")
+                Text("Receive an alert when scheduled items return to your Inbox.", fontSize = 12.sp, color = LaterboxTextSecondary)
+                SettingsAction(Icons.Default.NotificationsActive, if (notifications) "Configure in Android Settings" else "Allow Notifications", "Control alerts for saved-item reminders") {
+                    if (!notifications && Build.VERSION.SDK_INT >= 33) permissions.launch(Manifest.permission.POST_NOTIFICATIONS)
+                    else open(Intent(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, context.packageName))
+                }
+                if (!notifications) SettingsAction(Icons.Default.Settings, "Open Android Notification Settings", "Allow alerts or change notification channels") { open(Intent(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, context.packageName)) }
+            }
+        }
+        item {
+            SettingsGroup("SECURITY & PRIVACY", Icons.Default.Lock) {
+                SettingsToggle("App Lock", "Require biometrics or device PIN", lock) { enabled ->
+                    if (!enabled || AppLockService.supported(context)) { lock = enabled; preferences.edit().putBoolean("app_lock", enabled).apply() }
+                    else message = "Set up a screen lock or biometrics first."
+                }
+                HorizontalDivider(color = LaterboxBorder)
+                SettingsToggle("Screen Protection", "Hide screenshots and app previews", protect) { enabled ->
+                    protect = enabled; preferences.edit().putBoolean("screen_protection", enabled).apply()
+                    val activity = context as? android.app.Activity
+                    if (enabled) activity?.window?.addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE) else activity?.window?.clearFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
+                }
+            }
+        }
+        item {
+            SettingsGroup("LOCAL STORAGE & VAULT", Icons.Default.Storage) {
+                SettingsValue("Attachment storage", android.text.format.Formatter.formatFileSize(context, bytes))
+                SettingsValue("Saved items", items.size.toString())
+                SettingsValue("Recently deleted", trash.size.toString())
+                Text("Your saved items remain available offline. Backups include notes, metadata, and attachments.", fontSize = 12.sp, color = LaterboxTextSecondary)
+                SettingsAction(Icons.Default.UploadFile, "Export Vault Backup", "Share a backup of your vault", !busy) { task {
+                    val file = BackupService.export(context); val uri = FileProvider.getUriForFile(context, context.packageName + ".files", file)
+                    open(Intent.createChooser(Intent(Intent.ACTION_SEND).setType("application/zip").putExtra(Intent.EXTRA_STREAM, uri).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION), "Export LaterBox backup"))
+                } }
+                SettingsAction(Icons.Default.Download, "Import Vault Backup", "Keep existing items and restore missing captures", !busy) { importer.launch(arrayOf("application/zip", "application/octet-stream")) }
+                SettingsAction(Icons.Default.DeleteOutline, "Recently Deleted", "Restore items from Trash") { onTrash() }
+                SettingsAction(Icons.Default.DeleteForever, "Empty Trash", "Permanently remove deleted local captures", !busy) { clearing = true }
+                if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())
+            }
+        }
+        item {
+            SettingsGroup("ABOUT LATERBOX", Icons.Default.Info) {
+                SettingsAction(Icons.Default.PrivacyTip, "Privacy Policy") { open(Intent(Intent.ACTION_VIEW, Uri.parse("https://laterbox.dev/privacy"))) }
+                SettingsAction(Icons.Default.Description, "Terms of Service") { open(Intent(Intent.ACTION_VIEW, Uri.parse("https://laterbox.dev/terms"))) }
+            }
+        }
+        item {
+            Column(Modifier.fillMaxWidth().padding(bottom = 16.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                Text("LaterBox for Android", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = LaterboxTextSecondary)
+                Text("Version ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})", fontSize = 11.sp, color = LaterboxTextSecondary)
+            }
+        }
     }
-    if (clearing) DialogContent("Empty trash permanently?", { clearing = false }) {
-        Text("This removes deleted captures and their local files. Export a backup first if you need them.")
-        Button(onClick = { scope.launch { BackupService.clearTrash(context); clearing = false; bytes = File(context.filesDir, "captures").walkTopDown().filter { it.isFile }.sumOf { it.length() } } }) { Text("Empty trash") }
-    }
+    if (signOut) AlertDialog(onDismissRequest = { if (!busy) signOut = false }, title = { Text("Sign out?") }, text = { Text("Your local captures will be kept on this device.") }, confirmButton = { TextButton(enabled = !busy, onClick = { task { AccountService.signOut(); signOut = false; message = "Signed out. Local captures are preserved." } }) { Text("Sign Out") } }, dismissButton = { TextButton(onClick = { signOut = false }) { Text("Cancel") } })
+    if (clearing) AlertDialog(onDismissRequest = { if (!busy) clearing = false }, title = { Text("Empty trash permanently?") }, text = { Text("Deleted local captures and unused attachments will be removed. Export a backup first if you need them.") }, confirmButton = { TextButton(enabled = !busy, onClick = { task { BackupService.clearTrash(context); clearing = false; storageRefresh++; message = "Trash cleanup completed." } }) { Text("Empty Trash") } }, dismissButton = { TextButton(onClick = { clearing = false }) { Text("Cancel") } })
     if (plans) PlansSheet { plans = false }
     if (aiSettings) AISettingsSheet { aiSettings = false }
+}
+
+@Composable
+private fun SettingsGroup(title: String, icon: ImageVector, content: @Composable ColumnScope.() -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Text(title, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 0.6.sp, color = LaterboxTextSecondary)
+        Surface(shape = RoundedCornerShape(20.dp), color = LaterboxCard, border = BorderStroke(1.dp, LaterboxBorder), modifier = Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Box(Modifier.size(32.dp).background(LaterboxAccent, RoundedCornerShape(9.dp)), contentAlignment = Alignment.Center) { Icon(icon, null, Modifier.size(18.dp), tint = LaterboxTextPrimary) }
+                content()
+            }
+        }
+    }
+}
+
+@Composable
+private fun SettingsAction(icon: ImageVector, title: String, subtitle: String? = null, enabled: Boolean = true, onClick: () -> Unit) {
+    Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).clickable(enabled = enabled, onClick = onClick).padding(vertical = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Icon(icon, null, Modifier.size(20.dp), tint = LaterboxTextSecondary)
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Text(title, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = LaterboxTextPrimary.copy(alpha = if (enabled) 1f else 0.5f))
+            subtitle?.let { Text(it, fontSize = 11.sp, color = LaterboxTextSecondary) }
+        }
+        Icon(Icons.Default.ChevronRight, null, Modifier.size(16.dp), tint = LaterboxTextSecondary)
+    }
+}
+
+@Composable
+private fun SettingsValue(label: String, value: String) {
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text(label, Modifier.weight(1f), fontSize = 13.sp, color = LaterboxTextSecondary)
+        Text(value, Modifier.weight(1f), fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = LaterboxTextPrimary, textAlign = TextAlign.End, maxLines = 2, overflow = TextOverflow.Ellipsis)
+    }
+}
+
+@Composable
+private fun SettingsToggle(title: String, subtitle: String, checked: Boolean, onChange: (Boolean) -> Unit) {
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(title, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = LaterboxTextPrimary)
+            Text(subtitle, fontSize = 11.sp, color = LaterboxTextSecondary)
+        }
+        Switch(checked = checked, onCheckedChange = onChange)
+    }
 }
