@@ -56,6 +56,10 @@ fun AppNavigation(notificationItemId: String? = null, context: android.content.C
         dao.getAllItems().forEach { ReturnsService.schedule(context, it) }
         repository.syncNow()
     }
+    selected?.let { item ->
+        ItemDetailScreen(initialItem = item, repository = repository, onBack = { selected = null })
+        return
+    }
     if (!entered && account.userId == null) WelcomeScreen(onContinueAsGuest = { entered = true; preferences.edit().putBoolean("entered", true).apply() }, onOpenSignIn = { auth = true })
     else Scaffold(containerColor = LaterboxBg, bottomBar = {
         Surface(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp), shape = RoundedCornerShape(28.dp), color = Color.White, shadowElevation = 8.dp) {
@@ -95,7 +99,6 @@ fun AppNavigation(notificationItemId: String? = null, context: android.content.C
     }
     if (auth) AuthSheet(onDismiss = { auth = false }, onAuthenticated = { entered = true; preferences.edit().putBoolean("entered", true).apply(); repository.syncNow() })
     if (organizer) OrganizerSheet(items, { organizer = false }, { repository.syncNow() })
-    selected?.let { item -> ItemDetailSheet(item, { selected = null }, { repository.syncNow() }) }
     if (trash) {
         val deleted by AppDatabase.getDatabase(context).itemDao().watchTrash().collectAsState(emptyList())
         ModalBottomSheet(onDismissRequest = { trash = false }) {
