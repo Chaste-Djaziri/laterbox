@@ -1,6 +1,5 @@
 package com.example.laterbox.ui.screens
 
-import android.app.Activity
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.layout.*
@@ -9,33 +8,47 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import com.android.billingclient.api.ProductDetails
-import com.example.laterbox.services.*
-import com.example.laterbox.ui.capture.Choice
+import com.example.laterbox.services.AccountService
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PlansSheet(onDismiss: () -> Unit) {
-    val activity = LocalContext.current as Activity; val scope = rememberCoroutineScope()
-    var products by remember { mutableStateOf<List<ProductDetails>>(emptyList()) }; var error by remember { mutableStateOf<String?>(null) }; var busy by remember { mutableStateOf(true) }
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     val account by AccountService.state.collectAsState()
-    val billing = remember { BillingService(activity) { purchases -> scope.launch { busy = true; try { purchases.forEach { billingPurchase -> BillingService(activity) {}.use { it.verify(billingPurchase) } }; error = "Purchase verified. Pro access refreshed." } catch (failure: Exception) { error = failure.message } finally { busy = false } } } }
-    DisposableEffect(billing) { onDispose { billing.close() } }
-    LaunchedEffect(billing) { try { billing.connect(); products = billing.products(); if (products.isEmpty()) error = "Plans are unavailable in this installation. Install the Play testing release to purchase." } catch (failure: Exception) { error = failure.message } finally { busy = false } }
+    var message by remember { mutableStateOf<String?>(null) }
+    var busy by remember { mutableStateOf(false) }
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text("LaterBox Pro", style = MaterialTheme.typography.headlineLarge)
             Text("Cloud sync and AI Inbox Organizer. Local capture, local search, and on-device Later AI are free.")
-            if (account.userId == null) Text("Sign in before purchasing or restoring Pro.")
-            products.forEach { product ->
-                val phases = product.subscriptionOfferDetails?.firstOrNull()?.pricingPhases?.pricingPhaseList.orEmpty()
-                Choice(product.name, phases.joinToString(" → ") { "${it.formattedPrice} / ${it.billingPeriod}" }) { runCatching { check(account.userId != null); val result = billing.purchase(product); check(result.responseCode == 0) { "Purchase could not start (${result.responseCode})" } }.onFailure { error = it.message } }
+            Text(if (account.pro) "Manage or cancel your subscription on LaterBox Web." else "Subscribe on LaterBox Web to enable cloud sync on Android.")
+            Text(account.email?.let { "Sign in on the web with $it, the same account you use here." }
+                ?: "Sign in on the web, then sign in to the same account on Android to access Pro.")
+            Button(onClick = {
+                runCatching {
+                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://app.laterbox.dev/login?next=%2Fplans")))
+                }.onFailure { message = "Could not open your browser. Visit app.laterbox.dev/plans to subscribe or manage your plan." }
+            }, modifier = Modifier.fillMaxWidth()) {
+                Text(if (account.pro) "Manage subscription on web" else "Get Pro on web")
             }
+            OutlinedButton(onClick = {
+                scope.launch {
+                    busy = true
+                    try {
+                        AccountService.refresh()
+                        message = when {
+                            AccountService.state.value.userId == null -> "Sign in to your subscription account on Android first."
+                            AccountService.state.value.pro -> "Pro is active. Cloud sync is enabled."
+                            else -> "No active Pro access found. Check your web subscription and try again."
+                        }
+                    } catch (_: Exception) { message = "Could not refresh your subscription. Please try again." }
+                    finally { busy = false }
+                }
+            }, enabled = !busy, modifier = Modifier.fillMaxWidth()) { Text("Refresh subscription") }
             if (busy) CircularProgressIndicator()
-            error?.let { Text(it) }
-            Button(onClick = { scope.launch { busy = true; try { check(account.userId != null) { "Sign in first" }; val purchases = billing.restore(); purchases.forEach { billing.verify(it) }; AccountService.refresh(); error = if (account.pro || AccountService.state.value.pro) "Pro restored" else "No active Pro purchase found for this account." } catch (failure: Exception) { error = failure.message } finally { busy = false } } }, enabled = !busy) { Text("Restore purchases") }
-            TextButton(onClick = { activity.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/account/subscriptions?package=pro.micorp.laterbox"))) }) { Text("Manage Play subscriptions") }
+            message?.let { Text(it) }
             TextButton(onClick = onDismiss) { Text("Close") }
         }
     }
