@@ -130,7 +130,15 @@ fun NativeSettings(repository: DataRepository, onAuth: () -> Unit, onTrash: () -
                 }
                 Text(if (account.pro) "Cloud sync, connected extensions, and AI organization are available with your plan." else "Save, read, organize, and export your items offline. Upgrade for cloud sync and connected features.", fontSize = 13.sp, color = LaterboxTextSecondary)
                 Button(onClick = { plans = true }, modifier = Modifier.fillMaxWidth()) { Text(if (account.pro) "View Plans & Subscriptions" else "Get Pro to Sync") }
-                SettingsAction(Icons.Default.Restore, "Restore purchases", "Verify existing access for your account") { plans = true }
+                SettingsAction(Icons.Default.Refresh, "Refresh subscription", "Check Pro access purchased on LaterBox Web") {
+                    scope.launch {
+                        try {
+                            AccountService.refresh()
+                            repository.syncNow()
+                            message = if (AccountService.state.value.pro) "Pro is active. Cloud sync is enabled." else "No active Pro access. Sign in with your web subscription account."
+                        } catch (_: Exception) { message = "Could not refresh subscription. Please try again." }
+                    }
+                }
             }
         }
         item {
