@@ -774,6 +774,13 @@ fun resolveItemDocType(item: ItemEntity): ItemDocType {
     return ItemDocType.LINK
 }
 
+private data class ItemIconStyle(
+    val icon: androidx.compose.ui.graphics.vector.ImageVector,
+    val iconColor: Color,
+    val containerBg: Color,
+    val allowsFavicon: Boolean
+)
+
 @Composable
 fun WaitingItemBar(
     item: ItemEntity,
@@ -781,17 +788,17 @@ fun WaitingItemBar(
     modifier: Modifier = Modifier
 ) {
     val docType = remember(item) { resolveItemDocType(item) }
-    val (icon, iconColor, allowsFavicon) = when (docType) {
-        ItemDocType.PDF -> Triple(Icons.Default.PictureAsPdf, LaterboxRose, false)
-        ItemDocType.PPT -> Triple(Icons.Default.Slideshow, LaterboxAmber, false)
-        ItemDocType.SHEETS -> Triple(Icons.Default.TableChart, LaterboxEmerald, false)
-        ItemDocType.DOCS -> Triple(Icons.AutoMirrored.Filled.Article, LaterboxSky, false)
-        ItemDocType.AUDIO -> Triple(Icons.Default.MusicNote, LaterboxIndigo, false)
-        ItemDocType.VIDEO -> Triple(Icons.Default.Videocam, Color(0xFF9333EA), false)
-        ItemDocType.IMAGE -> Triple(Icons.Default.Image, Color(0xFF0D9488), false)
-        ItemDocType.CODE -> Triple(Icons.Default.Code, LaterboxEmerald, false)
-        ItemDocType.NOTE -> Triple(Icons.Default.Description, LaterboxAmber, false)
-        ItemDocType.LINK -> Triple(Icons.Default.Link, LaterboxSky, true)
+    val iconStyle = when (docType) {
+        ItemDocType.LINK -> ItemIconStyle(Icons.Default.Link, LaterboxDarkSurface, LaterboxAccent, true)
+        ItemDocType.PDF -> ItemIconStyle(Icons.Default.PictureAsPdf, LaterboxRose, LaterboxRose.copy(alpha = 0.12f), false)
+        ItemDocType.PPT -> ItemIconStyle(Icons.Default.Slideshow, LaterboxAmber, LaterboxAmber.copy(alpha = 0.12f), false)
+        ItemDocType.SHEETS -> ItemIconStyle(Icons.Default.TableChart, LaterboxEmerald, LaterboxEmerald.copy(alpha = 0.12f), false)
+        ItemDocType.DOCS -> ItemIconStyle(Icons.AutoMirrored.Filled.Article, LaterboxSky, LaterboxSky.copy(alpha = 0.12f), false)
+        ItemDocType.AUDIO -> ItemIconStyle(Icons.Default.MusicNote, LaterboxIndigo, LaterboxIndigo.copy(alpha = 0.12f), false)
+        ItemDocType.VIDEO -> ItemIconStyle(Icons.Default.Videocam, LaterboxIndigo, LaterboxIndigo.copy(alpha = 0.12f), false)
+        ItemDocType.IMAGE -> ItemIconStyle(Icons.Default.Image, LaterboxEmerald, LaterboxEmerald.copy(alpha = 0.12f), false)
+        ItemDocType.CODE -> ItemIconStyle(Icons.Default.Code, LaterboxEmerald, LaterboxEmerald.copy(alpha = 0.12f), false)
+        ItemDocType.NOTE -> ItemIconStyle(Icons.Default.Description, LaterboxAmber, LaterboxAmber.copy(alpha = 0.12f), false)
     }
 
     val domain = remember(item.url) {
@@ -808,8 +815,8 @@ fun WaitingItemBar(
         }
     }
 
-    val faviconUrl = remember(item.url, domain, allowsFavicon) {
-        if (allowsFavicon && domain.isNotBlank()) {
+    val faviconUrl = remember(item.url, domain, iconStyle.allowsFavicon) {
+        if (iconStyle.allowsFavicon && domain.isNotBlank()) {
             "https://www.google.com/s2/favicons?domain=$domain&sz=128"
         } else {
             null
@@ -841,25 +848,34 @@ fun WaitingItemBar(
             Box(
                 modifier = Modifier
                     .size(38.dp)
-                    .background(iconColor.copy(alpha = 0.12f), RoundedCornerShape(12.dp)),
+                    .background(iconStyle.containerBg, RoundedCornerShape(12.dp)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = icon,
+                    imageVector = iconStyle.icon,
                     contentDescription = null,
-                    tint = iconColor,
+                    tint = iconStyle.iconColor,
                     modifier = Modifier.size(18.dp)
                 )
 
                 if (faviconUrl != null) {
-                    AsyncImage(
-                        model = faviconUrl,
-                        contentDescription = null,
-                        modifier = Modifier
-                            .size(20.dp)
-                            .clip(RoundedCornerShape(4.dp)),
-                        contentScale = ContentScale.Fit
-                    )
+                    Surface(
+                        shape = RoundedCornerShape(7.dp),
+                        color = LaterboxCard,
+                        border = BorderStroke(0.5.dp, LaterboxBorder),
+                        modifier = Modifier.size(24.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                            AsyncImage(
+                                model = faviconUrl,
+                                contentDescription = null,
+                                modifier = Modifier
+                                    .size(16.dp)
+                                    .clip(RoundedCornerShape(3.dp)),
+                                contentScale = ContentScale.Fit
+                            )
+                        }
+                    }
                 }
             }
 
