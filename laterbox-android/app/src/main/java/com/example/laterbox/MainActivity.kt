@@ -12,7 +12,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.background
 import com.example.laterbox.services.AppLockService
+import com.example.laterbox.theme.LaterboxBg
 import com.example.laterbox.theme.LaterboxTheme
 import io.github.jan.supabase.auth.handleDeeplinks
 
@@ -30,7 +32,7 @@ class MainActivity : FragmentActivity() {
                 if (!locked) AppNavigation(notificationItemId = notificationItem)
                 else {
                     var error by remember { mutableStateOf<String?>(null) }
-                    Column(Modifier.fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
+                    Column(Modifier.fillMaxSize().background(LaterboxBg).padding(24.dp), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
                         Text("Your vault is locked", style = MaterialTheme.typography.headlineMedium)
                         Button(onClick = { AppLockService.authenticate(this@MainActivity, { locked = false }, { error = it }) }) { Text("Unlock LaterBox") }
                         error?.let { Text(it) }
