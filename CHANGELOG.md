@@ -5,6 +5,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 ## [Unreleased]
 
 ### Changed
+- **[Android] Notification access**: Add a prominent permission button, explanation for denied access, Android settings fallback, reminder-channel status, and a test notification.
 - **[Android] Free on-device Gemini Nano**: Restore Nano for guests and free members on supported AICore devices, expose model availability and download, and keep a local keyword fallback when unavailable.
 - **[Android] Pro AI model selection**: Offer common model presets and custom model names, use the selected model for Later AI and enhanced search, and restrict configuration to Pro members.
 - **[Android] Library label**: Rename Recently Deleted to Deleted.
