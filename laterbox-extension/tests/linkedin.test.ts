@@ -30,3 +30,16 @@ test('LinkedIn skips missing actions, ambiguous links, unrelated domains and hid
   doc.querySelector('article')!.insertAdjacentHTML('afterbegin','<a href="/posts/other_activity-456">Other</a>');assert.equal(findLinkedInPosts(doc,doc.location.href).length,0);
   doc.querySelectorAll('button').forEach(button=>button.remove());assert.equal(findLinkedInPosts(doc,doc.location.href).length,0);
 });
+
+test('modern feed identifiers and icon-only photo dialogs expose local save slots',()=>{
+  const doc=new JSDOM(`<div data-view-name="feed-full-update" data-id="urn:li:activity:789"><a href="/in/author/">Feed Author</a><p>Feed caption</p><div><button aria-label="Like"></button><button aria-label="Send in a private message"><svg></svg></button></div></div><div role="dialog"><a href="/feed/update/urn:li:activity:456/?tracking=1">12h</a><a href="/in/modal-author/">Modal Author</a><p>Modal caption</p><div><button aria-label="Like"></button><button><svg data-test-icon="send-privately-small"></svg></button></div></div>`,{url:'https://www.linkedin.com/feed/'}).window.document;
+  const posts=findLinkedInPosts(doc,doc.location.href);assert.equal(posts.length,2);
+  assert.equal(posts[0].url,'https://www.linkedin.com/feed/update/urn:li:activity:789/');assert.equal(posts[0].author,'Feed Author');
+  assert.equal(posts[1].url,'https://www.linkedin.com/feed/update/urn:li:activity:456/');assert.equal(posts[1].root.getAttribute('role'),'dialog');assert.equal(posts[1].author,'Modal Author');
+});
+test('nested post wrappers do not duplicate controls and details can use their own page URL',()=>{
+  const doc=new JSDOM(`<div role="dialog"><article><p>Details</p><button aria-label="Send post"></button></article></div>`,{url:'https://www.linkedin.com/feed/update/urn:li:activity:123/'}).window.document;
+  assert.equal(findLinkedInPosts(doc,doc.location.href).length,1);
+  assert.equal(findLinkedInPosts(doc,doc.location.href)[0].root.tagName,'ARTICLE');
+  assert.equal(findLinkedInPosts(doc,'https://www.linkedin.com/feed/').length,0);
+});
