@@ -45,21 +45,30 @@ jobs:
             echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | tr -d '\r\n ' | base64 -d > app/release.keystore 2>/dev/null || \
             echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > app/release.keystore 2>/dev/null || true
 
-            STORE_PASS="${{ secrets.ANDROID_KEYSTORE_PASSWORD }}"
-            KEY_ALIAS="${{ secrets.ANDROID_KEY_ALIAS }}"
-            KEY_PASS="${{ secrets.ANDROID_KEY_PASSWORD || secrets.ANDROID_KEYSTORE_PASSWORD }}"
+            STORE_PASS="${{ secrets.ANDROID_KEYSTORE_PASSWORD || 'laterbox_release_key' }}"
+            KEY_ALIAS="${{ secrets.ANDROID_KEY_ALIAS || 'upload' }}"
+            KEY_PASS="${{ secrets.ANDROID_KEY_PASSWORD || secrets.ANDROID_KEYSTORE_PASSWORD || 'laterbox_release_key' }}"
 
-            if [ -s app/release.keystore ] && [ -n "$STORE_PASS" ] && [ -n "$KEY_ALIAS" ]; then
+            if [ -s app/release.keystore ]; then
               echo "Verifying keystore credentials with keytool..."
               if keytool -list -keystore app/release.keystore -storepass "$STORE_PASS" -alias "$KEY_ALIAS" > /dev/null 2>&1; then
                 echo "Keystore verified successfully with keytool!"
                 KEYSTORE_VALID=true
+              elif keytool -list -keystore app/release.keystore -storepass "laterbox_release_key" -alias "upload" > /dev/null 2>&1; then
+                echo "Keystore verified successfully with default upload credentials!"
+                KEYSTORE_VALID=true
+                STORE_PASS="laterbox_release_key"
+                KEY_ALIAS="upload"
+                KEY_PASS="laterbox_release_key"
+              else
+                echo "::warning::Configured ANDROID_KEYSTORE_BASE64 or password/alias is invalid (keytool verification failed)."
+              fi
+
+              if [ "$KEYSTORE_VALID" = "true" ]; then
                 echo "ANDROID_KEYSTORE_PATH=$GITHUB_WORKSPACE/laterbox-android/app/release.keystore" >> "$GITHUB_ENV"
                 echo "ANDROID_KEYSTORE_PASSWORD=$STORE_PASS" >> "$GITHUB_ENV"
                 echo "ANDROID_KEY_ALIAS=$KEY_ALIAS" >> "$GITHUB_ENV"
                 echo "ANDROID_KEY_PASSWORD=$KEY_PASS" >> "$GITHUB_ENV"
-              else
-                echo "::warning::Configured ANDROID_KEYSTORE_BASE64 or password/alias is invalid (keytool verification failed)."
               fi
             fi
           fi
@@ -69,17 +78,17 @@ jobs:
             rm -f app/release.keystore
             keytool -genkeypair -v \
               -keystore app/release.keystore \
-              -alias laterbox \
+              -alias upload \
               -keyalg RSA \
               -keysize 2048 \
               -validity 10000 \
-              -storepass laterboxpass \
-              -keypass laterboxpass \
+              -storepass laterbox_release_key \
+              -keypass laterbox_release_key \
               -dname "CN=LaterBox, OU=Mobile, O=LaterBox, L=San Francisco, ST=CA, C=US"
             echo "ANDROID_KEYSTORE_PATH=$GITHUB_WORKSPACE/laterbox-android/app/release.keystore" >> "$GITHUB_ENV"
-            echo "ANDROID_KEYSTORE_PASSWORD=laterboxpass" >> "$GITHUB_ENV"
-            echo "ANDROID_KEY_ALIAS=laterbox" >> "$GITHUB_ENV"
-            echo "ANDROID_KEY_PASSWORD=laterboxpass" >> "$GITHUB_ENV"
+            echo "ANDROID_KEYSTORE_PASSWORD=laterbox_release_key" >> "$GITHUB_ENV"
+            echo "ANDROID_KEY_ALIAS=upload" >> "$GITHUB_ENV"
+            echo "ANDROID_KEY_PASSWORD=laterbox_release_key" >> "$GITHUB_ENV"
           fi
 
       - name: Run unit tests
