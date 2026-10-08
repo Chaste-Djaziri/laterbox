@@ -71,7 +71,7 @@ struct GuidedCaptureView: View {
                 )
                 .shadow(color: Color.black.opacity(0.35), radius: 14, y: 8)
         )
-        .preferredColorScheme(.dark)
+        .preferredColorScheme(.light)
     }
 
     // MARK: - Header
