@@ -5,6 +5,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 ## [Unreleased]
 
 ### Changed
+- **[Web] Chrome extension installation**: Open the official Chrome Web Store listing from the public and signed-in download pages instead of downloading a ZIP.
 - **[iOS & Web] Gemini availability**: Enable the iOS Gemini endpoint in the deployment configuration with verified Pro authorization, report service-disabled and access errors accurately, and explain when Apple Intelligence fallback is unavailable while preserving content for Guided capture.
 - **[iOS] Free Apple Intelligence**: Allow on-device Apple Intelligence without Pro, including local search refinement, and fall back to the Apple model when Gemini fails or is disabled on supported devices, including shared captures.
 - **[iOS] Pro settings and icon picker**: Simplified app icon selection and Pro indicators, detect App Store subscriptions at launch before loading prices, refresh Pro access on return, and keep model selection and semantic search refinement responsive to subscription and settings changes.
