@@ -60,35 +60,66 @@ final class LocalSearchController: ObservableObject {
     @Published var results: [LBItem] = []
     private var task: Task<Void, Never>?
     private var revision = UUID()
+    private var lastQuery = ""
+    private var lastItems: [LBItem] = []
+    private var lastIncludeDeleted = false
+    private var settingsObserver: AnyCancellable?
+
+    init() {
+        let settings = LaterAIModelManager.shared
+        let modelChanges = settings.$enableSearchRefine
+            .combineLatest(settings.$selectedProvider, settings.$geminiModel, settings.$openAIModel)
+            .map { _ in () }.dropFirst().eraseToAnyPublisher()
+        let claudeChanges = settings.$claudeModel.map { _ in () }.dropFirst().eraseToAnyPublisher()
+        let accessChanges = SyncCoordinator.shared.$isPro.map { _ in () }.dropFirst().eraseToAnyPublisher()
+        settingsObserver = Publishers.MergeMany([modelChanges, claudeChanges, accessChanges])
+            .sink { [weak self] _ in
+                Task { @MainActor [weak self] in
+                    guard let self, !self.lastQuery.isEmpty else { return }
+                    self.update(self.lastQuery, items: self.lastItems, includeDeleted: self.lastIncludeDeleted)
+                }
+            }
+    }
+
     func update(_ query: String, items: [LBItem], includeDeleted: Bool = false) {
         task?.cancel()
+        lastQuery = query; lastItems = items; lastIncludeDeleted = includeDeleted
         let id = UUID(); revision = id
         task = Task {
             do {
                 try await Task.sleep(for: .milliseconds(180))
                 try Task.checkCancellation()
                 results = LocalItemSearch.search(query, in: items, includeDeleted: includeDeleted)
-                if query.split(separator: " ").count > 1, LaterAIModelManager.shared.enableSearchRefine {
+                if !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, SyncCoordinator.shared.isProUser, LaterAIModelManager.shared.enableSearchRefine {
                     let interpretation = try await LaterAIModelManager.shared.interpretSearch(query)
                     guard !Task.isCancelled, revision == id else { return }
-                    var filtered = items
-                    if let type = ItemContentType(rawValue: interpretation.contentType) { filtered = filtered.filter { $0.type == type.rawValue } }
-                    switch interpretation.returnWindow {
-                    case "thisWeek":
-                        if let week = Calendar.current.dateInterval(of: .weekOfYear, for: Date()) {
-                            filtered = filtered.filter { $0.returnAt.map { week.contains($0) } ?? false }
-                        }
-                    case "today":
-                        filtered = filtered.filter { $0.returnAt.map { Calendar.current.isDateInToday($0) } ?? false }
-                    case "upcoming":
-                        filtered = filtered.filter { $0.returnAt.map { $0 > Date() } ?? false }
-                    default: break
-                    }
-                    let improved = LocalItemSearch.search(interpretation.terms, in: filtered, includeDeleted: includeDeleted)
-                    if !improved.isEmpty || !interpretation.returnWindow.isEmpty || !interpretation.contentType.isEmpty { results = improved }
+                    guard SyncCoordinator.shared.isProUser, LaterAIModelManager.shared.enableSearchRefine else { return }
+                    results = Self.refinedResults(interpretation, query: query, items: items, includeDeleted: includeDeleted)
                 }
             } catch { /* Lexical results remain available if interpretation fails. */ }
         }
     }
+    static func refinedResults(_ interpretation: SearchInterpretation, query: String, items: [LBItem], includeDeleted: Bool = false) -> [LBItem] {
+        var filtered = items
+        if let type = ItemContentType(rawValue: interpretation.contentType) {
+            filtered = filtered.filter { $0.type == type.rawValue }
+        }
+        switch interpretation.returnWindow {
+        case "thisWeek":
+            if let week = Calendar.current.dateInterval(of: .weekOfYear, for: Date()) {
+                filtered = filtered.filter { $0.returnAt.map { week.contains($0) } ?? false }
+            }
+        case "today":
+            filtered = filtered.filter { $0.returnAt.map { Calendar.current.isDateInToday($0) } ?? false }
+        case "upcoming":
+            filtered = filtered.filter { $0.returnAt.map { $0 > Date() } ?? false }
+        default: break
+        }
+        let exact = LocalItemSearch.search(query, in: filtered, includeDeleted: includeDeleted)
+        let expanded = LocalItemSearch.search(interpretation.terms, in: filtered, includeDeleted: includeDeleted)
+        var seen = Set<String>()
+        return (exact + expanded).filter { seen.insert($0.id).inserted }
+    }
+
     deinit { task?.cancel() }
 }
