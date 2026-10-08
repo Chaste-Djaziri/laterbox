@@ -50,7 +50,7 @@ android {
                 storeFile = file(keystorePath)
                 storePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD") ?: localProperties.getProperty("KEYSTORE_PASSWORD")
                 keyAlias = System.getenv("ANDROID_KEY_ALIAS") ?: localProperties.getProperty("KEY_ALIAS")
-                keyPassword = System.getenv("ANDROID_KEY_PASSWORD") ?: localProperties.getProperty("KEY_PASSWORD")
+                keyPassword = (System.getenv("ANDROID_KEY_PASSWORD") ?: localProperties.getProperty("KEY_PASSWORD"))?.takeIf { it.isNotBlank() } ?: storePassword
             }
         }
     }
