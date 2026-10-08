@@ -90,10 +90,10 @@ final class LocalSearchController: ObservableObject {
                 try await Task.sleep(for: .milliseconds(180))
                 try Task.checkCancellation()
                 results = LocalItemSearch.search(query, in: items, includeDeleted: includeDeleted)
-                if !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, SyncCoordinator.shared.isProUser, LaterAIModelManager.shared.enableSearchRefine {
+                if !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, LaterAIModelManager.shared.canRefineSearch, LaterAIModelManager.shared.enableSearchRefine {
                     let interpretation = try await LaterAIModelManager.shared.interpretSearch(query)
                     guard !Task.isCancelled, revision == id else { return }
-                    guard SyncCoordinator.shared.isProUser, LaterAIModelManager.shared.enableSearchRefine else { return }
+                    guard LaterAIModelManager.shared.canRefineSearch, LaterAIModelManager.shared.enableSearchRefine else { return }
                     results = Self.refinedResults(interpretation, query: query, items: items, includeDeleted: includeDeleted)
                 }
             } catch { /* Lexical results remain available if interpretation fails. */ }
