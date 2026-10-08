@@ -5,6 +5,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 ## [Unreleased]
 
 ### Changed
+- **[iOS] Android-style Later AI**: Added Later AI and Guided mode tabs, a full-height guided capture editor with bottom navigation, a compact close/clear header, inline capture actions, and floating prompt suggestions above the chat composer.
 - **[iOS] Light appearance only**: Keep the app, share extension, sheets, and shared components in light mode regardless of the device appearance setting, and remove adaptive dark styling from shared cards and backgrounds.
 - **[iOS] Later AI shortcut**: Added an Android-style floating + button at the bottom right above the tab bar to open Later AI from Home, Inbox, Returns, and Library.
 - **[Build & Release] Build number and version code incrementing**: Modified the unified version bumper so automated build and release routines only increment the internal build number (and Android `versionCode` / iOS `CURRENT_PROJECT_VERSION`), preserving the semantic marketing version until explicit version bumps.
