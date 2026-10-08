@@ -16,7 +16,7 @@ struct ContentView: View {
     @Environment(\.scenePhase) private var scenePhase
 
     @ObservedObject private var returnRouter = ReturnNotificationRouter.shared
-    @State private var selectedTab: LBTab = .home
+    @State private var selectedTab: LBTab = .inbox
     @StateObject private var aiManager = LaterAIManager.shared
     @ObservedObject private var clipboardManager = ClipboardDetectionManager.shared
     @State private var itemToPresent: LBItem? = nil
