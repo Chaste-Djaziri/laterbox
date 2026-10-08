@@ -284,13 +284,23 @@ export default function DownloadPage() {
                 1-click capture popup, keyboard shortcut (⌘+Shift+S), and right-click context menu.
               </p>
             </div>
-            <Link
-              href="/extension/connect"
-              className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#171711] hover:bg-[#282723] text-white text-xs font-bold shadow-2xs transition-all cursor-pointer"
-            >
-              <span>Pair Extension</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
+            <div className="space-y-2 pt-2 border-t border-[#f0ede4]">
+              <a
+                href="/api/download/laterbox-chrome-extension.zip"
+                download="laterbox-chrome-extension.zip"
+                className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-[#171711] hover:bg-[#282723] text-white text-xs font-bold transition-all cursor-pointer shadow-2xs"
+              >
+                <Download className="w-3.5 h-3.5 text-[#E7FF57]" />
+                <span>Download .zip</span>
+              </a>
+              <Link
+                href="/extension/connect"
+                className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl text-[#6c6b63] hover:text-[#171711] hover:bg-[#ebe7dc]/50 text-[11px] font-bold transition-all cursor-pointer"
+              >
+                <span>Pair & Setup</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
           </div>
 
           <div className="p-5 rounded-2xl bg-white border border-[#e4e0d5] space-y-3 flex flex-col justify-between">
@@ -308,13 +318,23 @@ export default function DownloadPage() {
                 Native Firefox add-on with quick capture sheet and auto-sync with your web dashboard.
               </p>
             </div>
-            <Link
-              href="/extension/connect"
-              className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-white hover:bg-[#ebe7dc] border border-[#e4e0d5] text-[#171711] text-xs font-bold transition-all cursor-pointer"
-            >
-              <span>Firefox Add-on Info</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
+            <div className="space-y-2 pt-2 border-t border-[#f0ede4]">
+              <a
+                href="/api/download/laterbox-firefox-extension.zip"
+                download="laterbox-firefox-extension.zip"
+                className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-[#171711] hover:bg-[#282723] text-white text-xs font-bold transition-all cursor-pointer shadow-2xs"
+              >
+                <Download className="w-3.5 h-3.5 text-[#E7FF57]" />
+                <span>Download .zip</span>
+              </a>
+              <Link
+                href="/extension/connect"
+                className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl text-[#6c6b63] hover:text-[#171711] hover:bg-[#ebe7dc]/50 text-[11px] font-bold transition-all cursor-pointer"
+              >
+                <span>Add-on Info</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
           </div>
 
           <div className="p-5 rounded-2xl bg-white border border-[#e4e0d5] space-y-3 flex flex-col justify-between">
@@ -332,15 +352,25 @@ export default function DownloadPage() {
                 Safari Web Extension bundle integrated directly with the LaterBox iOS app.
               </p>
             </div>
-            <a
-              href={APP_STORE_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-white hover:bg-[#ebe7dc] border border-[#e4e0d5] text-[#171711] text-xs font-bold transition-all cursor-pointer"
-            >
-              <span>Included in iOS App</span>
-              <ExternalLink className="w-3.5 h-3.5" />
-            </a>
+            <div className="space-y-2 pt-2 border-t border-[#f0ede4]">
+              <a
+                href="/api/download/laterbox-safari-extension.zip"
+                download="laterbox-safari-extension.zip"
+                className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-[#171711] hover:bg-[#282723] text-white text-xs font-bold transition-all cursor-pointer shadow-2xs"
+              >
+                <Download className="w-3.5 h-3.5 text-[#E7FF57]" />
+                <span>Download .zip</span>
+              </a>
+              <a
+                href={APP_STORE_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl text-[#6c6b63] hover:text-[#171711] hover:bg-[#ebe7dc]/50 text-[11px] font-bold transition-all cursor-pointer"
+              >
+                <span>Included in iOS App</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+            </div>
           </div>
         </div>
       </section>
