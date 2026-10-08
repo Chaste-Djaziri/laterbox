@@ -46,7 +46,7 @@ fun AppNavigation(notificationItemId: String? = null, context: android.content.C
     val allItems by repository.items.collectAsState(emptyList())
     val items = allItems.filter { it.userId == null || it.userId == account.userId }
     var entered by rememberSaveable { mutableStateOf(preferences.getBoolean("entered", false)) }
-    var tab by rememberSaveable { mutableIntStateOf(if ((context as? android.app.Activity)?.intent?.hasExtra("item_id") == true) 1 else 0) }
+    var tab by rememberSaveable { mutableIntStateOf(1) }
     var capture by remember { mutableStateOf(false) }; var ai by remember { mutableStateOf(false) }; var auth by remember { mutableStateOf(false) }
     var organizer by remember { mutableStateOf(false) }; var trash by remember { mutableStateOf(false) }
     val vaultState = rememberSaveableStateHolder()
