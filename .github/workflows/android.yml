@@ -2,10 +2,8 @@ name: Native Android Build & Release
 on:
   push:
     branches: [main]
-    paths: ['laterbox-android/**', '.github/workflows/android.yml']
   pull_request:
     branches: [main]
-    paths: ['laterbox-android/**', '.github/workflows/android.yml']
   workflow_dispatch:
 
 permissions:
@@ -38,53 +36,99 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Setup Android Keystore (if secret present)
+      - name: Setup Android Keystore
         shell: bash
         run: |
           if [ -n "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" ]; then
-            echo "Configuring release keystore..."
+            echo "Configuring release keystore from repository secret..."
             echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > app/release.keystore
-            echo "ANDROID_KEYSTORE_PATH=$GITHUB_WORKSPACE/laterbox-android/app/release.keystore" >> $GITHUB_ENV
-            echo "ANDROID_KEYSTORE_PASSWORD=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" >> $GITHUB_ENV
-            echo "ANDROID_KEY_ALIAS=${{ secrets.ANDROID_KEY_ALIAS }}" >> $GITHUB_ENV
-            echo "ANDROID_KEY_PASSWORD=${{ secrets.ANDROID_KEY_PASSWORD }}" >> $GITHUB_ENV
+            echo "ANDROID_KEYSTORE_PATH=$GITHUB_WORKSPACE/laterbox-android/app/release.keystore" >> "$GITHUB_ENV"
+            echo "ANDROID_KEYSTORE_PASSWORD=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" >> "$GITHUB_ENV"
+            echo "ANDROID_KEY_ALIAS=${{ secrets.ANDROID_KEY_ALIAS }}" >> "$GITHUB_ENV"
+            echo "ANDROID_KEY_PASSWORD=${{ secrets.ANDROID_KEY_PASSWORD }}" >> "$GITHUB_ENV"
           else
-            echo "No ANDROID_KEYSTORE_BASE64 secret found, skipping signing configuration."
+            echo "No ANDROID_KEYSTORE_BASE64 secret found. Generating CI signing keystore so release APK is properly signed..."
+            keytool -genkeypair -v \
+              -keystore app/release.keystore \
+              -alias laterbox \
+              -keyalg RSA \
+              -keysize 2048 \
+              -validity 10000 \
+              -storepass laterboxpass \
+              -keypass laterboxpass \
+              -dname "CN=LaterBox, OU=Mobile, O=LaterBox, L=San Francisco, ST=CA, C=US"
+            echo "ANDROID_KEYSTORE_PATH=$GITHUB_WORKSPACE/laterbox-android/app/release.keystore" >> "$GITHUB_ENV"
+            echo "ANDROID_KEYSTORE_PASSWORD=laterboxpass" >> "$GITHUB_ENV"
+            echo "ANDROID_KEY_ALIAS=laterbox" >> "$GITHUB_ENV"
+            echo "ANDROID_KEY_PASSWORD=laterboxpass" >> "$GITHUB_ENV"
           fi
 
       - name: Run unit tests
         run: ./gradlew test --no-daemon --stacktrace
 
-      - name: Build Android App Bundle and APK
-        run: ./gradlew bundleRelease assembleRelease --no-daemon --stacktrace
+      - name: Build Android App Bundle and APKs
+        run: ./gradlew bundleRelease assembleRelease assembleDebug --no-daemon --stacktrace
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
           WEB_BASE_URL: ${{ secrets.WEB_BASE_URL }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
 
+      - name: Verify build outputs
+        run: |
+          ls -la app/build/outputs/bundle/release/
+          ls -la app/build/outputs/apk/release/
+          ls -la app/build/outputs/apk/debug/
+          test -f app/build/outputs/bundle/release/*.aab || { echo "Missing release AAB"; exit 1; }
+          test -f app/build/outputs/apk/release/*.apk || { echo "Missing release APK"; exit 1; }
+
       - name: Upload Android App Bundle (AAB)
         uses: actions/upload-artifact@v4
         with:
           name: laterbox-android-aab-${{ github.run_id }}
           path: laterbox-android/app/build/outputs/bundle/release/*.aab
-          if-no-files-found: warn
+          if-no-files-found: error
 
-      - name: Upload Android APK
+      - name: Upload Android Release APK
         uses: actions/upload-artifact@v4
         with:
-          name: laterbox-android-apk-${{ github.run_id }}
+          name: laterbox-android-release-apk-${{ github.run_id }}
           path: laterbox-android/app/build/outputs/apk/release/*.apk
+          if-no-files-found: error
+
+      - name: Upload Android Debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: laterbox-android-debug-apk-${{ github.run_id }}
+          path: laterbox-android/app/build/outputs/apk/debug/*.apk
           if-no-files-found: warn
 
-      - name: Publish to Google Play (Internal track)
-        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && env.HAS_PLAY_SECRET == 'true'
+      - name: Setup Google Play service account
+        id: play_setup
+        shell: bash
+        run: |
+          if [ -n "${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}" ]; then
+            echo "Google Play credentials secret found. Preparing service account file..."
+            raw_secret='${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}'
+            if [[ "$raw_secret" =~ ^\{ ]]; then
+              echo "$raw_secret" > play_service_account.json
+            else
+              echo "$raw_secret" | base64 --decode > play_service_account.json
+            fi
+            echo "has_secret=true" >> "$GITHUB_OUTPUT"
+            echo "PLAY_SERVICE_ACCOUNT_FILE=$GITHUB_WORKSPACE/laterbox-android/play_service_account.json" >> "$GITHUB_ENV"
+          else
+            echo "has_secret=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::GOOGLE_PLAY_SERVICE_ACCOUNT_JSON secret is not configured. Google Play submission will be skipped."
+          fi
+
+      - name: Submit Android App Bundle to Google Play Store
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && steps.play_setup.outputs.has_secret == 'true'
         uses: r0adkll/upload-google-play@v1
         with:
-          serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+          serviceAccountJson: laterbox-android/play_service_account.json
           packageName: pro.micorp.laterbox
           releaseFiles: laterbox-android/app/build/outputs/bundle/release/*.aab
-          track: internal
+          track: ${{ vars.GOOGLE_PLAY_TRACK || 'internal' }}
           status: completed
-        env:
-          HAS_PLAY_SECRET: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON != '' }}
+          changesNotSentForReview: true
