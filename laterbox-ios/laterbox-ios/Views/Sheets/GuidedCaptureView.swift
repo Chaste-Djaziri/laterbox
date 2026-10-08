@@ -483,8 +483,10 @@ struct GuidedCaptureView: View {
                     HStack(spacing: 4) {
                         Image(systemName: "chevron.left")
                             .font(.system(size: 12, weight: .bold))
-                        Text("Back")
-                            .font(.system(size: 14, weight: .semibold))
+                        if !fillsAvailableSpace {
+                            Text("Back")
+                                .font(.system(size: 14, weight: .semibold))
+                        }
                     }
                     .foregroundColor(.white)
                     .padding(.horizontal, 16)
@@ -495,7 +497,7 @@ struct GuidedCaptureView: View {
                 .buttonStyle(.plain)
             }
 
-            Spacer()
+            if !fillsAvailableSpace { Spacer() }
 
             Button(action: {
                 if step == 0 {
@@ -521,11 +523,12 @@ struct GuidedCaptureView: View {
                     Image(systemName: step == 3 ? "checkmark" : "chevron.right")
                         .font(.system(size: 13, weight: .bold))
                 }
+                .frame(maxWidth: fillsAvailableSpace ? .infinity : nil)
                 .foregroundColor(.black)
                 .padding(.horizontal, 20)
                 .padding(.vertical, 12)
                 .background(
-                    RoundedRectangle(cornerRadius: 14)
+                    RoundedRectangle(cornerRadius: fillsAvailableSpace ? 24 : 14)
                         .fill(draft.content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? Color.gray.opacity(0.3) : LaterAIStyle.accent)
                 )
             }
