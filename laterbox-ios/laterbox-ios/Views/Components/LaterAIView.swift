@@ -208,7 +208,7 @@ public struct LaterAIView: View {
                     )
                     .datePickerStyle(.graphical)
                     .tint(LaterAIStyle.accent)
-                    .colorScheme(.dark)
+                    .environment(\.colorScheme, .light)
                     .padding()
                     .background(Color(white: 20.0/255), in: RoundedRectangle(cornerRadius: 16))
 
