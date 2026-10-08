@@ -91,6 +91,9 @@ jobs:
             echo "ANDROID_KEY_PASSWORD=laterbox_release_key" >> "$GITHUB_ENV"
           fi
 
+      - name: Assign unique build version code
+        run: python3 ci/version_code.py
+
       - name: Run unit tests
         run: ./gradlew test --no-daemon --stacktrace
 
