@@ -180,22 +180,22 @@ final class LaterAIModelManager: ObservableObject {
     }
 
     func activeProvider() -> any LaterAIProvider {
-        if (selectedProvider == .onDevice || !GeminiLaterAIProvider.enabled), AppleLaterAIProvider.unavailableReason == nil {
+        if selectedProvider == .onDevice, AppleLaterAIProvider.unavailableReason == nil {
             return AppleLaterAIProvider()
         }
         guard SyncCoordinator.shared.isProUser else {
-            return GeminiLaterAIProvider()
+            return geminiOrOnDeviceProvider()
         }
 
         switch selectedProvider {
         case .cloudGemini:
-            return GeminiLaterAIProvider()
+            return geminiOrOnDeviceProvider()
 
         case .onDevice:
             if AppleLaterAIProvider.unavailableReason == nil {
                 return AppleLaterAIProvider()
             } else {
-                return GeminiLaterAIProvider()
+                return geminiOrOnDeviceProvider()
             }
 
         case .customGemini:
@@ -203,7 +203,7 @@ final class LaterAIModelManager: ObservableObject {
             if !key.isEmpty {
                 return CustomGeminiLaterAIProvider(apiKey: key, model: geminiModel)
             } else {
-                return GeminiLaterAIProvider()
+                return geminiOrOnDeviceProvider()
             }
 
         case .customOpenAI:
@@ -211,7 +211,7 @@ final class LaterAIModelManager: ObservableObject {
             if !key.isEmpty {
                 return OpenAILaterAIProvider(apiKey: key, model: openAIModel)
             } else {
-                return GeminiLaterAIProvider()
+                return geminiOrOnDeviceProvider()
             }
 
         case .customClaude:
@@ -219,9 +219,16 @@ final class LaterAIModelManager: ObservableObject {
             if !key.isEmpty {
                 return ClaudeLaterAIProvider(apiKey: key, model: claudeModel)
             } else {
-                return GeminiLaterAIProvider()
+                return geminiOrOnDeviceProvider()
             }
         }
+    }
+
+    private func geminiOrOnDeviceProvider() -> any LaterAIProvider {
+        if !GeminiLaterAIProvider.enabled, AppleLaterAIProvider.unavailableReason == nil {
+            return AppleLaterAIProvider()
+        }
+        return GeminiLaterAIProvider()
     }
 
     func interpretSearch(_ query: String) async throws -> SearchInterpretation {
