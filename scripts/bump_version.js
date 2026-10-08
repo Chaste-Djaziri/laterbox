@@ -44,11 +44,20 @@ function bumpVersion() {
   const args = process.argv.slice(2);
   let manualVersion = null;
   let syncOnly = false;
+  let bumpPatch = false;
+  let bumpMinor = false;
+  let bumpMajor = false;
   if (args.length > 0) {
     if (args[0] === '--set' && args[1]) {
       manualVersion = args[1];
     } else if (args[0] === '--sync-only' || args[0] === '--sync') {
       syncOnly = true;
+    } else if (args[0] === '--patch') {
+      bumpPatch = true;
+    } else if (args[0] === '--minor') {
+      bumpMinor = true;
+    } else if (args[0] === '--major') {
+      bumpMajor = true;
     } else if (!args[0].startsWith('-')) {
       manualVersion = args[0];
     }
@@ -66,19 +75,26 @@ function bumpVersion() {
       major = !isNaN(parts[0]) ? parts[0] : major;
       minor = !isNaN(parts[1]) ? parts[1] : 0;
       patch = !isNaN(parts[2]) ? parts[2] : 0;
+    } else if (bumpMajor) {
+      major += 1;
+      minor = 0;
+      patch = 0;
+    } else if (bumpMinor) {
+      minor += 1;
+      patch = 0;
+    } else if (bumpPatch) {
+      patch += 1;
     } else {
-      // Check if user manually changed version in version.json
+      // Default: Do NOT bump semantic version (major.minor.patch).
+      // Keep existing version, only increment buildNumber and version code.
       if (current.version && typeof current.version === 'string') {
         const parts = current.version.replace(/^v/, '').split('.').map((p) => parseInt(p, 10));
         if (parts.length >= 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
-          if (parts[0] !== major || parts[1] !== minor) {
-            major = parts[0];
-            minor = parts[1];
-            patch = 0;
-          }
+          major = parts[0];
+          minor = parts[1];
+          patch = !isNaN(parts[2]) ? parts[2] : patch;
         }
       }
-      patch += 1;
     }
 
     buildNumber += 1;
