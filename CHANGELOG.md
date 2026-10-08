@@ -5,6 +5,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 ## [Unreleased]
 
 ### Changed
+- **[iOS] Light appearance only**: Keep the app, share extension, sheets, and shared components in light mode regardless of the device appearance setting, and remove adaptive dark styling from shared cards and backgrounds.
 - **[iOS] Later AI shortcut**: Added an Android-style floating + button at the bottom right above the tab bar to open Later AI from Home, Inbox, Returns, and Library.
 - **[Build & Release] Build number and version code incrementing**: Modified the unified version bumper so automated build and release routines only increment the internal build number (and Android `versionCode` / iOS `CURRENT_PROJECT_VERSION`), preserving the semantic marketing version until explicit version bumps.
 - **[Android] Standard Material 3 navigation bar**: Replaced the floating capsule navigation surface with a standard edge-to-edge Android Material 3 NavigationBar. Features system navigation bar inset handling, a subtle top divider, filled and outlined icon states, inbox badge counts, and refined brand-themed active indicators.
