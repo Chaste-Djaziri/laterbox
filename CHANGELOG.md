@@ -5,6 +5,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 ## [Unreleased]
 
 ### Changed
+- **[Web & CI] Direct Android APK downloads**: Added direct Android APK download capabilities to LaterBox Web at `/api/download/laterbox.apk`, added prominent "Download .apk" buttons to the web download pages and Android tester modal, and configured the Android CI workflow to automatically attach signed production APKs directly to GitHub Releases on push.
 - **[CI/CD] Automated extensions packaging & Android Google Play deployment**: Added automated GitHub Actions workflow to build and package production zip archives for Chrome, Firefox, and Safari browser extensions on push to GitHub. Enhanced Android CI workflow to build properly signed release and debug APKs and submit Android App Bundles (AAB) directly to the Google Play Store on push to main.
 - **[Android] Official LaterBox branding**: Updated notification icon, app launcher icon, and launch screen. Replaced default Android placeholders with the dedicated monochrome LaterBox emblem for notification status bars, the signature LaterBox green emblem on dark canvas across adaptive and legacy mipmap launcher icons, and a branded dark launch screen for Android 12+ and earlier releases.
 - **[Android] Notification access**: Add a prominent permission button, explanation for denied access, Android settings fallback, reminder-channel status, and a test notification.
