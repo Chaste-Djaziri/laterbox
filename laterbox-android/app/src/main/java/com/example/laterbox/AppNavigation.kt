@@ -13,6 +13,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.*
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -78,11 +80,81 @@ fun AppNavigation(notificationItemId: String? = null, context: android.content.C
     }
     if (!entered && account.userId == null) WelcomeScreen(onContinueAsGuest = { entered = true; preferences.edit().putBoolean("entered", true).apply() }, onOpenSignIn = { auth = true })
     else Scaffold(containerColor = LaterboxBg, bottomBar = {
-        Surface(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp), shape = RoundedCornerShape(28.dp), color = Color.White, shadowElevation = 8.dp) {
-            NavigationBar(containerColor = Color.Transparent, tonalElevation = 0.dp) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            HorizontalDivider(
+                thickness = 0.5.dp,
+                color = LaterboxBorder
+            )
+            NavigationBar(
+                containerColor = LaterboxCard,
+                tonalElevation = 0.dp,
+                windowInsets = NavigationBarDefaults.windowInsets
+            ) {
                 val names = listOf("Home", "Inbox", "Returns", "Library", "Settings")
-                val icons = listOf(Icons.Default.Home, Icons.Default.Inbox, Icons.Default.CalendarToday, Icons.Default.Folder, Icons.Default.Settings)
-                names.forEachIndexed { index, name -> NavigationBarItem(selected = tab == index, onClick = { tab = index }, icon = { Icon(icons[index], contentDescription = name) }, label = { Text(name, style = MaterialTheme.typography.labelSmall) }, colors = NavigationBarItemDefaults.colors(indicatorColor = LaterboxAccent, selectedIconColor = Color.Black)) }
+                val activeIcons = listOf(
+                    Icons.Filled.Home,
+                    Icons.Filled.Inbox,
+                    Icons.Filled.CalendarToday,
+                    Icons.Filled.Folder,
+                    Icons.Filled.Settings
+                )
+                val inactiveIcons = listOf(
+                    Icons.Outlined.Home,
+                    Icons.Outlined.Inbox,
+                    Icons.Outlined.CalendarToday,
+                    Icons.Outlined.Folder,
+                    Icons.Outlined.Settings
+                )
+                val inboxCount = items.count { it.status == "inbox" || it.box == "inbox" }
+
+                names.forEachIndexed { index, name ->
+                    val isSelected = tab == index
+                    NavigationBarItem(
+                        selected = isSelected,
+                        onClick = { tab = index },
+                        icon = {
+                            if (index == 1 && inboxCount > 0) {
+                                BadgedBox(
+                                    badge = {
+                                        Badge(
+                                            containerColor = LaterboxDarkSurface,
+                                            contentColor = LaterboxAccent
+                                        ) {
+                                            Text(
+                                                text = if (inboxCount > 99) "99+" else inboxCount.toString(),
+                                                style = MaterialTheme.typography.labelSmall
+                                            )
+                                        }
+                                    }
+                                ) {
+                                    Icon(
+                                        imageVector = if (isSelected) activeIcons[index] else inactiveIcons[index],
+                                        contentDescription = name
+                                    )
+                                }
+                            } else {
+                                Icon(
+                                    imageVector = if (isSelected) activeIcons[index] else inactiveIcons[index],
+                                    contentDescription = name
+                                )
+                            }
+                        },
+                        label = {
+                            Text(
+                                text = name,
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
+                            )
+                        },
+                        colors = NavigationBarItemDefaults.colors(
+                            indicatorColor = LaterboxAccent,
+                            selectedIconColor = LaterboxDarkSurface,
+                            selectedTextColor = LaterboxDarkSurface,
+                            unselectedIconColor = LaterboxTextSecondary,
+                            unselectedTextColor = LaterboxTextSecondary
+                        )
+                    )
+                }
             }
         }
     }, floatingActionButton = { if (tab != 4) FloatingActionButton(onClick = { ai = true }, shape = CircleShape, containerColor = LaterboxDarkSurface, contentColor = LaterboxAccent) { Icon(Icons.Default.Add, "Later AI") } }) { padding ->
