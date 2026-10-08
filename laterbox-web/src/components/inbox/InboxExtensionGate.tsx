@@ -61,7 +61,7 @@ export function InboxExtensionGate({ userId }: { userId?: string }) {
 
   return (
     <dialog ref={dialog} onCancel={event => event.preventDefault()} aria-labelledby="extension-setup-title"
-      className="fixed inset-0 m-auto w-[calc(100%-2rem)] max-w-md max-h-[90dvh] overflow-y-auto rounded-3xl border border-[#e4e0d5] bg-[#f7f5ee] p-6 sm:p-8 text-[#171711] shadow-xl backdrop:bg-[#171711]/45 backdrop:backdrop-blur-sm">
+      className="fixed inset-0 m-auto w-[calc(100%_-_2rem)] max-w-md max-h-[90dvh] overflow-y-auto rounded-3xl border border-[#e4e0d5] bg-[#f7f5ee] p-6 sm:p-8 text-[#171711] shadow-xl backdrop:bg-[#171711]/45 backdrop:backdrop-blur-sm">
       <div className="mb-5 flex size-12 items-center justify-center rounded-2xl bg-[#e6edb0]">
         <Puzzle className="size-6" aria-hidden="true" />
       </div>
