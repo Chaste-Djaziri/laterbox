@@ -23,7 +23,9 @@ android {
         minSdk = 26
         targetSdk = 36
         val release = groovy.json.JsonSlurper().parse(rootProject.file("../version.json")) as Map<*, *>
-        versionCode = (release["buildNumber"] as Number).toInt()
+        val ciVersionCode = System.getenv("ANDROID_VERSION_CODE")?.toIntOrNull()
+        versionCode = ciVersionCode ?: (release["buildNumber"] as Number).toInt()
+        require(versionCode in 1..2_100_000_000) { "Invalid Android version code" }
         versionName = release["version"].toString()
         
         val supabaseUrl = System.getenv("SUPABASE_URL") ?: localProperties.getProperty("SUPABASE_URL", "https://ltjisrgldssqskcylcbj.supabase.co")
