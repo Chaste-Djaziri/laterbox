@@ -1,5 +1,6 @@
 'use client';
 
+import { SupportForm } from '@/components/support/SupportForm';
 import { InboxNotificationSettings } from '@/components/notifications/InboxNotifications';
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
@@ -851,6 +852,8 @@ export default function SettingsPage() {
           </div>
         </section>
       </div>
+
+      <div className="mt-6"><SupportForm /></div>
 
       {/* Delete Account Confirmation Modal */}
       {showDeleteModal && (
