@@ -1,0 +1,81 @@
+name: Web Extensions Build & Package
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: extensions-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  extensions:
+    name: Build & Package Web Extensions
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: laterbox-extension
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: laterbox-extension/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate TypeScript
+        run: npm run typecheck
+
+      - name: Run test suite
+        run: npm test
+
+      - name: Build and package all browser extensions
+        run: npm run package
+
+      - name: Verify package archives exist
+        run: |
+          ls -la dist/*.zip
+          test -f dist/laterbox-chrome-extension.zip || { echo "Missing Chrome extension zip"; exit 1; }
+          test -f dist/laterbox-firefox-extension.zip || { echo "Missing Firefox extension zip"; exit 1; }
+          test -f dist/laterbox-safari-extension.zip || { echo "Missing Safari extension zip"; exit 1; }
+
+      - name: Upload Chrome Extension Zip
+        uses: actions/upload-artifact@v4
+        with:
+          name: laterbox-chrome-extension-${{ github.run_id }}
+          path: laterbox-extension/dist/laterbox-chrome-extension.zip
+          if-no-files-found: error
+
+      - name: Upload Firefox Extension Zip
+        uses: actions/upload-artifact@v4
+        with:
+          name: laterbox-firefox-extension-${{ github.run_id }}
+          path: laterbox-extension/dist/laterbox-firefox-extension.zip
+          if-no-files-found: error
+
+      - name: Upload Safari Extension Zip
+        uses: actions/upload-artifact@v4
+        with:
+          name: laterbox-safari-extension-${{ github.run_id }}
+          path: laterbox-extension/dist/laterbox-safari-extension.zip
+          if-no-files-found: error
+
+      - name: Upload All Extensions Bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: laterbox-web-extensions-all-${{ github.run_id }}
+          path: laterbox-extension/dist/*.zip
+          if-no-files-found: error
