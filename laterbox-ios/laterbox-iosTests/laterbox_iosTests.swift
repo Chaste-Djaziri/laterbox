@@ -88,6 +88,15 @@ struct LaterAITests {
         #expect(calendar.component(.day, from: saturday) == 10)
         #expect(SyncCoordinator.cloudDate("2026-10-05T12:00:00.123Z") != nil)
     }
+    @Test func geminiServiceErrorsExplainDisabledAndAccessFailures() {
+        let disabled = GeminiLaterAIProvider.failure(statusCode: 503, data: Data(#"{"error":"Gemini fallback is disabled."}"#.utf8))
+        #expect(disabled.errorDescription?.contains("disabled on the server") == true)
+        let unauthorized = GeminiLaterAIProvider.failure(statusCode: 401, data: Data())
+        #expect(unauthorized.errorDescription?.contains("Sign in") == true)
+        let forbidden = GeminiLaterAIProvider.failure(statusCode: 403, data: Data())
+        #expect(forbidden.errorDescription?.contains("verified Pro access") == true)
+    }
+
     @Test func remoteFallbackDisabledWithoutNetwork() async {
         #expect(GeminiLaterAIProvider.enabled == true)
         GeminiLaterAIProvider.enabled = false
