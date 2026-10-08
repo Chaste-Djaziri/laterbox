@@ -14,8 +14,6 @@ public struct InboxView: View {
     @ObservedObject var coordinator = SyncCoordinator.shared
 
     @State private var selectedFilter: ItemContentType? = nil
-    @State private var searchText: String = ""
-    @StateObject private var search = LocalSearchController()
     @State private var showingSearch: Bool = false
     @State private var showingOrganizer = false
 
@@ -38,7 +36,6 @@ public struct InboxView: View {
             items = items.filter { $0.type == filter.rawValue }
         }
 
-        if !searchText.isEmpty { return search.results.filter { candidate in items.contains { $0.id == candidate.id } } }
 
         // FIFO sorting: items scheduled to return earliest appear first, falling back to arrival date
         return items.sorted {
@@ -100,18 +97,13 @@ public struct InboxView: View {
                                 // Search icon to the right of the synced status
                                 Button(action: {
                                     LBHaptic.light()
-                                    withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                                        showingSearch.toggle()
-                                        if !showingSearch {
-                                            searchText = ""
-                                        }
-                                    }
+                                    showingSearch = true
                                 }) {
                                     Image(systemName: "magnifyingglass")
                                         .font(.system(size: 15, weight: .semibold))
-                                        .foregroundColor(showingSearch ? AppTheme.textPrimary : AppTheme.textSecondary)
+                                        .foregroundColor(AppTheme.textSecondary)
                                         .frame(width: 30, height: 30)
-                                        .background(showingSearch ? AppTheme.accent : Color.clear)
+                                        .background(Color.clear)
                                         .clipShape(Circle())
                                 }
                                 .buttonStyle(.plain)
@@ -119,24 +111,19 @@ public struct InboxView: View {
                         }
                         .padding(.top, 4)
 
-                        // On-demand Search Bar (revealed only when search icon is tapped)
-                        if showingSearch {
-                            HStack {
+                        Button { showingSearch = true } label: {
+                            HStack(spacing: 10) {
                                 Image(systemName: "magnifyingglass")
-                                    .foregroundColor(.secondary)
-                                TextField("Search inbox...", text: $searchText)
-                                    .task(id: searchText + rawInboxItems.map { $0.updatedAt.ISO8601Format() }.joined()) { search.update(searchText, items: rawInboxItems) }
-                                if !searchText.isEmpty {
-                                    Button(action: { searchText = "" }) {
-                                        Image(systemName: "xmark.circle.fill")
-                                            .foregroundColor(.secondary)
-                                    }
-                                }
+                                Text("Search your vault...")
+                                Spacer()
                             }
-                            .padding(10)
-                            .liquidGlassCard(cornerRadius: 12)
-                            .transition(.opacity.combined(with: .move(edge: .top)))
+                            .font(.subheadline)
+                            .foregroundStyle(AppTheme.textSecondary)
+                            .padding(14)
+                            .liquidGlassCard(cornerRadius: 14)
                         }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Search your vault")
 
                         // Format Filters (only show when contents are available to choose from)
                         if !availableFilterTypes.isEmpty {
@@ -231,6 +218,7 @@ public struct InboxView: View {
                 }
             }
         }
+        .fullScreenCover(isPresented: $showingSearch) { VaultSearchView() }
         .sheet(isPresented: $showingOrganizer) { AIOrganizerSheet() }
     }
 }
