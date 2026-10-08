@@ -105,7 +105,7 @@ fun AppNavigation(notificationItemId: String? = null, context: android.content.C
                     Icons.Outlined.Folder,
                     Icons.Outlined.Settings
                 )
-                val inboxCount = items.count { it.status == "inbox" || it.box == "inbox" }
+                val inboxCount = items.count { it.status == "inbox" && it.deletedAt == null }
 
                 names.forEachIndexed { index, name ->
                     val isSelected = tab == index
