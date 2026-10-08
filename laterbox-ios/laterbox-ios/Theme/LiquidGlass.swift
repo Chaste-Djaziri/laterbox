@@ -25,7 +25,7 @@ extension Color {
     public static var lbCardBackground: Color { AppTheme.cardBackground }
     
     public static func dynamicBackground(for colorScheme: ColorScheme) -> Color {
-        colorScheme == .dark ? lbDarkBackground : lbBackground
+        lbBackground
     }
 }
 
@@ -68,25 +68,22 @@ public struct LiquidGlassCardModifier: ViewModifier {
     var cornerRadius: CGFloat
     var borderOpacity: Double
     var isInteractive: Bool
-    @Environment(\.colorScheme) private var colorScheme
 
     public func body(content: Content) -> some View {
         content
             .background(
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .fill(colorScheme == .dark ? AnyShapeStyle(.ultraThinMaterial) : AnyShapeStyle(Color.white))
+                    .fill(AppTheme.cardBackground)
             )
             .overlay(
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                     .strokeBorder(
-                        colorScheme == .dark
-                            ? Color.white.opacity(borderOpacity)
-                            : Color.black.opacity(0.06),
+                        AppTheme.cardBorder,
                         lineWidth: 1
                     )
             )
             .shadow(
-                color: Color.black.opacity(colorScheme == .dark ? 0.35 : 0.04),
+                color: Color.black.opacity(0.04),
                 radius: 10,
                 x: 0,
                 y: 4
@@ -96,7 +93,6 @@ public struct LiquidGlassCardModifier: ViewModifier {
 
 public struct LiquidGlassPillModifier: ViewModifier {
     var isSelected: Bool
-    @Environment(\.colorScheme) private var colorScheme
 
     public func body(content: Content) -> some View {
         content
@@ -140,7 +136,6 @@ extension View {
 
 // MARK: - Ambient Liquid Glass Mesh Background
 public struct LiquidGlassBackground: View {
-    @Environment(\.colorScheme) private var colorScheme
 
     public init() {}
 
@@ -149,21 +144,6 @@ public struct LiquidGlassBackground: View {
             Color.lbBackground
                 .ignoresSafeArea()
 
-            if colorScheme == .dark {
-                // Amber Orb
-                Circle()
-                    .fill(Color.lbAmber.opacity(0.18))
-                    .frame(width: 320, height: 320)
-                    .blur(radius: 80)
-                    .offset(x: -120, y: -220)
-
-                // Contrast Orb
-                Circle()
-                    .fill(Color(red: 99/255, green: 102/255, blue: 241/255).opacity(0.14))
-                    .frame(width: 300, height: 300)
-                    .blur(radius: 90)
-                    .offset(x: 140, y: 120)
-            } else {
                 // Subtle pastel green theme (#E6EDB0) ambient illumination
                 Circle()
                     .fill(Color.lbGreenTheme.opacity(0.35))
@@ -176,7 +156,6 @@ public struct LiquidGlassBackground: View {
                     .frame(width: 300, height: 300)
                     .blur(radius: 90)
                     .offset(x: 140, y: 180)
-            }
         }
         .allowsHitTesting(false)
     }
