@@ -11,19 +11,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Gemini fallback is disabled.' }, { status: 503 });
   }
   try {
-    const apikeyHeader = request.headers.get('apikey') || request.headers.get('x-api-key');
-    const validAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_Rc4e_ik2LE4SR0UrfX-OEQ_5Mu_lw9p';
-    const isAppClient = Boolean(apikeyHeader && apikeyHeader === validAnonKey);
-
-    let authorized = isAppClient;
-    if (!authorized) {
-      const user = await getRequestUser(request);
-      if (!user) return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
-      const admin = getBillingAdminClient();
-      const { data: pro, error } = await admin.rpc('has_pro_entitlement', { target_user_id: user.id });
-      if (error || pro !== true) return NextResponse.json({ error: 'Verified Pro access required.' }, { status: 403 });
-      authorized = true;
-    }
+    const user = await getRequestUser(request);
+    if (!user) return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
+    const admin = getBillingAdminClient();
+    const { data: pro, error } = await admin.rpc('has_pro_entitlement', { target_user_id: user.id });
+    if (error || pro !== true) return NextResponse.json({ error: 'Verified Pro access required.' }, { status: 403 });
 
     const body = (await request.json()) as { prompt?: unknown };
     if (typeof body.prompt !== 'string' || !body.prompt.trim() || body.prompt.length > 12000) {
