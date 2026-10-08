@@ -827,18 +827,7 @@ public struct SettingsView: View {
                                                 .font(.subheadline.weight(.semibold))
                                                 .foregroundColor(AppTheme.textPrimary)
 
-                                            Circle()
-                                                .fill(current.accentColor)
-                                                .frame(width: 7, height: 7)
 
-                                            Text(current.badgeText)
-                                                .font(.system(size: 10, weight: .bold))
-                                                .foregroundColor(AppTheme.textSecondary)
-                                                .padding(.horizontal, 5)
-                                                .padding(.vertical, 1.5)
-                                                .background(
-                                                    Capsule().fill(Color.black.opacity(0.05))
-                                                )
                                         }
 
                                         Text("Customize home screen app icon")
