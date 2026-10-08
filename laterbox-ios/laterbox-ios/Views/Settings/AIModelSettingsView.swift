@@ -29,7 +29,7 @@ struct AIModelSettingsView: View {
                     activeSummaryCard
                     providerSelectionSection
 
-                    if modelManager.selectedProvider.isCustomKey {
+                    if coordinator.isProUser && modelManager.selectedProvider.isCustomKey {
                         customKeyConfigurationSection
                     }
 
@@ -75,73 +75,19 @@ struct AIModelSettingsView: View {
     @ViewBuilder
     private var proBannerCard: some View {
         if !coordinator.isProUser {
-            VStack(alignment: .leading, spacing: 12) {
+            Button { coordinator.showingPlansSheet = true } label: {
                 HStack(spacing: 10) {
-                    ZStack {
-                        Circle()
-                            .fill(LinearGradient(colors: [Color.purple, Color.indigo], startPoint: .topLeading, endPoint: .bottomTrailing))
-                            .frame(width: 36, height: 36)
-                        Image(systemName: "sparkles")
-                            .font(.system(size: 16, weight: .bold))
-                            .foregroundColor(.white)
-                    }
-
-                    VStack(alignment: .leading, spacing: 2) {
-                        HStack(spacing: 6) {
-                            Text("LaterBox Pro Feature")
-                                .font(.subheadline.weight(.bold))
-                                .foregroundColor(AppTheme.textPrimary)
-
-                            Text("PRO")
-                                .font(.system(size: 10, weight: .black))
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background(Capsule().fill(Color.purple))
-                        }
-
-                        Text("Configure custom engines, BYOK keys (OpenAI, Claude, Gemini), and reasoning refinement")
-                            .font(.caption2)
-                            .foregroundColor(AppTheme.textSecondary)
-                    }
-
+                    Image(systemName: "lock")
+                    Text("Unlock model selection and search refinement with Pro")
+                        .font(.subheadline.weight(.medium))
                     Spacer()
+                    Image(systemName: "chevron.right").font(.caption)
                 }
-
-                Button(action: {
-                    LBHaptic.medium()
-                    coordinator.showingPlansSheet = true
-                }) {
-                    HStack(spacing: 6) {
-                        Image(systemName: "crown.fill")
-                            .font(.caption.weight(.bold))
-                        Text("Upgrade to Pro")
-                            .font(.subheadline.weight(.bold))
-                        Spacer()
-                        Image(systemName: "arrow.right")
-                            .font(.caption.weight(.bold))
-                    }
-                    .foregroundColor(.white)
-                    .padding(.vertical, 10)
-                    .padding(.horizontal, 14)
-                    .frame(maxWidth: .infinity)
-                    .background(
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .fill(AppTheme.darkSurface)
-                    )
-                }
-                .buttonStyle(.plain)
+                .foregroundStyle(AppTheme.textPrimary)
+                .padding(14)
+                .background(AppTheme.accent, in: RoundedRectangle(cornerRadius: 14))
             }
-            .padding(14)
-            .background(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .fill(AppTheme.cardBackground)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .strokeBorder(Color.purple.opacity(0.35), lineWidth: 1)
-            )
-            .shadow(color: Color.purple.opacity(0.06), radius: 8, x: 0, y: 2)
+            .buttonStyle(.plain)
         }
     }
 
@@ -167,7 +113,7 @@ struct AIModelSettingsView: View {
                         .font(.caption.monospaced())
                         .foregroundColor(AppTheme.textSecondary)
 
-                    if modelManager.enableSearchRefine {
+                    if coordinator.isProUser && modelManager.enableSearchRefine {
                         Text("• Refine Active")
                             .font(.caption2.weight(.medium))
                             .foregroundColor(Color.green)
@@ -230,105 +176,43 @@ struct AIModelSettingsView: View {
         }
     }
 
-    @ViewBuilder
     private func providerRow(provider: AIProviderType) -> some View {
-        let isSelected = modelManager.selectedProvider == provider
-        let isLocked = !coordinator.isProUser
-
-        Button(action: {
-            if isLocked {
-                LBHaptic.medium()
+        let selected = modelManager.selectedProvider == provider
+        let locked = !coordinator.isProUser
+        return Button {
+            guard !locked else {
                 coordinator.showingPlansSheet = true
                 return
             }
             LBHaptic.light()
-            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                modelManager.selectedProvider = provider
-                testResultMessage = nil
-            }
-        }) {
+            modelManager.selectedProvider = provider
+            testResultMessage = nil
+        } label: {
             HStack(spacing: 12) {
-                ZStack {
-                    Circle()
-                        .fill(isSelected ? AppTheme.accent : Color.black.opacity(0.05))
-                        .frame(width: 36, height: 36)
-                    Image(systemName: provider.iconName)
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(AppTheme.textPrimary)
+                Image(systemName: provider.iconName)
+                    .font(.system(size: 18))
+                    .frame(width: 36, height: 36)
+                    .background(AppTheme.accent, in: Circle())
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(provider.displayName).font(.subheadline.weight(.medium))
+                    Text(provider.subtitle).font(.caption).foregroundStyle(AppTheme.textSecondary)
                 }
-
-                VStack(alignment: .leading, spacing: 2) {
-                    HStack(spacing: 6) {
-                        Text(provider.displayName)
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundColor(AppTheme.textPrimary)
-
-                        if isLocked {
-                            HStack(spacing: 3) {
-                                Image(systemName: "lock.fill")
-                                    .font(.system(size: 8, weight: .bold))
-                                Text("PRO")
-                                    .font(.system(size: 9, weight: .black))
-                            }
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 5)
-                            .padding(.vertical, 1.5)
-                            .background(Capsule().fill(Color.purple))
-                        } else if provider == .cloudGemini {
-                            Text("Included")
-                                .font(.caption2.weight(.bold))
-                                .foregroundColor(AppTheme.textPrimary)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background(Capsule().fill(AppTheme.accent))
-                        } else if provider.isCustomKey {
-                            Text("BYOK")
-                                .font(.caption2.weight(.bold))
-                                .foregroundColor(AppTheme.textSecondary)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background(Capsule().fill(Color.black.opacity(0.06)))
-                        }
-                    }
-
-                    Text(provider.subtitle)
-                        .font(.caption2)
-                        .foregroundColor(AppTheme.textSecondary)
-                        .lineLimit(2)
-                }
-
                 Spacer()
-
-                if isLocked {
-                    HStack(spacing: 4) {
-                        Image(systemName: "lock.fill")
-                            .font(.system(size: 9, weight: .semibold))
-                        Text("PRO")
-                            .font(.system(size: 10, weight: .bold))
-                    }
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 5)
-                    .background(
-                        Capsule().fill(Color.purple)
-                    )
+                if locked {
+                    Label("Pro", systemImage: "lock").font(.caption)
+                        .foregroundStyle(AppTheme.textSecondary)
                 } else {
-                    Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                        .foregroundColor(isSelected ? AppTheme.textPrimary : AppTheme.textSecondary.opacity(0.4))
+                    Image(systemName: selected ? "checkmark.circle.fill" : "circle")
                         .font(.system(size: 20))
+                        .foregroundStyle(selected ? AppTheme.textPrimary : AppTheme.textTertiary)
                 }
             }
-            .padding(14)
-            .background(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(isSelected ? AppTheme.accent.opacity(0.2) : Color.white.opacity(0.4))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .strokeBorder(isSelected ? AppTheme.accent : AppTheme.cardBorder, lineWidth: 1.2)
-            )
+            .foregroundStyle(AppTheme.textPrimary)
+            .padding(12)
+            .background(selected && !locked ? AppTheme.accent.opacity(0.2) : .clear, in: RoundedRectangle(cornerRadius: 14))
         }
         .buttonStyle(.plain)
+        .accessibilityIdentifier("ai.provider.\(provider.rawValue)")
     }
 
     // MARK: - Custom Key Configuration Section
@@ -506,76 +390,37 @@ struct AIModelSettingsView: View {
 
     // MARK: - Search & Refine Section
     private var searchRefineSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Search Refinement & Reasoning")
-                .font(.caption.weight(.bold))
-                .foregroundColor(.secondary)
-                .textCase(.uppercase)
-
-            VStack(spacing: 12) {
-                HStack(alignment: .center) {
-                    HStack(spacing: 10) {
-                        ZStack {
-                            Circle()
-                                .fill(AppTheme.accent)
-                                .frame(width: 36, height: 36)
-                            Image(systemName: "magnifyingglass")
-                                .font(.system(size: 16, weight: .semibold))
-                                .foregroundColor(AppTheme.textPrimary)
-                        }
-
-                        VStack(alignment: .leading, spacing: 2) {
-                            HStack(spacing: 6) {
-                                Text("Semantic Search Refine")
-                                    .font(.subheadline.weight(.semibold))
-                                    .foregroundColor(AppTheme.textPrimary)
-
-                                if !coordinator.isProUser {
-                                    HStack(spacing: 3) {
-                                        Image(systemName: "lock.fill")
-                                            .font(.system(size: 8, weight: .bold))
-                                        Text("PRO")
-                                            .font(.system(size: 9, weight: .black))
-                                    }
-                                    .foregroundColor(.white)
-                                    .padding(.horizontal, 5)
-                                    .padding(.vertical, 1.5)
-                                    .background(Capsule().fill(Color.purple))
-                                }
-                            }
-                            Text("Extract concepts, time windows, and formats from search queries.")
-                                .font(.caption2)
-                                .foregroundColor(AppTheme.textSecondary)
+        VStack(alignment: .leading, spacing: 10) {
+            Toggle(isOn: Binding(
+                get: { coordinator.isProUser && modelManager.enableSearchRefine },
+                set: { enabled in
+                    if coordinator.isProUser {
+                        modelManager.enableSearchRefine = enabled
+                    } else {
+                        coordinator.showingPlansSheet = true
+                    }
+                }
+            )) {
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 6) {
+                        Text("Semantic Search").font(.subheadline.weight(.medium))
+                        if !coordinator.isProUser {
+                            Label("Pro", systemImage: "lock")
+                                .font(.caption)
+                                .foregroundStyle(AppTheme.textSecondary)
                         }
                     }
-
-                    Spacer()
-
-                    Toggle("", isOn: Binding(
-                        get: { coordinator.isProUser ? modelManager.enableSearchRefine : false },
-                        set: { newValue in
-                            if !coordinator.isProUser {
-                                coordinator.showingPlansSheet = true
-                            } else {
-                                modelManager.enableSearchRefine = newValue
-                            }
-                        }
-                    ))
-                        .labelsHidden()
-                        .tint(Color.black)
+                    Text("Refine searches by topic, content type, and return date.")
+                        .font(.caption)
+                        .foregroundStyle(AppTheme.textSecondary)
                 }
             }
-            .padding(16)
-            .background(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .fill(AppTheme.cardBackground)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .strokeBorder(AppTheme.cardBorder, lineWidth: 1)
-            )
-            .shadow(color: Color.black.opacity(0.03), radius: 6, x: 0, y: 2)
+            .tint(AppTheme.textPrimary)
+            .accessibilityIdentifier("ai.searchRefine")
         }
+        .padding(16)
+        .background(AppTheme.cardBackground, in: RoundedRectangle(cornerRadius: 18))
+        .overlay(RoundedRectangle(cornerRadius: 18).strokeBorder(AppTheme.cardBorder))
     }
 
     // MARK: - Privacy Footer Section
