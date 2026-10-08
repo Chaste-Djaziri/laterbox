@@ -117,12 +117,30 @@ struct GeminiLaterAIProvider: LaterAIProvider {
         request.timeoutInterval = 20
         request.httpBody = try JSONEncoder().encode(["prompt": prompt])
         let (data, response) = try await URLSession.shared.data(for: request)
-        guard let http = response as? HTTPURLResponse, http.statusCode == 200 else { throw AIProviderError.remoteFailed }
+        guard let http = response as? HTTPURLResponse else { throw AIProviderError.remoteFailed }
+        guard http.statusCode == 200 else {
+            throw Self.failure(statusCode: http.statusCode, data: data)
+        }
         let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
         guard let action = json?["action"], JSONSerialization.isValidJSONObject(action) else { throw AIProviderError.remoteFailed }
         let content = try JSONSerialization.data(withJSONObject: action)
         return try AIAction(GeneratedContent(json: String(decoding: content, as: UTF8.self)))
     }
+    static func failure(statusCode: Int, data: Data) -> AIProviderError {
+        let payload = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]
+        switch statusCode {
+        case 401: return .customModelError("Sign in to use cloud Gemini, or choose free Apple Intelligence in AI settings.")
+        case 403: return .customModelError("Cloud Gemini requires verified Pro access. Free Apple Intelligence is available on supported iPhones.")
+        case 503:
+            if payload?["error"] as? String == "Gemini fallback is disabled." {
+                return .customModelError("Cloud Gemini is currently disabled on the server.")
+            }
+            return .customModelError("Cloud Gemini is temporarily unavailable on the server.")
+        case 429: return .customModelError("Cloud Gemini is busy. Please try again shortly.")
+        default: return .remoteFailed
+        }
+    }
+
 }
 
 enum AIProviderError: LocalizedError {
