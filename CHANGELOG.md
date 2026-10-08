@@ -5,6 +5,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 ## [Unreleased]
 
 ### Changed
+- **[iOS & Android] Inbox on launch**: Open Inbox by default when entering either mobile app.
 - **[Web & Extensions] Inbox extension setup**: Require an installed extension connected to the current account before using Inbox, with an installation and connection overlay, live connection checks, and a trusted dashboard bridge that never exposes extension credentials.
 - **[Web] Chrome extension installation**: Open the official Chrome Web Store listing from the public and signed-in download pages instead of downloading a ZIP.
 - **[iOS & Web] Gemini availability**: Enable the iOS Gemini endpoint in the deployment configuration with verified Pro authorization, report service-disabled and access errors accurately, and explain when Apple Intelligence fallback is unavailable while preserving content for Guided capture.
