@@ -116,7 +116,10 @@ final class LocalSearchController: ObservableObject {
         default: break
         }
         let exact = LocalItemSearch.search(query, in: filtered, includeDeleted: includeDeleted)
-        let expanded = LocalItemSearch.search(interpretation.terms, in: filtered, includeDeleted: includeDeleted)
+        let hasFilters = ItemContentType(rawValue: interpretation.contentType) != nil
+            || ["thisWeek", "today", "upcoming"].contains(interpretation.returnWindow)
+        let terms = interpretation.terms.trimmingCharacters(in: .whitespacesAndNewlines)
+        let expanded = LocalItemSearch.search(terms.isEmpty && !hasFilters ? query : terms, in: filtered, includeDeleted: includeDeleted)
         var seen = Set<String>()
         return (exact + expanded).filter { seen.insert($0.id).inserted }
     }
