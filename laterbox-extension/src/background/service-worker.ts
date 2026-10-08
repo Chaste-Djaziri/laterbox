@@ -4,6 +4,8 @@ import {
   openPendingApprovalTab,
   resumePendingConnection,
   checkProEntitlement,
+  getConnectedUserId,
+  getAccessToken,
 } from "../lib/auth";
 import { captureQueue, enrichCapture } from "./capture-service";
 import type { Capture, CaptureResult } from "../types/capture";
@@ -38,6 +40,13 @@ browser.contextMenus.onClicked.addListener((info, tab) => {
 
 browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (sender.id !== browser.runtime.id) return false;
+  if (message?.type === 'dashboard-status') {
+    if (!isTrustedSender(sender) || typeof message.userId !== 'string') return false;
+    void Promise.all([getConnectedUserId(), getAccessToken()])
+      .then(([userId, token]) => sendResponse({ installed: true, connected: Boolean(token && userId && userId === message.userId) }))
+      .catch(() => sendResponse({ installed: true, connected: false }));
+    return true;
+  }
   if (message?.type === 'capture') {
     void saveCapture(message.capture).then(sendResponse).catch(()=>sendResponse({status:'error',reason:'server'})); return true;
   }
@@ -176,7 +185,7 @@ const ALLOWED_EXTERNAL_HOSTS = new Set([
 ]);
 
 function isTrustedSender(sender: chrome.runtime.MessageSender): boolean {
-  const origin = sender.origin;
+  const origin = sender.origin || sender.url;
   if (!origin) return false;
   try {
     const url = new URL(origin);
