@@ -5,6 +5,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 ## [Unreleased]
 
 ### Changed
+- **[Android] Release optimization**: Enable R8 code optimization, obfuscation, and resource shrinking for release builds, preserve deobfuscation artifacts, and verify optimization metadata before publishing.
 - **[iOS CI] Simulator validation**: Run native validation on an isolated CI simulator with a longer bounded boot period and retained boot diagnostics; update iOS workflow actions for Node.js 24.
 - **[iOS, Android & Web] Help and problem reports**: Add a Settings form for problems, help, feedback, and other inquiries with a reply email, confirmation, and retryable errors; store requests securely through a rate-limited API and support database migration.
 - **[iOS] Dedicated search**: Open a shared full-screen search page from Home and Inbox, keep regular search available to everyone, automatically refine with free Apple Intelligence on supported phones, and use Gemini for Pro with local fallback.
