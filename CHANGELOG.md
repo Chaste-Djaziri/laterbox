@@ -5,6 +5,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 ## [Unreleased]
 
 ### Changed
+- **[Mobile CI] Automatic build numbering**: Assign a unique Android version code for each workflow run and retry, increment iOS builds above App Store Connect history, and preserve the configured marketing version on both platforms.
 - **[Android CI] Release runner compatibility**: Use Node.js 24 workflow actions and pin the release runner to Ubuntu 24.04 for reproducible builds.
 - **[Android] Release optimization**: Enable R8 code optimization, obfuscation, and resource shrinking for release builds, preserve deobfuscation artifacts, and verify optimization metadata before publishing.
 - **[iOS CI] Simulator validation**: Run native validation on an isolated CI simulator with a longer bounded boot period and retained boot diagnostics; update iOS workflow actions for Node.js 24.
