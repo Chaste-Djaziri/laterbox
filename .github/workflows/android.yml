@@ -183,7 +183,6 @@ jobs:
         with:
           serviceAccountJson: laterbox-android/play_service_account.json
           packageName: pro.micorp.laterbox
-          releaseFiles: laterbox-android/app/build/outputs/bundle/release/*.aab
+          releaseFiles: laterbox-android/app/build/outputs/bundle/release/app-release.aab
           track: ${{ vars.GOOGLE_PLAY_TRACK || 'internal' }}
           status: completed
-          changesNotSentForReview: true
