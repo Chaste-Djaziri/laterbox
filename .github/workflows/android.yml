@@ -16,7 +16,7 @@ concurrency:
 jobs:
   build:
     name: Build & Test Native Android App
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     defaults:
       run:
@@ -24,7 +24,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up JDK 17
         uses: actions/setup-java@v5
@@ -120,7 +120,7 @@ jobs:
           cp app/build/outputs/bundle/release/app-release.aab app/build/outputs/bundle/release/laterbox-android-release.aab
 
       - name: Upload Android App Bundle (AAB)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: laterbox-android-aab-${{ github.run_id }}
           path: laterbox-android/app/build/outputs/bundle/release/*.aab
@@ -134,14 +134,14 @@ jobs:
           if-no-files-found: error
 
       - name: Upload Android Release APK
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: laterbox-android-release-apk-${{ github.run_id }}
           path: laterbox-android/app/build/outputs/apk/release/*.apk
           if-no-files-found: error
 
       - name: Upload Android Debug APK
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: laterbox-android-debug-apk-${{ github.run_id }}
           path: laterbox-android/app/build/outputs/apk/debug/*.apk
