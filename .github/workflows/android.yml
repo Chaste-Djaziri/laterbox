@@ -39,15 +39,34 @@ jobs:
       - name: Setup Android Keystore
         shell: bash
         run: |
+          KEYSTORE_VALID=false
           if [ -n "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" ]; then
-            echo "Configuring release keystore from repository secret..."
-            echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > app/release.keystore
-            echo "ANDROID_KEYSTORE_PATH=$GITHUB_WORKSPACE/laterbox-android/app/release.keystore" >> "$GITHUB_ENV"
-            echo "ANDROID_KEYSTORE_PASSWORD=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" >> "$GITHUB_ENV"
-            echo "ANDROID_KEY_ALIAS=${{ secrets.ANDROID_KEY_ALIAS }}" >> "$GITHUB_ENV"
-            echo "ANDROID_KEY_PASSWORD=${{ secrets.ANDROID_KEY_PASSWORD }}" >> "$GITHUB_ENV"
-          else
-            echo "No ANDROID_KEYSTORE_BASE64 secret found. Generating CI signing keystore so release APK is properly signed..."
+            echo "Attempting to decode release keystore from repository secret..."
+            echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | tr -d '\r\n ' | base64 -d > app/release.keystore 2>/dev/null || \
+            echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > app/release.keystore 2>/dev/null || true
+
+            STORE_PASS="${{ secrets.ANDROID_KEYSTORE_PASSWORD }}"
+            KEY_ALIAS="${{ secrets.ANDROID_KEY_ALIAS }}"
+            KEY_PASS="${{ secrets.ANDROID_KEY_PASSWORD || secrets.ANDROID_KEYSTORE_PASSWORD }}"
+
+            if [ -s app/release.keystore ] && [ -n "$STORE_PASS" ] && [ -n "$KEY_ALIAS" ]; then
+              echo "Verifying keystore credentials with keytool..."
+              if keytool -list -keystore app/release.keystore -storepass "$STORE_PASS" -alias "$KEY_ALIAS" > /dev/null 2>&1; then
+                echo "Keystore verified successfully with keytool!"
+                KEYSTORE_VALID=true
+                echo "ANDROID_KEYSTORE_PATH=$GITHUB_WORKSPACE/laterbox-android/app/release.keystore" >> "$GITHUB_ENV"
+                echo "ANDROID_KEYSTORE_PASSWORD=$STORE_PASS" >> "$GITHUB_ENV"
+                echo "ANDROID_KEY_ALIAS=$KEY_ALIAS" >> "$GITHUB_ENV"
+                echo "ANDROID_KEY_PASSWORD=$KEY_PASS" >> "$GITHUB_ENV"
+              else
+                echo "::warning::Configured ANDROID_KEYSTORE_BASE64 or password/alias is invalid (keytool verification failed)."
+              fi
+            fi
+          fi
+
+          if [ "$KEYSTORE_VALID" != "true" ]; then
+            echo "Generating fallback CI signing keystore so release build succeeds..."
+            rm -f app/release.keystore
             keytool -genkeypair -v \
               -keystore app/release.keystore \
               -alias laterbox \
