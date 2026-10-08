@@ -175,7 +175,14 @@ final class LaterAIModelManager: ObservableObject {
         }
     }
 
+    var canRefineSearch: Bool {
+        SyncCoordinator.shared.isProUser || selectedProvider == .onDevice
+    }
+
     func activeProvider() -> any LaterAIProvider {
+        if (selectedProvider == .onDevice || !GeminiLaterAIProvider.enabled), AppleLaterAIProvider.unavailableReason == nil {
+            return AppleLaterAIProvider()
+        }
         guard SyncCoordinator.shared.isProUser else {
             return GeminiLaterAIProvider()
         }
@@ -218,7 +225,7 @@ final class LaterAIModelManager: ObservableObject {
     }
 
     func interpretSearch(_ query: String) async throws -> SearchInterpretation {
-        guard SyncCoordinator.shared.isProUser, enableSearchRefine else {
+        guard canRefineSearch, enableSearchRefine else {
             return SearchInterpretation(terms: query, contentType: "", returnWindow: "")
         }
 
@@ -254,8 +261,8 @@ final class LaterAIModelManager: ObservableObject {
     }
 
     func testConnection(for provider: AIProviderType) async throws -> String {
-        guard SyncCoordinator.shared.isProUser else {
-            throw AIProviderError.customModelError("Configuring and testing AI models requires LaterBox Pro.")
+        guard provider == .onDevice || SyncCoordinator.shared.isProUser else {
+            throw AIProviderError.customModelError("Cloud and custom AI models require LaterBox Pro.")
         }
 
         switch provider {
