@@ -78,7 +78,8 @@ final class LaterAIConversation: ObservableObject {
                 do {
                     action = try await provider.respond(prompt)
                 } catch {
-                    if provider is GeminiLaterAIProvider, AppleLaterAIProvider.unavailableReason == nil {
+                    try Task.checkCancellation()
+                    if (provider is GeminiLaterAIProvider || provider is CustomGeminiLaterAIProvider), AppleLaterAIProvider.unavailableReason == nil {
                         action = try await AppleLaterAIProvider().respond(prompt)
                     } else {
                         throw error
