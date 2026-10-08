@@ -91,3 +91,24 @@ test('Pro fallback validates structured actions using the configured model with 
     }
   }
 });
+
+test('public app key cannot bypass cloud authentication', async () => {
+  const previous = process.env.IOS_GEMINI_FALLBACK_ENABLED;
+  const originalFetch = globalThis.fetch;
+  let calls = 0;
+  process.env.IOS_GEMINI_FALLBACK_ENABLED = 'true';
+  globalThis.fetch = async () => { calls++; throw new Error('Network must not be used'); };
+  try {
+    const response = await POST(new Request('https://laterbox.dev/api/ai/ios', {
+      method: 'POST',
+      headers: { apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_Rc4e_ik2LE4SR0UrfX-OEQ_5Mu_lw9p' },
+      body: JSON.stringify({ prompt: 'Hello' }),
+    }));
+    assert.equal(response.status, 401);
+    assert.equal(calls, 0);
+  } finally {
+    globalThis.fetch = originalFetch;
+    if (previous === undefined) delete process.env.IOS_GEMINI_FALLBACK_ENABLED;
+    else process.env.IOS_GEMINI_FALLBACK_ENABLED = previous;
+  }
+});
