@@ -5,6 +5,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 ## [Unreleased]
 
 ### Changed
+- **[iOS] Later AI shortcut**: Added a floating + button above the tab bar to open Later AI from every main tab.
 - **[Build & Release] Build number and version code incrementing**: Modified the unified version bumper so automated build and release routines only increment the internal build number (and Android `versionCode` / iOS `CURRENT_PROJECT_VERSION`), preserving the semantic marketing version until explicit version bumps.
 - **[Android] Standard Material 3 navigation bar**: Replaced the floating capsule navigation surface with a standard edge-to-edge Android Material 3 NavigationBar. Features system navigation bar inset handling, a subtle top divider, filled and outlined icon states, inbox badge counts, and refined brand-themed active indicators.
 - **[Web & CI] Direct browser extensions downloads (.zip)**: Added direct browser extension download capabilities for Chrome, Firefox, and Safari on LaterBox Web (`/api/download/[filename]` and public static assets), added direct download buttons to the downloads pages, and configured CI/CD to build, package, and attach extension zips to GitHub Releases on push.
