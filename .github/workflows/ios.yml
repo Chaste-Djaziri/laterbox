@@ -32,7 +32,7 @@ jobs:
         run: python -m unittest discover -s laterbox-ios/ci -p 'test_*.py'
       - name: Run native Swift and UI tests
         run: python laterbox-ios/ci/run_tests.py
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v6
         if: always()
         with:
           name: ios-tests-${{ github.run_id }}-${{ github.run_attempt }}
@@ -101,7 +101,7 @@ jobs:
         run: |
           xcodebuild -exportArchive -archivePath "$RUNNER_TEMP/LaterBox.xcarchive" \
             -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" -exportPath "$RUNNER_TEMP/IPA"
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v6
         with:
           name: laterbox-ios-${{ env.IOS_VERSION }}-${{ env.IOS_BUILD }}
           path: |
