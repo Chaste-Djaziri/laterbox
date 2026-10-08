@@ -23,8 +23,8 @@ export function SupportForm() {
         method: 'POST', headers: { 'Content-Type': 'application/json', ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}) },
         body: JSON.stringify({ email, category, subject, message, platform: 'web', appVersion: '' }),
       });
-      const result = await response.json();
-      if (!response.ok || typeof result.id !== 'string') throw new Error(result.error || 'We could not send your request. Please try again.');
+      const result = (await response.json().catch(() => ({}))) as { id?: unknown; error?: unknown };
+      if (!response.ok || typeof result.id !== 'string') throw new Error(typeof result.error === 'string' && result.error ? result.error : 'We could not send your request. Please try again.');
       setReference(result.id); setSubject(''); setMessage('');
     } catch (failure) { setError(failure instanceof Error ? failure.message : 'Please try again.'); }
     finally { setBusy(false); }
