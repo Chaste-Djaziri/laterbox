@@ -8,8 +8,9 @@ import UserNotifications
 final class ShareViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
+        overrideUserInterfaceStyle = .light
         let model = ShareCaptureModel(context: extensionContext)
-        let host = UIHostingController(rootView: ShareCaptureView(model: model))
+        let host = UIHostingController(rootView: ShareCaptureView(model: model).preferredColorScheme(.light))
         addChild(host)
         view.addSubview(host.view)
         host.view.translatesAutoresizingMaskIntoConstraints = false
@@ -806,7 +807,7 @@ struct ShareCaptureView: View {
         }
         .background(Color.black.ignoresSafeArea())
         .foregroundStyle(.white)
-        .preferredColorScheme(.dark)
+        .preferredColorScheme(.light)
         .sheet(isPresented: $chooseReturnDate) {
             NavigationStack {
                 VStack(spacing: 20) {
@@ -818,7 +819,7 @@ struct ShareCaptureView: View {
                     )
                     .datePickerStyle(.graphical)
                     .tint(LaterAIStyle.accent)
-                    .colorScheme(.dark)
+                    .environment(\.colorScheme, .light)
                     .padding()
                     .background(Color(white: 20.0/255), in: RoundedRectangle(cornerRadius: 16))
 
@@ -1183,7 +1184,7 @@ struct ShareEditSheet: View {
             }
             .scrollContentBackground(.hidden)
             .background(Color.black.ignoresSafeArea())
-            .preferredColorScheme(.dark)
+            .preferredColorScheme(.light)
             .navigationTitle("Edit Details")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
