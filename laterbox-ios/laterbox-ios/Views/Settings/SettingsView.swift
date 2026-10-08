@@ -985,6 +985,23 @@ public struct SettingsView: View {
                             .shadow(color: Color.black.opacity(0.03), radius: 6, x: 0, y: 2)
                         }
 
+                        NavigationLink(destination: SupportRequestView()) {
+                            HStack(spacing: 12) {
+                                Image(systemName: "questionmark.bubble")
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("Help & Report a Problem").font(.subheadline.weight(.semibold))
+                                    Text("Contact us for issues, questions, or feedback")
+                                        .font(.caption).foregroundStyle(AppTheme.textSecondary)
+                                }
+                                Spacer()
+                                Image(systemName: "chevron.right").font(.caption)
+                            }
+                            .foregroundStyle(AppTheme.textPrimary)
+                            .padding(16)
+                            .liquidGlassCard(cornerRadius: 18)
+                        }
+                        .buttonStyle(.plain)
+
                         // App Version Footer
                         VStack(spacing: 4) {
                             Text("LaterBox for iOS • Liquid Glass Edition")
