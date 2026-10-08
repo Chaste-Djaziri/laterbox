@@ -5,6 +5,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 ## [Unreleased]
 
 ### Changed
+- **[Build & Release] Build number and version code incrementing**: Modified the unified version bumper so automated build and release routines only increment the internal build number (and Android `versionCode` / iOS `CURRENT_PROJECT_VERSION`), preserving the semantic marketing version until explicit version bumps.
 - **[Android] Standard Material 3 navigation bar**: Replaced the floating capsule navigation surface with a standard edge-to-edge Android Material 3 NavigationBar. Features system navigation bar inset handling, a subtle top divider, filled and outlined icon states, inbox badge counts, and refined brand-themed active indicators.
 - **[Web & CI] Direct browser extensions downloads (.zip)**: Added direct browser extension download capabilities for Chrome, Firefox, and Safari on LaterBox Web (`/api/download/[filename]` and public static assets), added direct download buttons to the downloads pages, and configured CI/CD to build, package, and attach extension zips to GitHub Releases on push.
 - **[Web & CI] Direct Android APK downloads**: Added direct Android APK download capabilities to LaterBox Web at `/api/download/laterbox.apk`, added prominent "Download .apk" buttons to the web download pages and Android tester modal, and configured the Android CI workflow to automatically attach signed production APKs directly to GitHub Releases on push.
