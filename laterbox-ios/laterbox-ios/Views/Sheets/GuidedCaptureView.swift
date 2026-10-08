@@ -26,12 +26,14 @@ struct GuidedCaptureView: View {
             if fillsAvailableSpace && step == 0 {
                 step0ContentView
                     .frame(maxHeight: .infinity, alignment: .top)
-            } else {
+            } else if fillsAvailableSpace {
                 ScrollView {
                     stepContent
                 }
                 .scrollDismissesKeyboard(.interactively)
-                .frame(maxHeight: fillsAvailableSpace ? .infinity : nil)
+                .frame(maxHeight: .infinity)
+            } else {
+                stepContent
             }
 
             footerNavigation
