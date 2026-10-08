@@ -18,7 +18,7 @@ GEMINI_API_KEY=
 GEMINI_MODEL=gemini-3.5-flash-lite
 
 # Android Keystore Signing Configuration (Optional for debug, required for release signing)
-KEYSTORE_PATH=
-KEYSTORE_PASSWORD=
-KEY_ALIAS=
-KEY_PASSWORD=
+KEYSTORE_PATH=upload-keystore.jks
+KEYSTORE_PASSWORD=laterbox_release_key
+KEY_ALIAS=upload
+KEY_PASSWORD=laterbox_release_key
