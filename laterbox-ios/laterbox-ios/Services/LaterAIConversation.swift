@@ -81,6 +81,9 @@ final class LaterAIConversation: ObservableObject {
                     try Task.checkCancellation()
                     if (provider is GeminiLaterAIProvider || provider is CustomGeminiLaterAIProvider), AppleLaterAIProvider.unavailableReason == nil {
                         action = try await AppleLaterAIProvider().respond(prompt)
+                    } else if provider is GeminiLaterAIProvider || provider is CustomGeminiLaterAIProvider {
+                        let reason = AppleLaterAIProvider.unavailableReason ?? "Apple Intelligence is not available on this device."
+                        throw AIProviderError.customModelError("\(error.localizedDescription) \(reason) Use Guided capture to save this content.")
                     } else {
                         throw error
                     }
