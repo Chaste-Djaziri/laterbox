@@ -33,7 +33,6 @@ public struct LaterAIView: View {
     @State private var editingItem: LBItem?
     @State private var chooseReturnDate = false
     @State private var selectedReturnDate = Date().addingTimeInterval(86400)
-    @State private var forceShowTextInput = false
     private var messages: [LaterAIMessage] { conversation.messages }
     private var isThinking: Bool { conversation.thinking }
     @FocusState private var isInputFocused: Bool
@@ -505,7 +504,6 @@ public struct LaterAIView: View {
         LBHaptic.medium()
         withAnimation(.easeInOut(duration: 0.22)) {
             conversation.messages.append(LaterAIMessage(text: title, isUser: true))
-            forceShowTextInput = false
         }
         action()
     }
@@ -623,7 +621,6 @@ public struct LaterAIView: View {
         guard !trimmed.isEmpty else { return }
         conversation.send(trimmed, items: allItems, context: modelContext)
         inputText = ""
-        forceShowTextInput = false
     }
 
     private func dismiss() {
