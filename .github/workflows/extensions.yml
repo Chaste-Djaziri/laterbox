@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: extensions-${{ github.ref }}
@@ -79,3 +79,25 @@ jobs:
           name: laterbox-web-extensions-all-${{ github.run_id }}
           path: laterbox-extension/dist/*.zip
           if-no-files-found: error
+
+      - name: Resolve release version tag
+        id: release_version
+        run: |
+          VERSION=$(node -e "try { console.log(require('../version.json').version); } catch { console.log('1.0.175'); }")
+          echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
+          echo "title=LaterBox v$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Attach Extension Zips to GitHub Release
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.release_version.outputs.tag }}
+          name: ${{ steps.release_version.outputs.title }}
+          draft: false
+          prerelease: false
+          files: |
+            laterbox-extension/dist/laterbox-chrome-extension.zip
+            laterbox-extension/dist/laterbox-firefox-extension.zip
+            laterbox-extension/dist/laterbox-safari-extension.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
