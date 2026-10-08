@@ -1,475 +1,132 @@
 import SwiftUI
 
-/// Dedicated sub-page for browsing, previewing, and selecting alternate LaterBox app icons.
 public struct AppIconSelectionView: View {
-    @Environment(\.dismiss) private var dismiss
     @ObservedObject private var coordinator = SyncCoordinator.shared
     @StateObject private var iconManager = AppIconManager.shared
-    @State private var selectedCategory: String = "All"
+    @State private var selectedCategory = "All"
 
     public init() {}
 
     private var filteredIcons: [AppIconOption] {
-        if selectedCategory == "All" {
-            return AppIconManager.availableIcons
-        }
-        return AppIconManager.availableIcons.filter { $0.category == selectedCategory }
+        AppIconManager.availableIcons.filter { selectedCategory == "All" || $0.category == selectedCategory }
     }
 
     public var body: some View {
         ZStack {
             LiquidGlassBackground()
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    Text("Choose the icon for your home screen.")
+                        .font(.subheadline)
+                        .foregroundStyle(AppTheme.textSecondary)
 
-            VStack(spacing: 0) {
-                // Navigation Header
-                HStack(alignment: .center) {
-                    Button(action: {
-                        LBHaptic.light()
-                        dismiss()
-                    }) {
-                        HStack(spacing: 6) {
-                            Image(systemName: "chevron.left")
-                                .font(.system(size: 16, weight: .bold))
-                            Text("Settings")
-                                .font(.subheadline.weight(.semibold))
-                        }
-                        .foregroundColor(AppTheme.textPrimary)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
-                        .background(
-                            Capsule()
-                                .fill(Color.black.opacity(0.04))
-                        )
-                    }
-                    .buttonStyle(.plain)
-
-                    Spacer()
-
-                    Text("App Icon")
-                        .font(.headline.weight(.bold))
-                        .foregroundColor(AppTheme.textPrimary)
-
-                    Spacer()
-
-                    // Balance layout with invisible counter-spacer
-                    HStack(spacing: 6) {
-                        Image(systemName: "chevron.left")
-                            .font(.system(size: 16, weight: .bold))
-                        Text("Settings")
-                            .font(.subheadline.weight(.semibold))
-                    }
-                    .opacity(0)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
-                }
-                .padding(.horizontal, 18)
-                .padding(.top, 14)
-                .padding(.bottom, 10)
-
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 20) {
-                        // Pro Plan Banner (if not subscribed)
-                        proBannerCard
-
-                        // Hero Spotlight Card
-                        heroSpotlightCard
-
-                        // Category Filter Carousel
-                        VStack(alignment: .leading, spacing: 10) {
-                            HStack {
-                                Text("Icon Collections")
-                                    .font(.caption.weight(.bold))
-                                    .foregroundColor(.secondary)
-                                    .textCase(.uppercase)
-
+                    if !coordinator.isProUser {
+                        Button {
+                            coordinator.showingPlansSheet = true
+                        } label: {
+                            HStack(spacing: 10) {
+                                Image(systemName: "lock")
+                                Text("Unlock alternate icons with Pro")
+                                    .font(.subheadline.weight(.medium))
                                 Spacer()
-
-                                Text("\(filteredIcons.count) of \(AppIconManager.availableIcons.count)")
-                                    .font(.caption2.weight(.medium))
-                                    .foregroundColor(AppTheme.textSecondary)
+                                Image(systemName: "chevron.right").font(.caption)
                             }
-                            .padding(.horizontal, 4)
+                            .foregroundStyle(AppTheme.textPrimary)
+                            .padding(14)
+                            .background(AppTheme.accent, in: RoundedRectangle(cornerRadius: 14))
+                        }
+                        .buttonStyle(.plain)
+                    }
 
-                            ScrollView(.horizontal, showsIndicators: false) {
-                                HStack(spacing: 8) {
-                                    ForEach(AppIconManager.categories, id: \.self) { cat in
-                                        let isSelected = selectedCategory == cat
-                                        Button(action: {
-                                            LBHaptic.light()
-                                            withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) {
-                                                selectedCategory = cat
-                                            }
-                                        }) {
-                                            Text(cat)
-                                                .font(.caption.weight(isSelected ? .bold : .medium))
-                                                .foregroundColor(isSelected ? AppTheme.textPrimary : AppTheme.textSecondary)
-                                                .padding(.horizontal, 14)
-                                                .padding(.vertical, 7)
-                                                .background(
-                                                    Capsule()
-                                                        .fill(isSelected ? AppTheme.accent : Color.black.opacity(0.04))
-                                                )
-                                                .overlay(
-                                                    Capsule()
-                                                        .strokeBorder(isSelected ? AppTheme.textPrimary.opacity(0.15) : Color.clear, lineWidth: 1)
-                                                )
-                                        }
-                                        .buttonStyle(.plain)
-                                    }
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            ForEach(AppIconManager.categories, id: \.self) { category in
+                                Button {
+                                    selectedCategory = category
+                                    LBHaptic.light()
+                                } label: {
+                                    Text(category)
+                                        .font(.caption.weight(.medium))
+                                        .foregroundStyle(AppTheme.textPrimary)
+                                        .padding(.horizontal, 14)
+                                        .padding(.vertical, 8)
+                                        .background(selectedCategory == category ? AppTheme.accent : AppTheme.cardBackground, in: Capsule())
                                 }
-                                .padding(.horizontal, 2)
+                                .accessibilityAddTraits(selectedCategory == category ? .isSelected : [])
+                                .buttonStyle(.plain)
                             }
-                        }
-
-                        // Icon Selection Cards
-                        VStack(spacing: 12) {
-                            ForEach(filteredIcons) { option in
-                                iconRowCard(for: option)
-                            }
-                        }
-
-                        // iOS System Note Footer
-                        VStack(spacing: 6) {
-                            HStack(spacing: 6) {
-                                Image(systemName: "info.circle.fill")
-                                    .font(.caption2)
-                                    .foregroundColor(AppTheme.textSecondary)
-                                Text("iOS displays a brief confirmation dialog when updating the home screen icon.")
-                                    .font(.caption2)
-                                    .foregroundColor(AppTheme.textSecondary)
-                            }
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 12)
-                            .background(
-                                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                    .fill(Color.black.opacity(0.03))
-                            )
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.top, 6)
-                        .padding(.bottom, 30)
-                    }
-                    .padding(.horizontal, 20)
-                    .padding(.top, 4)
-                }
-            }
-        }
-        .navigationBarHidden(true)
-        .onAppear {
-            iconManager.refreshCurrentIcon()
-        }
-    }
-
-    // MARK: - Hero Spotlight Card
-    private var heroSpotlightCard: some View {
-        let current = iconManager.currentIconOption
-
-        return VStack(spacing: 14) {
-            // Simulated Home Screen Icon Shelf
-            ZStack {
-                // Radial ambient glow matching theme
-                RadialGradient(
-                    colors: [
-                        current.accentColor.opacity(0.28),
-                        current.accentColor.opacity(0.06),
-                        Color.clear
-                    ],
-                    center: .center,
-                    startRadius: 10,
-                    endRadius: 95
-                )
-                .frame(width: 190, height: 190)
-
-                VStack(spacing: 8) {
-                    // App Icon Render
-                    ZStack {
-                        Image(current.previewImageName)
-                            .resizable()
-                            .scaledToFit()
-                            .frame(width: 78, height: 78)
-                            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                    .strokeBorder(Color.white.opacity(0.35), lineWidth: 1.5)
-                            )
-                            .shadow(color: Color.black.opacity(0.2), radius: 10, x: 0, y: 5)
-                            .shadow(color: current.accentColor.opacity(0.35), radius: 16, x: 0, y: 4)
-
-                        if iconManager.isChanging {
-                            ProgressView()
-                                .tint(.white)
-                                .scaleEffect(1.2)
                         }
                     }
 
-                    Text("Laterbox")
-                        .font(.caption.weight(.semibold))
-                        .foregroundColor(AppTheme.textPrimary)
-                }
-            }
-            .frame(height: 124)
-
-            Divider().background(AppTheme.cardBorder)
-
-            // Current Active Details
-            HStack(alignment: .center) {
-                VStack(alignment: .leading, spacing: 3) {
-                    HStack(spacing: 6) {
-                        Text(current.name)
-                            .font(.headline.weight(.bold))
-                            .foregroundColor(AppTheme.textPrimary)
-
-                        Text(current.category)
-                            .font(.system(size: 10, weight: .bold))
-                            .foregroundColor(AppTheme.textSecondary)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background(
-                                Capsule()
-                                    .fill(Color.black.opacity(0.05))
-                            )
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 100), spacing: 12)], spacing: 12) {
+                        ForEach(filteredIcons) { option in
+                            iconButton(option)
+                        }
                     }
 
-                    Text(current.description)
+                    Text("iOS confirms when you change your app icon.")
                         .font(.caption)
-                        .foregroundColor(AppTheme.textSecondary)
-                        .lineLimit(2)
+                        .foregroundStyle(AppTheme.textSecondary)
+                        .frame(maxWidth: .infinity)
                 }
-
-                Spacer()
-
-                HStack(spacing: 4) {
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 14, weight: .bold))
-                        .foregroundColor(Color.green)
-                    Text("Active")
-                        .font(.caption.weight(.bold))
-                        .foregroundColor(AppTheme.textPrimary)
-                }
-                .padding(.horizontal, 10)
-                .padding(.vertical, 5)
-                .background(
-                    Capsule()
-                        .fill(AppTheme.accent)
-                )
+                .padding(20)
             }
         }
-        .padding(18)
-        .background(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .fill(AppTheme.cardBackground)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .strokeBorder(AppTheme.cardBorder, lineWidth: 1)
-        )
-        .shadow(color: Color.black.opacity(0.04), radius: 8, x: 0, y: 3)
-    }
-
-    // MARK: - Pro Banner
-    @ViewBuilder
-    private var proBannerCard: some View {
-        if !coordinator.isProUser {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack(spacing: 10) {
-                    ZStack {
-                        Circle()
-                            .fill(LinearGradient(colors: [Color.purple, Color.indigo], startPoint: .topLeading, endPoint: .bottomTrailing))
-                            .frame(width: 36, height: 36)
-                        Image(systemName: "sparkles")
-                            .font(.system(size: 16, weight: .bold))
-                            .foregroundColor(.white)
-                    }
-
-                    VStack(alignment: .leading, spacing: 2) {
-                        HStack(spacing: 6) {
-                            Text("LaterBox Pro Feature")
-                                .font(.subheadline.weight(.bold))
-                                .foregroundColor(AppTheme.textPrimary)
-
-                            Text("PRO")
-                                .font(.system(size: 10, weight: .black))
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background(Capsule().fill(Color.purple))
-                        }
-
-                        Text("Unlock all 12 themed liquid glass & pop culture icons")
-                            .font(.caption2)
-                            .foregroundColor(AppTheme.textSecondary)
-                    }
-
-                    Spacer()
-                }
-
-                Button(action: {
-                    LBHaptic.medium()
-                    coordinator.showingPlansSheet = true
-                }) {
-                    HStack(spacing: 6) {
-                        Image(systemName: "crown.fill")
-                            .font(.caption.weight(.bold))
-                        Text("Upgrade to Pro")
-                            .font(.subheadline.weight(.bold))
-                        Spacer()
-                        Image(systemName: "arrow.right")
-                            .font(.caption.weight(.bold))
-                    }
-                    .foregroundColor(.white)
-                    .padding(.vertical, 10)
-                    .padding(.horizontal, 14)
-                    .frame(maxWidth: .infinity)
-                    .background(
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .fill(AppTheme.darkSurface)
-                    )
-                }
-                .buttonStyle(.plain)
-            }
-            .padding(14)
-            .background(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .fill(AppTheme.cardBackground)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .strokeBorder(Color.purple.opacity(0.35), lineWidth: 1)
-            )
-            .shadow(color: Color.purple.opacity(0.06), radius: 8, x: 0, y: 2)
+        .navigationTitle("App Icon")
+        .navigationBarTitleDisplayMode(.inline)
+        .onAppear { iconManager.refreshCurrentIcon() }
+        .alert("Couldn’t Change Icon", isPresented: Binding(
+            get: { iconManager.errorMessage != nil },
+            set: { if !$0 { iconManager.errorMessage = nil } }
+        )) {
+            Button("OK") { iconManager.errorMessage = nil }
+        } message: {
+            Text(iconManager.errorMessage ?? "Please try again.")
         }
     }
 
-    // MARK: - Icon Row Card
-    private func iconRowCard(for option: AppIconOption) -> some View {
-        let isSelected = iconManager.currentIconId == option.id
-        let isLocked = option.isProOnly && !coordinator.isProUser
-
-        return Button(action: {
-            if isLocked {
-                LBHaptic.medium()
+    private func iconButton(_ option: AppIconOption) -> some View {
+        let selected = iconManager.currentIconId == option.id
+        let locked = option.isProOnly && !coordinator.isProUser
+        return Button {
+            if locked {
                 coordinator.showingPlansSheet = true
-                return
+            } else {
+                Task { await iconManager.selectIcon(option) }
             }
-            LBHaptic.medium()
-            Task {
-                await iconManager.selectIcon(option)
-            }
-        }) {
-            HStack(spacing: 14) {
-                // Squircle Preview Image
-                ZStack {
-                    Image(option.previewImageName)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 56, height: 56)
-                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                .strokeBorder(Color.white.opacity(0.3), lineWidth: 1)
-                        )
-                        .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
-
-                    if isSelected {
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .strokeBorder(AppTheme.accent, lineWidth: 2.5)
+        } label: {
+            VStack(spacing: 10) {
+                Image(option.previewImageName)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 64, height: 64)
+                    .clipShape(RoundedRectangle(cornerRadius: 15))
+                Text(option.name)
+                    .font(.caption.weight(.medium))
+                    .multilineTextAlignment(.center)
+                    .frame(minHeight: 32)
+                Group {
+                    if selected {
+                        Label("Selected", systemImage: "checkmark")
+                    } else if locked {
+                        Label("Pro", systemImage: "lock")
+                    } else {
+                        Text("Apply")
                     }
                 }
-
-                // Text Description
-                VStack(alignment: .leading, spacing: 3) {
-                    HStack(spacing: 6) {
-                        Text(option.name)
-                            .font(.subheadline.weight(.bold))
-                            .foregroundColor(AppTheme.textPrimary)
-
-                        Circle()
-                            .fill(option.accentColor)
-                            .frame(width: 7, height: 7)
-
-                        Text(option.badgeText)
-                            .font(.system(size: 10, weight: .bold))
-                            .foregroundColor(AppTheme.textSecondary)
-                            .padding(.horizontal, 5)
-                            .padding(.vertical, 1.5)
-                            .background(
-                                Capsule().fill(Color.black.opacity(0.05))
-                            )
-
-                        if isLocked {
-                            HStack(spacing: 3) {
-                                Image(systemName: "lock.fill")
-                                    .font(.system(size: 8, weight: .bold))
-                                Text("PRO")
-                                    .font(.system(size: 9, weight: .black))
-                            }
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 5)
-                            .padding(.vertical, 1.5)
-                            .background(Capsule().fill(Color.purple))
-                        }
-                    }
-
-                    Text(option.subtitle)
-                        .font(.caption2.weight(.medium))
-                        .foregroundColor(AppTheme.textSecondary)
-
-                    Text(option.description)
-                        .font(.caption2)
-                        .foregroundColor(AppTheme.textTertiary)
-                        .lineLimit(1)
-                }
-
-                Spacer()
-
-                // State Indicator
-                if isSelected {
-                    ZStack {
-                        Circle()
-                            .fill(AppTheme.accent)
-                            .frame(width: 28, height: 28)
-
-                        Image(systemName: "checkmark")
-                            .font(.system(size: 13, weight: .bold))
-                            .foregroundColor(AppTheme.textPrimary)
-                    }
-                } else if isLocked {
-                    HStack(spacing: 4) {
-                        Image(systemName: "lock.fill")
-                            .font(.system(size: 9, weight: .semibold))
-                        Text("PRO")
-                            .font(.system(size: 10, weight: .bold))
-                    }
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 5)
-                    .background(
-                        Capsule().fill(Color.purple)
-                    )
-                } else {
-                    Text("Apply")
-                        .font(.caption2.weight(.semibold))
-                        .foregroundColor(AppTheme.textSecondary)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 5)
-                        .background(
-                            Capsule()
-                                .fill(Color.black.opacity(0.05))
-                        )
-                }
+                .font(.caption2)
+                .foregroundStyle(AppTheme.textSecondary)
             }
-            .padding(14)
-            .background(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .fill(isSelected ? AppTheme.accent.opacity(0.14) : AppTheme.cardBackground)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .strokeBorder(isSelected ? AppTheme.accent.opacity(0.85) : AppTheme.cardBorder, lineWidth: isSelected ? 1.5 : 1)
-            )
-            .shadow(color: Color.black.opacity(0.02), radius: 4, x: 0, y: 1)
+            .foregroundStyle(AppTheme.textPrimary)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 16)
+            .padding(.horizontal, 8)
+            .background(AppTheme.cardBackground, in: RoundedRectangle(cornerRadius: 18))
+            .overlay(RoundedRectangle(cornerRadius: 18).strokeBorder(selected ? AppTheme.textPrimary : AppTheme.cardBorder, lineWidth: selected ? 1.5 : 1))
         }
         .buttonStyle(.plain)
+        .disabled(iconManager.isChanging)
+        .accessibilityIdentifier("appicon.\(option.id)")
+        .accessibilityAddTraits(selected ? .isSelected : [])
     }
 }
