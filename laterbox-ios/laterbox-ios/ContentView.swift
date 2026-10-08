@@ -176,7 +176,11 @@ struct ContentView: View {
     .onChange(of: scenePhase) { _, newPhase in
         if newPhase == .active {
             try? SharedCaptureImporter.refresh(context: modelContext)
-            Task { await coordinator.refreshEntitlement(); await coordinator.syncPendingItems(context: modelContext) }
+            Task {
+                await StoreKitManager.shared.updatePurchasedProducts()
+                await coordinator.refreshEntitlement()
+                await coordinator.syncPendingItems(context: modelContext)
+            }
             clipboardManager.checkForCopiedItem()
         }
         if newPhase == .background {
