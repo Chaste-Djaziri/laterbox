@@ -3,8 +3,8 @@ export const APP_VERSION = '1.0.176';
 export const MAJOR_VERSION = 1;
 export const MINOR_VERSION = 0;
 export const PATCH_VERSION = 176;
-export const BUILD_NUMBER = 179;
-export const BUILD_TIME = '2026-10-08T07:12:52.314Z';
+export const BUILD_NUMBER = 180;
+export const BUILD_TIME = '2026-10-08T08:14:21.912Z';
 
 export const VERSION_METADATA = {
   app: 'laterbox',
