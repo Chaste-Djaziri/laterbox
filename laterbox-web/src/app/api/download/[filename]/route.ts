@@ -100,17 +100,72 @@ export async function GET(
       return new NextResponse(`File not found: ${filename}`, { status: 404 });
     }
 
-    const isApk = filename.toLowerCase().endsWith('.apk');
-    const candidates = isApk
-      ? Array.from(new Set([
-          filename,
-          'laterbox.apk',
-          'LaterBox.apk',
-          'laterbox-android.apk',
-          'laterbox-android-release.apk',
-          'app-release.apk',
-        ]))
-      : [filename];
+    const lowerFilename = filename.toLowerCase();
+    const isApk = lowerFilename.endsWith('.apk');
+    const isChromeExt = lowerFilename.includes('chrome');
+    const isFirefoxExt = lowerFilename.includes('firefox');
+    const isSafariExt = lowerFilename.includes('safari');
+
+    let candidates = [filename];
+    if (isApk) {
+      candidates = [
+        filename,
+        'laterbox.apk',
+        'LaterBox.apk',
+        'laterbox-android.apk',
+        'laterbox-android-release.apk',
+        'app-release.apk',
+      ];
+    } else if (isChromeExt) {
+      candidates = [
+        filename,
+        'laterbox-chrome-extension.zip',
+        'chrome-extension.zip',
+        'laterbox-chrome.zip',
+      ];
+    } else if (isFirefoxExt) {
+      candidates = [
+        filename,
+        'laterbox-firefox-extension.zip',
+        'firefox-extension.zip',
+        'laterbox-firefox.zip',
+      ];
+    } else if (isSafariExt) {
+      candidates = [
+        filename,
+        'laterbox-safari-extension.zip',
+        'safari-extension.zip',
+        'laterbox-safari.zip',
+      ];
+    }
+
+    // 0. Check if the file is available in the web app's static /downloads directory
+    for (const cand of candidates) {
+      try {
+        const localStaticUrl = new URL(`/downloads/${cand}`, request.url);
+        const localRes = await fetch(localStaticUrl.toString());
+        if (localRes.ok && localRes.body) {
+          const resHeaders = new Headers({
+            'Content-Type': getMimeType(cand),
+            'Content-Disposition': `attachment; filename="${cand}"`,
+            'Content-Transfer-Encoding': 'binary',
+            'X-Content-Type-Options': 'nosniff',
+            'Cache-Control': 'public, max-age=3600, s-maxage=3600',
+            'Access-Control-Allow-Origin': '*',
+          });
+          const contentLength = localRes.headers.get('content-length');
+          if (contentLength) {
+            resHeaders.set('Content-Length', contentLength);
+          }
+          return new NextResponse(localRes.body as any, {
+            status: 200,
+            headers: resHeaders,
+          });
+        }
+      } catch {
+        // Fallback to GitHub Release resolution
+      }
+    }
 
     // 1. If token is available, resolve asset via GitHub Release API for direct binary access
     if (token) {
