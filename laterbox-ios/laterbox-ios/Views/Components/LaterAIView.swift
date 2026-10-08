@@ -55,128 +55,74 @@ public struct LaterAIView: View {
         let clampedProgress = max(0.0, min(1.0, progress))
         let travelFactor = (1.0 - clampedProgress)
 
-        ZStack {
-            // Feather-Flow Black Background Drape with Feathered Fading Bottom (No Hard Line)
-            FeatherFadingBackdrop(progress: progress)
+        VStack(spacing: 10) {
+            topBar
 
-            VStack(spacing: 0) {
-                // Top Grab Handle & Header (Rides down from top)
-                topBar
-                    .offset(y: travelFactor * -60)
-
-                // Chat Messages / Welcome Empty State (Allows scrolling back up to all previous conversations)
+            if conversation.manual {
+                GuidedCaptureView(draft: $conversation.draft, fillsAvailableSpace: true) {
+                    conversation.save(context: modelContext)
+                }
+            } else {
                 ScrollViewReader { proxy in
                     ScrollView {
-                        VStack(spacing: 20) {
-                            if conversation.manual {
-                                GuidedCaptureView(
-                                    draft: $conversation.draft,
-                                    onCancel: conversation.chatAvailable ? {
-                                        withAnimation(.easeInOut(duration: 0.22)) {
-                                            conversation.manual = false
+                        VStack(alignment: .leading, spacing: 12) {
+                            messageListView
+                            if !conversation.results.isEmpty { matchedResultsView }
+                            if let error = conversation.error { errorRetryView(error) }
+                            if isThinking { thinkingIndicatorView }
+                            if let title = optionsTitle {
+                                Text(title)
+                                    .font(.subheadline.weight(.semibold))
+                                    .foregroundStyle(.white)
+                            }
+                            ForEach(activeOptions) { option in
+                                Button(action: option.action) {
+                                    HStack(spacing: 12) {
+                                        if let icon = option.icon {
+                                            Image(systemName: icon).foregroundStyle(LaterAIStyle.accent)
                                         }
-                                    } : nil
-                                ) {
-                                    conversation.save(context: modelContext)
+                                        VStack(alignment: .leading, spacing: 3) {
+                                            Text(option.title).font(.system(size: 14, weight: .semibold))
+                                            if let subtitle = option.subtitle {
+                                                Text(subtitle).font(.caption).foregroundStyle(.white.opacity(0.6))
+                                            }
+                                        }
+                                        Spacer()
+                                    }
+                                    .foregroundStyle(.white)
+                                    .padding(14)
+                                    .background(Color(hex: "1C1C1E"), in: RoundedRectangle(cornerRadius: 16))
+                                    .overlay(RoundedRectangle(cornerRadius: 16).strokeBorder(.white.opacity(0.08)))
                                 }
-                                if let reason = AppleLaterAIProvider.unavailableReason { Text(reason).font(.caption).foregroundStyle(.secondary) }
-                            } else if messages.isEmpty && conversation.savedItem == nil {
-                                emptyStateView
-                            } else {
-                                messageListView
+                                .buttonStyle(.plain)
                             }
-
-                            if !conversation.results.isEmpty {
-                                matchedResultsView
-                            }
-
-                            if let error = conversation.error {
-                                errorRetryView(error)
-                            }
-
-                            if isThinking {
-                                thinkingIndicatorView
-                            }
-
-                            Color.clear
-                                .frame(height: 24)
-                                .id("bottomAnchor")
+                            Color.clear.frame(height: 1).id("bottomAnchor")
                         }
-                        .padding(.horizontal, 20)
-                        .padding(.top, 16)
-                        .padding(.bottom, 24)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                     }
                     .scrollDismissesKeyboard(.interactively)
                     .onChange(of: messages.count) { _, _ in
-                        withAnimation(.easeOut(duration: 0.28)) {
-                            proxy.scrollTo("bottomAnchor", anchor: .bottom)
-                        }
+                        withAnimation { proxy.scrollTo("bottomAnchor", anchor: .bottom) }
                     }
-                    .onChange(of: isThinking) { _, thinking in
-                        if thinking {
-                            withAnimation(.easeOut(duration: 0.28)) {
-                                proxy.scrollTo("bottomAnchor", anchor: .bottom)
-                            }
-                        }
+                    .onChange(of: isThinking) { _, _ in
+                        withAnimation { proxy.scrollTo("bottomAnchor", anchor: .bottom) }
                     }
                 }
-                .offset(y: travelFactor * -120)
+                .frame(maxHeight: .infinity)
 
-                // Bottom Area: Options Dock when popups are active, or standard Chat Composer
-                if !conversation.manual && conversation.chatAvailable {
-                    if !activeOptions.isEmpty && !forceShowTextInput {
-                        LaterAIOptionsDock(
-                            title: optionsTitle,
-                            options: activeOptions,
-                            onManualType: {
-                                withAnimation(.easeInOut(duration: 0.22)) {
-                                    forceShowTextInput = true
-                                }
-                            }
-                        )
-                        .offset(y: travelFactor * -80)
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
-                    } else {
-                        VStack(spacing: 6) {
-                            if !activeOptions.isEmpty && forceShowTextInput {
-                                HStack {
-                                    Button(action: {
-                                        withAnimation(.easeInOut(duration: 0.22)) {
-                                            forceShowTextInput = false
-                                        }
-                                    }) {
-                                        HStack(spacing: 5) {
-                                            Image(systemName: "square.grid.2x2")
-                                                .font(.system(size: 11, weight: .bold))
-                                            Text("Show quick options")
-                                                .font(.system(size: 12, weight: .semibold))
-                                        }
-                                        .foregroundColor(LaterAIStyle.accent)
-                                        .padding(.horizontal, 12)
-                                        .padding(.vertical, 5)
-                                        .background(Color(white: 24.0/255), in: Capsule())
-                                        .overlay(Capsule().strokeBorder(Color.white.opacity(0.12), lineWidth: 1))
-                                    }
-                                    .buttonStyle(.plain)
-                                    Spacer()
-                                }
-                                .padding(.horizontal, 18)
-                            }
-
-                            bottomChatInputBar
-                        }
-                        .offset(y: travelFactor * -80)
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
-                    }
+                if conversation.savedItem == nil {
+                    bottomChatInputBar
                 }
             }
-            .offset(y: travelFactor * -160)
-            .opacity(max(0.0, min(1.0, (clampedProgress - 0.08) / 0.74)))
-            .mask(
-                FeatherFlowShape(progress: progress, centerDipFraction: 0.32)
-                    .ignoresSafeArea()
-            )
         }
+        .padding(.horizontal, 20)
+        .padding(.top, 12)
+        .padding(.bottom, 12)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(hex: "0C0C0D").ignoresSafeArea())
+        .preferredColorScheme(.light)
+        .offset(y: travelFactor * -160)
+        .opacity(clampedProgress)
         .onAppear {
             if let prompt = LaterAIManager.shared.initialPrompt {
                 triggerInitialPrompt(prompt)
@@ -243,118 +189,67 @@ public struct LaterAIView: View {
             }
             .presentationDetents([.medium, .large])
         }
-        .gesture(
-            DragGesture()
-                .onChanged { value in
-                    if value.translation.height < 0 {
-                        // Dragging UP to dismiss smoothly
-                        let delta = abs(value.translation.height) / 260.0
-                        progress = max(0.0, 1.0 - delta)
-                    }
-                }
-                .onEnded { value in
-                    if value.translation.height < -60 || value.predictedEndTranslation.height < -120 {
-                        dismiss()
-                    } else {
-                        withAnimation(.spring(response: 0.38, dampingFraction: 0.82)) {
-                            progress = 1.0
-                        }
-                    }
-                }
-        )
     }
 
     // MARK: - Top Header Bar
     private var topBar: some View {
-        LaterAIHeader(canReset: !messages.isEmpty, close: { dismiss() }, reset: {
-            withAnimation {
-                conversation.reset()
-                forceShowTextInput = false
+        VStack(alignment: .leading, spacing: 8) {
+            Capsule()
+                .fill(Color(hex: "38383A"))
+                .frame(width: 38, height: 4)
+                .frame(maxWidth: .infinity)
+            HStack {
+                HStack(spacing: 2) {
+                    modeButton("Later AI", icon: "sparkles", guided: false)
+                    modeButton("Guided", icon: "doc.text", guided: true)
+                }
+                .padding(3)
+                .background(Color(hex: "1B1B1E"), in: RoundedRectangle(cornerRadius: 14))
+                .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(.white.opacity(0.12)))
+                Spacer(minLength: 8)
+                if !messages.isEmpty {
+                    Button("Clear") { conversation.reset(); inputText = "" }
+                        .font(.system(size: 13))
+                        .foregroundStyle(Color(hex: "A1A1AA"))
+                }
+                Button(action: dismiss) {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .frame(width: 32, height: 32)
+                        .background(.white.opacity(0.08), in: Circle())
+                }
+                .accessibilityLabel("Close Later AI")
             }
-        })
+            Text(conversation.manual ? "Step-by-step structured capture" : "Your personal vault assistant")
+                .font(.system(size: 11))
+                .foregroundStyle(Color(hex: "A1A1AA"))
+        }
+        .buttonStyle(.plain)
     }
 
-    // MARK: - Empty State (ChatGPT Mobile Style)
-    private var emptyStateView: some View {
-        VStack(spacing: 24) {
-            Spacer(minLength: 30)
-
-            // Glowing Brand Orb
-            ZStack {
-                Circle()
-                    .fill(
-                        RadialGradient(
-                            colors: [AppTheme.accent.opacity(0.35), Color.clear],
-                            center: .center,
-                            startRadius: 10,
-                            endRadius: 65
-                        )
-                    )
-                    .frame(width: 130, height: 130)
-
-                Circle()
-                    .fill(Color(hex: "1C1C1E"))
-                    .frame(width: 72, height: 72)
-                    .overlay(
-                        Circle()
-                            .strokeBorder(Color.white.opacity(0.12), lineWidth: 1)
-                    )
-
-                Image(systemName: "sparkles")
-                    .font(.system(size: 28, weight: .medium))
-                    .foregroundColor(AppTheme.accent)
-            }
-
-            // Headline
-            VStack(spacing: 8) {
-                Text("How can I help you today?")
-                    .font(.system(size: 24, weight: .semibold))
-                    .foregroundColor(.white)
-                    .multilineTextAlignment(.center)
-
-                Text("Ask about your saved items, upcoming return dates, or organize your vault.")
-                    .font(.system(size: 14))
-                    .foregroundColor(Color.white.opacity(0.6))
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 24)
-            }
-
-            // Prompt Suggestion Chips
-            VStack(spacing: 10) {
-                ForEach(promptSuggestions, id: \.self) { prompt in
-                    Button {
-                        sendMessage(prompt)
-                    } label: {
-                        HStack {
-                            Text(prompt)
-                                .font(.system(size: 14, weight: .regular))
-                                .foregroundColor(Color.white.opacity(0.9))
-                                .multilineTextAlignment(.leading)
-
-                            Spacer()
-
-                            Image(systemName: "arrow.up.right")
-                                .font(.system(size: 12, weight: .semibold))
-                                .foregroundColor(Color.white.opacity(0.4))
-                        }
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 14)
-                        .background(
-                            RoundedRectangle(cornerRadius: 14)
-                                .fill(Color(hex: "171717"))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 14)
-                                        .strokeBorder(Color.white.opacity(0.08), lineWidth: 1)
-                                )
-                        )
-                    }
-                    .buttonStyle(.plain)
+    private func modeButton(_ title: String, icon: String, guided: Bool) -> some View {
+        let selected = conversation.manual == guided
+        return Button {
+            isInputFocused = false
+            if guided {
+                if !inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    conversation.draft.content = inputText
                 }
+                conversation.continueManually()
+            } else {
+                conversation.manual = false
             }
-            .padding(.top, 10)
-
-            Spacer(minLength: 20)
+        } label: {
+            Label(title, systemImage: icon)
+                .font(.system(size: 12, weight: .bold))
+                .foregroundStyle(selected ? Color.black : Color.white.opacity(0.7))
+                .padding(.horizontal, 9)
+                .padding(.vertical, 8)
+                .background(selected ? LaterAIStyle.accent : .clear, in: RoundedRectangle(cornerRadius: 10))
         }
+        .accessibilityAddTraits(selected ? .isSelected : [])
+        .accessibilityIdentifier(guided ? "laterai.mode.guided" : "laterai.mode.ai")
     }
 
     // MARK: - Message List
@@ -663,12 +558,57 @@ public struct LaterAIView: View {
 
     // MARK: - Bottom ChatGPT Mobile Chat Input Bar
     private var bottomChatInputBar: some View {
-        VStack(spacing: 6) {
+        VStack(spacing: 8) {
             attachedSubjectBar
-            LaterAIComposer(text: $inputText, thinking: isThinking,
-                            attach: { conversation.continueManually() },
-                            send: { sendMessage(inputText) })
+            if messages.isEmpty {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(promptSuggestions, id: \.self) { prompt in
+                            Button { sendMessage(prompt) } label: {
+                                HStack(spacing: 6) {
+                                    Text(prompt).foregroundStyle(.white.opacity(0.85))
+                                    Image(systemName: "arrow.right").foregroundStyle(LaterAIStyle.accent)
+                                }
+                                .font(.system(size: 12, weight: .medium))
+                                .padding(.horizontal, 14)
+                                .padding(.vertical, 8)
+                                .background(Color(hex: "1C1C1E"), in: Capsule())
+                                .overlay(Capsule().strokeBorder(.white.opacity(0.12)))
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+            }
+            HStack(spacing: 10) {
+                TextField("", text: $inputText,
+                          prompt: Text("Message Later AI…").foregroundStyle(.white.opacity(0.4)), axis: .vertical)
+                    .font(.system(size: 15))
+                    .foregroundStyle(.white)
+                    .tint(LaterAIStyle.accent)
+                    .lineLimit(1...4)
+                    .focused($isInputFocused)
+                    .padding(.vertical, 6)
+                Button { sendMessage(inputText) } label: {
+                    Image(systemName: "arrow.up")
+                        .font(.system(size: 18, weight: .medium))
+                        .foregroundStyle(canSend ? Color.black : Color.white.opacity(0.35))
+                        .frame(width: 36, height: 36)
+                        .background(canSend ? LaterAIStyle.accent : .white.opacity(0.1), in: Circle())
+                }
+                .disabled(!canSend)
+                .accessibilityLabel("Send message")
+            }
+            .padding(.leading, 16)
+            .padding(6)
+            .background(Color(hex: "1C1C1E"), in: RoundedRectangle(cornerRadius: 26))
+            .overlay(RoundedRectangle(cornerRadius: 26).strokeBorder(.white.opacity(0.12)))
+            .buttonStyle(.plain)
         }
+    }
+
+    private var canSend: Bool {
+        !isThinking && !inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     private func triggerInitialPrompt(_ prompt: String) {
