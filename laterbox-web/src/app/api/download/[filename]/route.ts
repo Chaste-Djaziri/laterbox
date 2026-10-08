@@ -100,6 +100,18 @@ export async function GET(
       return new NextResponse(`File not found: ${filename}`, { status: 404 });
     }
 
+    const isApk = filename.toLowerCase().endsWith('.apk');
+    const candidates = isApk
+      ? Array.from(new Set([
+          filename,
+          'laterbox.apk',
+          'LaterBox.apk',
+          'laterbox-android.apk',
+          'laterbox-android-release.apk',
+          'app-release.apk',
+        ]))
+      : [filename];
+
     // 1. If token is available, resolve asset via GitHub Release API for direct binary access
     if (token) {
       try {
@@ -120,13 +132,16 @@ export async function GET(
 
           let matchedAsset: { id: number; name: string; url: string; size: number } | undefined;
           for (const rel of releases) {
-            const found = rel.assets?.find(
-              (a) => a.name.toLowerCase() === filename.toLowerCase()
-            );
-            if (found) {
-              matchedAsset = found;
-              break;
+            for (const cand of candidates) {
+              const found = rel.assets?.find(
+                (a) => a.name.toLowerCase() === cand.toLowerCase()
+              );
+              if (found) {
+                matchedAsset = found;
+                break;
+              }
             }
+            if (matchedAsset) break;
           }
 
           if (matchedAsset) {
@@ -149,10 +164,10 @@ export async function GET(
               const rawStreamRes = await fetch(signedLocation);
 
               if (rawStreamRes.ok && rawStreamRes.body) {
-                const mimeType = getMimeType(filename);
+                const mimeType = getMimeType(matchedAsset.name || filename);
                 const resHeaders = new Headers({
                   'Content-Type': mimeType,
-                  'Content-Disposition': `attachment; filename="${filename}"`,
+                  'Content-Disposition': `attachment; filename="${matchedAsset.name || filename}"`,
                   'Content-Transfer-Encoding': 'binary',
                   'X-Content-Type-Options': 'nosniff',
                   'Cache-Control': 'public, max-age=3600, s-maxage=3600',
@@ -180,36 +195,71 @@ export async function GET(
       }
     }
 
-    // 2. Direct Release Download URL (Public or authenticated fallback)
-    const downloadUrl = `https://github.com/${GITHUB_REPO}/releases/latest/download/${filename}`;
-    const upstreamRes = await fetch(downloadUrl, {
-      headers: {
-        ...authHeader,
-        'Accept': 'application/octet-stream',
-      },
-      redirect: 'follow',
-    });
-
-    if (upstreamRes.ok && upstreamRes.body) {
-      const mimeType = getMimeType(filename);
-      const resHeaders = new Headers({
-        'Content-Type': mimeType,
-        'Content-Disposition': `attachment; filename="${filename}"`,
-        'Content-Transfer-Encoding': 'binary',
-        'X-Content-Type-Options': 'nosniff',
-        'Cache-Control': 'public, max-age=3600, s-maxage=3600',
-        'Access-Control-Allow-Origin': '*',
+    // 2. Direct Release Download URL (Public or authenticated fallback across candidates)
+    for (const cand of candidates) {
+      const downloadUrl = `https://github.com/${GITHUB_REPO}/releases/latest/download/${cand}`;
+      const upstreamRes = await fetch(downloadUrl, {
+        headers: {
+          ...authHeader,
+          'Accept': 'application/octet-stream',
+        },
+        redirect: 'follow',
       });
 
-      const contentLength = upstreamRes.headers.get('content-length');
-      if (contentLength) {
-        resHeaders.set('Content-Length', contentLength);
+      if (upstreamRes.ok && upstreamRes.body) {
+        const mimeType = getMimeType(cand);
+        const resHeaders = new Headers({
+          'Content-Type': mimeType,
+          'Content-Disposition': `attachment; filename="${cand}"`,
+          'Content-Transfer-Encoding': 'binary',
+          'X-Content-Type-Options': 'nosniff',
+          'Cache-Control': 'public, max-age=3600, s-maxage=3600',
+          'Access-Control-Allow-Origin': '*',
+        });
+
+        const contentLength = upstreamRes.headers.get('content-length');
+        if (contentLength) {
+          resHeaders.set('Content-Length', contentLength);
+        }
+
+        return new NextResponse(upstreamRes.body as any, {
+          status: 200,
+          headers: resHeaders,
+        });
       }
+    }
 
-      return new NextResponse(upstreamRes.body as any, {
-        status: 200,
-        headers: resHeaders,
+    // 3. Fallback for Android APK to known release asset if latest tag resolution was delayed
+    if (isApk) {
+      const fallbackUrl = `https://github.com/${GITHUB_REPO}/releases/download/v1.0.170/laterbox-android.apk`;
+      const fallbackRes = await fetch(fallbackUrl, {
+        headers: {
+          ...authHeader,
+          'Accept': 'application/octet-stream',
+        },
+        redirect: 'follow',
       });
+
+      if (fallbackRes.ok && fallbackRes.body) {
+        const resHeaders = new Headers({
+          'Content-Type': 'application/vnd.android.package-archive',
+          'Content-Disposition': 'attachment; filename="LaterBox.apk"',
+          'Content-Transfer-Encoding': 'binary',
+          'X-Content-Type-Options': 'nosniff',
+          'Cache-Control': 'public, max-age=3600, s-maxage=3600',
+          'Access-Control-Allow-Origin': '*',
+        });
+
+        const contentLength = fallbackRes.headers.get('content-length');
+        if (contentLength) {
+          resHeaders.set('Content-Length', contentLength);
+        }
+
+        return new NextResponse(fallbackRes.body as any, {
+          status: 200,
+          headers: resHeaders,
+        });
+      }
     }
 
     return new NextResponse(`File not found: ${filename}`, { status: 404 });
