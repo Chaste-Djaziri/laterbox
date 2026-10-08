@@ -59,7 +59,7 @@ struct LaterAIComposer: View {
                     .overlay(RoundedRectangle(cornerRadius: 24).strokeBorder(Color.white.opacity(0.12), lineWidth: 1))
             }.padding(.horizontal, 16).padding(.top, 8)
             Text("Later AI can make mistakes. Verify important info.").font(.system(size: 11)).foregroundStyle(Color.white.opacity(0.35)).padding(.bottom, 6)
-        }.background(.black).buttonStyle(.plain).colorScheme(.dark)
+        }.background(.black).buttonStyle(.plain).environment(\.colorScheme, .light)
     }
 }
 
@@ -229,6 +229,6 @@ struct LaterAIOptionsDock: View {
         }
         .padding(.top, 8)
         .background(Color.black)
-        .colorScheme(.dark)
+        .environment(\.colorScheme, .light)
     }
 }
