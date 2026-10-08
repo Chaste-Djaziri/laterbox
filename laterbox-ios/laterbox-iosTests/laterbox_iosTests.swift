@@ -50,6 +50,36 @@ struct LaterAITests {
         let partial = LBItem(title: "Work notes")
         #expect(LocalItemSearch.search("deep work", in: [partial, exact]).first?.id == exact.id)
     }
+    @Test func refinementPreservesExactMatchesAndAddsSynonymsOnce() {
+        let exact = LBItem(title: "Bicycle repair")
+        let expanded = LBItem(title: "Cycle maintenance")
+        let interpretation = SearchInterpretation(terms: "cycle maintenance", contentType: "", returnWindow: "")
+        let results = LocalSearchController.refinedResults(interpretation, query: "bicycle", items: [exact, expanded])
+        #expect(results.first?.id == exact.id)
+        #expect(results.contains { $0.id == expanded.id })
+        #expect(Set(results.map(\.id)).count == results.count)
+    }
+
+    @Test func refinementAppliesDateAndTypeFiltersWithoutDeletedItems() {
+        let today = LBItem(title: "Focus", type: .article)
+        today.returnAt = Date()
+        let wrongType = LBItem(title: "Focus", type: .note)
+        wrongType.returnAt = Date()
+        let later = LBItem(title: "Focus", type: .article)
+        later.returnAt = Date().addingTimeInterval(86400 * 3)
+        let deleted = LBItem(title: "Focus", type: .article, status: .deleted)
+        deleted.returnAt = Date()
+        let interpretation = SearchInterpretation(terms: "", contentType: "article", returnWindow: "today")
+        #expect(LocalSearchController.refinedResults(interpretation, query: "articles returning today", items: [today, wrongType, later, deleted]).map(\.id) == [today.id])
+    }
+
+    @Test func emptyInterpretationKeepsOriginalQuery() {
+        let matching = LBItem(title: "Soup recipe")
+        let unrelated = LBItem(title: "Quarterly budget")
+        let interpretation = SearchInterpretation(terms: "", contentType: "unsupported", returnWindow: "unsupported")
+        #expect(LocalSearchController.refinedResults(interpretation, query: "soup", items: [matching, unrelated]).map(\.id) == [matching.id])
+    }
+
     @Test func weekendIsSaturdayAndDatesDecodeFractionalSeconds() throws {
         var calendar = Calendar(identifier: .gregorian); calendar.timeZone = TimeZone(secondsFromGMT: 0)!
         let monday = try #require(ISO8601DateFormatter().date(from: "2026-10-05T12:00:00Z"))
