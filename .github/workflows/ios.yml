@@ -19,12 +19,12 @@ jobs:
     runs-on: xcode-27
     timeout-minutes: 40
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Confirm Xcode 27
         run: |
           xcodebuild -version
           xcodebuild -version | grep -q 'Xcode 27\.'
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
       - run: pip install -r laterbox-ios/ci/requirements.txt
@@ -32,7 +32,7 @@ jobs:
         run: python -m unittest discover -s laterbox-ios/ci -p 'test_*.py'
       - name: Run native Swift and UI tests
         run: python laterbox-ios/ci/run_tests.py
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         if: always()
         with:
           name: ios-tests-${{ github.run_id }}-${{ github.run_attempt }}
@@ -55,8 +55,8 @@ jobs:
       APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
       APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
       - run: pip install -r laterbox-ios/ci/requirements.txt
@@ -101,7 +101,7 @@ jobs:
         run: |
           xcodebuild -exportArchive -archivePath "$RUNNER_TEMP/LaterBox.xcarchive" \
             -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" -exportPath "$RUNNER_TEMP/IPA"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: laterbox-ios-${{ env.IOS_VERSION }}-${{ env.IOS_BUILD }}
           path: |
