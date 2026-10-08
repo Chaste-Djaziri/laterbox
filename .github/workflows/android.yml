@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: android-${{ github.ref }}
@@ -74,13 +74,17 @@ jobs:
           WEB_BASE_URL: ${{ secrets.WEB_BASE_URL }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
 
-      - name: Verify build outputs
+      - name: Verify and prepare build outputs
         run: |
           ls -la app/build/outputs/bundle/release/
           ls -la app/build/outputs/apk/release/
           ls -la app/build/outputs/apk/debug/
           test -f app/build/outputs/bundle/release/*.aab || { echo "Missing release AAB"; exit 1; }
           test -f app/build/outputs/apk/release/*.apk || { echo "Missing release APK"; exit 1; }
+          cp app/build/outputs/apk/release/app-release.apk app/build/outputs/apk/release/laterbox.apk
+          cp app/build/outputs/apk/release/app-release.apk app/build/outputs/apk/release/laterbox-android.apk
+          cp app/build/outputs/apk/release/app-release.apk app/build/outputs/apk/release/laterbox-android-release.apk
+          cp app/build/outputs/bundle/release/app-release.aab app/build/outputs/bundle/release/laterbox-android-release.aab
 
       - name: Upload Android App Bundle (AAB)
         uses: actions/upload-artifact@v4
@@ -102,6 +106,29 @@ jobs:
           name: laterbox-android-debug-apk-${{ github.run_id }}
           path: laterbox-android/app/build/outputs/apk/debug/*.apk
           if-no-files-found: warn
+
+      - name: Resolve release version tag
+        id: release_version
+        run: |
+          VERSION=$(node -e "try { console.log(require('../version.json').version); } catch { console.log('1.0.174'); }")
+          echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
+          echo "title=LaterBox v$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Attach APK and App Bundle to GitHub Release
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.release_version.outputs.tag }}
+          name: ${{ steps.release_version.outputs.title }}
+          draft: false
+          prerelease: false
+          files: |
+            laterbox-android/app/build/outputs/apk/release/laterbox.apk
+            laterbox-android/app/build/outputs/apk/release/laterbox-android.apk
+            laterbox-android/app/build/outputs/apk/release/laterbox-android-release.apk
+            laterbox-android/app/build/outputs/bundle/release/laterbox-android-release.aab
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Google Play service account
         id: play_setup
