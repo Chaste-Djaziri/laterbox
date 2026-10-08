@@ -1,4 +1,5 @@
 import { browser } from '../platform/api';
+import { installDashboardBridge } from './dashboard-bridge';
 import { sendRuntimeMessage } from '../platform/messaging';
 import { captureFromPage, extractRenderedPage } from '../lib/page';
 import { createInstagramControls } from './instagram-controls';
@@ -9,6 +10,8 @@ import { createXProfileControls } from './x-profile';
 import { createLinkedInProfileControls } from './linkedin-profile';
 import type { InstagramPost } from './social';
 import type { Capture, CaptureResult } from '../types/capture';
+
+installDashboardBridge();
 
 const host = document.createElement('div');
 host.setAttribute('data-laterbox-control','');
