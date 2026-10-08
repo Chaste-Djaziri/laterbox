@@ -44,8 +44,8 @@ public final class StoreKitManager: ObservableObject {
         self.transactionListenerTask = listenForTransactions()
 
         Task {
-            await loadProducts()
             await updatePurchasedProducts()
+            await loadProducts()
         }
     }
 
