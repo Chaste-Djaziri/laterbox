@@ -4,6 +4,7 @@ import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { FilterBar } from '@/components/inbox/FilterBar';
+import { InboxExtensionGate } from '@/components/inbox/InboxExtensionGate';
 import { ItemCard } from '@/components/inbox/ItemCard';
 import { ItemListRow } from '@/components/inbox/ItemListRow';
 import { useItems } from '@/lib/store/ItemContext';
@@ -188,6 +189,7 @@ export default function InboxPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
+      <InboxExtensionGate userId={user?.id} />
       {/* ========================================================================= */}
       {/* Top Header & Omnibar Controls */}
       {/* ========================================================================= */}
