@@ -3,6 +3,7 @@ import SwiftUI
 struct GuidedCaptureView: View {
     @Binding var draft: CaptureDraft
     var onCancel: (() -> Void)? = nil
+    var fillsAvailableSpace = false
     var save: () -> Void
 
     @State private var step = 0
@@ -11,9 +12,10 @@ struct GuidedCaptureView: View {
     @State private var date = Date().addingTimeInterval(86400)
     private let categories = ["General", "Reading", "Work", "Ideas", "Learning", "Personal"]
 
-    init(draft: Binding<CaptureDraft>, onCancel: (() -> Void)? = nil, save: @escaping () -> Void) {
+    init(draft: Binding<CaptureDraft>, onCancel: (() -> Void)? = nil, fillsAvailableSpace: Bool = false, save: @escaping () -> Void) {
         self._draft = draft
         self.onCancel = onCancel
+        self.fillsAvailableSpace = fillsAvailableSpace
         self.save = save
     }
 
@@ -21,19 +23,16 @@ struct GuidedCaptureView: View {
         VStack(alignment: .leading, spacing: 18) {
             headerView
 
-            Group {
-                switch step {
-                case 0:
-                    step0ContentView
-                case 1:
-                    step1TitleView
-                case 2:
-                    step2CategoryView
-                default:
-                    step3ReturnScheduleView
+            if fillsAvailableSpace && step == 0 {
+                step0ContentView
+                    .frame(maxHeight: .infinity, alignment: .top)
+            } else {
+                ScrollView {
+                    stepContent
                 }
+                .scrollDismissesKeyboard(.interactively)
+                .frame(maxHeight: fillsAvailableSpace ? .infinity : nil)
             }
-            .transition(.opacity.combined(with: .move(edge: .trailing)))
 
             footerNavigation
         }
@@ -60,18 +59,28 @@ struct GuidedCaptureView: View {
                 }
             } catch { /* Metadata is optional; manual saving stays available. */ }
         }
-        .padding(20)
+        .padding(fillsAvailableSpace ? 0 : 20)
         .foregroundStyle(.white)
         .background(
             RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .fill(Color(white: 18.0 / 255))
+                .fill(fillsAvailableSpace ? Color.clear : Color(white: 18.0 / 255))
                 .overlay(
                     RoundedRectangle(cornerRadius: 22, style: .continuous)
-                        .strokeBorder(Color.white.opacity(0.12), lineWidth: 1)
+                        .strokeBorder(Color.white.opacity(fillsAvailableSpace ? 0 : 0.12), lineWidth: 1)
                 )
-                .shadow(color: Color.black.opacity(0.35), radius: 14, y: 8)
+                .shadow(color: Color.black.opacity(fillsAvailableSpace ? 0 : 0.35), radius: 14, y: 8)
         )
         .preferredColorScheme(.light)
+    }
+
+    @ViewBuilder
+    private var stepContent: some View {
+        switch step {
+        case 0: step0ContentView
+        case 1: step1TitleView
+        case 2: step2CategoryView
+        default: step3ReturnScheduleView
+        }
     }
 
     // MARK: - Header
@@ -107,7 +116,7 @@ struct GuidedCaptureView: View {
                 }
             }
 
-            Text("MANUAL CAPTURE • STEP \(step + 1) OF 4")
+            Text("GUIDED CAPTURE • STEP \(step + 1) OF 4")
                 .font(.system(size: 11, weight: .bold))
                 .foregroundColor(LaterAIStyle.accent)
                 .tracking(0.6)
@@ -141,7 +150,7 @@ struct GuidedCaptureView: View {
                     .foregroundColor(.white)
                     .tint(LaterAIStyle.accent)
                     .padding(8)
-                    .frame(minHeight: 110, maxHeight: 160)
+                    .frame(minHeight: 110, maxHeight: fillsAvailableSpace ? .infinity : 160)
             }
             .background(Color(white: 24.0 / 255), in: RoundedRectangle(cornerRadius: 14))
             .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(Color.white.opacity(0.12), lineWidth: 1))
