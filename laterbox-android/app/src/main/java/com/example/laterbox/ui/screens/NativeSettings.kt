@@ -61,6 +61,7 @@ fun NativeSettings(repository: DataRepository, onAuth: () -> Unit, onTrash: () -
     var signOut by remember { mutableStateOf(false) }
     var plans by remember { mutableStateOf(false) }
     var aiSettings by remember { mutableStateOf(false) }
+    var supportSheet by remember { mutableStateOf(false) }
     var busy by remember { mutableStateOf(false) }
     var bytes by remember { mutableLongStateOf(0) }
     var storageRefresh by remember { mutableIntStateOf(0) }
@@ -189,6 +190,11 @@ fun NativeSettings(repository: DataRepository, onAuth: () -> Unit, onTrash: () -
             }
         }
         item {
+            SettingsGroup("HELP & FEEDBACK", Icons.Default.SupportAgent) {
+                SettingsAction(Icons.Default.QuestionAnswer, "Help & Report a Problem", "Contact us for issues, questions, or feedback") { supportSheet = true }
+            }
+        }
+        item {
             SettingsGroup("ABOUT LATERBOX", Icons.Default.Info) {
                 SettingsAction(Icons.Default.PrivacyTip, "Privacy Policy") { open(Intent(Intent.ACTION_VIEW, Uri.parse("https://laterbox.dev/privacy"))) }
                 SettingsAction(Icons.Default.Description, "Terms of Service") { open(Intent(Intent.ACTION_VIEW, Uri.parse("https://laterbox.dev/terms"))) }
@@ -205,6 +211,7 @@ fun NativeSettings(repository: DataRepository, onAuth: () -> Unit, onTrash: () -
     if (clearing) AlertDialog(onDismissRequest = { if (!busy) clearing = false }, title = { Text("Empty trash permanently?") }, text = { Text("Deleted local captures and unused attachments will be removed. Export a backup first if you need them.") }, confirmButton = { TextButton(enabled = !busy, onClick = { task { BackupService.clearTrash(context); clearing = false; storageRefresh++; message = "Trash cleanup completed." } }) { Text("Empty Trash") } }, dismissButton = { TextButton(onClick = { clearing = false }) { Text("Cancel") } })
     if (plans) PlansSheet { plans = false }
     if (aiSettings) AISettingsSheet { aiSettings = false }
+    if (supportSheet) SupportRequestSheet { supportSheet = false }
 }
 
 @Composable
