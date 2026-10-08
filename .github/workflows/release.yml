@@ -2,7 +2,7 @@ name: Web Build & Deploy
 on:
   push:
     branches: [main]
-    paths: ['laterbox-web/**', '.github/workflows/release.yml']
+    paths: ['laterbox-web/**', 'version.json', '.github/workflows/release.yml']
   pull_request:
     branches: [main]
     paths: ['laterbox-web/**', 'supabase/**', '.github/workflows/release.yml']
