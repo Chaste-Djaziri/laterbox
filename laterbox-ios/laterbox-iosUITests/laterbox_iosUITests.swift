@@ -5,12 +5,32 @@ final class laterbox_iosUITests: XCTestCase {
 
     @MainActor
     private func reveal(_ button: XCUIElement, in app: XCUIApplication) {
-        let dock = app.scrollViews.containing(.button, identifier: button.label).firstMatch
         for _ in 0..<6 {
-            if dock.frame.contains(button.frame) { return }
-            if button.frame.midX < dock.frame.midX { dock.swipeRight() } else { dock.swipeLeft() }
+            if button.isHittable { return }
+            app.scrollViews.firstMatch.swipeUp()
         }
-        XCTAssertTrue(dock.frame.contains(button.frame))
+        XCTAssertTrue(button.isHittable)
+    }
+
+    @MainActor
+    func testModeSwitchPreservesTypedContent() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["-lb_guest_mode", "YES", "-lb_user_email", ""]
+        app.launch()
+        XCTAssertTrue(app.buttons["Open Later AI"].waitForExistence(timeout: 15))
+        app.buttons["Open Later AI"].tap()
+        let input = app.textFields.firstMatch
+        XCTAssertTrue(input.waitForExistence(timeout: 5))
+        input.tap()
+        input.typeText("Keep this draft")
+        app.buttons["laterai.mode.guided"].tap()
+        let editor = app.textViews.firstMatch
+        XCTAssertTrue(editor.waitForExistence(timeout: 5))
+        XCTAssertEqual(editor.value as? String, "Keep this draft")
+        app.buttons["laterai.mode.ai"].tap()
+        XCTAssertEqual(app.textFields.firstMatch.value as? String, "Keep this draft")
+        app.buttons["Close Later AI"].tap()
+        XCTAssertTrue(app.buttons["Open Later AI"].waitForExistence(timeout: 5))
     }
 
     @MainActor
@@ -18,9 +38,11 @@ final class laterbox_iosUITests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments = ["-lb_guest_mode", "YES", "-lb_user_email", ""]
         app.launch()
-        XCTAssertTrue(app.buttons["Add item"].waitForExistence(timeout: 15))
-        app.buttons["Add item"].tap()
-        if app.buttons["Guided capture"].waitForExistence(timeout: 3) { app.buttons["Guided capture"].tap() }
+        XCTAssertTrue(app.buttons["Open Later AI"].waitForExistence(timeout: 15))
+        app.buttons["Open Later AI"].tap()
+        let guided = app.buttons["laterai.mode.guided"]
+        XCTAssertTrue(guided.waitForExistence(timeout: 5))
+        guided.tap()
         let content = app.descendants(matching: .any)["capture.content"].firstMatch
         XCTAssertTrue(content.waitForExistence(timeout: 5))
         XCTAssertFalse(app.textFields["Message Later AI..."].exists)
