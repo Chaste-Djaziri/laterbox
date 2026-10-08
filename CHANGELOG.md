@@ -5,6 +5,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 ## [Unreleased]
 
 ### Changed
+- **[iOS] Free Apple Intelligence**: Allow on-device Apple Intelligence without Pro, including local search refinement, and fall back to the Apple model when Gemini fails or is disabled on supported devices, including shared captures.
 - **[iOS] Pro settings and icon picker**: Simplified app icon selection and Pro indicators, detect App Store subscriptions at launch before loading prices, refresh Pro access on return, and keep model selection and semantic search refinement responsive to subscription and settings changes.
 - **[iOS] Android-style Later AI**: Added Later AI and Guided mode tabs, a full-height guided capture editor with bottom navigation, a compact close/clear header, inline capture actions, and floating prompt suggestions above the chat composer.
 - **[iOS] Light appearance only**: Keep the app, share extension, sheets, and shared components in light mode regardless of the device appearance setting, and remove adaptive dark styling from shared cards and backgrounds.
