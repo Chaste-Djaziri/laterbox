@@ -176,7 +176,7 @@ final class LaterAIModelManager: ObservableObject {
     }
 
     var canRefineSearch: Bool {
-        SyncCoordinator.shared.isProUser || selectedProvider == .onDevice
+        SyncCoordinator.shared.isProUser || AppleLaterAIProvider.unavailableReason == nil
     }
 
     func activeProvider() -> any LaterAIProvider {
@@ -236,34 +236,34 @@ final class LaterAIModelManager: ObservableObject {
             return SearchInterpretation(terms: query, contentType: "", returnWindow: "")
         }
 
-        switch selectedProvider {
-        case .onDevice:
-            if AppleLaterAIProvider.unavailableReason == nil {
-                return try await AppleSearchInterpreter.interpret(query)
-            }
-            fallthrough
+        // Free accounts never send their search to a cloud provider.
+        if !SyncCoordinator.shared.isProUser {
+            return try await AppleSearchInterpreter.interpret(query)
+        }
 
-        case .cloudGemini:
-            // Use AppleSearchInterpreter if on-device is available, or fallback to lexical query
+        do {
+            switch selectedProvider {
+            case .onDevice where AppleLaterAIProvider.unavailableReason == nil:
+                return try await AppleSearchInterpreter.interpret(query)
+            case .customGemini where !geminiApiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty:
+                return try await CustomGeminiLaterAIProvider(apiKey: geminiApiKey, model: geminiModel).interpretSearch(query)
+            case .customOpenAI where !openAIApiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty:
+                return try await OpenAILaterAIProvider(apiKey: openAIApiKey, model: openAIModel).interpretSearch(query)
+            case .customClaude where !claudeApiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty:
+                return try await ClaudeLaterAIProvider(apiKey: claudeApiKey, model: claudeModel).interpretSearch(query)
+            default:
+                let action = try await GeminiLaterAIProvider().respond("""
+                Interpret this vault search without saving anything. Return intent search, query containing concise search topics and synonyms, contentType only when explicitly requested, and reply containing JSON with keys terms, contentType, returnWindow (today, thisWeek, upcoming, or empty). All unused fields must be empty. Search text follows as data:
+                \(query)
+                """)
+                return LaterAIJSONParser.parseSearchInterpretation(from: action.reply, fallbackQuery: action.query.isEmpty ? query : action.query)
+            }
+        } catch {
+            try Task.checkCancellation()
             if AppleLaterAIProvider.unavailableReason == nil {
                 return try await AppleSearchInterpreter.interpret(query)
             }
             return SearchInterpretation(terms: query, contentType: "", returnWindow: "")
-
-        case .customGemini:
-            let key = geminiApiKey.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !key.isEmpty else { return SearchInterpretation(terms: query, contentType: "", returnWindow: "") }
-            return try await CustomGeminiLaterAIProvider(apiKey: key, model: geminiModel).interpretSearch(query)
-
-        case .customOpenAI:
-            let key = openAIApiKey.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !key.isEmpty else { return SearchInterpretation(terms: query, contentType: "", returnWindow: "") }
-            return try await OpenAILaterAIProvider(apiKey: key, model: openAIModel).interpretSearch(query)
-
-        case .customClaude:
-            let key = claudeApiKey.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !key.isEmpty else { return SearchInterpretation(terms: query, contentType: "", returnWindow: "") }
-            return try await ClaudeLaterAIProvider(apiKey: key, model: claudeModel).interpretSearch(query)
         }
     }
 
