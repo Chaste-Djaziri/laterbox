@@ -13,10 +13,10 @@ final class LaterAIConversation: ObservableObject {
     @Published var results: [LBItem] = []
     @Published var needsClarification = false
     @Published var needsReturnDate = false
-    private let provider: any LaterAIProvider
+    private let provider: (any LaterAIProvider)?
     var chatAvailable: Bool { true }
     init(provider: (any LaterAIProvider)? = nil) {
-        self.provider = provider ?? LaterAIModelManager.shared.activeProvider()
+        self.provider = provider
         manual = false
     }
     private var lastCaptureWasManual = false
@@ -34,6 +34,7 @@ final class LaterAIConversation: ObservableObject {
     func send(_ text: String, items: [LBItem], context: ModelContext, retry: Bool = false) {
         let input = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !input.isEmpty, !thinking else { return }
+        let provider = self.provider ?? LaterAIModelManager.shared.activeProvider()
         lastInput = input
         if (needsReturnDate || savedItem != nil), let parsed = RelativeDateParser.parse(input) {
             schedule(parsed.date, intervalDescription: parsed.isRelative ? "(in \(parsed.intervalDescription))" : "(\(parsed.intervalDescription))", context: context)
