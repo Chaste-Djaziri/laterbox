@@ -14,17 +14,10 @@ public struct HomeView: View {
     @ObservedObject var coordinator = SyncCoordinator.shared
 
     @State private var showingQuickCapture = false
-    @State private var searchText: String = ""
-    @StateObject private var search = LocalSearchController()
+    @State private var showingSearch = false
 
     private var inboxItems: [LBItem] {
         allItems.filter { $0.status == ItemStatus.inbox.rawValue }
-    }
-
-    private var searchResults: [LBItem] {
-        let q = searchText.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !q.isEmpty else { return [] }
-        return search.results
     }
 
     private var returnedTodayCount: Int {
@@ -134,82 +127,23 @@ public struct HomeView: View {
                         }
                         .padding(.top, 4)
 
-                        // Search Bar right under greetings
-                        HStack(spacing: 10) {
-                            Image(systemName: "magnifyingglass")
-                                .font(.system(size: 15, weight: .semibold))
-                                .foregroundColor(AppTheme.textSecondary)
-
-                            TextField("Search your vault...", text: $searchText)
-                                .task(id: searchText + allItems.map { $0.updatedAt.ISO8601Format() }.joined()) { search.update(searchText, items: allItems) }
-                                .font(.subheadline)
-                                .foregroundColor(AppTheme.textPrimary)
-
-                            if !searchText.isEmpty {
-                                Button(action: {
-                                    LBHaptic.light()
-                                    searchText = ""
-                                }) {
-                                    Image(systemName: "xmark.circle.fill")
-                                        .font(.system(size: 14))
-                                        .foregroundColor(AppTheme.textSecondary)
-                                }
-                                .buttonStyle(.plain)
+                        Button {
+                            LBHaptic.light()
+                            showingSearch = true
+                        } label: {
+                            HStack(spacing: 10) {
+                                Image(systemName: "magnifyingglass")
+                                Text("Search your vault...")
+                                Spacer()
                             }
+                            .font(.subheadline)
+                            .foregroundStyle(AppTheme.textSecondary)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 13)
+                            .liquidGlassCard(cornerRadius: 14)
                         }
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 11)
-                        .background(
-                            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                .fill(AppTheme.cardBackground)
-                        )
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                .strokeBorder(AppTheme.cardBorder, lineWidth: 1)
-                        )
-                        .shadow(color: Color.black.opacity(0.03), radius: 6, x: 0, y: 2)
-
-                        // Search Results Section when query entered
-                        if !searchText.isEmpty {
-                            VStack(alignment: .leading, spacing: 12) {
-                                HStack {
-                                    Text("SEARCH RESULTS (\(searchResults.count))")
-                                        .font(.caption.weight(.bold))
-                                        .foregroundColor(AppTheme.textSecondary)
-                                        .tracking(0.6)
-                                    Spacer()
-                                }
-
-                                if searchResults.isEmpty {
-                                    VStack(spacing: 8) {
-                                        Text("No matching items found")
-                                            .font(.subheadline.weight(.semibold))
-                                            .foregroundColor(AppTheme.textPrimary)
-                                        Text("Try searching with a different keyword or domain.")
-                                            .font(.caption)
-                                            .foregroundColor(AppTheme.textSecondary)
-                                    }
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 16)
-                                    .liquidGlassCard(cornerRadius: 16)
-                                } else {
-                                    ForEach(searchResults) { item in
-                                        NavigationLink(destination: ItemDetailView(item: item)) {
-                                            ItemCardView(
-                                                item: item,
-                                                onMarkDone: { coordinator.markDone(item: item, context: modelContext) },
-                                                onToggleFavorite: { coordinator.toggleFavorite(item: item, context: modelContext) },
-                                                onSchedule: {
-                                                    coordinator.scheduleItem(item: item, date: Calendar.current.date(byAdding: .day, value: 1, to: Date())!, context: modelContext)
-                                                },
-                                                onDelete: { coordinator.deleteItem(item: item, context: modelContext) }
-                                            )
-                                        }
-                                        .buttonStyle(.plain)
-                                    }
-                                }
-                            }
-                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Search your vault")
 
                         // Preview Counts: Returned Today & Waiting in Inbox
                         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
@@ -472,6 +406,7 @@ public struct HomeView: View {
                 .trackPullDownForLaterAI()
             }
             .navigationBarHidden(true)
+            .fullScreenCover(isPresented: $showingSearch) { VaultSearchView() }
             .sheet(isPresented: $showingQuickCapture) {
                 QuickCaptureSheet()
             }
