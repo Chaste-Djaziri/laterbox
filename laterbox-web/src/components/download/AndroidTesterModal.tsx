@@ -93,17 +93,19 @@ export function AndroidTesterModal({
               </a>
           </div>
 
-          <div className="pt-2 border-t border-[#e4e0d5] flex items-center justify-end">
-              {onDownloadApk && (
-                <button
-                  type="button"
-                  onClick={onDownloadApk}
-                  className="inline-flex items-center gap-1.5 text-xs font-bold text-[#171711] hover:underline cursor-pointer"
-                >
-                  <Download className="w-3.5 h-3.5" />
-                  <span>Download .apk directly</span>
-                </button>
-              )}
+          <div className="pt-3 border-t border-[#e4e0d5] flex items-center justify-between">
+            <span className="text-[11px] text-[#6c6b63]">
+              Need direct installation?
+            </span>
+            <a
+              href="/api/download/laterbox.apk"
+              download="LaterBox.apk"
+              onClick={onDownloadApk}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#ebe7dc] hover:bg-[#ded9cc] text-[#171711] text-xs font-bold transition-colors cursor-pointer shadow-2xs"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Download .apk directly</span>
+            </a>
           </div>
         </div>
       </div>

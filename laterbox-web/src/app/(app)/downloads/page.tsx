@@ -9,6 +9,7 @@ import {
   Laptop,
   Terminal,
   Smartphone,
+  Download,
   Puzzle,
   CheckCircle2,
   ExternalLink,
@@ -144,34 +145,42 @@ export default function InAppDownloadsPage() {
 
         {/* 4 Platform Status Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Android - Under Development */}
+          {/* Android - Public Beta / Direct APK */}
           <div className="p-5 rounded-2xl bg-white border border-[#e4e0d5] space-y-4 flex flex-col justify-between hover:border-[#171711]/40 transition-all shadow-2xs">
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-700">
+                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-700">
                   <Smartphone className="w-5 h-5" />
                 </div>
-                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10.5px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
-                  <Hammer className="w-3 h-3 text-amber-700" />
-                  <span>Under Development</span>
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10.5px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-300">
+                  <Sparkles className="w-3 h-3 text-emerald-600" />
+                  <span>Public Beta</span>
                 </span>
               </div>
               <div>
                 <h3 className="text-base font-bold text-[#171711]">Android</h3>
                 <p className="text-xs text-[#6c6b63] mt-1.5 leading-relaxed">
-                  Native Android app built with Jetpack Compose featuring system share sheet integration and offline sync.
+                  Native Android app with biometric lock, instant share sheet capture, and offline AI vault.
                 </p>
               </div>
             </div>
 
-            <div className="pt-2 border-t border-[#f0ede4]">
+            <div className="pt-2 border-t border-[#f0ede4] space-y-2">
+              <a
+                href="/api/download/laterbox.apk"
+                download="LaterBox.apk"
+                className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-[#171711] hover:bg-[#282723] text-white text-xs font-bold transition-all cursor-pointer shadow-2xs"
+              >
+                <Download className="w-3.5 h-3.5 text-[#E7FF57]" />
+                <span>Download .apk</span>
+              </a>
               <button
                 type="button"
                 onClick={() => setIsAndroidModalOpen(true)}
-                className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-[#171711] hover:bg-[#282723] text-white text-xs font-bold transition-all cursor-pointer shadow-2xs"
+                className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl text-[#6c6b63] hover:text-[#171711] hover:bg-[#ebe7dc]/50 text-[11px] font-bold transition-all cursor-pointer"
               >
-                <span>Join Android Testers</span>
-                <ArrowRight className="w-3.5 h-3.5 text-[#E7FF57]" />
+                <span>Google Play Beta</span>
+                <ArrowRight className="w-3 h-3" />
               </button>
             </div>
           </div>
@@ -357,6 +366,9 @@ export default function InAppDownloadsPage() {
       <AndroidTesterModal
         isOpen={isAndroidModalOpen}
         onClose={() => setIsAndroidModalOpen(false)}
+        onDownloadApk={() => {
+          window.location.href = '/api/download/laterbox.apk';
+        }}
       />
     </div>
   );
