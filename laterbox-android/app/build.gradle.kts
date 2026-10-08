@@ -46,11 +46,18 @@ android {
     signingConfigs {
         create("release") {
             val keystorePath: String? = System.getenv("ANDROID_KEYSTORE_PATH") ?: localProperties.getProperty("KEYSTORE_PATH")
-            if (!keystorePath.isNullOrBlank() && file(keystorePath).exists()) {
-                storeFile = file(keystorePath)
-                storePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD") ?: localProperties.getProperty("KEYSTORE_PASSWORD")
-                keyAlias = System.getenv("ANDROID_KEY_ALIAS") ?: localProperties.getProperty("KEY_ALIAS")
-                keyPassword = (System.getenv("ANDROID_KEY_PASSWORD") ?: localProperties.getProperty("KEY_PASSWORD"))?.takeIf { it.isNotBlank() } ?: storePassword
+            val resolvedKeystore = keystorePath?.takeIf { it.isNotBlank() }?.let { path ->
+                val direct = file(path)
+                if (direct.exists()) direct else rootProject.file(path)
+            }
+            if (resolvedKeystore != null && resolvedKeystore.exists()) {
+                storeFile = resolvedKeystore
+                storePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
+                    ?: localProperties.getProperty("KEYSTORE_PASSWORD", "laterbox_release_key")
+                keyAlias = System.getenv("ANDROID_KEY_ALIAS")
+                    ?: localProperties.getProperty("KEY_ALIAS", "upload")
+                keyPassword = (System.getenv("ANDROID_KEY_PASSWORD") ?: localProperties.getProperty("KEY_PASSWORD"))
+                    ?.takeIf { it.isNotBlank() } ?: storePassword
             }
         }
     }
