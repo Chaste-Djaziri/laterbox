@@ -37,6 +37,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       if (isCtrlOptL) {
         e.preventDefault();
+        if (document.querySelector('dialog:modal')) return;
         setCaptureOpen((prev) => !prev);
       }
     };
@@ -48,6 +49,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        if (document.querySelector('dialog:modal')) {
+          e.preventDefault();
+          return;
+        }
         // If search modal is already open, toggle it closed
         if (searchOpen) {
           e.preventDefault();
