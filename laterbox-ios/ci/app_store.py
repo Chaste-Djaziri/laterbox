@@ -38,10 +38,8 @@ def version(value):
 
 def release_numbers(metadata, builds, store_versions):
     selected = version(metadata["version"])
-    published = [version(v["attributes"]["versionString"]) for v in store_versions]
-    if published and max(published) >= selected:
-        major, minor, patch = max(published)
-        selected = (major, minor, patch + 1)
+    # Marketing versions change only when explicitly edited in version.json.
+    # TestFlight uploads advance CFBundleVersion independently.
     baseline = max([int(metadata["buildNumber"])] + [version(b["attributes"]["version"])[0] for b in builds])
     if baseline >= 9999: raise ValueError("Build number requires a new numbering scheme")
     return ".".join(map(str, selected)), str(baseline + 1)
