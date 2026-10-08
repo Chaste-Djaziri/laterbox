@@ -2,10 +2,10 @@ name: Web Build & Deploy
 on:
   push:
     branches: [main]
-    paths: ['laterbox-web/**', 'version.json', '.github/workflows/release.yml']
+    paths: ['laterbox-web/**', 'laterbox-extension/**', 'version.json', '.github/workflows/release.yml']
   pull_request:
     branches: [main]
-    paths: ['laterbox-web/**', 'supabase/**', '.github/workflows/release.yml']
+    paths: ['laterbox-web/**', 'laterbox-extension/**', 'supabase/**', '.github/workflows/release.yml']
   workflow_dispatch:
 permissions:
   contents: read
@@ -36,6 +36,11 @@ jobs:
         run: |
           deno check supabase/functions/notifications/index.ts
           deno test -A supabase/tests/notifications.test.ts supabase/functions/notifications/providers.test.ts supabase/functions/capture/capture.test.ts supabase/functions/extension-connect/extension-connect.test.ts
+      - name: Build and package Web Extensions
+        working-directory: laterbox-extension
+        run: |
+          npm ci
+          npm run package
       - name: Build Cloudflare application
         working-directory: laterbox-web
         env:
