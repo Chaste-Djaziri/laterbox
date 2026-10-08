@@ -78,7 +78,7 @@ struct AIModelSettingsView: View {
             Button { coordinator.showingPlansSheet = true } label: {
                 HStack(spacing: 10) {
                     Image(systemName: "lock")
-                    Text("Unlock model selection and search refinement with Pro")
+                    Text("Apple Intelligence is free. Unlock cloud and custom models with Pro.")
                         .font(.subheadline.weight(.medium))
                     Spacer()
                     Image(systemName: "chevron.right").font(.caption)
@@ -113,7 +113,7 @@ struct AIModelSettingsView: View {
                         .font(.caption.monospaced())
                         .foregroundColor(AppTheme.textSecondary)
 
-                    if coordinator.isProUser && modelManager.enableSearchRefine {
+                    if modelManager.canRefineSearch && modelManager.enableSearchRefine {
                         Text("• Refine Active")
                             .font(.caption2.weight(.medium))
                             .foregroundColor(Color.green)
@@ -178,7 +178,7 @@ struct AIModelSettingsView: View {
 
     private func providerRow(provider: AIProviderType) -> some View {
         let selected = modelManager.selectedProvider == provider
-        let locked = !coordinator.isProUser
+        let locked = provider != .onDevice && !coordinator.isProUser
         return Button {
             guard !locked else {
                 coordinator.showingPlansSheet = true
@@ -392,9 +392,9 @@ struct AIModelSettingsView: View {
     private var searchRefineSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             Toggle(isOn: Binding(
-                get: { coordinator.isProUser && modelManager.enableSearchRefine },
+                get: { modelManager.canRefineSearch && modelManager.enableSearchRefine },
                 set: { enabled in
-                    if coordinator.isProUser {
+                    if modelManager.canRefineSearch {
                         modelManager.enableSearchRefine = enabled
                     } else {
                         coordinator.showingPlansSheet = true
@@ -404,7 +404,7 @@ struct AIModelSettingsView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(spacing: 6) {
                         Text("Semantic Search").font(.subheadline.weight(.medium))
-                        if !coordinator.isProUser {
+                        if !modelManager.canRefineSearch {
                             Label("Pro", systemImage: "lock")
                                 .font(.caption)
                                 .foregroundStyle(AppTheme.textSecondary)
