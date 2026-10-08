@@ -121,6 +121,13 @@ jobs:
           path: laterbox-android/app/build/outputs/bundle/release/*.aab
           if-no-files-found: error
 
+      - name: Preserve R8 crash mapping and optimization reports
+        uses: actions/upload-artifact@v6
+        with:
+          name: laterbox-android-r8-${{ github.run_id }}
+          path: laterbox-android/app/build/outputs/mapping/release/
+          if-no-files-found: error
+
       - name: Upload Android Release APK
         uses: actions/upload-artifact@v4
         with:
@@ -184,5 +191,6 @@ jobs:
           serviceAccountJson: laterbox-android/play_service_account.json
           packageName: pro.micorp.laterbox
           releaseFiles: laterbox-android/app/build/outputs/bundle/release/app-release.aab
+          mappingFile: laterbox-android/app/build/outputs/mapping/release/mapping.txt
           tracks: ${{ vars.GOOGLE_PLAY_TRACK || 'internal' }}
           status: completed
