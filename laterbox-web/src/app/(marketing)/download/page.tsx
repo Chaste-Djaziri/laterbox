@@ -286,12 +286,13 @@ export default function DownloadPage() {
             </div>
             <div className="space-y-2 pt-2 border-t border-[#f0ede4]">
               <a
-                href="/api/download/laterbox-chrome-extension.zip"
-                download="laterbox-chrome-extension.zip"
+                href="https://chromewebstore.google.com/detail/laterbox-save-for-later/egiodciikkepjielhbnihmmchkbpeikp?authuser=0&hl=en"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-[#171711] hover:bg-[#282723] text-white text-xs font-bold transition-all cursor-pointer shadow-2xs"
               >
                 <Download className="w-3.5 h-3.5 text-[#E7FF57]" />
-                <span>Download .zip</span>
+                <span>Install from Chrome Web Store</span>
               </a>
               <Link
                 href="/extension/connect"
