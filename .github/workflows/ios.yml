@@ -87,7 +87,7 @@ jobs:
           chmod 600 "$ASC_KEY_PATH"
           echo "ASC_KEY_PATH=$ASC_KEY_PATH" >> "$GITHUB_ENV"
           python laterbox-ios/ci/signing.py
-      - name: Determine newer version and build
+      - name: Keep marketing version and increment TestFlight build
         run: python laterbox-ios/ci/app_store.py prepare
       - name: Archive native app and embedded share extension
         run: |
