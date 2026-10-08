@@ -103,7 +103,9 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
 
       - name: Verify R8 optimization and Play thresholds
-        run: python3 ci/verify_r8.py app/build/outputs/bundle/release/app-release.aab
+        run: |
+          python3 -m unittest discover -s ci -p 'test_*.py'
+          python3 ci/verify_r8.py app/build/outputs/bundle/release/app-release.aab
 
       - name: Verify and prepare build outputs
         run: |
