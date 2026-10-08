@@ -45,9 +45,9 @@ jobs:
             echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | tr -d '\r\n ' | base64 -d > app/release.keystore 2>/dev/null || \
             echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > app/release.keystore 2>/dev/null || true
 
-            STORE_PASS="${{ secrets.ANDROID_KEYSTORE_PASSWORD || 'laterbox_release_key' }}"
+            STORE_PASS="${{ secrets.ANDROID_STORE_PASSWORD || secrets.ANDROID_KEYSTORE_PASSWORD || 'laterbox_release_key' }}"
             KEY_ALIAS="${{ secrets.ANDROID_KEY_ALIAS || 'upload' }}"
-            KEY_PASS="${{ secrets.ANDROID_KEY_PASSWORD || secrets.ANDROID_KEYSTORE_PASSWORD || 'laterbox_release_key' }}"
+            KEY_PASS="${{ secrets.ANDROID_KEY_PASSWORD || secrets.ANDROID_STORE_PASSWORD || secrets.ANDROID_KEYSTORE_PASSWORD || 'laterbox_release_key' }}"
 
             if [ -s app/release.keystore ]; then
               echo "Verifying keystore credentials with keytool..."
@@ -162,19 +162,19 @@ jobs:
         id: play_setup
         shell: bash
         run: |
-          if [ -n "${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}" ]; then
+          RAW_SECRET='${{ secrets.PLAY_STORE_SERVICE_ACCOUNT_JSON || secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}'
+          if [ -n "$RAW_SECRET" ]; then
             echo "Google Play credentials secret found. Preparing service account file..."
-            raw_secret='${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}'
-            if [[ "$raw_secret" =~ ^\{ ]]; then
-              echo "$raw_secret" > play_service_account.json
+            if [[ "$RAW_SECRET" =~ ^\{ ]]; then
+              echo "$RAW_SECRET" > play_service_account.json
             else
-              echo "$raw_secret" | base64 --decode > play_service_account.json
+              echo "$RAW_SECRET" | base64 --decode > play_service_account.json
             fi
             echo "has_secret=true" >> "$GITHUB_OUTPUT"
             echo "PLAY_SERVICE_ACCOUNT_FILE=$GITHUB_WORKSPACE/laterbox-android/play_service_account.json" >> "$GITHUB_ENV"
           else
             echo "has_secret=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::GOOGLE_PLAY_SERVICE_ACCOUNT_JSON secret is not configured. Google Play submission will be skipped."
+            echo "::notice::Neither PLAY_STORE_SERVICE_ACCOUNT_JSON nor GOOGLE_PLAY_SERVICE_ACCOUNT_JSON secret is configured. Google Play submission will be skipped."
           fi
 
       - name: Submit Android App Bundle to Google Play Store
