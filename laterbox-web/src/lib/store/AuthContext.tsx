@@ -4,6 +4,7 @@ import { disableCloudNotifications, suspendCloudNotifications, resumeCloudNotifi
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { User, Session, AuthError } from '@supabase/supabase-js';
 import { getSupabaseClient } from '../supabase/client';
+import { clearExtensionStatusCache } from '../extension/dashboard';
 
 interface AuthContextType {
   user: User | null;
@@ -87,6 +88,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (derived) setUserNameState(derived);
         }
       } else if (event === 'SIGNED_OUT') {
+        clearExtensionStatusCache();
         setSession(null);
         setUser(null);
         setIsGuest(true);
@@ -216,6 +218,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch {
       // Local sign-out should not throw even if network or server token is rejected
     }
+    clearExtensionStatusCache();
     setUser(null);
     setSession(null);
     setIsGuest(true);
