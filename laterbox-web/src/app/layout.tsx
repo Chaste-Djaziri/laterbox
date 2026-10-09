@@ -4,6 +4,7 @@ import { AuthProvider } from '@/lib/store/AuthContext';
 import { ItemProvider } from '@/lib/store/ItemContext';
 import { BillingProvider } from '@/lib/store/BillingContext';
 import { WebUpdateBanner } from '@/components/ui/WebUpdateBanner';
+import { MobileBlockOverlay } from '@/components/ui/MobileBlockOverlay';
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://laterbox.dev'),
@@ -156,6 +157,7 @@ export default function RootLayout({
             <ItemProvider>
               {children}
               <WebUpdateBanner />
+              <MobileBlockOverlay />
             </ItemProvider>
           </BillingProvider>
         </AuthProvider>
