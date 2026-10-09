@@ -50,9 +50,9 @@ export function InboxExtensionGate({ userId }: { userId?: string }) {
 
   useEffect(() => {
     const element = dialog.current;
-    if (state.connected) element?.close();
+    if (state.connected || state.checking) { if (element?.open) element.close(); }
     else if (element && !element.open) element.showModal();
-  }, [state.connected]);
+  }, [state.connected, state.checking]);
 
   const connect = async () => {
     const signal = abort.current?.signal;
