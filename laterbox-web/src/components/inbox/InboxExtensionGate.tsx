@@ -3,11 +3,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { ArrowRight, CheckCircle2, Loader2, Puzzle, RefreshCw } from 'lucide-react';
-import { CHROME_EXTENSION_URL, requestExtension, type ExtensionStatus } from '@/lib/extension/dashboard';
+import { CHROME_EXTENSION_URL, cacheExtensionConnected, extensionSessionKey, getCachedExtensionConnected, requestExtension, type ExtensionStatus } from '@/lib/extension/dashboard';
+import { useAuth } from '@/lib/store/AuthContext';
 
 type State = ExtensionStatus & { checking?: boolean };
 
 export function InboxExtensionGate({ userId }: { userId?: string }) {
+  const { session } = useAuth();
+  const cacheKey = extensionSessionKey(userId, session?.access_token);
   const [state, setState] = useState<State>({ installed: false, connected: false, checking: true });
   const [connecting, setConnecting] = useState(false);
   const [error, setError] = useState('');
@@ -16,18 +19,25 @@ export function InboxExtensionGate({ userId }: { userId?: string }) {
   const check = useCallback(async () => {
     const signal = abort.current?.signal;
     if (!signal || signal.aborted) return;
+    if (getCachedExtensionConnected(cacheKey)) { setState({ installed: true, connected: true }); return; }
     try {
       const result = await requestExtension('status', userId || '', signal);
-      if (!signal.aborted) setState(result);
+      if (signal.aborted) return;
+      if (result.connected) cacheExtensionConnected(cacheKey);
+      setState(result);
     } catch { /* Ignore checks cancelled by navigation or account changes. */ }
-  }, [userId]);
+  }, [userId, cacheKey]);
 
   useEffect(() => {
     const controller = new AbortController();
     abort.current = controller;
-    setState({ installed: false, connected: false, checking: true });
     setError('');
     setConnecting(false);
+    if (getCachedExtensionConnected(cacheKey)) {
+      setState({ installed: true, connected: true });
+      return () => controller.abort();
+    }
+    setState({ installed: false, connected: false, checking: true });
     void check();
     const interval = setInterval(() => { if (document.visibilityState === 'visible') void check(); }, 5000);
     window.addEventListener('focus', check);
@@ -36,7 +46,7 @@ export function InboxExtensionGate({ userId }: { userId?: string }) {
       clearInterval(interval);
       window.removeEventListener('focus', check);
     };
-  }, [check]);
+  }, [check, cacheKey]);
 
   useEffect(() => {
     const element = dialog.current;
