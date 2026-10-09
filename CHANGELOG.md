@@ -5,6 +5,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 ## [Unreleased]
 
 ### Changed
+- **[Web] Cached extension check**: Remember a successful Inbox extension connection for the current sign-in session instead of re-checking on every visit; the cached result is cleared on sign-out, when the browser session closes, or when a new session starts.
 - **[Web] Mobile access notice**: Block the web app on phones and tablets with a full-screen overlay explaining the mobile apps are still in development.
 - **[Mobile CI] Automatic build numbering**: Assign a unique Android version code for each workflow run and retry, increment iOS builds above App Store Connect history, and preserve the configured marketing version on both platforms.
 - **[Android CI] Release runner compatibility**: Use Node.js 24 workflow actions and pin the release runner to Ubuntu 24.04 for reproducible builds.
