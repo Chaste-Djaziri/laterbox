@@ -27,13 +27,27 @@ export interface ItemThreadEntry {
 export interface ItemThreadData {
   version: 1;
   entries: ItemThreadEntry[];
+  rootReactions?: Record<string, number>;
+  rootUserReactions?: string[];
+}
+
+export interface ParsedItemThread {
+  entries: ItemThreadEntry[];
+  rootReactions: Record<string, number>;
+  rootUserReactions: string[];
 }
 
 export const POPULAR_REACTIONS = ['👍', '❤️', '💡', '🔥', '🚀', '👏'];
 
-export function parseItemThread(noteContent?: string | null): ItemThreadEntry[] {
+export function parseItemThread(noteContent?: string | null): ParsedItemThread {
+  const defaultResult: ParsedItemThread = {
+    entries: [],
+    rootReactions: {},
+    rootUserReactions: [],
+  };
+
   if (!noteContent || !noteContent.trim()) {
-    return [];
+    return defaultResult;
   }
 
   const trimmed = noteContent.trim();
@@ -42,8 +56,14 @@ export function parseItemThread(noteContent?: string | null): ItemThreadEntry[] 
   if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
     try {
       const parsed = JSON.parse(trimmed);
-      if (parsed && Array.isArray(parsed.entries)) {
-        return parsed.entries as ItemThreadEntry[];
+      if (parsed) {
+        return {
+          entries: Array.isArray(parsed.entries) ? (parsed.entries as ItemThreadEntry[]) : [],
+          rootReactions: parsed.rootReactions || {},
+          rootUserReactions: Array.isArray(parsed.rootUserReactions)
+            ? parsed.rootUserReactions
+            : [],
+        };
       }
     } catch {
       // Fallback to plain text note below
@@ -51,24 +71,38 @@ export function parseItemThread(noteContent?: string | null): ItemThreadEntry[] 
   }
 
   // Legacy plain-text note fallback
-  return [
-    {
-      id: 'initial-note',
-      type: 'note',
-      authorName: 'Note',
-      content: trimmed,
-      createdAt: new Date().toISOString(),
-    },
-  ];
+  return {
+    entries: [
+      {
+        id: 'initial-note',
+        type: 'note',
+        authorName: 'Note',
+        content: trimmed,
+        createdAt: new Date().toISOString(),
+      },
+    ],
+    rootReactions: {},
+    rootUserReactions: [],
+  };
 }
 
-export function serializeItemThread(entries: ItemThreadEntry[]): string {
-  if (!entries || entries.length === 0) {
+export function serializeItemThread(
+  entries: ItemThreadEntry[],
+  rootReactions: Record<string, number> = {},
+  rootUserReactions: string[] = []
+): string {
+  if (
+    (!entries || entries.length === 0) &&
+    Object.keys(rootReactions).length === 0 &&
+    rootUserReactions.length === 0
+  ) {
     return '';
   }
   const data: ItemThreadData = {
     version: 1,
-    entries,
+    entries: entries || [],
+    rootReactions,
+    rootUserReactions,
   };
   return JSON.stringify(data);
 }
@@ -179,3 +213,34 @@ export function voteThreadPoll(
     };
   });
 }
+
+export function toggleRootReaction(
+  currentReactions: Record<string, number> = {},
+  currentUserReactions: string[] = [],
+  emoji: string
+): { reactions: Record<string, number>; userReactions: string[] } {
+  const reactions = { ...(currentReactions || {}) };
+  const userReactions = [...(currentUserReactions || [])];
+  const alreadyReacted = userReactions.includes(emoji);
+
+  if (alreadyReacted) {
+    const currentCount = reactions[emoji] || 1;
+    if (currentCount <= 1) {
+      delete reactions[emoji];
+    } else {
+      reactions[emoji] = currentCount - 1;
+    }
+    return {
+      reactions,
+      userReactions: userReactions.filter((r) => r !== emoji),
+    };
+  } else {
+    reactions[emoji] = (reactions[emoji] || 0) + 1;
+    userReactions.push(emoji);
+    return {
+      reactions,
+      userReactions,
+    };
+  }
+}
+
