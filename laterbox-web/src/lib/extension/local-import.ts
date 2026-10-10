@@ -38,7 +38,7 @@ export function localCaptureItem(raw: unknown): LaterBoxItem {
 function request(action: 'local-import' | 'local-ack', ids?: string[]): Promise<{ captures?: unknown[]; ok?: boolean }> {
   return new Promise((resolve, reject) => {
     const requestId = crypto.randomUUID();
-    const timer = setTimeout(() => { cleanup(); reject(new Error('Local extension unavailable')); }, 4000);
+    const timer = setTimeout(() => { cleanup(); if (action === 'local-import') resolve({ captures: [] }); else reject(new Error('Local import acknowledgement interrupted')); }, 4000);
     const cleanup = () => { clearTimeout(timer); window.removeEventListener('message', receive); };
     const receive = (event: MessageEvent) => {
       if (event.source !== window || event.origin !== LOCAL_ORIGIN || event.data?.source !== 'laterbox-extension' || event.data?.requestId !== requestId) return;
