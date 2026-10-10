@@ -1,3 +1,4 @@
+import { isLocalMode, saveLocalCapture, readLocalCaptures, acknowledgeLocalCaptures, LOCAL_ORIGIN } from '../lib/local-library';
 import {
   cancelPendingConnection,
   connectLaterBoxViaTab,
@@ -12,6 +13,7 @@ import type { Capture, CaptureResult } from "../types/capture";
 const flushQueue = () => captureQueue.flush();
 async function saveCapture(capture: Capture): Promise<CaptureResult> {
   if (!capture || typeof capture !== "object" || (capture.url && !/^https?:\/\//i.test(capture.url)) || (capture.url?.length || 0) > 8192 || (capture.text?.length || 0) > 10000 || new TextEncoder().encode(capture.markdown || "").length > 204800) return { status: "error", reason: "invalid" };
+  if (await isLocalMode()) return saveLocalCapture(capture);
   return captureQueue.save(await enrichCapture(capture));
 }
 import { highlightTextInTab } from "../lib/highlight";
@@ -40,6 +42,16 @@ browser.contextMenus.onClicked.addListener((info, tab) => {
 
 browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (sender.id !== browser.runtime.id) return false;
+  if (message?.type === 'local-import' || message?.type === 'local-ack') {
+    if (sender.origin !== LOCAL_ORIGIN && (!sender.url || new URL(sender.url).origin !== LOCAL_ORIGIN)) return false;
+    if (message.type === 'local-import') {
+      void isLocalMode().then(async enabled => sendResponse({ captures: enabled ? (await readLocalCaptures()).slice(0, 10) : [] }));
+    } else {
+      if (!Array.isArray(message.ids) || message.ids.length > 10 || !message.ids.every((id: unknown) => typeof id === 'string' && id.length <= 100)) return false;
+      void acknowledgeLocalCaptures(message.ids).then(() => sendResponse({ ok: true })).catch(() => sendResponse({ ok: false }));
+    }
+    return true;
+  }
   if (message?.type === 'dashboard-status') {
     if (!isTrustedSender(sender) || typeof message.userId !== 'string') return false;
     void Promise.all([getConnectedUserId(), getAccessToken()])
@@ -54,7 +66,7 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
     void flushQueue().then(count=>sendResponse({count})).catch(()=>sendResponse({count:0})); return true;
   }
   if (message?.type === "connect-laterbox") {
-    connectLaterBoxViaTab()
+    browser.storage.local.set({ captureMode: "account" }).then(() => connectLaterBoxViaTab())
       .then((userId) => {
         try {
           sendResponse({ userId });
