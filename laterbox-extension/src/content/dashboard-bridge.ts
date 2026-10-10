@@ -10,7 +10,14 @@ export function installDashboardBridge(): void {
     if (event.source !== window || event.origin !== location.origin) return;
     const request = event.data;
     if (!request || request.source !== 'laterbox-dashboard' || typeof request.requestId !== 'string'
-      || request.requestId.length > 100 || !['status', 'connect'].includes(request.action)) return;
+      || request.requestId.length > 100 || !['status', 'connect', 'local-import', 'local-ack'].includes(request.action)) return;
+    if (request.action === 'local-import' || request.action === 'local-ack') {
+      if (location.origin !== 'http://localhost:8080') return;
+      void sendRuntimeMessage({ type: request.action, ids: request.ids }).then(result => {
+        window.postMessage({ source: 'laterbox-extension', requestId: request.requestId, ...result as object }, location.origin);
+      }).catch(() => {});
+      return;
+    }
     const message = request.action === 'status'
       ? { type: 'dashboard-status', userId: typeof request.userId === 'string' ? request.userId : '' }
       : { type: 'connect-laterbox' };
