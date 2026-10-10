@@ -203,7 +203,7 @@ async function exchangeRequest(
     const existing = await adminFetch(`/rest/v1/extension_sessions?select=user_id&token_hash=eq.${tokenHash}&revoked_at=is.null&expires_at=gt.${encodeURIComponent(dependencies.now().toISOString())}`,dependencies);
     const rows = existing.ok ? await existing.json() : [];
     if (rows[0]?.user_id !== connection.user_id) return json({error:'Connection unavailable; approve again'},409);
-    return json({extensionToken:token,userId:connection.user_id,isPro:await dependencies.hasProAccess(connection.user_id)},200);
+    return json({extensionToken:token,userId:connection.user_id,captureAllowed:true,isPro:await dependencies.hasProAccess(connection.user_id)},200);
   }
   const now = dependencies.now();
   const inserted = await adminFetch(
@@ -262,7 +262,7 @@ async function checkEntitlement(
   }
 
   const isPro = await dependencies.hasProAccess(session.user_id);
-  return json({ isPro, userId: session.user_id }, 200);
+  return json({ captureAllowed: true, isPro, userId: session.user_id }, 200);
 }
 
 async function revokeSession(
