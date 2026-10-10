@@ -9,6 +9,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 ## [Unreleased]
 
 ### Changed
+- **[Web] Custom authentication UI with Clerk**: Restore the existing LaterBox email, verification-code, and password screens while using Clerk authentication and retaining legacy-account migration.
 - **[Web] Preserve guest access across website and app origins**: Landing-page and footer app links carry an explicit guest destination during the Clerk rollout.
 - **[Web] Shared Clerk authentication and staged account migration**: Add shared website/app login, preserve existing account IDs and mobile access, and provide a gradual Supabase-to-Clerk migration behind a rollout flag.
 - **[Web] Simplify Help & FAQ page with dedicated form tab and streamlined FAQs**: Streamlined the `/help` page by removing extraneous metric cards and sidebar widgets. Created a focused, distraction-free "Report a Problem" tab containing only the submission form, simplified the FAQ tab with direct, concise answers and fast search, and organized past tickets into a clean "My Requests" tab.
