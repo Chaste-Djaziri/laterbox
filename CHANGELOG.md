@@ -9,6 +9,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 ## [Unreleased]
 
 ### Changed
+- **[Web] Move top header into layout of (app) routegroup**: Extracted the Top Header (Title, Centered Search, AI Organize, Save Item, Settings & Profile, and notification gate) into a shared layout component in AppShell with dynamic page titles, eliminating code duplication across Inbox, Today, and Upcoming pages.
 - **[Web] Upcoming page email UI table and unified dashboard layout**: Updated the Upcoming page to use the modern email inbox table and unified dashboard layout, keeping the notification bar, centered search, AI organize, quick capture, and user profile header identical to Inbox while displaying Upcoming postponed items.
 - **[Web] Today page email UI table and unified dashboard layout**: Updated the Today page to use the modern email inbox table and unified dashboard layout, keeping the notification bar, centered search, AI organize, quick capture, and user profile header identical to Inbox while displaying Today's scheduled items.
 - **[Web] Reduce gap between sidebar and inbox container**: Increased sidebar width to 256px and expanded the Inbox page container to full width without centering margin constraints, reducing the empty gap between the sidebar contents and the active inbox container.
