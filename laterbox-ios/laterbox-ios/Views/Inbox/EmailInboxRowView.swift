@@ -395,7 +395,7 @@ public struct EmailInboxRowView: View {
 
             Divider()
 
-            if item.status == ItemStatus.deleted.rawValue || item.deletedAt != nil {
+            if item.status == ItemStatus.deleted.rawValue {
                 if let onRestore {
                     Button {
                         onRestore()
