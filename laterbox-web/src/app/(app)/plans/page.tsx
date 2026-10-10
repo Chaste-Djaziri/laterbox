@@ -38,7 +38,7 @@ const proFeatures = [
   'Everything in Free tier',
   'Real-time cloud sync across all devices',
   'Cloud-backed attachments, images, and PDFs',
-  'Browser extensions (Chrome, Safari, Firefox)',
+
   'System share sheet integration (iOS & Android)',
   'macOS companion notch & screen OCR Watch Mode',
   'Instant deduplication & automatic enrichment',
@@ -146,7 +146,7 @@ function AppPlansContent() {
       {searchParams.get('source') === 'extension' && (
         <div className="rounded-2xl border border-[#d0db84] bg-[#fbffdc] px-4 py-3 text-center text-xs font-bold text-[#444a10] flex items-center justify-center gap-2">
           <Zap className="w-3.5 h-3.5 text-[#444a10] shrink-0" />
-          <span>Upgrade to LaterBox Pro below to activate and use your browser extension.</span>
+          <span>Browser extension capture is free. Connect your account or use a local library.</span>
         </div>
       )}
 
