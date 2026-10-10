@@ -1,12 +1,13 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { FilterBar } from '@/components/inbox/FilterBar';
 import { InboxExtensionGate } from '@/components/inbox/InboxExtensionGate';
 import { ItemCard } from '@/components/inbox/ItemCard';
 import { ItemListRow } from '@/components/inbox/ItemListRow';
 import { useItems } from '@/lib/store/ItemContext';
+import { Collection } from '@/lib/supabase/types';
 import { useAuth } from '@/lib/store/AuthContext';
 import { QuickCaptureModal } from '@/components/inbox/QuickCaptureModal';
 import { scheduleItems } from '@/lib/utils/schedule';
@@ -96,15 +97,31 @@ export default function InboxPage() {
     }
   };
 
+  const resolvedCollectionsMap = useRef<Map<string, Collection>>(new Map());
+
   const handleApplyCollection = async (itemId: string, collectionName: string) => {
-    let targetCol = collections.find((c) => c.name.toLowerCase() === collectionName.toLowerCase());
+    const trimmed = collectionName.trim();
+    if (!trimmed) return;
+    const lowerKey = trimmed.toLowerCase();
+
+    // 1. Check local cache from previous suggestions in this batch
+    let targetCol = resolvedCollectionsMap.current.get(lowerKey);
+
+    // 2. Check existing collections in user's vault
     if (!targetCol) {
-      targetCol = await createCollection(collectionName);
+      targetCol = collections.find((c) => c.name.trim().toLowerCase() === lowerKey && !c.deleted_at);
     }
+
+    // 3. Create if not found (ItemContext ensures idempotent creation)
+    if (!targetCol) {
+      targetCol = await createCollection(trimmed);
+    }
+
     if (targetCol) {
+      resolvedCollectionsMap.current.set(lowerKey, targetCol);
       await addItemToCollection(targetCol.id, itemId, targetCol);
+      setAppliedCollections((prev) => ({ ...prev, [itemId]: targetCol?.name || trimmed }));
     }
-    setAppliedCollections((prev) => ({ ...prev, [itemId]: collectionName }));
   };
 
   const handleApplyNextStep = async (itemId: string, nextStep: string) => {
