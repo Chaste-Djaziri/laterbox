@@ -49,7 +49,7 @@ test('migration preserves UUIDs and isolates both providers through RLS and Stor
       await db.exec('reset role');
     }
     await db.exec(`insert into auth.users(id,email) values('00000000-0000-4000-8000-000000000003','new@example.com');`);
-    assert.equal((await db.query('select count(*)::int as count from accounts')).rows[0].count,3);
+    assert.equal((await db.query<{ count: number }>('select count(*)::int as count from accounts')).rows[0].count,3);
   } finally { await db.close(); }
 });
 test('unknown issuer, unmapped subject and deleting account have no database access',async () => {
@@ -77,7 +77,7 @@ test('identity linking retries safely, rejects conflicts and cascades applicatio
     await db.exec(`delete from accounts where id='${a}'`);
     assert.deepEqual((await db.query('select * from items')).rows,[{ id: b,user_id: b }]);
     assert.deepEqual((await db.query('select user_id from support_requests')).rows,[{ user_id: null }]);
-    assert.equal((await db.query("select count(*)::int as count from account_identities where subject='user_a'")).rows[0].count,0);
+    assert.equal((await db.query<{ count: number }>("select count(*)::int as count from account_identities where subject='user_a'")).rows[0].count,0);
   } finally { await db.close(); }
 });
 test('provisioning recovery ignores user editable metadata',async () => {
