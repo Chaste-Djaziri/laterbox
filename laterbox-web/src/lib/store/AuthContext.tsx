@@ -16,7 +16,8 @@ interface AuthContextType {
   signInWithOtp: (email: string) => Promise<{ error: AuthError | null }>;
   verifyEmailOtp: (
     email: string,
-    token: string
+    token: string,
+    type?: 'email' | 'signup'
   ) => Promise<{ data?: { user: User | null; session: Session | null }; error: AuthError | null }>;
   resendSignupOtp: (email: string) => Promise<{ error: AuthError | null }>;
   signInWithPassword: (email: string, password: string) => Promise<{ error: AuthError | null }>;
@@ -133,13 +134,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error };
   };
 
-  const verifyEmailOtp = async (email: string, token: string) => {
+  const verifyEmailOtp = async (email: string, token: string, type: 'email' | 'signup' = 'email') => {
     const supabase = getSupabaseClient();
-    const { data, error } = await supabase.auth.verifyOtp({
+    let { data, error } = await supabase.auth.verifyOtp({
       email,
       token,
-      type: 'email',
+      type,
     });
+
+    // If verification failed, attempt the alternate type (e.g. signup vs email token)
+    if (error) {
+      const fallbackType = type === 'email' ? 'signup' : 'email';
+      const fallbackResult = await supabase.auth.verifyOtp({
+        email,
+        token,
+        type: fallbackType,
+      });
+      if (!fallbackResult.error) {
+        data = fallbackResult.data;
+        error = null;
+      }
+    }
+
     if (!error && data?.session) {
       setSession(data.session);
       setUser(data.user);
