@@ -21,6 +21,7 @@ export type Capture = {
   createdAt: string;
 };
 export type CaptureResult = {
+  local?: boolean;
   id?: string;
   status: 'saved' | 'queued' | 'needsAuth' | 'proRequired' | 'error';
   reason?: 'network' | 'server' | 'proRequired' | 'invalid';
