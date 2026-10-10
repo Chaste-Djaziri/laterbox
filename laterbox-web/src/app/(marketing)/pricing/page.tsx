@@ -129,7 +129,7 @@ function PricingContent() {
         {searchParams.get('source') === 'extension' && (
           <div className="mx-auto mb-6 max-w-xl rounded-2xl border border-[#d0db84] bg-[#fbffdc] px-4 py-3 text-center text-xs font-bold text-[#444a10] flex items-center justify-center gap-2">
             <Zap className="size-3.5 text-[#444a10] shrink-0" />
-            <span>Upgrade to LaterBox Pro to use the browser extension across all your tabs.</span>
+            <span>Browser extension capture is free for everyone, including local use without an account.</span>
           </div>
         )}
         <header className="mx-auto max-w-3xl text-center">
