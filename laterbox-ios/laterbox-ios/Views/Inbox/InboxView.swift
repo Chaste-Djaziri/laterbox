@@ -672,15 +672,15 @@ public struct InboxView: View {
     private func deletePermanently(item: LBItem) {
         modelContext.delete(item)
         try? modelContext.save()
-        LBHaptic.notification(.warning)
+        LBHaptic.warning()
     }
 
     private func restoreItem(item: LBItem) {
         item.status = ItemStatus.inbox.rawValue
-        item.deletedAt = nil
+        item.updatedAt = Date()
         item.isSyncPending = true
         try? modelContext.save()
-        LBHaptic.notification(.success)
+        LBHaptic.success()
     }
 
     private func emptyTrashPermanently() {
@@ -689,6 +689,6 @@ public struct InboxView: View {
             modelContext.delete(item)
         }
         try? modelContext.save()
-        LBHaptic.notification(.warning)
+        LBHaptic.warning()
     }
 }
