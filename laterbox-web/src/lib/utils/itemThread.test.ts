@@ -48,3 +48,29 @@ test('toggleRootReaction increments and removes emoji reaction', () => {
   assert.equal(second.reactions['❤️'], undefined);
   assert.deepEqual(second.userReactions, []);
 });
+
+test('serializeItemThread and parseItemThread preserve attachments', () => {
+  const entries = addThreadEntry([], {
+    type: 'document',
+    authorName: 'Alex',
+    content: 'Attached quarterly report',
+    attachments: [
+      {
+        id: 'att-123',
+        name: 'Report.pdf',
+        size: 1048576,
+        type: 'application/pdf',
+        extension: 'pdf',
+      },
+    ],
+  });
+
+  const serialized = serializeItemThread(entries);
+  const parsed = parseItemThread(serialized);
+
+  assert.equal(parsed.entries.length, 1);
+  assert.equal(parsed.entries[0].type, 'document');
+  assert.equal(parsed.entries[0].attachments?.length, 1);
+  assert.equal(parsed.entries[0].attachments?.[0].name, 'Report.pdf');
+  assert.equal(parsed.entries[0].attachments?.[0].size, 1048576);
+});

@@ -10,9 +10,18 @@ export interface ThreadPoll {
   userVotedOptionId?: string;
 }
 
+export interface ThreadAttachmentRef {
+  id: string;
+  name: string;
+  size: number;
+  type: string;
+  extension: string;
+  url?: string;
+}
+
 export interface ItemThreadEntry {
   id: string;
-  type: 'message' | 'poll' | 'note';
+  type: 'message' | 'poll' | 'note' | 'document';
   authorName?: string;
   content: string;
   createdAt: string;
@@ -22,6 +31,7 @@ export interface ItemThreadEntry {
   reactions?: Record<string, number>;
   userReactions?: string[];
   poll?: ThreadPoll;
+  attachments?: ThreadAttachmentRef[];
 }
 
 export interface ItemThreadData {
