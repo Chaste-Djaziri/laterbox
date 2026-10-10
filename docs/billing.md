@@ -129,6 +129,6 @@ Build Apple releases through the native Xcode workflow in [deployment](deploymen
 
 ## Access behavior
 
-Local saving, reading, search, organization, and export remain free. Cloud sync, cloud attachments, connected extensions, Watch Mode, and automated capture require Pro. When entitlement expires, local pending data is retained and sync resumes after access is restored.
+Local saving, reading, search, organization, and export remain free. Browser extension capture and reading extension captures are free for every account. Local extension capture needs no account or backend. General cloud sync, cloud attachments, Watch Mode, and automated capture require Pro. When entitlement expires, local pending data is retained and sync resumes after access is restored.
 
 Paddle webhooks are the provisioning authority. Checkout completion only triggers an entitlement refresh; it never grants access by itself. Portal URLs are minted per authenticated request and are not cached.
