@@ -569,6 +569,32 @@ public struct InboxView: View {
                 }
                 .trackPullDownForLaterAI()
 
+                // Floating Action Button (+): Home Page Only
+                if !isSearchActive && !showingSidebar {
+                    VStack {
+                        Spacer()
+                        HStack {
+                            Spacer()
+                            Button {
+                                LaterAIManager.shared.open()
+                            } label: {
+                                Image(systemName: "plus")
+                                    .font(.system(size: 24, weight: .medium))
+                                    .foregroundStyle(AppTheme.accent)
+                                    .frame(width: 56, height: 56)
+                                    .background(AppTheme.darkSurface, in: Circle())
+                                    .shadow(color: .black.opacity(0.18), radius: 8, y: 4)
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel("Open Later AI")
+                            .padding(.trailing, 20)
+                            .padding(.bottom, 24)
+                        }
+                    }
+                    .transition(.scale.combined(with: .opacity))
+                    .zIndex(10)
+                }
+
                 // Dimming backdrop
                 if showingSidebar {
                     Color.black.opacity(0.35)
