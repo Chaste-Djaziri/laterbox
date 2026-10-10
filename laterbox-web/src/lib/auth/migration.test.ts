@@ -24,7 +24,7 @@ test('migration verifies legacy sessions, retries without duplicates and require
     requests.push(`${request.method} ${url.hostname}${url.pathname}`);
     if (url.hostname === 'clerk.laterbox.dev') return Response.json({ keys: [jwk] });
     if (url.pathname === '/auth/v1/user') return mode === 'expired' ? Response.json({ message: 'Expired' },{ status: 401 }) : Response.json({ id,email: 'test@example.com',email_confirmed_at: mode === 'unconfirmed' ? null : new Date().toISOString(),user_metadata: {},factors: mode === 'legacy-mfa' ? [{ status: 'verified' }] : [] });
-    if (url.pathname === '/rest/v1/account_identities') return Response.json(linked ? { subject: linked } : null);
+    if (url.pathname === '/rest/v1/account_identities') return Response.json(linked ? [{ subject: linked }] : []);
     if (url.pathname === '/rest/v1/rpc/link_clerk_identity') {
       const body = await request.json() as { p_account_id: string; p_subject: string };
       assert.equal(body.p_account_id,id);
