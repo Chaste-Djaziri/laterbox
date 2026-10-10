@@ -39,12 +39,13 @@ export function DashboardView({ items, loading, title: propTitle, topBanner }: D
         {loading ? (
           <div className="bg-white border border-[#e4e0d5] rounded-2xl p-12 text-center animate-pulse flex-1 flex items-center justify-center">
             <p className="text-xs font-semibold text-[#8e8d87]">
-              Loading {activeTitle.toLowerCase()} messages...
+              Loading {activeTitle.toLowerCase()} items...
             </p>
           </div>
         ) : (
           <EmailInboxTable
             items={items}
+            title={activeTitle}
             onOpenCapture={() => setCaptureOpen(true)}
             searchQuery={searchQuery}
             isSearchSubmitted={isSearchSubmitted}
