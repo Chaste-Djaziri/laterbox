@@ -235,7 +235,7 @@ async function exchangeRequest(
   );
   if (!markedUsed.ok) return json({error:"Could not finalize connection"},502);
   const isPro = await dependencies.hasProAccess(connection.user_id);
-  return json({ extensionToken: token, userId: connection.user_id, isPro }, 200);
+  return json({ extensionToken: token, userId: connection.user_id, captureAllowed: true, isPro }, 200);
 }
 
 async function checkEntitlement(
