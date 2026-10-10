@@ -112,6 +112,7 @@ export const createCaptureHandler = (
       return json({ error: "LaterBox Pro is required for connected capture" }, 403);
     }
 
+    if (token.startsWith("lb_ext_")) capture.source = "browserExtension";
     const itemId = dependencies.createId();
     let originInstallationId: string | null = null;
     if (token.startsWith("lb_ext_")) {
