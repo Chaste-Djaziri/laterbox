@@ -1,3 +1,4 @@
+import { isLocalMode, LOCAL_ORIGIN } from '../lib/local-library';
 import {
   checkProEntitlement,
   connectLaterBox,
@@ -50,7 +51,7 @@ async function initialize(): Promise<void> {
   }
 
   browser.storage.onChanged.addListener((changes, areaName) => {
-    if (areaName === "local" && ["accessToken", "connectedUserId", "hasProPlan", "pendingConnection"].some(key => key in changes)) {
+    if (areaName === "local" && ["accessToken", "connectedUserId", "hasProPlan", "pendingConnection", "captureMode"].some(key => key in changes)) {
       void updateConnectionState();
     }
   });
@@ -126,8 +127,8 @@ disconnectProButton.addEventListener("click", () => void disconnect());
 saveButton.addEventListener("click", () => void savePage());
 saveSelectionButton.addEventListener("click", () => void saveSelection());
 disconnectButton.addEventListener("click", () => void disconnect());
-openButton.addEventListener("click", () => {
-  const webUrl = import.meta.env.VITE_LATERBOX_WEB_URL ?? "";
+openButton.addEventListener("click", async () => {
+  const webUrl = await isLocalMode() ? LOCAL_ORIGIN : import.meta.env.VITE_LATERBOX_WEB_URL ?? "";
   if (webUrl) void browser.tabs.create({ url: `${webUrl}/inbox` });
 });
 
@@ -159,9 +160,9 @@ async function enableHighlighting(): Promise<void> {
 async function updateConnectionState(): Promise<void> {
   const token = await getAccessToken();
   const userId = await getConnectedUserId();
-  const connected = token.startsWith("lb_ext_") && userId.length > 0;
-  const isPro = connected ? await getIsPro() : null;
-  const isProRequired = connected && isPro === false;
+  const connected = await isLocalMode() || (token.startsWith("lb_ext_") && userId.length > 0);
+  const isPro = connected;
+  const isProRequired = false;
 
   disconnectedPanel.hidden = connected;
   proRequiredPanel.hidden = !isProRequired;
@@ -176,6 +177,7 @@ async function connect(): Promise<void> {
   connectButton.disabled = true;
   setStatus("Opening laterbox...");
   try {
+    await browser.storage.local.set({ captureMode: "account" });
     await connectLaterBox();
     await updateConnectionState();
     setStatus("Complete account approval in the opened tab.");
@@ -223,7 +225,7 @@ async function showResult(
   button: HTMLButtonElement,
 ): Promise<void> {
   if (result.status === "saved") {
-    setStatus("Saved to laterbox.", "success");
+    setStatus(result.local ? "Saved locally. Open localhost:8080 to import." : "Saved to laterbox.", "success");
   } else if (result.status === "proRequired") {
     await updateConnectionState();
     setStatus("Get Pro to use this extension.", "error");
@@ -254,3 +256,20 @@ function domainFor(value: string): string {
     return "CURRENT PAGE";
   }
 }
+
+const modeControls = document.createElement('div');
+const localButton = document.createElement('button');
+localButton.textContent = 'Local library';
+localButton.addEventListener('click', async () => {
+  await browser.storage.local.set({ captureMode: 'local' });
+  await updateConnectionState();
+  setStatus('Local library selected. Captures stay on this browser.');
+});
+const accountButton = document.createElement('button');
+accountButton.textContent = 'Connect account';
+accountButton.addEventListener('click', () => void connect());
+const libraryButton = document.createElement('button');
+libraryButton.textContent = 'Open local library';
+libraryButton.addEventListener('click', () => void browser.tabs.create({ url: `${LOCAL_ORIGIN}/home` }));
+modeControls.append(localButton, accountButton, libraryButton);
+document.body.append(modeControls);
