@@ -1,3 +1,7 @@
+# Free extension and local library
+
+- Browser capture is free for all accounts; local captures work without an account or Supabase and import into the local web library.
+
 # Changelog
 
 All notable user-facing changes to LaterBox will be documented in this file.
