@@ -9,6 +9,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 ## [Unreleased]
 
 ### Changed
+- **[Web] Remove sidebar right divider line**: Removed the vertical border line on the right edge of the sidebar for a borderless, open layout that blends seamlessly into the page.
 - **[Web] Unified sidebar background and increased branding gap**: Removed the sidebar's distinct background so the main site canvas seamlessly flows across the sidebar, and added a generous vertical gap between the logo and the Save Item action and navigation links.
 - **[Web] Uniform background across details page header and content areas**: Harmonized the background across the details pane header and scrollable content area to use a seamless white background, eliminating the color discrepancy between the header and content body.
 - **[Web] Enlarge sidebar branding and remove icon background**: Updated the sidebar header to use a larger transparent black LaterBox icon without a background container and increased the wordmark font size.
