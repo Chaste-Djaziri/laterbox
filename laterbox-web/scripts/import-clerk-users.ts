@@ -3,6 +3,8 @@ import { readFile } from 'node:fs/promises';
 import { clerkAdmin, linkClerk } from '../src/lib/auth/server';
 import { getBillingAdminClient } from '../src/lib/billing/server';
 
+async function main() {
+
 type LegacyExport = { id: string; email: string | null; email_confirmed_at: string | null; encrypted_password?: string; raw_user_meta_data?: { display_name?: string }; mfa_enabled: boolean };
 const file = process.argv[2];
 if (!file || file.startsWith('--')) throw new Error('Supply a Supabase JSON export. The default is dry-run; add --execute to import.');
@@ -42,3 +44,5 @@ for (const user of users) {
 }
 console.info(JSON.stringify({ mode: execute ? 'execute' : 'dry-run',...counts }));
 if (counts.failed || counts.manual) process.exitCode = 1;
+}
+void main().catch(() => { console.error("Operation failed. Check the input and server configuration; credentials and provider responses are excluded from logs."); process.exitCode = 1; });
