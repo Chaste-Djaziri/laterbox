@@ -19,7 +19,7 @@ public struct InboxView: View {
     @State private var selectedCollection: String? = nil
     @State private var showingLibrary: Bool = false
     @State private var showingPlans: Bool = false
-    @State private var showingSettings: Bool = false
+    @State private var navigateToSettings: Bool = false
     @State private var showingQuickCapture: Bool = false
     @State private var showingEmptyTrashConfirm: Bool = false
 
@@ -219,6 +219,14 @@ public struct InboxView: View {
                                 .accessibilityLabel("Search inbox")
 
                                 Menu {
+                                    Section {
+                                        Button {
+                                            navigateToSettings = true
+                                        } label: {
+                                            Label("Settings", systemImage: "gearshape")
+                                        }
+                                    }
+
                                     if let email = coordinator.currentUserEmail, !email.isEmpty {
                                         Section(email) {
                                             Button(role: .destructive) {
@@ -688,7 +696,7 @@ public struct InboxView: View {
                             showingPlans = true
                         },
                         onOpenSettings: {
-                            showingSettings = true
+                            navigateToSettings = true
                         },
                         onOpenSaveItem: {
                             showingQuickCapture = true
@@ -736,7 +744,7 @@ public struct InboxView: View {
             .sheet(isPresented: $showingPlans) {
                 PlansView()
             }
-            .sheet(isPresented: $showingSettings) {
+            .navigationDestination(isPresented: $navigateToSettings) {
                 SettingsView()
             }
             .sheet(isPresented: $showingQuickCapture) {
