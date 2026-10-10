@@ -5,6 +5,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 ## [Unreleased]
 
 ### Changed
+- **[Web] Simplified Deep Search header**: Replace verbose marketing slogans and offline core badge on the Deep Search page with a clean, simple page title.
 - **[Web] Simplified Someday page header**: Replace verbose marketing slogans, badges, and Save to Someday button on the Someday page with a clean, simple page title.
 - **[Web] Simplified Upcoming page header**: Replace verbose marketing slogans, badges, and Schedule Item button on the Upcoming page with a clean, simple page title.
 - **[Web] Simplified Today page header**: Replace verbose marketing slogans, badges, and Drop Item button on the Today page with a clean, simple page title.
