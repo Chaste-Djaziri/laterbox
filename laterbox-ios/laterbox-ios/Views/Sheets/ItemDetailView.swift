@@ -92,7 +92,7 @@ public struct ItemDetailView: View {
                             let mediaType = EmbeddedMediaType.detect(url: item.url)
                             if mediaType != .none && mediaType != .webArticle(url: URL(string: item.url ?? "")!) {
                                 VStack(alignment: .leading, spacing: 6) {
-                                    InlineVideoEmbedView(embedType: mediaType)
+                                    InlineVideoEmbedView(embedType: mediaType, previewImageUrl: item.previewImageUrl)
                                 }
                                 .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                                 .shadow(color: Color.black.opacity(0.04), radius: 6, y: 2)
@@ -468,18 +468,6 @@ public struct ItemDetailView: View {
                         .background(Color.black.opacity(0.04), in: RoundedRectangle(cornerRadius: 6))
                         .foregroundColor(Color.secondary)
                 }
-
-                Button {
-                    newCategoryText = item.category
-                    showingCategoryEdit = true
-                } label: {
-                    Image(systemName: "plus")
-                        .font(.system(size: 10, weight: .bold))
-                        .foregroundColor(Color.secondary)
-                        .padding(6)
-                        .background(Color.black.opacity(0.04), in: Circle())
-                }
-                .buttonStyle(.plain)
 
                 Spacer()
 
@@ -927,39 +915,6 @@ public struct ItemDetailView: View {
 
             // Input Pill
             HStack(spacing: 10) {
-                // Plus button with menu
-                Menu {
-                    Button {
-                        quotedSnippet = item.title
-                        isInputFocused = true
-                    } label: {
-                        Label("Quote Saved Content", systemImage: "quote.opening")
-                    }
-
-                    if !item.summary.isEmpty {
-                        Button {
-                            quotedSnippet = item.summary
-                            isInputFocused = true
-                        } label: {
-                            Label("Quote AI Summary", systemImage: "sparkles")
-                        }
-                    }
-
-                    Button {
-                        followUpText = "Reviewed and archived."
-                        sendFollowUp()
-                    } label: {
-                        Label("Quick Note: Reviewed", systemImage: "checkmark.circle")
-                    }
-                } label: {
-                    Image(systemName: "plus")
-                        .font(.system(size: 15, weight: .bold))
-                        .foregroundColor(AppTheme.textPrimary)
-                        .frame(width: 32, height: 32)
-                        .background(Color.black.opacity(0.05), in: Circle())
-                }
-                .buttonStyle(.plain)
-
                 // Text Input
                 TextField("Add follow-up, thought, or note...", text: $followUpText, axis: .vertical)
                     .font(.system(size: 14))
@@ -967,6 +922,7 @@ public struct ItemDetailView: View {
                     .lineLimit(1...4)
                     .focused($isInputFocused)
                     .submitLabel(.send)
+                    .padding(.leading, 6)
                     .onSubmit {
                         sendFollowUp()
                     }
