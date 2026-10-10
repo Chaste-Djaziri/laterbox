@@ -16,7 +16,6 @@ export function createAccountQueue(deps: QueueDependencies) {
   const save = (capture: Capture): Promise<CaptureResult> => serial(async () => {
     const account = await deps.connection();
     if (!account.userId || !account.token) { const result = { status: 'needsAuth' } as const; await deps.state(result,0); return result; }
-    if (account.isPro !== true) { const result = { status: 'proRequired' } as const; await deps.state(result,0); return result; }
     const entry = { userId: account.userId, capture: { ...capture, captureId: capture.captureId || crypto.randomUUID() } };
     const queue = await deps.read(); queue.push(entry);
     // Persist before sending: replay remains safe if the worker is suspended after acceptance.
