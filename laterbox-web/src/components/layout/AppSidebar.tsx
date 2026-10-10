@@ -30,6 +30,7 @@ import {
   X,
   Star,
   CheckCircle,
+  CalendarClock,
 } from 'lucide-react';
 
 interface AppSidebarProps {
@@ -39,7 +40,7 @@ interface AppSidebarProps {
 export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const { inboxItems, starredItems, savedItems, items, collections, createCollection } = useItems();
+  const { inboxItems, starredItems, savedItems, archivedItems, items, collections, createCollection } = useItems();
   const { user, userName, isGuest, signOut } = useAuth();
   const { entitlement, isPro, manage } = useBilling();
   const [collapsed, setCollapsed] = useState(false);
@@ -106,6 +107,12 @@ export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
       badge: savedItems.length > 0 ? savedItems.length : undefined,
     },
     {
+      href: '/archived',
+      label: 'Archived',
+      icon: <Archive className="w-4 h-4" />,
+      badge: archivedItems.length > 0 ? archivedItems.length : undefined,
+    },
+    {
       href: '/today',
       label: 'Today',
       icon: <Clock className="w-4 h-4" />,
@@ -120,7 +127,7 @@ export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
     {
       href: '/someday',
       label: 'Someday',
-      icon: <Archive className="w-4 h-4" />,
+      icon: <CalendarClock className="w-4 h-4" />,
       badge: somedayCount > 0 ? somedayCount : undefined,
     },
   ];
