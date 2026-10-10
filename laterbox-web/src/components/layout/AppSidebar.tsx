@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useItems } from '@/lib/store/ItemContext';
 import { useAuth } from '@/lib/store/AuthContext';
 import { useBilling } from '@/lib/store/BillingContext';
@@ -26,6 +26,8 @@ import {
   ChevronRight,
   Crown,
   Archive,
+  Check,
+  X,
 } from 'lucide-react';
 
 interface AppSidebarProps {
@@ -34,12 +36,43 @@ interface AppSidebarProps {
 
 export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
   const pathname = usePathname();
-  const { inboxItems, items } = useItems();
+  const router = useRouter();
+  const { inboxItems, items, collections, createCollection } = useItems();
   const { user, userName, isGuest, signOut } = useAuth();
   const { entitlement, isPro, manage } = useBilling();
   const [collapsed, setCollapsed] = useState(false);
   const [now, setNow] = useState(() => new Date());
   const plan = useMemo(() => presentEntitlement(entitlement, now), [entitlement, now]);
+
+  const [isCreatingCollection, setIsCreatingCollection] = useState(false);
+  const [newCollectionName, setNewCollectionName] = useState('');
+  const [isSubmittingCollection, setIsSubmittingCollection] = useState(false);
+  const newCollectionInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (isCreatingCollection) {
+      newCollectionInputRef.current?.focus();
+    }
+  }, [isCreatingCollection]);
+
+  const handleCreateCollection = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmed = newCollectionName.trim();
+    if (!trimmed || isSubmittingCollection) return;
+    try {
+      setIsSubmittingCollection(true);
+      const newCol = await createCollection(trimmed);
+      setNewCollectionName('');
+      setIsCreatingCollection(false);
+      if (newCol?.id) {
+        router.push(`/library/${newCol.id}`);
+      }
+    } catch (err) {
+      console.error('Failed to create collection:', err);
+    } finally {
+      setIsSubmittingCollection(false);
+    }
+  };
 
   useEffect(() => {
     if (!entitlement.phaseEndsAt) return;
@@ -117,6 +150,7 @@ export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
   const isLinkActive = (href: string) => {
     if (href === '/inbox') return pathname === '/inbox' || pathname === '/';
     if (href === '/downloads') return pathname === '/downloads' || pathname === '/download';
+    if (href === '/library') return pathname === '/library';
     return pathname === href || pathname.startsWith(`${href}/`);
   };
 
@@ -211,6 +245,144 @@ export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
         <nav className="space-y-1">
           {coreLinks.map(renderLinkItem)}
         </nav>
+
+        {/* Collections (Labels) Section */}
+        <div className="pt-2">
+          {!collapsed ? (
+            <div className="flex items-center justify-between px-3 mb-1">
+              <span className="text-[10px] font-black tracking-widest uppercase text-[#9e9b92]">
+                COLLECTIONS
+              </span>
+              <button
+                type="button"
+                onClick={() => setIsCreatingCollection(true)}
+                className="p-1 -mr-1 rounded-lg text-[#8e8d87] hover:text-[#171711] hover:bg-[#ebe7dc]/60 transition-colors cursor-pointer"
+                title="Create new collection"
+                aria-label="Create new collection"
+              >
+                <Plus className="w-3.5 h-3.5" strokeWidth={2.5} />
+              </button>
+            </div>
+          ) : (
+            <div className="flex justify-center mb-1">
+              <button
+                type="button"
+                onClick={() => {
+                  setCollapsed(false);
+                  setIsCreatingCollection(true);
+                }}
+                className="p-1.5 rounded-lg text-[#8e8d87] hover:text-[#171711] hover:bg-[#ebe7dc]/60 transition-colors cursor-pointer"
+                title="Create new collection"
+              >
+                <Plus className="w-3.5 h-3.5" strokeWidth={2.5} />
+              </button>
+            </div>
+          )}
+
+          {/* Inline creation input */}
+          {isCreatingCollection && !collapsed && (
+            <form onSubmit={handleCreateCollection} className="px-1.5 py-1 mb-1">
+              <div className="flex items-center gap-1.5 bg-white border border-[#171711] rounded-xl px-2.5 py-1.5 shadow-2xs">
+                <input
+                  ref={newCollectionInputRef}
+                  type="text"
+                  value={newCollectionName}
+                  onChange={(e) => setNewCollectionName(e.target.value)}
+                  placeholder="Collection name..."
+                  className="w-full text-xs bg-transparent focus:outline-none text-[#171711] placeholder:text-[#9e9b92]"
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === 'Escape') {
+                      setIsCreatingCollection(false);
+                      setNewCollectionName('');
+                    }
+                  }}
+                />
+                <button
+                  type="submit"
+                  disabled={!newCollectionName.trim() || isSubmittingCollection}
+                  className="p-1 rounded-lg bg-[#171711] text-white hover:bg-black disabled:opacity-40 transition-colors cursor-pointer shrink-0"
+                  title="Save"
+                >
+                  <Check className="w-3 h-3" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsCreatingCollection(false);
+                    setNewCollectionName('');
+                  }}
+                  className="p-1 rounded-lg text-[#8e8d87] hover:text-[#171711] transition-colors cursor-pointer shrink-0"
+                  title="Cancel"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            </form>
+          )}
+
+          {/* Collections List */}
+          <nav className="space-y-1">
+            {collections.map((col) => {
+              const count = items.filter(
+                (item) => !item.deleted_at && item.collections?.some((c) => c.id === col.id)
+              ).length;
+              const href = `/library/${col.id}`;
+              const isActive = pathname === href;
+
+              return (
+                <Link
+                  key={col.id}
+                  href={href}
+                  title={collapsed ? col.name : undefined}
+                  className={`relative flex items-center ${
+                    collapsed ? 'justify-center px-0' : 'justify-between px-3'
+                  } py-2.5 rounded-xl text-xs transition-all duration-150 ${
+                    isActive
+                      ? 'bg-white border border-[#e4e0d5]/80 text-[#171711] font-bold shadow-2xs'
+                      : 'text-[#6c6b63] font-medium hover:bg-[#ebe7dc]/50 hover:text-[#171711]'
+                  }`}
+                >
+                  {isActive && (
+                    <span className="w-1.5 h-6 bg-[#171711] rounded-r-md absolute left-0 top-1/2 -translate-y-1/2" />
+                  )}
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <svg
+                      className={`w-3.5 h-3.5 shrink-0 transition-colors ${
+                        isActive ? 'text-[#171711]' : 'text-[#8e8d87]'
+                      }`}
+                      viewBox="0 0 24 24"
+                      fill={isActive ? 'currentColor' : 'none'}
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M2.5 7A2.5 2.5 0 0 1 5 4.5h10.8a2.5 2.5 0 0 1 1.95.94l4.25 5.31a1.5 1.5 0 0 1 0 1.88l-4.25 5.31a2.5 2.5 0 0 1-1.95.94H5A2.5 2.5 0 0 1 2.5 16.5V7z" />
+                    </svg>
+                    {!collapsed && <span className="truncate">{col.name}</span>}
+                  </div>
+                  {!collapsed && count > 0 && (
+                    <span className="text-[10px] font-bold text-[#8e8d87] px-1.5 py-0.5 rounded-md bg-[#ebe7dc]/60 shrink-0">
+                      {count}
+                    </span>
+                  )}
+                </Link>
+              );
+            })}
+
+            {collections.length === 0 && !isCreatingCollection && !collapsed && (
+              <button
+                type="button"
+                onClick={() => setIsCreatingCollection(true)}
+                className="w-full text-left px-3 py-2 text-[11px] text-[#9e9b92] hover:text-[#171711] transition-colors flex items-center gap-2 rounded-xl hover:bg-[#ebe7dc]/40 cursor-pointer"
+              >
+                <Plus className="w-3 h-3 text-[#9e9b92]" />
+                <span>New collection...</span>
+              </button>
+            )}
+          </nav>
+        </div>
 
         {/* Library Section */}
         <div className="pt-2">
