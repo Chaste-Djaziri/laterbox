@@ -25,65 +25,40 @@ import {
   ArrowUpDown,
   Mail,
   Plus,
+  Search,
+  Check,
+  X,
 } from 'lucide-react';
+import {
+  InboxSearchFilters,
+  DEFAULT_SEARCH_FILTERS,
+  formatEmailDate,
+  getEmailSender,
+  itemMatchesFilters,
+  itemMatchesQuery,
+} from '@/lib/utils/emailFormatters';
 
 interface EmailInboxTableProps {
   items: LaterBoxItem[];
   onOpenCapture: () => void;
   searchQuery?: string;
+  isSearchSubmitted?: boolean;
+  searchFilters?: InboxSearchFilters;
+  onUpdateFilters?: (updater: (prev: InboxSearchFilters) => InboxSearchFilters) => void;
+  onClearSearch?: () => void;
 }
 
 type TabKey = 'primary' | 'articles' | 'media' | 'updates';
 
-function formatEmailDate(dateStr: string): string {
-  try {
-    const d = new Date(dateStr);
-    const now = new Date();
-    const isToday =
-      d.getDate() === now.getDate() &&
-      d.getMonth() === now.getMonth() &&
-      d.getFullYear() === now.getFullYear();
-
-    if (isToday) {
-      return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-    }
-    const isThisYear = d.getFullYear() === now.getFullYear();
-    if (isThisYear) {
-      return d.toLocaleDateString([], { month: 'short', day: 'numeric' });
-    }
-    return d.toLocaleDateString([], { month: 'numeric', day: 'numeric', year: '2-digit' });
-  } catch {
-    return dateStr;
-  }
-}
-
-function getEmailSender(item: LaterBoxItem): string {
-  if (item.content?.author?.trim()) return item.content.author.trim();
-  if (item.metadata?.site_name?.trim()) return item.metadata.site_name.trim();
-  if (item.metadata?.domain?.trim()) return item.metadata.domain.trim();
-  if (item.url) {
-    try {
-      const url = new URL(item.url);
-      const host = url.hostname.replace(/^www\./, '');
-      const parts = host.split('.');
-      if (parts.length >= 2) {
-        const main = parts[0];
-        return main.charAt(0).toUpperCase() + main.slice(1);
-      }
-      return host;
-    } catch {
-      // fallback
-    }
-  }
-  if (item.attachments && item.attachments.length > 0) {
-    return 'File Attachment';
-  }
-  if (item.type === 'note') return 'Note';
-  if (item.type === 'task') return 'Task';
-  return 'LaterBox';
-}
-
-export function EmailInboxTable({ items, onOpenCapture, searchQuery = '' }: EmailInboxTableProps) {
+export function EmailInboxTable({
+  items,
+  onOpenCapture,
+  searchQuery = '',
+  isSearchSubmitted = false,
+  searchFilters,
+  onUpdateFilters,
+  onClearSearch,
+}: EmailInboxTableProps) {
   const router = useRouter();
   const { setFavorite, archiveItem, deleteItem, reschedule, syncNow, now, syncStatus } = useItems();
 
@@ -93,16 +68,23 @@ export function EmailInboxTable({ items, onOpenCapture, searchQuery = '' }: Emai
   const pageSize = 50;
   const [sortOrder, setSortOrder] = useState<'latest' | 'oldest'>('latest');
 
+  // Local fallback filters if not provided by parent
+  const [localFilters, setLocalFilters] = useState<InboxSearchFilters>(DEFAULT_SEARCH_FILTERS);
+  const filters = searchFilters || localFilters;
+  const updateFilters = onUpdateFilters || setLocalFilters;
+
   // Menus state
   const [selectMenuOpen, setSelectMenuOpen] = useState(false);
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
   const [snoozeMenuForId, setSnoozeMenuForId] = useState<string | null>(null);
   const [bulkSnoozeOpen, setBulkSnoozeOpen] = useState(false);
+  const [filterMenuOpen, setFilterMenuOpen] = useState<'format' | 'date' | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const selectMenuRef = useRef<HTMLDivElement>(null);
   const moreMenuRef = useRef<HTMLDivElement>(null);
   const snoozeMenuRef = useRef<HTMLDivElement>(null);
+  const filterMenuRef = useRef<HTMLDivElement>(null);
 
   // Close menus on outside click
   useEffect(() => {
@@ -117,6 +99,9 @@ export function EmailInboxTable({ items, onOpenCapture, searchQuery = '' }: Emai
       if (snoozeMenuRef.current && !snoozeMenuRef.current.contains(target)) {
         setSnoozeMenuForId(null);
         setBulkSnoozeOpen(false);
+      }
+      if (filterMenuRef.current && !filterMenuRef.current.contains(target)) {
+        setFilterMenuOpen(null);
       }
     };
     window.addEventListener('mousedown', handleClickOutside);
@@ -208,18 +193,25 @@ export function EmailInboxTable({ items, onOpenCapture, searchQuery = '' }: Emai
     },
   ];
 
+  // Active search status
+  const isSearchActive = Boolean(searchQuery && searchQuery.trim().length > 0 && isSearchSubmitted);
+
   // Active list filtered and sorted
   const currentTabItems = tabBuckets[activeTab];
 
   const processedItems = useMemo(() => {
-    let list = currentTabItems.filter((item) => {
-      if (!searchQuery.trim()) return true;
-      const q = searchQuery.toLowerCase();
-      const title = (item.metadata?.title || item.title || '').toLowerCase();
-      const domain = (item.metadata?.domain || item.url || '').toLowerCase();
-      const desc = (item.metadata?.description || item.text_content || '').toLowerCase();
-      return title.includes(q) || domain.includes(q) || desc.includes(q);
-    });
+    let list: LaterBoxItem[] = [];
+
+    if (isSearchActive) {
+      list = items.filter((item) => {
+        return itemMatchesQuery(item, searchQuery) && itemMatchesFilters(item, filters);
+      });
+    } else {
+      list = currentTabItems.filter((item) => {
+        if (!searchQuery.trim()) return true;
+        return itemMatchesQuery(item, searchQuery);
+      });
+    }
 
     list = [...list].sort((a, b) => {
       const timeA = new Date(a.created_at).getTime();
@@ -228,7 +220,7 @@ export function EmailInboxTable({ items, onOpenCapture, searchQuery = '' }: Emai
     });
 
     return list;
-  }, [currentTabItems, searchQuery, sortOrder]);
+  }, [isSearchActive, items, searchQuery, filters, currentTabItems, sortOrder]);
 
   const totalItems = processedItems.length;
   const startIndex = (page - 1) * pageSize;
@@ -564,58 +556,223 @@ export function EmailInboxTable({ items, onOpenCapture, searchQuery = '' }: Emai
       </div>
 
       {/* ===================================================================== */}
-      {/* CATEGORY TABS: Primary, Articles, Media, Updates */}
+      {/* FILTER BAR / CATEGORY TABS */}
       {/* ===================================================================== */}
-      <div className="flex items-center border-b border-[#e4e0d5] bg-white overflow-x-auto scrollbar-none">
-        {tabMetadata.map((tab) => {
-          const isActive = activeTab === tab.id;
-          return (
+      {isSearchActive ? (
+        /* SEARCH FILTER PILLS BAR (Image 1 style) */
+        <div className="flex flex-wrap items-center justify-between gap-2 px-3 sm:px-4 py-2.5 border-b border-[#e4e0d5] bg-[#faf8f5]/60 text-xs">
+          <div className="flex flex-wrap items-center gap-1.5" ref={filterMenuRef}>
+            {/* Search Pill Badge */}
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-[#171711] text-[#e6edb0] shadow-2xs">
+              <Search className="w-3.5 h-3.5" />
+              <span>Results for &ldquo;{searchQuery}&rdquo;</span>
+            </span>
+
+            {/* Format Dropdown Pill */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setFilterMenuOpen(filterMenuOpen === 'format' ? null : 'format')}
+                className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold border transition-colors cursor-pointer ${
+                  filters.format !== 'all'
+                    ? 'bg-[#171711] text-[#e6edb0] border-[#171711] shadow-2xs'
+                    : 'bg-white text-[#171711] border-[#e4e0d5] hover:border-[#171711]/50 hover:bg-[#faf8f5]'
+                }`}
+              >
+                <span>
+                  {filters.format === 'all'
+                    ? 'Format'
+                    : filters.format === 'articles'
+                    ? 'Articles'
+                    : filters.format === 'media'
+                    ? 'Media'
+                    : 'Updates'}
+                </span>
+                <ChevronDown className="w-3 h-3 opacity-60" />
+              </button>
+
+              {filterMenuOpen === 'format' && (
+                <div className="absolute left-0 top-full mt-1 w-40 bg-white border border-[#e4e0d5] rounded-xl shadow-lg py-1 z-50 text-xs text-[#171711]">
+                  {[
+                    { id: 'all', label: 'All formats' },
+                    { id: 'articles', label: 'Articles' },
+                    { id: 'media', label: 'Media (Video/Audio)' },
+                    { id: 'updates', label: 'Notes & Tasks' },
+                  ].map((fmt) => (
+                    <button
+                      key={fmt.id}
+                      type="button"
+                      onClick={() => {
+                        updateFilters((prev) => ({ ...prev, format: fmt.id as any }));
+                        setFilterMenuOpen(null);
+                      }}
+                      className={`w-full text-left px-3 py-1.5 hover:bg-[#faf8f5] flex items-center justify-between cursor-pointer ${
+                        filters.format === fmt.id ? 'font-bold text-[#171711]' : 'text-[#6c6b63]'
+                      }`}
+                    >
+                      <span>{fmt.label}</span>
+                      {filters.format === fmt.id && <Check className="w-3.5 h-3.5 text-[#171711]" />}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Any time Dropdown Pill */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setFilterMenuOpen(filterMenuOpen === 'date' ? null : 'date')}
+                className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold border transition-colors cursor-pointer ${
+                  filters.dateRange !== 'all'
+                    ? 'bg-[#171711] text-[#e6edb0] border-[#171711] shadow-2xs'
+                    : 'bg-white text-[#171711] border-[#e4e0d5] hover:border-[#171711]/50 hover:bg-[#faf8f5]'
+                }`}
+              >
+                <span>
+                  {filters.dateRange === 'all'
+                    ? 'Any time'
+                    : filters.dateRange === '24h'
+                    ? 'Last 24 hours'
+                    : filters.dateRange === '7d'
+                    ? 'Last 7 days'
+                    : 'Last 30 days'}
+                </span>
+                <ChevronDown className="w-3 h-3 opacity-60" />
+              </button>
+
+              {filterMenuOpen === 'date' && (
+                <div className="absolute left-0 top-full mt-1 w-40 bg-white border border-[#e4e0d5] rounded-xl shadow-lg py-1 z-50 text-xs text-[#171711]">
+                  {[
+                    { id: 'all', label: 'Any time' },
+                    { id: '24h', label: 'Last 24 hours' },
+                    { id: '7d', label: 'Last 7 days' },
+                    { id: '30d', label: 'Last 30 days' },
+                  ].map((range) => (
+                    <button
+                      key={range.id}
+                      type="button"
+                      onClick={() => {
+                        updateFilters((prev) => ({ ...prev, dateRange: range.id as any }));
+                        setFilterMenuOpen(null);
+                      }}
+                      className={`w-full text-left px-3 py-1.5 hover:bg-[#faf8f5] flex items-center justify-between cursor-pointer ${
+                        filters.dateRange === range.id ? 'font-bold text-[#171711]' : 'text-[#6c6b63]'
+                      }`}
+                    >
+                      <span>{range.label}</span>
+                      {filters.dateRange === range.id && <Check className="w-3.5 h-3.5 text-[#171711]" />}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Has attachment Toggle Pill */}
             <button
-              key={tab.id}
               type="button"
-              onClick={() => {
-                setActiveTab(tab.id);
-                setPage(1);
-                setSelectedIds(new Set());
-              }}
-              className={`relative flex-1 min-w-[150px] sm:min-w-[200px] py-3 px-4 flex items-center gap-3 transition-colors cursor-pointer text-left select-none ${
-                isActive ? 'bg-[#faf8f5]/60' : 'hover:bg-[#faf8f5]'
+              onClick={() => updateFilters((prev) => ({ ...prev, hasAttachment: !prev.hasAttachment }))}
+              className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold border transition-colors cursor-pointer ${
+                filters.hasAttachment
+                  ? 'bg-[#171711] text-[#e6edb0] border-[#171711] shadow-2xs'
+                  : 'bg-white text-[#171711] border-[#e4e0d5] hover:border-[#171711]/50 hover:bg-[#faf8f5]'
               }`}
             >
-              {/* Active Underline Indicator Bar */}
-              {isActive && (
-                <span className="absolute bottom-0 left-0 right-0 h-[3px] bg-[#171711] rounded-t-sm" />
-              )}
-
-              {/* Tab Icon */}
-              <div className="shrink-0">{tab.icon}</div>
-
-              {/* Tab Title, Badge & Subtitle */}
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <span
-                    className={`text-xs sm:text-sm tracking-tight truncate ${
-                      isActive ? 'font-black text-[#171711]' : 'font-bold text-[#6c6b63]'
-                    }`}
-                  >
-                    {tab.label}
-                  </span>
-                  {tab.count > 0 && (
-                    <span
-                      className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold shrink-0 ${tab.badgeBg}`}
-                    >
-                      {tab.count} new
-                    </span>
-                  )}
-                </div>
-                <p className="text-[11px] text-[#9e9b92] truncate mt-0.5 hidden sm:block">
-                  {tab.snippet}
-                </p>
-              </div>
+              <Paperclip className="w-3 h-3" />
+              <span>Has attachment</span>
             </button>
-          );
-        })}
-      </div>
+
+            {/* Starred Toggle Pill */}
+            <button
+              type="button"
+              onClick={() => updateFilters((prev) => ({ ...prev, starred: !prev.starred }))}
+              className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold border transition-colors cursor-pointer ${
+                filters.starred
+                  ? 'bg-[#171711] text-[#e6edb0] border-[#171711] shadow-2xs'
+                  : 'bg-white text-[#171711] border-[#e4e0d5] hover:border-[#171711]/50 hover:bg-[#faf8f5]'
+              }`}
+            >
+              <Star className="w-3 h-3" />
+              <span>Starred</span>
+            </button>
+
+            {/* Reset Filters if any active */}
+            {(filters.hasAttachment || filters.starred || filters.dateRange !== 'all' || filters.format !== 'all') && (
+              <button
+                type="button"
+                onClick={() => updateFilters(() => DEFAULT_SEARCH_FILTERS)}
+                className="px-2.5 py-1 text-xs font-semibold text-[#8e8d87] hover:text-[#171711] transition-colors cursor-pointer underline underline-offset-2"
+              >
+                Reset filters
+              </button>
+            )}
+          </div>
+
+          {/* Clear Search Button */}
+          {onClearSearch && (
+            <button
+              type="button"
+              onClick={onClearSearch}
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold text-[#6c6b63] hover:text-[#171711] hover:bg-white border border-transparent hover:border-[#e4e0d5] transition-colors cursor-pointer ml-auto"
+            >
+              <X className="w-3.5 h-3.5" />
+              <span>Clear search</span>
+            </button>
+          )}
+        </div>
+      ) : (
+        /* Regular Category Tabs */
+        <div className="flex items-center border-b border-[#e4e0d5] bg-white overflow-x-auto scrollbar-none">
+          {tabMetadata.map((tab) => {
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => {
+                  setActiveTab(tab.id);
+                  setPage(1);
+                  setSelectedIds(new Set());
+                }}
+                className={`relative flex-1 min-w-[150px] sm:min-w-[200px] py-3 px-4 flex items-center gap-3 transition-colors cursor-pointer text-left select-none ${
+                  isActive ? 'bg-[#faf8f5]/60' : 'hover:bg-[#faf8f5]'
+                }`}
+              >
+                {/* Active Underline Indicator Bar */}
+                {isActive && (
+                  <span className="absolute bottom-0 left-0 right-0 h-[3px] bg-[#171711] rounded-t-sm" />
+                )}
+
+                {/* Tab Icon */}
+                <div className="shrink-0">{tab.icon}</div>
+
+                {/* Tab Title, Badge & Subtitle */}
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`text-xs sm:text-sm tracking-tight truncate ${
+                        isActive ? 'font-black text-[#171711]' : 'font-bold text-[#6c6b63]'
+                      }`}
+                    >
+                      {tab.label}
+                    </span>
+                    {tab.count > 0 && (
+                      <span
+                        className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold shrink-0 ${tab.badgeBg}`}
+                      >
+                        {tab.count} new
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-[#9e9b92] truncate mt-0.5 hidden sm:block">
+                    {tab.snippet}
+                  </p>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {/* ===================================================================== */}
       {/* EMAIL LIST ROWS */}
@@ -623,26 +780,54 @@ export function EmailInboxTable({ items, onOpenCapture, searchQuery = '' }: Emai
       {pagedItems.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 px-4 text-center space-y-3">
           <div className="w-12 h-12 rounded-2xl bg-[#faf8f5] border border-[#e4e0d5] flex items-center justify-center text-[#9e9b92]">
-            <Mail className="w-6 h-6 stroke-[1.5]" />
+            {isSearchActive ? <Search className="w-6 h-6 stroke-[1.5]" /> : <Mail className="w-6 h-6 stroke-[1.5]" />}
           </div>
           <div>
             <h3 className="text-sm font-bold text-[#171711]">
-              {searchQuery ? 'No items match your search' : `Your ${activeTab} inbox is clear`}
+              {isSearchActive
+                ? `No results match "${searchQuery}"`
+                : searchQuery
+                ? 'No items match your search'
+                : `Your ${activeTab} inbox is clear`}
             </h3>
             <p className="text-xs text-[#8e8d87] max-w-sm mx-auto mt-0.5">
-              {searchQuery
+              {isSearchActive
+                ? 'Try adjusting your filters or searching for different keywords.'
+                : searchQuery
                 ? 'Try a different keyword or clear the search filter.'
                 : 'Items captured or scheduled for this category will appear here.'}
             </p>
           </div>
-          <button
-            type="button"
-            onClick={onOpenCapture}
-            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#171711] hover:bg-black text-white text-xs font-bold shadow-xs transition-all cursor-pointer mt-2"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>Save item to inbox</span>
-          </button>
+          {isSearchActive ? (
+            <div className="flex items-center gap-2 mt-2">
+              <button
+                type="button"
+                onClick={() => updateFilters(() => DEFAULT_SEARCH_FILTERS)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[#e4e0d5] bg-white hover:bg-[#faf8f5] text-[#171711] text-xs font-bold transition-all cursor-pointer"
+              >
+                <span>Reset filters</span>
+              </button>
+              {onClearSearch && (
+                <button
+                  type="button"
+                  onClick={onClearSearch}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#171711] hover:bg-black text-white text-xs font-bold transition-all cursor-pointer"
+                >
+                  <X className="w-3.5 h-3.5" />
+                  <span>Clear search</span>
+                </button>
+              )}
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={onOpenCapture}
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#171711] hover:bg-black text-white text-xs font-bold shadow-xs transition-all cursor-pointer mt-2"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Save item to inbox</span>
+            </button>
+          )}
         </div>
       ) : (
         <div className="divide-y divide-[#f0ede4]">
