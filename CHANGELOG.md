@@ -5,6 +5,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 ## [Unreleased]
 
 ### Changed
+- **[Web] Inbox header cleanup**: Remove the Tutorial link and theme mode button from the top right of the Inbox page.
 - **[Web] Home top bar cleanup**: Remove the menu icon from the Home dashboard top bar; Settings remains available from the sidebar.
 - **[Web] Cleaner Save Item button**: Remove the keyboard shortcut badge from the sidebar Save Item button and center its label.
 - **[Web] Bigger Save Item button**: Make the sidebar Save Item button much larger and more prominent.
