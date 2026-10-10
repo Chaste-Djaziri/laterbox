@@ -8,7 +8,7 @@ import { AppSidebar } from './AppSidebar';
 import { AppTopHeader } from './AppTopHeader';
 import { QuickCaptureModal } from '../inbox/QuickCaptureModal';
 import { useItems } from '@/lib/store/ItemContext';
-import { Inbox, BookMarked, Settings, Plus } from 'lucide-react';
+import { Inbox, Star, Settings, Plus } from 'lucide-react';
 
 import { InboxNotificationController } from '../notifications/InboxNotifications';
 import { SearchModal } from '../search/SearchModal';
@@ -96,7 +96,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const mobileNavItems = [
     { href: '/inbox', label: 'Inbox', icon: <Inbox className="w-5 h-5" />, badge: inboxItems.length || undefined },
-    { href: '/library', label: 'Library', icon: <BookMarked className="w-5 h-5" /> },
+    { href: '/starred', label: 'Starred', icon: <Star className="w-5 h-5" /> },
     { href: '/settings', label: 'Settings', icon: <Settings className="w-5 h-5" /> },
   ];
 
