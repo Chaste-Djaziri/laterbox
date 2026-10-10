@@ -12,6 +12,8 @@ public struct EmailInboxRowView: View {
     public let item: LBItem
     public var isSelectionMode: Bool = false
     public var isSelected: Bool = false
+    public var topRadius: CGFloat = 4
+    public var bottomRadius: CGFloat = 4
     public var onToggleSelect: () -> Void = {}
     public var onToggleFavorite: () -> Void = {}
     public var onMarkDone: () -> Void = {}
@@ -22,6 +24,8 @@ public struct EmailInboxRowView: View {
         item: LBItem,
         isSelectionMode: Bool = false,
         isSelected: Bool = false,
+        topRadius: CGFloat = 4,
+        bottomRadius: CGFloat = 4,
         onToggleSelect: @escaping () -> Void = {},
         onToggleFavorite: @escaping () -> Void = {},
         onMarkDone: @escaping () -> Void = {},
@@ -31,6 +35,8 @@ public struct EmailInboxRowView: View {
         self.item = item
         self.isSelectionMode = isSelectionMode
         self.isSelected = isSelected
+        self.topRadius = topRadius
+        self.bottomRadius = bottomRadius
         self.onToggleSelect = onToggleSelect
         self.onToggleFavorite = onToggleFavorite
         self.onMarkDone = onMarkDone
@@ -266,9 +272,44 @@ public struct EmailInboxRowView: View {
             .padding(.vertical, 12)
             .padding(.horizontal, 16)
         }
-        .background(Color.white)
-        .clipped()
-        .contentShape(Rectangle())
+        .background(
+            UnevenRoundedRectangle(
+                topLeadingRadius: topRadius,
+                bottomLeadingRadius: bottomRadius,
+                bottomTrailingRadius: bottomRadius,
+                topTrailingRadius: topRadius,
+                style: .continuous
+            )
+            .fill(Color.white)
+        )
+        .clipShape(
+            UnevenRoundedRectangle(
+                topLeadingRadius: topRadius,
+                bottomLeadingRadius: bottomRadius,
+                bottomTrailingRadius: bottomRadius,
+                topTrailingRadius: topRadius,
+                style: .continuous
+            )
+        )
+        .overlay(
+            UnevenRoundedRectangle(
+                topLeadingRadius: topRadius,
+                bottomLeadingRadius: bottomRadius,
+                bottomTrailingRadius: bottomRadius,
+                topTrailingRadius: topRadius,
+                style: .continuous
+            )
+            .strokeBorder(Color.black.opacity(0.04), lineWidth: 0.5)
+        )
+        .contentShape(
+            UnevenRoundedRectangle(
+                topLeadingRadius: topRadius,
+                bottomLeadingRadius: bottomRadius,
+                bottomTrailingRadius: bottomRadius,
+                topTrailingRadius: topRadius,
+                style: .continuous
+            )
+        )
         .swipeActions(edge: .leading) {
             Button {
                 onToggleFavorite()
