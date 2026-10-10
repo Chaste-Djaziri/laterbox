@@ -358,7 +358,7 @@ export default function InboxPage() {
               <FileText className="w-3.5 h-3.5" />
             </div>
             <p className="text-xl font-black text-[#171711] mt-2 leading-none">
-              {inboxItems.length > 0 ? inboxItems.length : 5}
+              {inboxItems.length}
             </p>
             <p className="text-[11px] text-[#9e9b92] font-medium mt-1">Items saved</p>
           </div>
@@ -371,7 +371,7 @@ export default function InboxPage() {
               <Clock className="w-3.5 h-3.5" />
             </div>
             <p className="text-xl font-black text-[#171711] mt-2 leading-none">
-              {todayCount > 0 ? todayCount : 3}
+              {todayCount}
             </p>
             <p className="text-[11px] text-[#9e9b92] font-medium mt-1">To review</p>
           </div>
@@ -384,7 +384,7 @@ export default function InboxPage() {
               <Star className="w-3.5 h-3.5 fill-[#ca8a04]" />
             </div>
             <p className="text-xl font-black text-[#171711] mt-2 leading-none">
-              {starredItems.length > 0 ? starredItems.length : 1}
+              {starredItems.length}
             </p>
             <p className="text-[11px] text-[#9e9b92] font-medium mt-1">Starred</p>
           </div>
