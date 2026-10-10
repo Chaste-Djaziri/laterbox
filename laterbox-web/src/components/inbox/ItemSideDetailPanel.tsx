@@ -17,8 +17,10 @@ import {
   toggleRootReaction,
   voteThreadPoll,
   ItemThreadEntry,
+  ThreadAttachmentRef,
   POPULAR_REACTIONS,
 } from '@/lib/utils/itemThread';
+import { fetchAttachmentDownloadUrl } from '@/lib/utils/attachment';
 import {
   X,
   ExternalLink,
@@ -38,7 +40,124 @@ import {
   MoreVertical,
   Calendar,
   Sparkles,
+  FileText,
+  UploadCloud,
+  Download,
+  HardDrive,
+  Loader2,
+  ImageIcon,
+  PlayCircle,
+  Music2,
 } from 'lucide-react';
+
+function formatBytes(bytes?: number): string {
+  if (!bytes || bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
+}
+
+function ThreadAttachmentCard({
+  attachment,
+  userId,
+}: {
+  attachment: ThreadAttachmentRef;
+  userId?: string | null;
+}) {
+  const [downloading, setDownloading] = useState(false);
+
+  const handleOpenAttachment = async () => {
+    if (downloading) return;
+    setDownloading(true);
+    try {
+      const url = await fetchAttachmentDownloadUrl(attachment.id, userId ?? null);
+      if (url) {
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = attachment.name;
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      } else {
+        alert('Could not open document from local storage.');
+      }
+    } catch {
+      alert('Could not open document from local storage.');
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  const ext = (attachment.extension || attachment.name.split('.').pop() || '').toLowerCase();
+  const isPdf = ext === 'pdf' || attachment.type === 'application/pdf';
+  const isImg =
+    attachment.type?.startsWith('image/') ||
+    ['jpg', 'jpeg', 'png', 'webp', 'gif', 'svg'].includes(ext);
+  const isVid =
+    attachment.type?.startsWith('video/') || ['mp4', 'mov', 'webm'].includes(ext);
+  const isAud =
+    attachment.type?.startsWith('audio/') || ['mp3', 'wav', 'm4a', 'aac'].includes(ext);
+
+  return (
+    <div className="flex items-center justify-between gap-3 p-2.5 sm:p-3 rounded-2xl bg-[#faf9f5] border border-[#e4e0d5] hover:border-[#171711]/40 transition-colors">
+      <div className="flex items-center gap-2.5 min-w-0">
+        <div
+          className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border ${
+            isPdf
+              ? 'bg-rose-50 text-rose-600 border-rose-200'
+              : isImg
+              ? 'bg-sky-50 text-sky-600 border-sky-200'
+              : isVid
+              ? 'bg-rose-50 text-rose-600 border-rose-200'
+              : isAud
+              ? 'bg-emerald-50 text-emerald-600 border-emerald-200'
+              : 'bg-white text-[#171711] border-[#e4e0d5]'
+          }`}
+        >
+          {isPdf ? (
+            <FileText className="w-4 h-4" />
+          ) : isImg ? (
+            <ImageIcon className="w-4 h-4" />
+          ) : isVid ? (
+            <PlayCircle className="w-4 h-4" />
+          ) : isAud ? (
+            <Music2 className="w-4 h-4" />
+          ) : (
+            <FileText className="w-4 h-4" />
+          )}
+        </div>
+        <div className="min-w-0">
+          <p className="text-xs font-bold text-[#171711] truncate">{attachment.name}</p>
+          <div className="flex items-center gap-1.5 text-[10px] text-[#8e8d87] mt-0.5">
+            <span>{formatBytes(attachment.size)}</span>
+            <span>•</span>
+            <span className="inline-flex items-center gap-1 text-[10px] font-medium text-[#6c6b63]">
+              <HardDrive className="w-2.5 h-2.5 text-[#8e8d87]" />
+              Local Storage
+            </span>
+          </div>
+        </div>
+      </div>
+      <button
+        type="button"
+        onClick={handleOpenAttachment}
+        disabled={downloading}
+        title="Download or open document"
+        className="px-2.5 py-1.5 rounded-xl bg-white hover:bg-[#f4f2ec] border border-[#e4e0d5] text-xs font-bold text-[#171711] flex items-center gap-1.5 shrink-0 shadow-2xs transition-colors cursor-pointer"
+      >
+        {downloading ? (
+          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+        ) : (
+          <Download className="w-3.5 h-3.5 text-[#171711]" />
+        )}
+        <span className="hidden sm:inline">Open</span>
+      </button>
+    </div>
+  );
+}
 
 interface ItemSideDetailPanelProps {
   item: LaterBoxItem;
@@ -47,7 +166,7 @@ interface ItemSideDetailPanelProps {
 
 export function ItemSideDetailPanel({ item, onClose }: ItemSideDetailPanelProps) {
   const router = useRouter();
-  const { setFavorite, archiveItem, deleteItem, saveNote } = useItems();
+  const { setFavorite, archiveItem, deleteItem, saveNote, attachFilesToItem } = useItems();
   const { userName, user } = useAuth();
 
   const authorName = userName || user?.user_metadata?.full_name || 'You';
@@ -70,12 +189,18 @@ export function ItemSideDetailPanel({ item, onClose }: ItemSideDetailPanelProps)
   const [editText, setEditText] = useState('');
   const [reactionMenuForId, setReactionMenuForId] = useState<string | null>(null);
 
+  // Document attachment state
+  const [stagedFiles, setStagedFiles] = useState<File[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+
   // Poll creator state
   const [pollQuestion, setPollQuestion] = useState('');
   const [pollOptions, setPollOptions] = useState<string[]>(['Option 1', 'Option 2']);
 
   const plusMenuRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const threadBottomRef = useRef<HTMLDivElement>(null);
 
   // Close menus on outside click
@@ -102,26 +227,68 @@ export function ItemSideDetailPanel({ item, onClose }: ItemSideDetailPanelProps)
     await saveNote(item.id, serialized);
   };
 
+  const handleFilesSelected = (newFiles: FileList | File[]) => {
+    const arr = Array.from(newFiles);
+    if (arr.length === 0) return;
+    setStagedFiles((prev) => [...prev, ...arr]);
+  };
+
+  const handleRemoveStagedFile = (index: number) => {
+    setStagedFiles((prev) => prev.filter((_, i) => i !== index));
+  };
+
   const handleSendMessage = async () => {
     const text = inputText.trim();
-    if (!text) return;
+    if (!text && stagedFiles.length === 0) return;
 
-    const newEntries = addThreadEntry(threadEntries, {
-      type: 'message',
-      authorName,
-      content: text,
-      attachedToId: attachedEntry?.id,
-      attachedSnippet: attachedEntry
-        ? attachedEntry.content.slice(0, 80)
-        : undefined,
-    });
+    setIsUploading(true);
+    try {
+      let threadAttachments: ThreadAttachmentRef[] | undefined = undefined;
 
-    await persistThread(newEntries);
-    setInputText('');
-    setAttachedEntry(null);
-    setTimeout(() => {
-      threadBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, 100);
+      if (stagedFiles.length > 0) {
+        // Save file bytes in local storage (IndexedDB) and persist attachment reference
+        const savedAttachments = await attachFilesToItem(item.id, stagedFiles);
+        threadAttachments = savedAttachments.map((att) => ({
+          id: att.id,
+          name: att.original_file_name,
+          size: att.byte_size,
+          type: att.mime_type,
+          extension: att.file_extension,
+        }));
+      }
+
+      const entryType =
+        threadAttachments && threadAttachments.length > 0 ? 'document' : 'message';
+      const defaultContent =
+        threadAttachments && threadAttachments.length > 0
+          ? threadAttachments.length === 1
+            ? threadAttachments[0].name
+            : `${threadAttachments.length} documents attached`
+          : '';
+
+      const newEntries = addThreadEntry(threadEntries, {
+        type: entryType,
+        authorName,
+        content: text || defaultContent,
+        attachedToId: attachedEntry?.id,
+        attachedSnippet: attachedEntry
+          ? attachedEntry.content.slice(0, 80)
+          : undefined,
+        attachments: threadAttachments,
+      });
+
+      await persistThread(newEntries);
+      setInputText('');
+      setStagedFiles([]);
+      setAttachedEntry(null);
+      setTimeout(() => {
+        threadBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    } catch (err) {
+      console.error('Failed to attach documents or persist thread entry:', err);
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const handleCreatePoll = async () => {
@@ -211,8 +378,57 @@ export function ItemSideDetailPanel({ item, onClose }: ItemSideDetailPanelProps)
     inputRef.current?.focus();
   };
 
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      handleFilesSelected(e.dataTransfer.files);
+    }
+  };
+
   return (
-    <div className="flex flex-col h-full bg-white relative overflow-hidden select-none">
+    <div
+      className="flex flex-col h-full bg-white relative overflow-hidden select-none"
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
+      {/* Hidden File Input for document upload */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        multiple
+        className="hidden"
+        onChange={(e) => {
+          if (e.target.files) {
+            handleFilesSelected(e.target.files);
+            e.target.value = '';
+          }
+        }}
+      />
+
+      {/* Drag & Drop Visual Overlay */}
+      {isDragging && (
+        <div className="absolute inset-0 bg-[#f7f5ee]/95 border-2 border-dashed border-[#171711] z-50 flex flex-col items-center justify-center p-6 text-center animate-in fade-in">
+          <div className="w-12 h-12 rounded-2xl bg-[#e6edb0] border border-[#171711] flex items-center justify-center text-[#171711] mb-2 shadow-xs">
+            <UploadCloud className="w-6 h-6" />
+          </div>
+          <p className="text-sm font-bold text-[#171711]">Drop documents to attach</p>
+          <p className="text-xs text-[#6c6b63] mt-0.5">
+            Files will be stored locally in your browser storage
+          </p>
+        </div>
+      )}
       {/* 1. TOP HEADER: Sender Info & Actions on Top Row, Title Underneath */}
       <div className="shrink-0 p-4 border-b border-[#e4e0d5] bg-white space-y-2.5">
         {/* Top actions toolbar: sender avatar & domain on left, action icons on right */}
@@ -636,9 +852,30 @@ export function ItemSideDetailPanel({ item, onClose }: ItemSideDetailPanelProps)
                       </p>
                     </div>
                   ) : (
-                    <p className="text-xs sm:text-sm text-[#171711] whitespace-pre-wrap leading-relaxed">
-                      {entry.content}
-                    </p>
+                    <div className="space-y-2">
+                      {/* Note or caption text */}
+                      {entry.content &&
+                        (!entry.attachments ||
+                          entry.attachments.length !== 1 ||
+                          entry.content !== entry.attachments[0].name) && (
+                          <p className="text-xs sm:text-sm text-[#171711] whitespace-pre-wrap leading-relaxed">
+                            {entry.content}
+                          </p>
+                        )}
+
+                      {/* Document Attachments */}
+                      {entry.attachments && entry.attachments.length > 0 && (
+                        <div className="space-y-1.5 pt-0.5">
+                          {entry.attachments.map((att) => (
+                            <ThreadAttachmentCard
+                              key={att.id}
+                              attachment={att}
+                              userId={item.user_id}
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   )}
 
                   {/* Reaction Bar */}
@@ -812,6 +1049,55 @@ export function ItemSideDetailPanel({ item, onClose }: ItemSideDetailPanelProps)
           </div>
         )}
 
+        {/* Staged Document Attachments Chips Banner */}
+        {stagedFiles.length > 0 && (
+          <div className="mb-2.5 p-2 bg-[#faf8f5] border border-[#e4e0d5] rounded-2xl space-y-1.5 animate-in fade-in slide-in-from-bottom-1">
+            <div className="flex items-center justify-between text-[11px] font-bold text-[#6c6b63] px-1">
+              <span>Attached Documents ({stagedFiles.length})</span>
+              <span className="text-[10px] text-[#8e8d87]">Saved locally</span>
+            </div>
+            <div className="flex flex-wrap items-center gap-1.5">
+              {stagedFiles.map((file, idx) => {
+                const ext = file.name.split('.').pop()?.toLowerCase() || '';
+                const isPdf = ext === 'pdf' || file.type === 'application/pdf';
+                const isImg = file.type.startsWith('image/');
+                return (
+                  <div
+                    key={`${file.name}-${idx}`}
+                    className="flex items-center gap-2 bg-white border border-[#e4e0d5] rounded-xl px-2.5 py-1 text-xs shadow-2xs"
+                  >
+                    <div className="w-5 h-5 rounded-md bg-[#faf8f5] flex items-center justify-center shrink-0">
+                      {isPdf ? (
+                        <FileText className="w-3 h-3 text-rose-600" />
+                      ) : isImg ? (
+                        <ImageIcon className="w-3 h-3 text-sky-600" />
+                      ) : (
+                        <FileText className="w-3 h-3 text-[#171711]" />
+                      )}
+                    </div>
+                    <div className="min-w-0 max-w-[130px] truncate">
+                      <span className="font-semibold text-[#171711] truncate block text-[11px]">
+                        {file.name}
+                      </span>
+                      <span className="text-[10px] text-[#8e8d87]">
+                        {formatBytes(file.size)}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveStagedFile(idx)}
+                      className="p-0.5 rounded-full text-[#8e8d87] hover:text-[#171711] hover:bg-[#faf8f5] cursor-pointer"
+                      title="Remove document"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {/* The Main ChatGPT-style Pill Bar (White themed) */}
         <div className="relative flex items-center bg-white border border-[#e4e0d5] hover:border-[#171711]/40 focus-within:border-[#171711] focus-within:ring-2 focus-within:ring-[#171711]/5 text-[#171711] rounded-full px-2.5 py-1.5 shadow-xs transition-all">
           {/* Left Plus Action Button */}
@@ -827,7 +1113,21 @@ export function ItemSideDetailPanel({ item, onClose }: ItemSideDetailPanelProps)
 
             {/* Plus Popover Menu */}
             {plusMenuOpen && (
-              <div className="absolute left-0 bottom-full mb-2 w-48 bg-white border border-[#e4e0d5] rounded-2xl shadow-xl py-1.5 z-50 text-xs text-[#171711] animate-in fade-in zoom-in-95">
+              <div className="absolute left-0 bottom-full mb-2 w-52 bg-white border border-[#e4e0d5] rounded-2xl shadow-xl py-1.5 z-50 text-xs text-[#171711] animate-in fade-in zoom-in-95">
+                {/* 1. Upload Document */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    fileInputRef.current?.click();
+                    setPlusMenuOpen(false);
+                  }}
+                  className="w-full text-left px-3.5 py-2 hover:bg-[#faf8f5] flex items-center gap-2 cursor-pointer"
+                >
+                  <FileText className="w-4 h-4 text-[#171711]" />
+                  <span>Upload Document</span>
+                </button>
+
+                {/* 2. Create Poll */}
                 <button
                   type="button"
                   onClick={() => {
@@ -840,6 +1140,7 @@ export function ItemSideDetailPanel({ item, onClose }: ItemSideDetailPanelProps)
                   <span>Create Poll & Voting</span>
                 </button>
 
+                {/* 3. Attach Earlier Note */}
                 {threadEntries.length > 0 && (
                   <button
                     type="button"
@@ -871,7 +1172,11 @@ export function ItemSideDetailPanel({ item, onClose }: ItemSideDetailPanelProps)
                 handleSendMessage();
               }
             }}
-            placeholder="Add follow-up, thought, or note..."
+            placeholder={
+              stagedFiles.length > 0
+                ? 'Add an optional note with documents...'
+                : 'Add follow-up, thought, or note...'
+            }
             className="flex-1 min-w-0 bg-transparent px-3 py-1.5 text-xs sm:text-sm text-[#171711] placeholder:text-[#8e8d87] focus:outline-none"
           />
 
@@ -879,11 +1184,15 @@ export function ItemSideDetailPanel({ item, onClose }: ItemSideDetailPanelProps)
           <button
             type="button"
             onClick={handleSendMessage}
-            disabled={!inputText.trim()}
+            disabled={(!inputText.trim() && stagedFiles.length === 0) || isUploading}
             title="Send"
             className="w-7 h-7 rounded-full bg-[#171711] text-[#e6edb0] hover:bg-[#2e2d24] flex items-center justify-center transition-all cursor-pointer disabled:opacity-25 disabled:cursor-not-allowed shrink-0 ml-1 shadow-2xs"
           >
-            <Send className="w-3.5 h-3.5 fill-[#e6edb0]" />
+            {isUploading ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-[#e6edb0]" />
+            ) : (
+              <Send className="w-3.5 h-3.5 fill-[#e6edb0]" />
+            )}
           </button>
         </div>
       </div>
