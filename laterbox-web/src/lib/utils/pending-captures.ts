@@ -1,3 +1,4 @@
+import { getAccessToken } from '../auth/tokens';
 import { installationId, uploadWithNotificationHandoff } from '../notifications/client';
 import type { LaterBoxItem } from '../supabase/types';
 import { getSupabaseClient } from '../supabase/client';
@@ -43,8 +44,7 @@ export async function syncPendingCaptures(userId: string) {
   const items = Object.values(queue);
   if (items.length === 0) return;
 
-  const { data: sessionData } = await client.auth.getSession();
-  const session = sessionData?.session;
+  const session = await getAccessToken();
   if (!session) return;
 
   for (const item of items) {
