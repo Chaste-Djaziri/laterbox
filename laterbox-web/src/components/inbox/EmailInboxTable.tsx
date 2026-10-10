@@ -28,6 +28,7 @@ import {
   Search,
   Check,
   X,
+  RotateCcw,
 } from 'lucide-react';
 import {
   InboxSearchFilters,
@@ -61,7 +62,17 @@ export function EmailInboxTable({
   onClearSearch,
 }: EmailInboxTableProps) {
   const router = useRouter();
-  const { setFavorite, archiveItem, deleteItem, reschedule, syncNow, now, syncStatus } = useItems();
+  const {
+    setFavorite,
+    archiveItem,
+    deleteItem,
+    restoreItem,
+    permanentlyDeleteItem,
+    reschedule,
+    syncNow,
+    now,
+    syncStatus,
+  } = useItems();
 
   const [activeTab, setActiveTab] = useState<TabKey>('primary');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -308,6 +319,32 @@ export function EmailInboxTable({
     setSelectedIds(new Set());
   };
 
+  const handleBulkRestore = async () => {
+    const ids = Array.from(selectedIds);
+    for (const id of ids) {
+      await restoreItem(id);
+    }
+    setSelectedIds(new Set());
+  };
+
+  const handleBulkPermanentDelete = async () => {
+    if (!confirm('Permanently delete selected items? This cannot be undone.')) return;
+    const ids = Array.from(selectedIds);
+    for (const id of ids) {
+      await permanentlyDeleteItem(id);
+    }
+    setSelectedIds(new Set());
+  };
+
+  const areSelectedItemsDeleted = useMemo(() => {
+    if (selectedIds.size === 0) return false;
+    for (const id of selectedIds) {
+      const item = items.find((i) => i.id === id);
+      if (item && !item.deleted_at) return false;
+    }
+    return true;
+  }, [selectedIds, items]);
+
   const handleBulkStar = async () => {
     const ids = Array.from(selectedIds);
     for (const id of ids) {
@@ -453,42 +490,64 @@ export function EmailInboxTable({
                 {selectedIds.size} selected
               </span>
 
-              <button
-                type="button"
-                onClick={handleBulkArchive}
-                title="Archive selected"
-                className="p-1.5 rounded-lg hover:bg-[#faf8f5] text-[#6c6b63] hover:text-[#171711] transition-colors cursor-pointer"
-              >
-                <Archive className="w-4 h-4" />
-              </button>
+              {areSelectedItemsDeleted ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={handleBulkRestore}
+                    title="Restore selected to inbox"
+                    className="p-1.5 rounded-lg hover:bg-emerald-50 text-[#6c6b63] hover:text-emerald-700 transition-colors cursor-pointer"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                  </button>
 
-              <button
-                type="button"
-                onClick={handleBulkDelete}
-                title="Delete selected"
-                className="p-1.5 rounded-lg hover:bg-rose-50 text-[#6c6b63] hover:text-rose-600 transition-colors cursor-pointer"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
+                  <button
+                    type="button"
+                    onClick={handleBulkPermanentDelete}
+                    title="Delete selected forever"
+                    className="p-1.5 rounded-lg hover:bg-rose-50 text-[#6c6b63] hover:text-rose-600 transition-colors cursor-pointer"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={handleBulkArchive}
+                    title="Archive selected"
+                    className="p-1.5 rounded-lg hover:bg-[#faf8f5] text-[#6c6b63] hover:text-[#171711] transition-colors cursor-pointer"
+                  >
+                    <Archive className="w-4 h-4" />
+                  </button>
 
-              <button
-                type="button"
-                onClick={handleBulkStar}
-                title="Star selected"
-                className="p-1.5 rounded-lg hover:bg-[#faf8f5] text-[#6c6b63] hover:text-amber-500 transition-colors cursor-pointer"
-              >
-                <Star className="w-4 h-4" />
-              </button>
+                  <button
+                    type="button"
+                    onClick={handleBulkDelete}
+                    title="Delete selected"
+                    className="p-1.5 rounded-lg hover:bg-rose-50 text-[#6c6b63] hover:text-rose-600 transition-colors cursor-pointer"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
 
-              <div className="relative" ref={snoozeMenuRef}>
-                <button
-                  type="button"
-                  onClick={() => setBulkSnoozeOpen(!bulkSnoozeOpen)}
-                  title="Snooze selected"
-                  className="p-1.5 rounded-lg hover:bg-[#faf8f5] text-[#6c6b63] hover:text-[#171711] transition-colors cursor-pointer"
-                >
-                  <Clock className="w-4 h-4" />
-                </button>
+                  <button
+                    type="button"
+                    onClick={handleBulkStar}
+                    title="Star selected"
+                    className="p-1.5 rounded-lg hover:bg-[#faf8f5] text-[#6c6b63] hover:text-amber-500 transition-colors cursor-pointer"
+                  >
+                    <Star className="w-4 h-4" />
+                  </button>
+
+                  <div className="relative" ref={snoozeMenuRef}>
+                    <button
+                      type="button"
+                      onClick={() => setBulkSnoozeOpen(!bulkSnoozeOpen)}
+                      title="Snooze selected"
+                      className="p-1.5 rounded-lg hover:bg-[#faf8f5] text-[#6c6b63] hover:text-[#171711] transition-colors cursor-pointer"
+                    >
+                      <Clock className="w-4 h-4" />
+                    </button>
 
                 {bulkSnoozeOpen && (
                   <div className="absolute left-0 top-full mt-1 w-48 bg-white border border-[#e4e0d5] rounded-xl shadow-lg py-1.5 z-40 text-xs text-[#171711]">
@@ -1073,31 +1132,65 @@ export function EmailInboxTable({
                 <div className="shrink-0 flex items-center justify-end min-w-[90px] sm:min-w-[130px] text-right relative z-10">
                   {/* Quick Action Icons visible on Hover */}
                   <div className="hidden group-hover:flex items-center gap-1 text-[#6c6b63] bg-white/90 backdrop-blur-xs px-1.5 py-0.5 rounded-lg border border-[#e4e0d5]/60 shadow-2xs">
-                    {/* Archive */}
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        archiveItem(item.id);
-                      }}
-                      title="Archive"
-                      className="p-1.5 rounded-lg hover:bg-[#ebe7dc] hover:text-[#171711] transition-colors cursor-pointer"
-                    >
-                      <Archive className="w-3.5 h-3.5" />
-                    </button>
+                    {item.deleted_at ? (
+                      <>
+                        {/* Restore to Inbox */}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            restoreItem(item.id);
+                          }}
+                          title="Restore to inbox"
+                          className="p-1.5 rounded-lg hover:bg-emerald-100 hover:text-emerald-700 transition-colors cursor-pointer"
+                        >
+                          <RotateCcw className="w-3.5 h-3.5" />
+                        </button>
 
-                    {/* Delete */}
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        deleteItem(item.id);
-                      }}
-                      title="Delete"
-                      className="p-1.5 rounded-lg hover:bg-rose-100 hover:text-rose-600 transition-colors cursor-pointer"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
+                        {/* Delete Permanently */}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (confirm('Permanently delete this item? This cannot be undone.')) {
+                              permanentlyDeleteItem(item.id);
+                            }
+                          }}
+                          title="Delete forever"
+                          className="p-1.5 rounded-lg hover:bg-rose-100 hover:text-rose-600 transition-colors cursor-pointer"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        {/* Archive */}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            archiveItem(item.id);
+                          }}
+                          title="Archive"
+                          className="p-1.5 rounded-lg hover:bg-[#ebe7dc] hover:text-[#171711] transition-colors cursor-pointer"
+                        >
+                          <Archive className="w-3.5 h-3.5" />
+                        </button>
+
+                        {/* Delete */}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            deleteItem(item.id);
+                          }}
+                          title="Delete"
+                          className="p-1.5 rounded-lg hover:bg-rose-100 hover:text-rose-600 transition-colors cursor-pointer"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </>
+                    )}
 
                     {/* Snooze / Reschedule */}
                     <div className="relative">

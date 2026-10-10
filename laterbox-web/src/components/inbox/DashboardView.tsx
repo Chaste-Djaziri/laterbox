@@ -9,9 +9,10 @@ interface DashboardViewProps {
   items: LaterBoxItem[];
   loading?: boolean;
   title?: string;
+  topBanner?: React.ReactNode;
 }
 
-export function DashboardView({ items, loading, title: propTitle }: DashboardViewProps) {
+export function DashboardView({ items, loading, title: propTitle, topBanner }: DashboardViewProps) {
   const {
     title: contextTitle,
     setTitle,
@@ -33,6 +34,7 @@ export function DashboardView({ items, loading, title: propTitle }: DashboardVie
 
   return (
     <div className="w-full px-3 sm:px-4 lg:px-5 pb-2 sm:pb-3 flex flex-col flex-1 min-h-0 h-full overflow-hidden">
+      {topBanner}
       <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
         {loading ? (
           <div className="bg-white border border-[#e4e0d5] rounded-2xl p-12 text-center animate-pulse flex-1 flex items-center justify-center">
