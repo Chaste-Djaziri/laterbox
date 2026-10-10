@@ -704,8 +704,8 @@ export function ItemSideDetailPanel({ item, onClose }: ItemSideDetailPanelProps)
         <div ref={threadBottomRef} />
       </div>
 
-      {/* 3. CHATGPT-STYLE FLOATING BOTTOM PILL INPUT BAR */}
-      <div className="shrink-0 p-3 sm:p-4 bg-gradient-to-t from-white via-white to-white/90 border-t border-[#e4e0d5]">
+      {/* 3. CHATGPT-STYLE FIXED BOTTOM PILL INPUT BAR */}
+      <div className="shrink-0 sticky bottom-0 z-20 p-3 sm:p-4 bg-white border-t border-[#e4e0d5]">
         {/* Attached Entry Preview Banner */}
         {attachedEntry && (
           <div className="mb-2 flex items-center justify-between px-3 py-1.5 bg-[#f0ede4] border border-[#e4e0d5] rounded-xl text-xs text-[#171711] animate-in fade-in">
@@ -812,15 +812,15 @@ export function ItemSideDetailPanel({ item, onClose }: ItemSideDetailPanelProps)
           </div>
         )}
 
-        {/* The Main ChatGPT-style Pill Bar */}
-        <div className="relative flex items-center bg-[#171711] text-white rounded-full px-2.5 py-1.5 shadow-md">
+        {/* The Main ChatGPT-style Pill Bar (White themed) */}
+        <div className="relative flex items-center bg-white border border-[#e4e0d5] hover:border-[#171711]/40 focus-within:border-[#171711] focus-within:ring-2 focus-within:ring-[#171711]/5 text-[#171711] rounded-full px-2.5 py-1.5 shadow-xs transition-all">
           {/* Left Plus Action Button */}
           <div className="relative shrink-0" ref={plusMenuRef}>
             <button
               type="button"
               onClick={() => setPlusMenuOpen(!plusMenuOpen)}
               title="Add options"
-              className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors cursor-pointer"
+              className="w-7 h-7 rounded-full bg-[#faf8f5] hover:bg-[#f0ede4] text-[#171711] border border-[#e4e0d5] flex items-center justify-center transition-colors cursor-pointer"
             >
               <Plus className="w-4 h-4" />
             </button>
@@ -872,7 +872,7 @@ export function ItemSideDetailPanel({ item, onClose }: ItemSideDetailPanelProps)
               }
             }}
             placeholder="Add follow-up, thought, or note..."
-            className="flex-1 min-w-0 bg-transparent px-3 py-1.5 text-xs sm:text-sm text-white placeholder:text-[#8e8d87] focus:outline-none"
+            className="flex-1 min-w-0 bg-transparent px-3 py-1.5 text-xs sm:text-sm text-[#171711] placeholder:text-[#8e8d87] focus:outline-none"
           />
 
           {/* Right Action: Send Circular Button */}
@@ -881,9 +881,9 @@ export function ItemSideDetailPanel({ item, onClose }: ItemSideDetailPanelProps)
             onClick={handleSendMessage}
             disabled={!inputText.trim()}
             title="Send"
-            className="w-7 h-7 rounded-full bg-[#e6edb0] text-[#171711] hover:bg-white flex items-center justify-center transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shrink-0 ml-1 shadow-2xs"
+            className="w-7 h-7 rounded-full bg-[#171711] text-[#e6edb0] hover:bg-[#2e2d24] flex items-center justify-center transition-all cursor-pointer disabled:opacity-25 disabled:cursor-not-allowed shrink-0 ml-1 shadow-2xs"
           >
-            <Send className="w-3.5 h-3.5 fill-[#171711]" />
+            <Send className="w-3.5 h-3.5 fill-[#e6edb0]" />
           </button>
         </div>
       </div>
