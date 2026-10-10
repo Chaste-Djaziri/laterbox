@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: 'LaterBox - Save for Later',
     short_name: 'LaterBox',
     description: 'Save anything now. Read, watch & organize later.',
-    start_url: '/home',
+    start_url: '/inbox',
     display: 'standalone',
     background_color: '#f7f5ee',
     theme_color: '#171711',
