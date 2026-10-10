@@ -39,6 +39,7 @@ export function CustomLoginContent({ actions, extra }: { actions?: Partial<AuthC
   const [message, setMessage] = useState<string | null>(null);
   const [otp, setOtp] = useState('');
   const [awaitingOtp, setAwaitingOtp] = useState(false);
+  const [secondFactor, setSecondFactor] = useState(false);
   const [otpType, setOtpType] = useState<'email' | 'signup'>('email');
   const [awaitingPassword, setAwaitingPassword] = useState(false);
   const [awaitingName, setAwaitingName] = useState(false);
@@ -94,7 +95,8 @@ export function CustomLoginContent({ actions, extra }: { actions?: Partial<AuthC
 
     try {
       // First attempt signUp with password
-      const { error: signUpErr, requiresConfirmation } = await signUpWithPassword(email.trim(), password);
+      const passwordResult = await signUpWithPassword(email.trim(), password) as Awaited<ReturnType<AuthContextType['signUpWithPassword']>> & { secondFactor?: boolean };
+      const { error: signUpErr,requiresConfirmation } = passwordResult;
 
       if (signUpErr) {
         const msg = signUpErr.message.toLowerCase();
@@ -118,9 +120,10 @@ export function CustomLoginContent({ actions, extra }: { actions?: Partial<AuthC
       if (requiresConfirmation) {
         // Confirmation code sent!
         setAwaitingPassword(false);
-        setOtpType('signup');
+        setSecondFactor(Boolean(passwordResult.secondFactor));
+        setOtpType(passwordResult.secondFactor ? 'email' : 'signup');
         setAwaitingOtp(true);
-        setMessage(`We sent a verification code to ${email.trim()}.`);
+        setMessage(passwordResult.secondFactor ? null : `We sent a verification code to ${email.trim()}.`);
       }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Authentication failed.');
@@ -137,7 +140,7 @@ export function CustomLoginContent({ actions, extra }: { actions?: Partial<AuthC
     setLoading(true);
     setError(null);
     setMessage(null);
-    const result = await verifyEmailOtp(email.trim(), otp, otpType) as Awaited<ReturnType<AuthContextType['verifyEmailOtp']>> & { isNewAccount?: boolean };
+    const result = await verifyEmailOtp(email.trim(), otp, otpType) as Awaited<ReturnType<AuthContextType['verifyEmailOtp']>> & { isNewAccount?: boolean; secondFactor?: boolean };
     const { data,error: err } = result;
     if (err) {
       setError(err.message);
@@ -145,6 +148,7 @@ export function CustomLoginContent({ actions, extra }: { actions?: Partial<AuthC
       return;
     }
 
+    if (result.secondFactor) { setSecondFactor(true); setOtp(''); setLoading(false); return; }
     if (actions) { setAwaitingOtp(false); setAwaitingName(Boolean(result.isNewAccount)); setLoading(false); return; }
     const verifiedUser = data?.user;
     const existingName =
@@ -333,6 +337,7 @@ export function CustomLoginContent({ actions, extra }: { actions?: Partial<AuthC
     return (
       <OtpVerification
         email={email.trim()}
+        secondFactor={secondFactor}
         otp={otp}
         busy={loading}
         error={error}
@@ -342,6 +347,7 @@ export function CustomLoginContent({ actions, extra }: { actions?: Partial<AuthC
         onResend={() => void handleResendOtp()}
         onBack={() => {
           setAwaitingOtp(false);
+          setSecondFactor(false);
           setAwaitingPassword(false);
           setOtp('');
           setPassword('');
@@ -439,6 +445,7 @@ export function CustomLoginContent({ actions, extra }: { actions?: Partial<AuthC
 
 function OtpVerification({
   email,
+  secondFactor = false,
   otp,
   busy,
   error,
@@ -449,6 +456,7 @@ function OtpVerification({
   onBack,
 }: {
   email: string;
+  secondFactor?: boolean;
   otp: string;
   busy: boolean;
   error: string | null;
@@ -470,10 +478,10 @@ function OtpVerification({
           priority
         />
         <h1 id="otp-title" className="mt-8 text-3xl font-black tracking-tight">
-          Check your email
+          {secondFactor ? 'Verify your sign-in' : 'Check your email'}
         </h1>
         <p className="mt-3 text-sm leading-6 text-[#6b6961]">
-          Enter the verification code sent to <strong>{email}</strong>.
+          {secondFactor ? 'Enter the code from your authenticator app.' : <>Enter the verification code sent to <strong>{email}</strong>.</>}
         </p>
 
         {error && <p role="alert" className="mt-5 rounded-2xl border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-700">{error}</p>}
@@ -503,10 +511,10 @@ function OtpVerification({
             {busy ? <Loader2 className="size-5 animate-spin" /> : 'Verify code'}
           </button>
           <div className="flex items-center justify-center gap-3 pt-1">
-            <button type="button" disabled={busy} onClick={onResend} className="text-sm font-semibold disabled:opacity-50 cursor-pointer">
+            {!secondFactor && <><button type="button" disabled={busy} onClick={onResend} className="text-sm font-semibold disabled:opacity-50 cursor-pointer">
               Send a new code
             </button>
-            <span className="text-[#9e9b92]">·</span>
+            <span className="text-[#9e9b92]">·</span></>}
             <button type="button" disabled={busy} onClick={onBack} className="text-sm text-[#6b6961] disabled:opacity-50 cursor-pointer">
               Use a different email
             </button>
