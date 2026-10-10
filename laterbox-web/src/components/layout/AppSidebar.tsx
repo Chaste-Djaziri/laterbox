@@ -30,6 +30,7 @@ import {
   CheckCircle,
   CalendarClock,
   Trash2,
+  HelpCircle,
 } from 'lucide-react';
 
 interface AppSidebarProps {
@@ -147,6 +148,11 @@ export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
       href: '/downloads',
       label: 'Apps',
       icon: <Download className="w-4 h-4" />,
+    },
+    {
+      href: '/help',
+      label: 'Help & FAQ',
+      icon: <HelpCircle className="w-4 h-4" />,
     },
     {
       href: '/plans',
