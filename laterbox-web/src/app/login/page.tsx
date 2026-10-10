@@ -38,7 +38,7 @@ function LoginContent() {
   const requestedNext = searchParams.get('next');
   const nextPath = requestedNext?.startsWith('/') && !requestedNext.startsWith('//')
     ? requestedNext
-    : '/home';
+    : '/inbox';
 
   // Automatically redirect to dashboard if user is already authenticated
   useEffect(() => {
@@ -118,7 +118,7 @@ function LoginContent() {
 
   const handleContinueWithoutAccount = () => {
     continueAsGuest();
-    router.push('/home');
+    router.push('/inbox');
   };
 
   const handleSaveDisplayName = async (nameToSave?: string) => {
