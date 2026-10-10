@@ -426,7 +426,7 @@ export function CustomLoginContent({ actions, extra }: { actions?: Partial<AuthC
               disabled={loading || authLoading || Boolean(isAuthenticated)}
               className="w-full h-14 bg-[#181816] hover:bg-[#282723] active:bg-[#0f0f0e] text-white font-bold text-[15px] rounded-[18px] shadow-sm transition-all duration-150 flex items-center justify-center disabled:opacity-60 cursor-pointer"
             >
-              {loading ? (
+              {loading || authLoading ? (
                 <Loader2 className="w-5 h-5 animate-spin" />
               ) : (
                 'Continue'
