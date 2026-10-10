@@ -11,7 +11,6 @@ import { presentEntitlement } from '@/lib/billing/types';
 import { scheduleItems } from '@/lib/utils/schedule';
 import { CloudSyncIndicator } from '../ui/CloudSyncIndicator';
 import {
-  Home,
   CalendarDays,
   Clock,
   Inbox,
@@ -53,7 +52,6 @@ export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
   const somedayCount = useMemo(() => scheduleItems(items, 'someday', now).length, [items, now]);
 
   const coreLinks = [
-    { href: '/home', label: 'Home', icon: <Home className="w-4 h-4" /> },
     {
       href: '/inbox',
       label: 'Inbox',
@@ -117,7 +115,7 @@ export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
   ];
 
   const isLinkActive = (href: string) => {
-    if (href === '/home') return pathname === '/home' || pathname === '/';
+    if (href === '/inbox') return pathname === '/inbox' || pathname === '/';
     if (href === '/downloads') return pathname === '/downloads' || pathname === '/download';
     return pathname === href || pathname.startsWith(`${href}/`);
   };
