@@ -5,6 +5,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 ## [Unreleased]
 
 ### Changed
+- **[Web] AI organize collection grouping and de-duplication**: Reuse available collections when organizing items with AI, group multiple items requiring the same collection together, and prevent duplicate collections with identical names.
 - **[Web] Recently Deleted section in Library**: Add a Recently Deleted tab to the Library with item restoration, permanent deletion, and empty trash capability.
 - **[Web] Simplified Library header**: Replace verbose marketing slogans and storage badge on the Library page with a clean, simple page title.
 - **[Web] Simplified Deep Search header**: Replace verbose marketing slogans and offline core badge on the Deep Search page with a clean, simple page title.
