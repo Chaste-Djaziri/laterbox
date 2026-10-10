@@ -37,7 +37,7 @@ export function ClerkAccountProvider({ children }: { children: React.ReactNode }
       if (refreshError || !refreshed.session) return;
       const proof = userId ? await tokenGetter() : null;
       const response = await fetch('/api/auth/migrate', { method: 'POST', headers: { Authorization: `Bearer ${refreshed.session.access_token}`, ...(proof ? { 'X-Clerk-Token': proof } : {}) } });
-      const result = await response.json();
+      const result = await response.json() as { error?: string; ticket?: string; user: AccountUser };
       if (!response.ok) throw new Error(result.error || 'Migration could not finish.');
       if (result.ticket) {
         const login = await signIn.create({ strategy: 'ticket', ticket: result.ticket });
@@ -65,7 +65,7 @@ export function ClerkAccountProvider({ children }: { children: React.ReactNode }
         const token = await tokenGetter();
         if (!token) throw new Error('Your session has expired. Sign in again.');
         const response = await fetch('/api/auth/account',{ method: 'POST', headers: { Authorization: `Bearer ${token}` } });
-        const result = await response.json();
+        const result = await response.json() as { error?: string; ticket?: string; user: AccountUser };
         if (!response.ok) throw new Error(result.error || 'Account setup could not finish.');
         if (!cancelled) {
           setUser(result.user); setSession({ access_token: token }); setGuest(false);
