@@ -8,8 +8,7 @@ export function customAuthError(cause: unknown): AuthError {
 }
 
 /** Keep provider state behind LaterBox's existing email/code/password forms. */
-export function createCustomClerkFlow(signIn: SignInResource, signUp: SignUpResource, activate: (session: string) => Promise<void>) {
-  let mode: 'signin' | 'signup' = 'signin';
+export function createCustomClerkFlow(signIn: SignInResource, signUp: SignUpResource, activate: (session: string) => Promise<void>, state: { mode: 'signin' | 'signup' } = { mode: 'signin' }) {
   const finish = async (attempt: SignInResource | SignUpResource) => {
     if (attempt.status !== 'complete' || !attempt.createdSessionId) {
       throw new Error(attempt.status === 'needs_second_factor' ? 'Your account requires additional verification. Contact support to complete this sign-in.' : 'Your account requires additional information before sign-in can finish.');
@@ -20,13 +19,13 @@ export function createCustomClerkFlow(signIn: SignInResource, signUp: SignUpReso
   return {
     async begin(email: string): Promise<EmailStartResult> {
       try {
-        mode = 'signin';
+        state.mode = 'signin';
         let attempt: SignInResource;
         try { attempt = await signIn.create({ identifier: email }); }
         catch (cause) {
           const errors = (cause as { errors?: { code?: string }[] }).errors;
           if (!errors?.some(error => error.code === 'form_identifier_not_found')) throw cause;
-          mode = 'signup';
+          state.mode = 'signup';
           const signup = await signUp.create({ emailAddress: email });
           if (signup.missingFields.includes('password')) return { error: null,nextStep: 'password' };
           await sendSignupCode();
@@ -43,14 +42,14 @@ export function createCustomClerkFlow(signIn: SignInResource, signUp: SignUpReso
     },
     async verify(code: string) {
       try {
-        const attempt = mode === 'signup' ? await signUp.attemptEmailAddressVerification({ code }) : await signIn.attemptFirstFactor({ strategy: 'email_code',code });
+        const attempt = state.state.mode === 'signup' ? await signUp.attemptEmailAddressVerification({ code }) : await signIn.attemptFirstFactor({ strategy: 'email_code',code });
         await finish(attempt);
         return { error: null };
       } catch (cause) { return { error: customAuthError(cause) }; }
     },
     async password(password: string) {
       try {
-        if (mode === 'signin') { await finish(await signIn.attemptFirstFactor({ strategy: 'password',password })); return { error: null,requiresConfirmation: false }; }
+        if (state.state.mode === 'signin') { await finish(await signIn.attemptFirstFactor({ strategy: 'password',password })); return { error: null,requiresConfirmation: false }; }
         const attempt = await signUp.update({ password });
         if (attempt.status === 'complete') { await finish(attempt); return { error: null,requiresConfirmation: false }; }
         await sendSignupCode();
@@ -59,7 +58,7 @@ export function createCustomClerkFlow(signIn: SignInResource, signUp: SignUpReso
     },
     async resend() {
       try {
-        if (mode === 'signup') await sendSignupCode();
+        if (state.state.mode === 'signup') await sendSignupCode();
         else {
           const factor = signIn.supportedFirstFactors?.find(factor => factor.strategy === 'email_code');
           if (factor?.strategy !== 'email_code') throw new Error('Start your email sign-in again.');
