@@ -9,6 +9,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 ## [Unreleased]
 
 ### Changed
+- **[Web] White-themed fixed detail input bar and bottom viewport gap**: Restyled the item details input pill to a clean white theme with light borders and fixed it to the bottom of the details pane. Added a dedicated bottom spacing gap to the Inbox page container so the inbox card floats cleanly above the bottom of the viewport.
 - **[Web] Viewport-locked Inbox container with internal scrolling**: Locked the Inbox page layout into the viewport so the page itself does not scroll, ensuring the top header controls and the primary inbox container remain constantly in view while email rows and split reading panes scroll smoothly inside.
 - **[Web] Redesigned item side detail header**: Removed the "Item Details" label to place sender avatar, sender name, link domain, and date on the same row as the action buttons, positioning the item title directly underneath for a cleaner reading pane layout.
 - **[Web] Non-blocking LaterBox extension warning notification bar**: Replaced the automatic full-screen blocking modal with an unobtrusive top notification warning banner that alerts users when the extension is not connected, allowing full use of the web application without requiring the extension while providing an on-click modal to set up and connect the extension anytime.
