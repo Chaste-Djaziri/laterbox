@@ -17,7 +17,7 @@ Deno.test('free extension migration: owner reads only verified captures and cann
  const db=await fixture();
  try {
   await db.exec(`alter table items enable row level security; alter table item_metadata enable row level security;
-   grant select on item_metadata to authenticated;
+   grant select on item_metadata,eligible to authenticated;
    create policy paid_items on items for select to authenticated using(user_id=auth.uid() and has_pro_entitlement(user_id));`);
   await db.exec(await Deno.readTextFile(new URL('../migrations/202610100001_free_extension_capture.sql',import.meta.url)));
   const id=await save(db,b,'# Free snapshot',true);
