@@ -48,10 +48,10 @@ export function CustomLoginContent({ actions, extra }: { actions?: Partial<AuthC
 
   // Automatically redirect to dashboard if user is already authenticated
   useEffect(() => {
-    if (!authLoading && user) {
+    if (!authLoading && user && !awaitingName) {
       router.replace(nextPath);
     }
-  }, [authLoading, user, nextPath, router]);
+  }, [authLoading, user, nextPath, router, awaitingName]);
 
   const handleEmailSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -137,14 +137,15 @@ export function CustomLoginContent({ actions, extra }: { actions?: Partial<AuthC
     setLoading(true);
     setError(null);
     setMessage(null);
-    const { data, error: err } = await verifyEmailOtp(email.trim(), otp, otpType);
+    const result = await verifyEmailOtp(email.trim(), otp, otpType) as Awaited<ReturnType<AuthContextType['verifyEmailOtp']>> & { isNewAccount?: boolean };
+    const { data,error: err } = result;
     if (err) {
       setError(err.message);
       setLoading(false);
       return;
     }
 
-    if (actions) { setAwaitingOtp(false); setLoading(false); return; }
+    if (actions) { setAwaitingOtp(false); setAwaitingName(Boolean(result.isNewAccount)); setLoading(false); return; }
     const verifiedUser = data?.user;
     const existingName =
       (verifiedUser?.user_metadata?.display_name as string) ||
@@ -212,7 +213,7 @@ export function CustomLoginContent({ actions, extra }: { actions?: Partial<AuthC
   };
 
   // If already authenticated, show redirecting state while transition completes
-  if (!authLoading && user) {
+  if (!authLoading && user && !awaitingName) {
     return (
       <main className="min-h-screen bg-[#f7f5ee] flex flex-col items-center justify-center p-6 text-[#181816]">
         <div className="flex flex-col items-center gap-3">
