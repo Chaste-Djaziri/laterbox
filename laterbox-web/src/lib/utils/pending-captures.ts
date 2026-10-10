@@ -1,22 +1,249 @@
-import { getAccessToken } from '../auth/tokens';
+import { getAccessToken, refreshAccessToken } from '../auth/tokens';
 import { installationId, uploadWithNotificationHandoff } from '../notifications/client';
-import type { LaterBoxItem } from '../supabase/types';
+import type { LaterBoxItem, Attachment, Collection, ItemMetadata, ItemContent } from '../supabase/types';
 import { getSupabaseClient } from '../supabase/client';
 import { readLocalAttachment } from './local-attachments';
 import { uploadAttachmentFile } from './attachment';
+import { migrateSchedule } from './schedule';
+import { createQueryRecovery } from './query-recovery';
 
 export function itemRow(item: LaterBoxItem) {
-  return { ...(typeof window !== 'undefined' ? { origin_installation_id: installationId() } : {}), id: item.id, user_id: item.user_id, url: item.url, title: item.title,
-    text_content: item.text_content, text_selector: item.text_selector, type: item.type,
-    favorite: item.favorite, status: item.status, return_at: item.return_at ?? null,
-    created_at: item.created_at, updated_at: item.updated_at, deleted_at: item.deleted_at ?? null };
+  return {
+    ...(typeof window !== 'undefined' ? { origin_installation_id: installationId() } : {}),
+    id: item.id,
+    user_id: item.user_id,
+    url: item.url,
+    title: item.title,
+    text_content: item.text_content,
+    text_selector: item.text_selector,
+    type: item.type,
+    favorite: item.favorite,
+    status: item.status,
+    return_at: item.return_at ?? null,
+    created_at: item.created_at,
+    updated_at: item.updated_at,
+    deleted_at: item.deleted_at ?? null,
+  };
 }
-const queueKey = (userId: string) => `laterbox_pending_captures_${userId}`;
+
+export const queueKey = (userId: string) => `laterbox_pending_captures_${userId}`;
+
+export function getPendingQueue(userId: string): Record<string, LaterBoxItem> {
+  if (typeof localStorage === 'undefined' || !userId) return {};
+  try {
+    return JSON.parse(localStorage.getItem(queueKey(userId)) || '{}');
+  } catch {
+    return {};
+  }
+}
+
 export function queueCapture(item: LaterBoxItem) {
-  if (!item.user_id) return;
-  const queue = JSON.parse(localStorage.getItem(queueKey(item.user_id)) || '{}');
-  queue[item.id] = item; localStorage.setItem(queueKey(item.user_id), JSON.stringify(queue));
+  if (!item.user_id || typeof localStorage === 'undefined') return;
+  const queue = getPendingQueue(item.user_id);
+  queue[item.id] = item;
+  localStorage.setItem(queueKey(item.user_id), JSON.stringify(queue));
 }
+
+export function queueHardDelete(userId: string, itemId: string) {
+  if (!userId || typeof localStorage === 'undefined') return;
+  const queue = getPendingQueue(userId);
+  const now = new Date().toISOString();
+  queue[itemId] = {
+    id: itemId,
+    user_id: userId,
+    title: 'Deleted',
+    url: null,
+    text_content: null,
+    text_selector: null,
+    type: 'link',
+    favorite: false,
+    status: 'inbox',
+    return_at: null,
+    created_at: now,
+    updated_at: now,
+    deleted_at: now,
+    _action: 'hard_delete',
+  } as any;
+  localStorage.setItem(queueKey(userId), JSON.stringify(queue));
+}
+
+export function clearPendingItem(userId: string, itemId: string, expectedUpdatedAt?: string) {
+  if (!userId || typeof localStorage === 'undefined') return;
+  const queue = getPendingQueue(userId);
+  if (!queue[itemId]) return;
+  if (expectedUpdatedAt && queue[itemId].updated_at !== expectedUpdatedAt) return;
+  delete queue[itemId];
+  localStorage.setItem(queueKey(userId), JSON.stringify(queue));
+}
+
+export function getItemActionTimestamp(item?: { updated_at?: string | null; deleted_at?: string | null; created_at?: string | null } | null): number {
+  if (!item) return 0;
+  const tDel = item.deleted_at ? new Date(item.deleted_at).getTime() : 0;
+  const tUpd = item.updated_at ? new Date(item.updated_at).getTime() : 0;
+  const tCre = item.created_at ? new Date(item.created_at).getTime() : 0;
+  return Math.max(isNaN(tDel) ? 0 : tDel, isNaN(tUpd) ? 0 : tUpd, isNaN(tCre) ? 0 : tCre);
+}
+
+export interface ConflictResolution<T extends LaterBoxItem> {
+  winner: 'remote' | 'local' | 'same';
+  item: T;
+  shouldPush: boolean;
+}
+
+export function resolveActionConflict<T extends LaterBoxItem>(
+  localItem: T | undefined,
+  remoteItem: T | undefined
+): ConflictResolution<T> {
+  if (!remoteItem && localItem) {
+    return { winner: 'local', item: localItem, shouldPush: true };
+  }
+  if (remoteItem && !localItem) {
+    return { winner: 'remote', item: remoteItem, shouldPush: false };
+  }
+  if (!remoteItem && !localItem) {
+    throw new Error('Both local and remote items are undefined');
+  }
+
+  const localTime = getItemActionTimestamp(localItem);
+  const remoteTime = getItemActionTimestamp(remoteItem);
+
+  if (remoteTime > localTime) {
+    // Remote is newer (another device acted later)
+    return { winner: 'remote', item: remoteItem!, shouldPush: false };
+  } else if (localTime > remoteTime) {
+    // Local is newer (this device acted later)
+    return { winner: 'local', item: localItem!, shouldPush: true };
+  } else {
+    // Equal timestamp
+    if (localItem!.deleted_at && !remoteItem!.deleted_at) {
+      return { winner: 'local', item: localItem!, shouldPush: true };
+    }
+    if (remoteItem!.deleted_at && !localItem!.deleted_at) {
+      return { winner: 'remote', item: remoteItem!, shouldPush: false };
+    }
+    return { winner: 'same', item: remoteItem!, shouldPush: false };
+  }
+}
+
+export interface ReconcileParams {
+  remoteActive: LaterBoxItem[];
+  remoteDeleted: LaterBoxItem[];
+  localCached: LaterBoxItem[];
+  localDeleted: LaterBoxItem[];
+  pendingQueue: Record<string, LaterBoxItem>;
+}
+
+export interface ReconcileResult {
+  reconciledActive: LaterBoxItem[];
+  reconciledDeleted: LaterBoxItem[];
+  itemsToPush: LaterBoxItem[];
+  hardDeletesToPush: string[];
+  queueIdsToRemove: string[];
+}
+
+export function reconcileItemsWithRemote(params: ReconcileParams): ReconcileResult {
+  const { remoteActive, remoteDeleted, localCached, localDeleted, pendingQueue } = params;
+
+  const remoteActiveMap = new Map(remoteActive.map(i => [i.id, i]));
+  const remoteDeletedMap = new Map(remoteDeleted.map(i => [i.id, i]));
+  const localCachedMap = new Map(localCached.map(i => [i.id, i]));
+  const localDeletedMap = new Map(localDeleted.map(i => [i.id, i]));
+
+  const allIds = new Set<string>([
+    ...remoteActiveMap.keys(),
+    ...remoteDeletedMap.keys(),
+    ...localCachedMap.keys(),
+    ...localDeletedMap.keys(),
+    ...Object.keys(pendingQueue),
+  ]);
+
+  const reconciledActive: LaterBoxItem[] = [];
+  const reconciledDeleted: LaterBoxItem[] = [];
+  const itemsToPush: LaterBoxItem[] = [];
+  const hardDeletesToPush: string[] = [];
+  const queueIdsToRemove: string[] = [];
+
+  for (const id of allIds) {
+    const remote = remoteDeletedMap.get(id) || remoteActiveMap.get(id);
+    const local = pendingQueue[id] || localDeletedMap.get(id) || localCachedMap.get(id);
+
+    const isPending = Boolean(pendingQueue[id]);
+
+    const resolution = resolveActionConflict(local, remote);
+
+    if (resolution.winner === 'remote') {
+      // Remote wins
+      if (isPending) {
+        queueIdsToRemove.push(id);
+      }
+      if (resolution.item.deleted_at) {
+        reconciledDeleted.push(resolution.item);
+      } else {
+        reconciledActive.push(resolution.item);
+      }
+    } else if (resolution.winner === 'local') {
+      // Local wins
+      const localItem = resolution.item;
+      if ((localItem as any)._action === 'hard_delete') {
+        hardDeletesToPush.push(id);
+      } else if (localItem.deleted_at) {
+        reconciledDeleted.push(localItem);
+        if (isPending || !remote || getItemActionTimestamp(localItem) > getItemActionTimestamp(remote)) {
+          itemsToPush.push(localItem);
+        }
+      } else {
+        reconciledActive.push(localItem);
+        if (isPending || !remote || getItemActionTimestamp(localItem) > getItemActionTimestamp(remote)) {
+          itemsToPush.push(localItem);
+        }
+      }
+    } else {
+      // Equal timestamp (already in sync)
+      if (isPending) {
+        queueIdsToRemove.push(id);
+      }
+      if (resolution.item.deleted_at) {
+        reconciledDeleted.push(resolution.item);
+      } else {
+        reconciledActive.push(resolution.item);
+      }
+    }
+  }
+
+  return {
+    reconciledActive: deduplicateItems(reconciledActive),
+    reconciledDeleted: deduplicateItems(reconciledDeleted),
+    itemsToPush,
+    hardDeletesToPush,
+    queueIdsToRemove,
+  };
+}
+
+function deduplicateItems(items: LaterBoxItem[]): LaterBoxItem[] {
+  const seenIds = new Set<string>();
+  const seenKeys = new Set<string>();
+  const deduplicated: LaterBoxItem[] = [];
+
+  for (const item of items) {
+    if (seenIds.has(item.id)) continue;
+    seenIds.add(item.id);
+
+    const key = item.content?.capture_id
+      ? `capture:${item.content.capture_id}`
+      : item.url
+        ? `url:${item.url}`
+        : item.text_content
+          ? `text:${item.text_content}`
+          : null;
+
+    if (key && seenKeys.has(key)) continue;
+    if (key) seenKeys.add(key);
+
+    deduplicated.push(item);
+  }
+  return deduplicated;
+}
+
 export function isAuthError(error: any): boolean {
   if (!error) return false;
   const status = error.status || error.statusCode || (error as any).response?.status;
@@ -38,62 +265,305 @@ export function isAuthError(error: any): boolean {
   );
 }
 
-export async function syncPendingCaptures(userId: string) {
-  const client = getSupabaseClient();
-  const queue = JSON.parse(localStorage.getItem(queueKey(userId)) || '{}') as Record<string, LaterBoxItem>;
-  const items = Object.values(queue);
-  if (items.length === 0) return;
+export class SyncQueueManager {
+  private queues = new Map<string, Promise<any>>();
+  private activeCount = new Map<string, number>();
 
-  const session = await getAccessToken();
-  if (!session) return;
+  async enqueue<T>(userId: string, task: () => Promise<T>): Promise<T> {
+    const current = this.queues.get(userId) || Promise.resolve();
 
-  for (const item of items) {
-    let { data: remote, error: readError } = await client
-      .from('items')
-      .select('updated_at,deleted_at')
-      .eq('id', item.id)
-      .eq('user_id', userId)
-      .maybeSingle();
-
-    if (readError) {
-      console.warn('[pending-captures] error reading remote item:', readError);
-      continue;
-    }
-
-    if (!remote || new Date(remote.updated_at) <= new Date(item.updated_at)) {
-      await uploadWithNotificationHandoff(item.id, item.return_at, async () => {
-        const { error } = remote
-          ? await client.from('items').update(itemRow(item)).eq('id', item.id).eq('user_id', userId).lte('updated_at', item.updated_at)
-          : await client.from('items').upsert(itemRow(item));
-
-        if (error) {
-          console.warn('[pending-captures] error upserting item:', error);
-          throw error;
-        }
-
-        if (item.metadata) {
-          const { error: metaError } = await client.from('item_metadata').upsert({
-            ...item.metadata,
-            item_id: item.id,
-            user_id: userId,
-            updated_at: new Date().toISOString(),
+    const next = current.then(async () => {
+      this.activeCount.set(userId, (this.activeCount.get(userId) || 0) + 1);
+      try {
+        if (typeof navigator !== 'undefined' && navigator.locks && navigator.locks.request) {
+          return await navigator.locks.request(`laterbox_sync_${userId}`, async () => {
+            return await task();
           });
-          if (metaError) {
-            console.warn('[pending-captures] error upserting item_metadata:', metaError);
-          }
         }
-      });
+        return await task();
+      } finally {
+        const count = (this.activeCount.get(userId) || 1) - 1;
+        if (count <= 0) {
+          this.activeCount.delete(userId);
+        } else {
+          this.activeCount.set(userId, count);
+        }
+      }
+    });
+
+    this.queues.set(userId, next.catch(() => {}));
+    return next;
+  }
+
+  isBusy(userId: string): boolean {
+    return (this.activeCount.get(userId) || 0) > 0;
+  }
+}
+
+export const syncQueue = new SyncQueueManager();
+
+function buildRemoteItem(
+  row: any,
+  metaMap: Map<string, any>,
+  noteMap: Map<string, any>,
+  attachmentMap: Map<string, Attachment[]>,
+  itemColsMap: Map<string, Collection[]>,
+  contentMap: Map<string, ItemContent>,
+  localCached?: LaterBoxItem
+): LaterBoxItem {
+  const remoteMeta = metaMap.get(row.id);
+  const localMeta = localCached?.metadata;
+  const mergedMeta: ItemMetadata | null = remoteMeta || localMeta
+    ? ({
+        ...(localMeta || {}),
+        ...(remoteMeta || {}),
+        preview_image_url: remoteMeta?.preview_image_url || localMeta?.preview_image_url || null,
+        title: remoteMeta?.title || localMeta?.title || null,
+        structured_data: remoteMeta?.structured_data || localMeta?.structured_data || null,
+        description: remoteMeta?.description || localMeta?.description || null,
+        favicon_url: remoteMeta?.favicon_url || localMeta?.favicon_url || null,
+      } as ItemMetadata)
+    : null;
+
+  const resolvedTitle =
+    row.title && row.title !== 'New Capture' && !row.title.startsWith('http')
+      ? row.title
+      : (localCached?.title || row.title);
+
+  const resolvedTextContent = row.text_content || localCached?.text_content || null;
+
+  return {
+    ...migrateSchedule(row),
+    title: resolvedTitle,
+    text_content: resolvedTextContent,
+    metadata: mergedMeta,
+    content: contentMap.get(row.id) || localCached?.content || null,
+    note: noteMap.get(row.id) || localCached?.note || null,
+    collections: itemColsMap.get(row.id) || localCached?.collections || [],
+    attachments: [
+      ...new Map(
+        [...(localCached?.attachments || []), ...(attachmentMap.get(row.id) || [])]
+          .filter(att => !att.deleted_at)
+          .map(att => [att.id, att])
+      ).values(),
+    ],
+  };
+}
+
+export interface SyncCloudResult {
+  items: LaterBoxItem[];
+  deletedItems: LaterBoxItem[];
+  collections: Collection[];
+}
+
+export async function syncCloudQueue(userId: string): Promise<SyncCloudResult | null> {
+  if (!userId) return null;
+
+  return syncQueue.enqueue(userId, async () => {
+    const session = await getAccessToken();
+    if (!session) return null;
+
+    const client = getSupabaseClient();
+    const recoverQuery = createQueryRecovery(refreshAccessToken);
+    const fetchWithRetry: typeof recoverQuery = async query => {
+      const result = await recoverQuery(query);
+      if (result.error) throw result.error;
+      return result;
+    };
+
+    // Step 1: PULL remote state first
+    const { data: itemRows } = await fetchWithRetry(() =>
+      client
+        .from('items')
+        .select('*')
+        .eq('user_id', userId)
+        .is('deleted_at', null)
+        .order('created_at', { ascending: false })
+    );
+
+    const { data: deletedRows } = await fetchWithRetry(() =>
+      client
+        .from('items')
+        .select('*')
+        .eq('user_id', userId)
+        .not('deleted_at', 'is', null)
+        .order('deleted_at', { ascending: false })
+        .limit(100)
+    );
+
+    const { data: metaRows } = await fetchWithRetry(() =>
+      client.from('item_metadata').select('*').eq('user_id', userId)
+    );
+
+    const { data: contentRows } = await fetchWithRetry(() =>
+      client.from('item_content').select('*').eq('user_id', userId)
+    );
+
+    const { data: noteRows } = await fetchWithRetry(() =>
+      client.from('item_notes').select('*').eq('user_id', userId).is('deleted_at', null)
+    );
+
+    const { data: attachmentRows } = await fetchWithRetry(() =>
+      client.from('attachments').select('*').eq('user_id', userId).is('deleted_at', null)
+    );
+
+    const { data: colRows } = await fetchWithRetry(() =>
+      client.from('collections').select('*').eq('user_id', userId).is('deleted_at', null).order('created_at', { ascending: false })
+    );
+
+    const { data: colItemRows } = await fetchWithRetry(() =>
+      client.from('collection_items').select('*').eq('user_id', userId).is('deleted_at', null)
+    );
+
+    // Build lookup maps
+    const contentMap = new Map((contentRows || []).map(c => [c.item_id, c as ItemContent]));
+    const metaMap = new Map((metaRows || []).map(m => [m.item_id, m]));
+    const noteMap = new Map((noteRows || []).map(n => [n.item_id, n]));
+    const colMap = new Map((colRows || []).map(c => [c.id, c]));
+
+    const attachmentMap = new Map<string, Attachment[]>();
+    (attachmentRows || []).forEach(att => {
+      const list = attachmentMap.get(att.item_id) || [];
+      list.push(att);
+      attachmentMap.set(att.item_id, list);
+    });
+
+    const itemColsMap = new Map<string, Collection[]>();
+    (colItemRows || []).forEach(ci => {
+      const col = colMap.get(ci.collection_id);
+      if (col) {
+        const list = itemColsMap.get(ci.item_id) || [];
+        if (!list.some(existing => existing.id === col.id)) {
+          list.push(col);
+        }
+        itemColsMap.set(ci.item_id, list);
+      }
+    });
+
+    // Read local cache and pending queue
+    const localCached = typeof localStorage !== 'undefined'
+      ? (JSON.parse(localStorage.getItem(`laterbox_local_items_${userId}`) || '[]') as LaterBoxItem[])
+      : [];
+    const localDeleted = typeof localStorage !== 'undefined'
+      ? (JSON.parse(localStorage.getItem(`laterbox_local_deleted_items_${userId}`) || '[]') as LaterBoxItem[])
+      : [];
+    const pendingQueue = getPendingQueue(userId);
+
+    const localCachedMap = new Map(localCached.map(i => [i.id, i]));
+
+    // Build complete remote items
+    const remoteActive = (itemRows || []).map(row =>
+      buildRemoteItem(row, metaMap, noteMap, attachmentMap, itemColsMap, contentMap, localCachedMap.get(row.id))
+    );
+    const remoteDeleted = (deletedRows || []).map(row =>
+      buildRemoteItem(row, metaMap, noteMap, attachmentMap, itemColsMap, contentMap, localCachedMap.get(row.id))
+    );
+
+    // Step 2: RECONCILE (Last-Write-Wins comparison of action timestamps)
+    const {
+      reconciledActive,
+      reconciledDeleted,
+      itemsToPush,
+      hardDeletesToPush,
+      queueIdsToRemove,
+    } = reconcileItemsWithRemote({
+      remoteActive,
+      remoteDeleted,
+      localCached,
+      localDeleted,
+      pendingQueue,
+    });
+
+    // Remove obsolete items from local pending queue
+    for (const id of queueIdsToRemove) {
+      clearPendingItem(userId, id);
     }
-    if (!item.deleted_at && !remote?.deleted_at) {
-      for (const attachment of item.attachments || []) {
-        if (attachment.r2_object_key) continue;
-        const file = await readLocalAttachment(attachment.id, userId);
-        if (file) await uploadAttachmentFile(file, item.id, userId, attachment.id);
+
+    // Step 3: PUSH winning local actions
+    // Push permanent deletes
+    for (const id of hardDeletesToPush) {
+      try {
+        await client.from('items').delete().eq('id', id).eq('user_id', userId);
+        clearPendingItem(userId, id);
+      } catch (err) {
+        console.warn('[pending-captures] error executing queued hard delete:', err);
       }
     }
-    // Read the latest queue so a concurrent reschedule is never removed by an older sync.
-    const latest = JSON.parse(localStorage.getItem(queueKey(userId)) || '{}');
-    if (latest[item.id]?.updated_at === item.updated_at) delete latest[item.id];
-    localStorage.setItem(queueKey(userId), JSON.stringify(latest));
-  }
+
+    // Push local additions, updates, and soft deletions
+    for (const item of itemsToPush) {
+      try {
+        if (item.deleted_at) {
+          // Soft-deleted item
+          await uploadWithNotificationHandoff(item.id, null, async () => {
+            const { error } = await client
+              .from('items')
+              .update(itemRow(item))
+              .eq('id', item.id)
+              .eq('user_id', userId)
+              .lte('updated_at', item.updated_at);
+            if (error) throw error;
+          });
+        } else {
+          // Active item upsert
+          await uploadWithNotificationHandoff(item.id, item.return_at, async () => {
+            const { error } = await client.from('items').upsert(itemRow(item));
+            if (error) throw error;
+
+            if (item.metadata) {
+              const { error: metaErr } = await client.from('item_metadata').upsert({
+                ...item.metadata,
+                item_id: item.id,
+                user_id: userId,
+                updated_at: new Date().toISOString(),
+              });
+              if (metaErr) console.warn('[pending-captures] error upserting item_metadata:', metaErr);
+            }
+
+            if (item.note?.content) {
+              const { error: noteErr } = await client.from('item_notes').upsert({
+                item_id: item.id,
+                user_id: userId,
+                content: item.note.content,
+                created_at: item.note.created_at || new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+              });
+              if (noteErr) console.warn('[pending-captures] error upserting item_notes:', noteErr);
+            }
+          });
+
+          // Upload any pending local attachments
+          for (const attachment of item.attachments || []) {
+            if (attachment.r2_object_key) continue;
+            const file = await readLocalAttachment(attachment.id, userId);
+            if (file) await uploadAttachmentFile(file, item.id, userId, attachment.id);
+          }
+        }
+
+        // Successfully pushed: remove from pending queue
+        clearPendingItem(userId, item.id, item.updated_at);
+      } catch (pushErr) {
+        console.warn('[pending-captures] error pushing item:', item.id, pushErr);
+      }
+    }
+
+    // Step 4: PERSIST authoritative reconciled state locally
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(`laterbox_local_items_${userId}`, JSON.stringify(reconciledActive));
+      localStorage.setItem(`laterbox_local_deleted_items_${userId}`, JSON.stringify(reconciledDeleted));
+      if (colRows) {
+        localStorage.setItem(`laterbox_local_collections_${userId}`, JSON.stringify(colRows));
+      }
+    }
+
+    return {
+      items: reconciledActive,
+      deletedItems: reconciledDeleted,
+      collections: colRows || [],
+    };
+  });
+}
+
+export async function syncPendingCaptures(userId: string): Promise<SyncCloudResult | null> {
+  return syncCloudQueue(userId);
 }
