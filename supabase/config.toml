@@ -358,9 +358,8 @@ enabled = false
 
 # Use Clerk as a third-party provider alongside Supabase Auth.
 [auth.third_party.clerk]
-enabled = false
-# Obtain from https://clerk.com/setup/supabase
-# domain = "example.clerk.accounts.dev"
+enabled = true
+domain = "clerk.laterbox.dev"
 
 # OAuth server configuration
 [auth.oauth_server]
@@ -423,4 +422,11 @@ enabled = true
 # format_options = "{\"keywordCase\":\"upper\",\"indent\":2,\"maxWidth\":80,\"commaStyle\":\"trailing\"}"
 
 [functions.notifications]
+verify_jwt = false
+
+# These functions verify caller identity internally, including native Clerk tokens.
+[functions.attachment-storage]
+verify_jwt = false
+
+[functions.delete-account]
 verify_jwt = false
