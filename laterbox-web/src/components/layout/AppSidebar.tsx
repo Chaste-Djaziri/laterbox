@@ -14,7 +14,6 @@ import {
   CalendarDays,
   Clock,
   Inbox,
-  Search,
   Settings,
   Plus,
   Compass,
@@ -135,14 +134,6 @@ export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
       label: 'Someday',
       icon: <CalendarClock className="w-4 h-4" />,
       badge: somedayCount > 0 ? somedayCount : undefined,
-    },
-  ];
-
-  const libraryLinks = [
-    {
-      href: '/search',
-      label: 'Search',
-      icon: <Search className="w-4 h-4" />,
     },
   ];
 
@@ -403,18 +394,6 @@ export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
                 <span>New collection...</span>
               </button>
             )}
-          </nav>
-        </div>
-
-        {/* Library Section */}
-        <div className="pt-2">
-          {!collapsed && (
-            <span className="text-[10px] font-black tracking-widest uppercase text-[#9e9b92] px-3 block mb-1">
-              LIBRARY
-            </span>
-          )}
-          <nav className="space-y-1">
-            {libraryLinks.map(renderLinkItem)}
           </nav>
         </div>
 
