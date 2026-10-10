@@ -6,9 +6,11 @@ import React, { Suspense, useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
 import type { AuthContextType } from '@/lib/store/AuthContext';
-import type { EmailStartResult } from './custom-flow';
 import { useAuth } from '@/lib/store/AuthContext';
+import type { AuthError } from '@supabase/supabase-js';
 import { Loader2, AlertCircle, CheckCircle2, Eye, EyeOff } from 'lucide-react';
+
+export type EmailStartResult = { error: AuthError | null; nextStep?: 'email' | 'signup' | 'password' };
 
 export function CustomLoginContent({ actions, extra }: { actions?: Partial<AuthContextType> & { signInWithOtp?: (email: string) => Promise<EmailStartResult> }; extra?: React.ReactNode }) {
   const router = useRouter();
