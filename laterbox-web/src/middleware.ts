@@ -1,5 +1,4 @@
-import { clerkMiddleware } from '@clerk/nextjs/server';
-import { clerkAuthEnabled, authorizedOrigins } from './lib/auth/config';
+import { authorizedOrigins } from './lib/auth/config';
 import { NextRequest, NextResponse } from 'next/server';
 
 function routeDomain(request: NextRequest) {
@@ -139,21 +138,7 @@ function routeDomain(request: NextRequest) {
   return applyCors(NextResponse.next());
 }
 
-const clerkHandler = clerkMiddleware((_auth, request) => routeDomain(request), { authorizedParties: authorizedOrigins() });
-
-export default function middleware(request: NextRequest, event: any) {
-  const hostname = request.headers.get('host') || '';
-  const isAppHost =
-    hostname.startsWith('app.') ||
-    hostname.includes('localhost') ||
-    hostname.includes('127.0.0.1');
-
-  if (clerkAuthEnabled && isAppHost) {
-    return clerkHandler(request, event);
-  }
-
-  return routeDomain(request);
-}
+export default routeDomain;
 
 export const config = {
   matcher: [
