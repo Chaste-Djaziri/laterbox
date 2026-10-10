@@ -37,6 +37,7 @@ import {
   itemMatchesFilters,
   itemMatchesQuery,
 } from '@/lib/utils/emailFormatters';
+import { ItemSideDetailPanel } from '@/components/inbox/ItemSideDetailPanel';
 
 interface EmailInboxTableProps {
   items: LaterBoxItem[];
@@ -64,9 +65,27 @@ export function EmailInboxTable({
 
   const [activeTab, setActiveTab] = useState<TabKey>('primary');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const pageSize = 50;
   const [sortOrder, setSortOrder] = useState<'latest' | 'oldest'>('latest');
+
+  // Selected item for split reading view
+  const selectedItem = useMemo(() => {
+    if (!selectedItemId) return null;
+    return items.find((i) => i.id === selectedItemId) || null;
+  }, [items, selectedItemId]);
+
+  // Press Escape to close split reading view
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && selectedItemId) {
+        setSelectedItemId(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedItemId]);
 
   // Local fallback filters if not provided by parent
   const [localFilters, setLocalFilters] = useState<InboxSearchFilters>(DEFAULT_SEARCH_FILTERS);
@@ -829,7 +848,113 @@ export function EmailInboxTable({
             </button>
           )}
         </div>
+      ) : selectedItem ? (
+        /* SPLIT VIEW (Image 1 style) */
+        <div className="flex flex-col lg:flex-row min-h-[620px] max-h-[840px] overflow-hidden rounded-b-2xl border-t border-[#f0ede4]">
+          {/* Left Compact List Pane */}
+          <div className="w-full lg:w-[360px] xl:w-[410px] shrink-0 border-r border-[#e4e0d5] flex flex-col overflow-hidden bg-white">
+            <div className="flex-1 overflow-y-auto divide-y divide-[#f0ede4]">
+              {pagedItems.map((item) => {
+                const isCurrentActive = item.id === selectedItemId;
+                const isSelected = selectedIds.has(item.id);
+                const isStarred = Boolean(item.favorite);
+                const sender = getEmailSender(item);
+                const title =
+                  item.metadata?.title ||
+                  item.title ||
+                  item.attachments?.[0]?.original_file_name ||
+                  'Untitled item';
+                const snippet =
+                  item.metadata?.description || item.text_content || item.url || 'No preview available';
+                const hasAttachments = item.attachments && item.attachments.length > 0;
+
+                return (
+                  <div
+                    key={item.id}
+                    onClick={() => setSelectedItemId(item.id)}
+                    className={`p-3 transition-colors cursor-pointer select-none text-left border-l-4 ${
+                      isCurrentActive
+                        ? 'bg-[#faf8f5] border-[#171711]'
+                        : isSelected
+                        ? 'bg-[#f5f8df] border-transparent hover:bg-[#eef3d0]'
+                        : 'bg-white border-transparent hover:bg-[#faf8f5]'
+                    }`}
+                  >
+                    {/* Top line: Selection, Star, Sender, Timestamp */}
+                    <div className="flex items-center justify-between gap-1.5 text-xs">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onClick={(e) => toggleItemSelect(item.id, e)}
+                          onChange={() => {}}
+                          className="w-3.5 h-3.5 rounded border-[#c2beb3] accent-[#171711] cursor-pointer"
+                        />
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setFavorite(item.id, !isStarred);
+                          }}
+                          className="p-0.5 text-[#c2beb3] hover:text-amber-500 transition-colors"
+                        >
+                          <Star
+                            className={`w-3.5 h-3.5 ${
+                              isStarred ? 'fill-amber-400 text-amber-400' : ''
+                            }`}
+                          />
+                        </button>
+                        <span
+                          className={`truncate text-xs ${
+                            isCurrentActive
+                              ? 'font-black text-[#171711]'
+                              : 'font-bold text-[#171711]'
+                          }`}
+                        >
+                          {sender}
+                        </span>
+                      </div>
+                      <span className="text-[11px] font-medium text-[#8e8d87] shrink-0">
+                        {formatEmailDate(item.created_at)}
+                      </span>
+                    </div>
+
+                    {/* Middle line: Subject Title */}
+                    <div className="mt-1 flex items-center justify-between gap-2">
+                      <p
+                        className={`text-xs truncate ${
+                          isCurrentActive
+                            ? 'font-black text-[#171711]'
+                            : 'font-semibold text-[#171711]'
+                        }`}
+                      >
+                        {title}
+                      </p>
+                      {hasAttachments && (
+                        <Paperclip className="w-3 h-3 text-[#9e9b92] shrink-0" />
+                      )}
+                    </div>
+
+                    {/* Bottom line: Snippet */}
+                    <p className="text-[11px] text-[#6c6b63] truncate mt-0.5">
+                      {snippet}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Right Reading Pane / Interactive Details Panel */}
+          <div className="flex-1 min-w-0 h-full overflow-hidden flex flex-col bg-white">
+            <ItemSideDetailPanel
+              item={selectedItem}
+              onClose={() => setSelectedItemId(null)}
+            />
+          </div>
+        </div>
       ) : (
+        /* FULL WIDTH ROWS (Standard View) */
         <div className="divide-y divide-[#f0ede4] rounded-b-2xl">
           {pagedItems.map((item) => {
             const isSelected = selectedIds.has(item.id);
@@ -851,7 +976,7 @@ export function EmailInboxTable({
             return (
               <div
                 key={item.id}
-                onClick={() => router.push(`/item/${item.id}`)}
+                onClick={() => setSelectedItemId(item.id)}
                 className={`group relative flex items-center gap-2.5 sm:gap-3 px-3 sm:px-4 py-2.5 transition-colors cursor-pointer select-none overflow-hidden last:rounded-b-2xl ${
                   isSelected
                     ? 'bg-[#f5f8df] hover:bg-[#eef3d0]'
