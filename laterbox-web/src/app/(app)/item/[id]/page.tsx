@@ -14,6 +14,8 @@ import { useItems } from '@/lib/store/ItemContext';
 import { extractDomain, formatTimeAgo, buildTextFragmentUrl } from '@/lib/utils/url';
 import { fetchAttachmentDownloadUrl } from '@/lib/utils/attachment';
 import { Attachment } from '@/lib/supabase/types';
+import { VideoPlayerComponent } from '@/components/media/VideoPlayerComponent';
+import { AudioPlayerComponent } from '@/components/media/AudioPlayerComponent';
 import {
   ArrowLeft,
   Star,
@@ -163,23 +165,14 @@ function AttachmentRow({ attachment }: { attachment: Attachment }) {
             </div>
           )}
 
-          {/* Video Player */}
+          {/* Video.js 10 Video Player */}
           {isVideo && (
-            <div className="w-full rounded-2xl overflow-hidden bg-black border border-[#e4e0d5]">
-              <video
-                src={mediaUrl}
-                controls
-                playsInline
-                className="w-full max-h-96 object-contain"
-              />
-            </div>
+            <VideoPlayerComponent src={mediaUrl} title={attachment.original_file_name} />
           )}
 
-          {/* Audio Player */}
+          {/* Video.js 10 Audio Player */}
           {isAudio && (
-            <div className="w-full p-3 rounded-2xl bg-white border border-[#e4e0d5]">
-              <audio src={mediaUrl} controls className="w-full" />
-            </div>
+            <AudioPlayerComponent src={mediaUrl} title={attachment.original_file_name} />
           )}
         </>
       )}
