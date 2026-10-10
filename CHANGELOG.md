@@ -9,6 +9,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 ## [Unreleased]
 
 ### Changed
+- **[Web] Enlarge sidebar branding and remove icon background**: Updated the sidebar header to use a larger transparent black LaterBox icon without a background container and increased the wordmark font size.
 - **[Web] Scrollable borderless item detail header**: Removed the bottom border from the side details header and moved the header inside the scrollable content container so it naturally scrolls together with the saved content and message thread.
 - **[Web] Video.js 10 player & audio integration**: Integrated official Video.js 10 React video and audio players with custom skins for local attachments and cloud streaming media, providing accessible playback controls, cross-browser streaming, and keyboard shortcuts.
 - **[Web] Rich media previews for local and cloud attachments**: Added integrated video player for video attachments, proper responsive image previews, and embedded PDF previews with an external tab button to view the PDF path directly, supporting both locally stored blobs and cloud-backed files in side details and full item views.
