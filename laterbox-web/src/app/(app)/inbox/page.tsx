@@ -343,15 +343,41 @@ export default function InboxPage() {
               <List className="w-3.5 h-3.5" />
             </button>
           </div>
+
+          {/* AI Organize Button */}
+          <button
+            type="button"
+            onClick={handleGetAiSuggestions}
+            disabled={aiLoading}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#e6edb0] hover:bg-[#d8e09e] text-[#171711] text-xs font-bold shadow-2xs transition-all cursor-pointer active:scale-98 disabled:opacity-75"
+            title="Let AI organize and categorize inbox items"
+          >
+            {aiLoading ? (
+              <>
+                <RefreshCw className="w-3.5 h-3.5 text-[#171711] animate-spin" />
+                <span>Thinking...</span>
+              </>
+            ) : aiSuggestions.length > 0 ? (
+              <>
+                <Sparkles className="w-3.5 h-3.5 text-[#171711]" />
+                <span>Review AI ({aiSuggestions.length})</span>
+              </>
+            ) : (
+              <>
+                <Sparkles className="w-3.5 h-3.5 text-[#171711]" />
+                <span>AI organize</span>
+              </>
+            )}
+          </button>
         </div>
       </div>
 
       {/* ========================================================================= */}
-      {/* Top 3 Summary/Widget Cards Row */}
+      {/* Top Summary/Widget Cards Row */}
       {/* ========================================================================= */}
       <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
         {/* Card 1: 4 Metrics Columns */}
-        <div className="md:col-span-12 lg:col-span-5 bg-white border border-[#e4e0d5] rounded-2xl p-4 shadow-2xs flex items-center justify-between">
+        <div className="md:col-span-12 lg:col-span-7 bg-white border border-[#e4e0d5] rounded-2xl p-4 shadow-2xs flex items-center justify-between">
           {/* Col 1: Items saved */}
           <div className="flex-1 text-center sm:text-left px-2">
             <div className="w-7 h-7 rounded-lg bg-[#e6edb0] text-[#171711] flex items-center justify-center">
@@ -408,7 +434,7 @@ export default function InboxPage() {
           onClick={() => {
             if (continueReviewItem) router.push(`/item/${continueReviewItem.id}`);
           }}
-          className="md:col-span-6 lg:col-span-4 bg-white border border-[#e4e0d5] hover:border-[#171711]/30 rounded-2xl p-4 shadow-2xs flex flex-col justify-between transition-all cursor-pointer group"
+          className="md:col-span-12 lg:col-span-5 bg-white border border-[#e4e0d5] hover:border-[#171711]/30 rounded-2xl p-4 shadow-2xs flex flex-col justify-between transition-all cursor-pointer group"
         >
           <div className="flex items-center justify-between mb-3">
             <span className="text-xs font-bold text-[#171711]">Continue reviewing</span>
@@ -437,48 +463,6 @@ export default function InboxPage() {
               </p>
             </div>
           </div>
-        </div>
-
-        {/* Card 3: AI Organize Beta */}
-        <div className="md:col-span-6 lg:col-span-3 bg-white border border-[#e4e0d5] rounded-2xl p-4 shadow-2xs flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5 text-[#ca8a04]" />
-              <span className="text-xs font-bold text-[#171711]">AI organize</span>
-              <span className="px-1.5 py-0.2 rounded-full bg-[#e6edb0] text-[#171711] text-[9px] font-black uppercase">
-                Beta
-              </span>
-            </div>
-            <ChevronRight className="w-3.5 h-3.5 text-[#9e9b92]" />
-          </div>
-
-          <p className="text-[11px] text-[#8e8d87] leading-tight my-2">
-            Let AI suggest tags, collections, and next steps for your inbox items.
-          </p>
-
-          <button
-            type="button"
-            onClick={handleGetAiSuggestions}
-            disabled={aiLoading}
-            className="w-full bg-[#e6edb0] hover:bg-[#d8e09e] text-[#171711] font-bold text-xs py-2 px-3 rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-2xs cursor-pointer active:scale-98 disabled:opacity-75"
-          >
-            {aiLoading ? (
-              <>
-                <RefreshCw className="w-3 h-3 text-[#171711] animate-spin" />
-                <span>Thinking with Gemini...</span>
-              </>
-            ) : aiSuggestions.length > 0 ? (
-              <>
-                <Sparkles className="w-3 h-3 text-[#171711]" />
-                <span>Review Suggestions ({aiSuggestions.length})</span>
-              </>
-            ) : (
-              <>
-                <Sparkles className="w-3 h-3 text-[#171711]" />
-                <span>Get suggestions</span>
-              </>
-            )}
-          </button>
         </div>
       </div>
 
