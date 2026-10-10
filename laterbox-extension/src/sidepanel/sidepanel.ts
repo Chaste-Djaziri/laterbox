@@ -1,11 +1,8 @@
 import { isLocalMode, LOCAL_ORIGIN } from '../lib/local-library';
 import {
-  checkProEntitlement,
   connectLaterBox,
   disconnectLaterBox,
   getAccessToken,
-  getIsPro,
-  getProUpgradeUrl,
 } from "../lib/auth";
 import { flushQueue, saveCapture, saveSelectionFromTab } from "../lib/capture";
 import { captureFromPage, getPageContext, type PageContext } from "../lib/page";
@@ -20,12 +17,8 @@ const highlightPanel = document.querySelector<HTMLElement>("#highlight")!;
 const selectionElement = document.querySelector<HTMLElement>("#selection")!;
 const saveSelectionButton = document.querySelector<HTMLButtonElement>("#save-selection")!;
 const disconnectedPanel = document.querySelector<HTMLElement>("#disconnected")!;
-const proRequiredPanel = document.querySelector<HTMLElement>("#pro-required")!;
 const connectedPanel = document.querySelector<HTMLElement>("#connected")!;
 const connectButton = document.querySelector<HTMLButtonElement>("#connect")!;
-const getProButton = document.querySelector<HTMLButtonElement>("#get-pro")!;
-const refreshProButton = document.querySelector<HTMLButtonElement>("#refresh-pro")!;
-const disconnectProButton = document.querySelector<HTMLButtonElement>("#disconnect-pro")!;
 const saveButton = document.querySelector<HTMLButtonElement>("#save")!;
 const disconnectButton = document.querySelector<HTMLButtonElement>("#disconnect")!;
 const openButton = document.querySelector<HTMLButtonElement>("#open-laterbox")!;
@@ -45,10 +38,6 @@ async function initialize(): Promise<void> {
   await updateConnectionState();
   await refreshHighlightPermission();
 
-  const token = await getAccessToken();
-  if (token.startsWith("lb_ext_")) {
-    void checkProEntitlement().then(() => void updateConnectionState());
-  }
 
   browser.storage.onChanged.addListener((changes, areaName) => {
     if (areaName === "local" && ["accessToken", "connectedUserId", "hasProPlan", "pendingConnection", "captureMode"].some(key => key in changes)) {
@@ -101,29 +90,6 @@ document.addEventListener("visibilitychange", () => {
 });
 
 connectButton.addEventListener("click", () => void connect());
-getProButton.addEventListener("click", () => {
-  void browser.tabs.create({ url: getProUpgradeUrl() });
-});
-
-refreshProButton.addEventListener("click", async () => {
-  refreshProButton.disabled = true;
-  setStatus("Checking Pro status...");
-  try {
-    const pro = await checkProEntitlement();
-    await updateConnectionState();
-    if (pro) {
-      setStatus("Pro active! You're ready to capture.", "success");
-    } else {
-      setStatus("Pro plan not detected yet. Complete checkout on the web.", "error");
-    }
-  } catch {
-    setStatus("Could not check Pro status.", "error");
-  } finally {
-    refreshProButton.disabled = false;
-  }
-});
-
-disconnectProButton.addEventListener("click", () => void disconnect());
 saveButton.addEventListener("click", () => void savePage());
 saveSelectionButton.addEventListener("click", () => void saveSelection());
 disconnectButton.addEventListener("click", () => void disconnect());
@@ -161,13 +127,10 @@ async function updateConnectionState(): Promise<void> {
   const token = await getAccessToken();
   const userId = await getConnectedUserId();
   const connected = await isLocalMode() || (token.startsWith("lb_ext_") && userId.length > 0);
-  const isPro = connected;
-  const isProRequired = false;
 
   disconnectedPanel.hidden = connected;
-  proRequiredPanel.hidden = !isProRequired;
-  connectedPanel.hidden = !connected || isProRequired;
-  if (connected && isPro === true) {
+  connectedPanel.hidden = !connected;
+  if (connected) {
     const flushed = await flushQueue();
     if (flushed > 0) setStatus(`Synced ${flushed} queued capture${flushed === 1 ? "" : "s"}.`);
   }
@@ -258,6 +221,7 @@ function domainFor(value: string): string {
 }
 
 const modeControls = document.createElement('div');
+modeControls.className = 'connection-panel';
 const localButton = document.createElement('button');
 localButton.textContent = 'Local library';
 localButton.addEventListener('click', async () => {
