@@ -69,6 +69,27 @@ public struct EmailInboxRowView: View {
         return "LaterBox"
     }
 
+    private var avatarColor: Color {
+        let colors: [Color] = [
+            Color(hex: "A855F7"), // Purple (like screenshot)
+            Color(hex: "3B82F6"), // Blue
+            Color(hex: "10B981"), // Emerald
+            Color(hex: "F59E0B"), // Amber
+            Color(hex: "EC4899"), // Pink
+            Color(hex: "6366F1"), // Indigo
+            Color(hex: "14B8A6"), // Teal
+            Color(hex: "8B5CF6")  // Violet
+        ]
+        let hash = abs(senderText.hashValue)
+        return colors[hash % colors.count]
+    }
+
+    private var avatarInitial: String {
+        let clean = senderText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let first = clean.first else { return "L" }
+        return String(first).uppercased()
+    }
+
     private var snippetText: String {
         if !item.summary.isEmpty {
             return item.summary
@@ -91,7 +112,7 @@ public struct EmailInboxRowView: View {
         if calendar.isDateInToday(date) {
             let formatter = DateFormatter()
             formatter.dateFormat = "h:mm a"
-            return formatter.string(from: date)
+            return formatter.string(from: date).lowercased()
         }
         let currentYear = calendar.component(.year, from: Date())
         let dateYear = calendar.component(.year, from: date)
@@ -104,151 +125,102 @@ public struct EmailInboxRowView: View {
         return formatter.string(from: date)
     }
 
-    private var isVideo: Bool {
-        item.type == ItemContentType.video.rawValue ||
-        (item.url?.lowercased().contains("youtube.com") ?? false) ||
-        (item.url?.lowercased().contains("youtu.be") ?? false) ||
-        (item.url?.lowercased().contains("vimeo.com") ?? false)
-    }
-
     private var hasAttachments: Bool {
         item.attachmentsData != nil
     }
 
     public var body: some View {
-        ZStack(alignment: .trailing) {
-            // Right-aligned subtle fading OG watermark (matching web anime-card style)
-            if let preview = item.previewImageUrl, let imgUrl = URL(string: preview) {
-                AsyncImage(url: imgUrl) { phase in
-                    if let image = phase.image {
-                        image
-                            .resizable()
-                            .scaledToFill()
-                            .frame(width: 140, height: 64)
-                            .clipped()
-                            .mask(
-                                LinearGradient(
-                                    gradient: Gradient(colors: [
-                                        Color.black.opacity(0.28),
-                                        Color.black.opacity(0.12),
-                                        Color.clear
-                                    ]),
-                                    startPoint: .trailing,
-                                    endPoint: .leading
-                                )
-                            )
-                    }
+        HStack(alignment: .top, spacing: 14) {
+            // Multi-select Checkbox (if in selection mode)
+            if isSelectionMode {
+                Button(action: onToggleSelect) {
+                    Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                        .font(.system(size: 20))
+                        .foregroundColor(isSelected ? AppTheme.textPrimary : Color.gray.opacity(0.4))
                 }
-                .allowsHitTesting(false)
+                .buttonStyle(.plain)
+                .padding(.top, 10)
             }
 
-            // Row content
-            HStack(spacing: 10) {
-                // Multi-select Checkbox
-                if isSelectionMode {
-                    Button(action: onToggleSelect) {
-                        Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                            .font(.system(size: 18))
-                            .foregroundColor(isSelected ? AppTheme.textPrimary : AppTheme.cardBorder)
+            // Left: Colored Avatar Circle (Matching Gmail screenshot)
+            ZStack {
+                Circle()
+                    .fill(avatarColor)
+                    .frame(width: 40, height: 40)
+                Text(avatarInitial)
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundColor(.white)
+            }
+
+            // Middle & Right: 3-line email summary layout
+            VStack(alignment: .leading, spacing: 2.5) {
+                // Line 1: Sender Name + Timestamp
+                HStack(alignment: .firstTextBaseline) {
+                    Text(senderText)
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundColor(AppTheme.textPrimary)
+                        .lineLimit(1)
+
+                    Spacer()
+
+                    Text(formattedDate)
+                        .font(.system(size: 12, weight: .regular))
+                        .foregroundColor(Color.secondary)
+                }
+
+                // Line 2: Subject / Title
+                Text(item.title)
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(AppTheme.textPrimary)
+                    .lineLimit(1)
+
+                // Line 3: Snippet text + Bottom-Right Star Icon
+                HStack(alignment: .center, spacing: 6) {
+                    Text(snippetText)
+                        .font(.system(size: 13, weight: .regular))
+                        .foregroundColor(Color.secondary)
+                        .lineLimit(1)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+
+                    Button(action: onToggleFavorite) {
+                        Image(systemName: item.favorite ? "star.fill" : "star")
+                            .font(.system(size: 16))
+                            .foregroundColor(item.favorite ? AppTheme.amber : Color.black.opacity(0.28))
                     }
                     .buttonStyle(.plain)
                 }
 
-                // Star Button
-                Button(action: onToggleFavorite) {
-                    Image(systemName: item.favorite ? "star.fill" : "star")
-                        .font(.system(size: 14))
-                        .foregroundColor(item.favorite ? AppTheme.amber : Color.black.opacity(0.22))
-                }
-                .buttonStyle(.plain)
-
-                // Sender / Source Indicator
-                HStack(spacing: 6) {
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 5, style: .continuous)
-                            .fill(AppTheme.accent.opacity(0.5))
-                            .frame(width: 20, height: 20)
-                        Image(systemName: item.parsedContentType.systemIcon)
-                            .font(.system(size: 9, weight: .bold))
-                            .foregroundColor(AppTheme.textPrimary)
+                // Optional Action Chip / Pill (e.g. Collection tag or attachment badge)
+                if let collection = item.collectionName, !collection.isEmpty {
+                    HStack(spacing: 4) {
+                        Image(systemName: "folder.fill")
+                            .font(.system(size: 9))
+                        Text(collection)
+                            .font(.system(size: 11, weight: .semibold))
                     }
-
-                    Text(senderText)
-                        .font(.caption.weight(.bold))
-                        .foregroundColor(AppTheme.textPrimary)
-                        .lineLimit(1)
-                }
-                .frame(width: 88, alignment: .leading)
-
-                // Middle: Title + Snippet + Badges
-                VStack(alignment: .leading, spacing: 2) {
-                    HStack(spacing: 6) {
-                        Text(item.title)
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundColor(AppTheme.textPrimary)
-                            .lineLimit(1)
-
-                        // Attachment Chip
-                        if hasAttachments {
-                            HStack(spacing: 2) {
-                                Image(systemName: "paperclip")
-                                    .font(.system(size: 8, weight: .bold))
-                                Text("File")
-                                    .font(.system(size: 9, weight: .bold))
-                            }
-                            .padding(.horizontal, 5)
-                            .padding(.vertical, 1.5)
-                            .background(Color(hex: "F0EDE4"), in: Capsule())
-                            .foregroundColor(AppTheme.textPrimary)
-                        }
-
-                        // Video Chip
-                        if isVideo {
-                            HStack(spacing: 2) {
-                                Image(systemName: "play.fill")
-                                    .font(.system(size: 7, weight: .bold))
-                                Text("Video")
-                                    .font(.system(size: 9, weight: .bold))
-                            }
-                            .padding(.horizontal, 5)
-                            .padding(.vertical, 1.5)
-                            .background(Color.red.opacity(0.1), in: Capsule())
-                            .foregroundColor(Color.red)
-                        }
-
-                        // Collection Tag
-                        if let collection = item.collectionName, !collection.isEmpty {
-                            HStack(spacing: 2) {
-                                Image(systemName: "folder.fill")
-                                    .font(.system(size: 7, weight: .bold))
-                                Text(collection)
-                                    .font(.system(size: 9, weight: .semibold))
-                                    .lineLimit(1)
-                            }
-                            .padding(.horizontal, 5)
-                            .padding(.vertical, 1.5)
-                            .background(AppTheme.accent.opacity(0.4), in: Capsule())
-                            .foregroundColor(AppTheme.textPrimary)
-                        }
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 4)
+                    .background(Color(hex: "E8F0FE"), in: Capsule())
+                    .foregroundColor(Color(hex: "1967D2"))
+                    .padding(.top, 2)
+                } else if hasAttachments {
+                    HStack(spacing: 4) {
+                        Image(systemName: "paperclip")
+                            .font(.system(size: 9))
+                        Text("Attachment")
+                            .font(.system(size: 11, weight: .semibold))
                     }
-
-                    Text(snippetText)
-                        .font(.caption)
-                        .foregroundColor(AppTheme.textSecondary)
-                        .lineLimit(1)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 4)
+                    .background(Color(hex: "E8F0FE"), in: Capsule())
+                    .foregroundColor(Color(hex: "1967D2"))
+                    .padding(.top, 2)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-                // Right Date Stamp
-                Text(formattedDate)
-                    .font(.caption2.weight(.medium))
-                    .foregroundColor(AppTheme.textTertiary)
-                    .lineLimit(1)
             }
-            .padding(.vertical, 11)
-            .padding(.horizontal, 14)
         }
-        .background(AppTheme.cardBackground)
+        .padding(.vertical, 12)
+        .padding(.horizontal, 16)
+        .background(Color.white)
         .contentShape(Rectangle())
         .swipeActions(edge: .leading) {
             Button {
