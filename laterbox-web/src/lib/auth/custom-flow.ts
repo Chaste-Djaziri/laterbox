@@ -44,7 +44,7 @@ export function createCustomClerkFlow(signIn: SignInResource, signUp: SignUpReso
       try {
         const attempt = state.mode === 'signup' ? await signUp.attemptEmailAddressVerification({ code }) : await signIn.attemptFirstFactor({ strategy: 'email_code',code });
         await finish(attempt);
-        return { error: null };
+        return { error: null,isNewAccount: state.mode === 'signup' };
       } catch (cause) { return { error: customAuthError(cause) }; }
     },
     async password(password: string) {
