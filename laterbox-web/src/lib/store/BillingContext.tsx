@@ -156,6 +156,7 @@ export function BillingProvider({ children }: { children: React.ReactNode }) {
   pollForProRef.current = pollForPro;
 
   useEffect(() => {
+    if (window.location.origin === 'http://localhost:8080') return;
     let active = true;
     const environment = (process.env.NEXT_PUBLIC_PADDLE_ENV || 'sandbox') as Environments;
     const token = environment === 'production'
