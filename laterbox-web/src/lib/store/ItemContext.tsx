@@ -44,6 +44,7 @@ interface ItemContextType {
   permanentlyDeleteItem: (id: string) => Promise<void>;
   emptyTrash: () => Promise<void>;
   saveNote: (itemId: string, content: string) => Promise<void>;
+  attachFilesToItem: (itemId: string, files: File[]) => Promise<Attachment[]>;
   createCollection: (name: string) => Promise<Collection>;
   deleteCollection: (id: string) => Promise<void>;
   addItemToCollection: (collectionId: string, itemId: string, colOverride?: Collection) => Promise<void>;
@@ -874,6 +875,23 @@ export function ItemProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const attachFilesToItem = async (itemId: string, files: File[]): Promise<Attachment[]> => {
+    if (!files || files.length === 0) return [];
+    const newAttachments = await Promise.all(
+      files.map((file) => storeLocalAttachment(file, itemId, user?.id || null))
+    );
+    const updated = items.map((item) => {
+      if (item.id !== itemId) return item;
+      return {
+        ...item,
+        attachments: [...(item.attachments || []), ...newAttachments],
+      };
+    });
+    setItems(updated);
+    saveLocalData(updated);
+    return newAttachments;
+  };
+
   const createCollection = async (name: string): Promise<Collection> => {
     const trimmed = name.trim();
     if (!trimmed) {
@@ -1083,6 +1101,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
         permanentlyDeleteItem,
         emptyTrash,
         saveNote,
+        attachFilesToItem,
         createCollection,
         deleteCollection,
         addItemToCollection,
