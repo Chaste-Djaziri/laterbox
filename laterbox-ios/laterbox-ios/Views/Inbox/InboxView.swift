@@ -164,12 +164,19 @@ public struct InboxView: View {
 
                                     if item.id != rawInboxItems.last?.id {
                                         Divider()
-                                            .overlay(Color.black.opacity(0.04))
+                                            .overlay(Color.black.opacity(0.05))
                                             .padding(.leading, 70)
                                     }
                                 }
                             }
                             .background(Color.white)
+                            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                    .strokeBorder(Color.black.opacity(0.06), lineWidth: 1)
+                            )
+                            .shadow(color: Color.black.opacity(0.03), radius: 8, x: 0, y: 3)
+                            .padding(.horizontal, 12)
                         }
                     }
                     .padding(.bottom, 40)
