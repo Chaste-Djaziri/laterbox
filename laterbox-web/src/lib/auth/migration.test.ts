@@ -5,6 +5,7 @@ import { SignJWT, generateKeyPair, exportJWK } from 'jose';
 test('migration verifies legacy sessions, retries without duplicates and requires proof for existing Clerk accounts',async () => {
   const savedEnv = { ...process.env };
   const savedFetch = globalThis.fetch;
+  Object.assign(process.env,{ NODE_ENV: 'test' });
   process.env.NEXT_PUBLIC_CLERK_AUTH_ENABLED = 'true';
   process.env.CLERK_SECRET_KEY = 'sk_test_fixture';
   process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-service-key';
