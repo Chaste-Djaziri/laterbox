@@ -1,6 +1,6 @@
 export const clerkAuthEnabled = process.env.NEXT_PUBLIC_CLERK_AUTH_ENABLED === 'true';
-export const APP_ORIGIN = 'https://app.laterbox.dev';
-export const CLERK_ISSUER = 'https://clerk.laterbox.dev';
+export const APP_ORIGIN = process.env.NEXT_PUBLIC_APP_ORIGIN || 'https://app.laterbox.dev';
+export const CLERK_ISSUER = process.env.CLERK_JWT_ISSUER || 'https://clerk.laterbox.dev';
 export function safeReturnPath(value: string | null | undefined): string {
   if (!value || !value.startsWith('/') || value.startsWith('//') || /[\\\u0000-\u001f]/.test(value)) return '/inbox';
   return value;
