@@ -23,7 +23,9 @@ insert into public.auth_provider_issuers values
   ('https://ltjisrgldssqskcylcbj.supabase.co/auth/v1', 'supabase'),
   ('http://127.0.0.1:54321/auth/v1', 'supabase'),
   ('http://localhost:54321/auth/v1', 'supabase'),
-  ('https://clerk.laterbox.dev', 'clerk');
+  ('https://clerk.laterbox.dev', 'clerk'),
+  ('https://powerful-rooster-1708.clerk.accounts.dev', 'clerk')
+on conflict (issuer) do nothing;
 create table public.auth_webhook_events (
   event_id text primary key,
   processed_at timestamptz not null default now()
