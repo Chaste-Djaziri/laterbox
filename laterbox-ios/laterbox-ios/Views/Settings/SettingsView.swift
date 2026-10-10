@@ -10,6 +10,7 @@ import SwiftData
 import UserNotifications
 
 public struct SettingsView: View {
+    @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
     @Query private var allItems: [LBItem]
     @ObservedObject var coordinator = SyncCoordinator.shared
@@ -31,25 +32,39 @@ public struct SettingsView: View {
     public init() {}
 
     public var body: some View {
-        NavigationStack {
-            ZStack {
-                LiquidGlassBackground()
+        ZStack {
+            AppTheme.canvasBackground
+                .ignoresSafeArea()
 
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 20) {
-                        // Top Level Header (Scrolls normally, uncontainerized on canvas)
-                        HStack(alignment: .center) {
-                            HStack(spacing: 8) {
-                                Image("LaterboxIconGreen")
-                                    .resizable()
-                                    .scaledToFit()
-                                    .frame(width: 28, height: 28)
-                                    .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    // Top Level Header (Scrolls normally, uncontainerized on canvas)
+                    HStack(alignment: .center, spacing: 12) {
+                        Button {
+                            dismiss()
+                            LBHaptic.light()
+                        } label: {
+                            Image(systemName: "chevron.left")
+                                .font(.system(size: 16, weight: .bold))
+                                .foregroundColor(AppTheme.textPrimary)
+                                .frame(width: 36, height: 36)
+                                .background(Color.black.opacity(0.04), in: Circle())
+                                .contentShape(Circle())
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Back to Inbox")
 
-                                Text("Settings")
-                                    .font(.system(size: 24, weight: .bold))
-                                    .foregroundColor(AppTheme.textPrimary)
-                            }
+                        HStack(spacing: 8) {
+                            Image("LaterboxIconGreen")
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: 28, height: 28)
+                                .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+
+                            Text("Settings")
+                                .font(.system(size: 24, weight: .bold))
+                                .foregroundColor(AppTheme.textPrimary)
+                        }
 
                             Spacer()
 
@@ -513,11 +528,14 @@ public struct SettingsView: View {
                                     }
                                     .padding(.vertical, 10)
                                     .padding(.horizontal, 12)
+                                    .frame(maxWidth: .infinity)
+                                    .contentShape(Rectangle())
                                     .background(Color.black.opacity(0.04))
                                     .foregroundColor(AppTheme.textPrimary)
                                     .clipShape(RoundedRectangle(cornerRadius: 10))
                                 }
                                 .buttonStyle(.plain)
+                                .contentShape(Rectangle())
                             }
                             .padding(16)
                             .background(
@@ -850,6 +868,8 @@ public struct SettingsView: View {
                                     }
                                 }
                                 .padding(16)
+                                .frame(maxWidth: .infinity)
+                                .contentShape(Rectangle())
                                 .background(
                                     RoundedRectangle(cornerRadius: 18, style: .continuous)
                                         .fill(AppTheme.cardBackground)
@@ -861,6 +881,7 @@ public struct SettingsView: View {
                                 .shadow(color: Color.black.opacity(0.03), radius: 6, x: 0, y: 2)
                             }
                             .buttonStyle(.plain)
+                            .contentShape(Rectangle())
                         }
 
                         // Local Storage Section
@@ -998,9 +1019,12 @@ public struct SettingsView: View {
                             }
                             .foregroundStyle(AppTheme.textPrimary)
                             .padding(16)
+                            .frame(maxWidth: .infinity)
+                            .contentShape(Rectangle())
                             .liquidGlassCard(cornerRadius: 18)
                         }
                         .buttonStyle(.plain)
+                        .contentShape(Rectangle())
 
                         // App Version Footer
                         VStack(spacing: 4) {
