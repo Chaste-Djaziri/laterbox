@@ -9,6 +9,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 ## [Unreleased]
 
 ### Changed
+- **[Web] Email-style Inbox UI and layout**: Redesigned the Inbox page layout to mirror a modern email client interface with a dense action toolbar (batch select, refresh, bulk actions, pagination), category tabs (Primary, Articles, Media, Updates), and dense email rows featuring sender/domain, inline subject-snippet previews, attachment badges, quick hover actions, and timestamps.
 - **[Web] Remove Home page route and sidebar tab**: Remove the `/home` dashboard route and Home navigation tab in preparation for the dashboard redesign, routing web app entry to Inbox.
 - **[Web] AI organize collection grouping and de-duplication**: Reuse available collections when organizing items with AI, group multiple items requiring the same collection together, and prevent duplicate collections with identical names.
 - **[Web] Recently Deleted section in Library**: Add a Recently Deleted tab to the Library with item restoration, permanent deletion, and empty trash capability.
