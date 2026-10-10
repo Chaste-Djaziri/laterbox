@@ -20,7 +20,6 @@ export default function robots(): MetadataRoute.Robots {
           '/inbox',
           '/item/',
           '/library',
-          '/search',
           '/settings',
           '/extension/',
         ],

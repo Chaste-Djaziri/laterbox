@@ -63,7 +63,7 @@ export function middleware(request: NextRequest) {
       const cleanPath = url.pathname.replace('/docs', '');
       return NextResponse.redirect(new URL(`https://docs.laterbox.dev${cleanPath}`, request.url), 308);
     }
-    // All other app routes (/inbox, /library, /search, /settings, /plans, /item, /login, /extension, /downloads, /tutorial) pass through
+    // All other app routes (/inbox, /library, /settings, /plans, /item, /login, /extension, /downloads, /tutorial) pass through
     return NextResponse.next();
   }
 
@@ -88,7 +88,6 @@ export function middleware(request: NextRequest) {
       ['/today', '/upcoming', '/someday'].some(path => url.pathname === path) ||
       url.pathname.startsWith('/inbox') ||
       url.pathname.startsWith('/library') ||
-      url.pathname.startsWith('/search') ||
       url.pathname.startsWith('/settings') ||
       url.pathname.startsWith('/downloads') ||
       url.pathname.startsWith('/item') ||
