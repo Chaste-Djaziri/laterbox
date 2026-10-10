@@ -26,6 +26,7 @@ import { useBilling } from '@/lib/store/BillingContext';
 type Interval = 'month' | 'year';
 
 const freeFeatures = [
+  'Free browser extensions (Chrome, Safari, Firefox)',
   'Unlimited local saves',
   'Instant offline search & organization',
   'Full reader mode with clean typography',
