@@ -16,8 +16,6 @@
   },
   "dependencies": {
     "@apple/app-store-server-library": "^3.1.0",
-    "@clerk/backend": "^3.23.2",
-    "@clerk/nextjs": "^7.9.14",
     "@opennextjs/cloudflare": "^1.19.9",
     "@paddle/paddle-js": "^1.4.2",
     "@supabase/supabase-js": "^2.112.3",
