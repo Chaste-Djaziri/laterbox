@@ -119,27 +119,39 @@ function AttachmentRow({ attachment }: { attachment: Attachment }) {
           {/* PDF Viewer */}
           {isPdf && (
             <div className="w-full rounded-2xl overflow-hidden bg-white border border-[#e4e0d5]">
-              <div className="p-2.5 bg-[#fef2f2] border-b border-[#fca5a5]/40 flex items-center justify-between">
+              <div className="p-2.5 bg-[#fef2f2] border-b border-[#fca5a5]/40 flex items-center justify-between gap-2">
                 <span className="text-xs font-bold text-[#991b1b] flex items-center gap-1.5">
                   <FileText className="w-3.5 h-3.5" /> PDF Preview
                 </span>
-                <button
-                  type="button"
-                  onClick={() => setExpanded(!expanded)}
-                  className="text-xs font-semibold text-[#991b1b] flex items-center gap-1 hover:underline cursor-pointer"
-                >
-                  {expanded ? (
-                    <>
-                      <span>Collapse</span>
-                      <ChevronUp className="w-3.5 h-3.5" />
-                    </>
-                  ) : (
-                    <>
-                      <span>Expand</span>
-                      <ChevronDown className="w-3.5 h-3.5" />
-                    </>
-                  )}
-                </button>
+                <div className="flex items-center gap-3">
+                  <a
+                    href={mediaUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-xs font-bold text-[#991b1b] hover:underline cursor-pointer"
+                    title="Open PDF in external tab"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                    <span>Open External Tab</span>
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => setExpanded(!expanded)}
+                    className="text-xs font-semibold text-[#991b1b] flex items-center gap-1 hover:underline cursor-pointer"
+                  >
+                    {expanded ? (
+                      <>
+                        <span>Collapse</span>
+                        <ChevronUp className="w-3.5 h-3.5" />
+                      </>
+                    ) : (
+                      <>
+                        <span>Expand</span>
+                        <ChevronDown className="w-3.5 h-3.5" />
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
               {expanded && (
                 <iframe
