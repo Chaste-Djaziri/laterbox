@@ -48,6 +48,8 @@ import {
   ImageIcon,
   PlayCircle,
   Music2,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 
 function formatBytes(bytes?: number): string {
@@ -66,12 +68,48 @@ function ThreadAttachmentCard({
   userId?: string | null;
 }) {
   const [downloading, setDownloading] = useState(false);
+  const [mediaUrl, setMediaUrl] = useState<string | null>(attachment.url || null);
+  const [pdfExpanded, setPdfExpanded] = useState(true);
+
+  const ext = (attachment.extension || attachment.name.split('.').pop() || '').toLowerCase();
+  const mime = (attachment.type || '').toLowerCase();
+  const isPdf = ext === 'pdf' || mime === 'application/pdf';
+  const isImg =
+    mime.startsWith('image/') ||
+    ['jpg', 'jpeg', 'png', 'webp', 'gif', 'svg', 'heic', 'avif'].includes(ext);
+  const isVid =
+    mime.startsWith('video/') ||
+    ['mp4', 'mov', 'webm', 'mkv', 'm4v', 'ogv'].includes(ext);
+  const isAud =
+    mime.startsWith('audio/') ||
+    ['mp3', 'wav', 'm4a', 'aac', 'ogg', 'flac'].includes(ext);
+
+  useEffect(() => {
+    if (attachment.url) {
+      setMediaUrl(attachment.url);
+      return;
+    }
+    let active = true;
+    fetchAttachmentDownloadUrl(attachment.id, userId ?? null)
+      .then((url) => {
+        if (active && url) {
+          setMediaUrl(url);
+        }
+      })
+      .catch((err) => {
+        console.warn('Could not fetch attachment preview URL:', err);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [attachment.id, attachment.url, userId]);
 
   const handleOpenAttachment = async () => {
     if (downloading) return;
     setDownloading(true);
     try {
-      const url = await fetchAttachmentDownloadUrl(attachment.id, userId ?? null);
+      const url = mediaUrl || (await fetchAttachmentDownloadUrl(attachment.id, userId ?? null));
       if (url) {
         const a = document.createElement('a');
         a.href = url;
@@ -91,70 +129,191 @@ function ThreadAttachmentCard({
     }
   };
 
-  const ext = (attachment.extension || attachment.name.split('.').pop() || '').toLowerCase();
-  const isPdf = ext === 'pdf' || attachment.type === 'application/pdf';
-  const isImg =
-    attachment.type?.startsWith('image/') ||
-    ['jpg', 'jpeg', 'png', 'webp', 'gif', 'svg'].includes(ext);
-  const isVid =
-    attachment.type?.startsWith('video/') || ['mp4', 'mov', 'webm'].includes(ext);
-  const isAud =
-    attachment.type?.startsWith('audio/') || ['mp3', 'wav', 'm4a', 'aac'].includes(ext);
+  const isLocal = !mediaUrl || mediaUrl.startsWith('blob:') || mediaUrl.startsWith('data:');
 
   return (
-    <div className="flex items-center justify-between gap-3 p-2.5 sm:p-3 rounded-2xl bg-[#faf9f5] border border-[#e4e0d5] hover:border-[#171711]/40 transition-colors">
-      <div className="flex items-center gap-2.5 min-w-0">
-        <div
-          className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border ${
-            isPdf
-              ? 'bg-rose-50 text-rose-600 border-rose-200'
-              : isImg
-              ? 'bg-sky-50 text-sky-600 border-sky-200'
-              : isVid
-              ? 'bg-rose-50 text-rose-600 border-rose-200'
-              : isAud
-              ? 'bg-emerald-50 text-emerald-600 border-emerald-200'
-              : 'bg-white text-[#171711] border-[#e4e0d5]'
-          }`}
-        >
-          {isPdf ? (
-            <FileText className="w-4 h-4" />
-          ) : isImg ? (
-            <ImageIcon className="w-4 h-4" />
-          ) : isVid ? (
-            <PlayCircle className="w-4 h-4" />
-          ) : isAud ? (
-            <Music2 className="w-4 h-4" />
-          ) : (
-            <FileText className="w-4 h-4" />
+    <div className="flex flex-col gap-2.5 p-2.5 sm:p-3 rounded-2xl bg-[#faf9f5] border border-[#e4e0d5] hover:border-[#171711]/40 transition-all">
+      {/* 1. Live Media Preview Container */}
+      {mediaUrl && (
+        <div className="w-full">
+          {/* A. Proper Image Preview */}
+          {isImg && (
+            <div className="w-full rounded-xl overflow-hidden bg-white border border-[#e4e0d5] flex items-center justify-center p-1 shadow-2xs group relative">
+              <a
+                href={mediaUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Click to view full image in new tab"
+                className="block w-full max-h-72 overflow-hidden rounded-lg cursor-zoom-in"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={mediaUrl}
+                  alt={attachment.name}
+                  className="w-full h-auto max-h-72 object-contain mx-auto rounded-lg group-hover:scale-[1.01] transition-transform duration-200"
+                />
+              </a>
+              <a
+                href={mediaUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Open image in external tab"
+                className="absolute top-2.5 right-2.5 p-1.5 rounded-lg bg-black/60 hover:bg-black/80 text-white opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-xs shadow-xs"
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+            </div>
+          )}
+
+          {/* B. Integrated HTML5 Video Player */}
+          {isVid && (
+            <div className="w-full rounded-xl overflow-hidden bg-black border border-[#171711] shadow-2xs">
+              <video
+                src={mediaUrl}
+                controls
+                playsInline
+                preload="metadata"
+                className="w-full max-h-72 object-contain bg-black"
+              />
+            </div>
+          )}
+
+          {/* C. PDF Preview & Open External Tab */}
+          {isPdf && (
+            <div className="w-full rounded-xl overflow-hidden bg-white border border-[#e4e0d5] shadow-2xs">
+              <div className="p-2 sm:p-2.5 bg-[#fef2f2] border-b border-[#fca5a5]/40 flex items-center justify-between gap-2">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <FileText className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+                  <span className="text-xs font-bold text-rose-900 truncate">
+                    PDF Preview
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <a
+                    href={mediaUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white border border-rose-200 text-xs font-bold text-rose-700 hover:bg-rose-50 hover:text-rose-900 transition-colors shadow-2xs cursor-pointer"
+                    title="Open PDF path in external tab"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                    <span>Open External Tab</span>
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => setPdfExpanded(!pdfExpanded)}
+                    className="text-[11px] font-semibold text-rose-700 hover:text-rose-900 px-1 py-0.5 rounded cursor-pointer"
+                  >
+                    {pdfExpanded ? (
+                      <span className="inline-flex items-center gap-0.5">
+                        Collapse <ChevronUp className="w-3 h-3" />
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-0.5">
+                        Expand <ChevronDown className="w-3 h-3" />
+                      </span>
+                    )}
+                  </button>
+                </div>
+              </div>
+              {pdfExpanded && (
+                <iframe
+                  src={`${mediaUrl}#toolbar=1&navpanes=0`}
+                  title={attachment.name}
+                  className="w-full h-72 sm:h-80 border-0 bg-[#faf8f5]"
+                />
+              )}
+            </div>
+          )}
+
+          {/* D. Audio Player */}
+          {isAud && (
+            <div className="w-full p-2.5 rounded-xl bg-white border border-[#e4e0d5]">
+              <audio src={mediaUrl} controls className="w-full" preload="metadata" />
+            </div>
           )}
         </div>
-        <div className="min-w-0">
-          <p className="text-xs font-bold text-[#171711] truncate">{attachment.name}</p>
-          <div className="flex items-center gap-1.5 text-[10px] text-[#8e8d87] mt-0.5">
-            <span>{formatBytes(attachment.size)}</span>
-            <span>•</span>
-            <span className="inline-flex items-center gap-1 text-[10px] font-medium text-[#6c6b63]">
-              <HardDrive className="w-2.5 h-2.5 text-[#8e8d87]" />
-              Local Storage
-            </span>
+      )}
+
+      {/* 2. File Metadata & Actions Row */}
+      <div className="flex items-center justify-between gap-2 min-w-0">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div
+            className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border ${
+              isPdf
+                ? 'bg-rose-50 text-rose-600 border-rose-200'
+                : isImg
+                ? 'bg-sky-50 text-sky-600 border-sky-200'
+                : isVid
+                ? 'bg-rose-50 text-rose-600 border-rose-200'
+                : isAud
+                ? 'bg-emerald-50 text-emerald-600 border-emerald-200'
+                : 'bg-white text-[#171711] border-[#e4e0d5]'
+            }`}
+          >
+            {isPdf ? (
+              <FileText className="w-4 h-4" />
+            ) : isImg ? (
+              <ImageIcon className="w-4 h-4" />
+            ) : isVid ? (
+              <PlayCircle className="w-4 h-4" />
+            ) : isAud ? (
+              <Music2 className="w-4 h-4" />
+            ) : (
+              <FileText className="w-4 h-4" />
+            )}
+          </div>
+          <div className="min-w-0">
+            <p className="text-xs font-bold text-[#171711] truncate">{attachment.name}</p>
+            <div className="flex items-center gap-1.5 text-[10px] text-[#8e8d87] mt-0.5">
+              <span>{formatBytes(attachment.size)}</span>
+              <span>•</span>
+              <span className="inline-flex items-center gap-1 text-[10px] font-medium text-[#6c6b63]">
+                {isLocal ? (
+                  <>
+                    <HardDrive className="w-2.5 h-2.5 text-[#8e8d87]" />
+                    Local Storage
+                  </>
+                ) : (
+                  <>
+                    <Globe className="w-2.5 h-2.5 text-[#8e8d87]" />
+                    Cloud Storage
+                  </>
+                )}
+              </span>
+            </div>
           </div>
         </div>
+
+        {/* Action Buttons */}
+        <div className="flex items-center gap-1.5 shrink-0">
+          {mediaUrl && (
+            <a
+              href={mediaUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="p-1.5 rounded-xl bg-white hover:bg-[#f4f2ec] border border-[#e4e0d5] text-[#171711] transition-colors shadow-2xs"
+              title={isPdf ? 'Open PDF in external tab' : 'Open in external tab'}
+            >
+              <ExternalLink className="w-3.5 h-3.5" />
+            </a>
+          )}
+          <button
+            type="button"
+            onClick={handleOpenAttachment}
+            disabled={downloading}
+            title="Download or save document"
+            className="px-2.5 py-1.5 rounded-xl bg-white hover:bg-[#f4f2ec] border border-[#e4e0d5] text-xs font-bold text-[#171711] flex items-center gap-1.5 shrink-0 shadow-2xs transition-colors cursor-pointer"
+          >
+            {downloading ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <Download className="w-3.5 h-3.5 text-[#171711]" />
+            )}
+            <span className="hidden sm:inline">Save</span>
+          </button>
+        </div>
       </div>
-      <button
-        type="button"
-        onClick={handleOpenAttachment}
-        disabled={downloading}
-        title="Download or open document"
-        className="px-2.5 py-1.5 rounded-xl bg-white hover:bg-[#f4f2ec] border border-[#e4e0d5] text-xs font-bold text-[#171711] flex items-center gap-1.5 shrink-0 shadow-2xs transition-colors cursor-pointer"
-      >
-        {downloading ? (
-          <Loader2 className="w-3.5 h-3.5 animate-spin" />
-        ) : (
-          <Download className="w-3.5 h-3.5 text-[#171711]" />
-        )}
-        <span className="hidden sm:inline">Open</span>
-      </button>
     </div>
   );
 }
@@ -578,18 +737,27 @@ export function ItemSideDetailPanel({ item, onClose }: ItemSideDetailPanelProps)
 
           {/* Attachments List */}
           {item.attachments && item.attachments.length > 0 && (
-            <div className="pt-2 border-t border-[#f0ede4] flex flex-wrap gap-2">
-              {item.attachments.map((att) => (
-                <div
-                  key={att.id}
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#faf8f5] border border-[#e4e0d5] text-xs font-semibold text-[#171711]"
-                >
-                  <Paperclip className="w-3.5 h-3.5 text-[#6c6b63]" />
-                  <span className="truncate max-w-[200px]">
-                    {att.original_file_name}
-                  </span>
-                </div>
-              ))}
+            <div className="pt-2 border-t border-[#f0ede4] space-y-2">
+              <div className="flex items-center gap-1.5 text-xs font-bold text-[#171711]">
+                <Paperclip className="w-3.5 h-3.5 text-[#6c6b63]" />
+                <span>Attachments ({item.attachments.length})</span>
+              </div>
+              <div className="space-y-2">
+                {item.attachments.map((att) => (
+                  <ThreadAttachmentCard
+                    key={att.id}
+                    attachment={{
+                      id: att.id,
+                      name: att.original_file_name,
+                      size: att.byte_size,
+                      type: att.mime_type,
+                      extension: att.file_extension,
+                      url: att.local_path || undefined,
+                    }}
+                    userId={item.user_id}
+                  />
+                ))}
+              </div>
             </div>
           )}
 
