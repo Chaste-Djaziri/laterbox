@@ -12,6 +12,15 @@ public struct InboxView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \LBItem.createdAt, order: .reverse) private var allItems: [LBItem]
     @ObservedObject var coordinator = SyncCoordinator.shared
+    @ObservedObject var storeKit = StoreKitManager.shared
+
+    private var isGuest: Bool {
+        coordinator.currentUserEmail == nil || coordinator.currentUserEmail?.isEmpty == true
+    }
+
+    private var isPro: Bool {
+        coordinator.isProUser || storeKit.isProSubscriptionActive
+    }
 
     @State private var showingSidebar: Bool = false
     @State private var showingOrganizer: Bool = false
@@ -624,6 +633,9 @@ public struct InboxView: View {
                     .padding(.bottom, 40)
                 }
                 .trackPullDownForLaterAI()
+                .safeAreaInset(edge: .bottom, spacing: 0) {
+                    bottomStatusBar
+                }
 
                 // Floating Action Button (+): Home Page Only
                 if !isSearchActive && !showingSidebar {
@@ -644,7 +656,7 @@ public struct InboxView: View {
                             .buttonStyle(.plain)
                             .accessibilityLabel("Open Later AI")
                             .padding(.trailing, 20)
-                            .padding(.bottom, 24)
+                            .padding(.bottom, 74)
                         }
                     }
                     .transition(.scale.combined(with: .opacity))
@@ -776,5 +788,176 @@ public struct InboxView: View {
         }
         try? modelContext.save()
         LBHaptic.warning()
+    }
+
+    // MARK: - Bottom Status & Motivational Bar
+
+    private var bottomStatusBar: some View {
+        HStack(spacing: 12) {
+            if isGuest {
+                // Guest / Local Vault status
+                ZStack {
+                    Circle()
+                        .fill(Color(hex: "3B82F6").opacity(0.12))
+                        .frame(width: 34, height: 34)
+                    Image(systemName: "person.crop.circle")
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundColor(Color(hex: "2563EB"))
+                }
+
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 6) {
+                        Text("Guest / Local Vault")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundColor(AppTheme.textPrimary)
+
+                        Circle()
+                            .fill(Color(hex: "9E9B92"))
+                            .frame(width: 4, height: 4)
+
+                        Text("Offline")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundColor(AppTheme.textSecondary)
+                    }
+
+                    Text("Sign in to backup & sync across devices")
+                        .font(.system(size: 11, weight: .regular))
+                        .foregroundColor(AppTheme.textSecondary)
+                        .lineLimit(1)
+                }
+
+                Spacer(minLength: 8)
+
+                Button {
+                    coordinator.showingAuthSheet = true
+                    LBHaptic.medium()
+                } label: {
+                    Text("Sign In")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 7)
+                        .background(Color(hex: "171711"), in: Capsule())
+                }
+                .buttonStyle(.plain)
+            } else if !isPro {
+                // Free Plan status
+                ZStack {
+                    Circle()
+                        .fill(Color(hex: "F59E0B").opacity(0.14))
+                        .frame(width: 34, height: 34)
+                    Image(systemName: "sparkles")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(Color(hex: "D97706"))
+                }
+
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 6) {
+                        Text("Free Plan")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundColor(AppTheme.textPrimary)
+
+                        Text("LIMITED")
+                            .font(.system(size: 9, weight: .heavy))
+                            .foregroundColor(Color(hex: "D97706"))
+                            .padding(.horizontal, 5)
+                            .padding(.vertical, 1.5)
+                            .background(Color(hex: "F59E0B").opacity(0.14), in: Capsule())
+                    }
+
+                    Text("Upgrade to Pro for cloud sync & AI")
+                        .font(.system(size: 11, weight: .regular))
+                        .foregroundColor(AppTheme.textSecondary)
+                        .lineLimit(1)
+                }
+
+                Spacer(minLength: 8)
+
+                Button {
+                    showingPlans = true
+                    LBHaptic.medium()
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "crown.fill")
+                            .font(.system(size: 10))
+                            .foregroundColor(Color(hex: "E6EDB0"))
+                        Text("Get Pro")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundColor(.white)
+                    }
+                    .padding(.horizontal, 13)
+                    .padding(.vertical, 7)
+                    .background(Color(hex: "171711"), in: Capsule())
+                }
+                .buttonStyle(.plain)
+            } else {
+                // Pro Member status (motivational)
+                ZStack {
+                    Circle()
+                        .fill(Color(hex: "10B981").opacity(0.14))
+                        .frame(width: 34, height: 34)
+                    Image(systemName: "crown.fill")
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundColor(Color(hex: "10B981"))
+                }
+
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 6) {
+                        Text("Pro Member")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundColor(AppTheme.textPrimary)
+
+                        HStack(spacing: 3) {
+                            Circle()
+                                .fill(Color(hex: "10B981"))
+                                .frame(width: 5, height: 5)
+                            Text("ACTIVE")
+                                .font(.system(size: 9, weight: .heavy))
+                                .foregroundColor(Color(hex: "10B981"))
+                        }
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Color(hex: "10B981").opacity(0.12), in: Capsule())
+                    }
+
+                    Text("Cloud sync active • Unlimited AI unlocked. Keep conquering!")
+                        .font(.system(size: 11, weight: .regular))
+                        .foregroundColor(AppTheme.textSecondary)
+                        .lineLimit(1)
+                }
+
+                Spacer(minLength: 8)
+
+                Button {
+                    showingPlans = true
+                    LBHaptic.light()
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "sparkles")
+                            .font(.system(size: 10))
+                        Text("Active")
+                            .font(.system(size: 11, weight: .bold))
+                    }
+                    .foregroundColor(Color(hex: "10B981"))
+                    .padding(.horizontal, 11)
+                    .padding(.vertical, 6)
+                    .background(Color(hex: "10B981").opacity(0.12), in: Capsule())
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 10)
+        .padding(.bottom, 8)
+        .frame(maxWidth: .infinity)
+        .background(
+            Color.white
+                .overlay(
+                    Rectangle()
+                        .frame(height: 1)
+                        .foregroundColor(Color.black.opacity(0.07)),
+                    alignment: .top
+                )
+        )
     }
 }
