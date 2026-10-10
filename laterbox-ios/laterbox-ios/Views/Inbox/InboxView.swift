@@ -33,7 +33,7 @@ public struct InboxView: View {
     public var body: some View {
         NavigationStack {
             ZStack {
-                Color(hex: "F8F9FA").ignoresSafeArea()
+                Color(hex: "F7F5EE").ignoresSafeArea()
 
                 ScrollView {
                     VStack(alignment: .leading, spacing: 0) {
@@ -146,14 +146,25 @@ public struct InboxView: View {
                             .padding(48)
                             .background(Color.white)
                             .cornerRadius(16)
-                            .padding(.horizontal, 16)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 16)
+                                    .strokeBorder(Color.black.opacity(0.06), lineWidth: 1)
+                            )
+                            .padding(.horizontal, 12)
                             .padding(.top, 12)
                         } else {
-                            LazyVStack(spacing: 0) {
-                                ForEach(rawInboxItems) { item in
+                            LazyVStack(spacing: 2.5) {
+                                ForEach(Array(rawInboxItems.enumerated()), id: \.element.id) { index, item in
+                                    let isFirst = index == 0
+                                    let isLast = index == rawInboxItems.count - 1
+                                    let topRadius: CGFloat = isFirst ? 12 : 4
+                                    let bottomRadius: CGFloat = isLast ? 12 : 4
+
                                     NavigationLink(destination: ItemDetailView(item: item)) {
                                         EmailInboxRowView(
                                             item: item,
+                                            topRadius: topRadius,
+                                            bottomRadius: bottomRadius,
                                             onToggleFavorite: { coordinator.toggleFavorite(item: item, context: modelContext) },
                                             onMarkDone: { coordinator.markDone(item: item, context: modelContext) },
                                             onSchedule: { date in coordinator.scheduleItem(item: item, date: date, context: modelContext) },
@@ -161,21 +172,8 @@ public struct InboxView: View {
                                         )
                                     }
                                     .buttonStyle(.plain)
-
-                                    if item.id != rawInboxItems.last?.id {
-                                        Divider()
-                                            .overlay(Color.black.opacity(0.05))
-                                            .padding(.leading, 70)
-                                    }
                                 }
                             }
-                            .background(Color.white)
-                            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                    .strokeBorder(Color.black.opacity(0.06), lineWidth: 1)
-                            )
-                            .shadow(color: Color.black.opacity(0.03), radius: 8, x: 0, y: 3)
                             .padding(.horizontal, 12)
                         }
                     }
