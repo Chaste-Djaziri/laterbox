@@ -15,7 +15,6 @@ import {
   Clock,
   Inbox,
   Search,
-  BookMarked,
   Settings,
   Plus,
   Compass,
@@ -141,11 +140,6 @@ export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
 
   const libraryLinks = [
     {
-      href: '/library',
-      label: 'All Items',
-      icon: <BookMarked className="w-4 h-4" />,
-    },
-    {
       href: '/search',
       label: 'Search',
       icon: <Search className="w-4 h-4" />,
@@ -179,7 +173,6 @@ export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
     if (href === '/inbox') return pathname === '/inbox' || pathname === '/';
     if (href === '/downloads') return pathname === '/downloads' || pathname === '/download';
     if (href === '/trash') return pathname === '/trash' || pathname === '/deleted';
-    if (href === '/library') return pathname === '/library';
     return pathname === href || pathname.startsWith(`${href}/`);
   };
 
