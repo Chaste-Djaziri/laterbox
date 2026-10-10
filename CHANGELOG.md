@@ -9,6 +9,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 ## [Unreleased]
 
 ### Changed
+- **[Web] Redesigned item side detail header**: Removed the "Item Details" label to place sender avatar, sender name, link domain, and date on the same row as the action buttons, positioning the item title directly underneath for a cleaner reading pane layout.
 - **[Web] Non-blocking LaterBox extension warning notification bar**: Replaced the automatic full-screen blocking modal with an unobtrusive top notification warning banner that alerts users when the extension is not connected, allowing full use of the web application without requiring the extension while providing an on-click modal to set up and connect the extension anytime.
 - **[Web] Unified Inbox item content & interactive thread**: Combined the primary saved item content directly into the conversation stream so that the main item itself can be replied to (attached as context) and reacted to with emoji badges alongside follow-up notes and polls. Relocated the full-page expansion button into the top action toolbar.
 - **[Web] Password fallback and signup step for web authentication**: When a login code is not available or sign-up requires a password, seamlessly prompt for password creation before verifying the email confirmation code, allowing new signups and password accounts to complete registration smoothly.
