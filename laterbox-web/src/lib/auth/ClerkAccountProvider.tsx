@@ -59,7 +59,7 @@ export function ClerkAccountProvider({ children }: { children: React.ReactNode }
       try {
         if (!userId) {
           if (window.location.hostname.startsWith('app.') || window.location.hostname === 'localhost') await migrate();
-          if (!cancelled) setGuest(localStorage.getItem('laterbox_guest_mode') === 'true');
+          if (!cancelled) setGuest(localStorage.getItem('laterbox_guest_mode') === 'true' || new URLSearchParams(window.location.search).get('guest') === '1');
           return;
         }
         const token = await tokenGetter();
@@ -105,7 +105,7 @@ export function ClerkAccountProvider({ children }: { children: React.ReactNode }
     localStorage.setItem('laterbox_guest_mode','true');
   };
   const value: AuthContextType = {
-    user, session, loading, isGuest, authError, retryAuth: () => setAttempt(value => value + 1), getToken: tokenGetter,
+    user, session, loading, isGuest, isAuthenticated: Boolean(userId), authError, retryAuth: () => setAttempt(value => value + 1), getToken: tokenGetter,
     userName: profile?.fullName || String(user?.user_metadata.display_name || user?.email?.split('@')[0] || ''),
     setUserName: async name => { await profile?.update({ firstName: name.trim(), lastName: '' }); setAttempt(value => value + 1); },
     signInWithOtp: async email => legacy.auth.signInWithOtp({ email, options: { shouldCreateUser: false } }),
