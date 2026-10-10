@@ -170,7 +170,7 @@ export const createCaptureHandler = (
         method: "POST",
         headers: { apikey: dependencies.serviceRoleKey, authorization: `Bearer ${dependencies.serviceRoleKey}`, "content-type": "application/json" },
         body: JSON.stringify({ p_user_id: userId, p_capture_id: capture.captureId, p_item: row,
-          p_metadata: metaRow, p_content: { kind: capture.kind, sourceUrl: capture.url,
+          p_metadata: metaRow, p_content: { verifiedExtension: token.startsWith("lb_ext_"), kind: capture.kind, sourceUrl: capture.url,
             canonicalUrl: capture.canonicalUrl, markdown: capture.markdown, author: capture.author,
             publishedAt: capture.publishedAt, truncated: capture.truncated } }),
       });
