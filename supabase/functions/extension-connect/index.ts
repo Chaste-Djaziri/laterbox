@@ -1,3 +1,4 @@
+import { authenticateAccount } from '../_shared/auth.ts';
 import { handleInternalHealthCheck } from "../_shared/health.ts";
 
 const corsHeaders = {
@@ -330,15 +331,7 @@ async function authenticateUser(
   token: string,
   dependencies: Dependencies,
 ): Promise<string | null> {
-  const response = await dependencies.fetch(`${dependencies.supabaseUrl}/auth/v1/user`, {
-    headers: {
-      apikey: dependencies.anonKey,
-      authorization: `Bearer ${token}`,
-    },
-  });
-  if (!response.ok) return null;
-  const user = await response.json();
-  return typeof user?.id === "string" ? user.id : null;
+  return authenticateAccount(token, dependencies);
 }
 
 async function adminFetch(
