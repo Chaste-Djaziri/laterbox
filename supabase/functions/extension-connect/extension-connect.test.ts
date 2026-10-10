@@ -172,7 +172,7 @@ Deno.test("entitlement returns isPro status for valid session", async () => {
     }),
   );
   assertEquals(res1.status, 200);
-  assertEquals(await res1.json(), { isPro: false, userId: "user-pro" });
+  assertEquals(await res1.json(), { captureAllowed: true, isPro: false, userId: "user-pro" });
 
   // Test when hasProAccess is true
   proAccess = true;
@@ -184,7 +184,7 @@ Deno.test("entitlement returns isPro status for valid session", async () => {
     }),
   );
   assertEquals(res2.status, 200);
-  assertEquals(await res2.json(), { isPro: true, userId: "user-pro" });
+  assertEquals(await res2.json(), { captureAllowed: true, isPro: true, userId: "user-pro" });
 });
 
 async function sha256Hex(value: string): Promise<string> {
