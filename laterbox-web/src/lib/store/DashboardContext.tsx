@@ -21,6 +21,7 @@ export function getRouteTitle(pathname: string): string {
   if (pathname === '/plans') return 'Plans';
   if (pathname === '/downloads') return 'Downloads';
   if (pathname === '/tutorial') return 'Tutorial';
+  if (pathname === '/help') return 'Help & FAQs';
   if (pathname.startsWith('/item/')) return 'Item Details';
   if (pathname.startsWith('/library/')) return 'Collection';
   const clean = pathname.replace(/^\//, '').split('/')[0];
