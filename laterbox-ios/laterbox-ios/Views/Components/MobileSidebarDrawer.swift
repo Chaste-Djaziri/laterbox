@@ -428,16 +428,6 @@ public struct MobileSidebarDrawer: View {
                 }
 
                 navLinkRow(
-                    title: "Returns Schedule",
-                    systemIcon: "calendar",
-                    badgeCount: todayCount + upcomingCount,
-                    isActive: (activeMailbox == .today || activeMailbox == .scheduled) && activeCollection == nil
-                ) {
-                    close()
-                    onSelectMailbox(.today)
-                }
-
-                navLinkRow(
                     title: "Plans",
                     systemIcon: "crown.fill",
                     badgeCount: 0,
