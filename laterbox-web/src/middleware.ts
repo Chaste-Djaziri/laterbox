@@ -89,6 +89,7 @@ export function middleware(request: NextRequest) {
       url.pathname.startsWith('/inbox') ||
       url.pathname.startsWith('/library') ||
       url.pathname.startsWith('/settings') ||
+      url.pathname.startsWith('/help') ||
       url.pathname.startsWith('/downloads') ||
       url.pathname.startsWith('/item') ||
       url.pathname.startsWith('/login') ||
