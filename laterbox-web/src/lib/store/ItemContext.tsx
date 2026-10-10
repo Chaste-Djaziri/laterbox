@@ -846,11 +846,45 @@ export function ItemProvider({ children }: { children: ReactNode }) {
   };
 
   const createCollection = async (name: string): Promise<Collection> => {
+    const trimmed = name.trim();
+    if (!trimmed) {
+      throw new Error('Collection name cannot be empty');
+    }
+
+    // 1. Check in-memory/state collections (case-insensitive)
+    const existing = collections.find(
+      (c) => c.name.trim().toLowerCase() === trimmed.toLowerCase() && !c.deleted_at
+    );
+    if (existing) {
+      return existing;
+    }
+
+    // 2. Check remote database for matching existing collection
+    if (user) {
+      const supabase = getSupabaseClient();
+      const { data: dbExisting } = await supabase
+        .from('collections')
+        .select('*')
+        .eq('user_id', user.id)
+        .ilike('name', trimmed)
+        .is('deleted_at', null)
+        .maybeSingle();
+
+      if (dbExisting) {
+        if (!collections.some((c) => c.id === dbExisting.id)) {
+          const merged = [dbExisting, ...collections];
+          setCollections(merged);
+          saveLocalData(items, merged);
+        }
+        return dbExisting;
+      }
+    }
+
     const now = new Date().toISOString();
     const newCol: Collection = {
       id: crypto.randomUUID(),
       user_id: user?.id || null,
-      name: name.trim(),
+      name: trimmed,
       created_at: now,
       updated_at: now,
     };
