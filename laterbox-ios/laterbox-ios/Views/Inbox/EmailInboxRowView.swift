@@ -135,10 +135,22 @@ public struct EmailInboxRowView: View {
         item.attachmentsData != nil
     }
 
+    private var effectivePreviewImageUrl: String? {
+        if let p = item.previewImageUrl, !p.isEmpty {
+            return p
+        }
+        if let urlStr = item.url, let url = URL(string: urlStr) {
+            if let videoId = EmbeddedMediaType.extractYouTubeId(from: url) {
+                return "https://img.youtube.com/vi/\(videoId)/hqdefault.jpg"
+            }
+        }
+        return nil
+    }
+
     public var body: some View {
         ZStack(alignment: .trailing) {
-            // Right-aligned fading OG image watermark (matching web anime-card style)
-            if let previewUrlStr = item.previewImageUrl, let previewUrl = URL(string: previewUrlStr) {
+            // Right-aligned fading OG / Video cover image watermark (matching web anime-card style)
+            if let previewUrlStr = effectivePreviewImageUrl, let previewUrl = URL(string: previewUrlStr) {
                 GeometryReader { geo in
                     AsyncImage(url: previewUrl) { phase in
                         switch phase {
