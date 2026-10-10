@@ -9,6 +9,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 ## [Unreleased]
 
 ### Changed
+- **[iOS] Full-page item details with web actions, media playback, and follow-ups chat UI**: Redesigned item opening into an immersive full-page view matching the web app's layout, featuring top header actions (Star, Done/Return, Reader, Safari, Share, Collection, Delete), native media embed players, OpenGraph previews, and an interactive Follow-ups & Notes timeline stream with a bottom chat prompt bar compatible with the web thread schema.
 - **[Auth] Revert to Supabase Auth**: Reverted to Supabase authentication exclusively across the entire application, eliminating Clerk login providers, middleware, and dependencies.
 - **[iOS] Expanding active search bar with in-page email table results and filters**: Implemented seamless search input expansion in the inbox top bar with back navigation and clear actions, horizontal filter chips (Format, Starred, Attachments), recent search history, and live query results displayed in our warm-canvas segmented email card format.
 - **[iOS] Segmented card styling and #f7f5ee canvas background**: Updated the iOS app background to signature warm canvas #f7f5ee, styled each inbox email item as an individual card with subtle gaps (removing dividing lines), and applied corner radii (4pt for standard corners, 12pt on top corners of the first item and bottom corners of the last item).
