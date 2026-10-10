@@ -271,29 +271,9 @@ function LegacyAuthProvider({ children }: { children: ReactNode }) {
         data: { session },
       } = await supabase.auth.getSession();
 
-      if (session?.access_token) {
-        // 1. Try atomic PostgreSQL RPC deletion directly
-        try {
-          const { error: rpcError } = await supabase.rpc('delete_user_account');
-          if (rpcError) {
-            // Fallback to server endpoint
-            await fetch('/api/account/delete', {
-              method: 'POST',
-              headers: {
-                Authorization: `Bearer ${session.access_token}`,
-              },
-            });
-          }
-        } catch {
-          // Fallback to server endpoint
-          await fetch('/api/account/delete', {
-            method: 'POST',
-            headers: {
-              Authorization: `Bearer ${session.access_token}`,
-            },
-          });
-        }
-      }
+      if (!session?.access_token) throw new Error('Sign in before deleting your account.');
+      const response = await fetch('/api/account/delete', { method: 'POST', headers: { Authorization: `Bearer ${session.access_token}` } });
+      if (!response.ok) throw new Error('Account deletion could not finish. Please retry.');
 
       // Clear local storage and sign out
       try {
