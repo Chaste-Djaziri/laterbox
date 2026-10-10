@@ -667,16 +667,36 @@ export function EmailInboxTable({ items, onOpenCapture, searchQuery = '' }: Emai
               <div
                 key={item.id}
                 onClick={() => router.push(`/item/${item.id}`)}
-                className={`group flex items-center gap-2.5 sm:gap-3 px-3 sm:px-4 py-2.5 transition-colors cursor-pointer select-none ${
+                className={`group relative flex items-center gap-2.5 sm:gap-3 px-3 sm:px-4 py-2.5 transition-colors cursor-pointer select-none overflow-hidden ${
                   isSelected
                     ? 'bg-[#f5f8df] hover:bg-[#eef3d0]'
                     : 'bg-white hover:bg-[#faf8f5]'
                 }`}
               >
+                {/* Anime-card style right-aligned fading OG image watermark */}
+                {item.metadata?.preview_image_url && (
+                  <div className="absolute right-0 top-0 bottom-0 w-48 sm:w-72 md:w-96 pointer-events-none overflow-hidden select-none z-0">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={item.metadata.preview_image_url}
+                      alt=""
+                      className="w-full h-full object-cover object-right opacity-65 group-hover:opacity-85 transition-opacity duration-300"
+                      style={{
+                        maskImage: 'linear-gradient(to left, rgba(0,0,0,1) 0%, rgba(0,0,0,0.85) 35%, rgba(0,0,0,0.4) 65%, rgba(0,0,0,0) 100%)',
+                        WebkitMaskImage: 'linear-gradient(to left, rgba(0,0,0,1) 0%, rgba(0,0,0,0.85) 35%, rgba(0,0,0,0.4) 65%, rgba(0,0,0,0) 100%)',
+                      }}
+                      onError={(e) => {
+                        (e.currentTarget as HTMLElement).style.display = 'none';
+                      }}
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-r from-white/95 via-transparent to-transparent group-hover:from-[#faf8f5]/95 pointer-events-none" />
+                  </div>
+                )}
+
                 {/* 1. Checkbox */}
                 <div
                   onClick={(e) => toggleItemSelect(item.id, e)}
-                  className="p-1 -m-1 shrink-0 flex items-center"
+                  className="p-1 -m-1 shrink-0 flex items-center relative z-10"
                 >
                   <input
                     type="checkbox"
@@ -694,7 +714,7 @@ export function EmailInboxTable({ items, onOpenCapture, searchQuery = '' }: Emai
                     setFavorite(item.id, !isStarred);
                   }}
                   title={isStarred ? 'Unstar' : 'Star'}
-                  className="p-1 -m-1 shrink-0 rounded hover:bg-[#faf8f5] transition-colors cursor-pointer"
+                  className="p-1 -m-1 shrink-0 rounded hover:bg-[#faf8f5] transition-colors cursor-pointer relative z-10"
                 >
                   <Star
                     className={`w-4 h-4 transition-colors ${
@@ -706,14 +726,14 @@ export function EmailInboxTable({ items, onOpenCapture, searchQuery = '' }: Emai
                 </button>
 
                 {/* 3. Sender Column (Fixed Width, Truncated, Bold) */}
-                <div className="w-28 sm:w-44 shrink-0 truncate">
+                <div className="w-28 sm:w-44 shrink-0 truncate relative z-10">
                   <span className="text-xs sm:text-sm font-bold text-[#171711] group-hover:text-black">
                     {sender}
                   </span>
                 </div>
 
                 {/* 4. Subject & Snippet Inline Flex */}
-                <div className="flex-1 min-w-0 flex items-center gap-1.5 text-xs sm:text-sm overflow-hidden whitespace-nowrap">
+                <div className="flex-1 min-w-0 flex items-center gap-1.5 text-xs sm:text-sm overflow-hidden whitespace-nowrap relative z-10">
                   <span className="font-bold text-[#171711] truncate shrink-0 max-w-[50%] sm:max-w-[42%] group-hover:text-black">
                     {title}
                   </span>
@@ -740,9 +760,9 @@ export function EmailInboxTable({ items, onOpenCapture, searchQuery = '' }: Emai
                 </div>
 
                 {/* 5. Right Actions & Timestamp */}
-                <div className="shrink-0 flex items-center justify-end min-w-[90px] sm:min-w-[130px] text-right">
+                <div className="shrink-0 flex items-center justify-end min-w-[90px] sm:min-w-[130px] text-right relative z-10">
                   {/* Quick Action Icons visible on Hover */}
-                  <div className="hidden group-hover:flex items-center gap-1 text-[#6c6b63]">
+                  <div className="hidden group-hover:flex items-center gap-1 text-[#6c6b63] bg-white/90 backdrop-blur-xs px-1.5 py-0.5 rounded-lg border border-[#e4e0d5]/60 shadow-2xs">
                     {/* Archive */}
                     <button
                       type="button"
@@ -843,7 +863,7 @@ export function EmailInboxTable({ items, onOpenCapture, searchQuery = '' }: Emai
                   </div>
 
                   {/* Date Time (Visible when NOT hovered) */}
-                  <span className="group-hover:hidden text-[11px] sm:text-xs font-semibold text-[#6c6b63] tabular-nums">
+                  <span className="group-hover:hidden text-[11px] sm:text-xs font-semibold text-[#171711] sm:text-[#6c6b63] tabular-nums bg-white/75 backdrop-blur-xs px-2 py-0.5 rounded-md border border-[#e4e0d5]/40 shadow-2xs">
                     {formatEmailDate(item.created_at)}
                   </span>
                 </div>
