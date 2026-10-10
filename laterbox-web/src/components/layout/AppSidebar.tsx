@@ -29,6 +29,7 @@ import {
   Check,
   X,
   Star,
+  CheckCircle,
 } from 'lucide-react';
 
 interface AppSidebarProps {
@@ -38,7 +39,7 @@ interface AppSidebarProps {
 export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const { inboxItems, starredItems, items, collections, createCollection } = useItems();
+  const { inboxItems, starredItems, savedItems, items, collections, createCollection } = useItems();
   const { user, userName, isGuest, signOut } = useAuth();
   const { entitlement, isPro, manage } = useBilling();
   const [collapsed, setCollapsed] = useState(false);
@@ -97,6 +98,12 @@ export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
       label: 'Starred',
       icon: <Star className="w-4 h-4" />,
       badge: starredItems.length > 0 ? starredItems.length : undefined,
+    },
+    {
+      href: '/kept',
+      label: 'Kept',
+      icon: <CheckCircle className="w-4 h-4" />,
+      badge: savedItems.length > 0 ? savedItems.length : undefined,
     },
     {
       href: '/today',
