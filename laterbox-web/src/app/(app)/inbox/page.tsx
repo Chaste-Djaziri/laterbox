@@ -17,10 +17,16 @@ import {
   RefreshCw,
   Settings,
   LogOut,
+  X,
 } from 'lucide-react';
 import { AiOrganizeModal } from '@/components/inbox/AiOrganizeModal';
 import { OrganizeSuggestion, OrganizeResponse } from '@/app/api/ai/organize/route';
 import { resolveReturnPreset } from '@/lib/utils/schedule';
+import { SearchLivePreviewDropdown } from '@/components/inbox/SearchLivePreviewDropdown';
+import {
+  InboxSearchFilters,
+  DEFAULT_SEARCH_FILTERS,
+} from '@/lib/utils/emailFormatters';
 
 export default function InboxPage() {
   const router = useRouter();
@@ -37,23 +43,55 @@ export default function InboxPage() {
   } = useItems();
   const { user, userName, setUserName, signOut, isGuest } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
+  const [isSearchSubmitted, setIsSearchSubmitted] = useState(false);
+  const [isSearchDropdownOpen, setIsSearchDropdownOpen] = useState(false);
+  const [searchFilters, setSearchFilters] = useState<InboxSearchFilters>(DEFAULT_SEARCH_FILTERS);
+  const searchContainerRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
   const [captureOpen, setCaptureOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [isEditingProfileName, setIsEditingProfileName] = useState(false);
   const [nameInput, setNameInput] = useState('');
   const profileDropdownRef = useRef<HTMLDivElement>(null);
 
-  // Close profile dropdown on outside click
+  // Close dropdowns on outside click
   useEffect(() => {
     const handleOutsideClick = (e: MouseEvent) => {
       if (profileDropdownRef.current && !profileDropdownRef.current.contains(e.target as Node)) {
         setProfileMenuOpen(false);
         setIsEditingProfileName(false);
       }
+      if (searchContainerRef.current && !searchContainerRef.current.contains(e.target as Node)) {
+        setIsSearchDropdownOpen(false);
+      }
     };
     window.addEventListener('mousedown', handleOutsideClick);
     return () => window.removeEventListener('mousedown', handleOutsideClick);
   }, []);
+
+  // Global shortcut: Cmd+K / Ctrl+K focuses the search input
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+        if (searchQuery.trim().length > 0) {
+          setIsSearchDropdownOpen(true);
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [searchQuery]);
+
+  const handleClearSearch = () => {
+    setSearchQuery('');
+    setIsSearchSubmitted(false);
+    setIsSearchDropdownOpen(false);
+    setSearchFilters(DEFAULT_SEARCH_FILTERS);
+    searchInputRef.current?.focus();
+  };
 
   const effectiveName = userName || user?.user_metadata?.full_name || user?.user_metadata?.display_name || user?.user_metadata?.name || '';
   const userEmail = user?.email || (isGuest ? 'Guest user' : '');
@@ -197,22 +235,75 @@ export default function InboxPage() {
           </h1>
         </div>
 
-        {/* Center: Bigger, Centered Search Input */}
-        <div className="order-last md:order-none w-full md:flex-1 md:max-w-xl lg:max-w-2xl md:mx-4">
+        {/* Center: Bigger, Centered Search Input with Live Preview Dropdown */}
+        <div
+          ref={searchContainerRef}
+          className="order-last md:order-none w-full md:flex-1 md:max-w-xl lg:max-w-2xl md:mx-4 relative"
+        >
           <div className="relative w-full">
             <Search className="w-4 h-4 text-[#9e9b92] absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
+              ref={searchInputRef}
               type="text"
               data-search-input="true"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => {
+                const val = e.target.value;
+                setSearchQuery(val);
+                setIsSearchSubmitted(false);
+                setIsSearchDropdownOpen(val.trim().length > 0);
+              }}
+              onFocus={() => {
+                if (searchQuery.trim().length > 0 && !isSearchSubmitted) {
+                  setIsSearchDropdownOpen(true);
+                }
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  setIsSearchSubmitted(true);
+                  setIsSearchDropdownOpen(false);
+                } else if (e.key === 'Escape') {
+                  setIsSearchDropdownOpen(false);
+                }
+              }}
               placeholder="Search in inbox..."
-              className="w-full pl-11 pr-14 py-2.5 text-sm bg-white border border-[#e4e0d5] rounded-full text-[#171711] placeholder:text-[#9e9b92] shadow-2xs focus:outline-none focus:border-[#171711] hover:border-[#171711]/40 transition-colors"
+              className="w-full pl-11 pr-16 py-2.5 text-sm bg-white border border-[#e4e0d5] rounded-full text-[#171711] placeholder:text-[#9e9b92] shadow-2xs focus:outline-none focus:border-[#171711] hover:border-[#171711]/40 transition-colors"
             />
-            <kbd className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[10px] font-mono font-bold text-[#8e8d87] bg-[#ebe7dc] px-2 py-0.5 rounded-md">
-              ⌘ K
-            </kbd>
+            {searchQuery.length > 0 ? (
+              <button
+                type="button"
+                onClick={handleClearSearch}
+                title="Clear search"
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 p-1 text-[#9e9b92] hover:text-[#171711] rounded-full hover:bg-[#faf8f5] transition-colors cursor-pointer"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            ) : (
+              <kbd className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[10px] font-mono font-bold text-[#8e8d87] bg-[#ebe7dc] px-2 py-0.5 rounded-md pointer-events-none">
+                ⌘ K
+              </kbd>
+            )}
           </div>
+
+          {/* Live Preview Dropdown when typing */}
+          {isSearchDropdownOpen && searchQuery.trim().length > 0 && (
+            <SearchLivePreviewDropdown
+              searchQuery={searchQuery}
+              items={inboxItems}
+              filters={searchFilters}
+              onUpdateFilters={setSearchFilters}
+              onSelectAllResults={() => {
+                setIsSearchSubmitted(true);
+                setIsSearchDropdownOpen(false);
+                searchInputRef.current?.focus();
+              }}
+              onSelectItem={(item) => {
+                setIsSearchDropdownOpen(false);
+                router.push(`/item/${item.id}`);
+              }}
+            />
+          )}
         </div>
 
         {/* Right: Actions, Settings Icon & User Profile Dropdown */}
@@ -391,6 +482,10 @@ export default function InboxPage() {
           items={inboxItems}
           onOpenCapture={() => setCaptureOpen(true)}
           searchQuery={searchQuery}
+          isSearchSubmitted={isSearchSubmitted}
+          searchFilters={searchFilters}
+          onUpdateFilters={setSearchFilters}
+          onClearSearch={handleClearSearch}
         />
       )}
 
