@@ -263,7 +263,7 @@ export default function HelpPage() {
         throw new Error('Failed to load support tickets');
       }
 
-      const data = await res.json();
+      const data = (await res.json().catch(() => ({}))) as { tickets?: SupportTicket[] };
       if (Array.isArray(data.tickets)) {
         setTickets(data.tickets);
       }
@@ -329,7 +329,7 @@ export default function HelpPage() {
         body: JSON.stringify(payload),
       });
 
-      const result = await res.json().catch(() => ({}));
+      const result = (await res.json().catch(() => ({}))) as { id?: unknown; error?: unknown };
 
       if (!res.ok || typeof result.id !== 'string') {
         throw new Error(
