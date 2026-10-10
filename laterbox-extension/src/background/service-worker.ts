@@ -9,7 +9,7 @@ import {
 } from "../lib/auth";
 import { captureQueue, enrichCapture } from "./capture-service";
 import type { Capture, CaptureResult } from "../types/capture";
-const flushQueue = () => captureQueue.flush();
+const flushQueue = async () => await isLocalMode() ? 0 : captureQueue.flush();
 async function saveCapture(capture: Capture): Promise<CaptureResult> {
   if (!capture || typeof capture !== "object" || (capture.url && !/^https?:\/\//i.test(capture.url)) || (capture.url?.length || 0) > 8192 || (capture.text?.length || 0) > 10000 || new TextEncoder().encode(capture.markdown || "").length > 204800) return { status: "error", reason: "invalid" };
   if (await isLocalMode()) return saveLocalCapture(capture);
@@ -375,10 +375,11 @@ async function handleContextMenu(info: chrome.contextMenus.OnClickData, tab?: ch
 
 // Alarms wake a suspended MV3 worker; page online events provide an immediate retry.
 async function recover() {
+  if (await isLocalMode()) return;
   await resumePendingConnection();
   await flushQueue();
 }
 browser.alarms.onAlarm.addListener(alarm=>{ if(alarm.name==='laterbox-recovery')void recover().catch(()=>{}); });
-browser.tabs.onUpdated.addListener((_id,change)=>{ if(change.status==='complete')void resumePendingConnection().catch(()=>{}); });
+browser.tabs.onUpdated.addListener((_id,change)=>{ if(change.status==='complete')void isLocalMode().then(local => local ? undefined : resumePendingConnection()).catch(()=>{}); });
 void browser.alarms.create('laterbox-recovery',{periodInMinutes:0.5});
-void resumePendingConnection().catch(()=>{});
+void isLocalMode().then(local => local ? undefined : resumePendingConnection()).catch(()=>{});
