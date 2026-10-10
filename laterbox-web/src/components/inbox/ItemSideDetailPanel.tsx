@@ -586,105 +586,107 @@ export function ItemSideDetailPanel({ item, onClose }: ItemSideDetailPanelProps)
           </p>
         </div>
       )}
-      {/* 1. TOP HEADER: Sender Info & Actions on Top Row, Title Underneath */}
-      <div className="shrink-0 p-4 border-b border-[#e4e0d5] bg-white space-y-2.5">
-        {/* Top actions toolbar: sender avatar & domain on left, action icons on right */}
-        <div className="flex items-center justify-between gap-2">
-          {/* Left: Sender Profile Pic, Name, Link Domain & Timestamp */}
-          <div className="flex items-center gap-2.5 min-w-0 text-xs text-[#6c6b63]">
-            <div className="w-6 h-6 rounded-full bg-[#171711] text-[#e6edb0] font-black text-[10px] flex items-center justify-center shrink-0 shadow-2xs">
-              {sender.slice(0, 2).toUpperCase()}
+      {/* 2. SCROLLABLE CONTENT BODY & THREAD STREAM (UNIFIED VIEW WITH SCROLLING HEADER) */}
+      <div className="flex-1 overflow-y-auto bg-[#faf8f5]/40 select-text">
+        {/* 1. TOP HEADER: Sender Info & Actions on Top Row, Title Underneath (No bottom border, scrolls with content) */}
+        <div className="p-4 sm:p-5 bg-white space-y-2.5">
+          {/* Top actions toolbar: sender avatar & domain on left, action icons on right */}
+          <div className="flex items-center justify-between gap-2">
+            {/* Left: Sender Profile Pic, Name, Link Domain & Timestamp */}
+            <div className="flex items-center gap-2.5 min-w-0 text-xs text-[#6c6b63]">
+              <div className="w-6 h-6 rounded-full bg-[#171711] text-[#e6edb0] font-black text-[10px] flex items-center justify-center shrink-0 shadow-2xs">
+                {sender.slice(0, 2).toUpperCase()}
+              </div>
+              <div className="min-w-0 flex items-center gap-1.5 truncate">
+                <span className="font-bold text-[#171711] truncate">{sender}</span>
+                {item.metadata?.domain && (
+                  <span className="text-[#8e8d87] truncate">
+                    • {item.metadata.domain}
+                  </span>
+                )}
+              </div>
+              <span className="shrink-0 text-[11px] text-[#8e8d87] font-medium hidden sm:inline">
+                {formatEmailDate(item.created_at)}
+              </span>
             </div>
-            <div className="min-w-0 flex items-center gap-1.5 truncate">
-              <span className="font-bold text-[#171711] truncate">{sender}</span>
-              {item.metadata?.domain && (
-                <span className="text-[#8e8d87] truncate">
-                  • {item.metadata.domain}
-                </span>
-              )}
+
+            {/* Right: Quick Action Buttons */}
+            <div className="flex items-center gap-1 text-[#6c6b63] shrink-0">
+              {/* Open in full page button */}
+              <Link
+                href={`/item/${item.id}`}
+                title="Open in full"
+                className="p-1.5 rounded-lg hover:bg-[#faf8f5] text-[#6c6b63] hover:text-[#171711] transition-colors cursor-pointer"
+              >
+                <ExternalLink className="w-4 h-4" />
+              </Link>
+
+              {/* Star button */}
+              <button
+                type="button"
+                onClick={() => setFavorite(item.id, !isStarred)}
+                title={isStarred ? 'Unstar' : 'Star'}
+                className="p-1.5 rounded-lg hover:bg-[#faf8f5] hover:text-amber-500 transition-colors cursor-pointer"
+              >
+                <Star
+                  className={`w-4 h-4 ${
+                    isStarred ? 'fill-amber-400 text-amber-400' : ''
+                  }`}
+                />
+              </button>
+
+              {/* Archive button */}
+              <button
+                type="button"
+                onClick={() => {
+                  archiveItem(item.id);
+                  onClose();
+                }}
+                title="Archive"
+                className="p-1.5 rounded-lg hover:bg-[#faf8f5] hover:text-[#171711] transition-colors cursor-pointer"
+              >
+                <Archive className="w-4 h-4" />
+              </button>
+
+              {/* Delete button */}
+              <button
+                type="button"
+                onClick={() => {
+                  deleteItem(item.id);
+                  onClose();
+                }}
+                title="Delete"
+                className="p-1.5 rounded-lg hover:bg-rose-50 hover:text-rose-600 transition-colors cursor-pointer"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+
+              <div className="h-4 w-px bg-[#e4e0d5] mx-1" />
+
+              {/* Close side split button */}
+              <button
+                type="button"
+                onClick={onClose}
+                title="Close details (Esc)"
+                className="p-1.5 rounded-lg hover:bg-[#faf8f5] text-[#6c6b63] hover:text-[#171711] transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
             </div>
-            <span className="shrink-0 text-[11px] text-[#8e8d87] font-medium hidden sm:inline">
-              {formatEmailDate(item.created_at)}
-            </span>
           </div>
 
-          {/* Right: Quick Action Buttons */}
-          <div className="flex items-center gap-1 text-[#6c6b63] shrink-0">
-            {/* Open in full page button */}
-            <Link
-              href={`/item/${item.id}`}
-              title="Open in full"
-              className="p-1.5 rounded-lg hover:bg-[#faf8f5] text-[#6c6b63] hover:text-[#171711] transition-colors cursor-pointer"
-            >
-              <ExternalLink className="w-4 h-4" />
-            </Link>
-
-            {/* Star button */}
-            <button
-              type="button"
-              onClick={() => setFavorite(item.id, !isStarred)}
-              title={isStarred ? 'Unstar' : 'Star'}
-              className="p-1.5 rounded-lg hover:bg-[#faf8f5] hover:text-amber-500 transition-colors cursor-pointer"
-            >
-              <Star
-                className={`w-4 h-4 ${
-                  isStarred ? 'fill-amber-400 text-amber-400' : ''
-                }`}
-              />
-            </button>
-
-            {/* Archive button */}
-            <button
-              type="button"
-              onClick={() => {
-                archiveItem(item.id);
-                onClose();
-              }}
-              title="Archive"
-              className="p-1.5 rounded-lg hover:bg-[#faf8f5] hover:text-[#171711] transition-colors cursor-pointer"
-            >
-              <Archive className="w-4 h-4" />
-            </button>
-
-            {/* Delete button */}
-            <button
-              type="button"
-              onClick={() => {
-                deleteItem(item.id);
-                onClose();
-              }}
-              title="Delete"
-              className="p-1.5 rounded-lg hover:bg-rose-50 hover:text-rose-600 transition-colors cursor-pointer"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
-
-            <div className="h-4 w-px bg-[#e4e0d5] mx-1" />
-
-            {/* Close side split button */}
-            <button
-              type="button"
-              onClick={onClose}
-              title="Close details (Esc)"
-              className="p-1.5 rounded-lg hover:bg-[#faf8f5] text-[#6c6b63] hover:text-[#171711] transition-colors cursor-pointer"
-            >
-              <X className="w-4 h-4" />
-            </button>
+          {/* Item Title directly underneath */}
+          <div>
+            <h2 className="text-base sm:text-lg font-black text-[#171711] tracking-tight line-clamp-2 leading-snug">
+              {title}
+            </h2>
           </div>
         </div>
 
-        {/* Item Title directly underneath */}
-        <div>
-          <h2 className="text-base sm:text-lg font-black text-[#171711] tracking-tight line-clamp-2 leading-snug">
-            {title}
-          </h2>
-        </div>
-      </div>
-
-      {/* 2. SCROLLABLE CONTENT BODY & THREAD STREAM (UNIFIED VIEW) */}
-      <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 bg-[#faf8f5]/40 select-text">
-        {/* Main Saved Content Card (Root of stream with reply and reaction support) */}
-        <div className="bg-white border border-[#e4e0d5] rounded-2xl p-4 shadow-2xs space-y-3 group transition-all">
+        {/* Content Stream Cards */}
+        <div className="p-4 sm:p-5 space-y-4">
+          {/* Main Saved Content Card (Root of stream with reply and reaction support) */}
+          <div className="bg-white border border-[#e4e0d5] rounded-2xl p-4 shadow-2xs space-y-3 group transition-all">
           {/* Card header: Sender info and Reply/Attach button */}
           <div className="flex items-center justify-between text-xs text-[#6c6b63]">
             <div className="flex items-center gap-2 min-w-0">
@@ -1103,6 +1105,8 @@ export function ItemSideDetailPanel({ item, onClose }: ItemSideDetailPanelProps)
             })}
           </div>
         )}
+
+        </div>
 
         <div ref={threadBottomRef} />
       </div>
