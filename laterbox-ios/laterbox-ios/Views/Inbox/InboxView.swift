@@ -23,6 +23,7 @@ public struct InboxView: View {
     @State private var showingPlans: Bool = false
     @State private var showingSettings: Bool = false
     @State private var showingQuickCapture: Bool = false
+    @State private var showingEmptyTrashConfirm: Bool = false
 
     // Search Interaction States
     @State private var isSearchActive: Bool = false
@@ -450,7 +451,9 @@ public struct InboxView: View {
                                                         onToggleFavorite: { coordinator.toggleFavorite(item: item, context: modelContext) },
                                                         onMarkDone: { coordinator.markDone(item: item, context: modelContext) },
                                                         onSchedule: { date in coordinator.scheduleItem(item: item, date: date, context: modelContext) },
-                                                        onDelete: { coordinator.deleteItem(item: item, context: modelContext) }
+                                                        onDelete: { coordinator.deleteItem(item: item, context: modelContext) },
+                                                        onDeletePermanently: { deletePermanently(item: item) },
+                                                        onRestore: { restoreItem(item: item) }
                                                     )
                                                 }
                                                 .buttonStyle(.plain)
@@ -488,6 +491,24 @@ public struct InboxView: View {
                                 }
 
                                 Spacer()
+
+                                if selectedMailbox == .trash && !rawInboxItems.isEmpty {
+                                    Button(role: .destructive) {
+                                        showingEmptyTrashConfirm = true
+                                    } label: {
+                                        HStack(spacing: 4) {
+                                            Image(systemName: "trash")
+                                                .font(.system(size: 11, weight: .bold))
+                                            Text("Delete All")
+                                                .font(.system(size: 11, weight: .bold))
+                                        }
+                                        .foregroundColor(Color.red)
+                                        .padding(.horizontal, 9)
+                                        .padding(.vertical, 4)
+                                        .background(Color.red.opacity(0.12), in: Capsule())
+                                    }
+                                    .buttonStyle(.plain)
+                                }
                             }
                             .padding(.horizontal, 18)
                             .padding(.top, 14)
@@ -532,7 +553,9 @@ public struct InboxView: View {
                                                 onToggleFavorite: { coordinator.toggleFavorite(item: item, context: modelContext) },
                                                 onMarkDone: { coordinator.markDone(item: item, context: modelContext) },
                                                 onSchedule: { date in coordinator.scheduleItem(item: item, date: date, context: modelContext) },
-                                                onDelete: { coordinator.deleteItem(item: item, context: modelContext) }
+                                                onDelete: { coordinator.deleteItem(item: item, context: modelContext) },
+                                                onDeletePermanently: { deletePermanently(item: item) },
+                                                onRestore: { restoreItem(item: item) }
                                             )
                                         }
                                         .buttonStyle(.plain)
@@ -546,7 +569,7 @@ public struct InboxView: View {
                 }
                 .trackPullDownForLaterAI()
 
-                // Slide-in Left Drawer Overlay
+                // Dimming backdrop
                 if showingSidebar {
                     Color.black.opacity(0.35)
                         .ignoresSafeArea()
@@ -556,46 +579,73 @@ public struct InboxView: View {
                                 showingSidebar = false
                             }
                         }
-
-                    HStack(spacing: 0) {
-                        MobileSidebarDrawer(
-                            isPresented: $showingSidebar,
-                            activeMailbox: selectedMailbox,
-                            activeCollection: selectedCollection,
-                            onSelectMailbox: { mailbox in
-                                selectedMailbox = mailbox
-                                selectedCollection = nil
-                            },
-                            onSelectCollection: { colName in
-                                selectedCollection = colName
-                            },
-                            onOpenReturns: { segment in
-                                returnsInitialSegment = segment
-                                showingReturns = true
-                            },
-                            onOpenLibrary: {
-                                showingLibrary = true
-                            },
-                            onOpenPlans: {
-                                showingPlans = true
-                            },
-                            onOpenSettings: {
-                                showingSettings = true
-                            },
-                            onOpenSaveItem: {
-                                showingQuickCapture = true
-                            }
-                        )
-                        .frame(width: min(UIScreen.main.bounds.width * 0.82, 310))
-                        .transition(.move(edge: .leading))
-
-                        Spacer()
-                    }
-                    .ignoresSafeArea()
-                    .zIndex(100)
+                        .zIndex(90)
                 }
+
+                // Slide-in Left Drawer (physical horizontal slide in/out from left without fade)
+                let drawerWidth = min(UIScreen.main.bounds.width * 0.82, 310)
+                HStack(spacing: 0) {
+                    MobileSidebarDrawer(
+                        isPresented: $showingSidebar,
+                        activeMailbox: selectedMailbox,
+                        activeCollection: selectedCollection,
+                        onSelectMailbox: { mailbox in
+                            selectedMailbox = mailbox
+                            selectedCollection = nil
+                        },
+                        onSelectCollection: { colName in
+                            selectedCollection = colName
+                        },
+                        onOpenReturns: { segment in
+                            returnsInitialSegment = segment
+                            showingReturns = true
+                        },
+                        onOpenLibrary: {
+                            showingLibrary = true
+                        },
+                        onOpenPlans: {
+                            showingPlans = true
+                        },
+                        onOpenSettings: {
+                            showingSettings = true
+                        },
+                        onOpenSaveItem: {
+                            showingQuickCapture = true
+                        }
+                    )
+                    .frame(width: drawerWidth)
+
+                    Spacer()
+                }
+                .ignoresSafeArea()
+                .offset(x: showingSidebar ? 0 : -drawerWidth - 30)
+                .animation(.spring(response: 0.32, dampingFraction: 0.85), value: showingSidebar)
+                .allowsHitTesting(showingSidebar)
+                .gesture(
+                    DragGesture()
+                        .onEnded { value in
+                            if value.translation.width < -40 {
+                                withAnimation(.spring(response: 0.32, dampingFraction: 0.85)) {
+                                    showingSidebar = false
+                                }
+                            }
+                        }
+                )
+                .zIndex(100)
             }
             .navigationBarHidden(true)
+            .confirmationDialog(
+                "Delete All Items?",
+                isPresented: $showingEmptyTrashConfirm,
+                titleVisibility: .visible
+            ) {
+                Button("Delete All Permanently", role: .destructive) {
+                    emptyTrashPermanently()
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("This action cannot be undone. All items in the trash will be permanently erased.")
+            }
             .sheet(isPresented: $showingOrganizer) {
                 AIOrganizerSheet()
             }
@@ -615,5 +665,30 @@ public struct InboxView: View {
                 QuickCaptureSheet()
             }
         }
+    }
+
+    // MARK: - Permanent Delete & Restore Actions
+
+    private func deletePermanently(item: LBItem) {
+        modelContext.delete(item)
+        try? modelContext.save()
+        LBHaptic.notification(.warning)
+    }
+
+    private func restoreItem(item: LBItem) {
+        item.status = ItemStatus.inbox.rawValue
+        item.deletedAt = nil
+        item.isSyncPending = true
+        try? modelContext.save()
+        LBHaptic.notification(.success)
+    }
+
+    private func emptyTrashPermanently() {
+        let itemsToDelete = rawInboxItems
+        for item in itemsToDelete {
+            modelContext.delete(item)
+        }
+        try? modelContext.save()
+        LBHaptic.notification(.warning)
     }
 }
