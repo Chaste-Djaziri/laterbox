@@ -314,10 +314,10 @@ export function ScheduleDashboard({ view }: { view?: ScheduleView }) {
         </div>
 
         {/* View Header */}
-        {view === 'today' ? (
+        {view === 'today' || view === 'upcoming' ? (
           <div className="pt-1">
-            <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-[#171711]">
-              Today
+            <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-[#171711] capitalize">
+              {view}
             </h1>
           </div>
         ) : (
