@@ -22,6 +22,7 @@ import {
   Lock,
   Activity,
 } from 'lucide-react';
+import { APP_ORIGIN } from '@/lib/auth/config';
 import { APP_VERSION } from '@/lib/version';
 
 export function Footer() {
@@ -157,7 +158,7 @@ export function Footer() {
             <ul className="space-y-2.5">
               <li>
                 <Link
-                  href="/inbox"
+                  href={`${APP_ORIGIN}/inbox?guest=1`}
                   className="hover:text-[#171711] transition-colors flex items-center gap-1.5"
                 >
                   <span>Launch Web App</span>
@@ -200,7 +201,7 @@ export function Footer() {
               </li>
               <li>
                 <Link
-                  href="/inbox"
+                  href={`${APP_ORIGIN}/inbox?guest=1`}
                   className="hover:text-[#171711] transition-colors"
                 >
                   Guest Sandbox
