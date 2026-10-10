@@ -9,6 +9,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 ## [Unreleased]
 
 ### Changed
+- **[Web] Remove All Items tab and legacy library page**: Removed the redundant "All Items" tab from the sidebar and deleted the `/library` page in favor of the dedicated mailbox views (Inbox, Starred, Kept, Archived, Recently Deleted, and Collections).
 - **[Web] Recently Deleted tab with email table view and empty trash option**: Added a Recently Deleted navigation tab in the sidebar under Archived, featuring live count badges, a dedicated `/trash` route, restore and delete forever actions, and a top action banner with an Empty Trash Now button to permanently delete all trash items.
 - **[Web] Archived tab in sidebar and email table view**: Added an Archived navigation tab in the sidebar under Kept for archived items, featuring live item count badges, a dedicated `/archived` route, and the unified email inbox table dashboard view.
 - **[Web] Kept tab in sidebar and email table view**: Added a Kept navigation tab directly under Starred in the sidebar for saved/kept items, complete with live item count badges, a dedicated `/kept` route, and the unified email inbox table dashboard view.
