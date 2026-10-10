@@ -587,9 +587,9 @@ export function ItemSideDetailPanel({ item, onClose }: ItemSideDetailPanelProps)
         </div>
       )}
       {/* 2. SCROLLABLE CONTENT BODY & THREAD STREAM (UNIFIED VIEW WITH SCROLLING HEADER) */}
-      <div className="flex-1 overflow-y-auto bg-[#faf8f5]/40 select-text">
+      <div className="flex-1 overflow-y-auto bg-white select-text">
         {/* 1. TOP HEADER: Sender Info & Actions on Top Row, Title Underneath (No bottom border, scrolls with content) */}
-        <div className="p-4 sm:p-5 bg-white space-y-2.5">
+        <div className="px-4 sm:px-5 pt-4 sm:pt-5 pb-2 bg-white space-y-2.5">
           {/* Top actions toolbar: sender avatar & domain on left, action icons on right */}
           <div className="flex items-center justify-between gap-2">
             {/* Left: Sender Profile Pic, Name, Link Domain & Timestamp */}
@@ -684,7 +684,7 @@ export function ItemSideDetailPanel({ item, onClose }: ItemSideDetailPanelProps)
         </div>
 
         {/* Content Stream Cards */}
-        <div className="p-4 sm:p-5 space-y-4">
+        <div className="px-4 sm:px-5 pt-2 pb-6 space-y-4">
           {/* Main Saved Content Card (Root of stream with reply and reaction support) */}
           <div className="bg-white border border-[#e4e0d5] rounded-2xl p-4 shadow-2xs space-y-3 group transition-all">
           {/* Card header: Sender info and Reply/Attach button */}
