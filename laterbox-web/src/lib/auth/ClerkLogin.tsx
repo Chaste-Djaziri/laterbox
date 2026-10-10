@@ -6,7 +6,7 @@ import { safeReturnPath } from './config';
 
 export function ClerkLogin({ legacy }: { legacy: React.ReactNode }) {
   const params = useSearchParams();
-  const { user, loading, authError, retryAuth } = useAuth();
+  const { user, loading, authError, retryAuth, continueAsGuest } = useAuth();
   const { isSignedIn } = useClerkAuth();
   const next = safeReturnPath(params.get('next'));
   if (params.get('legacy') === '1') return <><div className="p-4 text-center"><a href={`/login?next=${encodeURIComponent(next)}`}>Back to Clerk login</a></div>{legacy}</>;
@@ -16,6 +16,6 @@ export function ClerkLogin({ legacy }: { legacy: React.ReactNode }) {
       <SignIn routing="hash" signUpUrl={`/login?mode=signup&next=${encodeURIComponent(next)}`} fallbackRedirectUrl={next} />}
     {authError && !isSignedIn && <p role="alert">{authError}</p>}
     <a className="text-sm underline" href={`/login?legacy=1&next=${encodeURIComponent(next)}`}>Use existing Supabase account login</a>
-    <a className="text-sm underline" href="/inbox?guest=1">Continue as guest</a>
+    <a className="text-sm underline" href="/inbox?guest=1" onClick={continueAsGuest}>Continue as guest</a>
   </main>;
 }
