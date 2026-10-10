@@ -5,6 +5,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 ## [Unreleased]
 
 ### Changed
+- **[Web] Cleaner Save Item button**: Remove the keyboard shortcut badge from the sidebar Save Item button and center its label.
 - **[Web] Bigger Save Item button**: Make the sidebar Save Item button much larger and more prominent.
 - **[Web] No extension setup flash**: Keep the Inbox extension setup overlay hidden while the connection check runs, so connected users never see it flicker on load.
 - **[Web] Cached extension check**: Remember a successful Inbox extension connection for the current sign-in session instead of re-checking on every visit; the cached result is cleared on sign-out, when the browser session closes, or when a new session starts.
