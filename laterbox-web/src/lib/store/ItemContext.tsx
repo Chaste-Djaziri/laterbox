@@ -1,3 +1,4 @@
+import { importLocalCaptures } from '../extension/local-import';
 'use client';
 
 import React, { createContext, useContext, useEffect, useState, useMemo, useCallback, ReactNode } from 'react';
@@ -125,6 +126,27 @@ export function ItemProvider({ children }: { children: ReactNode }) {
     }
   }, [user?.id]);
 
+  useEffect(() => {
+    if (user || window.location.origin !== 'http://localhost:8080') return;
+    let disposed = false;
+    let running = false;
+    const importCaptures = async () => {
+      if (running || disposed) return;
+      running = true;
+      try {
+        if (await importLocalCaptures() && !disposed) loadLocalData();
+      } catch (error) {
+        // Unavailable extension is normal; storage/import failures retain the extension outbox.
+        console.warn('[local library]', error);
+      } finally { running = false; }
+    };
+    void importCaptures();
+    const timer = setInterval(() => void importCaptures(), 3000);
+    const refresh = () => { if (!disposed) loadLocalData(); };
+    window.addEventListener('storage', refresh);
+    return () => { disposed = true; clearInterval(timer); window.removeEventListener('storage', refresh); };
+  }, [user, loadLocalData]);
+
   // Migrate guest items to authenticated user on login and upload to Supabase
   const migrateGuestItems = useCallback(async (userId: string) => {
     try {
@@ -132,7 +154,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
       if (!guestStored) return;
       const guestItems = JSON.parse(guestStored) as LaterBoxItem[];
       // Filter out demo items
-      const userItems = guestItems.filter((i) => !i.id.startsWith('guest-item-'));
+      const userItems = guestItems.filter((i) => !i.id.startsWith('guest-item-') && i.content?.user_id !== '');
       if (userItems.length === 0) return;
 
       const supabase = getSupabaseClient();
@@ -163,7 +185,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
         }
       }
       // Reset guest storage once migrated
-      localStorage.setItem(`${LOCAL_ITEMS_KEY}_guest`, JSON.stringify([]));
+      localStorage.setItem(`${LOCAL_ITEMS_KEY}_guest`, JSON.stringify(guestItems.filter(i => i.content?.user_id === '')));
     } catch (err) {
       console.warn('[ItemContext] Error migrating guest items:', err);
     }
