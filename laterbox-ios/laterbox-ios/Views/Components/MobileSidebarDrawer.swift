@@ -10,6 +10,9 @@ import SwiftData
 
 public enum MailboxViewType: String, CaseIterable, Identifiable {
     case inbox = "Inbox"
+    case today = "Today"
+    case scheduled = "Scheduled"
+    case someday = "Someday"
     case starred = "Starred"
     case kept = "Kept"
     case archived = "Archived"
@@ -20,6 +23,9 @@ public enum MailboxViewType: String, CaseIterable, Identifiable {
     public var systemIcon: String {
         switch self {
         case .inbox: return "tray.fill"
+        case .today: return "clock.fill"
+        case .scheduled: return "calendar"
+        case .someday: return "calendar.badge.clock"
         case .starred: return "star.fill"
         case .kept: return "checkmark.circle.fill"
         case .archived: return "archivebox.fill"
@@ -231,6 +237,36 @@ public struct MobileSidebarDrawer: View {
             }
 
             navLinkRow(
+                title: "Today",
+                systemIcon: "clock.fill",
+                badgeCount: todayCount,
+                isActive: activeMailbox == .today && activeCollection == nil
+            ) {
+                close()
+                onSelectMailbox(.today)
+            }
+
+            navLinkRow(
+                title: "Scheduled",
+                systemIcon: "calendar",
+                badgeCount: upcomingCount,
+                isActive: activeMailbox == .scheduled && activeCollection == nil
+            ) {
+                close()
+                onSelectMailbox(.scheduled)
+            }
+
+            navLinkRow(
+                title: "Someday",
+                systemIcon: "calendar.badge.clock",
+                badgeCount: somedayCount,
+                isActive: activeMailbox == .someday && activeCollection == nil
+            ) {
+                close()
+                onSelectMailbox(.someday)
+            }
+
+            navLinkRow(
                 title: "Starred",
                 systemIcon: "star.fill",
                 badgeCount: starredCount,
@@ -269,36 +305,6 @@ public struct MobileSidebarDrawer: View {
             ) {
                 close()
                 onSelectMailbox(.trash)
-            }
-
-            navLinkRow(
-                title: "Today",
-                systemIcon: "clock.fill",
-                badgeCount: todayCount,
-                isActive: false
-            ) {
-                close()
-                onOpenReturns(.today)
-            }
-
-            navLinkRow(
-                title: "Upcoming",
-                systemIcon: "calendar",
-                badgeCount: upcomingCount,
-                isActive: false
-            ) {
-                close()
-                onOpenReturns(.upcoming)
-            }
-
-            navLinkRow(
-                title: "Someday",
-                systemIcon: "calendar.badge.clock",
-                badgeCount: somedayCount,
-                isActive: false
-            ) {
-                close()
-                onOpenReturns(.someday)
             }
         }
         .padding(.horizontal, 10)
@@ -422,11 +428,11 @@ public struct MobileSidebarDrawer: View {
                 navLinkRow(
                     title: "Returns Schedule",
                     systemIcon: "calendar",
-                    badgeCount: 0,
-                    isActive: false
+                    badgeCount: todayCount + upcomingCount,
+                    isActive: (activeMailbox == .today || activeMailbox == .scheduled) && activeCollection == nil
                 ) {
                     close()
-                    onOpenReturns(.today)
+                    onSelectMailbox(.today)
                 }
 
                 navLinkRow(
