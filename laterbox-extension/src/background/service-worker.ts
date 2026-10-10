@@ -4,7 +4,6 @@ import {
   connectLaterBoxViaTab,
   openPendingApprovalTab,
   resumePendingConnection,
-  checkProEntitlement,
   getConnectedUserId,
   getAccessToken,
 } from "../lib/auth";
@@ -377,7 +376,6 @@ async function handleContextMenu(info: chrome.contextMenus.OnClickData, tab?: ch
 // Alarms wake a suspended MV3 worker; page online events provide an immediate retry.
 async function recover() {
   await resumePendingConnection();
-  await checkProEntitlement();
   await flushQueue();
 }
 browser.alarms.onAlarm.addListener(alarm=>{ if(alarm.name==='laterbox-recovery')void recover().catch(()=>{}); });
