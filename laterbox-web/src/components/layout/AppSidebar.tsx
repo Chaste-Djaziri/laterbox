@@ -5,7 +5,6 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { useItems } from '@/lib/store/ItemContext';
-import { useAuth } from '@/lib/store/AuthContext';
 import { useBilling } from '@/lib/store/BillingContext';
 import { presentEntitlement } from '@/lib/billing/types';
 import { scheduleItems } from '@/lib/utils/schedule';
@@ -18,9 +17,6 @@ import {
   Plus,
   Compass,
   Download,
-  LogIn,
-  LogOut,
-  User,
   ChevronRight,
   Crown,
   Archive,
@@ -41,7 +37,6 @@ export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { inboxItems, starredItems, savedItems, archivedItems, deletedItems, items, collections, createCollection } = useItems();
-  const { user, userName, isGuest, signOut } = useAuth();
   const { entitlement, isPro, manage } = useBilling();
   const [collapsed, setCollapsed] = useState(false);
   const [now, setNow] = useState(() => new Date());
@@ -218,12 +213,12 @@ export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
 
   return (
     <aside
-      className={`h-screen overflow-y-auto bg-transparent flex flex-col justify-between p-3.5 shrink-0 transition-all duration-200 ${
+      className={`h-screen overflow-hidden bg-transparent flex flex-col p-3.5 shrink-0 transition-all duration-200 ${
         collapsed ? 'w-[76px]' : 'w-64'
       }`}
     >
-      {/* Top Section */}
-      <div>
+      {/* Scrollable Navigation Section */}
+      <div className="flex-1 overflow-y-auto min-h-0 space-y-4 pr-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {/* Brand Header */}
         <div className={`flex items-center ${collapsed ? 'justify-center px-0' : 'justify-start px-1.5'} pt-1.5 pb-7`}>
           <Link href="/" className={`flex items-center ${collapsed ? 'justify-center' : 'gap-3'} group`}>
@@ -417,9 +412,9 @@ export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
         </div>
       </div>
 
-      {/* Bottom Profile / Cloud Sync Section */}
-      <div className="pt-3 border-t border-[#e4e0d5] space-y-2.5">
-        {/* Free Plan Card */}
+      {/* Bottom Sticky Section */}
+      <div className="shrink-0 pt-3 border-t border-[#e4e0d5] space-y-2 mt-auto">
+        {/* Free / Pro Plan Card */}
         <Link
           href="/plans"
           className="block p-3 rounded-2xl bg-white border border-[#e4e0d5] hover:border-[#171711]/40 transition-all shadow-2xs group"
@@ -443,70 +438,10 @@ export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
           )}
         </Link>
 
-        {/* Sync Indicator (Pro Mode) */}
-        {isPro && (
-          <div className={collapsed ? "flex items-center justify-center" : "w-full"}>
-            <CloudSyncIndicator compact={collapsed} fullWidth={!collapsed} />
-          </div>
-        )}
-
-        {/* User / Guest Account Row */}
-        {user ? (
-          <div className="flex items-center justify-between p-2 rounded-xl bg-white border border-[#e4e0d5] shadow-2xs">
-            <div className="flex items-center gap-2 min-w-0">
-              <div className="w-7 h-7 rounded-full bg-[#171711] flex items-center justify-center text-white shrink-0 font-bold text-xs">
-                {userName ? userName[0].toUpperCase() : user.email?.[0].toUpperCase() || <User className="w-3.5 h-3.5" />}
-              </div>
-              {!collapsed && (
-                <div className="min-w-0">
-                  <p className="text-xs font-bold text-[#171711] truncate">
-                    {userName || user.email}
-                  </p>
-                  <p className="text-[10px] text-[#8e8d87] font-medium truncate">
-                    {userName ? user.email : 'Account'}
-                  </p>
-                </div>
-              )}
-            </div>
-            {!collapsed && (
-              <button
-                type="button"
-                onClick={() => signOut()}
-                title="Sign Out"
-                className="p-1 rounded-lg text-[#9e9b92] hover:text-[#171711] transition-colors cursor-pointer"
-              >
-                <LogOut className="w-3.5 h-3.5" />
-              </button>
-            )}
-          </div>
-        ) : (
-          <div className="flex items-center justify-between p-2 rounded-xl bg-white border border-[#e4e0d5] shadow-2xs">
-            <div className="flex items-center gap-2 min-w-0">
-              <div className="w-7 h-7 rounded-full bg-[#171711] flex items-center justify-center text-white shrink-0 font-bold text-xs">
-                {userName ? userName[0].toUpperCase() : 'G'}
-              </div>
-              {!collapsed && (
-                <div className="min-w-0">
-                  <p className="text-xs font-bold text-[#171711] truncate">
-                    {userName || 'Guest Mode'}
-                  </p>
-                  <p className="text-[10px] text-[#8e8d87] font-medium truncate">
-                    {userName ? 'Guest • Local storage' : 'Local storage only'}
-                  </p>
-                </div>
-              )}
-            </div>
-            {!collapsed && (
-              <Link
-                href="/settings"
-                className="p-1 rounded-lg text-[#9e9b92] hover:text-[#171711] transition-colors"
-                title="Settings"
-              >
-                <Settings className="w-3.5 h-3.5" />
-              </Link>
-            )}
-          </div>
-        )}
+        {/* Sync / Offline Indicator */}
+        <div className={collapsed ? "flex items-center justify-center" : "w-full"}>
+          <CloudSyncIndicator compact={collapsed} fullWidth={!collapsed} />
+        </div>
       </div>
     </aside>
   );

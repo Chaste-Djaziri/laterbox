@@ -19,11 +19,18 @@ export function CloudSyncIndicator({
   const { user, isGuest } = useAuth();
   const { isPro } = useBilling();
 
-  if (isGuest || !user || !isPro) {
-    return null;
-  }
-
   const getStatusDetails = () => {
+    if (isGuest || !user || !isPro) {
+      return {
+        icon: <CloudOff className="w-3.5 h-3.5 text-[#8e8d87]" />,
+        label: 'Offline (local)',
+        tooltip: isGuest
+          ? 'Guest mode — items stored locally in browser storage.'
+          : 'Free plan — items stored locally on this device. Upgrade to Pro for cloud sync.',
+        color: 'bg-white border border-[#e4e0d5] text-[#6c6b63]',
+      };
+    }
+
     switch (syncStatus) {
       case 'syncing':
         return {
