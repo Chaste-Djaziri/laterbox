@@ -9,6 +9,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 ## [Unreleased]
 
 ### Changed
+- **[iOS] Slide-in left sidebar drawer matching web contents and design**: Replaced the bottom slide-up sheet with a smooth slide-in left drawer matching the web sidebar's exact look and structure (brand header, Save Item capture button, core mailboxes with live counts, Collections manager, Activity links, Plan card, and sync indicator), routing directly to in-app mailbox views, Returns, Library, Plans, and Settings.
 - **[iOS] Remove plus icon in details view and show video cover artwork in YouTube cards**: Removed extraneous plus buttons from the item details view and bottom chat prompt bar for a streamlined design, and added automatic video cover artwork thumbnail loading for YouTube cards across the inbox email list and in-app player poster.
 - **[iOS] Full-page item details with web actions, media playback, and follow-ups chat UI**: Redesigned item opening into an immersive full-page view matching the web app's layout, featuring top header actions (Star, Done/Return, Reader, Safari, Share, Collection, Delete), native media embed players, OpenGraph previews, and an interactive Follow-ups & Notes timeline stream with a bottom chat prompt bar compatible with the web thread schema.
 - **[Auth] Revert to Supabase Auth**: Reverted to Supabase authentication exclusively across the entire application, eliminating Clerk login providers, middleware, and dependencies.
