@@ -58,7 +58,7 @@ function formatEmailDate(dateStr: string): string {
 }
 
 function getEmailSender(item: LaterBoxItem): string {
-  if (item.metadata?.author?.trim()) return item.metadata.author.trim();
+  if (item.content?.author?.trim()) return item.content.author.trim();
   if (item.metadata?.site_name?.trim()) return item.metadata.site_name.trim();
   if (item.metadata?.domain?.trim()) return item.metadata.domain.trim();
   if (item.url) {
@@ -258,8 +258,8 @@ export function EmailInboxTable({ items, onOpenCapture, searchQuery = '' }: Emai
     const next = new Set<string>();
     pagedItems.forEach((i) => {
       if (type === 'all') next.add(i.id);
-      if (type === 'starred' && i.is_favorite) next.add(i.id);
-      if (type === 'unstarred' && !i.is_favorite) next.add(i.id);
+      if (type === 'starred' && i.favorite) next.add(i.id);
+      if (type === 'unstarred' && !i.favorite) next.add(i.id);
     });
     setSelectedIds(next);
   };
@@ -648,7 +648,7 @@ export function EmailInboxTable({ items, onOpenCapture, searchQuery = '' }: Emai
         <div className="divide-y divide-[#f0ede4]">
           {pagedItems.map((item) => {
             const isSelected = selectedIds.has(item.id);
-            const isStarred = Boolean(item.is_favorite);
+            const isStarred = Boolean(item.favorite);
             const sender = getEmailSender(item);
             const title =
               item.metadata?.title ||
