@@ -12,6 +12,7 @@ export async function POST(request: Request) {
   const legacy = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://ltjisrgldssqskcylcbj.supabase.co',process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_Rc4e_ik2LE4SR0UrfX-OEQ_5Mu_lw9p', { auth: { persistSession: false } });
   const { data: { user }, error } = await legacy.auth.getUser(token);
   if (error || !user) return Response.json({ error: 'Your existing session has expired.' },{ status: 401, headers });
+  if (user.factors?.some(factor => factor.status === 'verified')) return Response.json({ error: 'Your account uses MFA. Complete a reviewed MFA migration before linking.' },{ status: 409, headers });
   if (!user.email || !user.email_confirmed_at) return Response.json({ error: 'Verify your existing email before migrating.' },{ status: 409, headers });
   try {
     const admin = getBillingAdminClient();
@@ -40,6 +41,9 @@ export async function POST(request: Request) {
         }
       }
     }
+    const target = await clerk.users.getUser(subject);
+    if (target.banned || target.locked) throw new IdentityConflict('This Clerk account is unavailable.');
+    if (!proof && target.twoFactorEnabled) throw new IdentityConflict('Sign in with Clerk to complete your second factor, then link your existing account.');
     await linkClerk(user.id,subject);
     if (proof) return Response.json({ linked: true },{ headers });
     const ticket = await clerk.signInTokens.createSignInToken({ userId: subject, expiresInSeconds: 60 });
