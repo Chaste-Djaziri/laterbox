@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { getAccessToken } from '@/lib/auth/tokens';
 import { useAuth } from '@/lib/store/AuthContext';
 
 export function SupportForm() {
@@ -19,8 +20,9 @@ export function SupportForm() {
     if (busy) return;
     setBusy(true); setError('');
     try {
+      const token = await getAccessToken();
       const response = await fetch('/api/support', {
-        method: 'POST', headers: { 'Content-Type': 'application/json', ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}) },
+        method: 'POST', headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
         body: JSON.stringify({ email, category, subject, message, platform: 'web', appVersion: '' }),
       });
       const result = (await response.json().catch(() => ({}))) as { id?: unknown; error?: unknown };
