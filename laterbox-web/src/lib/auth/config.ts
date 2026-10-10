@@ -10,12 +10,11 @@ export function safeReturnPath(value: string | null | undefined): string {
   return value;
 }
 export function authorizedOrigins(): string[] {
-  const configured = (process.env.CLERK_AUTHORIZED_PARTIES || 'https://laterbox.dev,https://www.laterbox.dev,https://app.laterbox.dev,https://docs.laterbox.dev').split(',').map(value => value.trim()).filter(Boolean);
+  const configured = (process.env.CLERK_AUTHORIZED_PARTIES || 'https://app.laterbox.dev').split(',').map(value => value.trim()).filter(Boolean);
   if (process.env.NODE_ENV !== 'production') {
     if (!configured.includes('http://localhost:3000')) configured.push('http://localhost:3000');
     if (!configured.includes('http://127.0.0.1:3000')) configured.push('http://127.0.0.1:3000');
     if (!configured.includes('http://app.localhost:3000')) configured.push('http://app.localhost:3000');
-    if (!configured.includes('http://docs.localhost:3000')) configured.push('http://docs.localhost:3000');
   }
   return configured;
 }
