@@ -1,8 +1,6 @@
 'use client';
 import type { AccountUser, AccountSession } from '../auth/types';
-import { clerkAuthEnabled } from '../auth/config';
 import { getAccessToken } from '../auth/tokens';
-import { ClerkAccountProvider } from '../auth/ClerkAccountProvider';
 import { disableCloudNotifications, suspendCloudNotifications, resumeCloudNotifications } from '../notifications/client';
 
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
@@ -44,9 +42,6 @@ const GUEST_KEY = 'laterbox_guest_mode';
 const USER_NAME_KEY = 'laterbox_user_name';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  return clerkAuthEnabled ? <ClerkAccountProvider>{children}</ClerkAccountProvider> : <LegacyAuthProvider>{children}</LegacyAuthProvider>;
-}
-function LegacyAuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AccountUser | null>(null);
   const [session, setSession] = useState<AccountSession | null>(null);
   const [loading, setLoading] = useState(true);
