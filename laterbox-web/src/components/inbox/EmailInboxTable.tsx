@@ -589,9 +589,11 @@ export function EmailInboxTable({
                   </div>
                 )}
               </div>
-            </div>
+            </>
           )}
         </div>
+      )}
+    </div>
 
         {/* Right Toolbar Controls: Pagination & Sorting */}
         <div className="flex items-center gap-2">
