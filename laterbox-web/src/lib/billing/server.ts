@@ -1,4 +1,6 @@
-import { createClient, type User } from '@supabase/supabase-js';
+import { isClerkToken, verifyClerkSubject, mappedClerkUser } from '../auth/server';
+import type { AccountUser } from '../auth/types';
+import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl =
   process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://ltjisrgldssqskcylcbj.supabase.co';
@@ -14,10 +16,14 @@ export function getBillingAdminClient() {
   });
 }
 
-export async function getRequestUser(request: Request): Promise<User | null> {
+export async function getRequestUser(request: Request): Promise<AccountUser | null> {
   const header = request.headers.get('authorization');
   const token = header?.startsWith('Bearer ') ? header.slice(7).trim() : '';
   if (!token) return null;
+
+  if (isClerkToken(token)) {
+    try { return await mappedClerkUser(await verifyClerkSubject(token)); } catch { return null; }
+  }
 
   const client = createClient(supabaseUrl, supabaseAnonKey, {
     auth: { persistSession: false, autoRefreshToken: false },
