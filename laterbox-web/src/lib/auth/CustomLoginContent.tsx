@@ -133,14 +133,15 @@ export function CustomLoginContent({ actions, extra }: { actions?: Partial<AuthC
   };
 
   const handleVerifyOtp = async () => {
-    if (otp.length < 6 || otp.length > 8) {
+    const cleanOtp = otp.trim().replace(/[-\s]/g, '');
+    if (cleanOtp.length < 6 || cleanOtp.length > 8) {
       setError('Enter the verification code from your email.');
       return;
     }
     setLoading(true);
     setError(null);
     setMessage(null);
-    const result = await verifyEmailOtp(email.trim(), otp, otpType) as Awaited<ReturnType<AuthContextType['verifyEmailOtp']>> & { isNewAccount?: boolean; secondFactor?: boolean };
+    const result = await verifyEmailOtp(email.trim(), cleanOtp, otpType) as Awaited<ReturnType<AuthContextType['verifyEmailOtp']>> & { isNewAccount?: boolean; secondFactor?: boolean };
     const { data,error: err } = result;
     if (err) {
       setError(err.message);
@@ -149,7 +150,16 @@ export function CustomLoginContent({ actions, extra }: { actions?: Partial<AuthC
     }
 
     if (result.secondFactor) { setSecondFactor(true); setOtp(''); setLoading(false); return; }
-    if (actions) { setAwaitingOtp(false); setAwaitingName(Boolean(result.isNewAccount)); setLoading(false); return; }
+    if (actions) {
+      setAwaitingOtp(false);
+      if (result.isNewAccount) {
+        setAwaitingName(true);
+        setLoading(false);
+      } else {
+        router.replace(nextPath);
+      }
+      return;
+    }
     const verifiedUser = data?.user;
     const existingName =
       (verifiedUser?.user_metadata?.display_name as string) ||

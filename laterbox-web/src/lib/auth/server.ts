@@ -4,7 +4,17 @@ import { CLERK_ISSUER, authorizedOrigins } from './config';
 import { getBillingAdminClient } from '../billing/server';
 import type { AccountUser } from './types';
 
-const jwks = createRemoteJWKSet(new URL(`${CLERK_ISSUER}/.well-known/jwks.json`));
+let cachedJwks: ReturnType<typeof createRemoteJWKSet> | null = null;
+let cachedIssuer: string | null = null;
+function getJwks() {
+  const issuer = CLERK_ISSUER;
+  if (!cachedJwks || cachedIssuer !== issuer) {
+    cachedJwks = createRemoteJWKSet(new URL(`${issuer}/.well-known/jwks.json`));
+    cachedIssuer = issuer;
+  }
+  return cachedJwks;
+}
+
 export class IdentityConflict extends Error {}
 export function clerkAdmin() {
   if (!process.env.CLERK_SECRET_KEY) throw new Error('Clerk is not configured.');
@@ -14,7 +24,7 @@ export function isClerkToken(token: string): boolean {
   try { return decodeJwt(token).iss === CLERK_ISSUER; } catch { return false; }
 }
 export async function verifyClerkSubject(token: string): Promise<string> {
-  const { payload } = await jwtVerify(token, jwks, { issuer: CLERK_ISSUER, algorithms: ['RS256'], requiredClaims: ['exp','iat','sub','sid','azp'] });
+  const { payload } = await jwtVerify(token, getJwks(), { issuer: CLERK_ISSUER, algorithms: ['RS256'], requiredClaims: ['exp','iat','sub','sid','azp'] });
   if (!payload.sub?.startsWith('user_') || typeof payload.sid !== 'string' || !authorizedOrigins().includes(String(payload.azp))) {
     throw new Error('Invalid Clerk session.');
   }
@@ -32,26 +42,90 @@ export async function linkClerk(accountId: string, subject: string) {
   const { error } = await getBillingAdminClient().rpc('link_clerk_identity', { p_account_id: accountId, p_subject: subject });
   if (error) throw new IdentityConflict('This identity is already linked to another account.');
 }
+
+export function getClerkUserEmail(user: {
+  emailAddresses?: Array<{
+    id?: string;
+    emailAddress?: string;
+    email_address?: string;
+    verification?: { status?: string | null } | null;
+  }>;
+  email_addresses?: Array<{
+    id?: string;
+    emailAddress?: string;
+    email_address?: string;
+    verification?: { status?: string | null } | null;
+  }>;
+  primaryEmailAddressId?: string | null;
+  primary_email_address_id?: string | null;
+}): { emailAddress: string; verified: boolean } | null {
+  const list = user.emailAddresses || user.email_addresses;
+  if (!list || list.length === 0) return null;
+
+  const primaryId = user.primaryEmailAddressId || user.primary_email_address_id;
+  const parse = (item: (typeof list)[0]) => {
+    const address = item.emailAddress || item.email_address;
+    if (!address) return null;
+    return {
+      emailAddress: address,
+      verified: item.verification?.status === 'verified',
+    };
+  };
+
+  if (primaryId) {
+    const primary = list.find(e => e.id === primaryId);
+    if (primary) {
+      const parsed = parse(primary);
+      if (parsed) return parsed;
+    }
+  }
+
+  const verified = list.map(parse).find(item => item && item.verified);
+  if (verified) return verified;
+
+  return parse(list[0]);
+}
+
+export function getClerkDisplayName(user: {
+  firstName?: string | null;
+  first_name?: string | null;
+  lastName?: string | null;
+  last_name?: string | null;
+  fullName?: string | null;
+}): string | undefined {
+  if (user.fullName) return user.fullName.trim() || undefined;
+  const first = user.firstName ?? user.first_name ?? '';
+  const last = user.lastName ?? user.last_name ?? '';
+  const name = [first, last].filter(Boolean).join(' ').trim();
+  return name || undefined;
+}
+
 export async function ensureClerkAccount(subject: string): Promise<AccountUser> {
   const existing = await mappedClerkUser(subject);
   if (existing) return existing;
   const user = await clerkAdmin().users.getUser(subject);
   const admin = getBillingAdminClient();
 
+  const emailInfo = getClerkUserEmail(user);
+  const email = emailInfo?.emailAddress;
+  const isEmailVerified = Boolean(emailInfo?.verified);
+  const displayName = getClerkDisplayName(user);
+
   if (user.externalId) {
     const { data } = await admin.from('accounts').select('id').eq('id', user.externalId).eq('state', 'active').maybeSingle();
     if (data) {
       await linkClerk(data.id, subject);
     } else {
-      const email = user.primaryEmailAddress;
-      const { data: byEmail } = email ? await admin.from('accounts').select('id').eq('email', email.emailAddress).eq('state', 'active').maybeSingle() : { data: null };
+      const { data: byEmail } = email
+        ? await admin.from('accounts').select('id').ilike('email', email).eq('state', 'active').maybeSingle()
+        : { data: null };
       if (byEmail) {
         await linkClerk(byEmail.id, subject);
       } else {
         const { data: created } = await admin.from('accounts').insert({
           id: user.externalId,
-          email: email?.emailAddress,
-          display_name: user.fullName || undefined,
+          email,
+          display_name: displayName,
           state: 'active',
         }).select('id').single();
         if (created) await linkClerk(created.id, subject);
@@ -59,19 +133,18 @@ export async function ensureClerkAccount(subject: string): Promise<AccountUser> 
       }
     }
   } else {
-    const email = user.primaryEmailAddress;
-    if (!email || email.verification?.status !== 'verified') throw new IdentityConflict('Verify your primary email before opening the app.');
+    if (!email || !isEmailVerified) throw new IdentityConflict('Verify your primary email before opening the app.');
 
     // If an account already exists for this verified email, link it directly
-    const { data: existingByEmail } = await admin.from('accounts').select('id').eq('email', email.emailAddress).eq('state', 'active').maybeSingle();
+    const { data: existingByEmail } = await admin.from('accounts').select('id').ilike('email', email).eq('state', 'active').maybeSingle();
     if (existingByEmail) {
       await linkClerk(existingByEmail.id, subject);
     } else {
       // Create user in Supabase auth for dual-provider / mobile app support
       const { data: authCreated } = await admin.auth.admin.createUser({
-        email: email.emailAddress,
+        email,
         email_confirm: true,
-        user_metadata: { display_name: user.fullName || undefined },
+        user_metadata: { display_name: displayName },
         app_metadata: { clerk_provisioned_subject: subject },
       });
       if (authCreated?.user?.id) {
@@ -82,13 +155,18 @@ export async function ensureClerkAccount(subject: string): Promise<AccountUser> 
         if (recovered) {
           await linkClerk(recovered, subject);
         } else {
-          const { data: newAccount, error: accErr } = await admin.from('accounts').insert({
-            email: email.emailAddress,
-            display_name: user.fullName || undefined,
-            state: 'active',
-          }).select('id').single();
-          if (accErr || !newAccount) throw new IdentityConflict(accErr?.message || 'Account setup could not finish.');
-          await linkClerk(newAccount.id, subject);
+          const { data: accountByEmail } = await admin.from('accounts').select('id').ilike('email', email).maybeSingle();
+          if (accountByEmail) {
+            await linkClerk(accountByEmail.id, subject);
+          } else {
+            const { data: newAccount, error: accErr } = await admin.from('accounts').insert({
+              email,
+              display_name: displayName,
+              state: 'active',
+            }).select('id').single();
+            if (accErr || !newAccount) throw new IdentityConflict(accErr?.message || 'Account setup could not finish.');
+            await linkClerk(newAccount.id, subject);
+          }
         }
       }
     }

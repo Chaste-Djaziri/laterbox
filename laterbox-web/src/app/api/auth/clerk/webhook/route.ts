@@ -1,6 +1,6 @@
 import { verifyWebhook } from '@clerk/backend/webhooks';
 import { getBillingAdminClient } from '@/lib/billing/server';
-import { clerkAdmin, ensureClerkAccount, IdentityConflict } from '@/lib/auth/server';
+import { clerkAdmin, ensureClerkAccount, IdentityConflict, getClerkUserEmail, getClerkDisplayName } from '@/lib/auth/server';
 import { deleteApplicationAccount } from '@/lib/auth/delete-account';
 
 export async function POST(request: Request) {
@@ -28,12 +28,13 @@ export async function POST(request: Request) {
         // Fetch the current profile; a delayed event must not restore stale email/name.
         const profile = await clerkAdmin().users.getUser(event.data.id);
         const account = await ensureClerkAccount(profile.id);
-        const email = profile.primaryEmailAddress;
-        const patch = { display_name: profile.fullName, profile_updated_at: new Date(profile.updatedAt).toISOString(), ...(email?.verification?.status === 'verified' ? { email: email.emailAddress } : {}) };
+        const emailInfo = getClerkUserEmail(profile);
+        const displayName = getClerkDisplayName(profile);
+        const patch = { display_name: displayName, profile_updated_at: new Date(profile.updatedAt).toISOString(), ...(emailInfo?.verified ? { email: emailInfo.emailAddress } : {}) };
         const { error } = await admin.from('accounts').update(patch).eq('id',account.id).eq('state','active').or(`profile_updated_at.is.null,profile_updated_at.lte.${patch.profile_updated_at}`);
         if (error) throw error;
         // Keep the legacy identity usable on mobile, with the same verified profile.
-        const { error: legacyError } = await admin.auth.admin.updateUserById(account.id,{ ...(email?.verification?.status === 'verified' ? { email: email.emailAddress,email_confirm: true } : {}),user_metadata: { display_name: profile.fullName } });
+        const { error: legacyError } = await admin.auth.admin.updateUserById(account.id,{ ...(emailInfo?.verified ? { email: emailInfo.emailAddress,email_confirm: true } : {}),user_metadata: { display_name: displayName } });
         if (legacyError) throw legacyError;
       } catch (cause) {
         // Existing-email conflicts require explicit login proof in the app.

@@ -53,3 +53,50 @@ test('return destinations reject external URLs, backslash escapes and control ch
   for (const value of [null,'https://attacker.example','//attacker.example','/\\attacker.example','/\nattacker.example']) assert.equal(safeReturnPath(value),'/inbox');
   assert.equal(safeReturnPath('/extension/connect?request=123'),'/extension/connect?request=123');
 });
+
+test('getClerkUserEmail and getClerkDisplayName reliably extract verified email and name', async () => {
+  const { getClerkUserEmail, getClerkDisplayName } = await import('./server');
+
+  // Backend Clerk User with primary email
+  const userWithPrimary = {
+    firstName: 'Jane',
+    lastName: 'Doe',
+    primaryEmailAddressId: 'email_2',
+    emailAddresses: [
+      { id: 'email_1', emailAddress: 'secondary@example.com', verification: { status: 'unverified' } },
+      { id: 'email_2', emailAddress: 'jane@example.com', verification: { status: 'verified' } },
+    ],
+  };
+  assert.deepEqual(getClerkUserEmail(userWithPrimary), { emailAddress: 'jane@example.com', verified: true });
+  assert.equal(getClerkDisplayName(userWithPrimary), 'Jane Doe');
+
+  // Unverified primary email
+  const unverifiedPrimary = {
+    primaryEmailAddressId: 'email_1',
+    emailAddresses: [
+      { id: 'email_1', emailAddress: 'unverified@example.com', verification: { status: 'unverified' } },
+    ],
+  };
+  assert.deepEqual(getClerkUserEmail(unverifiedPrimary), { emailAddress: 'unverified@example.com', verified: false });
+
+  // Fallback to verified email if no primary ID
+  const noPrimaryId = {
+    emailAddresses: [
+      { id: 'email_1', emailAddress: 'first@example.com', verification: { status: 'unverified' } },
+      { id: 'email_2', emailAddress: 'verified@example.com', verification: { status: 'verified' } },
+    ],
+  };
+  assert.deepEqual(getClerkUserEmail(noPrimaryId), { emailAddress: 'verified@example.com', verified: true });
+
+  // Snake_case support from webhooks
+  const snakeCaseUser = {
+    first_name: 'Alex',
+    primary_email_address_id: 'email_snake',
+    email_addresses: [
+      { id: 'email_snake', email_address: 'alex@example.com', verification: { status: 'verified' } },
+    ],
+  };
+  assert.deepEqual(getClerkUserEmail(snakeCaseUser), { emailAddress: 'alex@example.com', verified: true });
+  assert.equal(getClerkDisplayName(snakeCaseUser), 'Alex');
+});
+

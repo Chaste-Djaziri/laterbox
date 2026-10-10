@@ -1,4 +1,8 @@
-export const clerkAuthEnabled = process.env.NEXT_PUBLIC_CLERK_AUTH_ENABLED === 'true';
+export const clerkAuthEnabled =
+  process.env.NEXT_PUBLIC_CLERK_AUTH_ENABLED !== 'false' &&
+  (process.env.NEXT_PUBLIC_CLERK_AUTH_ENABLED === 'true' ||
+   Boolean(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) ||
+   process.env.NODE_ENV === 'production');
 export const APP_ORIGIN = process.env.NEXT_PUBLIC_APP_ORIGIN || 'https://app.laterbox.dev';
 export const CLERK_ISSUER = process.env.CLERK_JWT_ISSUER || 'https://clerk.laterbox.dev';
 export function safeReturnPath(value: string | null | undefined): string {
