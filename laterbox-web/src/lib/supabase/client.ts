@@ -1,5 +1,3 @@
-import { clerkAuthEnabled } from '../auth/config';
-import { getAccessToken } from '../auth/tokens';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 const SUPABASE_URL =
@@ -11,7 +9,7 @@ const SUPABASE_ANON_KEY =
 
 let browserClient: SupabaseClient | null = null;
 
-export function getLegacySupabaseClient(): SupabaseClient {
+export function getSupabaseClient(): SupabaseClient {
   if (typeof window === 'undefined') {
     return createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       auth: { persistSession: false },
@@ -32,12 +30,7 @@ export function getLegacySupabaseClient(): SupabaseClient {
   return browserClient;
 }
 
-let clerkClient: SupabaseClient | null = null;
-export function getSupabaseClient(): SupabaseClient {
-  if (!clerkAuthEnabled) return getLegacySupabaseClient();
-  if (typeof window === 'undefined') return createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { accessToken: () => getAccessToken() });
-  return clerkClient ??= createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { accessToken: () => getAccessToken() });
-}
+export const getLegacySupabaseClient = getSupabaseClient;
 
 export const supabase = new Proxy({} as SupabaseClient, {
   get(_target, prop) {
