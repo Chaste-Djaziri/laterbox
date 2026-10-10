@@ -131,7 +131,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         {/* Page Content: locked viewport for Inbox, scrollable for other pages */}
         <main
           className={`flex-1 min-h-0 flex flex-col ${
-            pathname === '/inbox' || pathname === '/'
+            pathname === '/inbox' || pathname === '/' || pathname === '/today'
               ? 'overflow-hidden pb-[calc(4.5rem+env(safe-area-inset-bottom,0px))] md:pb-3.5'
               : 'overflow-y-auto pb-[calc(5rem+env(safe-area-inset-bottom,0px))] md:pb-0'
           }`}
