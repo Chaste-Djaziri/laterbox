@@ -226,9 +226,9 @@ export function ScheduleDashboard({ view }: { view?: ScheduleView }) {
         <div className="flex flex-wrap items-center justify-between gap-3 pb-2 border-b border-[#e4e0d5]/60">
           <div className="flex items-center gap-3">
             <Link
-              href="/home"
+              href="/inbox"
               className="w-9 h-9 rounded-full bg-white border border-[#e4e0d5] flex items-center justify-center text-[#171711] hover:bg-[#faf8f5] shadow-2xs transition-colors cursor-pointer shrink-0"
-              title="Back to Dashboard"
+              title="Back to Inbox"
             >
               <ArrowLeft className="w-4 h-4" />
             </Link>
