@@ -336,13 +336,13 @@ export function Footer() {
                 </a>
               </li>
               <li>
-                <Link
-                  href="/docs"
+                <a
+                  href="https://docs.laterbox.dev"
                   className="hover:text-[#171711] transition-colors flex items-center gap-1.5"
                 >
                   <BookOpen className="w-3.5 h-3.5 text-[#171711]" />
                   <span>Docs (docs.laterbox.dev)</span>
-                </Link>
+                </a>
               </li>
               <li>
                 <Link
@@ -445,9 +445,9 @@ export function Footer() {
             <Link href="/refund" className="hover:text-[#171711] transition-colors">
               Refunds
             </Link>
-            <Link href="/docs" className="hover:text-[#171711] transition-colors">
+            <a href="https://docs.laterbox.dev" className="hover:text-[#171711] transition-colors">
               Documentation
-            </Link>
+            </a>
             <Link href="/download" className="hover:text-[#171711] transition-colors">
               All Platforms
             </Link>

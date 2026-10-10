@@ -6,7 +6,11 @@ import { getBillingAdminClient } from '@/lib/billing/server';
 export async function POST(request: Request) {
   const headers = { 'Cache-Control': 'no-store' };
   if (!clerkAuthEnabled) return Response.json({ error: 'Migration is disabled.' },{ status: 503, headers });
-  if (!authorizedOrigins().includes(request.headers.get('origin') || '')) return Response.json({ error: 'Untrusted origin.' },{ status: 403, headers });
+  const origin = request.headers.get('origin');
+  const host = request.headers.get('host');
+  const allowed = authorizedOrigins();
+  const isTrusted = origin ? allowed.includes(origin) : host ? allowed.some(a => a.endsWith(`://${host}`)) : true;
+  if (!isTrusted) return Response.json({ error: 'Untrusted origin.' },{ status: 403, headers });
   const token = request.headers.get('authorization')?.match(/^Bearer (.+)$/)?.[1];
   if (!token) return Response.json({ error: 'Sign in to your existing account.' },{ status: 401, headers });
   const legacy = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://ltjisrgldssqskcylcbj.supabase.co',process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_Rc4e_ik2LE4SR0UrfX-OEQ_5Mu_lw9p', { auth: { persistSession: false } });

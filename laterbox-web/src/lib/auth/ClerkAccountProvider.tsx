@@ -29,40 +29,60 @@ export function ClerkAccountProvider({ children }: { children: React.ReactNode }
     if (migration.current) return migration.current;
     if (!signIn || !setActive) return;
     migration.current = (async () => {
-      const legacy = getLegacySupabaseClient();
-      // Refresh verifies that a stored session is still live before attempting handoff.
-      const { data,error } = await legacy.auth.getSession();
-      if (error || !data.session) return;
-      const { data: refreshed,error: refreshError } = await legacy.auth.refreshSession();
-      if (refreshError || !refreshed.session) return;
-      const proof = userId ? await tokenGetter() : null;
-      const response = await fetch('/api/auth/migrate', { method: 'POST', headers: { Authorization: `Bearer ${refreshed.session.access_token}`, ...(proof ? { 'X-Clerk-Token': proof } : {}) } });
-      const result = await response.json() as { error?: string; ticket?: string; user: AccountUser };
-      if (!response.ok) throw new Error(result.error || 'Migration could not finish.');
-      if (result.ticket) {
-        const login = await signIn.create({ strategy: 'ticket', ticket: result.ticket });
-        if (login.status !== 'complete' || !login.createdSessionId) throw new Error('Complete your Clerk login to finish migrating.');
-        await setActive({ session: login.createdSessionId });
+      try {
+        const legacy = getLegacySupabaseClient();
+        // Refresh verifies that a stored session is still live before attempting handoff.
+        const { data,error } = await legacy.auth.getSession();
+        if (error || !data.session) return;
+        const { data: refreshed,error: refreshError } = await legacy.auth.refreshSession();
+        if (refreshError || !refreshed.session) {
+          // Stale legacy session; clean up local storage so it does not loop
+          await legacy.auth.signOut({ scope: 'local' }).catch(() => {});
+          return;
+        }
+        const proof = userId ? await tokenGetter() : null;
+        const response = await fetch('/api/auth/migrate', { method: 'POST', headers: { Authorization: `Bearer ${refreshed.session.access_token}`, ...(proof ? { 'X-Clerk-Token': proof } : {}) } });
+        const result = await response.json() as { error?: string; ticket?: string; user: AccountUser };
+        if (!response.ok) {
+          console.warn('[auth] Legacy migration response:', result.error);
+          return;
+        }
+        if (result.ticket) {
+          const login = await signIn.create({ strategy: 'ticket', ticket: result.ticket });
+          if (login.status !== 'complete' || !login.createdSessionId) {
+            console.warn('[auth] Legacy ticket activation incomplete:', login.status);
+            return;
+          }
+          await setActive({ session: login.createdSessionId });
+        }
+        // Remove legacy credentials only after Clerk has accepted the handoff.
+        await legacy.auth.signOut({ scope: 'local' });
+        setAttempt(value => value + 1);
+      } catch (err) {
+        console.warn('[auth] Migration attempt error:', err);
       }
-      // Remove legacy credentials only after Clerk has accepted the handoff.
-      await legacy.auth.signOut({ scope: 'local' });
-      setAttempt(value => value + 1);
     })();
     try { await migration.current; } finally { migration.current = null; }
   },[signIn,setActive,userId,tokenGetter]);
 
   useEffect(() => {
-    if (!isLoaded || !signIn) return;
+    if (!isLoaded) return;
     let cancelled = false;
     setUser(null); setSession(null); setAuthError(null); setLoading(true);
     const initialize = async () => {
       try {
         if (!userId) {
-          if (window.location.hostname.startsWith('app.') || window.location.hostname === 'localhost') await migrate();
+          if (signIn && (window.location.hostname.startsWith('app.') || window.location.hostname === 'localhost')) {
+            await migrate();
+          }
           if (!cancelled) setGuest(localStorage.getItem('laterbox_guest_mode') === 'true' || new URLSearchParams(window.location.search).get('guest') === '1');
           return;
         }
-        const token = await tokenGetter();
+        let token = await tokenGetter();
+        if (!token) {
+          await new Promise(r => setTimeout(r, 200));
+          token = await tokenGetter();
+        }
         if (!token) throw new Error('Your session has expired. Sign in again.');
         const response = await fetch('/api/auth/account',{ method: 'POST', headers: { Authorization: `Bearer ${token}` } });
         const result = await response.json() as { error?: string; ticket?: string; user: AccountUser };
@@ -76,7 +96,7 @@ export function ClerkAccountProvider({ children }: { children: React.ReactNode }
     };
     void initialize();
     return () => { cancelled = true; };
-  },[isLoaded,userId,signIn,attempt,migrate,tokenGetter]);
+  },[isLoaded,userId,signIn,setActive,attempt,migrate,tokenGetter]);
 
   useEffect(() => {
     if (!user) return;

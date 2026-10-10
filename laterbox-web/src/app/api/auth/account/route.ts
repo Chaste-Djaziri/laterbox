@@ -4,7 +4,11 @@ import { authorizedOrigins, clerkAuthEnabled } from '@/lib/auth/config';
 export async function POST(request: Request) {
   const headers = { 'Cache-Control': 'no-store' };
   if (!clerkAuthEnabled) return Response.json({ error: 'Clerk rollout is disabled.' },{ status: 503, headers });
-  if (!authorizedOrigins().includes(request.headers.get('origin') || '')) return Response.json({ error: 'Untrusted origin.' },{ status: 403, headers });
+  const origin = request.headers.get('origin');
+  const host = request.headers.get('host');
+  const allowed = authorizedOrigins();
+  const isTrusted = origin ? allowed.includes(origin) : host ? allowed.some(a => a.endsWith(`://${host}`)) : true;
+  if (!isTrusted) return Response.json({ error: 'Untrusted origin.' },{ status: 403, headers });
   const token = request.headers.get('authorization')?.match(/^Bearer (.+)$/)?.[1];
   let subject: string;
   try { subject = await verifyClerkSubject(token || ''); }

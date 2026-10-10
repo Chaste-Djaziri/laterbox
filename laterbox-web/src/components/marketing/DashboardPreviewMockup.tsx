@@ -423,6 +423,7 @@ export function DashboardPreviewMockup() {
               <div className="pt-1">
                 <Link
                   href="/someday"
+                  prefetch={false}
                   className="flex items-center justify-between text-[10px] font-black tracking-widest uppercase text-[#9e9b92] hover:text-[#171711] transition-colors group"
                 >
                   <span>SOMEDAY (7)</span>
