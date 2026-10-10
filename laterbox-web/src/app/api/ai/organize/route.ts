@@ -72,7 +72,10 @@ ${JSON.stringify(simplifiedItems, null, 2)}
 For EVERY item in the list, produce a structured recommendation:
 1. "itemId": The exact matching id from the input item.
 2. "tags": 2 to 4 clean, relevant lowercase tags with '#' prefix (e.g., ["#design", "#inspiration"], ["#dev", "#cloud"]).
-3. "collection": The best collection name for this item. Reuse an existing collection name if appropriate, or suggest an intuitive new collection name (e.g. "Design Inspiration", "Reading List", "Tech & Architecture", "Music & Podcasts", "Personal Notes", "Financials").
+3. "collection": The best collection name for this item:
+   - REUSE RULE: If an existing collection in the user's vault fits this item, you MUST reuse that exact collection name (matching spelling and casing). Never create duplicate or near-duplicate variations of an existing collection.
+   - GROUPING RULE: If 2 or more items in this inbox batch share a topic, theme, or category (e.g. design assets, tech articles, client work, finance), you MUST assign them to the EXACT SAME collection name so they are filed together into one collection rather than creating multiple separate collections.
+   - NAMING RULE: Keep collection names concise and human-friendly (e.g. "Design Inspiration", "Reading List", "Tech & Architecture", "Client Projects", "Finance & Invoices", "Personal Notes").
 4. "nextStep": A single concise, actionable next step sentence (e.g., "Review landing page mockup with design team", "Watch 24-min tutorial this weekend", "Read 7-min article and archive to library", "Extract key quote into project notes").
 5. "recommendedSchedule": One of: "today" (urgent/review today), "tomorrow" (schedule for tomorrow morning), "weekend" (longer read/media for the weekend), or "someday" (ideas, inspiration, reference material with no deadline pressure).
 6. "reasoning": One short sentence explaining why this organization makes sense.
@@ -91,6 +94,27 @@ Respond strictly in valid JSON format matching this schema:
     }
   ]
 }`;
+
+    // Helper map to normalize and unify collections across suggestions:
+    // 1. Matches case-insensitively against existing collections in the user's vault and uses existing casing.
+    // 2. Unifies new collection names in the batch so casing/whitespace differences map to one single collection.
+    const canonicalCollectionMap = new Map<string, string>();
+    for (const ec of existingCollections) {
+      if (typeof ec === 'string' && ec.trim()) {
+        canonicalCollectionMap.set(ec.trim().toLowerCase(), ec.trim());
+      }
+    }
+
+    const normalizeCollectionName = (rawName: unknown): string => {
+      const trimmed = typeof rawName === 'string' ? rawName.trim() : '';
+      if (!trimmed) return 'Reading List';
+      const lower = trimmed.toLowerCase();
+      if (canonicalCollectionMap.has(lower)) {
+        return canonicalCollectionMap.get(lower)!;
+      }
+      canonicalCollectionMap.set(lower, trimmed);
+      return trimmed;
+    };
 
     const modelsToTry = [configuredModel, ...FALLBACK_MODELS.filter((m) => m !== configuredModel)];
     let responseText = '';
@@ -145,33 +169,33 @@ Respond strictly in valid JSON format matching this schema:
         const isArticle = item.type === 'article' || titleLower.includes('power of') || titleLower.includes('guide');
 
         let tags = ['#inbox', '#review'];
-        let collection = 'Reading List';
+        let collection = normalizeCollectionName('Reading List');
         let nextStep = 'Review and archive to library';
         let recommendedSchedule: 'today' | 'tomorrow' | 'weekend' | 'someday' = 'tomorrow';
 
         if (isDesign) {
           tags = ['#design', '#inspiration', '#ui'];
-          collection = 'Design Inspiration';
+          collection = normalizeCollectionName('Design Inspiration');
           nextStep = 'Inspect design assets and extract brand palette';
           recommendedSchedule = 'someday';
         } else if (isPdf) {
           tags = ['#feedback', '#client', '#product'];
-          collection = 'Client Projects';
+          collection = normalizeCollectionName('Client Projects');
           nextStep = 'Read feedback notes and send reply';
           recommendedSchedule = 'today';
         } else if (isVideo) {
           tags = ['#video', '#engineering', '#tech'];
-          collection = 'Tech & Architecture';
+          collection = normalizeCollectionName('Tech & Architecture');
           nextStep = 'Watch 24-min tutorial and note architecture takeaways';
           recommendedSchedule = 'weekend';
         } else if (isMusic) {
           tags = ['#music', '#chill', '#focus'];
-          collection = 'Focus Audio';
+          collection = normalizeCollectionName('Focus Audio');
           nextStep = 'Listen while reviewing notes';
           recommendedSchedule = 'weekend';
         } else if (isArticle) {
           tags = ['#productivity', '#mindset', '#reading'];
-          collection = 'Reading Queue';
+          collection = normalizeCollectionName('Reading List');
           nextStep = 'Read 7-min summary and tag key takeaways';
           recommendedSchedule = 'tomorrow';
         }
@@ -203,12 +227,23 @@ Respond strictly in valid JSON format matching this schema:
     }
 
     const parsed = JSON.parse(cleaned);
+    const rawSuggestions = Array.isArray(parsed.suggestions) ? parsed.suggestions : [];
+    const suggestions: OrganizeSuggestion[] = rawSuggestions.map((item: any) => ({
+      itemId: String(item.itemId || ''),
+      tags: Array.isArray(item.tags) ? item.tags : [],
+      collection: normalizeCollectionName(item.collection),
+      nextStep: String(item.nextStep || 'Review and file in library'),
+      recommendedSchedule: ['today', 'tomorrow', 'weekend', 'someday'].includes(item.recommendedSchedule)
+        ? item.recommendedSchedule
+        : 'tomorrow',
+      reasoning: String(item.reasoning || ''),
+    }));
 
     return NextResponse.json({
       success: true,
       model: usedModel,
-      summary: parsed.summary || `Organized ${parsed.suggestions?.length || 0} items with Gemini.`,
-      suggestions: Array.isArray(parsed.suggestions) ? parsed.suggestions : [],
+      summary: parsed.summary || `Organized ${suggestions.length} items with Gemini.`,
+      suggestions,
     });
   } catch (error) {
     console.error('[AI Organize] Route exception:', error);
