@@ -62,3 +62,14 @@ test('incomplete second-factor sessions are never activated',async () => {
   assert.match(result.error?.message || '',/additional verification/);
   assert.deepEqual(f.calls,[]);
 });
+
+test('authenticator MFA keeps the session inactive until the second code succeeds',async () => {
+  const f = fixture();
+  f.signin.attemptFirstFactor = async () => ({ status: 'needs_second_factor',createdSessionId: null,supportedSecondFactors: [{ strategy: 'totp' }] } as SignInResource);
+  f.signin.attemptSecondFactor = async params => { assert.equal(params.strategy,'totp'); return { status: 'complete',createdSessionId: 'session_mfa' } as SignInResource; };
+  const flow = createCustomClerkFlow(f.signin,f.signup,f.activate);
+  assert.equal((await flow.verify('111111')).secondFactor,true);
+  assert.deepEqual(f.calls,[]);
+  assert.equal((await flow.verify('222222')).error,null);
+  assert.deepEqual(f.calls,['activate session_mfa']);
+});
