@@ -1,6 +1,8 @@
 import { getBillingAdminClient } from '../src/lib/billing/server';
 import { deleteApplicationAccount } from '../src/lib/auth/delete-account';
 
+async function main() {
+
 const execute = process.argv.includes('--execute');
 const { data,error } = await getBillingAdminClient().from('account_deletion_jobs').select('account_id').is('completed_at',null);
 if (error) throw new Error('Unable to list pending deletion jobs.');
@@ -12,3 +14,5 @@ if (execute) for (const job of data || []) {
 }
 console.info(JSON.stringify({ mode: execute ? 'execute' : 'dry-run',pending: data?.length || 0,completed,failed }));
 if (failed) process.exitCode = 1;
+}
+void main().catch(() => { console.error("Operation failed. Check the input and server configuration; credentials and provider responses are excluded from logs."); process.exitCode = 1; });
