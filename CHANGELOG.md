@@ -9,6 +9,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 ## [Unreleased]
 
 ### Changed
+- **[Web] Someday page email UI table and unified dashboard layout**: Redesigned the Someday page to use the modern email inbox table layout, unified with Inbox, Today, and Upcoming with shared layout header, search, and action tools while displaying postponed Someday items.
 - **[Web] Move top header into layout of (app) routegroup**: Extracted the Top Header (Title, Centered Search, AI Organize, Save Item, Settings & Profile, and notification gate) into a shared layout component in AppShell with dynamic page titles, eliminating code duplication across Inbox, Today, and Upcoming pages.
 - **[Web] Upcoming page email UI table and unified dashboard layout**: Updated the Upcoming page to use the modern email inbox table and unified dashboard layout, keeping the notification bar, centered search, AI organize, quick capture, and user profile header identical to Inbox while displaying Upcoming postponed items.
 - **[Web] Today page email UI table and unified dashboard layout**: Updated the Today page to use the modern email inbox table and unified dashboard layout, keeping the notification bar, centered search, AI organize, quick capture, and user profile header identical to Inbox while displaying Today's scheduled items.
