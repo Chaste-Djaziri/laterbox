@@ -1,6 +1,6 @@
 import { browser } from '../platform/api';
 import { createAccountQueue } from '../lib/account-queue';
-import { getAccessToken, getConnectedUserId, getIsPro, getPendingCaptures, replacePendingCaptures, setIsPro } from '../lib/storage';
+import { getPendingCaptures, replacePendingCaptures } from '../lib/storage';
 import type { Capture, CaptureResult } from '../types/capture';
 
 const captureEndpoint = import.meta.env.VITE_CAPTURE_API_URL || '';
