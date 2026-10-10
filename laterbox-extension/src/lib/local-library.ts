@@ -3,7 +3,7 @@ import type { Capture, CaptureResult } from '../types/capture';
 export const LOCAL_ORIGIN = 'http://localhost:8080';
 export async function isLocalMode(): Promise<boolean> {
   const { captureMode, accessToken } = await browser.storage.local.get(['captureMode', 'accessToken']);
-  return captureMode === 'local' || (!captureMode && !accessToken && import.meta.env.VITE_LATERBOX_WEB_URL === LOCAL_ORIGIN);
+  return captureMode === 'local' || (!captureMode && !accessToken && import.meta.env?.VITE_LATERBOX_WEB_URL === LOCAL_ORIGIN);
 }
 // Only the background worker writes the outbox, serializing saves and acknowledgements.
 let tail: Promise<unknown> = Promise.resolve();
