@@ -9,6 +9,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 ## [Unreleased]
 
 ### Changed
+- **[Web] Archived tab in sidebar and email table view**: Added an Archived navigation tab in the sidebar under Kept for archived items, featuring live item count badges, a dedicated `/archived` route, and the unified email inbox table dashboard view.
 - **[Web] Kept tab in sidebar and email table view**: Added a Kept navigation tab directly under Starred in the sidebar for saved/kept items, complete with live item count badges, a dedicated `/kept` route, and the unified email inbox table dashboard view.
 - **[Web] Starred tab in sidebar and email table view**: Added a Starred navigation tab directly under Inbox in the sidebar for favorited items, featuring live count badges, a dedicated `/starred` route, and the unified email inbox table dashboard view.
 - **[Web] Sidebar collections group and email table view for collections**: Added a Gmail labels-style Collections group in the sidebar with a `+` button for inline collection creation, label icons, and item count badges. Clicking any collection opens the unified email table dashboard view populated with the collection's items and dynamic header title.
