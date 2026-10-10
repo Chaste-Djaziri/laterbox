@@ -138,6 +138,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
       } catch (error) {
         // Unavailable extension is normal; storage/import failures retain the extension outbox.
         console.warn('[local library]', error);
+        setSyncStatus('error');
       } finally { running = false; }
     };
     void importCaptures();
