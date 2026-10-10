@@ -3,6 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { APP_ORIGIN } from '@/lib/auth/config';
 import { useAuth } from '@/lib/store/AuthContext';
 import { DashboardPreviewMockup } from '@/components/marketing/DashboardPreviewMockup';
 import { ScrollConvergenceSection } from '@/components/marketing/ScrollConvergenceSection';
@@ -71,7 +72,7 @@ export default function LandingPage() {
           {/* Action CTAs */}
           <div className="flex flex-wrap items-center justify-center gap-3.5">
             <Link
-              href="/inbox"
+              href={`${APP_ORIGIN}/inbox?guest=1`}
               className="inline-flex items-center gap-2 px-7 py-3.5 rounded-full bg-[#171711] hover:bg-[#282723] active:bg-[#0f0f0e] text-white font-extrabold text-sm sm:text-base shadow-sm transition-all duration-150 group"
             >
               <span>Launch Web App Free</span>
@@ -87,7 +88,7 @@ export default function LandingPage() {
             </Link>
 
             <Link
-              href="/inbox"
+              href={`${APP_ORIGIN}/inbox?guest=1`}
               onClick={() => continueAsGuest()}
               className="inline-flex items-center gap-2 px-6 py-3.5 rounded-full bg-[#ebe7dc]/70 text-[#171711] hover:bg-[#ebe7dc] font-bold text-sm sm:text-base transition-all"
             >
@@ -327,7 +328,7 @@ export default function LandingPage() {
             </Link>
 
             <Link
-              href="/inbox"
+              href={`${APP_ORIGIN}/inbox?guest=1`}
               className="p-5 rounded-2xl bg-[#f7f5ee] border border-[#e4e0d5] hover:border-[#171711] transition-all flex flex-col items-center gap-2 group"
             >
               <Globe2 className="w-7 h-7 text-[#171711] transition-transform group-hover:scale-110" />
