@@ -1,3 +1,4 @@
+import { isLocalMode, LOCAL_ORIGIN } from '../lib/local-library';
 import {
   cancelConnectionRequest,
   checkProEntitlement,
@@ -76,7 +77,7 @@ async function initialize(): Promise<void> {
   }
 
   browser.storage.onChanged.addListener((changes, areaName) => {
-    if (areaName === "local" && ["accessToken", "connectedUserId", "hasProPlan", "pendingConnection"].some(key => key in changes)) {
+    if (areaName === "local" && ["accessToken", "connectedUserId", "hasProPlan", "pendingConnection", "captureMode"].some(key => key in changes)) {
       void updateConnectionState();
     }
   });
@@ -148,10 +149,10 @@ disconnectButton.addEventListener("click", () => {
 async function updateConnectionState(): Promise<boolean> {
   const token = await getAccessToken();
   const userId = await getConnectedUserId();
-  const connected = token.startsWith("lb_ext_") && userId.length > 0;
+  const connected = await isLocalMode() || (token.startsWith("lb_ext_") && userId.length > 0);
   const pending = !connected && (await getPendingConnection()) !== null;
-  const isPro = connected ? await getIsPro() : null;
-  const isProRequired = connected && isPro === false;
+  const isPro = connected;
+  const isProRequired = false;
 
   disconnectedPanel.hidden = connected || pending;
   pendingPanel.hidden = connected || !pending;
@@ -174,6 +175,7 @@ async function connect(): Promise<void> {
   connectButton.disabled = true;
   setStatus("Opening laterbox in browser...");
   try {
+    await browser.storage.local.set({ captureMode: "account" });
     await connectLaterBox();
     await updateConnectionState();
   } catch (error) {
@@ -245,7 +247,7 @@ async function showCaptureResult(
   button: HTMLButtonElement,
 ): Promise<void> {
   if (result.status === "saved") {
-    setStatus("Saved to laterbox.", "success");
+    setStatus(result.local ? "Saved locally. Open localhost:8080 to import." : "Saved to laterbox.", "success");
     window.setTimeout(() => window.close(), 700);
   } else if (result.status === "proRequired") {
     await updateConnectionState();
@@ -301,3 +303,20 @@ browser.storage.onChanged.addListener((changes,area)=>{
   if(area==='local' && changes.captureState?.newValue)renderCaptureState(changes.captureState.newValue);
   if(area==='local' && changes.connectionError?.newValue)setStatus(changes.connectionError.newValue,'error');
 });
+
+const modeControls = document.createElement('div');
+const localButton = document.createElement('button');
+localButton.textContent = 'Local library';
+localButton.addEventListener('click', async () => {
+  await browser.storage.local.set({ captureMode: 'local' });
+  await updateConnectionState();
+  setStatus('Local library selected. Captures stay on this browser.');
+});
+const accountButton = document.createElement('button');
+accountButton.textContent = 'Connect account';
+accountButton.addEventListener('click', () => void connect());
+const libraryButton = document.createElement('button');
+libraryButton.textContent = 'Open local library';
+libraryButton.addEventListener('click', () => void browser.tabs.create({ url: `${LOCAL_ORIGIN}/home` }));
+modeControls.append(localButton, accountButton, libraryButton);
+document.body.append(modeControls);
