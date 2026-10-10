@@ -14,6 +14,7 @@ import {
   editThreadEntry,
   deleteThreadEntry,
   toggleThreadReaction,
+  toggleRootReaction,
   voteThreadPoll,
   ItemThreadEntry,
   POPULAR_REACTIONS,
@@ -51,10 +52,14 @@ export function ItemSideDetailPanel({ item, onClose }: ItemSideDetailPanelProps)
 
   const authorName = userName || user?.user_metadata?.full_name || 'You';
 
-  // Thread entries parsed from item note
-  const threadEntries = useMemo(() => {
+  // Thread entries & root reactions parsed from item note
+  const parsedThread = useMemo(() => {
     return parseItemThread(item.note?.content);
   }, [item.note?.content]);
+
+  const threadEntries = parsedThread.entries;
+  const rootReactions = parsedThread.rootReactions;
+  const rootUserReactions = parsedThread.rootUserReactions;
 
   // Input state
   const [inputText, setInputText] = useState('');
@@ -84,8 +89,16 @@ export function ItemSideDetailPanel({ item, onClose }: ItemSideDetailPanelProps)
     return () => window.removeEventListener('mousedown', handleClick);
   }, []);
 
-  const persistThread = async (updated: ItemThreadEntry[]) => {
-    const serialized = serializeItemThread(updated);
+  const persistThread = async (
+    updatedEntries: ItemThreadEntry[] = threadEntries,
+    updatedRootReactions: Record<string, number> = rootReactions,
+    updatedRootUserReactions: string[] = rootUserReactions
+  ) => {
+    const serialized = serializeItemThread(
+      updatedEntries,
+      updatedRootReactions,
+      updatedRootUserReactions
+    );
     await saveNote(item.id, serialized);
   };
 
@@ -158,7 +171,17 @@ export function ItemSideDetailPanel({ item, onClose }: ItemSideDetailPanelProps)
     await persistThread(updated);
   };
 
+  const handleToggleRootReaction = async (emoji: string) => {
+    const result = toggleRootReaction(rootReactions, rootUserReactions, emoji);
+    await persistThread(threadEntries, result.reactions, result.userReactions);
+    setReactionMenuForId(null);
+  };
+
   const handleToggleReaction = async (id: string, emoji: string) => {
+    if (id === 'root-content') {
+      await handleToggleRootReaction(emoji);
+      return;
+    }
     const updated = toggleThreadReaction(threadEntries, id, emoji);
     await persistThread(updated);
     setReactionMenuForId(null);
@@ -174,24 +197,41 @@ export function ItemSideDetailPanel({ item, onClose }: ItemSideDetailPanelProps)
   const description = item.metadata?.description || item.text_content || '';
   const isStarred = Boolean(item.favorite);
 
+  const handleAttachRootContent = () => {
+    const rawSnippet = description || title;
+    const cleanSnippet =
+      rawSnippet.length > 80 ? rawSnippet.slice(0, 80) + '...' : rawSnippet;
+    setAttachedEntry({
+      id: 'root-content',
+      type: 'note',
+      authorName: sender,
+      content: cleanSnippet,
+      createdAt: item.created_at,
+    });
+    inputRef.current?.focus();
+  };
+
   return (
     <div className="flex flex-col h-full bg-white relative overflow-hidden select-none">
       {/* 1. TOP HEADER: Title, Sender info & Actions */}
       <div className="shrink-0 p-4 border-b border-[#e4e0d5] bg-white space-y-3">
         {/* Top actions toolbar */}
         <div className="flex items-center justify-between gap-2">
-          {/* External link / Full page */}
-          <Link
-            href={`/item/${item.id}`}
-            title="Open full page"
-            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold text-[#6c6b63] hover:text-[#171711] hover:bg-[#faf8f5] transition-colors"
-          >
-            <ExternalLink className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Open in full</span>
-          </Link>
+          <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#8e8d87]">
+            <span>Item Details</span>
+          </div>
 
           {/* Quick Action Buttons */}
           <div className="flex items-center gap-1 text-[#6c6b63]">
+            {/* Open in full page button */}
+            <Link
+              href={`/item/${item.id}`}
+              title="Open in full"
+              className="p-1.5 rounded-lg hover:bg-[#faf8f5] text-[#6c6b63] hover:text-[#171711] transition-colors cursor-pointer"
+            >
+              <ExternalLink className="w-4 h-4" />
+            </Link>
+
             {/* Star button */}
             <button
               type="button"
@@ -270,10 +310,36 @@ export function ItemSideDetailPanel({ item, onClose }: ItemSideDetailPanelProps)
         </div>
       </div>
 
-      {/* 2. SCROLLABLE CONTENT BODY & THREAD STREAM */}
-      <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-5 bg-[#faf8f5]/40 select-text">
-        {/* Main Content Card */}
-        <div className="bg-white border border-[#e4e0d5] rounded-2xl p-4 shadow-2xs space-y-3">
+      {/* 2. SCROLLABLE CONTENT BODY & THREAD STREAM (UNIFIED VIEW) */}
+      <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 bg-[#faf8f5]/40 select-text">
+        {/* Main Saved Content Card (Root of stream with reply and reaction support) */}
+        <div className="bg-white border border-[#e4e0d5] rounded-2xl p-4 shadow-2xs space-y-3 group transition-all">
+          {/* Card header: Sender info and Reply/Attach button */}
+          <div className="flex items-center justify-between text-xs text-[#6c6b63]">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="font-bold text-[#171711] truncate">{sender}</span>
+              <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#e6edb0] text-[#171711] shrink-0">
+                Saved Content
+              </span>
+              <span className="text-[10px] text-[#9e9b92] shrink-0">
+                {formatEmailDate(item.created_at)}
+              </span>
+            </div>
+
+            {/* Attach / Reply to this main saved content */}
+            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <button
+                type="button"
+                onClick={handleAttachRootContent}
+                title="Reply / Attach as context"
+                className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold text-[#6c6b63] hover:text-[#171711] hover:bg-[#faf8f5] transition-colors cursor-pointer"
+              >
+                <CornerDownRight className="w-3.5 h-3.5" />
+                <span>Reply</span>
+              </button>
+            </div>
+          </div>
+
           {/* OpenGraph Preview Image Banner */}
           {item.metadata?.preview_image_url && (
             <div className="relative w-full h-44 sm:h-52 rounded-xl overflow-hidden bg-[#faf8f5] border border-[#e4e0d5]/60">
@@ -315,7 +381,7 @@ export function ItemSideDetailPanel({ item, onClose }: ItemSideDetailPanelProps)
 
           {/* External link button */}
           {item.url && (
-            <div className="pt-2 flex items-center justify-between">
+            <div className="pt-1 flex items-center justify-between">
               <a
                 href={item.url}
                 target="_blank"
@@ -327,13 +393,78 @@ export function ItemSideDetailPanel({ item, onClose }: ItemSideDetailPanelProps)
               </a>
             </div>
           )}
+
+          {/* Reaction Bar for Main Saved Content */}
+          <div className="flex flex-wrap items-center gap-1 pt-1.5 border-t border-[#f0ede4]">
+            {/* Active reactions */}
+            {Object.entries(rootReactions || {}).map(([emoji, count]) => {
+              if (count <= 0) return null;
+              const hasUserReacted = rootUserReactions?.includes(emoji);
+              return (
+                <button
+                  key={emoji}
+                  type="button"
+                  onClick={() => handleToggleRootReaction(emoji)}
+                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold border transition-all cursor-pointer ${
+                    hasUserReacted
+                      ? 'bg-[#171711] text-[#e6edb0] border-[#171711]'
+                      : 'bg-white text-[#171711] border-[#e4e0d5] hover:bg-[#faf8f5]'
+                  }`}
+                >
+                  <span>{emoji}</span>
+                  <span className="text-[10px] font-bold">{count}</span>
+                </button>
+              );
+            })}
+
+            {/* Quick Reaction Picker Toggle for Root */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() =>
+                  setReactionMenuForId(
+                    reactionMenuForId === 'root-content' ? null : 'root-content'
+                  )
+                }
+                title="Add reaction"
+                className="p-1 rounded-full text-[#8e8d87] hover:text-[#171711] hover:bg-[#faf8f5] transition-colors cursor-pointer"
+              >
+                <Smile className="w-3.5 h-3.5" />
+              </button>
+
+              {reactionMenuForId === 'root-content' && (
+                <div className="absolute left-0 bottom-full mb-1 bg-white border border-[#e4e0d5] rounded-full shadow-lg px-2 py-1 flex items-center gap-1.5 z-40 animate-in fade-in zoom-in-95">
+                  {POPULAR_REACTIONS.map((emoji) => (
+                    <button
+                      key={emoji}
+                      type="button"
+                      onClick={() => handleToggleRootReaction(emoji)}
+                      className="hover:scale-125 transition-transform text-sm cursor-pointer p-0.5"
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Reply action button on right side of reactions */}
+            <button
+              type="button"
+              onClick={handleAttachRootContent}
+              className="ml-auto inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold text-[#6c6b63] hover:text-[#171711] hover:bg-[#faf8f5] transition-colors cursor-pointer"
+            >
+              <CornerDownRight className="w-3 h-3" />
+              <span>Reply</span>
+            </button>
+          </div>
         </div>
 
         {/* Interactive Thread Stream Header */}
-        <div className="flex items-center gap-2 pt-2">
+        <div className="flex items-center gap-2 pt-1">
           <MessageSquare className="w-3.5 h-3.5 text-[#8e8d87]" />
           <span className="text-[11px] font-bold uppercase tracking-wider text-[#8e8d87]">
-            Notes, Follow-ups & Polls ({threadEntries.length})
+            Follow-ups & Notes ({threadEntries.length})
           </span>
           <div className="flex-1 h-px bg-[#e4e0d5]" />
         </div>
@@ -423,7 +554,10 @@ export function ItemSideDetailPanel({ item, onClose }: ItemSideDetailPanelProps)
                     <div className="flex items-start gap-2 px-2.5 py-1.5 bg-[#faf8f5] border-l-2 border-[#171711] rounded text-[11px] text-[#6c6b63]">
                       <Paperclip className="w-3 h-3 shrink-0 text-[#8e8d87] mt-0.5" />
                       <span className="truncate italic">
-                        Attached: &ldquo;{entry.attachedSnippet}&rdquo;
+                        {entry.attachedToId === 'root-content'
+                          ? 'Replying to saved content: '
+                          : 'Attached: '}
+                        &ldquo;{entry.attachedSnippet}&rdquo;
                       </span>
                     </div>
                   )}
@@ -579,7 +713,11 @@ export function ItemSideDetailPanel({ item, onClose }: ItemSideDetailPanelProps)
           <div className="mb-2 flex items-center justify-between px-3 py-1.5 bg-[#f0ede4] border border-[#e4e0d5] rounded-xl text-xs text-[#171711] animate-in fade-in">
             <div className="flex items-center gap-1.5 truncate">
               <CornerDownRight className="w-3.5 h-3.5 text-[#6c6b63] shrink-0" />
-              <span className="font-bold shrink-0">Attaching context:</span>
+              <span className="font-bold shrink-0">
+                {attachedEntry.id === 'root-content'
+                  ? 'Replying to Saved Content:'
+                  : 'Attaching context:'}
+              </span>
               <span className="truncate text-[#6c6b63]">
                 &ldquo;{attachedEntry.content.slice(0, 60)}...&rdquo;
               </span>
@@ -587,7 +725,7 @@ export function ItemSideDetailPanel({ item, onClose }: ItemSideDetailPanelProps)
             <button
               type="button"
               onClick={() => setAttachedEntry(null)}
-              className="p-0.5 text-[#8e8d87] hover:text-[#171711] rounded"
+              className="p-0.5 text-[#8e8d87] hover:text-[#171711] rounded cursor-pointer"
             >
               <X className="w-3.5 h-3.5" />
             </button>
