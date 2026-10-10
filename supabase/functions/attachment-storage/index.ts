@@ -1,3 +1,4 @@
+import { authenticateAccount } from '../_shared/auth.ts';
 import {
   DeleteObjectCommand,
   GetObjectCommand,
@@ -267,15 +268,7 @@ function validateAttachment(body: AttachmentBody): ValidAttachment {
 }
 
 async function authenticateUser(token: string): Promise<string | null> {
-  const response = await fetch(`${requiredEnv("SUPABASE_URL")}/auth/v1/user`, {
-    headers: {
-      apikey: requiredEnv("SUPABASE_ANON_KEY"),
-      authorization: `Bearer ${token}`,
-    },
-  });
-  if (!response.ok) return null;
-  const user = await response.json();
-  return typeof user?.id === "string" ? user.id : null;
+  return authenticateAccount(token, { supabaseUrl: requiredEnv("SUPABASE_URL"), anonKey: requiredEnv("SUPABASE_ANON_KEY") });
 }
 
 async function verifyItemOwnership(itemId: string, userId: string): Promise<void> {
