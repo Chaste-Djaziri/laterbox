@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { LaterBoxItem } from '@/lib/supabase/types';
 import { useItems } from '@/lib/store/ItemContext';
 import { resolveReturnPreset, ReturnPreset } from '@/lib/utils/schedule';
@@ -31,6 +31,9 @@ import {
   RotateCcw,
   Folder,
   FolderPlus,
+  CalendarDays,
+  CalendarClock,
+  CheckCircle,
 } from 'lucide-react';
 import {
   InboxSearchFilters,
@@ -46,6 +49,7 @@ import { AddToCollectionModal } from '@/components/collections/AddToCollectionMo
 interface EmailInboxTableProps {
   items: LaterBoxItem[];
   onOpenCapture: () => void;
+  title?: string;
   searchQuery?: string;
   isSearchSubmitted?: boolean;
   searchFilters?: InboxSearchFilters;
@@ -58,6 +62,7 @@ type TabKey = 'primary' | 'articles' | 'media' | 'updates';
 export function EmailInboxTable({
   items,
   onOpenCapture,
+  title: propTitle,
   searchQuery = '',
   isSearchSubmitted = false,
   searchFilters,
@@ -65,6 +70,7 @@ export function EmailInboxTable({
   onClearSearch,
 }: EmailInboxTableProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const {
     setFavorite,
     archiveItem,
@@ -260,6 +266,163 @@ export function EmailInboxTable({
   const startIndex = (page - 1) * pageSize;
   const endIndex = Math.min(startIndex + pageSize, totalItems);
   const pagedItems = processedItems.slice(startIndex, endIndex);
+
+  // Dynamic empty state based on route, collection, or search filters
+  const emptyStateConfig = useMemo(() => {
+    // 1. Search filter is active
+    if (isSearchActive) {
+      return {
+        icon: <Search className="w-6 h-6 stroke-[1.5]" />,
+        title: `No results match "${searchQuery}"`,
+        description: 'Try adjusting your search filters or searching for different keywords.',
+        primaryAction: null,
+      };
+    }
+
+    if (searchQuery) {
+      return {
+        icon: <Search className="w-6 h-6 stroke-[1.5]" />,
+        title: 'No items match your search',
+        description: 'Try a different keyword or clear the search query.',
+        primaryAction: null,
+      };
+    }
+
+    const currentTitle = propTitle || '';
+    const isCollection =
+      pathname.startsWith('/library/') ||
+      (Boolean(currentTitle) &&
+        !['Inbox', 'Starred', 'Kept', 'Archived', 'Recently Deleted', 'Today', 'Upcoming', 'Someday'].includes(
+          currentTitle
+        ));
+
+    // Tab-specific naming
+    const tabSuffix =
+      activeTab === 'primary'
+        ? ''
+        : activeTab === 'articles'
+        ? 'articles'
+        : activeTab === 'media'
+        ? 'media files'
+        : 'notes or updates';
+
+    // 2. Starred view
+    if (pathname === '/starred' || currentTitle === 'Starred') {
+      return {
+        icon: <Star className="w-6 h-6 stroke-[1.5] text-amber-500 fill-amber-500/20" />,
+        title: activeTab === 'primary' ? 'No starred items yet' : `No starred ${tabSuffix}`,
+        description: 'Click the star icon on any item in your inbox or library to keep your top favorites here for quick access.',
+        primaryAction: {
+          label: 'Save item to inbox',
+          onClick: onOpenCapture,
+          icon: <Plus className="w-3.5 h-3.5" />,
+        },
+      };
+    }
+
+    // 3. Kept view
+    if (pathname === '/kept' || currentTitle === 'Kept') {
+      return {
+        icon: <CheckCircle className="w-6 h-6 stroke-[1.5] text-[#171711]" />,
+        title: activeTab === 'primary' ? 'No kept items in your library' : `No kept ${tabSuffix}`,
+        description: 'Items you keep from your inbox will be preserved here permanently for quick reference.',
+        primaryAction: {
+          label: 'Save item to library',
+          onClick: onOpenCapture,
+          icon: <Plus className="w-3.5 h-3.5" />,
+        },
+      };
+    }
+
+    // 4. Archived view
+    if (pathname === '/archived' || currentTitle === 'Archived') {
+      return {
+        icon: <Archive className="w-6 h-6 stroke-[1.5] text-[#6c6b63]" />,
+        title: activeTab === 'primary' ? 'No archived items' : `No archived ${tabSuffix}`,
+        description: 'Completed or processed items you archive will be stored here safely without cluttering your inbox.',
+        primaryAction: null,
+      };
+    }
+
+    // 5. Trash / Recently Deleted view
+    if (pathname === '/trash' || pathname === '/deleted' || currentTitle === 'Recently Deleted') {
+      return {
+        icon: <Trash2 className="w-6 h-6 stroke-[1.5] text-[#9e9b92]" />,
+        title: 'Trash is empty',
+        description: 'Items you delete will appear here before being permanently removed.',
+        primaryAction: null,
+      };
+    }
+
+    // 6. Today view
+    if (pathname === '/today' || currentTitle === 'Today') {
+      return {
+        icon: <Clock className="w-6 h-6 stroke-[1.5] text-[#171711]" />,
+        title: activeTab === 'primary' ? 'Nothing scheduled for today' : `No ${tabSuffix} scheduled for today`,
+        description: 'Items scheduled for today or deferred to resurface now will appear here.',
+        primaryAction: {
+          label: 'Schedule an item',
+          onClick: onOpenCapture,
+          icon: <Plus className="w-3.5 h-3.5" />,
+        },
+      };
+    }
+
+    // 7. Upcoming view
+    if (pathname === '/upcoming' || currentTitle === 'Upcoming') {
+      return {
+        icon: <CalendarDays className="w-6 h-6 stroke-[1.5] text-[#171711]" />,
+        title: activeTab === 'primary' ? 'No upcoming scheduled items' : `No upcoming ${tabSuffix}`,
+        description: 'Postponed items with future return dates and scheduled reminders will appear here chronologically.',
+        primaryAction: {
+          label: 'Schedule an item',
+          onClick: onOpenCapture,
+          icon: <Plus className="w-3.5 h-3.5" />,
+        },
+      };
+    }
+
+    // 8. Someday view
+    if (pathname === '/someday' || currentTitle === 'Someday') {
+      return {
+        icon: <CalendarClock className="w-6 h-6 stroke-[1.5] text-[#171711]" />,
+        title: activeTab === 'primary' ? 'Your Someday vault is clear' : `No Someday ${tabSuffix}`,
+        description: 'Ideas, reading lists, and backlog items postponed without a specific deadline will appear here.',
+        primaryAction: {
+          label: 'Save item for someday',
+          onClick: onOpenCapture,
+          icon: <Plus className="w-3.5 h-3.5" />,
+        },
+      };
+    }
+
+    // 9. Custom Collection view
+    if (isCollection) {
+      const collectionName = currentTitle || 'this collection';
+      return {
+        icon: <Folder className="w-6 h-6 stroke-[1.5] text-[#171711]" />,
+        title: activeTab === 'primary' ? `No items in "${collectionName}"` : `No ${tabSuffix} in "${collectionName}"`,
+        description: `Items assigned to "${collectionName}" will appear here. Use the collection control on any item to add it.`,
+        primaryAction: {
+          label: 'Save new item',
+          onClick: onOpenCapture,
+          icon: <Plus className="w-3.5 h-3.5" />,
+        },
+      };
+    }
+
+    // 10. Default: Primary Inbox
+    return {
+      icon: <Mail className="w-6 h-6 stroke-[1.5] text-[#171711]" />,
+      title: activeTab === 'primary' ? 'Your inbox is all clear' : `No ${tabSuffix} in your inbox`,
+      description: 'Items captured or scheduled for this category will appear here.',
+      primaryAction: {
+        label: 'Save item to inbox',
+        onClick: onOpenCapture,
+        icon: <Plus className="w-3.5 h-3.5" />,
+      },
+    };
+  }, [isSearchActive, searchQuery, activeTab, pathname, propTitle, onOpenCapture]);
 
   // Selection helpers
   const allPagedSelected = pagedItems.length > 0 && pagedItems.every((i) => selectedIds.has(i.id));
@@ -877,23 +1040,15 @@ export function EmailInboxTable({
       {/* ===================================================================== */}
       {pagedItems.length === 0 ? (
         <div className="flex-1 min-h-0 overflow-y-auto flex flex-col items-center justify-center py-16 px-4 text-center space-y-3 rounded-b-2xl">
-          <div className="w-12 h-12 rounded-2xl bg-[#faf8f5] border border-[#e4e0d5] flex items-center justify-center text-[#9e9b92]">
-            {isSearchActive ? <Search className="w-6 h-6 stroke-[1.5]" /> : <Mail className="w-6 h-6 stroke-[1.5]" />}
+          <div className="w-12 h-12 rounded-2xl bg-[#faf8f5] border border-[#e4e0d5] flex items-center justify-center text-[#9e9b92] shadow-2xs">
+            {emptyStateConfig.icon}
           </div>
           <div>
             <h3 className="text-sm font-bold text-[#171711]">
-              {isSearchActive
-                ? `No results match "${searchQuery}"`
-                : searchQuery
-                ? 'No items match your search'
-                : `Your ${activeTab} inbox is clear`}
+              {emptyStateConfig.title}
             </h3>
-            <p className="text-xs text-[#8e8d87] max-w-sm mx-auto mt-0.5">
-              {isSearchActive
-                ? 'Try adjusting your filters or searching for different keywords.'
-                : searchQuery
-                ? 'Try a different keyword or clear the search filter.'
-                : 'Items captured or scheduled for this category will appear here.'}
+            <p className="text-xs text-[#8e8d87] max-w-sm mx-auto mt-0.5 leading-relaxed">
+              {emptyStateConfig.description}
             </p>
           </div>
           {isSearchActive ? (
@@ -916,16 +1071,16 @@ export function EmailInboxTable({
                 </button>
               )}
             </div>
-          ) : (
+          ) : emptyStateConfig.primaryAction ? (
             <button
               type="button"
-              onClick={onOpenCapture}
+              onClick={emptyStateConfig.primaryAction.onClick}
               className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#171711] hover:bg-black text-white text-xs font-bold shadow-xs transition-all cursor-pointer mt-2"
             >
-              <Plus className="w-3.5 h-3.5" />
-              <span>Save item to inbox</span>
+              {emptyStateConfig.primaryAction.icon}
+              <span>{emptyStateConfig.primaryAction.label}</span>
             </button>
-          )}
+          ) : null}
         </div>
       ) : selectedItem ? (
         /* SPLIT VIEW (Image 1 style) */
