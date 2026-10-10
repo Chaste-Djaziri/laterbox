@@ -9,6 +9,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 ## [Unreleased]
 
 ### Changed
+- **[Web] Video.js 10 player & audio integration**: Integrated official Video.js 10 React video and audio players with custom skins for local attachments and cloud streaming media, providing accessible playback controls, cross-browser streaming, and keyboard shortcuts.
 - **[Web] Rich media previews for local and cloud attachments**: Added integrated video player for video attachments, proper responsive image previews, and embedded PDF previews with an external tab button to view the PDF path directly, supporting both locally stored blobs and cloud-backed files in side details and full item views.
 - **[Web] Document upload in detail message input**: Added document upload support directly from the detail message input plus menu, supporting file selection, staged preview chips with formatted sizes, and thread entries with local storage references and one-click downloading/viewing without cloud dependency.
 - **[Web] White-themed fixed detail input bar and bottom viewport gap**: Restyled the item details input pill to a clean white theme with light borders and fixed it to the bottom of the details pane. Added a dedicated bottom spacing gap to the Inbox page container so the inbox card floats cleanly above the bottom of the viewport.
