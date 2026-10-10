@@ -130,97 +130,144 @@ public struct EmailInboxRowView: View {
     }
 
     public var body: some View {
-        HStack(alignment: .top, spacing: 14) {
-            // Multi-select Checkbox (if in selection mode)
-            if isSelectionMode {
-                Button(action: onToggleSelect) {
-                    Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                        .font(.system(size: 20))
-                        .foregroundColor(isSelected ? AppTheme.textPrimary : Color.gray.opacity(0.4))
+        ZStack(alignment: .trailing) {
+            // Right-aligned fading OG image watermark (matching web anime-card style)
+            if let previewUrlStr = item.previewImageUrl, let previewUrl = URL(string: previewUrlStr) {
+                GeometryReader { geo in
+                    AsyncImage(url: previewUrl) { phase in
+                        switch phase {
+                        case .success(let image):
+                            image
+                                .resizable()
+                                .scaledToFill()
+                                .frame(width: min(geo.size.width * 0.45, 180), height: geo.size.height)
+                                .clipped()
+                                .opacity(0.65)
+                                .mask(
+                                    LinearGradient(
+                                        stops: [
+                                            .init(color: .clear, location: 0.0),
+                                            .init(color: .black.opacity(0.4), location: 0.35),
+                                            .init(color: .black.opacity(0.85), location: 0.65),
+                                            .init(color: .black, location: 1.0)
+                                        ],
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
+                                )
+                                .overlay(
+                                    LinearGradient(
+                                        stops: [
+                                            .init(color: Color.white.opacity(0.92), location: 0.0),
+                                            .init(color: Color.white.opacity(0.2), location: 0.6),
+                                            .init(color: .clear, location: 1.0)
+                                        ],
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
+                                )
+                                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .trailing)
+                        default:
+                            EmptyView()
+                        }
+                    }
                 }
-                .buttonStyle(.plain)
-                .padding(.top, 10)
+                .allowsHitTesting(false)
             }
 
-            // Left: Colored Avatar Circle (Matching Gmail screenshot)
-            ZStack {
-                Circle()
-                    .fill(avatarColor)
-                    .frame(width: 40, height: 40)
-                Text(avatarInitial)
-                    .font(.system(size: 17, weight: .semibold))
-                    .foregroundColor(.white)
-            }
+            HStack(alignment: .top, spacing: 14) {
+                // Multi-select Checkbox (if in selection mode)
+                if isSelectionMode {
+                    Button(action: onToggleSelect) {
+                        Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                            .font(.system(size: 20))
+                            .foregroundColor(isSelected ? AppTheme.textPrimary : Color.gray.opacity(0.4))
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.top, 10)
+                }
 
-            // Middle & Right: 3-line email summary layout
-            VStack(alignment: .leading, spacing: 2.5) {
-                // Line 1: Sender Name + Timestamp
-                HStack(alignment: .firstTextBaseline) {
-                    Text(senderText)
-                        .font(.system(size: 15, weight: .bold))
+                // Left: Colored Avatar Circle (Matching Gmail screenshot)
+                ZStack {
+                    Circle()
+                        .fill(avatarColor)
+                        .frame(width: 40, height: 40)
+                    Text(avatarInitial)
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundColor(.white)
+                }
+
+                // Middle & Right: 3-line email summary layout
+                VStack(alignment: .leading, spacing: 2.5) {
+                    // Line 1: Sender Name + Timestamp
+                    HStack(alignment: .firstTextBaseline) {
+                        Text(senderText)
+                            .font(.system(size: 15, weight: .bold))
+                            .foregroundColor(AppTheme.textPrimary)
+                            .lineLimit(1)
+
+                        Spacer()
+
+                        Text(formattedDate)
+                            .font(.system(size: 12, weight: .regular))
+                            .foregroundColor(Color.secondary)
+                    }
+
+                    // Line 2: Subject / Title
+                    Text(item.title)
+                        .font(.system(size: 14, weight: .medium))
                         .foregroundColor(AppTheme.textPrimary)
                         .lineLimit(1)
 
-                    Spacer()
+                    // Line 3: Snippet text + Bottom-Right Star Icon
+                    HStack(alignment: .center, spacing: 6) {
+                        Text(snippetText)
+                            .font(.system(size: 13, weight: .regular))
+                            .foregroundColor(Color.secondary)
+                            .lineLimit(1)
+                            .frame(maxWidth: .infinity, alignment: .leading)
 
-                    Text(formattedDate)
-                        .font(.system(size: 12, weight: .regular))
-                        .foregroundColor(Color.secondary)
-                }
-
-                // Line 2: Subject / Title
-                Text(item.title)
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundColor(AppTheme.textPrimary)
-                    .lineLimit(1)
-
-                // Line 3: Snippet text + Bottom-Right Star Icon
-                HStack(alignment: .center, spacing: 6) {
-                    Text(snippetText)
-                        .font(.system(size: 13, weight: .regular))
-                        .foregroundColor(Color.secondary)
-                        .lineLimit(1)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-
-                    Button(action: onToggleFavorite) {
-                        Image(systemName: item.favorite ? "star.fill" : "star")
-                            .font(.system(size: 16))
-                            .foregroundColor(item.favorite ? AppTheme.amber : Color.black.opacity(0.28))
+                        Button(action: onToggleFavorite) {
+                            Image(systemName: item.favorite ? "star.fill" : "star")
+                                .font(.system(size: 16))
+                                .foregroundColor(item.favorite ? AppTheme.amber : Color.black.opacity(0.28))
+                        }
+                        .buttonStyle(.plain)
                     }
-                    .buttonStyle(.plain)
-                }
 
-                // Optional Action Chip / Pill (e.g. Collection tag or attachment badge)
-                if let collection = item.collectionName, !collection.isEmpty {
-                    HStack(spacing: 4) {
-                        Image(systemName: "folder.fill")
-                            .font(.system(size: 9))
-                        Text(collection)
-                            .font(.system(size: 11, weight: .semibold))
+                    // Optional Action Chip / Pill (e.g. Collection tag or attachment badge)
+                    if let collection = item.collectionName, !collection.isEmpty {
+                        HStack(spacing: 4) {
+                            Image(systemName: "folder.fill")
+                                .font(.system(size: 9))
+                            Text(collection)
+                                .font(.system(size: 11, weight: .semibold))
+                        }
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 4)
+                        .background(Color(hex: "E8F0FE"), in: Capsule())
+                        .foregroundColor(Color(hex: "1967D2"))
+                        .padding(.top, 2)
+                    } else if hasAttachments {
+                        HStack(spacing: 4) {
+                            Image(systemName: "paperclip")
+                                .font(.system(size: 9))
+                            Text("Attachment")
+                                .font(.system(size: 11, weight: .semibold))
+                        }
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 4)
+                        .background(Color(hex: "E8F0FE"), in: Capsule())
+                        .foregroundColor(Color(hex: "1967D2"))
+                        .padding(.top, 2)
                     }
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 4)
-                    .background(Color(hex: "E8F0FE"), in: Capsule())
-                    .foregroundColor(Color(hex: "1967D2"))
-                    .padding(.top, 2)
-                } else if hasAttachments {
-                    HStack(spacing: 4) {
-                        Image(systemName: "paperclip")
-                            .font(.system(size: 9))
-                        Text("Attachment")
-                            .font(.system(size: 11, weight: .semibold))
-                    }
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 4)
-                    .background(Color(hex: "E8F0FE"), in: Capsule())
-                    .foregroundColor(Color(hex: "1967D2"))
-                    .padding(.top, 2)
                 }
             }
+            .padding(.vertical, 12)
+            .padding(.horizontal, 16)
         }
-        .padding(.vertical, 12)
-        .padding(.horizontal, 16)
         .background(Color.white)
+        .clipped()
         .contentShape(Rectangle())
         .swipeActions(edge: .leading) {
             Button {
