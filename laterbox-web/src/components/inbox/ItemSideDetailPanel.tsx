@@ -213,16 +213,30 @@ export function ItemSideDetailPanel({ item, onClose }: ItemSideDetailPanelProps)
 
   return (
     <div className="flex flex-col h-full bg-white relative overflow-hidden select-none">
-      {/* 1. TOP HEADER: Title, Sender info & Actions */}
-      <div className="shrink-0 p-4 border-b border-[#e4e0d5] bg-white space-y-3">
-        {/* Top actions toolbar */}
+      {/* 1. TOP HEADER: Sender Info & Actions on Top Row, Title Underneath */}
+      <div className="shrink-0 p-4 border-b border-[#e4e0d5] bg-white space-y-2.5">
+        {/* Top actions toolbar: sender avatar & domain on left, action icons on right */}
         <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#8e8d87]">
-            <span>Item Details</span>
+          {/* Left: Sender Profile Pic, Name, Link Domain & Timestamp */}
+          <div className="flex items-center gap-2.5 min-w-0 text-xs text-[#6c6b63]">
+            <div className="w-6 h-6 rounded-full bg-[#171711] text-[#e6edb0] font-black text-[10px] flex items-center justify-center shrink-0 shadow-2xs">
+              {sender.slice(0, 2).toUpperCase()}
+            </div>
+            <div className="min-w-0 flex items-center gap-1.5 truncate">
+              <span className="font-bold text-[#171711] truncate">{sender}</span>
+              {item.metadata?.domain && (
+                <span className="text-[#8e8d87] truncate">
+                  • {item.metadata.domain}
+                </span>
+              )}
+            </div>
+            <span className="shrink-0 text-[11px] text-[#8e8d87] font-medium hidden sm:inline">
+              {formatEmailDate(item.created_at)}
+            </span>
           </div>
 
-          {/* Quick Action Buttons */}
-          <div className="flex items-center gap-1 text-[#6c6b63]">
+          {/* Right: Quick Action Buttons */}
+          <div className="flex items-center gap-1 text-[#6c6b63] shrink-0">
             {/* Open in full page button */}
             <Link
               href={`/item/${item.id}`}
@@ -286,27 +300,11 @@ export function ItemSideDetailPanel({ item, onClose }: ItemSideDetailPanelProps)
           </div>
         </div>
 
-        {/* Item Title & Domain */}
+        {/* Item Title directly underneath */}
         <div>
           <h2 className="text-base sm:text-lg font-black text-[#171711] tracking-tight line-clamp-2 leading-snug">
             {title}
           </h2>
-
-          {/* Sender meta bar */}
-          <div className="flex items-center gap-2.5 mt-2 text-xs text-[#6c6b63]">
-            <div className="w-6 h-6 rounded-full bg-[#171711] text-[#e6edb0] font-black text-[10px] flex items-center justify-center shrink-0">
-              {sender.slice(0, 2).toUpperCase()}
-            </div>
-            <div className="min-w-0 flex-1 truncate">
-              <span className="font-bold text-[#171711]">{sender}</span>
-              {item.metadata?.domain && (
-                <span className="text-[#8e8d87] ml-1.5">• {item.metadata.domain}</span>
-              )}
-            </div>
-            <span className="shrink-0 text-[11px] text-[#8e8d87] font-medium">
-              {formatEmailDate(item.created_at)}
-            </span>
-          </div>
         </div>
       </div>
 
