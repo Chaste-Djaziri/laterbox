@@ -165,7 +165,7 @@ export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
 
   return (
     <aside
-      className={`h-screen overflow-y-auto bg-transparent border-r border-[#e4e0d5] flex flex-col justify-between p-3.5 shrink-0 transition-all duration-200 ${
+      className={`h-screen overflow-y-auto bg-transparent flex flex-col justify-between p-3.5 shrink-0 transition-all duration-200 ${
         collapsed ? 'w-[76px]' : 'w-60'
       }`}
     >
