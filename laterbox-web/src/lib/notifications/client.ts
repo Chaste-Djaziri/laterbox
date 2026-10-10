@@ -85,8 +85,9 @@ export async function refreshRegistration(userId: string | undefined, isPro: boo
     return { cloud: false, message: userId && isPro ? 'Local reminders enabled. Web Push needs provider setup.' : 'Local reminders work while this page is running.' };
   }
   const client = getSupabaseClient();
-  const { data: auth } = await client.auth.getSession();
-  if (auth.session?.user.id !== userId || localStorage.getItem(suspendedUserKey) === userId) return { cloud: false, message: 'Notifications disconnected.' };
+  const token = await getAccessToken();
+  const { data: accountId, error: accountError } = await client.rpc('current_account_id');
+  if (!token || accountError || accountId !== userId || localStorage.getItem(suspendedUserKey) === userId) return { cloud: false, message: 'Notifications disconnected.' };
   const subscription = await reg.pushManager.getSubscription() || await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: applicationKey(vapid) });
   const next = JSON.stringify([userId, prefs, subscription.toJSON()]);
   if (signature !== next) {
