@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { SignInResource, SignUpResource } from '@clerk/shared/types';
-import { createCustomClerkFlow } from './custom-flow';
+import { createCustomClerkFlow, getClerkRequirementError } from './custom-flow';
 
 function fixture(options: { unknown?: boolean; networkFailure?: boolean; password?: boolean; signupPassword?: boolean; invalidCode?: boolean } = {}) {
   const calls: string[] = [];
@@ -72,4 +72,35 @@ test('authenticator MFA keeps the session inactive until the second code succeed
   assert.deepEqual(f.calls,[]);
   assert.equal((await flow.verify('222222')).error,null);
   assert.deepEqual(f.calls,['activate session_mfa']);
+});
+
+test('missing clerk requirements explicitly identify required fields like first and last name',async () => {
+  const f = fixture({ unknown: true });
+  const state: { mode: 'signin' | 'signup' } = { mode: 'signup' };
+  f.signup.attemptEmailAddressVerification = async () => ({
+    status: 'missing_requirements',
+    createdSessionId: null,
+    missingFields: ['first_name', 'last_name'],
+    unverifiedFields: [],
+  } as unknown as SignUpResource);
+
+  const flow = createCustomClerkFlow(f.signin,f.signup,f.activate,state);
+  const res = await flow.verify('123456');
+  assert.ok(res.error);
+  assert.match(res.error.message, /Missing required fields: First Name \(first_name\), Last Name \(last_name\)/);
+  assert.match(res.error.message, /Clerk is requiring:/);
+});
+
+test('getClerkRequirementError surfaces missing fields, unverified attributes, and 2FA',() => {
+  const missingName = {
+    status: 'missing_requirements',
+    missingFields: ['first_name', 'last_name'],
+    unverifiedFields: ['phone_number'],
+  } as unknown as SignUpResource;
+  const msg = getClerkRequirementError(missingName);
+  assert.match(msg, /Missing required fields: First Name \(first_name\), Last Name \(last_name\)/);
+  assert.match(msg, /Unverified fields: Phone Number \(phone_number\)/);
+
+  const unknownStatus = { status: 'unknown_step' } as unknown as SignInResource;
+  assert.match(getClerkRequirementError(unknownStatus), /Clerk status: unknown_step/);
 });

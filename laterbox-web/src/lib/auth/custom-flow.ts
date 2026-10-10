@@ -2,9 +2,86 @@ import { AuthError } from '@supabase/supabase-js';
 import type { SignInResource, SignUpResource } from '@clerk/shared/types';
 
 export type EmailStartResult = { error: AuthError | null; nextStep?: 'email' | 'signup' | 'password' };
+
+const CLERK_FIELD_LABELS: Record<string, string> = {
+  first_name: 'First Name',
+  last_name: 'Last Name',
+  username: 'Username',
+  password: 'Password',
+  phone_number: 'Phone Number',
+  email_address: 'Email Address',
+  legal_accepted: 'Legal Acceptance',
+  protect_check: 'Security Check (Clerk Protect)',
+};
+
+function formatClerkField(field: string): string {
+  const label = CLERK_FIELD_LABELS[field];
+  return label ? `${label} (${field})` : field;
+}
+
+export function getClerkRequirementError(attempt: SignInResource | SignUpResource): string {
+  const parts: string[] = [];
+
+  if ('missingFields' in attempt && Array.isArray(attempt.missingFields) && attempt.missingFields.length > 0) {
+    parts.push(`Missing required fields: ${attempt.missingFields.map(formatClerkField).join(', ')}`);
+  }
+
+  if ('unverifiedFields' in attempt && Array.isArray(attempt.unverifiedFields) && attempt.unverifiedFields.length > 0) {
+    parts.push(`Unverified fields: ${attempt.unverifiedFields.map(formatClerkField).join(', ')}`);
+  }
+
+  if (attempt.status === 'needs_second_factor') {
+    if ('supportedSecondFactors' in attempt && Array.isArray(attempt.supportedSecondFactors) && attempt.supportedSecondFactors.length > 0) {
+      const strategies = attempt.supportedSecondFactors.map(f => f.strategy).join(', ');
+      parts.push(`additional verification required (2FA strategies: ${strategies})`);
+    } else {
+      parts.push('additional verification required');
+    }
+  }
+
+  if ('verifications' in attempt && attempt.verifications) {
+    const verifs = attempt.verifications as unknown as Record<string, { error?: { message?: string; longMessage?: string }; status?: string } | undefined>;
+    for (const [key, val] of Object.entries(verifs)) {
+      if (val?.error?.longMessage || val?.error?.message) {
+        parts.push(`${formatClerkField(key)}: ${val.error.longMessage || val.error.message}`);
+      }
+    }
+  }
+
+  if ('firstFactorVerification' in attempt && attempt.firstFactorVerification) {
+    const v = attempt.firstFactorVerification as { error?: { message?: string; longMessage?: string }; status?: string };
+    if (v.error?.longMessage || v.error?.message) {
+      parts.push(`First factor: ${v.error.longMessage || v.error.message}`);
+    }
+  }
+
+  if ('secondFactorVerification' in attempt && attempt.secondFactorVerification) {
+    const v = attempt.secondFactorVerification as { error?: { message?: string; longMessage?: string }; status?: string };
+    if (v.error?.longMessage || v.error?.message) {
+      parts.push(`Second factor: ${v.error.longMessage || v.error.message}`);
+    }
+  }
+
+  if (parts.length > 0) {
+    return `Your account requires additional information before sign-in can finish. Clerk is requiring: ${parts.join('. ')}.`;
+  }
+
+  if (attempt.status === 'needs_second_factor') {
+    return 'Your account requires additional verification. Contact support to complete this sign-in.';
+  }
+
+  const statusNote = attempt.status ? ` (Clerk status: ${attempt.status})` : '';
+  return `Your account requires additional information before sign-in can finish${statusNote}. Please check your Clerk dashboard settings or contact support.`;
+}
+
 export function customAuthError(cause: unknown): AuthError {
+  if (cause instanceof AuthError) return cause;
   const error = cause as { errors?: { longMessage?: string; message?: string }[]; message?: string };
-  return new AuthError(error.errors?.[0]?.longMessage || error.errors?.[0]?.message || error.message || 'Authentication could not finish. Please retry.');
+  const clerkMessages = error.errors?.map(e => e.longMessage || e.message).filter(Boolean);
+  if (clerkMessages && clerkMessages.length > 0) {
+    return new AuthError(clerkMessages.join('. '));
+  }
+  return new AuthError(error.message || 'Authentication could not finish. Please retry.');
 }
 
 /** Keep provider state behind LaterBox's existing email/code/password forms. */
@@ -12,7 +89,7 @@ export function createCustomClerkFlow(signIn: SignInResource, signUp: SignUpReso
   const finish = async (attempt: SignInResource | SignUpResource) => {
     if (attempt.status === 'needs_second_factor' && 'supportedSecondFactors' in attempt && attempt.supportedSecondFactors?.some(factor => factor.strategy === 'totp')) { state.secondFactor = 'totp'; return false; }
     if (attempt.status !== 'complete' || !attempt.createdSessionId) {
-      throw new Error(attempt.status === 'needs_second_factor' ? 'Your account requires additional verification. Contact support to complete this sign-in.' : 'Your account requires additional information before sign-in can finish.');
+      throw new Error(getClerkRequirementError(attempt));
     }
     await activate(attempt.createdSessionId);
     return true;
