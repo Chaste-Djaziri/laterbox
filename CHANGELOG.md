@@ -9,6 +9,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 ## [Unreleased]
 
 ### Changed
+- **[Web] Uniform background across details page header and content areas**: Harmonized the background across the details pane header and scrollable content area to use a seamless white background, eliminating the color discrepancy between the header and content body.
 - **[Web] Enlarge sidebar branding and remove icon background**: Updated the sidebar header to use a larger transparent black LaterBox icon without a background container and increased the wordmark font size.
 - **[Web] Scrollable borderless item detail header**: Removed the bottom border from the side details header and moved the header inside the scrollable content container so it naturally scrolls together with the saved content and message thread.
 - **[Web] Video.js 10 player & audio integration**: Integrated official Video.js 10 React video and audio players with custom skins for local attachments and cloud streaming media, providing accessible playback controls, cross-browser streaming, and keyboard shortcuts.
