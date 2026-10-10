@@ -21,7 +21,9 @@ public struct ReturnsView: View {
 
     @State private var selectedSegment: ReturnSegment = .today
 
-    public init() {}
+    public init(initialSegment: ReturnSegment = .today) {
+        self._selectedSegment = State(initialValue: initialSegment)
+    }
 
     private var itemsForSegment: [LBItem] {
         let cal = Calendar.current
