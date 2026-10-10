@@ -35,9 +35,13 @@ export function middleware(request: NextRequest) {
   // 2. App Subdomain (e.g. app.laterbox.dev or app.localhost:3000)
   const isAppSubdomain = hostname.startsWith('app.');
   if (isAppSubdomain) {
-    // Root on app subdomain maps to /home
+    // Root on app subdomain maps to /inbox
     if (url.pathname === '/') {
-      return NextResponse.rewrite(new URL('/home', request.url));
+      return NextResponse.rewrite(new URL('/inbox', request.url));
+    }
+    // Redirect legacy /home to /inbox
+    if (url.pathname === '/home') {
+      return NextResponse.redirect(new URL('/inbox', request.url), 307);
     }
     // In-app downloads aliases (/download or /apps -> /downloads)
     if (url.pathname === '/download' || url.pathname === '/apps') {
@@ -81,7 +85,7 @@ export function middleware(request: NextRequest) {
 
     // App routes on apex domain redirect to app.laterbox.dev
     const isAppPath =
-      ['/home', '/today', '/upcoming', '/someday'].some(path => url.pathname === path) ||
+      ['/today', '/upcoming', '/someday'].some(path => url.pathname === path) ||
       url.pathname.startsWith('/inbox') ||
       url.pathname.startsWith('/library') ||
       url.pathname.startsWith('/search') ||
