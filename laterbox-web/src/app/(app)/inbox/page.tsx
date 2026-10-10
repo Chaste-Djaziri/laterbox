@@ -223,7 +223,7 @@ export default function InboxPage() {
   };
 
   return (
-    <div className="max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 pt-3 sm:pt-4 pb-2 sm:pb-3 flex flex-col flex-1 min-h-0 h-full overflow-hidden space-y-3">
+    <div className="w-full px-3 sm:px-4 lg:px-5 pt-3 sm:pt-4 pb-2 sm:pb-3 flex flex-col flex-1 min-h-0 h-full overflow-hidden space-y-3">
       <div className="shrink-0">
         <InboxExtensionGate userId={user?.id} />
       </div>
