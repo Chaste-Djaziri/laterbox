@@ -223,11 +223,13 @@ export default function InboxPage() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-4">
-      <InboxExtensionGate userId={user?.id} />
+    <div className="max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-4 flex flex-col flex-1 min-h-0 h-full overflow-hidden space-y-3">
+      <div className="shrink-0">
+        <InboxExtensionGate userId={user?.id} />
+      </div>
 
       {/* Top Header: Title, Centered Search, AI Organize, Save Item, Settings & Profile */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="shrink-0 flex flex-wrap items-center justify-between gap-3">
         {/* Left: Clean Inbox Title (No unread count) */}
         <div className="shrink-0">
           <h1 className="text-2xl sm:text-3xl font-black text-[#171711] tracking-tight">
@@ -472,22 +474,24 @@ export default function InboxPage() {
         </div>
       </div>
 
-      {/* Main Content: Email Client Inbox View */}
-      {loading ? (
-        <div className="bg-white border border-[#e4e0d5] rounded-2xl p-12 text-center animate-pulse">
-          <p className="text-xs font-semibold text-[#8e8d87]">Loading inbox messages...</p>
-        </div>
-      ) : (
-        <EmailInboxTable
-          items={inboxItems}
-          onOpenCapture={() => setCaptureOpen(true)}
-          searchQuery={searchQuery}
-          isSearchSubmitted={isSearchSubmitted}
-          searchFilters={searchFilters}
-          onUpdateFilters={setSearchFilters}
-          onClearSearch={handleClearSearch}
-        />
-      )}
+      {/* Main Content: Email Client Inbox View (Fills remaining viewport space) */}
+      <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
+        {loading ? (
+          <div className="bg-white border border-[#e4e0d5] rounded-2xl p-12 text-center animate-pulse flex-1 flex items-center justify-center">
+            <p className="text-xs font-semibold text-[#8e8d87]">Loading inbox messages...</p>
+          </div>
+        ) : (
+          <EmailInboxTable
+            items={inboxItems}
+            onOpenCapture={() => setCaptureOpen(true)}
+            searchQuery={searchQuery}
+            isSearchSubmitted={isSearchSubmitted}
+            searchFilters={searchFilters}
+            onUpdateFilters={setSearchFilters}
+            onClearSearch={handleClearSearch}
+          />
+        )}
+      </div>
 
       <QuickCaptureModal isOpen={captureOpen} onClose={() => setCaptureOpen(false)} />
 

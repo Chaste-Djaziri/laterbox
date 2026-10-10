@@ -332,11 +332,11 @@ export function EmailInboxTable({
   };
 
   return (
-    <div className="bg-white border border-[#e4e0d5] rounded-2xl shadow-2xs flex flex-col relative">
+    <div className="bg-white border border-[#e4e0d5] rounded-2xl shadow-2xs flex flex-col flex-1 min-h-0 h-full overflow-hidden relative">
       {/* ===================================================================== */}
       {/* TOP TOOLBAR: Controls, Batch Actions, Pagination */}
       {/* ===================================================================== */}
-      <div className="flex items-center justify-between px-3 py-2 border-b border-[#e4e0d5] bg-white text-[#6c6b63] text-xs min-h-[46px] select-none rounded-t-2xl relative z-20">
+      <div className="shrink-0 flex items-center justify-between px-3 py-2 border-b border-[#e4e0d5] bg-white text-[#6c6b63] text-xs min-h-[46px] select-none rounded-t-2xl relative z-20">
         {/* Left Toolbar Controls */}
         <div className="flex items-center gap-1 sm:gap-2">
           {/* Checkbox & Dropdown */}
@@ -579,7 +579,7 @@ export function EmailInboxTable({
       {/* ===================================================================== */}
       {isSearchActive ? (
         /* SEARCH FILTER PILLS BAR (Image 1 style) */
-        <div className="flex flex-wrap items-center justify-between gap-2 px-3 sm:px-4 py-2.5 border-b border-[#e4e0d5] bg-[#faf8f5]/60 text-xs relative z-30">
+        <div className="shrink-0 flex flex-wrap items-center justify-between gap-2 px-3 sm:px-4 py-2.5 border-b border-[#e4e0d5] bg-[#faf8f5]/60 text-xs relative z-30">
           <div className="flex flex-wrap items-center gap-1.5" ref={filterMenuRef}>
             {/* Search Pill Badge */}
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-[#171711] text-[#e6edb0] shadow-2xs">
@@ -741,7 +741,7 @@ export function EmailInboxTable({
         </div>
       ) : (
         /* Regular Category Tabs */
-        <div className="flex items-center border-b border-[#e4e0d5] bg-white overflow-x-auto scrollbar-none">
+        <div className="shrink-0 flex items-center border-b border-[#e4e0d5] bg-white overflow-x-auto scrollbar-none">
           {tabMetadata.map((tab) => {
             const isActive = activeTab === tab.id;
             return (
@@ -797,7 +797,7 @@ export function EmailInboxTable({
       {/* EMAIL LIST ROWS */}
       {/* ===================================================================== */}
       {pagedItems.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 px-4 text-center space-y-3 rounded-b-2xl">
+        <div className="flex-1 min-h-0 overflow-y-auto flex flex-col items-center justify-center py-16 px-4 text-center space-y-3 rounded-b-2xl">
           <div className="w-12 h-12 rounded-2xl bg-[#faf8f5] border border-[#e4e0d5] flex items-center justify-center text-[#9e9b92]">
             {isSearchActive ? <Search className="w-6 h-6 stroke-[1.5]" /> : <Mail className="w-6 h-6 stroke-[1.5]" />}
           </div>
@@ -850,10 +850,10 @@ export function EmailInboxTable({
         </div>
       ) : selectedItem ? (
         /* SPLIT VIEW (Image 1 style) */
-        <div className="flex flex-col lg:flex-row min-h-[620px] max-h-[840px] overflow-hidden rounded-b-2xl border-t border-[#f0ede4]">
+        <div className="flex-1 min-h-0 flex flex-col lg:flex-row overflow-hidden rounded-b-2xl border-t border-[#f0ede4]">
           {/* Left Compact List Pane */}
-          <div className="w-full lg:w-[360px] xl:w-[410px] shrink-0 border-r border-[#e4e0d5] flex flex-col overflow-hidden bg-white">
-            <div className="flex-1 overflow-y-auto divide-y divide-[#f0ede4]">
+          <div className="w-full lg:w-[360px] xl:w-[410px] shrink-0 border-r border-[#e4e0d5] flex flex-col h-full overflow-hidden bg-white">
+            <div className="flex-1 min-h-0 overflow-y-auto divide-y divide-[#f0ede4]">
               {pagedItems.map((item) => {
                 const isCurrentActive = item.id === selectedItemId;
                 const isSelected = selectedIds.has(item.id);
@@ -955,7 +955,7 @@ export function EmailInboxTable({
         </div>
       ) : (
         /* FULL WIDTH ROWS (Standard View) */
-        <div className="divide-y divide-[#f0ede4] rounded-b-2xl">
+        <div className="flex-1 min-h-0 overflow-y-auto divide-y divide-[#f0ede4] rounded-b-2xl">
           {pagedItems.map((item) => {
             const isSelected = selectedIds.has(item.id);
             const isStarred = Boolean(item.favorite);

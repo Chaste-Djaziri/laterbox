@@ -128,8 +128,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </header>
 
-        {/* Scrollable Page Content */}
-        <main className="flex-1 overflow-y-auto pb-[calc(5rem+env(safe-area-inset-bottom,0px))] md:pb-0">{children}</main>
+        {/* Page Content: locked viewport for Inbox, scrollable for other pages */}
+        <main
+          className={`flex-1 min-h-0 flex flex-col ${
+            pathname === '/inbox' || pathname === '/'
+              ? 'overflow-hidden pb-[calc(4.5rem+env(safe-area-inset-bottom,0px))] md:pb-0'
+              : 'overflow-y-auto pb-[calc(5rem+env(safe-area-inset-bottom,0px))] md:pb-0'
+          }`}
+        >
+          {children}
+        </main>
 
         {/* Mobile Bottom Navigation Bar */}
         <nav className="md:hidden fixed bottom-0 left-0 right-0 h-[calc(4rem+env(safe-area-inset-bottom,0px))] pb-[env(safe-area-inset-bottom,0px)] bg-[#f7f5ee]/95 backdrop-blur-lg border-t border-[#e4e0d5] flex items-center justify-around px-2 z-30">
