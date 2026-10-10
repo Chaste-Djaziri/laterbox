@@ -37,23 +37,60 @@ export async function ensureClerkAccount(subject: string): Promise<AccountUser> 
   if (existing) return existing;
   const user = await clerkAdmin().users.getUser(subject);
   const admin = getBillingAdminClient();
-  // externalId is assigned only by privileged migration tooling, never browser metadata.
+
   if (user.externalId) {
-    const { data } = await admin.from('accounts').select('id').eq('id',user.externalId).maybeSingle();
-    if (!data) throw new IdentityConflict('The migrated account is unavailable.');
-    await linkClerk(data.id,subject);
+    const { data } = await admin.from('accounts').select('id').eq('id', user.externalId).eq('state', 'active').maybeSingle();
+    if (data) {
+      await linkClerk(data.id, subject);
+    } else {
+      const email = user.primaryEmailAddress;
+      const { data: byEmail } = email ? await admin.from('accounts').select('id').eq('email', email.emailAddress).eq('state', 'active').maybeSingle() : { data: null };
+      if (byEmail) {
+        await linkClerk(byEmail.id, subject);
+      } else {
+        const { data: created } = await admin.from('accounts').insert({
+          id: user.externalId,
+          email: email?.emailAddress,
+          display_name: user.fullName || undefined,
+          state: 'active',
+        }).select('id').single();
+        if (created) await linkClerk(created.id, subject);
+        else throw new IdentityConflict('The migrated account is unavailable.');
+      }
+    }
   } else {
     const email = user.primaryEmailAddress;
     if (!email || email.verification?.status !== 'verified') throw new IdentityConflict('Verify your primary email before opening the app.');
-    // The Supabase admin API refuses an existing email. Never merge on email alone.
-    const { data, error } = await admin.auth.admin.createUser({ email: email.emailAddress, email_confirm: true, user_metadata: { display_name: user.fullName }, app_metadata: { clerk_provisioned_subject: subject } });
-    if (error || !data.user) {
-      // Recover only an account previously provisioned for this exact Clerk identity.
-      const { data: recovered, error: recoveryError } = await admin.rpc('find_clerk_provisioned_account', { p_subject: subject });
-      if (recoveryError || !recovered) throw new IdentityConflict('Sign in to your existing Supabase account to link it securely.');
-      await linkClerk(recovered,subject);
+
+    // If an account already exists for this verified email, link it directly
+    const { data: existingByEmail } = await admin.from('accounts').select('id').eq('email', email.emailAddress).eq('state', 'active').maybeSingle();
+    if (existingByEmail) {
+      await linkClerk(existingByEmail.id, subject);
     } else {
-      await linkClerk(data.user.id,subject);
+      // Create user in Supabase auth for dual-provider / mobile app support
+      const { data: authCreated } = await admin.auth.admin.createUser({
+        email: email.emailAddress,
+        email_confirm: true,
+        user_metadata: { display_name: user.fullName || undefined },
+        app_metadata: { clerk_provisioned_subject: subject },
+      });
+      if (authCreated?.user?.id) {
+        await linkClerk(authCreated.user.id, subject);
+      } else {
+        // Fallback: recover previously provisioned or insert directly into accounts
+        const { data: recovered } = await admin.rpc('find_clerk_provisioned_account', { p_subject: subject });
+        if (recovered) {
+          await linkClerk(recovered, subject);
+        } else {
+          const { data: newAccount, error: accErr } = await admin.from('accounts').insert({
+            email: email.emailAddress,
+            display_name: user.fullName || undefined,
+            state: 'active',
+          }).select('id').single();
+          if (accErr || !newAccount) throw new IdentityConflict(accErr?.message || 'Account setup could not finish.');
+          await linkClerk(newAccount.id, subject);
+        }
+      }
     }
   }
   const result = await mappedClerkUser(subject);
