@@ -10,13 +10,11 @@ import SwiftData
 
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
-    @Query(filter: #Predicate<LBItem> { $0.status == "inbox" }) private var inboxItems: [LBItem]
     @StateObject private var coordinator = SyncCoordinator.shared
     @StateObject private var lockManager = AppLockManager.shared
     @Environment(\.scenePhase) private var scenePhase
 
     @ObservedObject private var returnRouter = ReturnNotificationRouter.shared
-    @State private var selectedTab: LBTab = .inbox
     @StateObject private var aiManager = LaterAIManager.shared
     @ObservedObject private var clipboardManager = ClipboardDetectionManager.shared
     @State private var itemToPresent: LBItem? = nil
@@ -28,57 +26,23 @@ struct ContentView: View {
                     WelcomeView()
                         .transition(.opacity)
                 } else {
-                TabView(selection: $selectedTab) {
-                    HomeView()
-                        .tabItem {
-                            Label("Home", systemImage: selectedTab == .home ? "house.fill" : "house")
-                        }
-                        .tag(LBTab.home)
-
                     InboxView()
-                        .tabItem {
-                            Label("Inbox", systemImage: selectedTab == .inbox ? "tray.fill" : "tray")
+                        .overlay(alignment: .bottomTrailing) {
+                            Button {
+                                aiManager.open()
+                            } label: {
+                                Image(systemName: "plus")
+                                    .font(.system(size: 24, weight: .medium))
+                                    .foregroundStyle(AppTheme.accent)
+                                    .frame(width: 56, height: 56)
+                                    .background(AppTheme.darkSurface, in: Circle())
+                                    .shadow(color: .black.opacity(0.18), radius: 8, y: 4)
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel("Open Later AI")
+                            .padding(.trailing, 20)
+                            .padding(.bottom, 24)
                         }
-                        .badge(inboxItems.count > 0 ? inboxItems.count : 0)
-                        .tag(LBTab.inbox)
-
-                    ReturnsView()
-                        .tabItem {
-                            Label("Returns", systemImage: selectedTab == .returns ? "calendar" : "calendar")
-                        }
-                        .tag(LBTab.returns)
-
-                    LibraryView()
-                        .tabItem {
-                            Label("Library", systemImage: selectedTab == .library ? "books.vertical.fill" : "books.vertical")
-                        }
-                        .tag(LBTab.library)
-
-                    SettingsView()
-                        .tabItem {
-                            Label("Settings", systemImage: selectedTab == .settings ? "gearshape.fill" : "gearshape")
-                        }
-                        .tag(LBTab.settings)
-                }
-                .tint(Color.black)
-                .overlay(alignment: .bottomTrailing) {
-                    if selectedTab != .settings {
-                        Button {
-                            aiManager.open()
-                        } label: {
-                            Image(systemName: "plus")
-                                .font(.system(size: 24, weight: .medium))
-                                .foregroundStyle(AppTheme.accent)
-                                .frame(width: 56, height: 56)
-                                .background(AppTheme.darkSurface, in: Circle())
-                                .shadow(color: .black.opacity(0.18), radius: 8, y: 4)
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel("Open Later AI")
-                        .padding(.trailing, 20)
-                        .padding(.bottom, 88)
-                    }
-                }
                 .sheet(isPresented: $coordinator.showingQuickCapture) {
                     QuickCaptureSheet()
                 }
@@ -135,7 +99,6 @@ struct ContentView: View {
     .onReceive(returnRouter.$itemID) { id in
         guard let id = id, !id.isEmpty else { return }
         try? SharedCaptureImporter.refresh(context: modelContext)
-        selectedTab = .inbox
 
         let descriptor = FetchDescriptor<LBItem>(predicate: #Predicate { $0.id == id })
         if let matchingItem = try? modelContext.fetch(descriptor).first {
