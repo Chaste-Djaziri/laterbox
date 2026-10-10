@@ -165,14 +165,14 @@ export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
 
   return (
     <aside
-      className={`h-screen overflow-y-auto bg-[#faf8f5] border-r border-[#e4e0d5] flex flex-col justify-between p-3.5 shrink-0 transition-all duration-200 ${
+      className={`h-screen overflow-y-auto bg-transparent border-r border-[#e4e0d5] flex flex-col justify-between p-3.5 shrink-0 transition-all duration-200 ${
         collapsed ? 'w-[76px]' : 'w-60'
       }`}
     >
       {/* Top Section */}
-      <div className="space-y-4">
+      <div>
         {/* Brand Header */}
-        <div className={`flex items-center ${collapsed ? 'justify-center px-0' : 'justify-start px-1.5'} pt-1`}>
+        <div className={`flex items-center ${collapsed ? 'justify-center px-0' : 'justify-start px-1.5'} pt-1.5 pb-7`}>
           <Link href="/" className={`flex items-center ${collapsed ? 'justify-center' : 'gap-3'} group`}>
             <div className="w-[42px] h-[42px] relative shrink-0 transition-transform group-hover:scale-105">
               <Image
@@ -192,9 +192,10 @@ export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
           </Link>
         </div>
 
-        {/* Quick Capture Button */}
-        <button
-          onClick={onOpenCapture}
+        <div className="space-y-4">
+          {/* Quick Capture Button */}
+          <button
+            onClick={onOpenCapture}
           className={`w-full flex items-center justify-center ${
             collapsed ? 'px-0 min-h-14' : 'px-4 min-h-16'
           } py-4 rounded-2xl bg-[#171711] hover:bg-black active:bg-[#0f0f0e] text-white font-black text-lg tracking-tight shadow-md hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 transition-all duration-150 group cursor-pointer`}
@@ -233,6 +234,7 @@ export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
           <nav className="space-y-1">
             {systemLinks.map(renderLinkItem)}
           </nav>
+        </div>
         </div>
       </div>
 
