@@ -473,11 +473,12 @@ public struct MobileSidebarDrawer: View {
                         .foregroundColor(Color(hex: "F59E0B"))
 
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(storeKit.hasActivePro ? "Pro Plan" : "Free Plan")
+                        let isPro = coordinator.isProUser || storeKit.isProSubscriptionActive
+                        Text(isPro ? "Pro Plan" : "Free Plan")
                             .font(.system(size: 12, weight: .bold))
                             .foregroundColor(Color(hex: "171711"))
 
-                        Text(storeKit.hasActivePro ? "Active subscription" : "Upgrade for more space")
+                        Text(isPro ? "Active subscription" : "Upgrade for more space")
                             .font(.system(size: 10, weight: .medium))
                             .foregroundColor(Color(hex: "8E8D87"))
                     }
