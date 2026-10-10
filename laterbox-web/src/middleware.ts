@@ -140,7 +140,20 @@ function routeDomain(request: NextRequest) {
 }
 
 const clerkHandler = clerkMiddleware((_auth, request) => routeDomain(request), { authorizedParties: authorizedOrigins() });
-export default clerkAuthEnabled ? clerkHandler : routeDomain;
+
+export default function middleware(request: NextRequest, event: any) {
+  const hostname = request.headers.get('host') || '';
+  const isAppHost =
+    hostname.startsWith('app.') ||
+    hostname.includes('localhost') ||
+    hostname.includes('127.0.0.1');
+
+  if (clerkAuthEnabled && isAppHost) {
+    return clerkHandler(request, event);
+  }
+
+  return routeDomain(request);
+}
 
 export const config = {
   matcher: [
