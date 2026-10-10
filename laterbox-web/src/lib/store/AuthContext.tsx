@@ -111,7 +111,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const trimmed = name.trim();
     setUserNameState(trimmed);
     const supabase = getSupabaseClient();
-    if (supabase) {
+    if (user?.id) {
       await supabase.auth.updateUser({
         data: { display_name: trimmed || null },
       });
