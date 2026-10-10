@@ -21,6 +21,8 @@ import {
   POPULAR_REACTIONS,
 } from '@/lib/utils/itemThread';
 import { fetchAttachmentDownloadUrl } from '@/lib/utils/attachment';
+import { VideoPlayerComponent } from '@/components/media/VideoPlayerComponent';
+import { AudioPlayerComponent } from '@/components/media/AudioPlayerComponent';
 import {
   X,
   ExternalLink,
@@ -165,17 +167,12 @@ function ThreadAttachmentCard({
             </div>
           )}
 
-          {/* B. Integrated HTML5 Video Player */}
+          {/* B. Integrated Video.js 10 Video Player */}
           {isVid && (
-            <div className="w-full rounded-xl overflow-hidden bg-black border border-[#171711] shadow-2xs">
-              <video
-                src={mediaUrl}
-                controls
-                playsInline
-                preload="metadata"
-                className="w-full max-h-72 object-contain bg-black"
-              />
-            </div>
+            <VideoPlayerComponent
+              src={mediaUrl}
+              title={attachment.name}
+            />
           )}
 
           {/* C. PDF Preview & Open External Tab */}
@@ -226,11 +223,12 @@ function ThreadAttachmentCard({
             </div>
           )}
 
-          {/* D. Audio Player */}
+          {/* D. Integrated Video.js 10 Audio Player */}
           {isAud && (
-            <div className="w-full p-2.5 rounded-xl bg-white border border-[#e4e0d5]">
-              <audio src={mediaUrl} controls className="w-full" preload="metadata" />
-            </div>
+            <AudioPlayerComponent
+              src={mediaUrl}
+              title={attachment.name}
+            />
           )}
         </div>
       )}
