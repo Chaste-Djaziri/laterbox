@@ -29,6 +29,8 @@ import {
   Check,
   X,
   RotateCcw,
+  Folder,
+  FolderPlus,
 } from 'lucide-react';
 import {
   InboxSearchFilters,
@@ -39,6 +41,7 @@ import {
   itemMatchesQuery,
 } from '@/lib/utils/emailFormatters';
 import { ItemSideDetailPanel } from '@/components/inbox/ItemSideDetailPanel';
+import { AddToCollectionModal } from '@/components/collections/AddToCollectionModal';
 
 interface EmailInboxTableProps {
   items: LaterBoxItem[];
@@ -110,6 +113,7 @@ export function EmailInboxTable({
   const [bulkSnoozeOpen, setBulkSnoozeOpen] = useState(false);
   const [filterMenuOpen, setFilterMenuOpen] = useState<'format' | 'date' | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [collectionModalItem, setCollectionModalItem] = useState<LaterBoxItem | null>(null);
 
   const selectMenuRef = useRef<HTMLDivElement>(null);
   const moreMenuRef = useRef<HTMLDivElement>(null);
@@ -537,6 +541,20 @@ export function EmailInboxTable({
                     className="p-1.5 rounded-lg hover:bg-[#faf8f5] text-[#6c6b63] hover:text-amber-500 transition-colors cursor-pointer"
                   >
                     <Star className="w-4 h-4" />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const firstSelected = items.find((i) => selectedIds.has(i.id));
+                      if (firstSelected) {
+                        setCollectionModalItem(firstSelected);
+                      }
+                    }}
+                    title="Add to collection"
+                    className="p-1.5 rounded-lg hover:bg-[#faf8f5] text-[#6c6b63] hover:text-[#171711] transition-colors cursor-pointer"
+                  >
+                    <FolderPlus className="w-4 h-4" />
                   </button>
 
                   <div className="relative" ref={snoozeMenuRef}>
@@ -1128,6 +1146,38 @@ export function EmailInboxTable({
                       <span>Video</span>
                     </span>
                   )}
+
+                  {/* Collection Badges */}
+                  {item.collections && item.collections.length > 0 && (
+                    <span className="shrink-0 inline-flex items-center gap-1">
+                      {item.collections.slice(0, 2).map((col) => (
+                        <span
+                          key={col.id}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setCollectionModalItem(item);
+                          }}
+                          title={`In collection: ${col.name} (Click to manage)`}
+                          className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-[#e6edb0]/60 hover:bg-[#e6edb0] text-[#171711] border border-[#d0db84] transition-colors cursor-pointer"
+                        >
+                          <Folder className="w-2.5 h-2.5 text-[#171711]" />
+                          <span className="max-w-[70px] truncate">{col.name}</span>
+                        </span>
+                      ))}
+                      {item.collections.length > 2 && (
+                        <span
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setCollectionModalItem(item);
+                          }}
+                          title="Click to manage all collections"
+                          className="px-1 py-0.5 rounded text-[9px] font-bold bg-[#ebe7dc] text-[#6c6b63] cursor-pointer hover:bg-[#e6edb0] hover:text-[#171711]"
+                        >
+                          +{item.collections.length - 2}
+                        </span>
+                      )}
+                    </span>
+                  )}
                 </div>
 
                 {/* 5. Right Actions & Timestamp */}
@@ -1190,6 +1240,19 @@ export function EmailInboxTable({
                           className="p-1.5 rounded-lg hover:bg-rose-100 hover:text-rose-600 transition-colors cursor-pointer"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+
+                        {/* Add to Collection */}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setCollectionModalItem(item);
+                          }}
+                          title="Add to collection"
+                          className="p-1.5 rounded-lg hover:bg-[#ebe7dc] hover:text-[#171711] transition-colors cursor-pointer"
+                        >
+                          <FolderPlus className="w-3.5 h-3.5" />
                         </button>
                       </>
                     )}
@@ -1276,6 +1339,15 @@ export function EmailInboxTable({
             );
           })}
         </div>
+      )}
+
+      {/* Add To Collection Modal */}
+      {collectionModalItem && (
+        <AddToCollectionModal
+          item={collectionModalItem}
+          isOpen={Boolean(collectionModalItem)}
+          onClose={() => setCollectionModalItem(null)}
+        />
       )}
     </div>
   );
