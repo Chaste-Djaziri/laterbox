@@ -540,7 +540,7 @@ function DisplayNameInput({
     <main className="flex min-h-screen items-center justify-center bg-[#f7f5ee] px-4">
       <section className="flex w-full max-w-md flex-col items-center gap-8">
         <Image
-          src="/laterbox-icon.png"
+          src="/branding/laterbox-icon.png"
           alt="LaterBox logo"
           width={64}
           height={64}
