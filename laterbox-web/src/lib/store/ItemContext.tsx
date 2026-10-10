@@ -8,7 +8,7 @@ import { LaterBoxItem, ItemStatus, InboxFilterType, Collection, Attachment, Item
 import { useAuth } from './AuthContext';
 import { normalizeUrl, isUrl, extractDomain } from '../utils/url';
 import { storeLocalAttachment } from '../utils/local-attachments';
-import { itemRow, queueCapture, syncPendingCaptures, isAuthError } from '../utils/pending-captures';
+import { itemRow, queueCapture, queueHardDelete, syncPendingCaptures, syncCloudQueue, isAuthError } from '../utils/pending-captures';
 import { uploadWithNotificationHandoff } from '../notifications/client';
 import { isActive, isDue, migrateSchedule } from '../utils/schedule';
 import { createQueryRecovery } from '../utils/query-recovery';
@@ -208,213 +208,22 @@ export function ItemProvider({ children }: { children: ReactNode }) {
 
     setSyncStatus('syncing');
     try {
-      const supabase = getSupabaseClient();
-
-      // Ensure active and valid session before executing cloud operations
-      const currentSession = await getAccessToken();
-      if (!currentSession) {
-        handleAuthFailure();
-        return;
-      }
-
       // Pre-hydrate from local storage immediately so items remain visible while syncing
       loadLocalData();
 
       // Automatically migrate any items saved while in guest mode to user account
       await migrateGuestItems(user.id);
 
-      // Sync any local pending captures safely
-      try {
-        await syncPendingCaptures(user.id);
-      } catch (syncErr: any) {
-        console.warn('[ItemContext] Non-fatal sync pending error:', syncErr);
+      // Execute queued pull-before-push cloud sync with timestamp conflict resolution
+      const syncResult = await syncCloudQueue(user.id);
+      if (syncResult) {
+        setItems(syncResult.items);
+        setDeletedItems(syncResult.deletedItems);
+        setCollections(syncResult.collections);
+        setSyncStatus('synced');
+      } else {
+        handleAuthFailure();
       }
-
-      const recoverQuery = createQueryRecovery(refreshAccessToken);
-      const fetchWithRetry: typeof recoverQuery = async query => {
-        const result = await recoverQuery(query);
-        // Publish/cache only complete snapshots; preserve local data on any query failure.
-        if (result.error) throw result.error;
-        return result;
-      };
-
-      // Fetch items from Supabase with bounded clock skew recovery
-      const { data: itemRows } = await fetchWithRetry(() =>
-        supabase
-          .from('items')
-          .select('*')
-          .eq('user_id', user.id)
-          .is('deleted_at', null)
-          .order('created_at', { ascending: false })
-      );
-
-      // Fetch recently deleted items
-      const { data: deletedRows } = await fetchWithRetry(() =>
-        supabase
-          .from('items')
-          .select('*')
-          .eq('user_id', user.id)
-          .not('deleted_at', 'is', null)
-          .order('deleted_at', { ascending: false })
-          .limit(100)
-      );
-
-      // Fetch metadata
-      const { data: metaRows } = await fetchWithRetry(() =>
-        supabase
-          .from('item_metadata')
-          .select('*')
-          .eq('user_id', user.id)
-      );
-
-      const { data: contentRows } = await fetchWithRetry(() =>
-        supabase.from('item_content').select('*').eq('user_id', user.id)
-      );
-      const contentMap = new Map((contentRows || []).map(c => [c.item_id, c as ItemContent]));
-
-      // Fetch notes
-      const { data: noteRows } = await fetchWithRetry(() =>
-        supabase
-          .from('item_notes')
-          .select('*')
-          .eq('user_id', user.id)
-          .is('deleted_at', null)
-      );
-
-      // Fetch attachments
-      const { data: attachmentRows } = await fetchWithRetry(() =>
-        supabase
-          .from('attachments')
-          .select('*')
-          .eq('user_id', user.id)
-          .is('deleted_at', null)
-      );
-
-      // Fetch collections
-      const { data: colRows } = await fetchWithRetry(() =>
-        supabase
-          .from('collections')
-          .select('*')
-          .eq('user_id', user.id)
-          .is('deleted_at', null)
-          .order('created_at', { ascending: false })
-      );
-
-      // Fetch collection items join
-      const { data: colItemRows } = await fetchWithRetry(() =>
-        supabase
-          .from('collection_items')
-          .select('*')
-          .eq('user_id', user.id)
-          .is('deleted_at', null)
-      );
-
-      const colMap = new Map((colRows || []).map((c) => [c.id, c]));
-      const itemColsMap = new Map<string, Collection[]>();
-      (colItemRows || []).forEach((ci) => {
-        const col = colMap.get(ci.collection_id);
-        if (col) {
-          const list = itemColsMap.get(ci.item_id) || [];
-          if (!list.some(existing => existing.id === col.id)) {
-            list.push(col);
-          }
-          itemColsMap.set(ci.item_id, list);
-        }
-      });
-
-      const metaMap = new Map((metaRows || []).map((m) => [m.item_id, m]));
-      const noteMap = new Map((noteRows || []).map((n) => [n.item_id, n]));
-      const attachmentMap = new Map<string, Attachment[]>();
-      (attachmentRows || []).forEach((att) => {
-        const list = attachmentMap.get(att.item_id) || [];
-        list.push(att);
-        attachmentMap.set(att.item_id, list);
-      });
-
-      const cachedItems = JSON.parse(localStorage.getItem(`${LOCAL_ITEMS_KEY}_${user.id}`) || '[]') as LaterBoxItem[];
-      const remoteIds = new Set((itemRows || []).map((item) => item.id));
-
-      const mappedItems: LaterBoxItem[] = (itemRows || []).map((item) => {
-        const localCached = cachedItems.find(local => local.id === item.id && local.user_id === user.id);
-        const remoteCols = itemColsMap.get(item.id) || [];
-        const combinedCols = [...remoteCols];
-        (localCached?.collections || []).forEach(lc => {
-          if (!combinedCols.some(c => c.id === lc.id)) combinedCols.push(lc);
-        });
-
-        // Merge remote and local metadata safely so local enrichment is NEVER clobbered by empty remote rows
-        const remoteMeta = metaMap.get(item.id);
-        const localMeta = localCached?.metadata;
-        const mergedMeta: ItemMetadata | null = remoteMeta || localMeta
-          ? ({
-              ...(localMeta || {}),
-              ...(remoteMeta || {}),
-              preview_image_url: remoteMeta?.preview_image_url || localMeta?.preview_image_url || null,
-              title: remoteMeta?.title || localMeta?.title || null,
-              structured_data: remoteMeta?.structured_data || localMeta?.structured_data || null,
-              description: remoteMeta?.description || localMeta?.description || null,
-              favicon_url: remoteMeta?.favicon_url || localMeta?.favicon_url || null,
-            } as ItemMetadata)
-          : null;
-
-        // Resolve title: keep enriched local title if remote title is default or generic
-        const resolvedTitle =
-          item.title && item.title !== 'New Capture' && !item.title.startsWith('http')
-            ? item.title
-            : (localCached?.title || item.title);
-
-        // Resolve text_content: keep extracted reader content if remote has empty text
-        const resolvedTextContent = item.text_content || localCached?.text_content || null;
-
-        return {
-          ...migrateSchedule(item),
-          title: resolvedTitle,
-          text_content: resolvedTextContent,
-          metadata: mergedMeta,
-          content: contentMap.get(item.id) || localCached?.content || null,
-          note: noteMap.get(item.id) || localCached?.note || null,
-          collections: combinedCols,
-          attachments: [...new Map([...(localCached?.attachments || []), ...(attachmentMap.get(item.id) || [])].filter(attachment => !attachment.deleted_at).map(attachment => [attachment.id, attachment])).values()],
-        };
-      });
-
-      // Preserve newly captured local items that have not yet appeared in remote snapshot
-      const pendingLocals = cachedItems.filter(local => !remoteIds.has(local.id) && !local.deleted_at);
-      const combinedItems = [...pendingLocals, ...mappedItems];
-
-      // Deduplicate items by ID and URL/text
-      const seenIds = new Set<string>();
-      const seenKeys = new Set<string>();
-      const deduplicated: LaterBoxItem[] = [];
-
-      for (const item of combinedItems) {
-        if (seenIds.has(item.id)) continue;
-        seenIds.add(item.id);
-
-        const key = item.content?.capture_id ? `capture:${item.content.capture_id}` : item.url ? `url:${item.url}` : item.text_content ? `text:${item.text_content}` : null;
-        if (key && seenKeys.has(key)) continue;
-        if (key) seenKeys.add(key);
-
-        deduplicated.push(item);
-      }
-
-      setItems(deduplicated);
-      setCollections(colRows || []);
-      saveLocalData(deduplicated, colRows || []);
-
-      if (deletedRows) {
-        const mappedDeleted = deletedRows.map((item: any) => ({
-          ...migrateSchedule(item),
-          metadata: metaMap.get(item.id) || null,
-          note: noteMap.get(item.id) || null,
-          attachments: attachmentMap.get(item.id) || [],
-          collections: itemColsMap.get(item.id) || [],
-        }));
-        setDeletedItems(mappedDeleted);
-        saveLocalDeleted(mappedDeleted);
-      }
-
-      setSyncStatus('synced');
     } catch (err) {
       console.warn('[ItemContext] Cloud snapshot failed; retaining cached data:', err);
       handleAuthFailure();
@@ -422,7 +231,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
       isFetchingRef.current = false;
       setLoading(false);
     }
-  }, [user?.id, loadLocalData, saveLocalData, handleAuthFailure, migrateGuestItems]);
+  }, [user?.id, loadLocalData, handleAuthFailure, migrateGuestItems]);
 
   useEffect(() => {
     fetchData();
@@ -661,57 +470,20 @@ export function ItemProvider({ children }: { children: ReactNode }) {
           // Keep offline sync queue in sync with enriched metadata
           queueCapture(updatedEnrichedItem);
 
-          // Persist to Supabase for logged-in users
+          // Persist to Supabase for logged-in users via queued cloud sync
           if (user) {
-            try {
-              const supabase = getSupabaseClient();
-
-              await uploadWithNotificationHandoff(newItem.id, newItem.return_at, async () => {
-                const { error: saveError } = await supabase.from('items').upsert(itemRow(updatedEnrichedItem));
-                if (saveError) throw saveError;
-              });
-
-              await supabase.from('item_metadata').upsert({
-                item_id: newItem.id,
-                user_id: user.id,
-                ...metaUpdate,
-                created_at: now,
-                updated_at: new Date().toISOString(),
-              });
-
-              await syncPendingCaptures(user.id);
-            } catch {
-              setSyncStatus('error');
-            }
+            await safeSyncPending(user.id);
           }
         } else if (user) {
-          // Enrichment failed — still persist the raw item to Supabase
-          try {
-            const supabase = getSupabaseClient();
-            await uploadWithNotificationHandoff(newItem.id, newItem.return_at, async () => {
-              const { error: saveError } = await supabase.from('items').upsert(itemRow(newItem));
-              if (saveError) throw saveError;
-            });
-            await syncPendingCaptures(user.id);
-          } catch {
-            setSyncStatus('error');
-          }
+          // Enrichment failed — still persist to Supabase via queued cloud sync
+          await safeSyncPending(user.id);
         }
       };
 
       runEnrich().catch(() => null);
     } else if (user) {
-      // No URL (text/file capture) — persist directly
-      try {
-        const supabase = getSupabaseClient();
-        await uploadWithNotificationHandoff(newItem.id, newItem.return_at, async () => {
-          const { error: saveError } = await supabase.from('items').upsert(itemRow(newItem));
-          if (saveError) throw saveError;
-        });
-        await syncPendingCaptures(user.id);
-      } catch {
-        setSyncStatus('error');
-      }
+      // No URL (text/file capture) — persist directly via queued cloud sync
+      await safeSyncPending(user.id);
     }
 
     return newItem;
@@ -719,7 +491,14 @@ export function ItemProvider({ children }: { children: ReactNode }) {
 
   const safeSyncPending = async (userId: string) => {
     try {
-      await syncPendingCaptures(userId);
+      setSyncStatus('syncing');
+      const result = await syncCloudQueue(userId);
+      if (result) {
+        setItems(result.items);
+        setDeletedItems(result.deletedItems);
+        if (result.collections) setCollections(result.collections);
+        setSyncStatus('synced');
+      }
     } catch (err: any) {
       console.warn('[ItemContext] safeSyncPending warning:', err);
       setSyncStatus('error');
@@ -806,8 +585,6 @@ export function ItemProvider({ children }: { children: ReactNode }) {
 
     queueCapture(restored);
     if (user) {
-      const supabase = getSupabaseClient();
-      await supabase.from('items').update({ deleted_at: null, status: 'inbox', updated_at: now }).eq('id', id);
       await safeSyncPending(user.id);
     }
   };
@@ -820,8 +597,8 @@ export function ItemProvider({ children }: { children: ReactNode }) {
     });
 
     if (user) {
-      const supabase = getSupabaseClient();
-      await supabase.from('items').delete().eq('id', id).eq('user_id', user.id);
+      queueHardDelete(user.id, id);
+      await safeSyncPending(user.id);
     }
   };
 
@@ -831,8 +608,10 @@ export function ItemProvider({ children }: { children: ReactNode }) {
     saveLocalDeleted([]);
 
     if (user && ids.length > 0) {
-      const supabase = getSupabaseClient();
-      await supabase.from('items').delete().in('id', ids).eq('user_id', user.id);
+      for (const id of ids) {
+        queueHardDelete(user.id, id);
+      }
+      await safeSyncPending(user.id);
     }
   };
 
