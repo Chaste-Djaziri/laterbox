@@ -26,7 +26,6 @@ import {
   List,
   HelpCircle,
   Folder,
-  Calendar,
   Layers,
   StickyNote,
   Music2,
@@ -35,8 +34,6 @@ import {
   Pencil,
   Check,
   X,
-  Sparkles,
-  Zap,
 } from 'lucide-react';
 
 function ScheduledRow({ item }: { item: LaterBoxItem }) {
@@ -201,35 +198,14 @@ export function ScheduleDashboard({ view }: { view?: ScheduleView }) {
   if (view) {
     const viewConfig = {
       someday: {
-        primaryIcon: Sparkles,
-        primaryText: 'Someday Vault',
-        secondaryIcon: Clock,
-        secondaryText: 'Zero Deadline Pressure',
-        headline: 'Some things don’t need a deadline.',
-        subhead: 'The Someday Vault keeps your reading list, side project ideas, and reference files safe—without cluttering your daily view.',
-        action: 'Save to Someday',
         emptyTitle: 'Someday Vault is clear',
         emptyDesc: 'Items saved without a specific return date will wait here safely until you feel like exploring them.',
       },
       today: {
-        primaryIcon: Zap,
-        primaryText: 'Returned Today',
-        secondaryIcon: Clock,
-        secondaryText: 'When Later Becomes Now',
-        headline: 'When later becomes now.',
-        subhead: 'You don’t have to search, remember, or dig through folders. LaterBox brings your saved items back right on schedule.',
-        action: 'Drop Item',
         emptyTitle: 'No items due today',
         emptyDesc: 'Nothing scheduled for today yet. Relax, or pick something from your Inbox or Someday Vault.',
       },
       upcoming: {
-        primaryIcon: Calendar,
-        primaryText: 'Scheduled Timeline',
-        secondaryIcon: Clock,
-        secondaryText: 'Quiet Utility',
-        headline: 'Returning on schedule.',
-        subhead: 'Everything you’ve postponed, neatly arranged by when it returns. Quiet, predictable, and out of your head.',
-        action: 'Schedule Item',
         emptyTitle: 'No upcoming returns scheduled',
         emptyDesc: 'Postponed items with future return times will appear here chronologically.',
       },
@@ -314,39 +290,11 @@ export function ScheduleDashboard({ view }: { view?: ScheduleView }) {
         </div>
 
         {/* View Header */}
-        {view === 'today' || view === 'upcoming' ? (
-          <div className="pt-1">
-            <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-[#171711] capitalize">
-              {view}
-            </h1>
-          </div>
-        ) : (
-          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pt-1">
-            <div className="space-y-2">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#e6edb0] border border-[#d0db84] text-[#171711] text-xs font-bold shadow-2xs">
-                <viewConfig.primaryIcon className="w-3.5 h-3.5 text-[#171711] shrink-0" />
-                <span>{viewConfig.primaryText}</span>
-                <span className="w-1 h-1 rounded-full bg-[#171711]/40" />
-                <viewConfig.secondaryIcon className="w-3.5 h-3.5 text-[#171711] shrink-0" />
-                <span>{viewConfig.secondaryText}</span>
-              </div>
-              <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-[#171711]">
-                {viewConfig.headline}
-              </h1>
-              <p className="text-xs sm:text-sm text-[#6c6b63] font-medium max-w-2xl leading-relaxed">
-                {viewConfig.subhead}
-              </p>
-            </div>
-
-            <button
-              onClick={() => open()}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#171711] text-white hover:bg-[#282723] text-xs font-black shadow-xs transition-all cursor-pointer self-start sm:self-auto shrink-0"
-            >
-              <Plus className="w-4 h-4" />
-              <span>{viewConfig.action}</span>
-            </button>
-          </div>
-        )}
+        <div className="pt-1">
+          <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-[#171711] capitalize">
+            {view}
+          </h1>
+        </div>
 
         {/* Format Filter Chips */}
         <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none pt-1">
