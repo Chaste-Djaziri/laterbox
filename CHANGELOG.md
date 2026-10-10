@@ -9,6 +9,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 ## [Unreleased]
 
 ### Changed
+- **[iOS] Segmented card styling and #f7f5ee canvas background**: Updated the iOS app background to signature warm canvas #f7f5ee, styled each inbox email item as an individual card with subtle gaps (removing dividing lines), and applied corner radii (4pt for standard corners, 12pt on top corners of the first item and bottom corners of the last item).
 - **[Auth] Fix login authentication loading error**: Resolve 'Authentication is still loading. Please try again.' error by asynchronously waiting for Clerk client initialization on submit, reflecting readiness on the login button, and falling back gracefully to clerk.client instances.
 - **[iOS] Detached inbox container and right-side OG preview watermark**: Added horizontal margin gap to the inbox list container so it floats cleanly with rounded corners rather than spanning edge-to-edge, and restored the right-aligned fading OG preview image watermark on email rows matching the web app.
 - **[iOS] Gmail-style mobile top bar and clean email list layout**: Added a mobile top search bar featuring a sidebar menu button on the left, a large centered search capsule, and a profile avatar on the right. Simplified the inbox by removing category tabs to present a clean email list with sender avatar circles, timestamps, bold subjects, snippet previews, and direct star toggling matching mobile email clients.
