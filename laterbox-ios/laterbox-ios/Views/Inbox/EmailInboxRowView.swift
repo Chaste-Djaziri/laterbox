@@ -19,6 +19,8 @@ public struct EmailInboxRowView: View {
     public var onMarkDone: () -> Void = {}
     public var onSchedule: (Date) -> Void = { _ in }
     public var onDelete: () -> Void = {}
+    public var onDeletePermanently: (() -> Void)? = nil
+    public var onRestore: (() -> Void)? = nil
 
     public init(
         item: LBItem,
@@ -30,7 +32,9 @@ public struct EmailInboxRowView: View {
         onToggleFavorite: @escaping () -> Void = {},
         onMarkDone: @escaping () -> Void = {},
         onSchedule: @escaping (Date) -> Void = { _ in },
-        onDelete: @escaping () -> Void = {}
+        onDelete: @escaping () -> Void = {},
+        onDeletePermanently: (() -> Void)? = nil,
+        onRestore: (() -> Void)? = nil
     ) {
         self.item = item
         self.isSelectionMode = isSelectionMode
@@ -42,6 +46,8 @@ public struct EmailInboxRowView: View {
         self.onMarkDone = onMarkDone
         self.onSchedule = onSchedule
         self.onDelete = onDelete
+        self.onDeletePermanently = onDeletePermanently
+        self.onRestore = onRestore
     }
 
     private var senderText: String {
@@ -389,10 +395,30 @@ public struct EmailInboxRowView: View {
 
             Divider()
 
-            Button(role: .destructive) {
-                onDelete()
-            } label: {
-                Label("Delete", systemImage: "trash")
+            if item.status == ItemStatus.deleted.rawValue || item.deletedAt != nil {
+                if let onRestore {
+                    Button {
+                        onRestore()
+                    } label: {
+                        Label("Restore to Inbox", systemImage: "arrow.uturn.backward")
+                    }
+                }
+
+                Button(role: .destructive) {
+                    if let onDeletePermanently {
+                        onDeletePermanently()
+                    } else {
+                        onDelete()
+                    }
+                } label: {
+                    Label("Delete Permanently", systemImage: "trash.fill")
+                }
+            } else {
+                Button(role: .destructive) {
+                    onDelete()
+                } label: {
+                    Label("Delete", systemImage: "trash")
+                }
             }
         }
     }
