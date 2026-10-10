@@ -9,6 +9,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 ## [Unreleased]
 
 ### Changed
+- **[Auth] Fix production login with Clerk and reliable email verification**: Enable Clerk authentication by default across production deployments, fix backend user email address parsing and verification status resolution in account provisioning and webhooks, and ensure immediate post-verification redirection without email verification errors.
 - **[Web] Sticky sidebar footer with Plan and Sync cards**: Pinned the Free/Pro plan and sync/offline cards to the bottom of the sidebar so they remain visible at all times, enabled independent scrolling for the sidebar navigation and collections, and removed the redundant guest mode card.
 - **[Web] Automatic account linking and provisioning for Clerk users**: Seamlessly link verified Clerk users to their existing accounts by email and automatically provision accounts for brand new users without requiring manual Supabase sign-in handoff.
 - **[Web] Fix Realtime auth token initialization and circular module dependency**: Resolve circular module evaluation between tokens and supabase client, prevent Temporal Dead Zone ReferenceError on clerkTokenGetter during Realtime startup, and protect the Supabase proxy from premature client evaluation during bundler checks.
