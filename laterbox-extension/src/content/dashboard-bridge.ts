@@ -13,8 +13,8 @@ export function installDashboardBridge(): void {
       || request.requestId.length > 100 || !['status', 'connect', 'local-import', 'local-ack'].includes(request.action)) return;
     if (request.action === 'local-import' || request.action === 'local-ack') {
       if (location.origin !== 'http://localhost:8080') return;
-      void sendRuntimeMessage({ type: request.action, ids: request.ids }).then(result => {
-        window.postMessage({ source: 'laterbox-extension', requestId: request.requestId, ...result as object }, location.origin);
+      void sendRuntimeMessage<{ captures?: unknown[]; ok?: boolean }>({ type: request.action, ids: request.ids }).then(result => {
+        window.postMessage({ source: 'laterbox-extension', requestId: request.requestId, captures: Array.isArray(result?.captures) ? result.captures : [], ok: result?.ok === true }, location.origin);
       }).catch(() => {});
       return;
     }
