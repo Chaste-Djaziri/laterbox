@@ -24,11 +24,11 @@ async function sendCapture(capture: Capture, token: string): Promise<CaptureResu
 
 export async function updateCaptureState(result: CaptureResult, pending: number): Promise<void> {
   const status = result.status === 'saved' && pending ? 'queued' : result.status;
-  const text = status === 'queued' ? String(pending || '…') : status === 'proRequired' ? 'PRO' : status === 'needsAuth' ? '!' : status === 'error' ? '!' : '✓';
+  const text = status === 'queued' ? String(pending || '…') : status === 'proRequired' ? '!' : status === 'needsAuth' ? '!' : status === 'error' ? '!' : '✓';
   const color = status === 'saved' ? '#26734d' : status === 'queued' ? '#b7791f' : '#a33a32';
   await browser.action.setBadgeText({ text });
   await browser.action.setBadgeBackgroundColor({ color });
-  await browser.action.setTitle({ title: status === 'queued' ? `${pending} pending captures — offline or service unavailable` : status === 'needsAuth' ? 'Reconnect LaterBox to sync pending captures' : status === 'proRequired' ? 'LaterBox Pro required' : status === 'error' ? 'Could not capture this content' : 'Saved to LaterBox' });
+  await browser.action.setTitle({ title: status === 'queued' ? `${pending} pending captures — offline or service unavailable` : status === 'needsAuth' ? 'Reconnect LaterBox to sync pending captures' : status === 'proRequired' ? 'Capture access rejected — reconnect or update the backend' : status === 'error' ? 'Could not capture this content' : 'Saved to LaterBox' });
   if (status === 'queued' && typeof OffscreenCanvas !== 'undefined') {
     const canvas=new OffscreenCanvas(32,32);const ctx=canvas.getContext('2d');
     if(ctx){ctx.fillStyle='#777';ctx.fillRect(3,3,26,26);ctx.fillStyle='#ddd';ctx.font='bold 22px sans-serif';ctx.fillText('L',9,24);await browser.action.setIcon({imageData:ctx.getImageData(0,0,32,32)});}
