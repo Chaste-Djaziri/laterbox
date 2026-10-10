@@ -1,5 +1,8 @@
 'use client';
 
+import { ClerkLogin } from '@/lib/auth/ClerkLogin';
+import { clerkAuthEnabled, safeReturnPath } from '@/lib/auth/config';
+
 import React, { Suspense, useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -9,7 +12,7 @@ import { Loader2, AlertCircle, CheckCircle2, Eye, EyeOff } from 'lucide-react';
 export default function LoginPage() {
   return (
     <Suspense fallback={<main className="min-h-screen bg-[#f7f5ee]" aria-busy="true" />}>
-      <LoginContent />
+      {clerkAuthEnabled ? <ClerkLogin legacy={<LoginContent />} /> : <LoginContent />}
     </Suspense>
   );
 }
@@ -43,9 +46,7 @@ function LoginContent() {
   const [awaitingName, setAwaitingName] = useState(false);
   const [displayName, setDisplayName] = useState('');
   const requestedNext = searchParams.get('next');
-  const nextPath = requestedNext?.startsWith('/') && !requestedNext.startsWith('//')
-    ? requestedNext
-    : '/inbox';
+  const nextPath = safeReturnPath(requestedNext);
 
   // Automatically redirect to dashboard if user is already authenticated
   useEffect(() => {
