@@ -19,14 +19,26 @@ import {
   LayoutGrid,
   List,
   HelpCircle,
-  Sparkles,
   Layers,
+  RotateCcw,
 } from 'lucide-react';
 
-type LibraryTab = 'collections' | 'starred' | 'saved' | 'archived';
+type LibraryTab = 'collections' | 'starred' | 'saved' | 'archived' | 'deleted';
 
 export default function LibraryPage() {
-  const { items, starredItems, savedItems, archivedItems, collections, createCollection, deleteCollection } = useItems();
+  const {
+    items,
+    starredItems,
+    savedItems,
+    archivedItems,
+    deletedItems,
+    collections,
+    createCollection,
+    deleteCollection,
+    restoreItem,
+    permanentlyDeleteItem,
+    emptyTrash,
+  } = useItems();
   const [activeTab, setActiveTab] = useState<LibraryTab>('collections');
   const [newColName, setNewColName] = useState('');
   const [showColModal, setShowColModal] = useState(false);
@@ -47,6 +59,7 @@ export default function LibraryPage() {
     { id: 'starred' as LibraryTab, label: 'Favorites', icon: <Star className="w-4 h-4" />, count: starredItems.length },
     { id: 'saved' as LibraryTab, label: 'Kept', icon: <CheckCircle className="w-4 h-4" />, count: savedItems.length },
     { id: 'archived' as LibraryTab, label: 'Archive', icon: <Archive className="w-4 h-4" />, count: archivedItems.length },
+    { id: 'deleted' as LibraryTab, label: 'Recently Deleted', icon: <Trash2 className="w-4 h-4" />, count: deletedItems.length },
   ];
 
   const filterItems = (itemsList: typeof starredItems) => {
@@ -63,6 +76,7 @@ export default function LibraryPage() {
   const displayedStarred = filterItems(starredItems);
   const displayedSaved = filterItems(savedItems);
   const displayedArchived = filterItems(archivedItems);
+  const displayedDeleted = filterItems(deletedItems);
 
   return (
     <>
@@ -141,6 +155,19 @@ export default function LibraryPage() {
           </h1>
 
           <div className="flex items-center gap-2">
+            {activeTab === 'deleted' && deletedItems.length > 0 && (
+              <button
+                onClick={() => {
+                  if (confirm('Permanently delete all items in Recently Deleted? This cannot be undone.')) {
+                    emptyTrash();
+                  }
+                }}
+                className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-full bg-red-600 hover:bg-red-700 text-white text-xs font-bold shadow-xs transition-all cursor-pointer"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span>Empty Trash</span>
+              </button>
+            )}
             {activeTab === 'collections' && (
               <button
                 onClick={() => setShowColModal(true)}
@@ -338,6 +365,123 @@ export default function LibraryPage() {
               <div className="space-y-3">
                 {displayedArchived.map((item) => (
                   <ItemListRow key={item.id} item={item} />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Tab Content: Recently Deleted */}
+        {activeTab === 'deleted' && (
+          <div>
+            {displayedDeleted.length === 0 ? (
+              <div className="text-center py-20 px-4 rounded-3xl bg-white border border-dashed border-[#e4e0d5] space-y-3">
+                <div className="w-12 h-12 mx-auto rounded-2xl bg-[#f7f5ee] border border-[#e4e0d5] flex items-center justify-center text-[#9e9b92]">
+                  <Trash2 className="w-6 h-6" />
+                </div>
+                <h3 className="text-base font-extrabold text-[#171711]">
+                  Recently Deleted is Empty
+                </h3>
+                <p className="text-xs text-[#6c6b63] max-w-sm mx-auto leading-relaxed">
+                  Items you delete will wait here before being permanently removed.
+                </p>
+              </div>
+            ) : layoutMode === 'grid' ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {displayedDeleted.map((item) => (
+                  <div
+                    key={item.id}
+                    className="p-5 rounded-3xl bg-white border border-[#e4e0d5] shadow-2xs hover:shadow-xs transition-all flex flex-col justify-between space-y-4"
+                  >
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#f7f5ee] text-[#6c6b63] border border-[#e4e0d5]">
+                          {item.type || 'Item'}
+                        </span>
+                        <span className="text-[10px] font-bold text-red-600 bg-red-50 border border-red-200 px-2 py-0.5 rounded-full">
+                          Deleted
+                        </span>
+                      </div>
+                      <h4 className="text-sm font-bold text-[#171711] line-clamp-2 leading-snug">
+                        {item.title || item.metadata?.title || item.url || 'Untitled Item'}
+                      </h4>
+                      {item.url && (
+                        <p className="text-xs text-[#9e9b92] truncate">
+                          {item.url}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 pt-2 border-t border-[#e4e0d5]/60">
+                      <button
+                        onClick={() => restoreItem(item.id)}
+                        className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#e6edb0] hover:bg-[#d8e09e] text-[#171711] text-xs font-bold transition-all shadow-2xs cursor-pointer"
+                        title="Restore to inbox"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5" />
+                        <span>Restore</span>
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (confirm('Permanently delete this item?')) {
+                            permanentlyDeleteItem(item.id);
+                          }
+                        }}
+                        className="inline-flex items-center justify-center p-2 rounded-xl text-[#9e9b92] hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer border border-[#e4e0d5]"
+                        title="Delete permanently"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {displayedDeleted.map((item) => (
+                  <div
+                    key={item.id}
+                    className="p-4 rounded-2xl bg-white border border-[#e4e0d5] shadow-2xs flex items-center justify-between gap-4"
+                  >
+                    <div className="min-w-0 flex-1 space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#f7f5ee] text-[#6c6b63]">
+                          {item.type || 'Item'}
+                        </span>
+                        <span className="text-[10px] font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded-full">
+                          Deleted
+                        </span>
+                      </div>
+                      <h4 className="text-sm font-bold text-[#171711] truncate">
+                        {item.title || item.metadata?.title || item.url || 'Untitled Item'}
+                      </h4>
+                      {item.url && (
+                        <p className="text-xs text-[#9e9b92] truncate">
+                          {item.url}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        onClick={() => restoreItem(item.id)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#e6edb0] hover:bg-[#d8e09e] text-[#171711] text-xs font-bold transition-all shadow-2xs cursor-pointer"
+                        title="Restore to inbox"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5" />
+                        <span>Restore</span>
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (confirm('Permanently delete this item?')) {
+                            permanentlyDeleteItem(item.id);
+                          }
+                        }}
+                        className="p-2 rounded-xl text-[#9e9b92] hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer border border-[#e4e0d5]"
+                        title="Delete permanently"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
                 ))}
               </div>
             )}
