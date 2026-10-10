@@ -26,7 +26,7 @@ export async function mappedClerkUser(subject: string): Promise<AccountUser | nu
   if (error) throw error;
   const account = data?.accounts as unknown as { id: string; email: string | null; display_name: string | null; state: string } | undefined;
   if (!account || account.state !== 'active') return null;
-  return { id: account.id, email: account.email ?? undefined, user_metadata: { display_name: account.display_name } };
+  return { id: account.id, email: account.email ?? undefined, user_metadata: { display_name: account.display_name ?? undefined } };
 }
 export async function linkClerk(accountId: string, subject: string) {
   const { error } = await getBillingAdminClient().rpc('link_clerk_identity', { p_account_id: accountId, p_subject: subject });
