@@ -701,7 +701,7 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
                 {itemCollections.map((col) => (
                   <Link
                     key={col.id}
-                    href={`/library?collection=${col.id}`}
+                    href={`/library/${col.id}`}
                     className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-[#e0f2fe] hover:bg-[#bae6fd] text-[#0369a1] transition-colors"
                   >
                     <span>{col.name}</span>

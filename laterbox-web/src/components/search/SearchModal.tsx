@@ -26,7 +26,7 @@ import {
   CalendarDays,
   Archive,
   Inbox,
-  BookMarked,
+  Star,
   Sparkles,
   ExternalLink,
   CornerDownLeft,
@@ -65,7 +65,7 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
     { label: 'Today (Returned)', href: '/today', icon: <Clock className="w-4 h-4" />, badge: 'Focus' },
     { label: 'Upcoming', href: '/upcoming', icon: <CalendarDays className="w-4 h-4" />, badge: 'Schedule' },
     { label: 'Someday Vault', href: '/someday', icon: <Archive className="w-4 h-4" />, badge: 'Deferred' },
-    { label: 'All Items Library', href: '/library', icon: <BookMarked className="w-4 h-4" />, badge: 'Archive' },
+    { label: 'Starred Favorites', href: '/starred', icon: <Star className="w-4 h-4" />, badge: 'Starred' },
     { label: 'Full Deep Search Engine', href: '/search', icon: <Search className="w-4 h-4" />, badge: 'Vault' },
   ], []);
 
