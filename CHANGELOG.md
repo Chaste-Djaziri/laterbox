@@ -9,6 +9,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 ## [Unreleased]
 
 ### Changed
+- **[Web] Upcoming page email UI table and unified dashboard layout**: Updated the Upcoming page to use the modern email inbox table and unified dashboard layout, keeping the notification bar, centered search, AI organize, quick capture, and user profile header identical to Inbox while displaying Upcoming postponed items.
 - **[Web] Today page email UI table and unified dashboard layout**: Updated the Today page to use the modern email inbox table and unified dashboard layout, keeping the notification bar, centered search, AI organize, quick capture, and user profile header identical to Inbox while displaying Today's scheduled items.
 - **[Web] Reduce gap between sidebar and inbox container**: Increased sidebar width to 256px and expanded the Inbox page container to full width without centering margin constraints, reducing the empty gap between the sidebar contents and the active inbox container.
 - **[Web] Remove sidebar right divider line**: Removed the vertical border line on the right edge of the sidebar for a borderless, open layout that blends seamlessly into the page.
