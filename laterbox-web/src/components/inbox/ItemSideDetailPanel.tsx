@@ -52,7 +52,10 @@ import {
   Music2,
   ChevronDown,
   ChevronUp,
+  Folder,
+  FolderPlus,
 } from 'lucide-react';
+import { AddToCollectionModal } from '@/components/collections/AddToCollectionModal';
 
 function formatBytes(bytes?: number): string {
   if (!bytes || bytes === 0) return '0 B';
@@ -345,6 +348,7 @@ export function ItemSideDetailPanel({ item, onClose }: ItemSideDetailPanelProps)
   const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
   const [editText, setEditText] = useState('');
   const [reactionMenuForId, setReactionMenuForId] = useState<string | null>(null);
+  const [collectionModalOpen, setCollectionModalOpen] = useState(false);
 
   // Document attachment state
   const [stagedFiles, setStagedFiles] = useState<File[]>([]);
@@ -621,6 +625,16 @@ export function ItemSideDetailPanel({ item, onClose }: ItemSideDetailPanelProps)
                 <ExternalLink className="w-4 h-4" />
               </Link>
 
+              {/* Add to collection button */}
+              <button
+                type="button"
+                onClick={() => setCollectionModalOpen(true)}
+                title="Manage collections"
+                className="p-1.5 rounded-lg hover:bg-[#faf8f5] text-[#6c6b63] hover:text-[#171711] transition-colors cursor-pointer"
+              >
+                <FolderPlus className="w-4 h-4" />
+              </button>
+
               {/* Star button */}
               <button
                 type="button"
@@ -680,6 +694,30 @@ export function ItemSideDetailPanel({ item, onClose }: ItemSideDetailPanelProps)
             <h2 className="text-base sm:text-lg font-black text-[#171711] tracking-tight line-clamp-2 leading-snug">
               {title}
             </h2>
+            {/* Collection tags if any */}
+            {item.collections && item.collections.length > 0 && (
+              <div className="flex flex-wrap items-center gap-1.5 pt-1.5">
+                {item.collections.map((col) => (
+                  <span
+                    key={col.id}
+                    onClick={() => setCollectionModalOpen(true)}
+                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-[#e6edb0]/60 hover:bg-[#e6edb0] text-[#171711] border border-[#d0db84] transition-colors cursor-pointer"
+                    title="Click to manage collections"
+                  >
+                    <Folder className="w-2.5 h-2.5 text-[#171711]" />
+                    <span>{col.name}</span>
+                  </span>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => setCollectionModalOpen(true)}
+                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold text-[#6c6b63] hover:text-[#171711] hover:bg-[#ebe7dc] transition-colors cursor-pointer"
+                >
+                  <Plus className="w-2.5 h-2.5" />
+                  <span>Collection</span>
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -1366,6 +1404,13 @@ export function ItemSideDetailPanel({ item, onClose }: ItemSideDetailPanelProps)
           </button>
         </div>
       </div>
+
+      {/* Add To Collection Modal */}
+      <AddToCollectionModal
+        item={item}
+        isOpen={collectionModalOpen}
+        onClose={() => setCollectionModalOpen(false)}
+      />
     </div>
   );
 }
