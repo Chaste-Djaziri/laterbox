@@ -9,6 +9,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 ## [Unreleased]
 
 ### Changed
+- **[Web] Split-view Inbox item reader with ChatGPT-style interactive bottom bar**: Open clicked inbox items in a side-by-side reading pane while compacting the email list. Features a ChatGPT-style floating bottom pill input to add follow-up notes, edit thoughts, attach earlier notes as context references, react with emoji badges, and create interactive polls with live voting.
 - **[Web] Fix Inbox filter dropdown clipping**: Ensure search filter dropdowns and toolbar menus float outside the items container with visible overflow so they are never clipped when the results list is short.
 - **[Web] Live search preview dropdown & in-page filter bar**: Added an instant live-search preview popup with quick filter chips, matching results, and Enter execution, plus an in-page search results view with filter pills (attachment, time, starred, format) in LaterBox theme.
 - **[Web] Fading OG image watermark on Inbox items**: Display open-graph preview images on the right edge of items with a smooth gradient fade, inspired by anime card art layouts.
