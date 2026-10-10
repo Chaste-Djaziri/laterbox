@@ -435,7 +435,6 @@ export function CustomLoginContent({ actions, extra }: { actions?: Partial<AuthC
           </div>
 
           {actions && <button type="button" disabled={loading || authLoading || Boolean(isAuthenticated)} onClick={() => void handleGoogle()} className="w-full h-14 rounded-[18px] border border-[#e5e1d7] bg-white text-[15px] font-bold disabled:opacity-60">Continue with Google</button>}
-          <div id="clerk-captcha" />
 
           {/* Continue without account */}
           <div className="pt-2 text-center">
