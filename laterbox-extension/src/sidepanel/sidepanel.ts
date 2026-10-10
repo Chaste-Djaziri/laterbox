@@ -1,5 +1,6 @@
 import { isLocalMode, LOCAL_ORIGIN } from '../lib/local-library';
 import {
+  cancelConnectionRequest,
   connectLaterBox,
   disconnectLaterBox,
   getAccessToken,
@@ -126,7 +127,10 @@ async function enableHighlighting(): Promise<void> {
 async function updateConnectionState(): Promise<void> {
   const token = await getAccessToken();
   const userId = await getConnectedUserId();
-  const connected = await isLocalMode() || (token.startsWith("lb_ext_") && userId.length > 0);
+  const local = await isLocalMode();
+  const label = document.getElementById("capture-mode-label");
+  if (label) label.textContent = local ? "Saving to local library" : "Saving to account (free)";
+  const connected = local || (token.startsWith("lb_ext_") && userId.length > 0);
 
   disconnectedPanel.hidden = connected;
   connectedPanel.hidden = !connected;
@@ -221,11 +225,15 @@ function domainFor(value: string): string {
 }
 
 const modeControls = document.createElement('div');
-modeControls.className = 'connection-panel';
+modeControls.className = 'connection';
+const modeLabel = document.createElement('p');
+modeLabel.id = 'capture-mode-label';
+modeControls.append(modeLabel);
 const localButton = document.createElement('button');
 localButton.textContent = 'Local library';
 localButton.addEventListener('click', async () => {
   await browser.storage.local.set({ captureMode: 'local' });
+  await cancelConnectionRequest();
   await updateConnectionState();
   setStatus('Local library selected. Captures stay on this browser.');
 });
@@ -236,4 +244,5 @@ const libraryButton = document.createElement('button');
 libraryButton.textContent = 'Open local library';
 libraryButton.addEventListener('click', () => void browser.tabs.create({ url: `${LOCAL_ORIGIN}/home` }));
 modeControls.append(localButton, accountButton, libraryButton);
-document.body.append(modeControls);
+document.querySelector('main')!.append(modeControls);
+void updateConnectionState();
