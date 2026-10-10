@@ -313,32 +313,40 @@ export function ScheduleDashboard({ view }: { view?: ScheduleView }) {
           </div>
         </div>
 
-        {/* View Header with Signature Style */}
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pt-1">
-          <div className="space-y-2">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#e6edb0] border border-[#d0db84] text-[#171711] text-xs font-bold shadow-2xs">
-              <viewConfig.primaryIcon className="w-3.5 h-3.5 text-[#171711] shrink-0" />
-              <span>{viewConfig.primaryText}</span>
-              <span className="w-1 h-1 rounded-full bg-[#171711]/40" />
-              <viewConfig.secondaryIcon className="w-3.5 h-3.5 text-[#171711] shrink-0" />
-              <span>{viewConfig.secondaryText}</span>
-            </div>
-            <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-[#171711]">
-              {viewConfig.headline}
+        {/* View Header */}
+        {view === 'today' ? (
+          <div className="pt-1">
+            <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-[#171711]">
+              Today
             </h1>
-            <p className="text-xs sm:text-sm text-[#6c6b63] font-medium max-w-2xl leading-relaxed">
-              {viewConfig.subhead}
-            </p>
           </div>
+        ) : (
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pt-1">
+            <div className="space-y-2">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#e6edb0] border border-[#d0db84] text-[#171711] text-xs font-bold shadow-2xs">
+                <viewConfig.primaryIcon className="w-3.5 h-3.5 text-[#171711] shrink-0" />
+                <span>{viewConfig.primaryText}</span>
+                <span className="w-1 h-1 rounded-full bg-[#171711]/40" />
+                <viewConfig.secondaryIcon className="w-3.5 h-3.5 text-[#171711] shrink-0" />
+                <span>{viewConfig.secondaryText}</span>
+              </div>
+              <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-[#171711]">
+                {viewConfig.headline}
+              </h1>
+              <p className="text-xs sm:text-sm text-[#6c6b63] font-medium max-w-2xl leading-relaxed">
+                {viewConfig.subhead}
+              </p>
+            </div>
 
-          <button
-            onClick={() => open()}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#171711] text-white hover:bg-[#282723] text-xs font-black shadow-xs transition-all cursor-pointer self-start sm:self-auto shrink-0"
-          >
-            <Plus className="w-4 h-4" />
-            <span>{viewConfig.action}</span>
-          </button>
-        </div>
+            <button
+              onClick={() => open()}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#171711] text-white hover:bg-[#282723] text-xs font-black shadow-xs transition-all cursor-pointer self-start sm:self-auto shrink-0"
+            >
+              <Plus className="w-4 h-4" />
+              <span>{viewConfig.action}</span>
+            </button>
+          </div>
+        )}
 
         {/* Format Filter Chips */}
         <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none pt-1">
