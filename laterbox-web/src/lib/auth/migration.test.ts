@@ -14,12 +14,14 @@ test('migration verifies legacy sessions, retries without duplicates and require
   let linked: string | null = null;
   let created = 0;
   let tickets = 0;
+  const requests: string[] = [];
   const { privateKey,publicKey } = await generateKeyPair('RS256');
   const jwk = { ...await exportJWK(publicKey),kid: 'migration-test',alg: 'RS256',use: 'sig' };
   const rawUser = (subject = 'user_migrated') => ({ object: 'user',id: subject,external_id: subject === 'user_existing' ? null : id,first_name: 'Test',email_addresses: [],phone_numbers: [],web3_wallets: [],external_accounts: [],passkeys: [],saml_accounts: [],public_metadata: {},private_metadata: {},unsafe_metadata: {},two_factor_enabled: mode === 'clerk-mfa',banned: false,locked: false });
   globalThis.fetch = async (input,init) => {
     const request = new Request(input,init);
     const url = new URL(request.url);
+    requests.push(`${request.method} ${url.hostname}${url.pathname}`);
     if (url.hostname === 'clerk.laterbox.dev') return Response.json({ keys: [jwk] });
     if (url.pathname === '/auth/v1/user') return mode === 'expired' ? Response.json({ message: 'Expired' },{ status: 401 }) : Response.json({ id,email: 'test@example.com',email_confirmed_at: mode === 'unconfirmed' ? null : new Date().toISOString(),user_metadata: {},factors: mode === 'legacy-mfa' ? [{ status: 'verified' }] : [] });
     if (url.pathname === '/rest/v1/account_identities') return Response.json(linked ? { subject: linked } : null);
@@ -58,7 +60,7 @@ test('migration verifies legacy sessions, retries without duplicates and require
     mode = 'valid';
     for (let i = 0; i < 2; i++) {
       const response = await POST(request());
-      assert.equal(response.status,200);
+      assert.equal(response.status,200,requests.join("; "));
       assert.equal(response.headers.get('cache-control'),'no-store');
       assert.deepEqual(await response.json(),{ ticket: 'single-use-ticket' });
     }
@@ -68,7 +70,7 @@ test('migration verifies legacy sessions, retries without duplicates and require
     mode = 'valid';
     const proof = await new SignJWT({ sid: 'sess_test',azp: 'https://app.laterbox.dev' }).setProtectedHeader({ alg: 'RS256',kid: 'migration-test' }).setIssuer('https://clerk.laterbox.dev').setSubject('user_existing').setIssuedAt().setExpirationTime('1m').sign(privateKey);
     const response = await POST(request(proof));
-    assert.equal(response.status,200); assert.deepEqual(await response.json(),{ linked: true });
+    assert.equal(response.status,200,requests.join("; ")); assert.deepEqual(await response.json(),{ linked: true });
     assert.equal(linked,'user_existing'); assert.equal(tickets,2);
     mode = 'clerk-mfa'; assert.equal((await POST(request())).status,409);
   } finally {
