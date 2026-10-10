@@ -210,7 +210,7 @@ async function showCaptureResult(
     window.setTimeout(() => window.close(), 700);
   } else if (result.status === "proRequired") {
     await updateConnectionState();
-    setStatus("Get Pro to use this extension.", "error");
+    setStatus("Capture access was rejected. Update the capture backend and reconnect.", "error");
     button.disabled = false;
   } else if (result.status === "needsAuth") {
     await updateConnectionState();
