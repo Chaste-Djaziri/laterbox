@@ -30,3 +30,27 @@ test('dashboard bridge ignores untrusted sites and exposes only connection statu
   assert.equal(replies[0].accessToken, undefined);
   assert.equal(replies[0].userId, undefined);
 });
+
+
+test('local import bridge requires the exact approved origin and hides credentials', async () => {
+ let listener: ((event: any) => void) | undefined;
+ const replies: any[] = [];
+ const page = { addEventListener: (_: string, callback: typeof listener) => { listener = callback; }, postMessage: (value: unknown) => replies.push(value) };
+ (globalThis as any).window = page;
+ const request = { source: 'laterbox-dashboard', requestId: 'local', action: 'local-import' };
+ for (const origin of ['https://app.laterbox.dev', 'http://localhost:3000']) {
+  const url = new URL(origin); (globalThis as any).location = { origin, hostname: url.hostname, protocol: url.protocol };
+  installDashboardBridge(); message = undefined;
+  listener!({ source: page, origin, data: request });
+  await new Promise(resolve => setTimeout(resolve, 0)); assert.equal(message, undefined);
+ }
+ const origin = 'http://localhost:8080';
+ (globalThis as any).location = { origin, hostname: 'localhost', protocol: 'http:' };
+ installDashboardBridge();
+ listener!({ source: {}, origin, data: request }); assert.equal(message, undefined);
+ listener!({ source: page, origin: 'http://localhost:3000', data: request }); assert.equal(message, undefined);
+ listener!({ source: page, origin, data: request });
+ await new Promise(resolve => setTimeout(resolve, 0));
+ assert.deepEqual(message, { type: 'local-import', ids: undefined });
+ assert.equal(replies[0].accessToken, undefined); assert.equal(replies[0].userId, undefined);
+});
