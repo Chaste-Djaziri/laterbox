@@ -158,38 +158,38 @@ public struct MobileSidebarDrawer: View {
         )
     }
 
+    // MARK: - Safe Area Inset Helper
+    private var safeAreaTopPadding: CGFloat {
+        #if canImport(UIKit)
+        let keyWindow = UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .flatMap { $0.windows }
+            .first { $0.isKeyWindow }
+        if let top = keyWindow?.safeAreaInsets.top, top > 0 {
+            return top
+        }
+        #endif
+        return 50
+    }
+
     // MARK: - Header
     private var headerView: some View {
         HStack(spacing: 10) {
-            HStack(spacing: 10) {
-                Image("LaterboxIconGreen")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 38, height: 38)
-                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            Image("LaterboxIconGreen")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 38, height: 38)
+                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
 
-                Text("laterbox")
-                    .font(.system(size: 22, weight: .black))
-                    .foregroundColor(Color(hex: "171711"))
-                    .tracking(-0.5)
-            }
+            Text("laterbox")
+                .font(.system(size: 22, weight: .black))
+                .foregroundColor(Color(hex: "171711"))
+                .tracking(-0.5)
 
             Spacer()
-
-            Button {
-                close()
-            } label: {
-                Image(systemName: "xmark")
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundColor(Color.secondary)
-                    .frame(width: 32, height: 32)
-                    .background(Color.black.opacity(0.04), in: Circle())
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Close sidebar")
         }
         .padding(.horizontal, 18)
-        .padding(.top, 16)
+        .padding(.top, max(safeAreaTopPadding + 6, 20))
         .padding(.bottom, 14)
     }
 
