@@ -4,12 +4,13 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
+import { APP_ORIGIN } from '@/lib/auth/config';
 import { useAuth } from '@/lib/store/AuthContext';
 import { Bolt, LogIn, Menu, X } from 'lucide-react';
 
 export function Header() {
   const pathname = usePathname();
-  const { user, continueAsGuest } = useAuth();
+  const { user, loading, continueAsGuest } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Close mobile menu on route change
@@ -70,25 +71,25 @@ export function Header() {
 
           {/* Auth / Launch Actions & Mobile Toggle */}
           <div className="flex items-center gap-1.5 sm:gap-3 shrink-0 md:justify-self-end">
-            {user ? (
+            {loading ? <span className="h-10 w-24" aria-label="Checking login" aria-busy="true" /> : user ? (
               <Link
-                href="/inbox"
+                href={`${APP_ORIGIN}/`}
                 className="inline-flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-full text-xs sm:text-sm font-extrabold text-white bg-[#171711] hover:bg-black active:bg-[#0f0f0e] shadow-xs whitespace-nowrap shrink-0"
               >
                 <Bolt className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                <span>Open Inbox</span>
+                <span>Open app</span>
               </Link>
             ) : (
               <>
                 <Link
-                  href="/login"
+                  href={`${APP_ORIGIN}/login`}
                   className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-2 text-xs sm:text-sm font-bold text-[#171711] hover:bg-[#ebe7dc]/60 rounded-xl shrink-0"
                 >
                   <LogIn className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                  <span>Sign In</span>
+                  <span>Log in</span>
                 </Link>
                 <Link
-                  href="/inbox"
+                  href={`${APP_ORIGIN}/`}
                   onClick={() => continueAsGuest()}
                   className="inline-flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-full text-xs sm:text-sm font-extrabold text-white bg-[#171711] hover:bg-black active:bg-[#0f0f0e] shadow-xs cursor-pointer whitespace-nowrap shrink-0"
                 >
@@ -139,14 +140,14 @@ export function Header() {
                   );
                 })}
 
-                {!user && (
+                {!loading && !user && (
                   <div className="pt-2.5 border-t border-[#f0ede4] mt-2 space-y-1">
                     <Link
-                      href="/login"
+                      href={`${APP_ORIGIN}/login`}
                       className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-sm font-bold text-[#171711] hover:bg-[#faf8f2]"
                     >
                       <LogIn className="w-4 h-4 text-[#6c6b63]" />
-                      <span>Sign In</span>
+                      <span>Log in</span>
                     </Link>
                   </div>
                 )}
