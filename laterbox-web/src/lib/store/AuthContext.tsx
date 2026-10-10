@@ -13,6 +13,7 @@ import { clearExtensionStatusCache } from '../extension/dashboard';
 export interface AuthContextType {
   user: AccountUser | null;
   session: AccountSession | null;
+  isAuthenticated?: boolean;
   getToken: (refresh?: boolean) => Promise<string | null>;
   authError?: string | null;
   retryAuth?: () => void;
