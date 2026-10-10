@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { AppSidebar } from './AppSidebar';
+import { AppTopHeader } from './AppTopHeader';
 import { QuickCaptureModal } from '../inbox/QuickCaptureModal';
 import { useItems } from '@/lib/store/ItemContext';
 import { Inbox, BookMarked, Settings, Plus } from 'lucide-react';
@@ -109,24 +110,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden bg-[#f7f5ee]">
-        {/* Mobile Top Header */}
-        <header className="md:hidden flex items-center justify-between px-3.5 sm:px-4 h-[calc(3.5rem+env(safe-area-inset-top,0px))] pt-[env(safe-area-inset-top,0px)] bg-[#f7f5ee] border-b border-[#e4e0d5] shrink-0 z-20">
-          <Link href="/inbox" className="flex items-center gap-2 shrink-0">
-            <div className="w-7 h-7 relative rounded-lg overflow-hidden bg-[#e6edb0] p-1 shrink-0">
-              <Image src="/branding/laterbox-icon.png" alt="laterbox" fill sizes="28px" className="object-contain p-0.5" />
-            </div>
-            <span className="text-lg font-black tracking-tight text-[#171711]">laterbox</span>
-          </Link>
-          <div className="flex items-center gap-2 shrink-0">
-            <button
-              onClick={() => setCaptureOpen(true)}
-              className="p-2 rounded-xl bg-[#171711] active:bg-black text-white font-bold shrink-0 shadow-xs"
-              aria-label="Quick capture"
-            >
-              <Plus className="w-4 h-4" />
-            </button>
-          </div>
-        </header>
+        {/* Top Header: Title, Centered Search, AI Organize, Save Item, Settings & Profile */}
+        <AppTopHeader />
 
         {/* Page Content: locked viewport for Inbox, scrollable for other pages */}
         <main
