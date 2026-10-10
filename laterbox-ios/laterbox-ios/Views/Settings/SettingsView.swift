@@ -1091,7 +1091,6 @@ public struct SettingsView: View {
                 }
             }
         }
-    }
 
     private func proFeatureRow(icon: String, text: String) -> some View {
         HStack(spacing: 8) {
