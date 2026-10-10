@@ -13,6 +13,7 @@ import { createQueryRecovery } from '../utils/query-recovery';
 
 const LOCAL_ITEMS_KEY = 'laterbox_local_items';
 const LOCAL_COLLECTIONS_KEY = 'laterbox_local_collections';
+const LOCAL_DELETED_ITEMS_KEY = 'laterbox_local_deleted_items';
 
 export type SyncState = 'synced' | 'syncing' | 'offline' | 'error';
 
@@ -22,6 +23,7 @@ interface ItemContextType {
   savedItems: LaterBoxItem[];
   archivedItems: LaterBoxItem[];
   starredItems: LaterBoxItem[];
+  deletedItems: LaterBoxItem[];
   filteredInboxItems: LaterBoxItem[];
   collections: Collection[];
   activeFilter: InboxFilterType;
@@ -37,6 +39,9 @@ interface ItemContextType {
   archiveItem: (id: string) => Promise<void>;
   markUnseen: (id: string) => Promise<void>;
   deleteItem: (id: string) => Promise<void>;
+  restoreItem: (id: string) => Promise<void>;
+  permanentlyDeleteItem: (id: string) => Promise<void>;
+  emptyTrash: () => Promise<void>;
   saveNote: (itemId: string, content: string) => Promise<void>;
   createCollection: (name: string) => Promise<Collection>;
   deleteCollection: (id: string) => Promise<void>;
@@ -56,6 +61,7 @@ const DEFAULT_GUEST_ITEMS: LaterBoxItem[] = [];
 export function ItemProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const [items, setItems] = useState<LaterBoxItem[]>([]);
+  const [deletedItems, setDeletedItems] = useState<LaterBoxItem[]>([]);
   const [now, setNow] = useState(() => new Date());
   const [collections, setCollections] = useState<Collection[]>([]);
   const [activeFilter, setActiveFilter] = useState<InboxFilterType>('all');
@@ -81,6 +87,12 @@ export function ItemProvider({ children }: { children: ReactNode }) {
       } else {
         setCollections([]);
       }
+      const storedDeleted = localStorage.getItem(`${LOCAL_DELETED_ITEMS_KEY}_${user?.id || 'guest'}`) || localStorage.getItem(LOCAL_DELETED_ITEMS_KEY);
+      if (storedDeleted) {
+        setDeletedItems(JSON.parse(storedDeleted) as LaterBoxItem[]);
+      } else {
+        setDeletedItems([]);
+      }
     } catch {
       // ignore
     }
@@ -100,6 +112,14 @@ export function ItemProvider({ children }: { children: ReactNode }) {
       if (newCols) {
         localStorage.setItem(`${LOCAL_COLLECTIONS_KEY}_${user?.id || 'guest'}`,  JSON.stringify(newCols));
       }
+    } catch {
+      // ignore
+    }
+  }, [user?.id]);
+
+  const saveLocalDeleted = useCallback((newDeleted: LaterBoxItem[]) => {
+    try {
+      localStorage.setItem(`${LOCAL_DELETED_ITEMS_KEY}_${user?.id || 'guest'}`, JSON.stringify(newDeleted));
     } catch {
       // ignore
     }
@@ -202,6 +222,17 @@ export function ItemProvider({ children }: { children: ReactNode }) {
           .eq('user_id', user.id)
           .is('deleted_at', null)
           .order('created_at', { ascending: false })
+      );
+
+      // Fetch recently deleted items
+      const { data: deletedRows } = await fetchWithRetry(() =>
+        supabase
+          .from('items')
+          .select('*')
+          .eq('user_id', user.id)
+          .not('deleted_at', 'is', null)
+          .order('deleted_at', { ascending: false })
+          .limit(100)
       );
 
       // Fetch metadata
@@ -340,6 +371,19 @@ export function ItemProvider({ children }: { children: ReactNode }) {
       setItems(deduplicated);
       setCollections(colRows || []);
       saveLocalData(deduplicated, colRows || []);
+
+      if (deletedRows) {
+        const mappedDeleted = deletedRows.map((item: any) => ({
+          ...migrateSchedule(item),
+          metadata: metaMap.get(item.id) || null,
+          note: noteMap.get(item.id) || null,
+          attachments: attachmentMap.get(item.id) || [],
+          collections: itemColsMap.get(item.id) || [],
+        }));
+        setDeletedItems(mappedDeleted);
+        saveLocalDeleted(mappedDeleted);
+      }
+
       setSyncStatus('synced');
     } catch (err) {
       console.warn('[ItemContext] Cloud snapshot failed; retaining cached data:', err);
@@ -696,13 +740,69 @@ export function ItemProvider({ children }: { children: ReactNode }) {
   const deleteItem = async (id: string) => {
     const now = new Date().toISOString();
     const deleted = items.find(item => item.id === id);
-    if (deleted) queueCapture({ ...deleted, deleted_at: now, updated_at: now });
+    if (deleted) {
+      const deletedItem = { ...deleted, deleted_at: now, updated_at: now };
+      queueCapture(deletedItem);
+      setDeletedItems(prev => {
+        const next = [deletedItem, ...prev.filter(i => i.id !== id)];
+        saveLocalDeleted(next);
+        return next;
+      });
+    }
     const updated = items.filter((i) => i.id !== id);
     setItems(updated);
     saveLocalData(updated);
 
     if (user) {
       await safeSyncPending(user.id);
+    }
+  };
+
+  const restoreItem = async (id: string) => {
+    const itemToRestore = deletedItems.find(i => i.id === id);
+    if (!itemToRestore) return;
+    const now = new Date().toISOString();
+    const restored: LaterBoxItem = { ...itemToRestore, deleted_at: null, status: 'inbox', updated_at: now };
+
+    setDeletedItems(prev => {
+      const next = prev.filter(i => i.id !== id);
+      saveLocalDeleted(next);
+      return next;
+    });
+
+    const newItems = [restored, ...items.filter(i => i.id !== id)];
+    setItems(newItems);
+    saveLocalData(newItems);
+
+    queueCapture(restored);
+    if (user) {
+      const supabase = getSupabaseClient();
+      await supabase.from('items').update({ deleted_at: null, status: 'inbox', updated_at: now }).eq('id', id);
+      await safeSyncPending(user.id);
+    }
+  };
+
+  const permanentlyDeleteItem = async (id: string) => {
+    setDeletedItems(prev => {
+      const next = prev.filter(i => i.id !== id);
+      saveLocalDeleted(next);
+      return next;
+    });
+
+    if (user) {
+      const supabase = getSupabaseClient();
+      await supabase.from('items').delete().eq('id', id).eq('user_id', user.id);
+    }
+  };
+
+  const emptyTrash = async () => {
+    const ids = deletedItems.map(i => i.id);
+    setDeletedItems([]);
+    saveLocalDeleted([]);
+
+    if (user && ids.length > 0) {
+      const supabase = getSupabaseClient();
+      await supabase.from('items').delete().in('id', ids).eq('user_id', user.id);
     }
   };
 
@@ -902,6 +1002,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
         savedItems,
         archivedItems,
         starredItems,
+        deletedItems,
         filteredInboxItems,
         collections,
         activeFilter,
@@ -915,6 +1016,9 @@ export function ItemProvider({ children }: { children: ReactNode }) {
         archiveItem,
         markUnseen,
         deleteItem,
+        restoreItem,
+        permanentlyDeleteItem,
+        emptyTrash,
         saveNote,
         createCollection,
         deleteCollection,
