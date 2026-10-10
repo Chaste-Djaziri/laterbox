@@ -9,6 +9,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 ## [Unreleased]
 
 ### Changed
+- **[Auth] Revert to Supabase Auth**: Reverted to Supabase authentication exclusively across the entire application, eliminating Clerk login providers, middleware, and dependencies.
 - **[iOS] Expanding active search bar with in-page email table results and filters**: Implemented seamless search input expansion in the inbox top bar with back navigation and clear actions, horizontal filter chips (Format, Starred, Attachments), recent search history, and live query results displayed in our warm-canvas segmented email card format.
 - **[iOS] Segmented card styling and #f7f5ee canvas background**: Updated the iOS app background to signature warm canvas #f7f5ee, styled each inbox email item as an individual card with subtle gaps (removing dividing lines), and applied corner radii (4pt for standard corners, 12pt on top corners of the first item and bottom corners of the last item).
 - **[Auth] Fix login authentication loading error**: Resolve 'Authentication is still loading. Please try again.' error by asynchronously waiting for Clerk client initialization on submit, reflecting readiness on the login button, and falling back gracefully to clerk.client instances.
