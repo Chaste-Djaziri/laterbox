@@ -20,7 +20,6 @@ import {
   CheckSquare,
   Link2,
   Clock,
-  Menu,
   ArrowRight,
   ArrowLeft,
   LayoutGrid,
@@ -510,13 +509,6 @@ export function ScheduleDashboard({ view }: { view?: ScheduleView }) {
             </kbd>
           </button>
         </div>
-        <Link
-          href="/settings"
-          className="p-2.5 rounded-xl hover:bg-[#faf8f5] text-[#6c6b63] hover:text-[#171711] transition-colors shrink-0"
-          title="Settings"
-        >
-          <Menu className="w-4 h-4" />
-        </Link>
       </div>
 
       {/* Greeting Header */}
