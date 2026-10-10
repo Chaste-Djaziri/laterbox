@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "LaterBox - Save for Later",
-  "description": "Save pages, readable articles, social posts, and source-linked highlights to your LaterBox Pro account.",
+  "description": "Save pages, readable articles, social posts, and source-linked highlights to your free LaterBox account or local library.",
   "version": "1.0.176",
   "icons": {
     "16": "icons/icon-16.png",
