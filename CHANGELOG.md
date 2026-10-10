@@ -9,6 +9,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 ## [Unreleased]
 
 ### Changed
+- **[iOS] Full-page Settings view and remove Returns Schedule from sidebar**: Transitioned the Settings page from a modal sheet popup into a full-page pushed destination inside the primary navigation stack with clean back navigation and full-width hit-testing, and removed the redundant Returns Schedule link from the sidebar Activity section.
 - **[iOS] Full-width clickable hit-test areas across all sidebar links**: Expanded tap target hit-testing to span the entire width of all sidebar links and buttons by applying full-width frame alignment and continuous rounded rectangle content shapes across row spacers and transparent bounds.
 - **[iOS] Today, Scheduled, and Someday integrated as in-page inbox view filters**: Eliminated popup sheets for Today, Scheduled, and Someday by routing them directly into the primary Inbox table view as first-class mailbox filters, displaying their contextual titles, reset-to-inbox action pills, empty state messages, and segmented email cards in-place.
 - **[iOS] Sidebar header under notch, remove close button, and scope floating plus button to home page**: Inset the sidebar drawer header cleanly below the notch in safe area view, removed the redundant sidebar close button, and confined the bottom floating '+' action button to the home page root view rather than overlaying across the entire application.
