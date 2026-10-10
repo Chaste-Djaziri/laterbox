@@ -17,8 +17,6 @@ public struct InboxView: View {
     @State private var showingOrganizer: Bool = false
     @State private var selectedMailbox: MailboxViewType = .inbox
     @State private var selectedCollection: String? = nil
-    @State private var showingReturns: Bool = false
-    @State private var returnsInitialSegment: ReturnSegment = .today
     @State private var showingLibrary: Bool = false
     @State private var showingPlans: Bool = false
     @State private var showingSettings: Bool = false
@@ -46,6 +44,28 @@ public struct InboxView: View {
         switch selectedMailbox {
         case .inbox:
             return allItems.filter { $0.status == ItemStatus.inbox.rawValue }
+        case .today:
+            let cal = Calendar.current
+            let endOfToday = cal.date(byAdding: .day, value: 1, to: cal.startOfDay(for: Date())) ?? Date()
+            return allItems.filter {
+                $0.status != ItemStatus.deleted.rawValue &&
+                $0.status != ItemStatus.archived.rawValue &&
+                $0.returnAt != nil &&
+                ($0.returnAt! <= endOfToday)
+            }
+        case .scheduled:
+            let cal = Calendar.current
+            let endOfToday = cal.date(byAdding: .day, value: 1, to: cal.startOfDay(for: Date())) ?? Date()
+            return allItems.filter {
+                $0.status != ItemStatus.deleted.rawValue &&
+                $0.status != ItemStatus.archived.rawValue &&
+                $0.returnAt != nil &&
+                ($0.returnAt! > endOfToday)
+            }
+        case .someday:
+            return allItems.filter {
+                $0.status == ItemStatus.deferred.rawValue && $0.returnAt == nil
+            }
         case .starred:
             return allItems.filter { $0.favorite && $0.status != ItemStatus.deleted.rawValue }
         case .kept:
@@ -54,6 +74,34 @@ public struct InboxView: View {
             return allItems.filter { $0.status == ItemStatus.archived.rawValue }
         case .trash:
             return allItems.filter { $0.status == ItemStatus.deleted.rawValue }
+        }
+    }
+
+    private var emptyTitleText: String {
+        if let col = selectedCollection { return "No items in #\(col)" }
+        switch selectedMailbox {
+        case .inbox: return "Inbox Zero!"
+        case .today: return "No Items Due Today"
+        case .scheduled: return "No Scheduled Items"
+        case .someday: return "Someday Vault is Empty"
+        case .starred: return "No Starred Items"
+        case .kept: return "No Kept Items"
+        case .archived: return "No Archived Items"
+        case .trash: return "Trash is Empty"
+        }
+    }
+
+    private var emptySubtitleText: String {
+        if let col = selectedCollection { return "Items tagged with this collection will appear here." }
+        switch selectedMailbox {
+        case .inbox: return "All caught up. Everything saved has been processed or reviewed."
+        case .today: return "You have no items scheduled for review today."
+        case .scheduled: return "Items scheduled for upcoming dates will appear here."
+        case .someday: return "Ideas, inspiration, and backlog items with no deadline appear here."
+        case .starred: return "Star items to quickly find them here."
+        case .kept: return "Items you've kept will appear here."
+        case .archived: return "Archived items will appear here."
+        case .trash: return "Deleted items will appear here before being permanently erased."
         }
     }
 
@@ -519,10 +567,10 @@ public struct InboxView: View {
                                     Image(systemName: selectedCollection != nil ? "tag.fill" : selectedMailbox.systemIcon)
                                         .font(.system(size: 40))
                                         .foregroundColor(.secondary.opacity(0.35))
-                                    Text(selectedCollection != nil ? "No items in #\(selectedCollection!)" : (selectedMailbox == .inbox ? "Inbox Zero!" : "No \(selectedMailbox.rawValue) Items"))
+                                    Text(emptyTitleText)
                                         .font(.headline)
                                         .foregroundColor(AppTheme.textPrimary)
-                                    Text(selectedCollection != nil ? "Items tagged with this collection will appear here." : (selectedMailbox == .inbox ? "All caught up. Everything saved has been processed or reviewed." : "Items will appear here when added to \(selectedMailbox.rawValue.lowercased())."))
+                                    Text(emptySubtitleText)
                                         .font(.caption)
                                         .foregroundColor(AppTheme.textSecondary)
                                         .multilineTextAlignment(.center)
@@ -623,8 +671,15 @@ public struct InboxView: View {
                             selectedCollection = colName
                         },
                         onOpenReturns: { segment in
-                            returnsInitialSegment = segment
-                            showingReturns = true
+                            switch segment {
+                            case .today:
+                                selectedMailbox = .today
+                            case .upcoming:
+                                selectedMailbox = .scheduled
+                            case .someday:
+                                selectedMailbox = .someday
+                            }
+                            selectedCollection = nil
                         },
                         onOpenLibrary: {
                             showingLibrary = true
@@ -674,9 +729,6 @@ public struct InboxView: View {
             }
             .sheet(isPresented: $showingOrganizer) {
                 AIOrganizerSheet()
-            }
-            .sheet(isPresented: $showingReturns) {
-                ReturnsView(initialSegment: returnsInitialSegment)
             }
             .sheet(isPresented: $showingLibrary) {
                 LibraryView()
