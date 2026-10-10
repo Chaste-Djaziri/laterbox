@@ -1,13 +1,10 @@
 import { isLocalMode, LOCAL_ORIGIN } from '../lib/local-library';
 import {
   cancelConnectionRequest,
-  checkProEntitlement,
   connectLaterBox,
   disconnectLaterBox,
   getAccessToken,
-  getIsPro,
   getPendingConnection,
-  getProUpgradeUrl,
   openApprovalTab,
 } from "../lib/auth";
 import { flushQueue, saveCapture, saveSelectionFromTab } from "../lib/capture";
@@ -24,14 +21,10 @@ const selectionElement = document.querySelector<HTMLElement>("#selection")!;
 const saveHighlightButton = document.querySelector<HTMLButtonElement>("#save-highlight")!;
 const disconnectedPanel = document.querySelector<HTMLElement>("#disconnected")!;
 const pendingPanel = document.querySelector<HTMLElement>("#pending")!;
-const proRequiredPanel = document.querySelector<HTMLElement>("#pro-required")!;
 const connectedPanel = document.querySelector<HTMLElement>("#connected")!;
 const connectButton = document.querySelector<HTMLButtonElement>("#connect")!;
 const openApprovalButton = document.querySelector<HTMLButtonElement>("#open-approval")!;
 const cancelConnectButton = document.querySelector<HTMLButtonElement>("#cancel-connect")!;
-const getProButton = document.querySelector<HTMLButtonElement>("#get-pro")!;
-const refreshProButton = document.querySelector<HTMLButtonElement>("#refresh-pro")!;
-const disconnectProButton = document.querySelector<HTMLButtonElement>("#disconnect-pro")!;
 const saveButton = document.querySelector<HTMLButtonElement>("#save")!;
 const openPanelButton = document.querySelector<HTMLButtonElement>("#open-panel")!;
 const disconnectButton = document.querySelector<HTMLButtonElement>("#disconnect")!;
@@ -70,11 +63,6 @@ async function initialize(): Promise<void> {
   }
   await updateConnectionState();
 
-  // Check Pro entitlement in background to keep state updated
-  const token = await getAccessToken();
-  if (token.startsWith("lb_ext_")) {
-    void checkProEntitlement().then(() => void updateConnectionState());
-  }
 
   browser.storage.onChanged.addListener((changes, areaName) => {
     if (areaName === "local" && ["accessToken", "connectedUserId", "hasProPlan", "pendingConnection", "captureMode"].some(key => key in changes)) {
@@ -93,32 +81,6 @@ openApprovalButton.addEventListener("click", () => {
 
 cancelConnectButton.addEventListener("click", () => {
   void cancelConnect();
-});
-
-getProButton.addEventListener("click", () => {
-  void browser.tabs.create({ url: getProUpgradeUrl() });
-});
-
-refreshProButton.addEventListener("click", async () => {
-  refreshProButton.disabled = true;
-  setStatus("Checking Pro status...");
-  try {
-    const pro = await checkProEntitlement();
-    await updateConnectionState();
-    if (pro) {
-      setStatus("Pro active! You're ready to capture.", "success");
-    } else {
-      setStatus("Pro plan not detected yet. Complete checkout on the web.", "error");
-    }
-  } catch {
-    setStatus("Could not check Pro status.", "error");
-  } finally {
-    refreshProButton.disabled = false;
-  }
-});
-
-disconnectProButton.addEventListener("click", () => {
-  void disconnect();
 });
 
 saveButton.addEventListener("click", () => {
@@ -151,18 +113,15 @@ async function updateConnectionState(): Promise<boolean> {
   const userId = await getConnectedUserId();
   const connected = await isLocalMode() || (token.startsWith("lb_ext_") && userId.length > 0);
   const pending = !connected && (await getPendingConnection()) !== null;
-  const isPro = connected;
-  const isProRequired = false;
 
   disconnectedPanel.hidden = connected || pending;
   pendingPanel.hidden = connected || !pending;
-  proRequiredPanel.hidden = !isProRequired;
-  connectedPanel.hidden = !connected || isProRequired;
+  connectedPanel.hidden = !connected;
   connectButton.hidden = connected || pending;
-  disconnectButton.hidden = !connected || isProRequired;
-  openPanelButton.hidden = !browserCapabilities.supportsSidePanel || isProRequired;
+  disconnectButton.hidden = !connected;
+  openPanelButton.hidden = !browserCapabilities.supportsSidePanel;
 
-  if (connected && isPro === true) {
+  if (connected) {
     const flushed = await flushQueue();
     if (flushed > 0) {
       setStatus(`Synced ${flushed} queued capture${flushed === 1 ? "" : "s"}.`);
@@ -305,10 +264,12 @@ browser.storage.onChanged.addListener((changes,area)=>{
 });
 
 const modeControls = document.createElement('div');
+modeControls.className = 'connection-panel';
 const localButton = document.createElement('button');
 localButton.textContent = 'Local library';
 localButton.addEventListener('click', async () => {
   await browser.storage.local.set({ captureMode: 'local' });
+  await cancelConnectionRequestIfPending();
   await updateConnectionState();
   setStatus('Local library selected. Captures stay on this browser.');
 });
@@ -320,3 +281,5 @@ libraryButton.textContent = 'Open local library';
 libraryButton.addEventListener('click', () => void browser.tabs.create({ url: `${LOCAL_ORIGIN}/home` }));
 modeControls.append(localButton, accountButton, libraryButton);
 document.body.append(modeControls);
+
+async function cancelConnectionRequestIfPending() { if (await getPendingConnection()) await cancelConnectionRequest(); }
