@@ -9,6 +9,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 ## [Unreleased]
 
 ### Changed
+- **[Web] Starred tab in sidebar and email table view**: Added a Starred navigation tab directly under Inbox in the sidebar for favorited items, featuring live count badges, a dedicated `/starred` route, and the unified email inbox table dashboard view.
 - **[Web] Sidebar collections group and email table view for collections**: Added a Gmail labels-style Collections group in the sidebar with a `+` button for inline collection creation, label icons, and item count badges. Clicking any collection opens the unified email table dashboard view populated with the collection's items and dynamic header title.
 - **[Web] Someday page email UI table and unified dashboard layout**: Redesigned the Someday page to use the modern email inbox table layout, unified with Inbox, Today, and Upcoming with shared layout header, search, and action tools while displaying postponed Someday items.
 - **[Web] Move top header into layout of (app) routegroup**: Extracted the Top Header (Title, Centered Search, AI Organize, Save Item, Settings & Profile, and notification gate) into a shared layout component in AppShell with dynamic page titles, eliminating code duplication across Inbox, Today, and Upcoming pages.
