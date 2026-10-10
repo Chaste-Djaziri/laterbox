@@ -185,7 +185,7 @@ export default function GuidePage() {
         'Install as a Progressive Web App (PWA) on your desktop for a native window feel.',
       ],
       linkText: 'Launch Web App',
-      linkUrl: '/home',
+      linkUrl: '/inbox',
     },
     {
       name: 'Browser Extensions (Chrome, Brave, Firefox, Safari)',
@@ -370,7 +370,7 @@ export default function GuidePage() {
                   Download Apps
                 </Link>
                 <Link
-                  href="/home"
+                  href="/inbox"
                   className="px-5 py-2.5 rounded-xl bg-[#e6edb0] hover:bg-[#d9e29a] text-[#171711] text-xs font-extrabold transition-all shadow-xs flex items-center gap-1.5"
                 >
                   <span>Open LaterBox</span>
