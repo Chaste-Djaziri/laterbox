@@ -15,6 +15,7 @@ public enum ReturnSegment: String, CaseIterable {
 }
 
 public struct ReturnsView: View {
+    @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \LBItem.returnAt, order: .forward) private var allItems: [LBItem]
     @ObservedObject var coordinator = SyncCoordinator.shared
@@ -80,135 +81,144 @@ public struct ReturnsView: View {
     public var body: some View {
         NavigationStack {
             ZStack {
-                LiquidGlassBackground()
+                AppTheme.canvasBackground
+                    .ignoresSafeArea()
 
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 18) {
-                        // Top Level Header (Scrolls normally, uncontainerized on canvas)
-                        HStack(alignment: .center) {
-                            HStack(spacing: 8) {
-                                Image("LaterboxIconGreen")
-                                    .resizable()
-                                    .scaledToFit()
-                                    .frame(width: 28, height: 28)
-                                    .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
-
-                                Text("Returns")
-                                    .font(.system(size: 24, weight: .bold))
-                                    .foregroundColor(AppTheme.textPrimary)
+                VStack(spacing: 0) {
+                    // Top Navigation Header
+                    HStack {
+                        Button {
+                            dismiss()
+                            LBHaptic.light()
+                        } label: {
+                            HStack(spacing: 4) {
+                                Image(systemName: "chevron.left")
+                                    .font(.system(size: 16, weight: .bold))
+                                Text("Inbox")
+                                    .font(.system(size: 15, weight: .medium))
                             }
+                            .foregroundColor(AppTheme.textPrimary)
+                        }
+                        .buttonStyle(.plain)
 
-                            Spacer()
+                        Spacer()
 
-                            // Sync Status Indicator (No Container)
-                            Button(action: {
-                                if !coordinator.isProUser {
+                        Text("Returns Schedule")
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundColor(AppTheme.textPrimary)
+
+                        Spacer()
+
+                        // Balance back button width
+                        Color.clear
+                            .frame(width: 50, height: 20)
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.top, 14)
+                    .padding(.bottom, 10)
+
+                    // Returns Filter Pills (Today, Upcoming, Someday)
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            ForEach(ReturnSegment.allCases, id: \.self) { seg in
+                                let isSelected = selectedSegment == seg
+                                let c = count(for: seg)
+                                Button {
+                                    selectedSegment = seg
                                     LBHaptic.light()
-                                    coordinator.showingPlansSheet = true
-                                }
-                            }) {
-                                HStack(spacing: 5) {
-                                    Circle()
-                                        .fill(coordinator.syncHeaderColor)
-                                        .frame(width: 7, height: 7)
-                                    Text(coordinator.syncHeaderTitle)
-                                        .font(.caption2.weight(.medium))
-                                        .foregroundColor(AppTheme.textSecondary)
-                                }
-                            }
-                            .buttonStyle(.plain)
-                        }
-                        .padding(.top, 4)
-
-                        // Returns Filter Badges (Today, Upcoming, Someday) with no wrapping
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 8) {
-                                ForEach(ReturnSegment.allCases, id: \.self) { seg in
-                                    Button(action: {
-                                        LBHaptic.light()
-                                        selectedSegment = seg
-                                    }) {
-                                        HStack(spacing: 6) {
-                                            Text(seg.rawValue)
-                                                .font(.subheadline.weight(.semibold))
-
-                                            let c = count(for: seg)
-                                            Text("\(c)")
-                                                .font(.caption2.weight(.bold))
-                                                .padding(.horizontal, 6)
-                                                .padding(.vertical, 2)
-                                                .background(
-                                                    Capsule()
-                                                        .fill(selectedSegment == seg ? Color.black.opacity(0.12) : AppTheme.accent)
-                                                )
-                                                .foregroundColor(AppTheme.textPrimary)
-                                        }
-                                        .lineLimit(1)
-                                        .fixedSize()
-                                        .liquidGlassPill(isSelected: selectedSegment == seg)
+                                } label: {
+                                    HStack(spacing: 6) {
+                                        Text(seg.rawValue)
+                                            .font(.system(size: 13, weight: isSelected ? .bold : .medium))
+                                        Text("\(c)")
+                                            .font(.system(size: 11, weight: .bold))
+                                            .padding(.horizontal, 6)
+                                            .padding(.vertical, 2)
+                                            .background(
+                                                isSelected ? Color(hex: "D8E09E") : Color(hex: "E6EDB0"),
+                                                in: Capsule()
+                                            )
+                                            .foregroundColor(Color(hex: "171711"))
                                     }
-                                    .buttonStyle(.plain)
-                                }
-                            }
-                            .padding(.horizontal, 1)
-                        }
-
-                        // Section Info
-                        HStack {
-                            Text("\(selectedSegment.rawValue) Schedule • \(itemsForSegment.count) Items")
-                                .font(.caption.weight(.bold))
-                                .foregroundColor(AppTheme.textSecondary)
-                                .textCase(.uppercase)
-                                .lineLimit(1)
-                            Spacer()
-                        }
-                        .padding(.top, 4)
-
-                        // Empty State or List
-                        if itemsForSegment.isEmpty {
-                            VStack(spacing: 14) {
-                                ZStack {
-                                    Circle()
-                                        .fill(AppTheme.darkSurface)
-                                        .frame(width: 52, height: 52)
-                                    Image(systemName: "calendar.badge.clock")
-                                        .font(.system(size: 22, weight: .semibold))
-                                        .foregroundColor(AppTheme.accent)
-                                }
-                                Text("No items scheduled for \(selectedSegment.rawValue.lowercased())")
-                                    .font(.headline)
-                                    .foregroundColor(AppTheme.textPrimary)
-                                    .lineLimit(1)
-                                Text("Schedule items to reappear when you have time to read or watch.")
-                                    .font(.caption)
-                                    .foregroundColor(AppTheme.textSecondary)
-                                    .multilineTextAlignment(.center)
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding(42)
-                            .liquidGlassCard(cornerRadius: 20)
-                        } else {
-                            ForEach(itemsForSegment) { item in
-                                NavigationLink(destination: ItemDetailView(item: item)) {
-                                    ItemCardView(
-                                        item: item,
-                                        onMarkDone: { coordinator.markDone(item: item, context: modelContext) },
-                                        onToggleFavorite: { coordinator.toggleFavorite(item: item, context: modelContext) },
-                                        onSchedule: {
-                                            coordinator.scheduleItem(item: item, date: Calendar.current.date(byAdding: .day, value: 1, to: Date())!, context: modelContext)
-                                        },
-                                        onDelete: { coordinator.deleteItem(item: item, context: modelContext) }
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 7)
+                                    .background(isSelected ? Color(hex: "171711") : Color.white, in: Capsule())
+                                    .foregroundColor(isSelected ? Color(hex: "E6EDB0") : AppTheme.textPrimary)
+                                    .overlay(
+                                        Capsule().strokeBorder(isSelected ? Color.clear : Color.black.opacity(0.08), lineWidth: 1)
                                     )
                                 }
                                 .buttonStyle(.plain)
                             }
                         }
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 10)
                     }
-                    .padding(.horizontal, 20)
-                    .padding(.top, 12)
-                    .padding(.bottom, 20)
+
+                    // Content Area (Email Table View Cards)
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 10) {
+                            HStack {
+                                Text("\(selectedSegment.rawValue) (\(itemsForSegment.count))")
+                                    .font(.system(size: 13, weight: .bold))
+                                    .foregroundColor(Color.secondary)
+                                Spacer()
+                            }
+                            .padding(.horizontal, 18)
+                            .padding(.top, 4)
+
+                            if itemsForSegment.isEmpty {
+                                VStack(spacing: 14) {
+                                    Image(systemName: "calendar.badge.clock")
+                                        .font(.system(size: 40))
+                                        .foregroundColor(Color.secondary.opacity(0.35))
+                                    Text("No items scheduled for \(selectedSegment.rawValue.lowercased())")
+                                        .font(.headline)
+                                        .foregroundColor(AppTheme.textPrimary)
+                                        .lineLimit(1)
+                                    Text("Schedule items from the inbox to reappear here when you're ready to review them.")
+                                        .font(.caption)
+                                        .foregroundColor(AppTheme.textSecondary)
+                                        .multilineTextAlignment(.center)
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(44)
+                                .background(Color.white)
+                                .cornerRadius(16)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 16)
+                                        .strokeBorder(Color.black.opacity(0.06), lineWidth: 1)
+                                )
+                                .padding(.horizontal, 12)
+                                .padding(.top, 10)
+                            } else {
+                                LazyVStack(spacing: 2.5) {
+                                    ForEach(Array(itemsForSegment.enumerated()), id: \.element.id) { index, item in
+                                        let isFirst = index == 0
+                                        let isLast = index == itemsForSegment.count - 1
+                                        let topRadius: CGFloat = isFirst ? 12 : 4
+                                        let bottomRadius: CGFloat = isLast ? 12 : 4
+
+                                        NavigationLink(destination: ItemDetailView(item: item)) {
+                                            EmailInboxRowView(
+                                                item: item,
+                                                topRadius: topRadius,
+                                                bottomRadius: bottomRadius,
+                                                onToggleFavorite: { coordinator.toggleFavorite(item: item, context: modelContext) },
+                                                onMarkDone: { coordinator.markDone(item: item, context: modelContext) },
+                                                onSchedule: { date in coordinator.scheduleItem(item: item, date: date, context: modelContext) },
+                                                onDelete: { coordinator.deleteItem(item: item, context: modelContext) }
+                                            )
+                                        }
+                                        .buttonStyle(.plain)
+                                    }
+                                }
+                                .padding(.horizontal, 12)
+                            }
+                        }
+                        .padding(.bottom, 30)
+                    }
                 }
-                .trackPullDownForLaterAI()
             }
             .navigationBarHidden(true)
         }
