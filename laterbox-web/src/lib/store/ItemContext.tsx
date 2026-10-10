@@ -3,7 +3,7 @@ import { importLocalCaptures } from '../extension/local-import';
 
 import React, { createContext, useContext, useEffect, useState, useMemo, useCallback, ReactNode } from 'react';
 import { getSupabaseClient } from '../supabase/client';
-import { LaterBoxItem, ItemStatus, InboxFilterType, Collection, Attachment, ItemMetadata } from '../supabase/types';
+import { LaterBoxItem, ItemStatus, InboxFilterType, Collection, Attachment, ItemMetadata, ItemContent } from '../supabase/types';
 import { useAuth } from './AuthContext';
 import { normalizeUrl, isUrl, extractDomain } from '../utils/url';
 import { storeLocalAttachment } from '../utils/local-attachments';
@@ -265,6 +265,11 @@ export function ItemProvider({ children }: { children: ReactNode }) {
           .eq('user_id', user.id)
       );
 
+      const { data: contentRows } = await fetchWithRetry(() =>
+        supabase.from('item_content').select('*').eq('user_id', user.id)
+      );
+      const contentMap = new Map((contentRows || []).map(c => [c.item_id, c as ItemContent]));
+
       // Fetch notes
       const { data: noteRows } = await fetchWithRetry(() =>
         supabase
@@ -364,6 +369,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
           title: resolvedTitle,
           text_content: resolvedTextContent,
           metadata: mergedMeta,
+          content: contentMap.get(item.id) || localCached?.content || null,
           note: noteMap.get(item.id) || localCached?.note || null,
           collections: combinedCols,
           attachments: [...new Map([...(localCached?.attachments || []), ...(attachmentMap.get(item.id) || [])].filter(attachment => !attachment.deleted_at).map(attachment => [attachment.id, attachment])).values()],
@@ -383,7 +389,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
         if (seenIds.has(item.id)) continue;
         seenIds.add(item.id);
 
-        const key = item.url ? `url:${item.url}` : item.text_content ? `text:${item.text_content}` : null;
+        const key = item.content?.capture_id ? `capture:${item.content.capture_id}` : item.url ? `url:${item.url}` : item.text_content ? `text:${item.text_content}` : null;
         if (key && seenKeys.has(key)) continue;
         if (key) seenKeys.add(key);
 
