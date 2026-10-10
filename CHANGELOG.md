@@ -5,6 +5,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 ## [Unreleased]
 
 ### Changed
+- **[Web] Simple AI organize button**: Replace the large AI organize card widget with a clean action button in the top-right header controls of the Inbox page.
 - **[Web] Accurate Inbox metrics**: Show real Items saved, To review, and Starred counts (0 when empty) instead of placeholder numbers.
 - **[Web] Inbox header cleanup**: Remove the Tutorial link and theme mode button from the top right of the Inbox page.
 - **[Web] Home top bar cleanup**: Remove the menu icon from the Home dashboard top bar; Settings remains available from the sidebar.
