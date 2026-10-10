@@ -101,7 +101,7 @@ const guides: Record<DeviceId, DeviceGuide> = {
   web: {
     label: 'LaterBox on the web', shortLabel: 'Web', eyebrow: 'Browser guide',
     intro: 'Capture, schedule returns, and search your private vault from any modern browser with zero friction.',
-    requirement: 'A current version of Chrome, Edge, Firefox, or Safari', primaryAction: 'Go to your dashboard', primaryHref: '/home',
+    requirement: 'A current version of Chrome, Edge, Firefox, or Safari', primaryAction: 'Go to your inbox', primaryHref: '/inbox',
     captureLabel: 'Open Quick Capture', captureKeys: '⌃ ⌥ L (Mac) or Ctrl Alt L',
     steps: [
       { title: 'Open Quick Capture', description: 'Press Control + Option + L on Mac, or Ctrl + Alt + L on Windows/Linux, or click Save Item in the sidebar.', detail: 'Paste a link, write a note, or drag files into the capture window, then pick when it should return.', icon: <Command aria-hidden="true" /> },
