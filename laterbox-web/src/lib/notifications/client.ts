@@ -1,3 +1,4 @@
+import { getAccessToken } from '../auth/tokens';
 import { getSupabaseClient } from '../supabase/client';
 
 export type NotificationPreferences = { enabled: boolean; returns: boolean; saves: boolean };
