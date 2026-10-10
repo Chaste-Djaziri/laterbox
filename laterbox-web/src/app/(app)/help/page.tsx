@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { getAccessToken } from '@/lib/auth/tokens';
 import { useAuth } from '@/lib/store/AuthContext';
 import {
   HelpCircle,
@@ -178,9 +179,8 @@ export default function HelpPage() {
       const storedIds = getStoredTicketIds();
       const queryParam = storedIds.length > 0 ? `?ids=${storedIds.join(',')}` : '';
       const headers: Record<string, string> = {};
-      if (session?.access_token) {
-        headers['Authorization'] = `Bearer ${session.access_token}`;
-      }
+      const token = await getAccessToken();
+      if (token) headers['Authorization'] = `Bearer ${token}`;
 
       const res = await fetch(`/api/support${queryParam}`, {
         method: 'GET',
@@ -247,9 +247,8 @@ export default function HelpPage() {
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
       };
-      if (session?.access_token) {
-        headers['Authorization'] = `Bearer ${session.access_token}`;
-      }
+      const token = await getAccessToken();
+      if (token) headers['Authorization'] = `Bearer ${token}`;
 
       const res = await fetch('/api/support', {
         method: 'POST',
