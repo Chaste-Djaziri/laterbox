@@ -554,7 +554,7 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
             </div>
           ) : isNote ? (
             /* FORMAT 5: Note Banner */
-            <div className="p-6 bg-[#fbfaf6] border-b border-[#e4e0d5] flex items-center justify-between">
+            <div className="p-6 bg-white border-b border-[#e4e0d5] flex items-center justify-between">
               <div className="w-10 h-10 rounded-2xl bg-[#e6edb0] border border-[#171711]/20 flex items-center justify-center text-[#171711]">
                 <StickyNote className="w-5 h-5" />
               </div>
@@ -586,7 +586,7 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
             </div>
           ) : isArticle ? (
             /* FORMAT 7: Article Banner (fallback when no preview image) */
-            <div className="p-6 bg-[#fbfaf6] border-b border-[#e4e0d5] flex items-center justify-between">
+            <div className="p-6 bg-white border-b border-[#e4e0d5] flex items-center justify-between">
               <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white border border-[#e4e0d5] text-xs font-bold text-[#171711] shadow-2xs">
                 <Globe className="w-4 h-4 text-[#0369a1]" />
                 <span>{domain || 'Article'}</span>
