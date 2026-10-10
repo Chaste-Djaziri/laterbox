@@ -1,6 +1,8 @@
+import { clerkMiddleware } from '@clerk/nextjs/server';
+import { clerkAuthEnabled, authorizedOrigins } from './lib/auth/config';
 import { NextRequest, NextResponse } from 'next/server';
 
-export function middleware(request: NextRequest) {
+function routeDomain(request: NextRequest) {
   const url = request.nextUrl;
   const hostname = request.headers.get('host') || '';
 
@@ -106,6 +108,9 @@ export function middleware(request: NextRequest) {
   return NextResponse.next();
 }
 
+const clerkHandler = clerkMiddleware((_auth, request) => routeDomain(request), { authorizedParties: authorizedOrigins() });
+export default clerkAuthEnabled ? clerkHandler : routeDomain;
+
 export const config = {
   matcher: [
     /*
@@ -115,6 +120,6 @@ export const config = {
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
      */
-    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+    '/((?!_next/static|_next/image|favicon.ico).*)',
   ],
 };
