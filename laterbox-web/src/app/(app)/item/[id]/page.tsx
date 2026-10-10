@@ -317,7 +317,8 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
     ? buildTextFragmentUrl(item.url, item.text_content, item.text_selector ? JSON.parse(item.text_selector).before : null)
     : null;
 
-  const itemCollections = item.collections || [];
+  const currentItem = items.find((i) => i.id === item.id) || item;
+  const itemCollections = currentItem.collections || [];
 
   const handleDelete = async () => {
     if (confirm('Are you sure you want to delete this item?')) {
@@ -890,7 +891,7 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
 
       {/* Add / Manage Collections Modal */}
       <AddToCollectionModal
-        item={item}
+        item={currentItem}
         isOpen={collectionModalOpen}
         onClose={() => setCollectionModalOpen(false)}
       />
