@@ -313,11 +313,11 @@ export function EmailInboxTable({
   };
 
   return (
-    <div className="bg-white border border-[#e4e0d5] rounded-2xl shadow-2xs overflow-hidden flex flex-col">
+    <div className="bg-white border border-[#e4e0d5] rounded-2xl shadow-2xs flex flex-col relative">
       {/* ===================================================================== */}
       {/* TOP TOOLBAR: Controls, Batch Actions, Pagination */}
       {/* ===================================================================== */}
-      <div className="flex items-center justify-between px-3 py-2 border-b border-[#e4e0d5] bg-white text-[#6c6b63] text-xs min-h-[46px] select-none">
+      <div className="flex items-center justify-between px-3 py-2 border-b border-[#e4e0d5] bg-white text-[#6c6b63] text-xs min-h-[46px] select-none rounded-t-2xl relative z-20">
         {/* Left Toolbar Controls */}
         <div className="flex items-center gap-1 sm:gap-2">
           {/* Checkbox & Dropdown */}
@@ -560,7 +560,7 @@ export function EmailInboxTable({
       {/* ===================================================================== */}
       {isSearchActive ? (
         /* SEARCH FILTER PILLS BAR (Image 1 style) */
-        <div className="flex flex-wrap items-center justify-between gap-2 px-3 sm:px-4 py-2.5 border-b border-[#e4e0d5] bg-[#faf8f5]/60 text-xs">
+        <div className="flex flex-wrap items-center justify-between gap-2 px-3 sm:px-4 py-2.5 border-b border-[#e4e0d5] bg-[#faf8f5]/60 text-xs relative z-30">
           <div className="flex flex-wrap items-center gap-1.5" ref={filterMenuRef}>
             {/* Search Pill Badge */}
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-[#171711] text-[#e6edb0] shadow-2xs">
@@ -592,7 +592,7 @@ export function EmailInboxTable({
               </button>
 
               {filterMenuOpen === 'format' && (
-                <div className="absolute left-0 top-full mt-1 w-40 bg-white border border-[#e4e0d5] rounded-xl shadow-lg py-1 z-50 text-xs text-[#171711]">
+                <div className="absolute left-0 top-full mt-1.5 w-44 bg-white border border-[#e4e0d5] rounded-xl shadow-xl py-1.5 z-50 text-xs text-[#171711] animate-in fade-in duration-100">
                   {[
                     { id: 'all', label: 'All formats' },
                     { id: 'articles', label: 'Articles' },
@@ -642,7 +642,7 @@ export function EmailInboxTable({
               </button>
 
               {filterMenuOpen === 'date' && (
-                <div className="absolute left-0 top-full mt-1 w-40 bg-white border border-[#e4e0d5] rounded-xl shadow-lg py-1 z-50 text-xs text-[#171711]">
+                <div className="absolute left-0 top-full mt-1.5 w-44 bg-white border border-[#e4e0d5] rounded-xl shadow-xl py-1.5 z-50 text-xs text-[#171711] animate-in fade-in duration-100">
                   {[
                     { id: 'all', label: 'Any time' },
                     { id: '24h', label: 'Last 24 hours' },
@@ -778,7 +778,7 @@ export function EmailInboxTable({
       {/* EMAIL LIST ROWS */}
       {/* ===================================================================== */}
       {pagedItems.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 px-4 text-center space-y-3">
+        <div className="flex flex-col items-center justify-center py-16 px-4 text-center space-y-3 rounded-b-2xl">
           <div className="w-12 h-12 rounded-2xl bg-[#faf8f5] border border-[#e4e0d5] flex items-center justify-center text-[#9e9b92]">
             {isSearchActive ? <Search className="w-6 h-6 stroke-[1.5]" /> : <Mail className="w-6 h-6 stroke-[1.5]" />}
           </div>
@@ -830,7 +830,7 @@ export function EmailInboxTable({
           )}
         </div>
       ) : (
-        <div className="divide-y divide-[#f0ede4]">
+        <div className="divide-y divide-[#f0ede4] rounded-b-2xl">
           {pagedItems.map((item) => {
             const isSelected = selectedIds.has(item.id);
             const isStarred = Boolean(item.favorite);
@@ -852,7 +852,7 @@ export function EmailInboxTable({
               <div
                 key={item.id}
                 onClick={() => router.push(`/item/${item.id}`)}
-                className={`group relative flex items-center gap-2.5 sm:gap-3 px-3 sm:px-4 py-2.5 transition-colors cursor-pointer select-none overflow-hidden ${
+                className={`group relative flex items-center gap-2.5 sm:gap-3 px-3 sm:px-4 py-2.5 transition-colors cursor-pointer select-none overflow-hidden last:rounded-b-2xl ${
                   isSelected
                     ? 'bg-[#f5f8df] hover:bg-[#eef3d0]'
                     : 'bg-white hover:bg-[#faf8f5]'
