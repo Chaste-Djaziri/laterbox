@@ -26,7 +26,7 @@ async function fixture() {
     insert into support_requests values('${a}','${a}');
     insert into storage.objects values('${a}','${a}'),('${b}','${b}');`);
   for (const file of ['202610100002_shared_auth_accounts.sql','202610100003_auth_provisioning_recovery.sql','202610100004_account_lifecycle.sql']) {
-    await db.exec(await readFile(new URL(`../../../../../supabase/migrations/${file}`,import.meta.url),'utf8'));
+    await db.exec(await readFile(new URL(`../../../../supabase/migrations/${file}`,import.meta.url),'utf8'));
   }
   return db;
 }
