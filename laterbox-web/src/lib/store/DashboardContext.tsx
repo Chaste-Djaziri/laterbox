@@ -11,6 +11,7 @@ export function getRouteTitle(pathname: string): string {
   if (!pathname || pathname === '/' || pathname === '/inbox') return 'Inbox';
   if (pathname === '/starred') return 'Starred';
   if (pathname === '/kept') return 'Kept';
+  if (pathname === '/archived') return 'Archived';
   if (pathname === '/today') return 'Today';
   if (pathname === '/upcoming') return 'Upcoming';
   if (pathname === '/someday') return 'Someday';
