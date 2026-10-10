@@ -1,5 +1,5 @@
-import { importLocalCaptures } from '../extension/local-import';
 'use client';
+import { importLocalCaptures } from '../extension/local-import';
 
 import React, { createContext, useContext, useEffect, useState, useMemo, useCallback, ReactNode } from 'react';
 import { getSupabaseClient } from '../supabase/client';
