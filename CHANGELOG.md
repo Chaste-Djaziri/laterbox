@@ -9,6 +9,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 ## [Unreleased]
 
 ### Changed
+- **[Web] Fix Inbox filter dropdown clipping**: Ensure search filter dropdowns and toolbar menus float outside the items container with visible overflow so they are never clipped when the results list is short.
 - **[Web] Live search preview dropdown & in-page filter bar**: Added an instant live-search preview popup with quick filter chips, matching results, and Enter execution, plus an in-page search results view with filter pills (attachment, time, starred, format) in LaterBox theme.
 - **[Web] Fading OG image watermark on Inbox items**: Display open-graph preview images on the right edge of items with a smooth gradient fade, inspired by anime card art layouts.
 - **[Web] Redesigned Inbox header with centered search and profile menu**: Removed the unread count badge next to the Inbox title, centered and enlarged the search input, added a settings shortcut icon, and implemented a user profile dropdown displaying name, email, an add name option when missing, and logout.
