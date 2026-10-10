@@ -9,6 +9,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 ## [Unreleased]
 
 ### Changed
+- **[Web] Redesigned Inbox header with centered search and profile menu**: Removed the unread count badge next to the Inbox title, centered and enlarged the search input, added a settings shortcut icon, and implemented a user profile dropdown displaying name, email, an add name option when missing, and logout.
 - **[Web] Email-style Inbox UI and layout**: Redesigned the Inbox page layout to mirror a modern email client interface with a dense action toolbar (batch select, refresh, bulk actions, pagination), category tabs (Primary, Articles, Media, Updates), and dense email rows featuring sender/domain, inline subject-snippet previews, attachment badges, quick hover actions, and timestamps.
 - **[Web] Remove Home page route and sidebar tab**: Remove the `/home` dashboard route and Home navigation tab in preparation for the dashboard redesign, routing web app entry to Inbox.
 - **[Web] AI organize collection grouping and de-duplication**: Reuse available collections when organizing items with AI, group multiple items requiring the same collection together, and prevent duplicate collections with identical names.
