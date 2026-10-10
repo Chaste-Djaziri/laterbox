@@ -42,14 +42,14 @@ export function createCustomClerkFlow(signIn: SignInResource, signUp: SignUpReso
     },
     async verify(code: string) {
       try {
-        const attempt = state.state.mode === 'signup' ? await signUp.attemptEmailAddressVerification({ code }) : await signIn.attemptFirstFactor({ strategy: 'email_code',code });
+        const attempt = state.mode === 'signup' ? await signUp.attemptEmailAddressVerification({ code }) : await signIn.attemptFirstFactor({ strategy: 'email_code',code });
         await finish(attempt);
         return { error: null };
       } catch (cause) { return { error: customAuthError(cause) }; }
     },
     async password(password: string) {
       try {
-        if (state.state.mode === 'signin') { await finish(await signIn.attemptFirstFactor({ strategy: 'password',password })); return { error: null,requiresConfirmation: false }; }
+        if (state.mode === 'signin') { await finish(await signIn.attemptFirstFactor({ strategy: 'password',password })); return { error: null,requiresConfirmation: false }; }
         const attempt = await signUp.update({ password });
         if (attempt.status === 'complete') { await finish(attempt); return { error: null,requiresConfirmation: false }; }
         await sendSignupCode();
@@ -58,7 +58,7 @@ export function createCustomClerkFlow(signIn: SignInResource, signUp: SignUpReso
     },
     async resend() {
       try {
-        if (state.state.mode === 'signup') await sendSignupCode();
+        if (state.mode === 'signup') await sendSignupCode();
         else {
           const factor = signIn.supportedFirstFactors?.find(factor => factor.strategy === 'email_code');
           if (factor?.strategy !== 'email_code') throw new Error('Start your email sign-in again.');
