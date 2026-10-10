@@ -1,5 +1,6 @@
 'use client';
 
+import { AccountGate } from '@/lib/auth/AccountGate';
 import React from 'react';
 import { AppShell } from '@/components/layout/AppShell';
 import { DashboardProvider } from '@/lib/store/DashboardContext';
@@ -10,8 +11,8 @@ export default function AuthenticatedAppLayout({
   children: React.ReactNode;
 }) {
   return (
-    <DashboardProvider>
+    <AccountGate><DashboardProvider>
       <AppShell>{children}</AppShell>
-    </DashboardProvider>
+    </DashboardProvider></AccountGate>
   );
 }
