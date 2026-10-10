@@ -12,6 +12,11 @@ using (user_id=auth.uid() and id in (select item_id from public.extension_free_i
 create policy free_extension_metadata_read on public.item_metadata for select to authenticated
 using (user_id=auth.uid() and item_id in (select item_id from public.extension_free_items where user_id=auth.uid()));
 
+-- Preserve free reads of captures made by earlier extension releases.
+insert into public.extension_free_items(item_id,user_id)
+select c.item_id,c.user_id from public.item_content c join public.item_metadata m on m.item_id=c.item_id
+where m.classification_source='browserExtension' on conflict do nothing;
+
 create or replace function public.save_extension_capture(p_user_id uuid, p_capture_id uuid, p_item jsonb, p_metadata jsonb, p_content jsonb)
 returns uuid language plpgsql security definer set search_path = public, pg_temp as $$
 declare v_id uuid; v_item public.items; v_metadata public.item_metadata;
@@ -32,7 +37,7 @@ begin
   end if;
   insert into public.item_content(item_id,user_id,capture_id,kind,source_url,canonical_url,markdown,author,published_at,truncated)
   values(v_id,p_user_id,p_capture_id,p_content->>'kind',p_content->>'sourceUrl',p_content->>'canonicalUrl',coalesce(p_content->>'markdown',''),p_content->>'author',p_content->>'publishedAt',coalesce((p_content->>'truncated')::boolean,false));
-  if p_metadata->>'classification_source' = 'browserExtension' then
+  if p_content->>'verifiedExtension' = 'true' then
     insert into public.extension_free_items(item_id,user_id) values(v_id,p_user_id) on conflict do nothing;
   end if;
   return v_id;
