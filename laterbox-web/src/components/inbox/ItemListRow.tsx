@@ -80,9 +80,29 @@ export function ItemListRow({ item }: { item: LaterBoxItem }) {
     <>
       <div
         onClick={handleRowClick}
-        className="group flex items-center justify-between gap-4 p-3.5 sm:p-4 rounded-2xl bg-white border border-[#e4e0d5] hover:border-[#cfdb84] hover:shadow-xs transition-all cursor-pointer"
+        className="group relative flex items-center justify-between gap-4 p-3.5 sm:p-4 rounded-2xl bg-white border border-[#e4e0d5] hover:border-[#cfdb84] hover:shadow-xs transition-all cursor-pointer overflow-hidden"
       >
-        <div className="flex items-center gap-3.5 min-w-0 flex-1">
+        {/* Anime-card style right-aligned fading OG image watermark */}
+        {item.metadata?.preview_image_url && (
+          <div className="absolute right-0 top-0 bottom-0 w-48 sm:w-72 md:w-96 pointer-events-none overflow-hidden select-none z-0">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={item.metadata.preview_image_url}
+              alt=""
+              className="w-full h-full object-cover object-right opacity-65 group-hover:opacity-85 transition-opacity duration-300"
+              style={{
+                maskImage: 'linear-gradient(to left, rgba(0,0,0,1) 0%, rgba(0,0,0,0.85) 35%, rgba(0,0,0,0.4) 65%, rgba(0,0,0,0) 100%)',
+                WebkitMaskImage: 'linear-gradient(to left, rgba(0,0,0,1) 0%, rgba(0,0,0,0.85) 35%, rgba(0,0,0,0.4) 65%, rgba(0,0,0,0) 100%)',
+              }}
+              onError={(e) => {
+                (e.currentTarget as HTMLElement).style.display = 'none';
+              }}
+            />
+            <div className="absolute inset-0 bg-gradient-to-r from-white/95 via-transparent to-transparent group-hover:from-[#faf8f5]/95 pointer-events-none" />
+          </div>
+        )}
+
+        <div className="flex items-center gap-3.5 min-w-0 flex-1 relative z-10">
           {item.metadata?.favicon_url ? (
             /* eslint-disable-next-line @next/next/no-img-element */
             <img
@@ -118,7 +138,7 @@ export function ItemListRow({ item }: { item: LaterBoxItem }) {
         </div>
 
         <div
-          className="flex items-center gap-1 shrink-0"
+          className="flex items-center gap-1 shrink-0 relative z-10 bg-white/80 backdrop-blur-xs px-1.5 py-0.5 rounded-xl border border-[#e4e0d5]/40 shadow-2xs"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Star Button */}
