@@ -172,20 +172,20 @@ export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
       {/* Top Section */}
       <div className="space-y-4">
         {/* Brand Header */}
-        <div className="flex items-center justify-between px-1.5 pt-1">
-          <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="w-[34px] h-[34px] relative rounded-[9px] overflow-hidden shadow-sm transition-transform group-hover:scale-105 bg-[#e6edb0] p-1 shrink-0">
+        <div className={`flex items-center ${collapsed ? 'justify-center px-0' : 'justify-start px-1.5'} pt-1`}>
+          <Link href="/" className={`flex items-center ${collapsed ? 'justify-center' : 'gap-3'} group`}>
+            <div className="w-[42px] h-[42px] relative shrink-0 transition-transform group-hover:scale-105">
               <Image
                 src="/branding/laterbox-icon.png"
                 alt="laterbox"
                 fill
-                sizes="34px"
-                className="object-contain p-0.5"
+                sizes="42px"
+                className="object-contain"
                 priority
               />
             </div>
             {!collapsed && (
-              <span className="text-[17px] font-black tracking-tight text-[#171711]">
+              <span className="text-[22px] font-black tracking-tight text-[#171711] leading-none select-none">
                 laterbox
               </span>
             )}
