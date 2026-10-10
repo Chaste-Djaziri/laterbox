@@ -12,6 +12,14 @@ The repository implementation is disabled by default. Production activation requ
 6. Configure Clerk webhooks at `https://app.laterbox.dev/api/auth/clerk/webhook` for `user.created`, `user.updated`, and `user.deleted`, with the matching signing secret. Webhooks work before the UI flag is enabled. Identity conflicts remain unlinked and require both-account login proof in the app.
 7. Build and deploy the web app after verifying configuration. Test login on the app, visit the landing page in the same browser, and confirm **Open app**. Confirm sign-out across both origins, OAuth, email codes, password login, guest mode, and extension connection.
 
+## Local development
+
+Production `pk_live_`/`sk_live_` keys cannot authenticate on `localhost`: Clerk restricts them to the configured production domain. Use development `pk_test_`/`sk_test_` keys with an isolated development Supabase project, its matching Clerk integration, and its exact Clerk/Supabase issuers in `auth_provider_issuers`. Do not migrate production Supabase users into a development Clerk instance: the account has one Clerk identity, and development/production user stores are separate.
+
+Set `NEXT_PUBLIC_CLERK_AUTH_ENABLED=true`, `NEXT_PUBLIC_APP_ORIGIN=http://localhost:3000`, `CLERK_JWT_ISSUER=https://your-instance.clerk.accounts.dev`, and `CLERK_AUTHORIZED_PARTIES=http://localhost:3000,http://app.localhost:3000` in the untracked environment file, along with the development keys and development Supabase credentials. Restart Next.js after changing keys or the rollout flag. Forward webhooks through a supported tunnel and configure its signing secret for local webhook tests.
+
+To test actual production users locally, Clerk documents an alternative: map a hostname under `laterbox.dev` to your machine and run HTTPS on port 443. Set the app origin and authorized parties to that hostname and keep the production issuer. Ordinary `localhost:3000` does not support production keys. See [Clerk's production-key local testing guide](https://clerk.com/docs/guides/development/troubleshooting/using-production-keys-in-development).
+
 ## Gradual migration
 
 On the app origin, an existing Supabase session is refreshed, then verified by the migration API. Confirmed email users receive a single-use Clerk ticket with a 60-second lifetime. The ticket stays in the response body and never appears in a URL. The legacy local session is removed only after Clerk accepts it.
