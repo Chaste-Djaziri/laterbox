@@ -3,7 +3,8 @@ export function isClerkSession(token: string): boolean {
   try {
     const payload = token.split('.')[1];
     const encoded = payload.replace(/-/g,'+').replace(/_/g,'/');
-    return JSON.parse(atob(encoded.padEnd(Math.ceil(encoded.length / 4) * 4,'='))).iss === 'https://clerk.laterbox.dev';
+    const issuer = JSON.parse(atob(encoded.padEnd(Math.ceil(encoded.length / 4) * 4,'='))).iss;
+    return issuer === 'https://clerk.laterbox.dev' || (typeof issuer === 'string' && /^https:\/\/[a-z0-9-]+\.clerk\.accounts\.dev$/.test(issuer));
   } catch { return false; }
 }
 export async function authenticateAccount(token: string, options: { supabaseUrl: string; anonKey: string; fetch?: typeof fetch }): Promise<string | null> {
