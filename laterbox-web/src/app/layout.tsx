@@ -1,3 +1,4 @@
+import { ClerkRoot } from '@/lib/auth/ClerkRoot';
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { AuthProvider } from '@/lib/store/AuthContext';
@@ -152,7 +153,7 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-screen bg-[#f7f5ee] text-[#171711] antialiased selection:bg-[#e6edb0] selection:text-[#171711]">
-        <AuthProvider>
+        <ClerkRoot><AuthProvider>
           <BillingProvider>
             <ItemProvider>
               {children}
@@ -160,7 +161,7 @@ export default function RootLayout({
               <MobileBlockOverlay />
             </ItemProvider>
           </BillingProvider>
-        </AuthProvider>
+        </AuthProvider></ClerkRoot>
       </body>
     </html>
   );
