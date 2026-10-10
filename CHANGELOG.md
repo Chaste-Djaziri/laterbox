@@ -5,6 +5,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 ## [Unreleased]
 
 ### Changed
+- **[Web] Recently Deleted section in Library**: Add a Recently Deleted tab to the Library with item restoration, permanent deletion, and empty trash capability.
 - **[Web] Simplified Library header**: Replace verbose marketing slogans and storage badge on the Library page with a clean, simple page title.
 - **[Web] Simplified Deep Search header**: Replace verbose marketing slogans and offline core badge on the Deep Search page with a clean, simple page title.
 - **[Web] Simplified Someday page header**: Replace verbose marketing slogans, badges, and Save to Someday button on the Someday page with a clean, simple page title.
