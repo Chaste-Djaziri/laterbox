@@ -12,6 +12,10 @@ The repository implementation is disabled by default. Production activation requ
 6. Configure Clerk webhooks at `https://app.laterbox.dev/api/auth/clerk/webhook` for `user.created`, `user.updated`, and `user.deleted`, with the matching signing secret. Webhooks work before the UI flag is enabled. Identity conflicts remain unlinked and require both-account login proof in the app.
 7. Build and deploy the web app after verifying configuration. Test login on the app, visit the landing page in the same browser, and confirm **Open app**. Confirm sign-out across both origins, OAuth, email codes, password login, guest mode, and extension connection.
 
+## Custom login interface
+
+The `/login` route uses LaterBox's own email, verification-code, password, optional display-name, and guest screens. Clerk runs behind these forms through its custom-flow APIs; Google returns through `/login/sso-callback`. Enable email identifiers, email-code sign-in, and email-code signup verification in the Clerk instance. Password-required signup and existing password login are supported, as is authenticator (TOTP) MFA. Other mandatory fields, session tasks, and second-factor strategies require additional custom screens before enabling those instance settings. Existing users retain `/login?legacy=1` for the validated migration handoff.
+
 ## Local development
 
 Production `pk_live_`/`sk_live_` keys cannot authenticate on `localhost`: Clerk restricts them to the configured production domain. Use development `pk_test_`/`sk_test_` keys with an isolated development Supabase project, its matching Clerk integration, and its exact Clerk/Supabase issuers in `auth_provider_issuers`. Do not migrate production Supabase users into a development Clerk instance: the account has one Clerk identity, and development/production user stores are separate.
