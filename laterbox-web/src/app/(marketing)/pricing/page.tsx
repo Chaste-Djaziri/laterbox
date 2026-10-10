@@ -24,8 +24,8 @@ function validAppReturn(raw: string | null) {
   }
 }
 
-const freeFeatures = ['Unlimited local saves', 'Reading, search, and organization', 'Local files and attachments', 'Export whenever you want', 'No account or connection required'];
-const proFeatures = ['Everything in Free', 'Secure sync across every device', 'Cloud-backed files and attachments', 'Browser and system share integrations', 'macOS notch clipboard capture and Watch Mode', 'Automatic capture and enrichment'];
+const freeFeatures = ['Free browser extension capture', 'Unlimited local saves', 'Reading, search, and organization', 'Local files and attachments', 'Export whenever you want', 'No account or connection required'];
+const proFeatures = ['Everything in Free', 'Secure sync across every device', 'Cloud-backed files and attachments', 'Native system share integrations', 'macOS notch clipboard capture and Watch Mode', 'Automatic capture and enrichment'];
 const faqs = [
   ['What happens when Pro ends?', 'Your local library stays readable and exportable. New cloud operations pause, pending local changes remain safe, and synchronization resumes when Pro returns.'],
   ['Can I use one subscription everywhere?', 'Yes. Sign in with the same LaterBox account. Web subscriptions work on supported devices, while Apple builds also offer App Store billing.'],
