@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { InboxExtensionGate } from '@/components/inbox/InboxExtensionGate';
 import { EmailInboxTable } from '@/components/inbox/EmailInboxTable';
@@ -14,6 +15,8 @@ import {
   Plus,
   Pencil,
   RefreshCw,
+  Settings,
+  LogOut,
 } from 'lucide-react';
 import { AiOrganizeModal } from '@/components/inbox/AiOrganizeModal';
 import { OrganizeSuggestion, OrganizeResponse } from '@/app/api/ai/organize/route';
@@ -32,11 +35,42 @@ export default function InboxPage() {
     reschedule,
     collections,
   } = useItems();
-  const { user, userName, setUserName } = useAuth();
+  const { user, userName, setUserName, signOut, isGuest } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [captureOpen, setCaptureOpen] = useState(false);
-  const [isEditingName, setIsEditingName] = useState(false);
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const [isEditingProfileName, setIsEditingProfileName] = useState(false);
   const [nameInput, setNameInput] = useState('');
+  const profileDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close profile dropdown on outside click
+  useEffect(() => {
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (profileDropdownRef.current && !profileDropdownRef.current.contains(e.target as Node)) {
+        setProfileMenuOpen(false);
+        setIsEditingProfileName(false);
+      }
+    };
+    window.addEventListener('mousedown', handleOutsideClick);
+    return () => window.removeEventListener('mousedown', handleOutsideClick);
+  }, []);
+
+  const effectiveName = userName || user?.user_metadata?.full_name || user?.user_metadata?.display_name || user?.user_metadata?.name || '';
+  const userEmail = user?.email || (isGuest ? 'Guest user' : '');
+
+  const userInitials = useMemo(() => {
+    if (effectiveName.trim()) {
+      const parts = effectiveName.trim().split(/\s+/);
+      if (parts.length >= 2) {
+        return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+      }
+      return parts[0].slice(0, 2).toUpperCase();
+    }
+    if (userEmail.trim()) {
+      return userEmail.slice(0, 2).toUpperCase();
+    }
+    return 'U';
+  }, [effectiveName, userEmail]);
 
   // AI Organize Gemini State
   const [aiModalOpen, setAiModalOpen] = useState(false);
@@ -154,140 +188,41 @@ export default function InboxPage() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-4">
       <InboxExtensionGate userId={user?.id} />
 
-      {/* Top Header: Title, Search, AI Organize & Compose/Save */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        {/* Left: Title & Name Greeting */}
-        <div className="flex items-center gap-3">
-          <div className="flex items-baseline gap-2">
-            <h1 className="text-2xl sm:text-3xl font-black text-[#171711] tracking-tight">
-              Inbox
-            </h1>
-            <span className="text-xs font-bold text-[#8e8d87]">
-              ({inboxItems.length})
-            </span>
-          </div>
-
-          {userName ? (
-            isEditingName ? (
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  if (nameInput.trim()) setUserName(nameInput.trim());
-                  setIsEditingName(false);
-                }}
-                className="flex items-center gap-1.5"
-              >
-                <input
-                  type="text"
-                  value={nameInput}
-                  onChange={(e) => setNameInput(e.target.value)}
-                  autoFocus
-                  placeholder="Name"
-                  className="px-2.5 py-0.5 text-xs font-bold bg-white border border-[#171711] rounded-full text-[#171711] shadow-2xs focus:outline-none w-28"
-                />
-                <button
-                  type="submit"
-                  className="px-2 py-0.5 rounded-full bg-[#171711] text-white text-[10px] font-bold shadow-xs hover:bg-black transition-all cursor-pointer"
-                >
-                  Save
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setIsEditingName(false)}
-                  className="text-[10px] text-[#8e8d87] hover:text-[#171711] transition-colors cursor-pointer px-1"
-                >
-                  ✕
-                </button>
-              </form>
-            ) : (
-              <button
-                type="button"
-                onClick={() => {
-                  setNameInput(userName);
-                  setIsEditingName(true);
-                }}
-                title="Click to edit what LaterBox calls you"
-                className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#faf8f5] hover:bg-[#ebe7dc] border border-[#e4e0d5] text-xs font-bold text-[#171711] shadow-2xs transition-colors cursor-pointer group"
-              >
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                <span>{userName}</span>
-                <Pencil className="w-2.5 h-2.5 text-[#9e9b92] group-hover:text-[#171711]" />
-              </button>
-            )
-          ) : (
-            isEditingName ? (
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  if (nameInput.trim()) {
-                    setUserName(nameInput.trim());
-                    setNameInput('');
-                  }
-                  setIsEditingName(false);
-                }}
-                className="flex items-center gap-1.5"
-              >
-                <input
-                  type="text"
-                  value={nameInput}
-                  onChange={(e) => setNameInput(e.target.value)}
-                  autoFocus
-                  placeholder="Your name..."
-                  className="px-2.5 py-0.5 text-xs font-bold bg-white border border-[#171711] rounded-full text-[#171711] shadow-2xs focus:outline-none w-32"
-                />
-                <button
-                  type="submit"
-                  className="px-2 py-0.5 rounded-full bg-[#171711] text-white text-[10px] font-bold shadow-xs hover:bg-black transition-all cursor-pointer"
-                >
-                  Save
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setIsEditingName(false)}
-                  className="text-[10px] text-[#8e8d87] hover:text-[#171711] transition-colors cursor-pointer px-1"
-                >
-                  ✕
-                </button>
-              </form>
-            ) : (
-              <button
-                type="button"
-                onClick={() => {
-                  setNameInput('');
-                  setIsEditingName(true);
-                }}
-                className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#e6edb0]/70 hover:bg-[#e6edb0] border border-[#d0db84] text-[11px] font-bold text-[#171711] shadow-2xs transition-colors cursor-pointer"
-              >
-                <span>+ Name</span>
-              </button>
-            )
-          )}
+      {/* Top Header: Title, Centered Search, AI Organize, Save Item, Settings & Profile */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        {/* Left: Clean Inbox Title (No unread count) */}
+        <div className="shrink-0">
+          <h1 className="text-2xl sm:text-3xl font-black text-[#171711] tracking-tight">
+            Inbox
+          </h1>
         </div>
 
-        {/* Center / Right: Omnibar Search & Action Buttons */}
-        <div className="flex items-center gap-2.5 flex-1 max-w-xl sm:justify-end">
-          {/* Search Omnibar */}
-          <div className="relative flex-1 max-w-sm">
-            <Search className="w-3.5 h-3.5 text-[#9e9b92] absolute left-3.5 top-1/2 -translate-y-1/2" />
+        {/* Center: Bigger, Centered Search Input */}
+        <div className="order-last md:order-none w-full md:flex-1 md:max-w-xl lg:max-w-2xl md:mx-4">
+          <div className="relative w-full">
+            <Search className="w-4 h-4 text-[#9e9b92] absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
               type="text"
               data-search-input="true"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search in inbox..."
-              className="w-full pl-9 pr-12 py-2 text-xs bg-white border border-[#e4e0d5] rounded-full text-[#171711] placeholder:text-[#9e9b92] shadow-2xs focus:outline-none focus:border-[#171711] transition-colors"
+              className="w-full pl-11 pr-14 py-2.5 text-sm bg-white border border-[#e4e0d5] rounded-full text-[#171711] placeholder:text-[#9e9b92] shadow-2xs focus:outline-none focus:border-[#171711] hover:border-[#171711]/40 transition-colors"
             />
-            <kbd className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[9px] font-mono font-bold text-[#8e8d87] bg-[#ebe7dc] px-1.5 py-0.5 rounded">
+            <kbd className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[10px] font-mono font-bold text-[#8e8d87] bg-[#ebe7dc] px-2 py-0.5 rounded-md">
               ⌘ K
             </kbd>
           </div>
+        </div>
 
+        {/* Right: Actions, Settings Icon & User Profile Dropdown */}
+        <div className="flex items-center gap-2 sm:gap-2.5 shrink-0 ml-auto md:ml-0">
           {/* AI Organize Button */}
           <button
             type="button"
             onClick={handleGetAiSuggestions}
             disabled={aiLoading}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-[#e6edb0] hover:bg-[#d8e09e] text-[#171711] text-xs font-bold shadow-2xs transition-all cursor-pointer active:scale-98 disabled:opacity-75 shrink-0"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-[#e6edb0] hover:bg-[#d8e09e] text-[#171711] text-xs font-bold shadow-2xs transition-all cursor-pointer active:scale-98 disabled:opacity-75"
             title="AI organize inbox items"
           >
             {aiLoading ? (
@@ -312,11 +247,137 @@ export default function InboxPage() {
           <button
             type="button"
             onClick={() => setCaptureOpen(true)}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#171711] text-white hover:bg-black text-xs font-bold shadow-xs transition-all cursor-pointer shrink-0"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-[#171711] text-white hover:bg-black text-xs font-bold shadow-xs transition-all cursor-pointer"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>Save Item</span>
           </button>
+
+          {/* Settings Icon Link */}
+          <Link
+            href="/settings"
+            title="Settings"
+            className="w-9 h-9 rounded-full bg-white border border-[#e4e0d5] hover:border-[#171711] hover:bg-[#faf8f5] flex items-center justify-center text-[#6c6b63] hover:text-[#171711] shadow-2xs transition-colors cursor-pointer shrink-0"
+          >
+            <Settings className="w-4 h-4" />
+          </Link>
+
+          {/* User Profile Avatar / Initials Dropdown */}
+          <div className="relative shrink-0" ref={profileDropdownRef}>
+            <button
+              type="button"
+              onClick={() => setProfileMenuOpen((prev) => !prev)}
+              title={effectiveName || userEmail || 'Account menu'}
+              className="w-9 h-9 rounded-full bg-[#171711] text-[#e6edb0] font-black text-xs flex items-center justify-center shadow-2xs border-2 border-white hover:scale-105 transition-transform cursor-pointer"
+            >
+              {userInitials}
+            </button>
+
+            {profileMenuOpen && (
+              <div className="absolute right-0 top-full mt-2 w-72 bg-white border border-[#e4e0d5] rounded-2xl shadow-xl p-3.5 z-50 text-[#171711] animate-in fade-in zoom-in-95">
+                {/* Profile Header Card */}
+                <div className="flex items-center gap-3 pb-3 border-b border-[#f0ede4]">
+                  <div className="w-10 h-10 rounded-full bg-[#171711] text-[#e6edb0] font-black text-sm flex items-center justify-center shrink-0 shadow-2xs">
+                    {userInitials}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    {effectiveName ? (
+                      <div className="flex items-center gap-1.5 group">
+                        <p className="text-xs sm:text-sm font-black text-[#171711] truncate">
+                          {effectiveName}
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setNameInput(effectiveName);
+                            setIsEditingProfileName(true);
+                          }}
+                          title="Edit name"
+                          className="p-1 text-[#9e9b92] hover:text-[#171711] rounded hover:bg-[#faf8f5] transition-colors"
+                        >
+                          <Pencil className="w-2.5 h-2.5" />
+                        </button>
+                      </div>
+                    ) : (
+                      <p className="text-xs font-semibold text-[#8e8d87]">No name set</p>
+                    )}
+                    <p className="text-[11px] text-[#9e9b92] truncate">
+                      {userEmail || 'Guest user'}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Add/Edit Name Form */}
+                {(!effectiveName || isEditingProfileName) && (
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      if (nameInput.trim()) {
+                        setUserName(nameInput.trim());
+                        setNameInput('');
+                        setIsEditingProfileName(false);
+                      }
+                    }}
+                    className="pt-2.5 pb-2 border-b border-[#f0ede4] space-y-1.5"
+                  >
+                    <label className="text-[10px] font-bold text-[#9e9b92] uppercase tracking-wider block">
+                      {effectiveName ? 'Edit your name' : 'Add your name'}
+                    </label>
+                    <div className="flex items-center gap-1.5">
+                      <input
+                        type="text"
+                        value={nameInput}
+                        onChange={(e) => setNameInput(e.target.value)}
+                        placeholder="Enter name..."
+                        autoFocus
+                        className="flex-1 px-2.5 py-1.5 text-xs bg-[#faf8f5] border border-[#e4e0d5] focus:border-[#171711] rounded-xl text-[#171711] focus:outline-none"
+                      />
+                      <button
+                        type="submit"
+                        className="px-3 py-1.5 rounded-xl bg-[#171711] text-white text-xs font-bold hover:bg-black transition-colors cursor-pointer shrink-0"
+                      >
+                        Save
+                      </button>
+                      {isEditingProfileName && (
+                        <button
+                          type="button"
+                          onClick={() => setIsEditingProfileName(false)}
+                          className="px-2 py-1.5 text-xs text-[#8e8d87] hover:text-[#171711] cursor-pointer shrink-0"
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
+                  </form>
+                )}
+
+                {/* Menu Options */}
+                <div className="pt-2 space-y-1">
+                  <Link
+                    href="/settings"
+                    onClick={() => setProfileMenuOpen(false)}
+                    className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-[#171711] hover:bg-[#faf8f5] transition-colors"
+                  >
+                    <Settings className="w-4 h-4 text-[#6c6b63]" />
+                    <span>Settings</span>
+                  </Link>
+
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      setProfileMenuOpen(false);
+                      await signOut();
+                      router.push('/login');
+                    }}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer text-left"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    <span>Log out</span>
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
