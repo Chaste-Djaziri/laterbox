@@ -27,22 +27,7 @@ struct ContentView: View {
                         .transition(.opacity)
                 } else {
                     InboxView()
-                        .overlay(alignment: .bottomTrailing) {
-                            Button {
-                                aiManager.open()
-                            } label: {
-                                Image(systemName: "plus")
-                                    .font(.system(size: 24, weight: .medium))
-                                    .foregroundStyle(AppTheme.accent)
-                                    .frame(width: 56, height: 56)
-                                    .background(AppTheme.darkSurface, in: Circle())
-                                    .shadow(color: .black.opacity(0.18), radius: 8, y: 4)
-                            }
-                            .buttonStyle(.plain)
-                            .accessibilityLabel("Open Later AI")
-                            .padding(.trailing, 20)
-                            .padding(.bottom, 24)
-                        }
+                }
                 .sheet(isPresented: $coordinator.showingQuickCapture) {
                     QuickCaptureSheet()
                 }
