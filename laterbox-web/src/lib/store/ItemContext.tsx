@@ -1,4 +1,5 @@
 'use client';
+import { getAccessToken, refreshAccessToken } from '../auth/tokens';
 import { importLocalCaptures } from '../extension/local-import';
 
 import React, { createContext, useContext, useEffect, useState, useMemo, useCallback, ReactNode } from 'react';
@@ -210,8 +211,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
       const supabase = getSupabaseClient();
 
       // Ensure active and valid session before executing cloud operations
-      const { data: sessionData } = await supabase.auth.getSession();
-      const currentSession = sessionData?.session;
+      const currentSession = await getAccessToken();
       if (!currentSession) {
         handleAuthFailure();
         return;
@@ -230,7 +230,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
         console.warn('[ItemContext] Non-fatal sync pending error:', syncErr);
       }
 
-      const recoverQuery = createQueryRecovery(() => supabase.auth.refreshSession());
+      const recoverQuery = createQueryRecovery(refreshAccessToken);
       const fetchWithRetry: typeof recoverQuery = async query => {
         const result = await recoverQuery(query);
         // Publish/cache only complete snapshots; preserve local data on any query failure.
