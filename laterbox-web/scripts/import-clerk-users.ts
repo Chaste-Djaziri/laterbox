@@ -26,20 +26,30 @@ for (const user of users) {
     if (!execute) continue;
     const clerk = clerkAdmin();
     const matches = await clerk.users.getUserList({ externalId: [user.id],limit: 1 });
+    const rawName = user.raw_user_meta_data?.display_name;
+    const fallbackName = user.email.split('@')[0].replace(/[._-]/g, ' ');
+    const fullName = (rawName && rawName.trim()) || fallbackName;
+    const nameParts = fullName.trim().split(/\s+/);
+    const firstName = nameParts[0] || 'User';
+    const lastName = nameParts.slice(1).join(' ') || undefined;
+
     const migrated = matches.data[0] || await clerk.users.createUser({
       externalId: user.id,
       emailAddress: [user.email],
       emailAddressIdentificationStatus: [user.email_confirmed_at ? 'verified' : 'reserved'],
-      firstName: user.raw_user_meta_data?.display_name,
+      firstName,
+      ...(lastName ? { lastName } : {}),
       skipLegalChecks: true,
       ...(user.encrypted_password ? { passwordDigest: user.encrypted_password,passwordHasher: 'bcrypt' as const } : { skipPasswordRequirement: true }),
     });
     await linkClerk(user.id,migrated.id);
     counts.imported++;
-  } catch {
+  } catch (cause) {
     counts.failed++;
-    // Exclude emails, password hashes, tokens, and SDK errors from output.
-    console.error(`Import failed for account ${user.id}; retry after resolving configuration or identity conflict.`);
+    const errMsg = (cause as { errors?: { message?: string; longMessage?: string }[] })?.errors?.[0]?.longMessage ||
+                   (cause as { errors?: { message?: string }[] })?.errors?.[0]?.message ||
+                   (cause as Error)?.message || String(cause);
+    console.error(`Import failed for account ${user.id}: ${errMsg}`);
   }
 }
 console.info(JSON.stringify({ mode: execute ? 'execute' : 'dry-run',...counts }));
