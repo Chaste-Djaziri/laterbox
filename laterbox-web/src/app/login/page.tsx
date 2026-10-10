@@ -4,7 +4,7 @@ import React, { Suspense, useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/store/AuthContext';
-import { Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Loader2, AlertCircle, CheckCircle2, Eye, EyeOff } from 'lucide-react';
 
 export default function LoginPage() {
   return (
@@ -23,16 +23,23 @@ function LoginContent() {
     isGuest,
     signInWithOtp,
     verifyEmailOtp,
+    resendSignupOtp,
+    signInWithPassword,
+    signUpWithPassword,
     continueAsGuest,
     setUserName,
   } = useAuth();
 
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [otp, setOtp] = useState('');
   const [awaitingOtp, setAwaitingOtp] = useState(false);
+  const [otpType, setOtpType] = useState<'email' | 'signup'>('email');
+  const [awaitingPassword, setAwaitingPassword] = useState(false);
   const [awaitingName, setAwaitingName] = useState(false);
   const [displayName, setDisplayName] = useState('');
   const requestedNext = searchParams.get('next');
@@ -47,30 +54,88 @@ function LoginContent() {
     }
   }, [authLoading, user, nextPath, router]);
 
-  const handleSendOtp = async (e?: React.FormEvent) => {
+  const handleEmailSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (!email.trim() || !email.includes('@')) {
+    const cleanEmail = email.trim();
+    if (!cleanEmail || !cleanEmail.includes('@')) {
       setError('Enter a valid email address.');
       return;
     }
     setLoading(true);
     setError(null);
     setMessage(null);
-    const { error: err } = await signInWithOtp(email.trim());
-    if (err) setError(err.message);
-    else setAwaitingOtp(true);
+
+    // Try sending OTP code: if code is available (existing user), it delivers directly
+    const { error: err } = await signInWithOtp(cleanEmail);
+    if (!err) {
+      setOtpType('email');
+      setAwaitingOtp(true);
+      setLoading(false);
+      return;
+    }
+
+    // When code is not available (e.g. signup requires password or OTP signups disabled):
+    // Prompt for password
+    setAwaitingPassword(true);
     setLoading(false);
   };
 
-  const handleVerifyOtp = async () => {
-    if (!/^\d{8}$/.test(otp)) {
-      setError('Enter the eight digit code from your email.');
+  const handlePasswordSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!password || password.length < 6) {
+      setError('Password must be at least 6 characters.');
       return;
     }
     setLoading(true);
     setError(null);
     setMessage(null);
-    const { data, error: err } = await verifyEmailOtp(email.trim(), otp);
+
+    try {
+      // First attempt signUp with password
+      const { error: signUpErr, requiresConfirmation } = await signUpWithPassword(email.trim(), password);
+
+      if (signUpErr) {
+        const msg = signUpErr.message.toLowerCase();
+        // If user already registered, attempt sign-in with password
+        if (msg.includes('already registered') || msg.includes('already exists') || msg.includes('user already registered')) {
+          const { error: signInErr } = await signInWithPassword(email.trim(), password);
+          if (signInErr) {
+            setError(signInErr.message);
+            setLoading(false);
+            return;
+          }
+          // Successfully signed in!
+          return;
+        } else {
+          setError(signUpErr.message);
+          setLoading(false);
+          return;
+        }
+      }
+
+      if (requiresConfirmation) {
+        // Confirmation code sent!
+        setAwaitingPassword(false);
+        setOtpType('signup');
+        setAwaitingOtp(true);
+        setMessage(`We sent a verification code to ${email.trim()}.`);
+      }
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Authentication failed.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    if (otp.length < 6 || otp.length > 8) {
+      setError('Enter the verification code from your email.');
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    setMessage(null);
+    const { data, error: err } = await verifyEmailOtp(email.trim(), otp, otpType);
     if (err) {
       setError(err.message);
       setLoading(false);
@@ -110,7 +175,14 @@ function LoginContent() {
     setLoading(true);
     setError(null);
     setMessage(null);
-    const { error: err } = await signInWithOtp(email.trim());
+    let err = null;
+    if (otpType === 'signup') {
+      const res = await resendSignupOtp(email.trim());
+      err = res.error;
+    } else {
+      const res = await signInWithOtp(email.trim());
+      err = res.error;
+    }
     if (err) setError(err.message);
     else setMessage('A new code was sent.');
     setLoading(false);
@@ -152,6 +224,100 @@ function LoginContent() {
     );
   }
 
+  if (awaitingPassword) {
+    return (
+      <main className="min-h-screen bg-[#f7f5ee] flex flex-col items-center justify-center p-6 text-[#181816] selection:bg-zinc-900 selection:text-white">
+        <div className="w-full max-w-[420px] flex flex-col text-left">
+          {/* Brand Logo */}
+          <div className="mb-3">
+            <Image
+              src="/branding/laterbox-logo.png"
+              alt="laterbox"
+              width={280}
+              height={75}
+              className="w-44 sm:w-48 h-auto object-contain"
+              priority
+            />
+          </div>
+
+          {/* Feedback Alerts */}
+          {error && (
+            <div className="w-full mb-4 p-3.5 rounded-[16px] bg-red-50/90 border border-red-200 text-red-700 text-xs font-semibold flex items-center gap-2 text-left animate-in fade-in">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
+
+          {message && (
+            <div className="w-full mb-4 p-3.5 rounded-[16px] bg-emerald-50/90 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center gap-2 text-left animate-in fade-in">
+              <CheckCircle2 className="w-4 h-4 shrink-0" />
+              <span>{message}</span>
+            </div>
+          )}
+
+          {/* Title */}
+          <h1 className="text-3xl font-black tracking-tight mb-2">Enter your password</h1>
+          <p className="text-[15px] text-[#6b6961] font-normal tracking-normal mb-8">
+            Create or enter your password for <strong className="text-[#181816]">{email.trim()}</strong> to continue.
+          </p>
+
+          {/* Password Form */}
+          <form onSubmit={(e) => void handlePasswordSubmit(e)} className="w-full space-y-3.5">
+            <div className="relative">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                autoComplete="current-password"
+                required
+                autoFocus
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Password (at least 6 characters)"
+                className="w-full h-14 pl-5 pr-12 bg-white border border-[#e5e1d7] rounded-[18px] text-[15px] text-[#181816] placeholder:text-[#9e9b92] focus:outline-none focus:ring-2 focus:ring-zinc-900/10 focus:border-zinc-500 transition-all font-normal"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-[#9e9b92] hover:text-[#181816] transition-colors cursor-pointer p-1"
+                title={showPassword ? 'Hide password' : 'Show password'}
+              >
+                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </button>
+            </div>
+
+            <div className="pt-1.5 space-y-3">
+              <button
+                type="submit"
+                disabled={loading || password.length < 6}
+                className="w-full h-14 bg-[#181816] hover:bg-[#282723] active:bg-[#0f0f0e] text-white font-bold text-[15px] rounded-[18px] shadow-sm transition-all duration-150 flex items-center justify-center disabled:opacity-60 cursor-pointer"
+              >
+                {loading ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  'Continue'
+                )}
+              </button>
+            </div>
+
+            {/* Back to email */}
+            <div className="pt-2 text-center">
+              <button
+                type="button"
+                onClick={() => {
+                  setAwaitingPassword(false);
+                  setPassword('');
+                  setError(null);
+                }}
+                className="text-[14px] text-[#6b6961] hover:text-[#181816] font-normal transition-colors cursor-pointer py-1"
+              >
+                Use a different email
+              </button>
+            </div>
+          </form>
+        </div>
+      </main>
+    );
+  }
+
   if (awaitingOtp) {
     return (
       <OtpVerification
@@ -165,7 +331,9 @@ function LoginContent() {
         onResend={() => void handleResendOtp()}
         onBack={() => {
           setAwaitingOtp(false);
+          setAwaitingPassword(false);
           setOtp('');
+          setPassword('');
           setError(null);
           setMessage(null);
         }}
@@ -210,7 +378,7 @@ function LoginContent() {
         </p>
 
         {/* Email Form */}
-        <form onSubmit={(e) => void handleSendOtp(e)} className="w-full space-y-3.5">
+        <form onSubmit={(e) => void handleEmailSubmit(e)} className="w-full space-y-3.5">
           <div>
             <input
               type="email"
@@ -289,7 +457,7 @@ function OtpVerification({
           Check your email
         </h1>
         <p className="mt-3 text-sm leading-6 text-[#6b6961]">
-          Enter the eight digit code sent to <strong>{email}</strong>.
+          Enter the verification code sent to <strong>{email}</strong>.
         </p>
 
         {error && <p role="alert" className="mt-5 rounded-2xl border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-700">{error}</p>}
@@ -302,7 +470,7 @@ function OtpVerification({
             onVerify();
           }}
         >
-          <label htmlFor="email-otp" className="sr-only">Eight digit verification code</label>
+          <label htmlFor="email-otp" className="sr-only">Verification code</label>
           <input
             id="email-otp"
             type="text"
@@ -310,13 +478,12 @@ function OtpVerification({
             autoComplete="one-time-code"
             autoFocus
             maxLength={8}
-            pattern="[0-9]{8}"
             value={otp}
             onChange={(event) => onOtpChange(event.target.value.replace(/\D/g, '').slice(0, 8))}
-            placeholder="00000000"
+            placeholder="000000"
             className="h-16 w-full rounded-[18px] border border-[#d8d3c7] bg-white px-5 text-center text-2xl font-black tracking-[0.45em] focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-900/10"
           />
-          <button type="submit" disabled={busy || otp.length !== 8} className="flex h-14 w-full items-center justify-center rounded-[18px] bg-[#181816] text-[15px] font-bold text-white disabled:opacity-50 cursor-pointer">
+          <button type="submit" disabled={busy || otp.length < 6} className="flex h-14 w-full items-center justify-center rounded-[18px] bg-[#181816] text-[15px] font-bold text-white disabled:opacity-50 cursor-pointer">
             {busy ? <Loader2 className="size-5 animate-spin" /> : 'Verify code'}
           </button>
           <div className="flex items-center justify-center gap-3 pt-1">
