@@ -102,7 +102,7 @@ Deno.test("capture validates source and content", async () => {
   assertEquals(response.status, 400);
 });
 
-Deno.test("capture inserts scoped extension sessions with service role", async () => {
+Deno.test("free capture inserts verified scoped extension sessions with service role", async () => {
   const requests: Request[] = [];
   const extensionToken = "lb_ext_test-token";
   const handler = createCaptureHandler({
@@ -111,7 +111,7 @@ Deno.test("capture inserts scoped extension sessions with service role", async (
     serviceRoleKey: "service-role-key",
     createId: () => "00000000-0000-4000-8000-000000000003",
     now: () => new Date("2026-08-20T00:00:00.000Z"),
-    hasProAccess: () => Promise.resolve(true),
+    hasProAccess: () => Promise.resolve(false),
     fetch: async (input, init) => {
       const request = new Request(input, init);
       requests.push(request);
