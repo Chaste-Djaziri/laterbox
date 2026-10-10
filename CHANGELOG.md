@@ -9,6 +9,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 ## [Unreleased]
 
 ### Changed
+- **[Auth] Isolate sessions to app.laterbox.dev and prevent session loading stalls**: Restrict Clerk authentication sessions strictly to app.laterbox.dev, eliminate cross-domain session handling on marketing and docs domains, remove hook reference churn that repeatedly cancelled in-flight session checks, and ensure immediate session initialization completion.
 - **[iOS] Email table view for Inbox UI**: Redesigned the iOS Inbox view to use the same email table view layout as the web app, featuring category tabs (Primary, Articles, Media, Updates), email-style table rows with inline sender, title, and snippet, subtle background preview watermarks, quick star toggling, batch multi-selection, sorting, and native swipe actions.
 - **[Web] Fix cross-domain CORS preflight and unblock session loading in Clerk provider**: Add comprehensive CORS headers and OPTIONS preflight handling across subdomain redirects (docs.laterbox.dev, app.laterbox.dev, laterbox.dev), include docs.laterbox.dev in authorized origins, avoid blocking Clerk session initialization on useSignIn, and gracefully handle stale legacy Supabase sessions during migration without hanging on checking session.
 - **[iOS] Focus on Inbox view and remove Home page and bottom menu**: Streamlined the iOS app to focus directly on the Inbox as the main screen, removing the bottom tab navigation bar and the Home page while keeping the other views preserved and Later AI quick capture accessible.
