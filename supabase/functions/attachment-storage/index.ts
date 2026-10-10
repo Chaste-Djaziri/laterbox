@@ -1,6 +1,8 @@
 import { authenticateAccount } from '../_shared/auth.ts';
 import {
   DeleteObjectCommand,
+  ListObjectsV2Command,
+  DeleteObjectsCommand,
   GetObjectCommand,
   HeadObjectCommand,
   PutObjectCommand,
@@ -11,6 +13,7 @@ import { handleInternalHealthCheck } from "../_shared/health.ts";
 
 const allowedOrigins = new Set([
   "https://laterbox.dev",
+  "https://app.laterbox.dev",
   "https://www.laterbox.dev",
   "https://laterbox.micorp.pro",
   "https://laterbox.pages.dev",
@@ -24,6 +27,7 @@ const maxBytes = 5 * 1024 * 1024 * 1024; // 5 GiB
 
 type AttachmentBody = {
   action?: unknown;
+  accountId?: unknown;
   attachmentId?: unknown;
   itemId?: unknown;
   originalFileName?: unknown;
@@ -74,9 +78,6 @@ const handler = async (request: Request): Promise<Response> => {
 
   const token = bearerToken(request.headers.get("authorization"));
   if (!token) return json(request, { error: "Authentication required" }, 401);
-  const userId = await authenticateUser(token);
-  if (!userId) return json(request, { error: "Invalid access token" }, 401);
-
   let body: AttachmentBody;
   try {
     body = await request.json();
@@ -86,6 +87,22 @@ const handler = async (request: Request): Promise<Response> => {
 
   try {
     const action = requireString(body.action, "action");
+    if (action === 'delete-account-files') {
+      const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+      if (!serviceKey || token !== serviceKey) return json(request, { error: 'Unauthorized' }, 401);
+      const accountId = requireUuid(body.accountId, 'accountId');
+      const client = r2Client();
+      // Re-list from the start after each batch: deletion does not skip continuation keys.
+      for (;;) {
+        const objects = await client.send(new ListObjectsV2Command({ Bucket: requiredEnv('R2_BUCKET'), Prefix: `users/${accountId}/` }));
+        if (!objects.Contents?.length) break;
+        const result = await client.send(new DeleteObjectsCommand({ Bucket: requiredEnv('R2_BUCKET'), Delete: { Objects: objects.Contents.map(object => ({ Key: object.Key! })), Quiet: true } }));
+        if (result.Errors?.length) throw new Error('Attachment cleanup could not finish.');
+      }
+      return json(request, { deleted: true }, 200);
+    }
+    const userId = await authenticateUser(token);
+    if (!userId) return json(request, { error: "Invalid access token" }, 401);
     switch (action) {
       case "prepare-upload":
         return await prepareUpload(request, userId, body);
