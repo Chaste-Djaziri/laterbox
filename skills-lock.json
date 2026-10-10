@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "videojs": {
+      "source": "videojs/skills",
+      "sourceType": "github",
+      "skillPath": "skills/videojs/SKILL.md",
+      "computedHash": "b4d248a0dcb01d24e5612c8318b8e30212127a0bcf39196dee49afefb7e2dedd"
+    }
+  }
+}
