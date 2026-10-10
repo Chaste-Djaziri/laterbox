@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { FilterBar } from '@/components/inbox/FilterBar';
 import { InboxExtensionGate } from '@/components/inbox/InboxExtensionGate';
@@ -15,8 +14,6 @@ import {
   Search,
   LayoutGrid,
   List,
-  HelpCircle,
-  Sun,
   FileText,
   Clock,
   Star,
@@ -346,25 +343,6 @@ export default function InboxPage() {
               <List className="w-3.5 h-3.5" />
             </button>
           </div>
-
-
-          {/* Tutorial Link */}
-          <Link
-            href="/tutorial"
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white border border-[#e4e0d5] text-xs font-semibold text-[#6c6b63] hover:text-[#171711] shadow-2xs transition-colors"
-          >
-            <HelpCircle className="w-3.5 h-3.5 text-[#9e9b92]" />
-            <span className="hidden md:inline">Tutorial</span>
-          </Link>
-
-          {/* Theme / Mode Toggle Icon */}
-          <button
-            type="button"
-            className="p-2 rounded-full bg-white border border-[#e4e0d5] text-[#6c6b63] hover:text-[#171711] shadow-2xs transition-colors cursor-pointer"
-            title="Theme Mode"
-          >
-            <Sun className="w-3.5 h-3.5" />
-          </button>
         </div>
       </div>
 
