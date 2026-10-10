@@ -21,14 +21,12 @@ import {
   Music2,
   StickyNote,
   Folder,
-  ArrowRight,
   Clock,
   CalendarDays,
   Archive,
   Inbox,
   Star,
   Sparkles,
-  ExternalLink,
   CornerDownLeft,
 } from 'lucide-react';
 
@@ -66,7 +64,6 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
     { label: 'Upcoming', href: '/upcoming', icon: <CalendarDays className="w-4 h-4" />, badge: 'Schedule' },
     { label: 'Someday Vault', href: '/someday', icon: <Archive className="w-4 h-4" />, badge: 'Deferred' },
     { label: 'Starred Favorites', href: '/starred', icon: <Star className="w-4 h-4" />, badge: 'Starred' },
-    { label: 'Full Deep Search Engine', href: '/search', icon: <Search className="w-4 h-4" />, badge: 'Vault' },
   ], []);
 
   // Parse ambiguous search query
@@ -334,18 +331,6 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
           <div className="space-y-1">
             <div className="px-3 py-1 flex items-center justify-between text-[11px] font-black uppercase tracking-wider text-[#9e9b92]">
               <span>{!query.trim() ? 'Recent In Vault' : `Results (${matchingItems.length})`}</span>
-              {query.trim() && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    onClose();
-                    router.push(`/search?q=${encodeURIComponent(query)}`);
-                  }}
-                  className="text-[10px] text-[#171711] hover:underline font-bold normal-case cursor-pointer flex items-center gap-1"
-                >
-                  Deep Search <ArrowRight className="w-3 h-3" />
-                </button>
-              )}
             </div>
 
             {displayedItems.length > 0 ? (
@@ -401,19 +386,8 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
                 </div>
                 <p className="text-xs font-bold text-[#171711]">No matching items in vault</p>
                 <p className="text-[11px] text-[#6c6b63]">
-                  Try different keywords or launch full Deep Search.
+                  Try different keywords or check other collections.
                 </p>
-                <button
-                  type="button"
-                  onClick={() => {
-                    onClose();
-                    router.push(`/search?q=${encodeURIComponent(query)}`);
-                  }}
-                  className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#e6edb0] border border-[#d0db84] text-xs font-bold text-[#171711] hover:bg-[#d9e29a] transition-colors cursor-pointer"
-                >
-                  <Sparkles className="w-3.5 h-3.5" />
-                  <span>Search in Deep Search Engine</span>
-                </button>
               </div>
             )}
           </div>
@@ -454,18 +428,6 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
                 <span>Later AI • Pro</span>
               </Link>
             )}
-
-            <button
-              type="button"
-              onClick={() => {
-                onClose();
-                router.push('/search');
-              }}
-              className="text-[11px] font-bold text-[#171711] hover:underline cursor-pointer flex items-center gap-1"
-            >
-              <span>Deep Search</span>
-              <ExternalLink className="w-3 h-3" />
-            </button>
           </div>
         </div>
       </div>
