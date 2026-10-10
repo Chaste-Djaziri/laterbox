@@ -111,14 +111,17 @@ disconnectButton.addEventListener("click", () => {
 async function updateConnectionState(): Promise<boolean> {
   const token = await getAccessToken();
   const userId = await getConnectedUserId();
-  const connected = await isLocalMode() || (token.startsWith("lb_ext_") && userId.length > 0);
+  const local = await isLocalMode();
+  const label = document.getElementById("capture-mode-label");
+  if (label) label.textContent = local ? "Saving to local library" : "Saving to account (free)";
+  const connected = local || (token.startsWith("lb_ext_") && userId.length > 0);
   const pending = !connected && (await getPendingConnection()) !== null;
 
   disconnectedPanel.hidden = connected || pending;
   pendingPanel.hidden = connected || !pending;
   connectedPanel.hidden = !connected;
   connectButton.hidden = connected || pending;
-  disconnectButton.hidden = !connected;
+  disconnectButton.hidden = local || !connected;
   openPanelButton.hidden = !browserCapabilities.supportsSidePanel;
 
   if (connected) {
@@ -265,6 +268,9 @@ browser.storage.onChanged.addListener((changes,area)=>{
 
 const modeControls = document.createElement('div');
 modeControls.className = 'connection-panel';
+const modeLabel = document.createElement('p');
+modeLabel.id = 'capture-mode-label';
+modeControls.append(modeLabel);
 const localButton = document.createElement('button');
 localButton.textContent = 'Local library';
 localButton.addEventListener('click', async () => {
@@ -280,6 +286,7 @@ const libraryButton = document.createElement('button');
 libraryButton.textContent = 'Open local library';
 libraryButton.addEventListener('click', () => void browser.tabs.create({ url: `${LOCAL_ORIGIN}/home` }));
 modeControls.append(localButton, accountButton, libraryButton);
-document.body.append(modeControls);
+document.querySelector('main')!.append(modeControls);
+void updateConnectionState();
 
 async function cancelConnectionRequestIfPending() { if (await getPendingConnection()) await cancelConnectionRequest(); }
