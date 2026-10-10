@@ -10,7 +10,7 @@ import { Bolt, LogIn, Menu, X } from 'lucide-react';
 
 export function Header() {
   const pathname = usePathname();
-  const { user, loading, continueAsGuest } = useAuth();
+  const { user, isAuthenticated, loading, continueAsGuest } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Close mobile menu on route change
@@ -71,7 +71,7 @@ export function Header() {
 
           {/* Auth / Launch Actions & Mobile Toggle */}
           <div className="flex items-center gap-1.5 sm:gap-3 shrink-0 md:justify-self-end">
-            {loading ? <span className="h-10 w-24" aria-label="Checking login" aria-busy="true" /> : user ? (
+            {loading ? <span className="h-10 w-24" aria-label="Checking login" aria-busy="true" /> : (user || isAuthenticated) ? (
               <Link
                 href={`${APP_ORIGIN}/`}
                 className="inline-flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-full text-xs sm:text-sm font-extrabold text-white bg-[#171711] hover:bg-black active:bg-[#0f0f0e] shadow-xs whitespace-nowrap shrink-0"
@@ -89,7 +89,7 @@ export function Header() {
                   <span>Log in</span>
                 </Link>
                 <Link
-                  href={`${APP_ORIGIN}/`}
+                  href={`${APP_ORIGIN}/inbox?guest=1`}
                   onClick={() => continueAsGuest()}
                   className="inline-flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-full text-xs sm:text-sm font-extrabold text-white bg-[#171711] hover:bg-black active:bg-[#0f0f0e] shadow-xs cursor-pointer whitespace-nowrap shrink-0"
                 >
@@ -140,7 +140,7 @@ export function Header() {
                   );
                 })}
 
-                {!loading && !user && (
+                {!loading && !user && !isAuthenticated && (
                   <div className="pt-2.5 border-t border-[#f0ede4] mt-2 space-y-1">
                     <Link
                       href={`${APP_ORIGIN}/login`}
