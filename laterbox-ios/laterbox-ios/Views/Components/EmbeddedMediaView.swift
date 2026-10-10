@@ -69,7 +69,7 @@ public enum EmbeddedMediaType: Equatable {
         return .none
     }
 
-    private static func extractYouTubeId(from url: URL) -> String? {
+    public static func extractYouTubeId(from url: URL) -> String? {
         if let host = url.host?.lowercased(), host.contains("youtu.be") {
             let path = url.path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
             return path.isEmpty ? nil : path
@@ -124,10 +124,12 @@ public enum EmbeddedMediaType: Equatable {
 
 public struct InlineVideoEmbedView: View {
     public let embedType: EmbeddedMediaType
+    public var previewImageUrl: String? = nil
     @State private var isPlaying = false
 
-    public init(embedType: EmbeddedMediaType) {
+    public init(embedType: EmbeddedMediaType, previewImageUrl: String? = nil) {
         self.embedType = embedType
+        self.previewImageUrl = previewImageUrl
     }
 
     public var body: some View {
@@ -141,7 +143,8 @@ public struct InlineVideoEmbedView: View {
                                 .frame(height: 220)
                                 .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                         } else {
-                            videoPoster(title: "YouTube Video", systemIcon: "play.rectangle.fill", color: Color.red)
+                            let ytCover = previewImageUrl ?? "https://img.youtube.com/vi/\(id)/hqdefault.jpg"
+                            videoPoster(title: "YouTube Video", coverUrl: ytCover, color: Color.red)
                         }
                     }
                 case .vimeo(let id):
@@ -151,7 +154,7 @@ public struct InlineVideoEmbedView: View {
                                 .frame(height: 220)
                                 .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                         } else {
-                            videoPoster(title: "Vimeo Video", systemIcon: "play.circle.fill", color: Color.blue)
+                            videoPoster(title: "Vimeo Video", coverUrl: previewImageUrl, color: Color.blue)
                         }
                     }
                 case .spotify(let embedURL):
@@ -173,29 +176,53 @@ public struct InlineVideoEmbedView: View {
         }
     }
 
-    private func videoPoster(title: String, systemIcon: String, color: Color) -> some View {
+    private func videoPoster(title: String, coverUrl: String?, color: Color) -> some View {
         Button(action: {
             LBHaptic.medium()
             isPlaying = true
         }) {
             ZStack {
-                Color.black.opacity(0.85)
+                // Background Video Cover Art
+                if let coverUrl, let url = URL(string: coverUrl) {
+                    AsyncImage(url: url) { phase in
+                        switch phase {
+                        case .success(let image):
+                            image
+                                .resizable()
+                                .scaledToFill()
+                                .frame(maxWidth: .infinity, maxHeight: 210)
+                                .clipped()
+                        default:
+                            Color.black.opacity(0.85)
+                        }
+                    }
+                } else {
+                    Color.black.opacity(0.85)
+                }
+
+                // Gradient overlay to keep play controls easily readable
+                LinearGradient(
+                    colors: [Color.black.opacity(0.25), Color.black.opacity(0.65)],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
 
                 VStack(spacing: 12) {
                     ZStack {
                         Circle()
-                            .fill(color.opacity(0.9))
+                            .fill(color.opacity(0.92))
                             .frame(width: 58, height: 58)
                             .shadow(color: color.opacity(0.5), radius: 10, y: 3)
                         Image(systemName: "play.fill")
-                            .font(.system(size: 24, weight: .bold))
+                            .font(.system(size: 22, weight: .bold))
                             .foregroundColor(.white)
                             .offset(x: 2)
                     }
 
                     Text("Tap to Play in App")
                         .font(.caption.weight(.bold))
-                        .foregroundColor(.white.opacity(0.9))
+                        .foregroundColor(.white)
+                        .shadow(color: Color.black.opacity(0.6), radius: 4, y: 1)
                 }
             }
             .frame(height: 210)
