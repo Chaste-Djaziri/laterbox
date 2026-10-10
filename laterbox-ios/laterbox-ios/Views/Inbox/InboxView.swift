@@ -15,6 +15,14 @@ public struct InboxView: View {
 
     @State private var showingSidebar: Bool = false
     @State private var showingOrganizer: Bool = false
+    @State private var selectedMailbox: MailboxViewType = .inbox
+    @State private var selectedCollection: String? = nil
+    @State private var showingReturns: Bool = false
+    @State private var returnsInitialSegment: ReturnSegment = .today
+    @State private var showingLibrary: Bool = false
+    @State private var showingPlans: Bool = false
+    @State private var showingSettings: Bool = false
+    @State private var showingQuickCapture: Bool = false
 
     // Search Interaction States
     @State private var isSearchActive: Bool = false
@@ -27,7 +35,25 @@ public struct InboxView: View {
     public init() {}
 
     private var rawInboxItems: [LBItem] {
-        allItems.filter { $0.status == ItemStatus.inbox.rawValue }
+        if let col = selectedCollection {
+            return allItems.filter {
+                $0.status != ItemStatus.deleted.rawValue &&
+                ($0.category.localizedCaseInsensitiveCompare(col) == .orderedSame ||
+                 $0.collectionName?.localizedCaseInsensitiveCompare(col) == .orderedSame)
+            }
+        }
+        switch selectedMailbox {
+        case .inbox:
+            return allItems.filter { $0.status == ItemStatus.inbox.rawValue }
+        case .starred:
+            return allItems.filter { $0.favorite && $0.status != ItemStatus.deleted.rawValue }
+        case .kept:
+            return allItems.filter { $0.status == ItemStatus.saved.rawValue }
+        case .archived:
+            return allItems.filter { $0.status == ItemStatus.archived.rawValue }
+        case .trash:
+            return allItems.filter { $0.status == ItemStatus.deleted.rawValue }
+        }
     }
 
     private var userInitial: String {
@@ -102,7 +128,9 @@ public struct InboxView: View {
                             HStack(spacing: 10) {
                                 Button {
                                     LBHaptic.light()
-                                    showingSidebar = true
+                                    withAnimation(.spring(response: 0.32, dampingFraction: 0.85)) {
+                                        showingSidebar = true
+                                    }
                                 } label: {
                                     Image(systemName: "line.3.horizontal")
                                         .font(.system(size: 20, weight: .regular))
@@ -434,22 +462,46 @@ public struct InboxView: View {
                             }
                         } else {
                             // Inactive State: Section Title + Standard Inbox Segmented Cards
-                            Text("Inbox")
-                                .font(.system(size: 13, weight: .bold))
-                                .foregroundColor(Color.secondary)
-                                .padding(.horizontal, 18)
-                                .padding(.top, 14)
-                                .padding(.bottom, 8)
+                            HStack {
+                                Text(selectedCollection != nil ? "#\(selectedCollection!)" : selectedMailbox.rawValue)
+                                    .font(.system(size: 13, weight: .bold))
+                                    .foregroundColor(Color.secondary)
+
+                                if selectedCollection != nil || selectedMailbox != .inbox {
+                                    Button {
+                                        selectedMailbox = .inbox
+                                        selectedCollection = nil
+                                        LBHaptic.light()
+                                    } label: {
+                                        HStack(spacing: 3) {
+                                            Image(systemName: "xmark")
+                                                .font(.system(size: 9, weight: .bold))
+                                            Text("Show Inbox")
+                                                .font(.system(size: 11, weight: .semibold))
+                                        }
+                                        .foregroundColor(Color(hex: "171711"))
+                                        .padding(.horizontal, 8)
+                                        .padding(.vertical, 3)
+                                        .background(Color(hex: "E6EDB0"), in: Capsule())
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+
+                                Spacer()
+                            }
+                            .padding(.horizontal, 18)
+                            .padding(.top, 14)
+                            .padding(.bottom, 8)
 
                             if rawInboxItems.isEmpty {
                                 VStack(spacing: 14) {
-                                    Image(systemName: "tray.fill")
+                                    Image(systemName: selectedCollection != nil ? "tag.fill" : selectedMailbox.systemIcon)
                                         .font(.system(size: 40))
                                         .foregroundColor(.secondary.opacity(0.35))
-                                    Text("Inbox Zero!")
+                                    Text(selectedCollection != nil ? "No items in #\(selectedCollection!)" : (selectedMailbox == .inbox ? "Inbox Zero!" : "No \(selectedMailbox.rawValue) Items"))
                                         .font(.headline)
                                         .foregroundColor(AppTheme.textPrimary)
-                                    Text("All caught up. Everything saved has been processed or reviewed.")
+                                    Text(selectedCollection != nil ? "Items tagged with this collection will appear here." : (selectedMailbox == .inbox ? "All caught up. Everything saved has been processed or reviewed." : "Items will appear here when added to \(selectedMailbox.rawValue.lowercased())."))
                                         .font(.caption)
                                         .foregroundColor(AppTheme.textSecondary)
                                         .multilineTextAlignment(.center)
@@ -493,13 +545,74 @@ public struct InboxView: View {
                     .padding(.bottom, 40)
                 }
                 .trackPullDownForLaterAI()
+
+                // Slide-in Left Drawer Overlay
+                if showingSidebar {
+                    Color.black.opacity(0.35)
+                        .ignoresSafeArea()
+                        .transition(.opacity)
+                        .onTapGesture {
+                            withAnimation(.spring(response: 0.32, dampingFraction: 0.85)) {
+                                showingSidebar = false
+                            }
+                        }
+
+                    HStack(spacing: 0) {
+                        MobileSidebarDrawer(
+                            isPresented: $showingSidebar,
+                            activeMailbox: selectedMailbox,
+                            activeCollection: selectedCollection,
+                            onSelectMailbox: { mailbox in
+                                selectedMailbox = mailbox
+                                selectedCollection = nil
+                            },
+                            onSelectCollection: { colName in
+                                selectedCollection = colName
+                            },
+                            onOpenReturns: { segment in
+                                returnsInitialSegment = segment
+                                showingReturns = true
+                            },
+                            onOpenLibrary: {
+                                showingLibrary = true
+                            },
+                            onOpenPlans: {
+                                showingPlans = true
+                            },
+                            onOpenSettings: {
+                                showingSettings = true
+                            },
+                            onOpenSaveItem: {
+                                showingQuickCapture = true
+                            }
+                        )
+                        .frame(width: min(UIScreen.main.bounds.width * 0.82, 310))
+                        .transition(.move(edge: .leading))
+
+                        Spacer()
+                    }
+                    .ignoresSafeArea()
+                    .zIndex(100)
+                }
             }
             .navigationBarHidden(true)
-            .sheet(isPresented: $showingSidebar) {
-                MobileSidebarDrawer()
-            }
             .sheet(isPresented: $showingOrganizer) {
                 AIOrganizerSheet()
+            }
+            .sheet(isPresented: $showingReturns) {
+                ReturnsView(initialSegment: returnsInitialSegment)
+            }
+            .sheet(isPresented: $showingLibrary) {
+                LibraryView()
+            }
+            .sheet(isPresented: $showingPlans) {
+                PlansView()
+            }
+            .sheet(isPresented: $showingSettings) {
+                SettingsView()
+            }
+            .sheet(isPresented: $showingQuickCapture) {
+                QuickCaptureSheet()
             }
         }
     }
