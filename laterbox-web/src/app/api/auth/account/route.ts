@@ -11,6 +11,7 @@ export async function POST(request: Request) {
   catch { return Response.json({ error: 'Sign in to continue.' },{ status: 401, headers }); }
   try { return Response.json({ user: await ensureClerkAccount(subject) },{ headers }); }
   catch (cause) {
+    console.error('[api/auth/account] account setup error:', cause);
     return Response.json({ error: cause instanceof IdentityConflict ? cause.message : 'Account setup could not finish. Please retry.' },{ status: cause instanceof IdentityConflict ? 409 : 503, headers });
   }
 }

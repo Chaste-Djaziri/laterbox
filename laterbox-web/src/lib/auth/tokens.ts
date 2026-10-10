@@ -1,14 +1,14 @@
 import { clerkAuthEnabled } from './config';
-import { getLegacySupabaseClient } from '../supabase/client';
 
 type TokenGetter = (refresh?: boolean) => Promise<string | null>;
-let clerkTokenGetter: TokenGetter | null = null;
+var clerkTokenGetter: TokenGetter | null = null;
 export function registerClerkTokenGetter(getter: TokenGetter): () => void {
   clerkTokenGetter = getter;
   return () => { if (clerkTokenGetter === getter) clerkTokenGetter = null; };
 }
 export async function getAccessToken(refresh = false): Promise<string | null> {
   if (clerkAuthEnabled) return clerkTokenGetter?.(refresh) ?? null;
+  const { getLegacySupabaseClient } = await import('../supabase/client');
   const client = getLegacySupabaseClient();
   const { data, error } = refresh ? await client.auth.refreshSession() : await client.auth.getSession();
   if (error) throw error;
