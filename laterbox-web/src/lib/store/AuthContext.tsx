@@ -42,6 +42,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [userName, setUserNameState] = useState<string>('');
 
   useEffect(() => {
+    if (window.location.origin === 'http://localhost:8080') {
+      setIsGuest(true);
+      setLoading(false);
+      return;
+    }
     const supabase = getSupabaseClient();
 
     // Check guest mode from localStorage
