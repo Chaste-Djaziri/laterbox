@@ -18,6 +18,7 @@ import {
   StickyNote,
   Link2,
   Paperclip,
+  Folder,
   FolderPlus,
   Copy,
   Check,
@@ -133,6 +134,40 @@ export function ItemListRow({ item }: { item: LaterBoxItem }) {
               {domain && <span className="font-semibold text-[#6c6b63]">{domain}</span>}
               {domain && <span>•</span>}
               <span>{timeAgo}</span>
+              {/* Collection Badges */}
+              {item.collections && item.collections.length > 0 && (
+                <>
+                  <span>•</span>
+                  <div className="inline-flex items-center gap-1">
+                    {item.collections.slice(0, 2).map((col) => (
+                      <span
+                        key={col.id}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setCollectionModalOpen(true);
+                        }}
+                        className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-[#e6edb0]/60 hover:bg-[#e6edb0] text-[#171711] border border-[#d0db84] transition-colors cursor-pointer"
+                        title={`In collection: ${col.name} (Click to manage)`}
+                      >
+                        <Folder className="w-2.5 h-2.5 text-[#171711]" />
+                        <span className="max-w-[70px] truncate">{col.name}</span>
+                      </span>
+                    ))}
+                    {item.collections.length > 2 && (
+                      <span
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setCollectionModalOpen(true);
+                        }}
+                        className="px-1 py-0.2 rounded-full text-[9px] font-bold bg-[#ebe7dc] text-[#6c6b63] cursor-pointer"
+                        title="Click to manage collections"
+                      >
+                        +{item.collections.length - 2}
+                      </span>
+                    )}
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>
