@@ -5,6 +5,7 @@ import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
+import { clerkAuthEnabled } from '@/lib/auth/config';
 import { useAuth } from '@/lib/store/AuthContext';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { CheckCircle, AlertCircle, Loader2, KeyRound, ShieldCheck, ArrowRight, Eye, EyeOff } from 'lucide-react';
@@ -192,6 +193,11 @@ function ExtensionConnectContent() {
         <Loader2 className="w-8 h-8 text-[#171711] animate-spin" />
       </div>
     );
+  }
+
+  if (!user && clerkAuthEnabled) {
+    const next = `/extension/connect?${searchParams.toString()}`;
+    return <main className="min-h-screen flex items-center justify-center bg-[#f7f5ee]"><a className="rounded-xl bg-[#171711] text-white p-4" href={`/login?next=${encodeURIComponent(next)}`}>Log in to connect the extension</a></main>;
   }
 
   // Not signed in: show inline sign-in card so user doesn't lose request parameters
