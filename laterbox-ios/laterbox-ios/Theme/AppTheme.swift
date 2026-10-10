@@ -12,6 +12,7 @@ import SwiftUI
 public enum AppTheme {
     // Primary Brand Surfaces & Accents
     public static var background: Color = Color(hex: "F7F5EE")       // Main warm canvas background (#F7F5EE)
+    public static var canvasBackground: Color = Color(hex: "F7F5EE") // Canvas background alias (#F7F5EE)
     public static var accent: Color = Color(hex: "E6EDB0")           // Signature pastel green brand accent (#E6EDB0)
     public static var darkSurface: Color = Color(hex: "181818")      // Primary dark button / dark card background
     public static var cardBackground: Color = Color.white            // Default card background
