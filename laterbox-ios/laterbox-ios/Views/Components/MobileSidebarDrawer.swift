@@ -396,8 +396,10 @@ public struct MobileSidebarDrawer: View {
                         .padding(.horizontal, 14)
                         .padding(.vertical, 8)
                         .frame(maxWidth: .infinity, alignment: .leading)
+                        .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
+                    .contentShape(Rectangle())
                 }
             }
         }
@@ -496,6 +498,8 @@ public struct MobileSidebarDrawer: View {
                         .foregroundColor(Color(hex: "9E9B92"))
                 }
                 .padding(12)
+                .frame(maxWidth: .infinity)
+                .contentShape(Rectangle())
                 .background(Color.white)
                 .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                 .overlay(
@@ -505,6 +509,7 @@ public struct MobileSidebarDrawer: View {
                 .shadow(color: Color.black.opacity(0.02), radius: 4, y: 1)
             }
             .buttonStyle(.plain)
+            .contentShape(Rectangle())
 
             // Cloud Sync / Status Pill
             HStack(spacing: 6) {
@@ -569,12 +574,15 @@ public struct MobileSidebarDrawer: View {
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 9)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
             .background(
                 isActive ? Color(hex: "E6EDB0") : Color.clear,
                 in: RoundedRectangle(cornerRadius: 12, style: .continuous)
             )
         }
         .buttonStyle(.plain)
+        .contentShape(Rectangle())
     }
 
     private func close() {
