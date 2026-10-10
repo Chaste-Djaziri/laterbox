@@ -9,6 +9,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 ## [Unreleased]
 
 ### Changed
+- **[Web] Fix logo on display name onboarding screen**: Update the brand icon path to `/branding/laterbox-icon.png` in the display name onboarding view and provide a public root fallback to prevent 404 image errors after account creation.
 - **[Web] Detailed Clerk authentication error messages for missing requirements**: Clarify the sign-in/sign-up error message when Clerk requires additional information by explicitly listing missing required fields (such as First Name, Last Name, or Username), unverified attributes, and required two-factor verification methods rather than displaying a generic error.
 - **[Web] Custom authentication UI with Clerk**: Restore the existing LaterBox email, verification-code, and password screens while using Clerk authentication and retaining legacy-account migration.
 - **[Web] Preserve guest access across website and app origins**: Landing-page and footer app links carry an explicit guest destination during the Clerk rollout.
