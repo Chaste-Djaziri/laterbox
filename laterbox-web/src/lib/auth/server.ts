@@ -46,7 +46,7 @@ export async function ensureClerkAccount(subject: string): Promise<AccountUser> 
     const email = user.primaryEmailAddress;
     if (!email || email.verification?.status !== 'verified') throw new IdentityConflict('Verify your primary email before opening the app.');
     // The Supabase admin API refuses an existing email. Never merge on email alone.
-    const { data, error } = await admin.auth.admin.createUser({ email: email.emailAddress, email_confirm: true, user_metadata: { display_name: user.fullName, clerk_provisioned_subject: subject } });
+    const { data, error } = await admin.auth.admin.createUser({ email: email.emailAddress, email_confirm: true, user_metadata: { display_name: user.fullName }, app_metadata: { clerk_provisioned_subject: subject } });
     if (error || !data.user) {
       // Recover only an account previously provisioned for this exact Clerk identity.
       const { data: recovered, error: recoveryError } = await admin.rpc('find_clerk_provisioned_account', { p_subject: subject });
