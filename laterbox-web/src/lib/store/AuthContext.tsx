@@ -1,14 +1,21 @@
 'use client';
+import type { AccountUser, AccountSession } from '../auth/types';
+import { clerkAuthEnabled } from '../auth/config';
+import { getAccessToken } from '../auth/tokens';
+import { ClerkAccountProvider } from '../auth/ClerkAccountProvider';
 import { disableCloudNotifications, suspendCloudNotifications, resumeCloudNotifications } from '../notifications/client';
 
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { User, Session, AuthError } from '@supabase/supabase-js';
-import { getSupabaseClient } from '../supabase/client';
+import { AuthError } from '@supabase/supabase-js';
+import { getLegacySupabaseClient as getSupabaseClient } from '../supabase/client';
 import { clearExtensionStatusCache } from '../extension/dashboard';
 
-interface AuthContextType {
-  user: User | null;
-  session: Session | null;
+export interface AuthContextType {
+  user: AccountUser | null;
+  session: AccountSession | null;
+  getToken: (refresh?: boolean) => Promise<string | null>;
+  authError?: string | null;
+  retryAuth?: () => void;
   loading: boolean;
   isGuest: boolean;
   userName: string;
@@ -18,7 +25,7 @@ interface AuthContextType {
     email: string,
     token: string,
     type?: 'email' | 'signup'
-  ) => Promise<{ data?: { user: User | null; session: Session | null }; error: AuthError | null }>;
+  ) => Promise<{ data?: { user: AccountUser | null; session: AccountSession | null }; error: AuthError | null }>;
   resendSignupOtp: (email: string) => Promise<{ error: AuthError | null }>;
   signInWithPassword: (email: string, password: string) => Promise<{ error: AuthError | null }>;
   signUpWithPassword: (email: string, password: string) => Promise<{ error: AuthError | null; requiresConfirmation: boolean }>;
@@ -30,14 +37,17 @@ interface AuthContextType {
   exitGuest: () => void;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const GUEST_KEY = 'laterbox_guest_mode';
 const USER_NAME_KEY = 'laterbox_user_name';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
+  return clerkAuthEnabled ? <ClerkAccountProvider>{children}</ClerkAccountProvider> : <LegacyAuthProvider>{children}</LegacyAuthProvider>;
+}
+function LegacyAuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<AccountUser | null>(null);
+  const [session, setSession] = useState<AccountSession | null>(null);
   const [loading, setLoading] = useState(true);
   const [isGuest, setIsGuest] = useState(false);
   const [userName, setUserNameState] = useState<string>('');
@@ -316,6 +326,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       value={{
         user,
         session,
+        getToken: getAccessToken,
         loading,
         isGuest,
         userName,
