@@ -268,9 +268,9 @@ public struct ItemDetailView: View {
                 LBHaptic.light()
             } label: {
                 HStack(spacing: 4) {
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 16, weight: .bold))
-                    Text("Inbox")
+                    Image(systemName: isModal ? "xmark" : "chevron.left")
+                        .font(.system(size: isModal ? 14 : 16, weight: .bold))
+                    Text(isModal ? "Done" : "Back")
                         .font(.system(size: 15, weight: .medium))
                 }
                 .foregroundColor(AppTheme.textPrimary)
