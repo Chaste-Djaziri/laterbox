@@ -1,3 +1,17 @@
+-- Service-owned provenance avoids recursive policies between items and item_content.
+create table public.extension_free_items (
+  item_id uuid primary key references public.items(id) on delete cascade,
+  user_id uuid not null references auth.users(id) on delete cascade
+);
+alter table public.extension_free_items enable row level security;
+create policy extension_free_items_read on public.extension_free_items for select to authenticated using (user_id=auth.uid());
+grant select on public.extension_free_items to authenticated;
+grant all on public.extension_free_items to service_role;
+create policy free_extension_items_read on public.items for select to authenticated
+using (user_id=auth.uid() and id in (select item_id from public.extension_free_items where user_id=auth.uid()));
+create policy free_extension_metadata_read on public.item_metadata for select to authenticated
+using (user_id=auth.uid() and item_id in (select item_id from public.extension_free_items where user_id=auth.uid()));
+
 create or replace function public.save_extension_capture(p_user_id uuid, p_capture_id uuid, p_item jsonb, p_metadata jsonb, p_content jsonb)
 returns uuid language plpgsql security definer set search_path = public, pg_temp as $$
 declare v_id uuid; v_item public.items; v_metadata public.item_metadata;
@@ -18,6 +32,9 @@ begin
   end if;
   insert into public.item_content(item_id,user_id,capture_id,kind,source_url,canonical_url,markdown,author,published_at,truncated)
   values(v_id,p_user_id,p_capture_id,p_content->>'kind',p_content->>'sourceUrl',p_content->>'canonicalUrl',coalesce(p_content->>'markdown',''),p_content->>'author',p_content->>'publishedAt',coalesce((p_content->>'truncated')::boolean,false));
+  if p_metadata->>'classification_source' = 'browserExtension' then
+    insert into public.extension_free_items(item_id,user_id) values(v_id,p_user_id) on conflict do nothing;
+  end if;
   return v_id;
 end $$;
 revoke all on function public.save_extension_capture(uuid,uuid,jsonb,jsonb,jsonb) from public,anon,authenticated;
