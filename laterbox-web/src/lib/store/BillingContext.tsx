@@ -5,7 +5,7 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useR
 import { FREE_ENTITLEMENT, hasProAccess, type Entitlement } from '@/lib/billing/types';
 import { loadCheckout, checkoutSuccessUrl, CHECKOUT_CONFIGURATION_ERROR, CHECKOUT_LOADING_ERROR } from '@/lib/billing/checkout';
 import { useAuth } from './AuthContext';
-import { getSupabaseClient } from '../supabase/client';
+import { getAccessToken } from '../auth/tokens';
 
 type Interval = 'month' | 'year';
 type CheckoutState = 'idle' | 'processing' | 'confirmed' | 'delayed';
@@ -44,22 +44,8 @@ export function BillingProvider({ children }: { children: React.ReactNode }) {
     setLoading(true);
     setError(null);
     try {
-      const supabase = getSupabaseClient();
-      const { data: sessionData } = await supabase.auth.getSession();
-      const currentSession = sessionData?.session ?? session;
-
-      if (!currentSession?.access_token) {
-        setEntitlement(FREE_ENTITLEMENT);
-        return;
-      }
-
-      let token = currentSession.access_token;
-      if (currentSession.expires_at && currentSession.expires_at * 1000 < Date.now() + 60000) {
-        const { data: refreshed } = await supabase.auth.refreshSession();
-        if (refreshed?.session?.access_token) {
-          token = refreshed.session.access_token;
-        }
-      }
+      let token = await getAccessToken();
+      if (!token) { setEntitlement(FREE_ENTITLEMENT); return; }
 
       let response = await fetch('/api/billing/entitlement', {
         headers: { Authorization: `Bearer ${token}` },
@@ -67,10 +53,10 @@ export function BillingProvider({ children }: { children: React.ReactNode }) {
       });
 
       if (response.status === 401) {
-        const { data: refreshed } = await supabase.auth.refreshSession();
-        if (refreshed?.session?.access_token) {
+        token = await getAccessToken(true);
+        if (token) {
           response = await fetch('/api/billing/entitlement', {
-            headers: { Authorization: `Bearer ${refreshed.session.access_token}` },
+            headers: { Authorization: `Bearer ${token}` },
             cache: 'no-store',
           });
         }
@@ -110,12 +96,10 @@ export function BillingProvider({ children }: { children: React.ReactNode }) {
   const pollForPro = useCallback(async () => {
     if (!user) return;
     setCheckoutState('processing');
-    const supabase = getSupabaseClient();
     for (let attempt = 0; attempt < 8; attempt += 1) {
       await new Promise((resolve) => window.setTimeout(resolve, attempt === 0 ? 800 : 1500));
       try {
-        const { data: sessData } = await supabase.auth.getSession();
-        const token = sessData?.session?.access_token || session?.access_token;
+        const token = await getAccessToken();
         if (!token) break;
         const response = await fetch('/api/billing/entitlement', {
           headers: { Authorization: `Bearer ${token}` },
@@ -186,11 +170,12 @@ export function BillingProvider({ children }: { children: React.ReactNode }) {
 
   const authenticatedRequest = useCallback(
     async (path: string, init?: RequestInit) => {
-      if (!session?.access_token) throw new Error('Sign in to manage LaterBox Pro.');
+      const token = await getAccessToken();
+      if (!token) throw new Error('Sign in to manage LaterBox Pro.');
       const response = await fetch(path, {
         ...init,
         headers: {
-          Authorization: `Bearer ${session.access_token}`,
+          Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
           ...init?.headers,
         },
