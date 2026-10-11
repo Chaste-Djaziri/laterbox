@@ -2,6 +2,7 @@
 import json
 import os
 from pathlib import Path
+import shutil
 import signal
 import subprocess
 import time
@@ -61,9 +62,12 @@ def main():
         run('SimulatorReady', ['xcrun', 'simctl', 'bootstatus', simulator, '-b'], 600)
         run('NativeBuild', base + ['build-for-testing'], 600)
         for target, name in [('laterbox-iosTests', 'NativeSwiftTests'), ('laterbox-iosUITests', 'NativeUITests')]:
+            result_bundle = root / (name + '.xcresult')
+            if result_bundle.exists():
+                shutil.rmtree(result_bundle)
             run(name, base + ['test-without-building', '-only-testing:' + target, '-parallel-testing-enabled', 'NO',
                              '-collect-test-diagnostics', 'never', '-test-timeouts-enabled', 'YES',
-                             '-maximum-test-execution-time-allowance', '180', '-resultBundlePath', str(root / (name + '.xcresult'))], 600)
+                             '-maximum-test-execution-time-allowance', '180', '-resultBundlePath', str(result_bundle)], 600)
     except Exception as error:
         print(f'::error::{error}', flush=True)
         with (root / 'SimulatorDiagnostics.log').open('w') as output:
