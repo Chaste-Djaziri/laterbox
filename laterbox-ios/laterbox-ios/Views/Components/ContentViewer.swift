@@ -174,10 +174,7 @@ public struct RichCapturedContentViewer: View {
     public let content: String
     public let formattedHTML: String?
 
-    @State private var mode: ContentFormatMode = .formatted
-    @State private var htmlHeight: CGFloat = 200
     @State private var isExpanded: Bool = false
-    @State private var showingFullscreenReader: Bool = false
     @State private var copiedToast: Bool = false
 
     public init(title: String = "Captured Content", content: String, formattedHTML: String? = nil) {
@@ -186,20 +183,9 @@ public struct RichCapturedContentViewer: View {
         self.formattedHTML = formattedHTML
     }
 
-    private var activeHTMLContent: String {
-        if let formattedHTML, !formattedHTML.isEmpty {
-            return formattedHTML
-        }
-        // If content itself looks like HTML
-        if content.contains("<p>") || content.contains("<div") || content.contains("<h") {
-            return content
-        }
-        return "<p>\(content.replacingOccurrences(of: "\n", with: "<br>"))</p>"
-    }
-
     public var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            // Header with format segmented toggle & utility actions
+            // Header with title and copy action
             HStack(spacing: 8) {
                 HStack(spacing: 6) {
                     Image(systemName: "doc.text.magnifyingglass")
@@ -213,36 +199,6 @@ public struct RichCapturedContentViewer: View {
 
                 Spacer()
 
-                // Mode Picker
-                HStack(spacing: 2) {
-                    ForEach(ContentFormatMode.allCases) { m in
-                        Button(action: {
-                            LBHaptic.light()
-                            mode = m
-                        }) {
-                            HStack(spacing: 3) {
-                                Image(systemName: m.icon)
-                                    .font(.system(size: 10, weight: .bold))
-                                Text(m.rawValue)
-                                    .font(.system(size: 11, weight: .semibold))
-                            }
-                            .padding(.horizontal, 7)
-                            .padding(.vertical, 4)
-                            .background(
-                                mode == m ? Capsule().fill(AppTheme.accent) : Capsule().fill(Color.clear)
-                            )
-                            .foregroundColor(mode == m ? AppTheme.textPrimary : AppTheme.textSecondary)
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-                .padding(3)
-                .background(Capsule().fill(AppTheme.background))
-                .overlay(Capsule().strokeBorder(AppTheme.cardBorder, lineWidth: 1))
-            }
-
-            // Top action buttons: Copy & Fullscreen Reader
-            HStack(spacing: 8) {
                 Button(action: {
                     UIPasteboard.general.string = content
                     LBHaptic.success()
@@ -266,59 +222,15 @@ public struct RichCapturedContentViewer: View {
                     .foregroundColor(AppTheme.textPrimary)
                 }
                 .buttonStyle(.plain)
-
-                Button(action: {
-                    showingFullscreenReader = true
-                }) {
-                    HStack(spacing: 4) {
-                        Image(systemName: "arrow.up.left.and.arrow.down.right")
-                            .font(.caption2.weight(.bold))
-                        Text("Fullscreen Reader")
-                            .font(.caption2.weight(.semibold))
-                    }
-                    .padding(.horizontal, 9)
-                    .padding(.vertical, 5)
-                    .background(Capsule().fill(AppTheme.background))
-                    .overlay(Capsule().strokeBorder(AppTheme.cardBorder, lineWidth: 1))
-                    .foregroundColor(AppTheme.textPrimary)
-                }
-                .buttonStyle(.plain)
-
-                Spacer()
             }
 
-            // Main Content Area
-            Group {
-                switch mode {
-                case .formatted:
-                    MarkdownContentView(text: content)
-                        .frame(maxHeight: isExpanded ? .infinity : 280, alignment: .topLeading)
-                        .clipped()
-
-                case .html:
-                    HTMLContentView(html: activeHTMLContent, calculatedHeight: $htmlHeight)
-                        .frame(height: isExpanded ? max(htmlHeight, 280) : min(htmlHeight, 280))
-                        .clipped()
-
-                case .raw:
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        Text(content)
-                            .font(.system(size: 13, weight: .regular, design: .monospaced))
-                            .foregroundColor(AppTheme.textPrimary)
-                            .textSelection(.enabled)
-                            .padding(10)
-                    }
-                    .background(
-                        RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            .fill(AppTheme.background)
-                            .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).strokeBorder(AppTheme.cardBorder, lineWidth: 1))
-                    )
-                    .frame(maxHeight: isExpanded ? .infinity : 260)
-                }
-            }
+            // Single clean formatted reader view
+            MarkdownContentView(text: content)
+                .frame(maxHeight: isExpanded ? .infinity : 280, alignment: .topLeading)
+                .clipped()
 
             // Expand / Collapse Toggle if content is substantial
-            if content.count > 300 || htmlHeight > 280 {
+            if content.count > 300 {
                 Button(action: {
                     withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
                         isExpanded.toggle()
@@ -339,9 +251,6 @@ public struct RichCapturedContentViewer: View {
         }
         .padding(16)
         .liquidGlassCard(cornerRadius: 18)
-        .sheet(isPresented: $showingFullscreenReader) {
-            FullscreenContentReader(title: title, content: content, htmlContent: activeHTMLContent)
-        }
     }
 }
 
