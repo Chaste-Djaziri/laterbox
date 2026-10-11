@@ -43,5 +43,5 @@ test('imports persist before acknowledgement, retry without duplicates, and seri
  quota = false; await importLocalCaptures(); interrupted = false;
  await Promise.all([importLocalCaptures(), importLocalCaptures()]);
  assert.equal(JSON.parse(data.get(LOCAL_KEY)!).length, 1); assert.equal(acks, 3);
- page.location.origin = 'https://app.laterbox.dev'; assert.equal(await importLocalCaptures(), false);
+ page.location.origin = 'https://untrusted-site.com'; assert.equal(await importLocalCaptures(), false);
 });
