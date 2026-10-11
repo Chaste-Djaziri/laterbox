@@ -33,7 +33,7 @@ function verifier(environment: Environment): SignedDataVerifier {
   const appAppleId = process.env.APPLE_APP_ID
     ? Number(process.env.APPLE_APP_ID)
     : undefined;
-  if (environment === Environment.PRODUCTION && !appAppleId) {
+  if (environment === Environment.PRODUCTION && (!appAppleId || !Number.isSafeInteger(appAppleId) || appAppleId <= 0)) {
     throw new AppleBillingError('configuration_unavailable', 'APPLE_APP_ID is required for production verification.', 503);
   }
   return new SignedDataVerifier(
@@ -47,13 +47,16 @@ function verifier(environment: Environment): SignedDataVerifier {
 
 async function tryEnvironments<T>(action: (value: SignedDataVerifier) => Promise<T>) {
   let lastError: unknown;
+  let configurationError: AppleBillingError | undefined;
   for (const environment of [Environment.PRODUCTION, Environment.SANDBOX]) {
     try {
       return await action(verifier(environment));
     } catch (error) {
       lastError = error;
+      if (error instanceof AppleBillingError) configurationError = error;
     }
   }
+  if (configurationError) throw configurationError;
   throw lastError instanceof Error ? lastError : new Error('Apple signature verification failed.');
 }
 
