@@ -61,13 +61,6 @@ struct ContentView: View {
                 .zIndex(150)
             }
 
-            // Later AI Dropdown Full Screen Interface with Feathered Fading Curtain
-            if (aiManager.isShowingLaterAI || aiManager.flowProgress > 0) && coordinator.hasAccess {
-                LaterAIView(isPresented: $aiManager.isShowingLaterAI, progress: $aiManager.flowProgress)
-                    .zIndex(200)
-                    .allowsHitTesting(aiManager.flowProgress > 0.6)
-            }
-
             // Biometric App Lock Screen Overlay
             if lockManager.isAppLockEnabled && lockManager.isLocked && coordinator.hasAccess {
                 AppLockOverlayView()
