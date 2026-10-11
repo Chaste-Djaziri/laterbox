@@ -362,7 +362,7 @@ extension LaterAITests {
         #expect(notePayload.titlePreview == "Groceries to buy:")
         #expect(notePayload.systemIcon == "doc.text.fill")
     }
-    @Test func clipboardManagerDismissAndConfirmLifecycle() {
+    @Test func clipboardManagerDismissAndConfirmLifecycle() throws {
         let testDefaults = UserDefaults(suiteName: "test_clipboard_\(UUID().uuidString)")!
         let manager = ClipboardDetectionManager(userDefaults: testDefaults)
 
@@ -380,6 +380,26 @@ extension LaterAITests {
 
         // Internal copy recording
         manager.recordInternalCopy("https://laterbox.app/internal-link")
+
+        // Confirm save directly inserts into context scheduled for tomorrow return
+        let container = try ModelContainer(for: LBItem.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+        let context = container.mainContext
+        manager.detectedItem = payload
+        manager.isShowingBanner = true
+
+        let saved = manager.confirmSave(context: context)
+        #expect(manager.isShowingBanner == false)
+        #expect(manager.detectedItem == nil)
+        #expect(saved != nil)
+        #expect(saved?.url == "https://news.ycombinator.com")
+        #expect(saved?.status == ItemStatus.deferred.rawValue)
+        #expect(saved?.returnAt != nil)
+        #expect(saved?.returnAt! > Date())
+        #expect(saved?.isSyncPending == true)
+
+        let calendar = Calendar.current
+        let hour = calendar.component(.hour, from: saved!.returnAt!)
+        #expect(hour == 9)
     }
     @Test func laterAIManagerOpenWithAttachedSubject() {
         let aiManager = LaterAIManager.shared
