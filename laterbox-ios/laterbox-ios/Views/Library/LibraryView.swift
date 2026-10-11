@@ -277,7 +277,6 @@ public struct LibraryView: View {
                     .padding(.top, 12)
                     .padding(.bottom, 24)
                 }
-                .trackPullDownForLaterAI()
             }
             .navigationBarHidden(true)
             .alert("New Collection", isPresented: $showingAddCollection) {
