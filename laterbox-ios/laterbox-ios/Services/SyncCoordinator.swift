@@ -342,7 +342,7 @@ public final class SyncCoordinator: ObservableObject {
         guard let text = item.url, let url = URL(string: text) else { return }
         do {
             let metadata = try await LinkMetadataLoader.load(url)
-            guard item.status != "deleted", item.modelContext != nil else { return }
+            guard item.modelContext != nil, item.status != "deleted" else { return }
             let candidateTitle = LinkMetadataLoader.cleanTitle(metadata.title)
             let currentIsGeneric = item.title.isEmpty || item.title == url.host || item.title == text || item.title.hasPrefix("http") || LinkMetadataLoader.isGenericTitle(item.title)
             if let candidateTitle, !LinkMetadataLoader.isGenericTitle(candidateTitle) {
