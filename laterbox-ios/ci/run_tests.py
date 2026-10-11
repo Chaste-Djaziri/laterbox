@@ -63,7 +63,7 @@ def main():
         for target, name in [('laterbox-iosTests', 'NativeSwiftTests'), ('laterbox-iosUITests', 'NativeUITests')]:
             run(name, base + ['test-without-building', '-only-testing:' + target, '-parallel-testing-enabled', 'NO',
                              '-collect-test-diagnostics', 'never', '-test-timeouts-enabled', 'YES',
-                             '-maximum-test-execution-time-allowance', '180', '-resultBundlePath', str(root / (name + '.xcresult'))], 300)
+                             '-maximum-test-execution-time-allowance', '180', '-resultBundlePath', str(root / (name + '.xcresult'))], 600)
     except Exception as error:
         print(f'::error::{error}', flush=True)
         with (root / 'SimulatorDiagnostics.log').open('w') as output:

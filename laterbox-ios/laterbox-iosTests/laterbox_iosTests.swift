@@ -124,7 +124,11 @@ struct LaterAITests {
         let context = try context()
         let conversation = LaterAIConversation(provider: FailingProvider())
         conversation.send("My original note #ideas", items: [], context: context)
-        while conversation.thinking { try await Task.sleep(for: .milliseconds(10)) }
+        var attempts = 0
+        while conversation.thinking && attempts < 200 {
+            try await Task.sleep(for: .milliseconds(10))
+            attempts += 1
+        }
         #expect(conversation.error != nil)
         conversation.continueManually()
         #expect(conversation.manual)
@@ -136,7 +140,11 @@ struct LaterAITests {
         let context = try context()
         let conversation = LaterAIConversation(provider: CaptureProvider())
         conversation.send("My note #ideas", items: [], context: context)
-        while conversation.thinking { try await Task.sleep(for: .milliseconds(10)) }
+        var captureAttempts = 0
+        while conversation.thinking && captureAttempts < 200 {
+            try await Task.sleep(for: .milliseconds(10))
+            captureAttempts += 1
+        }
         let item = try #require(conversation.savedItem)
         #expect(item.textContent == "My note #ideas")
         #expect(item.tags == ["ideas"])
