@@ -6,6 +6,7 @@ import React, { createContext, useContext, useEffect, useState, useMemo, useCall
 import { getSupabaseClient } from '../supabase/client';
 import { LaterBoxItem, ItemStatus, InboxFilterType, Collection, Attachment, ItemMetadata, ItemContent } from '../supabase/types';
 import { useAuth } from './AuthContext';
+import { useBilling } from './BillingContext';
 import { normalizeUrl, isUrl, extractDomain } from '../utils/url';
 import { storeLocalAttachment } from '../utils/local-attachments';
 import { itemRow, queueCapture, queueHardDelete, syncPendingCaptures, syncCloudQueue, isAuthError } from '../utils/pending-captures';
@@ -63,6 +64,7 @@ const DEFAULT_GUEST_ITEMS: LaterBoxItem[] = [];
 
 export function ItemProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
+  const { isPro } = useBilling();
   const [items, setItems] = useState<LaterBoxItem[]>([]);
   const [deletedItems, setDeletedItems] = useState<LaterBoxItem[]>([]);
   const [now, setNow] = useState(() => new Date());
@@ -129,18 +131,18 @@ export function ItemProvider({ children }: { children: ReactNode }) {
   }, [user?.id]);
 
   useEffect(() => {
-    if (user || window.location.origin !== 'http://localhost:8080') return;
+    // Pro users sync automatically with the cloud; Free users import extension captures into local device storage
+    if (user && isPro) return;
     let disposed = false;
     let running = false;
     const importCaptures = async () => {
       if (running || disposed) return;
       running = true;
       try {
-        if (await importLocalCaptures() && !disposed) loadLocalData();
+        if (await importLocalCaptures(user?.id) && !disposed) loadLocalData();
       } catch (error) {
         // Unavailable extension is normal; storage/import failures retain the extension outbox.
         console.warn('[local library]', error);
-        setSyncStatus('error');
       } finally { running = false; }
     };
     void importCaptures();
@@ -148,7 +150,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
     const refresh = () => { if (!disposed) loadLocalData(); };
     window.addEventListener('storage', refresh);
     return () => { disposed = true; clearInterval(timer); window.removeEventListener('storage', refresh); };
-  }, [user, loadLocalData]);
+  }, [user, isPro, loadLocalData]);
 
   // Migrate guest items to authenticated user on login and upload to Supabase
   const migrateGuestItems = useCallback(async (userId: string) => {
@@ -203,6 +205,16 @@ export function ItemProvider({ children }: { children: ReactNode }) {
       return;
     }
 
+    // For Free users, load and display local data on this device without syncing to cloud
+    if (!isPro) {
+      loadLocalData();
+      await migrateGuestItems(user.id);
+      loadLocalData();
+      setSyncStatus('offline');
+      setLoading(false);
+      return;
+    }
+
     if (isFetchingRef.current) return;
     isFetchingRef.current = true;
 
@@ -213,6 +225,17 @@ export function ItemProvider({ children }: { children: ReactNode }) {
 
       // Automatically migrate any items saved while in guest mode to user account
       await migrateGuestItems(user.id);
+
+      // Migrate any local-only items saved while on Free plan to cloud
+      const stored = localStorage.getItem(`${LOCAL_ITEMS_KEY}_${user.id}`);
+      if (stored) {
+        try {
+          const localItems = JSON.parse(stored) as LaterBoxItem[];
+          for (const item of localItems) {
+            queueCapture(item);
+          }
+        } catch {}
+      }
 
       // Execute queued pull-before-push cloud sync with timestamp conflict resolution
       const syncResult = await syncCloudQueue(user.id);
@@ -231,7 +254,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
       isFetchingRef.current = false;
       setLoading(false);
     }
-  }, [user?.id, loadLocalData, handleAuthFailure, migrateGuestItems]);
+  }, [user?.id, isPro, loadLocalData, handleAuthFailure, migrateGuestItems]);
 
   useEffect(() => {
     fetchData();
@@ -368,7 +391,9 @@ export function ItemProvider({ children }: { children: ReactNode }) {
     const updated = [newItem, ...items];
     setItems(updated);
     saveLocalData(updated);
-    queueCapture(newItem);
+    if (isPro) {
+      queueCapture(newItem);
+    }
 
     // ── Enrich URL metadata for ALL users (Pro writes to Supabase; others update local state only) ──
     if (normalizedUrl) {
@@ -490,6 +515,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
   };
 
   const safeSyncPending = async (userId: string) => {
+    if (!isPro) return;
     try {
       setSyncStatus('syncing');
       const result = await syncCloudQueue(userId);
