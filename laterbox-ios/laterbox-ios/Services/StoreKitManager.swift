@@ -264,6 +264,27 @@ public final class StoreKitManager: ObservableObject {
         }
     }
 
+    public func manageSubscription() async {
+        let coordinator = SyncCoordinator.shared
+        errorMessage = nil
+        do {
+            if coordinator.billingEntitlement?.provider == "paddle" {
+                guard let token = coordinator.authToken else { throw URLError(.userAuthenticationRequired) }
+                let url = try await LaterBoxAPIService.shared.paddleManagementURL(token: token)
+                await UIApplication.shared.open(url)
+            } else if coordinator.billingEntitlement?.provider == "apple" || isProSubscriptionActive {
+                guard let scene = UIApplication.shared.connectedScenes.first(where: {
+                    $0.activationState == .foregroundActive
+                }) as? UIWindowScene else { throw URLError(.unknown) }
+                try await AppStore.showManageSubscriptions(in: scene)
+            } else {
+                coordinator.showingPlansSheet = true
+            }
+        } catch {
+            errorMessage = "Unable to open subscription management. Sign in again or retry when online."
+        }
+    }
+
     // MARK: - Display Price Helpers
     public var monthlyDisplayPrice: String {
         monthlyProduct?.displayPrice ?? "$3.99"
