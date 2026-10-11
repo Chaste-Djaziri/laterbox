@@ -111,20 +111,25 @@ disconnectButton.addEventListener("click", () => {
 async function updateConnectionState(): Promise<boolean> {
   const token = await getAccessToken();
   const userId = await getConnectedUserId();
-  const local = await isLocalMode();
-  const label = document.getElementById("capture-mode-label");
-  if (label) label.textContent = local ? "Saving to local library" : "Saving to account (free)";
-  const connected = local || (token.startsWith("lb_ext_") && userId.length > 0);
+  const { hasProPlan } = await browser.storage.local.get("hasProPlan");
+  const connected = token.startsWith("lb_ext_") && userId.length > 0;
   const pending = !connected && (await getPendingConnection()) !== null;
+
+  const label = document.getElementById("capture-mode-label");
+  if (label) {
+    label.textContent = hasProPlan === true
+      ? "Pro plan · Cloud sync active"
+      : "Free plan · Saves locally on this device";
+  }
 
   disconnectedPanel.hidden = connected || pending;
   pendingPanel.hidden = connected || !pending;
   connectedPanel.hidden = !connected;
   connectButton.hidden = connected || pending;
-  disconnectButton.hidden = local || !connected;
+  disconnectButton.hidden = !connected;
   openPanelButton.hidden = !browserCapabilities.supportsSidePanel;
 
-  if (connected) {
+  if (connected && hasProPlan === true) {
     const flushed = await flushQueue();
     if (flushed > 0) {
       setStatus(`Synced ${flushed} queued capture${flushed === 1 ? "" : "s"}.`);
