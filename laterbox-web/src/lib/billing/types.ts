@@ -19,6 +19,8 @@ export interface Entitlement {
   billingWarning: string | null;
   phaseStartsAt: string | null;
   phaseEndsAt: string | null;
+  billingInterval?: 'month' | 'year' | null;
+  appleEnvironment?: 'Sandbox' | 'Production' | null;
 }
 
 export const FREE_ENTITLEMENT: Entitlement = {
