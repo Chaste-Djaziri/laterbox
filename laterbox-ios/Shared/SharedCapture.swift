@@ -131,7 +131,7 @@ enum ReturnNotification {
         return true
     }
 
-    static func update(id: String, title: String, date: Date?) async throws -> Bool {
+    static func update(id: String, title: String, description: String? = nil, date: Date?) async throws -> Bool {
         let center = UNUserNotificationCenter.current()
         center.removePendingNotificationRequests(withIdentifiers: [id])
         guard let date, date > Date() else { return true }
@@ -142,8 +142,17 @@ enum ReturnNotification {
             guard allowed else { return false }
         }
         let content = UNMutableNotificationContent()
-        content.title = "Back in your Inbox"
-        content.body = title.isEmpty ? "A scheduled item is ready for review." : title
+        let cleanTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        content.title = cleanTitle.isEmpty ? "Back in your Inbox" : cleanTitle
+        if !cleanTitle.isEmpty {
+            content.subtitle = "Back in your Inbox"
+        }
+        let cleanDesc = description?.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let cleanDesc, !cleanDesc.isEmpty {
+            content.body = cleanDesc
+        } else {
+            content.body = "A scheduled item is ready for review in your inbox."
+        }
         content.sound = .default
         content.userInfo = ["itemID": id]
         let trigger = UNTimeIntervalNotificationTrigger(timeInterval: max(1, date.timeIntervalSinceNow), repeats: false)
@@ -151,7 +160,11 @@ enum ReturnNotification {
         return true
     }
 
-    static func notifyReturned(id: String, title: String) async throws -> Bool {
+    static func update(id: String, title: String, date: Date?) async throws -> Bool {
+        try await update(id: id, title: title, description: nil, date: date)
+    }
+
+    static func notifyReturned(id: String, title: String, description: String? = nil) async throws -> Bool {
         let center = UNUserNotificationCenter.current()
         let settings = await center.notificationSettings()
         let isAuthorized = settings.authorizationStatus == .authorized || settings.authorizationStatus == .provisional
@@ -160,8 +173,17 @@ enum ReturnNotification {
             guard requested else { return false }
         }
         let content = UNMutableNotificationContent()
-        content.title = "Back in your Inbox"
-        content.body = title.isEmpty ? "A scheduled item has returned to your inbox." : title
+        let cleanTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        content.title = cleanTitle.isEmpty ? "Back in your Inbox" : cleanTitle
+        if !cleanTitle.isEmpty {
+            content.subtitle = "Back in your Inbox"
+        }
+        let cleanDesc = description?.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let cleanDesc, !cleanDesc.isEmpty {
+            content.body = cleanDesc
+        } else {
+            content.body = "A scheduled item has returned to your inbox."
+        }
         content.sound = .default
         content.userInfo = ["itemID": id]
         let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 1.0, repeats: false)

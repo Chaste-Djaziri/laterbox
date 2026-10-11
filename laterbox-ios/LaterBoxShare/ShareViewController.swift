@@ -364,7 +364,7 @@ struct ShareChatMessage: Identifiable, Equatable {
         do {
             try SharedCaptureStore.save(capture)
             saved = true
-            _ = try? await ReturnNotification.update(id: capture.id, title: capture.title, date: capture.returnAt)
+            _ = try? await ReturnNotification.update(id: capture.id, title: capture.title, description: capture.metadataDescription ?? capture.content, date: capture.returnAt)
             let desc = capture.returnAt.map { "for \($0.formatted(date: .abbreviated, time: .shortened))" } ?? "with no reminder (inbox)"
             messages.append(ShareChatMessage(text: "Scheduled ‘\(capture.title)’ \(desc). Saved to your LaterBox vault.", isUser: false))
         } catch {

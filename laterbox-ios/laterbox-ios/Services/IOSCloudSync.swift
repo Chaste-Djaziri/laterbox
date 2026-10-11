@@ -260,7 +260,7 @@ extension SyncCoordinator {
 
                 // Re-register return notification if scheduled in the future
                 if let returnDate = item.returnAt, returnDate > Date() {
-                    _ = try? await ReturnNotification.update(id: item.id, title: item.title, date: returnDate)
+                    _ = try? await ReturnNotification.update(id: item.id, title: item.title, description: item.notificationDescription, date: returnDate)
                 }
             }
             try context.save()

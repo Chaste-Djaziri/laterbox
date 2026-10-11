@@ -222,7 +222,7 @@ public final class SyncCoordinator: ObservableObject {
         // Kick off cloud sync, notifications, and enrichment if online
         Task {
             if newItem.returnAt != nil {
-                _ = try? await ReturnNotification.update(id: newItem.id, title: newItem.title, date: newItem.returnAt)
+                _ = try? await ReturnNotification.update(id: newItem.id, title: newItem.title, description: newItem.notificationDescription, date: newItem.returnAt)
             }
             if newItem.url != nil {
                 await enrich(item: newItem, context: context)
@@ -275,7 +275,7 @@ public final class SyncCoordinator: ObservableObject {
         context.insert(item)
         do { try context.save() } catch { context.delete(item); throw error }
         Task {
-            _ = try? await ReturnNotification.update(id: item.id, title: item.title, date: item.returnAt)
+            _ = try? await ReturnNotification.update(id: item.id, title: item.title, description: item.notificationDescription, date: item.returnAt)
             await enrich(item: item, context: context); await syncPendingItems(context: context)
         }
         return item
@@ -394,7 +394,7 @@ public final class SyncCoordinator: ObservableObject {
         do {
             try context.save()
             Task {
-                _ = try? await ReturnNotification.update(id: item.id, title: item.title, date: date)
+                _ = try? await ReturnNotification.update(id: item.id, title: item.title, description: item.notificationDescription, date: date)
                 await syncPendingItems(context: context)
             }
         } catch { context.rollback() }

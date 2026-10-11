@@ -142,4 +142,25 @@ public final class LBItem {
     public var parsedStatus: ItemStatus {
         ItemStatus(rawValue: status) ?? .inbox
     }
+
+    /// Contextual description snippet for notification bodies when items resurface or return to inbox
+    public var notificationDescription: String? {
+        if let desc = metadataDescription?.trimmingCharacters(in: .whitespacesAndNewlines), !desc.isEmpty {
+            return desc
+        }
+        let cleanSummary = summary.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !cleanSummary.isEmpty {
+            return cleanSummary
+        }
+        if let text = textContent?.trimmingCharacters(in: .whitespacesAndNewlines), !text.isEmpty {
+            return text
+        }
+        if let note = noteContent?.trimmingCharacters(in: .whitespacesAndNewlines), !note.isEmpty {
+            return note
+        }
+        if let u = url?.trimmingCharacters(in: .whitespacesAndNewlines), !u.isEmpty {
+            return u
+        }
+        return nil
+    }
 }

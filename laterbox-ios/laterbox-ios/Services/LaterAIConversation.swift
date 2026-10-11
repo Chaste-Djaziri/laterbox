@@ -212,7 +212,7 @@ final class LaterAIConversation: ObservableObject {
             messages.append(LaterAIMessage(text: "⏰ Scheduled ‘\(item.title)’ \(desc).", isUser: false))
             Task {
                 do {
-                    let allowed = try await ReturnNotification.update(id: item.id, title: item.title, date: date)
+                    let allowed = try await ReturnNotification.update(id: item.id, title: item.title, description: item.notificationDescription, date: date)
                     if !allowed { self.error = "Saved. Enable notifications in Settings for return alerts." }
                 } catch { self.error = "Saved, but reminder failed: \(error.localizedDescription)" }
                 await SyncCoordinator.shared.syncPendingItems(context: context)

@@ -33,7 +33,7 @@ import UniformTypeIdentifiers
                     do {
                         try context.save()
                         if item.returnAt != nil {
-                            Task { _ = try? await ReturnNotification.update(id: item.id, title: item.title, date: item.returnAt) }
+                            Task { _ = try? await ReturnNotification.update(id: item.id, title: item.title, description: item.notificationDescription, date: item.returnAt) }
                         }
                         if item.url != nil {
                             Task { await SyncCoordinator.shared.enrich(item: item, context: context) }
@@ -48,8 +48,9 @@ import UniformTypeIdentifiers
             item.status = "inbox"; item.updatedAt = now; item.isSyncPending = true
             let id = item.id
             let title = item.title
+            let desc = item.notificationDescription
             Task {
-                _ = try? await ReturnNotification.notifyReturned(id: id, title: title)
+                _ = try? await ReturnNotification.notifyReturned(id: id, title: title, description: desc)
             }
         }
         try context.save()
