@@ -143,7 +143,9 @@ public struct InlineVideoEmbedView: View {
                                 .frame(height: 220)
                                 .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                         } else {
-                            let ytCover = previewImageUrl ?? "https://img.youtube.com/vi/\(id)/hqdefault.jpg"
+                            let rawCover = previewImageUrl ?? "https://img.youtube.com/vi/\(id)/mqdefault.jpg"
+                            let ytCover = rawCover.replacingOccurrences(of: "/hqdefault.jpg", with: "/mqdefault.jpg")
+                                                  .replacingOccurrences(of: "/sddefault.jpg", with: "/mqdefault.jpg")
                             videoPoster(title: "YouTube Video", coverUrl: ytCover, color: Color.red)
                         }
                     }
