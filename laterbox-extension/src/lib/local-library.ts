@@ -57,7 +57,9 @@ export function saveLocalCapture(capture: Capture): Promise<CaptureResult> {
     if (!rows.some(row => row.captureId === entry.captureId)) rows.push(entry);
     await browser.storage.local.set({ localCaptures: rows });
     await browser.action.setBadgeText({ text: '✓' });
-    await browser.action.setBadgeBackgroundColor({ color: '#26734d' });
+    if (browser.action?.setBadgeBackgroundColor) {
+      await browser.action.setBadgeBackgroundColor({ color: '#26734d' });
+    }
     await browser.action.setTitle({ title: 'Saved locally on this device (Free plan) — open LaterBox to view' });
     return { status: 'saved', id: entry.captureId, local: true };
   });
