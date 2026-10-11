@@ -201,8 +201,19 @@ public struct SettingsView: View {
                     }
                     .liquidGlassCard(cornerRadius: 18)
 
-                    // Group 4: Support & Legal
+                    // Group 4: Support & Updates
                     VStack(spacing: 0) {
+                        NavigationLink(destination: CheckForUpdatesView()) {
+                            groupedRow(
+                                icon: "arrow.triangle.2.circlepath",
+                                title: "Check for Updates",
+                                badge: AppVersion.currentVersion
+                            )
+                        }
+                        .buttonStyle(.plain)
+
+                        rowDivider
+
                         NavigationLink(destination: SupportRequestView()) {
                             groupedRow(
                                 icon: "questionmark.circle",
