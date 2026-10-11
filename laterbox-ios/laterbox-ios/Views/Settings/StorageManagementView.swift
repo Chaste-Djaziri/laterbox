@@ -40,9 +40,8 @@ public struct StorageManagementView: View {
     }
 
     public var body: some View {
-        NavigationStack {
-            ZStack {
-                LiquidGlassBackground()
+        ZStack {
+            LiquidGlassBackground()
 
                 ScrollView {
                     VStack(alignment: .leading, spacing: 20) {
@@ -244,13 +243,6 @@ public struct StorageManagementView: View {
             }
             .navigationTitle("Storage & Data")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") { dismiss() }
-                        .font(.headline)
-                        .foregroundColor(AppTheme.accent)
-                }
-            }
             .onAppear {
                 storageManager.refreshBreakdown()
                 storageManager.scanDuplicates(items: allItems)
@@ -292,7 +284,6 @@ public struct StorageManagementView: View {
                 Button("Cancel", role: .cancel) {}
             }
         }
-    }
 
     private func triggerSuccessBanner(_ text: String) {
         withAnimation {
