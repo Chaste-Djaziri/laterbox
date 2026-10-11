@@ -209,6 +209,24 @@ extension LaterAITests {
         try await coordinator.performCloudSync(context: container.mainContext, transport: transport)
         #expect(transport.downloads == 0 && transport.uploads.isEmpty)
     }
+    @Test func freeUsersCannotForceSyncPendingItems() async throws {
+        let coordinator = SyncCoordinator.shared
+        let previous = (coordinator.currentUserId, coordinator.currentUserEmail, coordinator.authToken)
+        coordinator.updateProFromStoreKit(false)
+        coordinator.currentUserEmail = "free@example.com"
+        coordinator.currentUserId = "free-uid"
+        coordinator.authToken = "free-token"
+        defer {
+            coordinator.currentUserId = previous.0
+            coordinator.currentUserEmail = previous.1
+            coordinator.authToken = previous.2
+        }
+        let container = try ModelContainer(for: LBItem.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+        let transport = MockCloudTransport()
+        await coordinator.syncPendingItems(context: container.mainContext, transport: transport)
+        #expect(coordinator.syncState == .offline)
+        #expect(transport.downloads == 0 && transport.uploads.isEmpty)
+    }
     @Test func proSyncPreservesNewerLocalCaptureAndImportsRemoteMetadata() async throws {
         try await Task.sleep(for: .milliseconds(100))
         let coordinator = SyncCoordinator.shared
