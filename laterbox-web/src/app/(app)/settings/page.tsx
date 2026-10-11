@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { useAuth } from '@/lib/store/AuthContext';
 import { useItems } from '@/lib/store/ItemContext';
 import { useBilling } from '@/lib/store/BillingContext';
+import { AppleSubscriptionDetails } from '@/components/billing/AppleSubscriptionDetails';
 import { presentEntitlement } from '@/lib/billing/types';
 import { CloudSyncIndicator } from '@/components/ui/CloudSyncIndicator';
 import {
@@ -293,9 +294,7 @@ export default function SettingsPage() {
                 Manage subscription
               </button>
             ) : isPro && entitlement.provider === 'apple' ? (
-              <div className="rounded-xl border border-white/20 px-4 py-2.5 text-center text-xs font-bold text-zinc-200">
-                Manage in the App Store
-              </div>
+              <AppleSubscriptionDetails entitlement={entitlement} />
             ) : (
               <Link href="/plans" className="rounded-xl bg-[#e6edb0] hover:bg-[#d8e09e] px-4 py-2.5 text-center text-xs font-black text-[#171711] transition-colors">View Pro plans</Link>
             )}
