@@ -178,8 +178,8 @@ begin
     trial_ends_at = excluded.trial_ends_at,
     current_period_starts_at = excluded.current_period_starts_at,
     current_period_ends_at = excluded.current_period_ends_at,
-    scheduled_change_action = case when p_notification then excluded.scheduled_change_action else current_row.scheduled_change_action end,
-    scheduled_change_at = case when p_notification then excluded.scheduled_change_at
+    scheduled_change_action = case when (p_subscription->>'renewal_known')::boolean then excluded.scheduled_change_action else current_row.scheduled_change_action end,
+    scheduled_change_at = case when (p_subscription->>'renewal_known')::boolean then excluded.scheduled_change_at
       when current_row.scheduled_change_action = 'cancel' then excluded.current_period_ends_at else null end,
     past_due_at = case when excluded.status = 'past_due' then coalesce(current_row.past_due_at, excluded.past_due_at) else null end,
     occurred_at = excluded.occurred_at, updated_at = now(),
