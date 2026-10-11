@@ -218,6 +218,10 @@ public struct ReturnsView: View {
                         }
                         .padding(.bottom, 30)
                     }
+                    .refreshable {
+                        LBHaptic.medium()
+                        await coordinator.syncPendingItems(context: modelContext)
+                    }
                 }
             }
             .navigationBarHidden(true)
