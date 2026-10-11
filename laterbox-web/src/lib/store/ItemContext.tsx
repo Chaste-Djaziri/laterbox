@@ -596,7 +596,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
       try {
         structured = typeof updatedMetadata.structured_data === 'string'
           ? JSON.parse(updatedMetadata.structured_data)
-          : { ...updatedMetadata.structured_data };
+          : { ...(updatedMetadata.structured_data as any) };
       } catch {}
     }
     structured.seen = true;
