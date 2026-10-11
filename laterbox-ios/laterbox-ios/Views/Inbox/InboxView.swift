@@ -632,6 +632,10 @@ public struct InboxView: View {
                     }
                     .padding(.bottom, 24)
                 }
+                .refreshable {
+                    LBHaptic.medium()
+                    await coordinator.syncPendingItems(context: modelContext)
+                }
 
                 bottomStatusBar
             }
