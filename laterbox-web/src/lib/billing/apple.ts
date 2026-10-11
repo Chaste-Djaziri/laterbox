@@ -6,6 +6,12 @@ import {
   type ResponseBodyV2DecodedPayload,
 } from '@apple/app-store-server-library';
 
+export class AppleBillingError extends Error {
+  constructor(public code: string, message: string, public status = 422) {
+    super(message);
+  }
+}
+
 export const APPLE_PRODUCTS = new Set([
   'com.laterbox.pro.monthly',
   'com.laterbox.pro.annual',
@@ -15,7 +21,7 @@ const bundleId = process.env.APPLE_BUNDLE_ID || 'pro.micorp.laterbox';
 
 function certificates(): Buffer[] {
   const encoded = process.env.APPLE_ROOT_CERTIFICATES_BASE64;
-  if (!encoded) throw new Error('Apple root certificates are not configured.');
+  if (!encoded) throw new AppleBillingError('configuration_unavailable', 'Apple root certificates are not configured.', 503);
   return encoded
     .split(',')
     .map((value) => value.trim())
@@ -28,7 +34,7 @@ function verifier(environment: Environment): SignedDataVerifier {
     ? Number(process.env.APPLE_APP_ID)
     : undefined;
   if (environment === Environment.PRODUCTION && !appAppleId) {
-    throw new Error('APPLE_APP_ID is required for production verification.');
+    throw new AppleBillingError('configuration_unavailable', 'APPLE_APP_ID is required for production verification.', 503);
   }
   return new SignedDataVerifier(
     certificates(),
@@ -89,11 +95,14 @@ export function assertAppleTransaction(
   if (!transaction.originalTransactionId || !transaction.transactionId) {
     throw new Error('Apple transaction identifiers are missing.');
   }
+  if (transaction.environment !== Environment.PRODUCTION && transaction.environment !== Environment.SANDBOX) {
+    throw new AppleBillingError('unsupported_environment', 'Only App Store and TestFlight purchases can enable cloud access.');
+  }
   if (!transaction.appAccountToken) {
-    throw new Error('Apple transaction is not linked to a LaterBox account.');
+    throw new AppleBillingError('account_token_missing', 'This purchase is not linked to a LaterBox account. Contact support for purchase recovery.');
   }
   if (expectedUserId && transaction.appAccountToken.toLowerCase() !== expectedUserId.toLowerCase()) {
-    throw new Error('Apple transaction belongs to another LaterBox account.');
+    throw new AppleBillingError('account_mismatch', 'Sign in to the LaterBox account used for this purchase.', 403);
   }
   if (transaction.bundleId && transaction.bundleId !== bundleId) {
     throw new Error('Apple transaction bundle does not match LaterBox.');
@@ -108,8 +117,8 @@ export function appleSubscriptionState(
   const expiresAt = transaction.expiresDate ?? 0;
   const revoked = Boolean(transaction.revocationDate);
   const graceEnds = renewal?.gracePeriodExpiresDate ?? 0;
-  const inGrace = Boolean(renewal?.isInBillingRetryPeriod && graceEnds > now);
-  const trial = transaction.offerType === 1 && expiresAt > now;
+  const inGrace = !revoked && Boolean(renewal?.isInBillingRetryPeriod && graceEnds > now);
+  const trial = transaction.offerDiscountType === 'FREE_TRIAL' && expiresAt > now;
   const active = !revoked && expiresAt > now;
   const status = revoked
     ? 'canceled'
@@ -125,7 +134,9 @@ export function appleSubscriptionState(
     periodStart: transaction.purchaseDate
       ? new Date(transaction.purchaseDate).toISOString()
       : null,
-    periodEnd: expiresAt ? new Date(expiresAt).toISOString() : null,
+    periodEnd: revoked
+      ? new Date(Math.min(transaction.revocationDate!, expiresAt || transaction.revocationDate!)).toISOString()
+      : expiresAt ? new Date(expiresAt).toISOString() : null,
     graceEnd: graceEnds ? new Date(graceEnds).toISOString() : null,
     willCancel: renewal?.autoRenewStatus === 0,
   } as const;
