@@ -28,6 +28,7 @@ public struct InboxView: View {
     @State private var selectedCollection: String? = nil
     @State private var showingPlans: Bool = false
     @State private var navigateToSettings: Bool = false
+    @State private var navigateToCapture: Bool = false
     @State private var showingQuickCapture: Bool = false
     @State private var showingEmptyTrashConfirm: Bool = false
 
@@ -648,7 +649,8 @@ public struct InboxView: View {
                     HStack {
                         Spacer()
                         Button {
-                            LaterAIManager.shared.open()
+                            navigateToCapture = true
+                            LBHaptic.medium()
                         } label: {
                             Image(systemName: "plus")
                                 .font(.system(size: 24, weight: .medium))
@@ -658,7 +660,7 @@ public struct InboxView: View {
                                 .shadow(color: .black.opacity(0.18), radius: 8, y: 4)
                         }
                         .buttonStyle(.plain)
-                        .accessibilityLabel("Open Later AI")
+                        .accessibilityLabel("Capture Item")
                         .padding(.trailing, 20)
                         .padding(.bottom, max(10, bottomSafeAreaInset) + 56)
                     }
@@ -713,7 +715,7 @@ public struct InboxView: View {
                             navigateToSettings = true
                         },
                         onOpenSaveItem: {
-                            showingQuickCapture = true
+                            navigateToCapture = true
                         }
                     )
                     .frame(width: drawerWidth)
@@ -757,6 +759,9 @@ public struct InboxView: View {
             }
             .navigationDestination(isPresented: $navigateToSettings) {
                 SettingsView()
+            }
+            .navigationDestination(isPresented: $navigateToCapture) {
+                CaptureView()
             }
             .sheet(isPresented: $showingQuickCapture) {
                 QuickCaptureSheet()
