@@ -1,5 +1,6 @@
+import { subscriptionHasAccess } from '@/lib/billing/eligibility';
 import { NextResponse } from 'next/server';
-import { getRequestUser, paddleRequest } from '@/lib/billing/server';
+import { getBillingAdminClient, getRequestUser, paddleRequest } from '@/lib/billing/server';
 
 type BillingInterval = 'month' | 'year';
 
@@ -11,6 +12,18 @@ export async function POST(request: Request) {
     const body = (await request.json()) as { interval?: BillingInterval };
     if (body.interval !== 'month' && body.interval !== 'year') {
       return NextResponse.json({ error: 'Choose a monthly or annual plan.' }, { status: 400 });
+    }
+    const { data: subscriptions, error } = await getBillingAdminClient()
+      .from('billing_subscriptions')
+      .select('provider,status,current_period_ends_at,past_due_at,updated_at,revoked_at')
+      .eq('user_id', user.id);
+    if (error) throw error;
+    const existing = subscriptions?.find((row) => subscriptionHasAccess(row));
+    if (existing) {
+      return NextResponse.json({
+        code: 'subscription_already_active',
+        error: `Your Pro subscription is managed by ${existing.provider === 'apple' ? 'Apple' : 'Paddle'}. Cancel renewal there and wait until access ends before switching payment providers.`,
+      }, { status: 409 });
     }
     const isProduction = process.env.NEXT_PUBLIC_PADDLE_ENV === 'production';
     const priceId =
