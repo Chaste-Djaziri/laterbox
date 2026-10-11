@@ -203,7 +203,16 @@ private struct CaptureProvider: LaterAIProvider {
 extension LaterAITests {
     @Test func freeUsersDoNotMakeCloudRequests() async throws {
         let coordinator = SyncCoordinator.shared
+        let previous = (coordinator.currentUserId, coordinator.currentUserEmail, coordinator.authToken)
         coordinator.updateProFromStoreKit(false)
+        coordinator.currentUserEmail = "free@example.com"
+        coordinator.currentUserId = "free-uid"
+        coordinator.authToken = "free-token"
+        defer {
+            coordinator.currentUserId = previous.0
+            coordinator.currentUserEmail = previous.1
+            coordinator.authToken = previous.2
+        }
         let container = try ModelContainer(for: LBItem.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
         let transport = MockCloudTransport()
         try await coordinator.performCloudSync(context: container.mainContext, transport: transport)
