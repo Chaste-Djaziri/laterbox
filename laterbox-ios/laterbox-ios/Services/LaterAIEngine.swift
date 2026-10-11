@@ -32,9 +32,20 @@ struct CaptureDraft: Codable, Equatable {
     var metadataDescription: String?
     var previewImageUrl: String?
     var faviconUrl: String?
+    var attachments: [SharedAttachment] = []
     var url: String? { Self.detectURL(content) }
     var type: ItemContentType {
         if let specified = ItemContentType(rawValue: contentType) { return specified }
+        if let first = attachments.first {
+            let name = first.name.lowercased()
+            if name.hasSuffix(".jpg") || name.hasSuffix(".jpeg") || name.hasSuffix(".png") || name.hasSuffix(".heic") || name.hasSuffix(".webp") {
+                return .image
+            }
+            if name.hasSuffix(".pdf") || name.hasSuffix(".doc") || name.hasSuffix(".docx") {
+                return .document
+            }
+            return .file
+        }
         guard let url else { return .note }
         let host = URL(string: url)?.host?.lowercased() ?? ""
         if ["youtube.com", "youtu.be", "vimeo.com"].contains(where: { host == $0 || host.hasSuffix("." + $0) }) { return .video }
