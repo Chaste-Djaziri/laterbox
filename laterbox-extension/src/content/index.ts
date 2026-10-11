@@ -68,7 +68,7 @@ async function submit(capture:Capture,button:HTMLButtonElement) {
   try {
     const result:CaptureResult=await sendRuntimeMessage<CaptureResult>({type:'capture',capture});
     button.dataset.state=result.status;
-    if(result.status==='saved'){decorate(button,result.local ? 'Saved locally' : 'Saved');show(result.local ? 'Open localhost:8080 to import your local capture.' : 'Available in your LaterBox account.','saved',result.local ? 'Saved locally' : 'Saved to LaterBox');}
+    if(result.status==='saved'){decorate(button,result.local ? 'Saved locally' : 'Saved');show(result.local ? 'Saved locally on this device. Open LaterBox to view.' : 'Available in your LaterBox account.','saved',result.local ? 'Saved locally' : 'Saved to LaterBox');}
     else if(result.status==='queued'){decorate(button,'Pending');show('Your capture is queued and will sync when the connection returns.','queued','Pending save');}
     else if(result.status==='proRequired'){decorate(button,label);show('Update the capture backend and reconnect.','error','Capture rejected');}
     else if(result.status==='needsAuth'){decorate(button,label);show('Open the LaterBox extension to connect your account.','error','Connect to LaterBox');}
