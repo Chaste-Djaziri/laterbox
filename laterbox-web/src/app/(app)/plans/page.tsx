@@ -19,6 +19,7 @@ import {
   ArrowRight,
   Zap,
 } from 'lucide-react';
+import { AppleSubscriptionDetails } from '@/components/billing/AppleSubscriptionDetails';
 import { presentEntitlement } from '@/lib/billing/types';
 import { useAuth } from '@/lib/store/AuthContext';
 import { useBilling } from '@/lib/store/BillingContext';
@@ -236,9 +237,7 @@ function AppPlansContent() {
               )}
               </div>
             ) : isPro && entitlement.provider === 'apple' ? (
-              <div className="rounded-xl border border-white/20 px-4 py-2 text-xs font-bold text-zinc-200">
-                Managed via Apple ID
-              </div>
+              <AppleSubscriptionDetails entitlement={entitlement} />
             ) : (
               <button
                 type="button"
@@ -400,6 +399,7 @@ function AppPlansContent() {
           </div>
 
           <div className="pt-4 border-t border-white/10 relative z-10">
+            {isPro && entitlement.provider === 'paddle' && <p className="mb-3 text-xs text-zinc-300">To switch to App Store billing, cancel renewal with Paddle and subscribe on iOS after your current access ends.</p>}
             {isPro && entitlement.provider === 'paddle' ? (
               <button
                 type="button"
@@ -411,9 +411,7 @@ function AppPlansContent() {
                 <span>Manage subscription</span>
               </button>
             ) : isPro && entitlement.provider === 'apple' ? (
-              <div className="w-full py-3 rounded-xl border border-white/20 text-center text-xs font-bold text-zinc-300">
-                Pro active via App Store
-              </div>
+              <AppleSubscriptionDetails entitlement={entitlement} compact />
             ) : (
               <button
                 type="button"
