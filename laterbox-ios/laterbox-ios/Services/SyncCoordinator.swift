@@ -206,6 +206,7 @@ public final class SyncCoordinator: ObservableObject {
             url: url,
             title: cleanTitle,
             type: type,
+            status: returnAt == nil ? .inbox : .deferred,
             returnAt: returnAt,
             domain: extractedDomain,
             noteContent: note,
