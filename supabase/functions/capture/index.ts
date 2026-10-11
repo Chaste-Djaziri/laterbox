@@ -109,8 +109,8 @@ export const createCaptureHandler = (
 
     const userId = await authenticate(token, dependencies);
     if (userId === null) return json({ error: "Invalid access token" }, 401);
-    if (!token.startsWith("lb_ext_") && !await dependencies.hasProAccess(userId)) {
-      return json({ error: "LaterBox Pro is required for connected capture" }, 403);
+    if (!await dependencies.hasProAccess(userId)) {
+      return json({ error: "LaterBox Pro is required for cloud capture sync" }, 403);
     }
 
     if (token.startsWith("lb_ext_")) capture.source = "browserExtension";
