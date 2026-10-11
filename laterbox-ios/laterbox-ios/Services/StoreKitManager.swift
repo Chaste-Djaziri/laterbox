@@ -36,6 +36,25 @@ public final class StoreKitManager: ObservableObject {
     @Published public var errorMessage: String? = nil
     @Published public var purchaseSuccessAlert: Bool = false
 
+    @Published public private(set) var cloudRegistrationMessage: String? = nil
+    @Published public private(set) var cloudPurchaseConfirmed = false
+    @Published public private(set) var registrationAccountId: String? = nil
+    private var registrationInProgress = false
+
+    public static func registrationFailureMessage(status: Int, code: String?) -> String {
+        switch code {
+        case "account_mismatch": return "Sign in to the LaterBox account used for this purchase to enable web Pro."
+        case "account_token_missing": return "This purchase has no LaterBox account link. Contact support for purchase recovery."
+        case "unsupported_environment": return "Local StoreKit test purchases unlock this device only. Use TestFlight to test web Pro."
+        case "configuration_unavailable": return "Apple verification is not configured on the server. Contact support; your device purchase is retained."
+        case "registration_unavailable": return "Cloud purchase registration is temporarily unavailable. It will retry when you return to the app."
+        default:
+            if status == 401 { return "Sign in again to sync your purchase with the web." }
+            if status >= 500 { return "Cloud purchase verification is unavailable. It will retry when you return to the app." }
+            return "The App Store purchase could not be verified for web access. Restore purchases or contact support."
+        }
+    }
+
     private var verifiedTransactions: [String] = []
     private var transactionListenerTask: Task<Void, Error>? = nil
 
@@ -93,7 +112,9 @@ public final class StoreKitManager: ObservableObject {
                 continue
             }
 
-            if transaction.expirationDate == nil || transaction.expirationDate! > Date() { signedTransactions.append(result.jwsRepresentation) }
+            if transaction.environment != .xcode && (transaction.expirationDate == nil || transaction.expirationDate! > Date()) {
+                signedTransactions.append(result.jwsRepresentation)
+            }
 
             // Verify if still within valid period
             if let expDate = transaction.expirationDate {
@@ -119,31 +140,78 @@ public final class StoreKitManager: ObservableObject {
         await registerAccountPurchases()
     }
 
-    public func registerAccountPurchases() async {
-        guard let token = SyncCoordinator.shared.authToken else { return }
-        for signed in verifiedTransactions {
+    public func registerAccountPurchases(extraTransactions: [String] = []) async {
+        let coordinator = SyncCoordinator.shared
+        guard !registrationInProgress, let token = coordinator.authToken,
+              let uid = coordinator.currentUserId else { return }
+        let transactions = Array(Set(verifiedTransactions + extraTransactions))
+        registrationAccountId = uid
+        cloudPurchaseConfirmed = false
+        guard !transactions.isEmpty else {
+            cloudRegistrationMessage = isProSubscriptionActive
+                ? "Local StoreKit tests unlock this device only. Use TestFlight to test web Pro." : nil
+            return
+        }
+        registrationInProgress = true
+        defer { registrationInProgress = false }
+        cloudRegistrationMessage = "Syncing your App Store purchase with your LaterBox account…"
+        var failure: String?
+        for signed in transactions {
+            guard uid == coordinator.currentUserId, token == coordinator.authToken else { return }
             do {
-                var request = URLRequest(url: URL(string: "\(LaterBoxAPIService.shared.webUrl)/api/billing/apple/verify")!)
+                var request = URLRequest(url: URL(string: "\(LaterBoxAPIService.shared.billingUrl)/api/billing/apple/verify")!)
                 request.httpMethod = "POST"
+                request.timeoutInterval = 20
                 request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
                 request.setValue("application/json", forHTTPHeaderField: "Content-Type")
                 request.httpBody = try JSONEncoder().encode(["signedTransaction": signed])
-                let (_, response) = try await URLSession.shared.data(for: request)
-                if (response as? HTTPURLResponse)?.statusCode != 200 { errorMessage = "Pro is active on this device. Sign in with the account used for your purchase to enable cloud access." }
-            } catch { errorMessage = "Pro is active on this device. Cloud purchase verification will retry when online." }
+                let (data, response) = try await URLSession.shared.data(for: request)
+                guard uid == coordinator.currentUserId, token == coordinator.authToken else { return }
+                let status = (response as? HTTPURLResponse)?.statusCode ?? 503
+                if status != 200 {
+                    let payload = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+                    failure = Self.registrationFailureMessage(status: status, code: payload?["code"] as? String)
+                }
+            } catch {
+                failure = "Your device purchase is retained. Cloud verification will retry when you reconnect or return to the app."
+            }
         }
+        guard uid == coordinator.currentUserId, token == coordinator.authToken else { return }
+        await coordinator.refreshEntitlement()
+        cloudPurchaseConfirmed = failure == nil && coordinator.billingEntitlement?.provider == "apple"
+            && coordinator.billingEntitlement?.hasAccess == true
+        cloudRegistrationMessage = failure ?? (cloudPurchaseConfirmed
+            ? "Pro is synced with your LaterBox account and available on the web."
+            : coordinator.billingError ?? "Your Apple subscription is no longer active.")
     }
 
     // MARK: - Purchase Flow
     @discardableResult
     public func purchase(_ product: Product, appAccountToken: UUID? = nil) async -> Bool {
+        guard !isPurchasing else { return false }
+        let coordinator = SyncCoordinator.shared
+        guard let uid = coordinator.currentUserId, let accountToken = UUID(uuidString: uid),
+              let authToken = coordinator.authToken, !authToken.isEmpty,
+              appAccountToken == nil || appAccountToken == accountToken else {
+            errorMessage = "Sign in to your LaterBox account before starting a subscription."
+            coordinator.showingAuthSheet = true
+            return false
+        }
         isPurchasing = true
         errorMessage = nil
-
-        var options: Set<Product.PurchaseOption> = []
-        if let token = appAccountToken {
-            options.insert(.appAccountToken(token))
+        guard await coordinator.refreshEntitlement(), uid == coordinator.currentUserId,
+              authToken == coordinator.authToken else {
+            isPurchasing = false
+            errorMessage = coordinator.billingError ?? "Your account changed. Sign in and retry."
+            return false
         }
+        guard !isProSubscriptionActive,
+              !(coordinator.billingEntitlement?.hasAccess == true && coordinator.billingEntitlement?.provider != nil) else {
+            isPurchasing = false
+            errorMessage = "Pro is already active. Manage your current subscription; switch payment providers after access ends."
+            return false
+        }
+        let options: Set<Product.PurchaseOption> = [.appAccountToken(accountToken)]
 
         do {
             let result = try await product.purchase(options: options)
@@ -211,6 +279,9 @@ public final class StoreKitManager: ObservableObject {
             for await result in Transaction.updates {
                 do {
                     let transaction = try self.checkVerified(result)
+                    if transaction.environment != .xcode {
+                        await self.registerAccountPurchases(extraTransactions: [result.jwsRepresentation])
+                    }
                     await transaction.finish()
                     await self.updatePurchasedProducts()
                 } catch {
