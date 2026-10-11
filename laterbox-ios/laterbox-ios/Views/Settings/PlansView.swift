@@ -58,7 +58,8 @@ public struct PlansView: View {
                         // If user is already Pro, show active badge
                         if storeKit.isProSubscriptionActive || coordinator.isProUser {
                             activeSubscriptionCard
-                        } else {
+                        }
+                        Group {
                             // Plan Options: 1 Plan with Monthly or Annual Interval
                             VStack(spacing: 12) {
                                 // Annual Option Card
@@ -85,6 +86,7 @@ public struct PlansView: View {
                             }
 
                             // Primary CTA Button
+                            if !storeKit.isProSubscriptionActive && !(coordinator.billingEntitlement?.hasAccess == true && coordinator.billingEntitlement?.provider != nil) {
                             Button(action: {
                                 handlePurchase()
                             }) {
@@ -109,6 +111,7 @@ public struct PlansView: View {
                             }
                             .buttonStyle(.plain)
                             .disabled(storeKit.isPurchasing)
+                            }
                         }
 
                         // Feature Breakdown
@@ -151,6 +154,10 @@ public struct PlansView: View {
                             )
                         }
 
+                        if storeKit.registrationAccountId == coordinator.currentUserId,
+                           let message = storeKit.cloudRegistrationMessage {
+                            Text(message).font(.caption).foregroundColor(AppTheme.textSecondary)
+                        }
                         // Error Banner if any
                         if let error = storeKit.errorMessage {
                             Text(error)
@@ -239,12 +246,18 @@ public struct PlansView: View {
                     .buttonStyle(.plain)
                 }
             }
+            .task {
+                await storeKit.updatePurchasedProducts()
+                await coordinator.refreshEntitlement()
+            }
             .alert("Welcome to Pro!", isPresented: $storeKit.purchaseSuccessAlert) {
                 Button("Done", role: .cancel) {
                     dismiss()
                 }
             } message: {
-                Text("Your LaterBox Pro subscription is now active across all your devices.")
+                Text(storeKit.cloudPurchaseConfirmed
+                    ? "Your purchase is synced with your LaterBox account. Pro is available on the web and your connected devices."
+                    : "Your App Store purchase is active on this device. \(storeKit.cloudRegistrationMessage ?? "Account verification is pending.")")
             }
         }
     }
@@ -341,8 +354,8 @@ public struct PlansView: View {
                         Text("LaterBox Pro Active")
                             .font(.headline.weight(.bold))
                             .foregroundColor(AppTheme.textPrimary)
-                        if let date = storeKit.expirationDate {
-                            Text("Renews on \(date.formatted(date: .long, time: .omitted))")
+                        if let date = coordinator.billingEntitlement?.accessEndDate ?? storeKit.expirationDate {
+                            Text("\(coordinator.billingEntitlement?.willCancel == true ? "Access ends" : coordinator.billingEntitlement?.status == "trialing" ? "Trial ends" : coordinator.billingEntitlement?.status == "past_due" ? "Grace period ends" : "Current period ends") \(date.formatted(date: .long, time: .omitted))")
                                 .font(.caption)
                                 .foregroundColor(AppTheme.textSecondary)
                         } else {
@@ -368,15 +381,12 @@ public struct PlansView: View {
 
             Divider().background(AppTheme.cardBorder)
 
+            if coordinator.billingEntitlement?.provider != nil || storeKit.isProSubscriptionActive {
             Button(action: {
-                if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene {
-                    Task {
-                        try? await AppStore.showManageSubscriptions(in: windowScene)
-                    }
-                }
+                Task { await storeKit.manageSubscription() }
             }) {
                 HStack(spacing: 6) {
-                    Text("Manage Subscription in App Store")
+                    Text(coordinator.billingEntitlement?.provider == "paddle" ? "Manage Subscription with Paddle" : "Manage Subscription in App Store")
                         .font(.subheadline.weight(.semibold))
                     Image(systemName: "arrow.up.right")
                         .font(.caption.weight(.bold))
@@ -390,6 +400,9 @@ public struct PlansView: View {
                 )
             }
             .buttonStyle(.plain)
+            Text("To switch payment providers, cancel renewal with your current provider and subscribe again after access ends.")
+                .font(.caption).foregroundColor(AppTheme.textSecondary)
+            }
         }
         .padding(18)
         .background(
