@@ -12,7 +12,7 @@ async function fixture() {
     create function auth.uid() returns uuid language sql as $$select nullif(current_setting('request.sub',true),'')::uuid$$;
     create function auth.role() returns text language sql as $$select current_setting('request.role',true)$$;
     grant usage on schema auth to authenticated;`);
-  for (const file of ['202609100001_create_billing_entitlements.sql', '202609100003_allow_service_entitlement_checks.sql', '202609100004_add_entitlement_phase_timing.sql', '202610120001_apple_subscription_sync.sql']) {
+  for (const file of ['202609100001_create_billing_entitlements.sql', '202609100003_allow_service_entitlement_checks.sql', '202609100004_add_entitlement_phase_timing.sql', '202610120001_apple_subscription_sync.sql', '202610120002_apple_device_revocation.sql']) {
     await db.exec(await readFile(new URL(`../../../../supabase/migrations/${file}`, import.meta.url), 'utf8'));
   }
   await db.exec(`delete from billing_entitlement_grants; select set_config('request.sub','${user}',false); select set_config('request.role','authenticated',false);`);
@@ -73,6 +73,13 @@ test('Apple cancellation, grace and refund survive device replay and out-of-orde
     await apply(db, { ...initial, occurred_at: new Date(time + 4000).toISOString() });
     assert.equal((await db.query<{status: string}>('select status from get_my_entitlement()')).rows[0].status, 'past_due');
     assert.equal(await pro(db), true);
+    const deviceRefund = { ...initial, status: 'canceled', revoked_at: new Date(time).toISOString(), occurred_at: new Date(time + 4000).toISOString() };
+    await apply(db, deviceRefund);
+    assert.equal(await pro(db), false);
+    await apply(db, { ...initial, occurred_at: new Date(time + 4500).toISOString() });
+    assert.equal(await pro(db), false);
+    await apply(db, { ...notification, apple_notification_at: new Date(time + 3500).toISOString() }, true);
+    assert.equal(await pro(db), false);
     const refund = { ...notification, status: 'canceled', revoked_at: new Date(time).toISOString(), apple_notification_at: new Date(time + 5000).toISOString() };
     await apply(db, refund, true);
     await apply(db, { ...initial, occurred_at: new Date(time + 6000).toISOString() });
