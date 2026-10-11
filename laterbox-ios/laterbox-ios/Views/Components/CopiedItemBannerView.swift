@@ -6,9 +6,11 @@
 //
 
 import SwiftUI
+import SwiftData
 
 public struct CopiedItemBannerView: View {
     public let item: CopiedItemPayload
+    @Environment(\.modelContext) private var modelContext
     @ObservedObject private var manager = ClipboardDetectionManager.shared
     @State private var dragOffsetY: CGFloat = 0
 
@@ -57,7 +59,7 @@ public struct CopiedItemBannerView: View {
 
             // Save Action Pill
             Button(action: {
-                manager.confirmSave()
+                manager.confirmSave(context: modelContext)
             }) {
                 HStack(spacing: 5) {
                     Image(systemName: "sparkles")
