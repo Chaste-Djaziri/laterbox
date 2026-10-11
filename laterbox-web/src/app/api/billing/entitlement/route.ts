@@ -1,3 +1,4 @@
+import { subscriptionHasAccess } from '@/lib/billing/eligibility';
 import { NextResponse } from 'next/server';
 import { FREE_ENTITLEMENT, type Entitlement } from '@/lib/billing/types';
 import { getBillingAdminClient, getRequestUser } from '@/lib/billing/server';
@@ -29,17 +30,7 @@ export async function GET(request: Request) {
     if (subscriptionError) throw subscriptionError;
     if (grantError) throw grantError;
 
-    const eligible = (subscriptions ?? []).find((row) => {
-      if (row.status === 'active' || row.status === 'trialing') return true;
-      const periodEnd = row.current_period_ends_at
-        ? new Date(row.current_period_ends_at).getTime()
-        : 0;
-      if (row.status === 'canceled') return periodEnd > now;
-      if (row.status !== 'past_due') return false;
-      if (row.provider === 'apple') return periodEnd > now;
-      const pastDueStart = new Date(row.past_due_at || row.updated_at).getTime();
-      return now < pastDueStart + 7 * 24 * 60 * 60 * 1000;
-    });
+    const eligible = (subscriptions ?? []).find((row) => subscriptionHasAccess(row, now));
 
     let entitlement: Entitlement = FREE_ENTITLEMENT;
     if (eligible) {
@@ -52,6 +43,10 @@ export async function GET(request: Request) {
         : [eligible.current_period_ends_at, pastDueLimit].filter(Boolean).sort()[0] ?? pastDueLimit;
       entitlement = {
         tier: 'pro',
+        billingInterval: eligible.provider === 'apple'
+          ? eligible.product_id === 'com.laterbox.pro.annual' ? 'year' : 'month'
+          : null,
+        appleEnvironment: eligible.apple_environment ?? null,
         status: eligible.status,
         provider: eligible.provider,
         trialEndsAt: eligible.trial_ends_at,
