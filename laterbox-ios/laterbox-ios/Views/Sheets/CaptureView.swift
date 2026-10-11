@@ -12,6 +12,7 @@ public struct CaptureView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
     @State private var draft = CaptureDraft()
+    @State private var savedItem: LBItem?
     @State private var saveError: String?
 
     public init() {}
@@ -40,6 +41,8 @@ public struct CaptureView: View {
                         .padding(.horizontal, 4)
                     }
                     .buttonStyle(.plain)
+                    .accessibilityLabel("Close Capture")
+                    .accessibilityIdentifier("Close Later AI")
 
                     Spacer()
 
@@ -57,18 +60,81 @@ public struct CaptureView: View {
                 .padding(.top, 8)
                 .padding(.bottom, 8)
 
-                // Main Guided Content
-                GuidedCaptureView(draft: $draft, fillsAvailableSpace: true) {
-                    do {
-                        _ = try SyncCoordinator.shared.saveDraft(draft, context: modelContext)
-                        LBHaptic.success()
-                        dismiss()
-                    } catch {
-                        saveError = error.localizedDescription
+                if let item = savedItem {
+                    // Saved Success View with Undo and Done
+                    VStack(spacing: 24) {
+                        Spacer()
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 52))
+                            .foregroundColor(LaterAIStyle.accent)
+
+                        VStack(spacing: 6) {
+                            Text("Saved to Vault")
+                                .font(.system(size: 20, weight: .bold))
+                                .foregroundColor(.white)
+                            Text("‘\(item.title)’")
+                                .font(.system(size: 15, weight: .medium))
+                                .foregroundColor(.white.opacity(0.7))
+                                .lineLimit(2)
+                                .multilineTextAlignment(.center)
+                        }
+
+                        HStack(spacing: 16) {
+                            Button {
+                                item.status = "deleted"
+                                item.updatedAt = Date()
+                                item.isSyncPending = true
+                                do {
+                                    try modelContext.save()
+                                    savedItem = nil
+                                    draft = CaptureDraft()
+                                    Task { await SyncCoordinator.shared.syncPendingItems(context: modelContext) }
+                                } catch {
+                                    item.status = "inbox"
+                                    saveError = error.localizedDescription
+                                }
+                                LBHaptic.medium()
+                            } label: {
+                                Text("Undo")
+                                    .font(.system(size: 15, weight: .bold))
+                                    .foregroundColor(.white)
+                                    .padding(.horizontal, 24)
+                                    .padding(.vertical, 12)
+                                    .background(Color(white: 26.0 / 255), in: RoundedRectangle(cornerRadius: 14))
+                                    .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(Color.white.opacity(0.15), lineWidth: 1))
+                            }
+                            .buttonStyle(.plain)
+
+                            Button {
+                                dismiss()
+                                LBHaptic.light()
+                            } label: {
+                                Text("Done")
+                                    .font(.system(size: 15, weight: .bold))
+                                    .foregroundColor(.black)
+                                    .padding(.horizontal, 28)
+                                    .padding(.vertical, 12)
+                                    .background(LaterAIStyle.accent, in: RoundedRectangle(cornerRadius: 14))
+                            }
+                            .buttonStyle(.plain)
+                        }
+                        Spacer()
                     }
+                    .padding(.horizontal, 24)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else {
+                    // Main Guided Content
+                    GuidedCaptureView(draft: $draft, fillsAvailableSpace: true) {
+                        do {
+                            savedItem = try SyncCoordinator.shared.saveDraft(draft, context: modelContext)
+                            LBHaptic.success()
+                        } catch {
+                            saveError = error.localizedDescription
+                        }
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 16)
                 }
-                .padding(.horizontal, 16)
-                .padding(.bottom, 16)
             }
         }
         .navigationBarHidden(true)

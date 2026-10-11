@@ -661,6 +661,7 @@ public struct InboxView: View {
                         }
                         .buttonStyle(.plain)
                         .accessibilityLabel("Capture Item")
+                        .accessibilityIdentifier("Open Later AI")
                         .padding(.trailing, 20)
                         .padding(.bottom, max(10, bottomSafeAreaInset) + 56)
                     }

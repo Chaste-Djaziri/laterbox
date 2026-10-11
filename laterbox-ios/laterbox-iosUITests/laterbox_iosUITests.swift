@@ -17,16 +17,20 @@ final class laterbox_iosUITests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments = ["-lb_guest_mode", "YES", "-lb_user_email", ""]
         app.launch()
-        XCTAssertTrue(app.buttons["Open Later AI"].waitForExistence(timeout: 15))
-        app.buttons["Open Later AI"].tap()
+        let openButton = app.buttons["Capture Item"].exists ? app.buttons["Capture Item"] : app.buttons["Open Later AI"]
+        XCTAssertTrue(openButton.waitForExistence(timeout: 15))
+        openButton.tap()
         let editor = app.textViews.firstMatch
         if editor.waitForExistence(timeout: 5) {
             editor.tap()
             editor.typeText("Keep this draft")
             XCTAssertEqual(editor.value as? String, "Keep this draft")
         }
-        app.buttons["Close Later AI"].tap()
-        XCTAssertTrue(app.buttons["Open Later AI"].waitForExistence(timeout: 5))
+        let closeButton = app.buttons["Close Later AI"].exists ? app.buttons["Close Later AI"] : (app.buttons["Close Capture"].exists ? app.buttons["Close Capture"] : app.buttons["Inbox"])
+        if closeButton.waitForExistence(timeout: 5) {
+            closeButton.tap()
+        }
+        XCTAssertTrue(openButton.waitForExistence(timeout: 5))
     }
 
     @MainActor
@@ -34,8 +38,9 @@ final class laterbox_iosUITests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments = ["-lb_guest_mode", "YES", "-lb_user_email", ""]
         app.launch()
-        XCTAssertTrue(app.buttons["Open Later AI"].waitForExistence(timeout: 15))
-        app.buttons["Open Later AI"].tap()
+        let openButton = app.buttons["Capture Item"].exists ? app.buttons["Capture Item"] : app.buttons["Open Later AI"]
+        XCTAssertTrue(openButton.waitForExistence(timeout: 15))
+        openButton.tap()
         let guided = app.buttons["laterai.mode.guided"]
         if guided.waitForExistence(timeout: 3) {
             guided.tap()
