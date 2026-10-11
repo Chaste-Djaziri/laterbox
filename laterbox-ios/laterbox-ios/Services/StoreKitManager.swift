@@ -131,7 +131,7 @@ public final class StoreKitManager: ObservableObject {
             }
         }
 
-        var unfinished: [Transaction] = []
+        var unfinished: [StoreKit.Transaction] = []
         for await result in Transaction.unfinished {
             guard case .verified(let transaction) = result,
                   Self.allProductIds.contains(transaction.productID) else { continue }
