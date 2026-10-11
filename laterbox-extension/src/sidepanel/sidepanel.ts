@@ -127,14 +127,18 @@ async function enableHighlighting(): Promise<void> {
 async function updateConnectionState(): Promise<void> {
   const token = await getAccessToken();
   const userId = await getConnectedUserId();
-  const local = await isLocalMode();
+  const { hasProPlan } = await browser.storage.local.get("hasProPlan");
+  const connected = token.startsWith("lb_ext_") && userId.length > 0;
   const label = document.getElementById("capture-mode-label");
-  if (label) label.textContent = local ? "Saving to local library" : "Saving to account (free)";
-  const connected = local || (token.startsWith("lb_ext_") && userId.length > 0);
+  if (label) {
+    label.textContent = hasProPlan === true
+      ? "Pro plan · Cloud sync active"
+      : "Free plan · Saves locally on this device";
+  }
 
   disconnectedPanel.hidden = connected;
   connectedPanel.hidden = !connected;
-  if (connected) {
+  if (connected && hasProPlan === true) {
     const flushed = await flushQueue();
     if (flushed > 0) setStatus(`Synced ${flushed} queued capture${flushed === 1 ? "" : "s"}.`);
   }
