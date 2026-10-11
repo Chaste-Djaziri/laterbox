@@ -886,6 +886,39 @@ extension LaterAITests {
         #expect(coordinator.syncState == .error)
         #expect(coordinator.lastSyncErrorMessage?.contains("No internet connection") == true)
     }
+
+    @Test
+    func markItemSeenAppliesOnlyToInboxItems() throws {
+        let coordinator = SyncCoordinator.shared
+        let container = try ModelContainer(for: LBItem.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+        let context = container.mainContext
+
+        let inboxItem = LBItem(id: "inbox-item-1", title: "Inbox Item", status: .inbox)
+        #expect(inboxItem.seen == false)
+        context.insert(inboxItem)
+
+        let deferredItem = LBItem(id: "deferred-item-1", title: "Scheduled Item", status: .deferred)
+        #expect(deferredItem.seen == false)
+        context.insert(deferredItem)
+
+        let savedItem = LBItem(id: "saved-item-1", title: "Kept Item", status: .saved)
+        #expect(savedItem.seen == false)
+        context.insert(savedItem)
+
+        try context.save()
+
+        // 1. Inbox item gets marked seen
+        coordinator.markItemSeen(item: inboxItem, context: context)
+        #expect(inboxItem.seen == true)
+        #expect(inboxItem.isSyncPending == true)
+
+        // 2. Non-inbox items remain unseen
+        coordinator.markItemSeen(item: deferredItem, context: context)
+        #expect(deferredItem.seen == false)
+
+        coordinator.markItemSeen(item: savedItem, context: context)
+        #expect(savedItem.seen == false)
+    }
 }
 @MainActor
 private final class MockCloudTransport: IOSCloudTransport {
