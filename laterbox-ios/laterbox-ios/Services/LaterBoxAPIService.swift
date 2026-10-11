@@ -29,12 +29,34 @@ public struct RemoteCollectionDTO: Codable {
     public let updated_at: String?
 }
 
+public struct AccountBillingEntitlement: Decodable {
+    public let tier: String
+    public let status: String
+    public let provider: String?
+    public let accessEndsAt: String?
+    public let willCancel: Bool
+    public let billingInterval: String?
+    public let appleEnvironment: String?
+
+    public var accessEndDate: Date? {
+        guard let accessEndsAt else { return nil }
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return formatter.date(from: accessEndsAt) ?? ISO8601DateFormatter().date(from: accessEndsAt)
+    }
+
+    public var hasAccess: Bool {
+        tier == "pro" && (accessEndsAt == nil || (accessEndDate.map { $0 > Date() } ?? false))
+    }
+}
+
 public actor LaterBoxAPIService {
     public static let shared = LaterBoxAPIService()
 
     public let supabaseUrl = "https://ltjisrgldssqskcylcbj.supabase.co"
     public let anonKey = "sb_publishable_Rc4e_ik2LE4SR0UrfX-OEQ_5Mu_lw9p"
     public let webUrl = "https://laterbox.dev"
+    public let billingUrl = "https://app.laterbox.dev"
 
     private let session: URLSession
 
@@ -120,6 +142,29 @@ public actor LaterBoxAPIService {
             throw URLError(.cannotParseResponse)
         }
         return (token, userId)
+    }
+
+    public func fetchBillingEntitlement(token: String) async throws -> AccountBillingEntitlement {
+        var request = URLRequest(url: URL(string: "\(billingUrl)/api/billing/entitlement")!)
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        let (data, response) = try await session.data(for: request)
+        guard (response as? HTTPURLResponse)?.statusCode == 200 else { throw URLError(.badServerResponse) }
+        return try JSONDecoder().decode(AccountBillingEntitlement.self, from: data)
+    }
+
+    public func paddleManagementURL(token: String) async throws -> URL {
+        var request = URLRequest(url: URL(string: "\(billingUrl)/api/billing/portal")!)
+        request.httpMethod = "POST"
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = Data(#"{"action":"manage"}"#.utf8)
+        let (data, response) = try await session.data(for: request)
+        guard (response as? HTTPURLResponse)?.statusCode == 200,
+              let payload = try JSONSerialization.jsonObject(with: data) as? [String: String],
+              let value = payload["url"], let url = URL(string: value), url.scheme == "https" else {
+            throw URLError(.badServerResponse)
+        }
+        return url
     }
 
     // MARK: - Pro Entitlement Check
