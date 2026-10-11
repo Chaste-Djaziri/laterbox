@@ -105,16 +105,14 @@ public struct SubscriptionSettingsView: View {
                             .foregroundColor(.secondary)
                             .textCase(.uppercase)
 
-                        if coordinator.isProUser {
+                        if coordinator.billingEntitlement?.provider != nil || storeKit.isProSubscriptionActive {
                             Button(action: {
                                 LBHaptic.light()
-                                if let url = URL(string: "https://apps.apple.com/account/subscriptions") {
-                                    openURL(url)
-                                }
+                                Task { await storeKit.manageSubscription() }
                             }) {
                                 HStack(spacing: 8) {
-                                    Image(systemName: "applelogo")
-                                    Text("Manage Apple Subscriptions")
+                                    Image(systemName: coordinator.billingEntitlement?.provider == "paddle" ? "creditcard" : "applelogo")
+                                    Text(coordinator.billingEntitlement?.provider == "paddle" ? "Manage Paddle Subscription" : "Manage Apple Subscription")
                                         .font(.subheadline.weight(.semibold))
                                     Spacer()
                                     Image(systemName: "arrow.up.right")
@@ -164,6 +162,25 @@ public struct SubscriptionSettingsView: View {
                             }
                         }
 
+                        if let entitlement = coordinator.billingEntitlement, entitlement.provider != nil {
+                            Text("Managed by \(entitlement.provider == "apple" ? "Apple" : "Paddle"). To switch payment providers, cancel renewal there and subscribe with the other provider after access ends.")
+                                .font(.caption)
+                                .foregroundColor(AppTheme.textSecondary)
+                            if let end = entitlement.accessEndDate {
+                                Text("\(entitlement.willCancel ? "Access ends" : entitlement.status == "trialing" ? "Trial ends" : entitlement.status == "past_due" ? "Grace period ends" : "Renews") \(end.formatted(date: .long, time: .omitted))")
+                                    .font(.caption)
+                            }
+                        }
+                        if storeKit.registrationAccountId == coordinator.currentUserId,
+                           let message = storeKit.cloudRegistrationMessage {
+                            Text(message).font(.caption).foregroundColor(AppTheme.textSecondary)
+                        }
+                        if let error = storeKit.errorMessage ?? coordinator.billingError {
+                            Text(error).font(.caption).foregroundColor(.red)
+                        }
+                        Button("Compare plans") { coordinator.showingPlansSheet = true }
+                            .font(.caption.weight(.semibold))
+
                         // Restore Purchases Button
                         Button(action: {
                             LBHaptic.light()
@@ -211,6 +228,10 @@ public struct SubscriptionSettingsView: View {
                 .padding(.top, 12)
                 .padding(.bottom, 32)
             }
+        }
+        .task {
+            await storeKit.updatePurchasedProducts()
+            await coordinator.refreshEntitlement()
         }
         .navigationTitle("Subscription & Plans")
         .navigationBarTitleDisplayMode(.inline)
