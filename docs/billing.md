@@ -132,13 +132,13 @@ cd laterbox-web
 node scripts/configure-apple-verification.mjs --check-only
 ```
 
-Apply `202610120001_apple_subscription_sync.sql` before deploying this billing release. It adds verified environment, transaction, notification, and revocation metadata and the service-role-only atomic registration RPC. Existing billing migrations must already be applied. A dry run must list only the intended migration before pushing it.
+Apply `202610120001_apple_subscription_sync.sql` and `202610120002_apple_device_revocation.sql` before deploying this billing release. It adds verified environment, transaction, notification, and revocation metadata and the service-role-only atomic registration RPC. Existing billing migrations must already be applied. A dry run must list only the intended pending migrations before pushing them.
 
 ### Shared access and testing
 
 Verified Apple Production and Sandbox transactions unlock the same LaterBox account on web and iOS. TestFlight uses Sandbox: purchases do not charge the tester or pay the developer, and access lasts only until the sandbox subscription expiry. Local Xcode StoreKit transactions unlock the device only and are rejected by the cloud verifier. The signed Apple environment is stored as `apple_environment`.
 
-Registration runs on launch, sign-in, foreground return, purchase, and restore. Device purchase success and cloud registration success are shown separately. Registration failures retain the local purchase and retry on subsequent refreshes. Missing account tokens require support-led ownership recovery; signing in or restoring does not manufacture a token for an old purchase.
+Registration runs on launch, sign-in, foreground return, purchase, and restore. Device purchase success and cloud registration success are shown separately. Registration failures retain the local purchase and retry on subsequent refreshes. Real transactions remain unfinished until cloud registration succeeds; launch and foreground refresh recover unfinished transactions, including revocations, so a failed request is not silently discarded. Missing account tokens require support-led ownership recovery; signing in or restoring does not manufacture a token for an old purchase.
 
 An active paid-provider subscription, including a trial or valid grace period, blocks a second checkout. Apple subscriptions are managed through the App Store; Paddle subscriptions through the authenticated Paddle portal. To switch, cancel renewal with the current provider, retain access until expiry, and then subscribe with the other provider. Launch grants do not block checkout.
 
