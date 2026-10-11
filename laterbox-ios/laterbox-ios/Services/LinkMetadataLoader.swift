@@ -84,7 +84,7 @@ public enum LinkMetadataLoader {
         async let enrichTask = fetchFromEnrichAPI(url)
 
         let oembed = await oembedTask
-        var enriched = await enrichTask
+        let enriched = await enrichTask
 
         if var res = enriched {
             let titleIsGeneric = isGenericTitle(res.title) || res.title?.hasSuffix("- YouTube") == true
