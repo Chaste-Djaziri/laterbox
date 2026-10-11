@@ -203,8 +203,8 @@ private struct CaptureProvider: LaterAIProvider {
 extension LaterAITests {
     @Test func freeUsersDoNotMakeCloudRequests() async throws {
         let coordinator = SyncCoordinator.shared
-        let previous = (coordinator.currentUserId, coordinator.currentUserEmail, coordinator.authToken)
-        coordinator.updateProFromStoreKit(false)
+        let previous = (coordinator.currentUserId, coordinator.currentUserEmail, coordinator.authToken, coordinator.isProUser)
+        coordinator.setProForTesting(false)
         coordinator.currentUserEmail = "free@example.com"
         coordinator.currentUserId = "free-uid"
         coordinator.authToken = "free-token"
@@ -212,6 +212,7 @@ extension LaterAITests {
             coordinator.currentUserId = previous.0
             coordinator.currentUserEmail = previous.1
             coordinator.authToken = previous.2
+            coordinator.setProForTesting(previous.3)
         }
         let container = try ModelContainer(for: LBItem.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
         let transport = MockCloudTransport()
@@ -220,8 +221,8 @@ extension LaterAITests {
     }
     @Test func freeUsersCannotForceSyncPendingItems() async throws {
         let coordinator = SyncCoordinator.shared
-        let previous = (coordinator.currentUserId, coordinator.currentUserEmail, coordinator.authToken)
-        coordinator.updateProFromStoreKit(false)
+        let previous = (coordinator.currentUserId, coordinator.currentUserEmail, coordinator.authToken, coordinator.isProUser)
+        coordinator.setProForTesting(false)
         coordinator.currentUserEmail = "free@example.com"
         coordinator.currentUserId = "free-uid"
         coordinator.authToken = "free-token"
@@ -229,6 +230,7 @@ extension LaterAITests {
             coordinator.currentUserId = previous.0
             coordinator.currentUserEmail = previous.1
             coordinator.authToken = previous.2
+            coordinator.setProForTesting(previous.3)
         }
         let container = try ModelContainer(for: LBItem.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
         let transport = MockCloudTransport()
@@ -239,13 +241,13 @@ extension LaterAITests {
     @Test func proSyncPreservesNewerLocalCaptureAndImportsRemoteMetadata() async throws {
         try await Task.sleep(for: .milliseconds(100))
         let coordinator = SyncCoordinator.shared
-        let previous = (coordinator.currentUserId, coordinator.currentUserEmail, coordinator.authToken)
+        let previous = (coordinator.currentUserId, coordinator.currentUserEmail, coordinator.authToken, coordinator.isProUser)
         let uid = "00000000-0000-4000-8000-000000000009"
         coordinator.currentUserId = uid; coordinator.currentUserEmail = "test@example.com"; coordinator.authToken = "test"
-        coordinator.updateProFromStoreKit(true)
+        coordinator.setProForTesting(true)
         defer {
             coordinator.currentUserId = previous.0; coordinator.currentUserEmail = previous.1; coordinator.authToken = previous.2
-            coordinator.updateProFromStoreKit(false)
+            coordinator.setProForTesting(previous.3)
         }
         let container = try ModelContainer(for: LBItem.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
         let context = container.mainContext
@@ -271,12 +273,12 @@ extension LaterAITests {
     @Test func failedUploadRemainsPending() async throws {
         try await Task.sleep(for: .milliseconds(100))
         let coordinator = SyncCoordinator.shared
-        let previous = (coordinator.currentUserId, coordinator.currentUserEmail, coordinator.authToken)
+        let previous = (coordinator.currentUserId, coordinator.currentUserEmail, coordinator.authToken, coordinator.isProUser)
         coordinator.currentUserId = "00000000-0000-4000-8000-000000000010"; coordinator.currentUserEmail = "test@example.com"; coordinator.authToken = "test"
-        coordinator.updateProFromStoreKit(true)
+        coordinator.setProForTesting(true)
         defer {
             coordinator.currentUserId = previous.0; coordinator.currentUserEmail = previous.1; coordinator.authToken = previous.2
-            coordinator.updateProFromStoreKit(false)
+            coordinator.setProForTesting(previous.3)
         }
         let container = try ModelContainer(for: LBItem.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
         let context = container.mainContext
@@ -761,8 +763,11 @@ extension LaterAITests {
         let coordinator = SyncCoordinator.shared
         let iconManager = AppIconManager.shared
 
+        let prevPro = coordinator.isProUser
+        defer { coordinator.setProForTesting(prevPro) }
+
         // Set to Free (non-Pro)
-        coordinator.updateProFromStoreKit(false)
+        coordinator.setProForTesting(false)
         #expect(coordinator.isProUser == false)
 
         let alternateOption = try! #require(AppIconManager.availableIcons.first(where: { $0.id == "dark" }))
@@ -780,19 +785,25 @@ extension LaterAITests {
         #expect(defaultOption.isProOnly == false)
 
         // Restoring Pro allows alternate selection attempts
-        coordinator.updateProFromStoreKit(true)
+        coordinator.setProForTesting(true)
         #expect(coordinator.isProUser == true)
 
         // Clean up
-        coordinator.updateProFromStoreKit(false)
+        coordinator.setProForTesting(false)
     }
 
     @Test func aiModelConfigurationRestrictedToProPlan() async {
         let coordinator = SyncCoordinator.shared
         let modelManager = LaterAIModelManager.shared
 
+        let prevPro = coordinator.isProUser
+        defer {
+            coordinator.setProForTesting(prevPro)
+            modelManager.selectedProvider = .cloudGemini
+        }
+
         // Test non-Pro user
-        coordinator.updateProFromStoreKit(false)
+        coordinator.setProForTesting(false)
         #expect(coordinator.isProUser == false)
 
         modelManager.selectedProvider = .customOpenAI
@@ -813,30 +824,30 @@ extension LaterAITests {
         #expect(refined?.contentType.isEmpty == true)
 
         // Test Pro user restores custom provider access
-        coordinator.updateProFromStoreKit(true)
+        coordinator.setProForTesting(true)
         #expect(coordinator.isProUser == true)
         let proProvider = modelManager.activeProvider()
         #expect(proProvider is OpenAILaterAIProvider)
 
         // Clean up
-        coordinator.updateProFromStoreKit(false)
+        coordinator.setProForTesting(false)
         modelManager.selectedProvider = .cloudGemini
     }
 
     @Test
     func syncConflictEqualTimestampDeleteWins() async throws {
         let coordinator = SyncCoordinator.shared
-        let previous = (coordinator.currentUserId, coordinator.currentUserEmail, coordinator.authToken)
+        let previous = (coordinator.currentUserId, coordinator.currentUserEmail, coordinator.authToken, coordinator.isProUser)
         let uid = "user-conflict-test-001"
         coordinator.currentUserId = uid
         coordinator.currentUserEmail = "user@test.com"
         coordinator.authToken = "tok"
-        coordinator.updateProFromStoreKit(true)
+        coordinator.setProForTesting(true)
         defer {
             coordinator.currentUserId = previous.0
             coordinator.currentUserEmail = previous.1
             coordinator.authToken = previous.2
-            coordinator.updateProFromStoreKit(false)
+            coordinator.setProForTesting(previous.3)
         }
 
         let container = try ModelContainer(for: LBItem.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
@@ -876,17 +887,17 @@ extension LaterAITests {
     @Test
     func syncReportsSpecificErrorDiagnostics() async throws {
         let coordinator = SyncCoordinator.shared
-        let previous = (coordinator.currentUserId, coordinator.currentUserEmail, coordinator.authToken)
+        let previous = (coordinator.currentUserId, coordinator.currentUserEmail, coordinator.authToken, coordinator.isProUser)
         let uid = "user-err-test-002"
         coordinator.currentUserId = uid
         coordinator.currentUserEmail = "user@test.com"
         coordinator.authToken = "tok"
-        coordinator.updateProFromStoreKit(true)
+        coordinator.setProForTesting(true)
         defer {
             coordinator.currentUserId = previous.0
             coordinator.currentUserEmail = previous.1
             coordinator.authToken = previous.2
-            coordinator.updateProFromStoreKit(false)
+            coordinator.setProForTesting(previous.3)
         }
 
         let container = try ModelContainer(for: LBItem.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
