@@ -142,8 +142,11 @@ public struct ItemDetailView: View {
                     }
                     .padding(.horizontal, 14)
                     .padding(.top, 10)
-                    .padding(.bottom, 36)
+                    .padding(.bottom, 20)
                 }
+
+                // 3. Docked Bottom Input Bar for quick notes & follow-ups
+                bottomChatInputBar
             }
         }
         .navigationBarHidden(true)
@@ -691,60 +694,11 @@ public struct ItemDetailView: View {
                         followUpEntryCard(entry: entry)
                     }
                 }
-            }
-
-            // Inline Note Input Box (Non-intrusive)
-            VStack(spacing: 6) {
-                if let snippet = quotedSnippet {
-                    HStack(spacing: 6) {
-                        Image(systemName: "arrowshape.turn.up.left.fill")
-                            .font(.system(size: 10))
-                            .foregroundColor(Color.secondary)
-                        Text("Replying to: \"\(snippet)\"")
-                            .font(.system(size: 11, weight: .medium))
-                            .foregroundColor(AppTheme.textPrimary)
-                            .lineLimit(1)
-                        Spacer()
-                        Button {
-                            quotedSnippet = nil
-                        } label: {
-                            Image(systemName: "xmark.circle.fill")
-                                .font(.system(size: 12))
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                    .padding(.horizontal, 10)
+            } else {
+                Text("No notes or follow-ups yet. Use the prompt below to add thoughts anytime.")
+                    .font(.system(size: 12))
+                    .foregroundColor(.secondary)
                     .padding(.vertical, 4)
-                    .background(Color(hex: "F7F5EE"), in: RoundedRectangle(cornerRadius: 6))
-                }
-
-                HStack(alignment: .bottom, spacing: 8) {
-                    TextField("Add a note or thought...", text: $noteDraftText, axis: .vertical)
-                        .font(.system(size: 13))
-                        .foregroundColor(AppTheme.textPrimary)
-                        .lineLimit(1...4)
-                        .focused($isNoteFocused)
-
-                    let canSend = !noteDraftText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                    Button {
-                        sendNote()
-                    } label: {
-                        ZStack {
-                            Circle()
-                                .fill(canSend ? Color(hex: "171711") : Color.black.opacity(0.1))
-                                .frame(width: 28, height: 28)
-                            Image(systemName: "arrow.up")
-                                .font(.system(size: 11, weight: .bold))
-                                .foregroundColor(canSend ? Color(hex: "E6EDB0") : Color.white)
-                        }
-                    }
-                    .buttonStyle(.plain)
-                    .disabled(!canSend)
-                }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-                .background(Color(hex: "F7F5EE"))
-                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
             }
         }
         .padding(14)
@@ -755,6 +709,87 @@ public struct ItemDetailView: View {
                 .strokeBorder(Color.black.opacity(0.06), lineWidth: 1)
         )
         .shadow(color: Color.black.opacity(0.02), radius: 4, y: 1)
+    }
+
+    // MARK: - Bottom Input Bar
+    private var bottomChatInputBar: some View {
+        VStack(spacing: 0) {
+            // Quoted reply banner if replying to a specific snippet
+            if let snippet = quotedSnippet {
+                HStack(spacing: 8) {
+                    Image(systemName: "arrowshape.turn.up.left.fill")
+                        .font(.system(size: 11))
+                        .foregroundColor(Color.secondary)
+
+                    Text("Replying to: \"\(snippet)\"")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(AppTheme.textPrimary)
+                        .lineLimit(1)
+
+                    Spacer()
+
+                    Button {
+                        quotedSnippet = nil
+                        LBHaptic.light()
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 14))
+                            .foregroundColor(Color.secondary)
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 6)
+                .background(Color(hex: "F7F5EE"))
+                .transition(.opacity.combined(with: .move(edge: .bottom)))
+            }
+
+            // Input Pill
+            HStack(spacing: 10) {
+                TextField("Add a note or thought...", text: $noteDraftText, axis: .vertical)
+                    .font(.system(size: 14))
+                    .foregroundColor(AppTheme.textPrimary)
+                    .lineLimit(1...4)
+                    .focused($isNoteFocused)
+                    .submitLabel(.send)
+                    .padding(.leading, 6)
+                    .onSubmit {
+                        sendNote()
+                    }
+
+                let canSend = !noteDraftText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                Button {
+                    sendNote()
+                } label: {
+                    ZStack {
+                        Circle()
+                            .fill(canSend ? Color(hex: "171711") : Color.black.opacity(0.12))
+                            .frame(width: 32, height: 32)
+                        Image(systemName: "arrow.up")
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundColor(canSend ? Color(hex: "E6EDB0") : Color.white)
+                    }
+                }
+                .buttonStyle(.plain)
+                .disabled(!canSend)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(Color.white)
+            .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .strokeBorder(Color.black.opacity(0.1), lineWidth: 1)
+            )
+            .shadow(color: Color.black.opacity(0.06), radius: 8, y: 3)
+            .padding(.horizontal, 14)
+            .padding(.top, 6)
+            .padding(.bottom, 8)
+        }
+        .background(
+            AppTheme.canvasBackground
+                .shadow(color: Color.black.opacity(0.03), radius: 4, y: -2)
+        )
     }
 
     // MARK: - Follow-up Entry Card
