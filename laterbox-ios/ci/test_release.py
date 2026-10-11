@@ -23,6 +23,8 @@ class ReleaseTests(unittest.TestCase):
         self.assertEqual((version, build), ('1.0.173', '181'))
     def test_new_repository_version_is_preserved(self):
         self.assertEqual(release_numbers({'version':'1.0.173','buildNumber':175}, [], []), ('1.0.173','176'))
+    def test_marketing_version_advances_if_behind_approved_store_version(self):
+        self.assertEqual(release_numbers({'version':'1.0.177','buildNumber':180}, [], [{'attributes':{'versionString':'1.0.181'}}]), ('1.0.182','181'))
     def test_profile_rejects_old_identity_missing_group_and_development(self):
         bundle = 'pro.micorp.laterbox.ShareExtension'
         profile = {'ExpirationDate':datetime.datetime(2030,1,1), 'TeamIdentifier':[TEAM], 'Name':'Distribution',

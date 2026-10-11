@@ -38,7 +38,12 @@ def version(value):
 
 def release_numbers(metadata, builds, store_versions):
     selected = version(metadata["version"])
-    # Marketing versions change only when explicitly edited in version.json.
+    approved = [version(sv["attributes"]["versionString"]) for sv in store_versions if sv.get("attributes", {}).get("versionString")]
+    if approved:
+        highest_approved = max(approved)
+        if selected < highest_approved:
+            selected = (highest_approved[0], highest_approved[1], highest_approved[2] + 1)
+    # Marketing versions change only when explicitly edited in version.json (or required by App Store history).
     # TestFlight uploads advance CFBundleVersion independently.
     baseline = max([int(metadata["buildNumber"])] + [version(b["attributes"]["version"])[0] for b in builds])
     if baseline >= 9999: raise ValueError("Build number requires a new numbering scheme")

@@ -9,6 +9,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 ## [Unreleased]
 
 ### Changed
+- **[Release] Bump version to 1.0.182**: Advanced application marketing version past previously approved App Store release (1.0.181) across iOS, Web, and Extensions, and added automatic version resolution in the App Store Connect release script to prevent uploads with superseded version strings.
 - **[iOS] CaptureView post-save undo confirmation and test accessibility**: Added an immediate confirmation screen with 'Undo' and 'Done' options after saving in `CaptureView`, enabling users to review or reverse mistaken saves, and added accessibility identifiers for automated UI test reliability.
 - **[Notifications] Ensure inbox return notifications include item title and description**: Updated scheduled return and resurfacing notifications across iOS and Web so notification banners display the item's actual title and contextual description (metadata snippet, summary, or note content) instead of generic placeholder text.
 - **[iOS] Add Check for Updates settings sub-page**: Added a dedicated "Check for Updates" sub-page to the iOS Settings directory. Displays current installed version, build number, and build timestamp, queries the live release server to check for pending updates, and provides direct App Store update navigation and recent release highlights.
