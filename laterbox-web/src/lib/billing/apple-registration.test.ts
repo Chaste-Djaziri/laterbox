@@ -58,7 +58,7 @@ test('Apple verification requires authentication and reports missing server conf
     assert.equal((await verify(request({}))).status, 400);
     const response = await verify(request({ signedTransaction: 'invalid' }));
     assert.equal(response.status, 503);
-    assert.equal((await response.json()).code, 'configuration_unavailable');
+    assert.equal(((await response.json()) as { code: string }).code, 'configuration_unavailable');
   } finally {
     globalThis.fetch = originalFetch;
     for (const key of Object.keys(process.env)) if (!(key in saved)) delete process.env[key];
