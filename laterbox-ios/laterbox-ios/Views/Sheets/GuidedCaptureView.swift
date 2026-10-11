@@ -103,7 +103,7 @@ struct GuidedCaptureView: View {
                 )
                 .shadow(color: Color.black.opacity(fillsAvailableSpace ? 0 : 0.35), radius: 14, y: 8)
         )
-        .preferredColorScheme(.light)
+        .preferredColorScheme(fillsAvailableSpace ? .dark : .light)
     }
 
     @ViewBuilder

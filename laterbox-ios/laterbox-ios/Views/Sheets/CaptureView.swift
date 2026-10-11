@@ -72,6 +72,8 @@ public struct CaptureView: View {
             }
         }
         .navigationBarHidden(true)
+        .toolbarColorScheme(.dark, for: .navigationBar)
+        .preferredColorScheme(.dark)
         .alert("Error Saving Capture", isPresented: Binding(
             get: { saveError != nil },
             set: { if !$0 { saveError = nil } }
