@@ -38,17 +38,17 @@ test('local import bridge requires the exact approved origin and hides credentia
  const page = { addEventListener: (_: string, callback: typeof listener) => { listener = callback; }, postMessage: (value: unknown) => replies.push(value) };
  (globalThis as any).window = page;
  const request = { source: 'laterbox-dashboard', requestId: 'local', action: 'local-import' };
- for (const origin of ['https://app.laterbox.dev', 'http://localhost:3000']) {
+ for (const origin of ['https://untrusted.example', 'http://malicious.com']) {
   const url = new URL(origin); (globalThis as any).location = { origin, hostname: url.hostname, protocol: url.protocol };
   installDashboardBridge(); message = undefined;
   listener!({ source: page, origin, data: request });
   await new Promise(resolve => setTimeout(resolve, 0)); assert.equal(message, undefined);
  }
- const origin = 'http://localhost:8080';
- (globalThis as any).location = { origin, hostname: 'localhost', protocol: 'http:' };
+ const origin = 'https://app.laterbox.dev';
+ (globalThis as any).location = { origin, hostname: 'app.laterbox.dev', protocol: 'https:' };
  installDashboardBridge();
  listener!({ source: {}, origin, data: request }); assert.equal(message, undefined);
- listener!({ source: page, origin: 'http://localhost:3000', data: request }); assert.equal(message, undefined);
+ listener!({ source: page, origin: 'https://untrusted.example', data: request }); assert.equal(message, undefined);
  listener!({ source: page, origin, data: request });
  await new Promise(resolve => setTimeout(resolve, 0));
  assert.deepEqual(message, { type: 'local-import', ids: undefined });
