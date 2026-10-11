@@ -262,7 +262,6 @@ document.querySelector('#configure-shortcuts')!.addEventListener('click',()=>{
 });
 function renderCaptureState(state:{status?:string;pending?:number}) {
   if(state.status==='queued')setStatus(`Offline or service unavailable. ${state.pending || 0} pending saves will sync to your account automatically.`, 'error');
-  if(state.status==='needsAuth')setStatus('Reconnect your account to resume pending saves.', 'error');
   if(state.status==='proRequired')setStatus('LaterBox Pro is required to save and sync.', 'error');
 }
 void browser.storage.local.get(['captureState','connectionError']).then(values=>{if(values.captureState)renderCaptureState(values.captureState);if(values.connectionError)setStatus(values.connectionError,'error');});
@@ -270,28 +269,3 @@ browser.storage.onChanged.addListener((changes,area)=>{
   if(area==='local' && changes.captureState?.newValue)renderCaptureState(changes.captureState.newValue);
   if(area==='local' && changes.connectionError?.newValue)setStatus(changes.connectionError.newValue,'error');
 });
-
-const modeControls = document.createElement('div');
-modeControls.className = 'connection-panel';
-const modeLabel = document.createElement('p');
-modeLabel.id = 'capture-mode-label';
-modeControls.append(modeLabel);
-const localButton = document.createElement('button');
-localButton.textContent = 'Local library';
-localButton.addEventListener('click', async () => {
-  await browser.storage.local.set({ captureMode: 'local' });
-  await cancelConnectionRequestIfPending();
-  await updateConnectionState();
-  setStatus('Local library selected. Captures stay on this browser.');
-});
-const accountButton = document.createElement('button');
-accountButton.textContent = 'Connect account';
-accountButton.addEventListener('click', () => void connect());
-const libraryButton = document.createElement('button');
-libraryButton.textContent = 'Open local library';
-libraryButton.addEventListener('click', () => void browser.tabs.create({ url: `${LOCAL_ORIGIN}/home` }));
-modeControls.append(localButton, accountButton, libraryButton);
-document.querySelector('main')!.append(modeControls);
-void updateConnectionState();
-
-async function cancelConnectionRequestIfPending() { if (await getPendingConnection()) await cancelConnectionRequest(); }
