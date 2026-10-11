@@ -26,7 +26,6 @@ public struct InboxView: View {
     @State private var showingOrganizer: Bool = false
     @State private var selectedMailbox: MailboxViewType = .inbox
     @State private var selectedCollection: String? = nil
-    @State private var showingLibrary: Bool = false
     @State private var showingPlans: Bool = false
     @State private var navigateToSettings: Bool = false
     @State private var showingQuickCapture: Bool = false
@@ -703,9 +702,6 @@ public struct InboxView: View {
                             }
                             selectedCollection = nil
                         },
-                        onOpenLibrary: {
-                            showingLibrary = true
-                        },
                         onOpenPlans: {
                             showingPlans = true
                         },
@@ -751,9 +747,6 @@ public struct InboxView: View {
             }
             .sheet(isPresented: $showingOrganizer) {
                 AIOrganizerSheet()
-            }
-            .sheet(isPresented: $showingLibrary) {
-                LibraryView()
             }
             .sheet(isPresented: $showingPlans) {
                 PlansView()
