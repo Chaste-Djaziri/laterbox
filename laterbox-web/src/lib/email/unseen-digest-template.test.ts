@@ -6,6 +6,7 @@ import {
   getItemBadge,
   getItemDisplayTitle,
   getItemSnippet,
+  getItemPreviewImageUrl,
   renderUnseenDigestHtml,
   renderUnseenDigestText,
 } from './unseen-digest-template';
@@ -142,6 +143,48 @@ test('renderUnseenDigestHtml includes LaterBox branding, logo, deep links and ac
   assert.ok(html.includes('laterbox://item/abc-123'), 'Must include mobile app item link');
   assert.ok(html.includes('laterbox://inbox'), 'Must include mobile app inbox link');
   assert.ok(html.includes('https://app.laterbox.dev/inbox'), 'Must include web inbox link');
+});
+
+test('getItemPreviewImageUrl and renderUnseenDigestHtml support OG preview images', () => {
+  const itemWithImage: UnseenDigestItem = {
+    id: 'img-1',
+    title: 'Visual Design Systems',
+    url: 'https://example.com/design',
+    status: 'inbox',
+    created_at: new Date(Date.now() - 4 * 86400000).toISOString(),
+    metadata: {
+      domain: 'example.com',
+      preview_image_url: 'https://cdn.example.com/cover.jpg',
+    },
+  };
+
+  const itemYouTube: UnseenDigestItem = {
+    id: 'yt-1',
+    title: 'SwiftUI Animation Masterclass',
+    url: 'https://www.youtube.com/watch?v=abcd1234efg',
+    status: 'inbox',
+    created_at: new Date(Date.now() - 4 * 86400000).toISOString(),
+    metadata: {
+      domain: 'youtube.com',
+      preview_image_url: 'https://img.youtube.com/vi/abcd1234efg/hqdefault.jpg',
+    },
+  };
+
+  assert.equal(getItemPreviewImageUrl(itemWithImage), 'https://cdn.example.com/cover.jpg');
+  // Replaces hqdefault with non-letterboxed mqdefault
+  assert.equal(getItemPreviewImageUrl(itemYouTube), 'https://img.youtube.com/vi/abcd1234efg/mqdefault.jpg');
+
+  const html = renderUnseenDigestHtml({
+    to: 'test@example.com',
+    items: [itemWithImage],
+  });
+  assert.ok(html.includes('src="https://cdn.example.com/cover.jpg"'), 'Must render OG image img tag');
+
+  const text = renderUnseenDigestText({
+    to: 'test@example.com',
+    items: [itemWithImage],
+  });
+  assert.ok(text.includes('[Image: https://cdn.example.com/cover.jpg]'), 'Must include image url in plain text');
 });
 
 test('renderUnseenDigestText renders plain text fallback with item links and rescheduling', () => {

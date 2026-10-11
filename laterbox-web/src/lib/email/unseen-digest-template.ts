@@ -85,6 +85,35 @@ export function getItemSnippet(item: UnseenDigestItem): string {
   return cleaned.length > 140 ? `${cleaned.slice(0, 140)}…` : cleaned;
 }
 
+export function getItemPreviewImageUrl(item: UnseenDigestItem): string | null {
+  let url = item.metadata?.preview_image_url;
+  if (url && (url.startsWith('http://') || url.startsWith('https://'))) {
+    // Replace hqdefault with non-letterboxed mqdefault for YouTube covers
+    if (url.includes('youtube.com') || url.includes('ytimg.com')) {
+      url = url.replace('hqdefault.jpg', 'mqdefault.jpg');
+    }
+    return url;
+  }
+
+  // Fallback for YouTube URLs without enriched preview_image_url
+  if (item.url) {
+    try {
+      const parsed = new URL(item.url);
+      if (parsed.hostname.includes('youtube.com')) {
+        const v = parsed.searchParams.get('v');
+        if (v) return `https://img.youtube.com/vi/${v}/mqdefault.jpg`;
+      } else if (parsed.hostname === 'youtu.be') {
+        const v = parsed.pathname.replace(/^\//, '');
+        if (v) return `https://img.youtube.com/vi/${v}/mqdefault.jpg`;
+      }
+    } catch {
+      // ignore invalid URLs
+    }
+  }
+
+  return null;
+}
+
 export function renderUnseenDigestHtml(options: UnseenDigestEmailOptions): string {
   const appBaseUrl = (options.appBaseUrl || process.env.NEXT_PUBLIC_APP_ORIGIN || 'https://app.laterbox.dev').replace(/\/$/, '');
   const customScheme = (options.customScheme || 'laterbox://').replace(/\/$/, '') + '/';
@@ -102,6 +131,7 @@ export function renderUnseenDigestHtml(options: UnseenDigestEmailOptions): strin
     const snippet = escapeHtml(getItemSnippet(item));
     const badge = getItemBadge(item);
     const waitingTime = escapeHtml(formatDaysWaiting(item.created_at));
+    const previewImageUrl = getItemPreviewImageUrl(item);
 
     const webItemUrl = `${appBaseUrl}/item/${encodeURIComponent(item.id)}`;
     const webRescheduleUrl = `${appBaseUrl}/item/${encodeURIComponent(item.id)}?action=reschedule`;
@@ -117,7 +147,7 @@ export function renderUnseenDigestHtml(options: UnseenDigestEmailOptions): strin
             <tr>
               <td style="padding: 18px 20px;">
                 <!-- Item category and age badge -->
-                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-bottom: 8px;">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-bottom: 10px;">
                   <tr>
                     <td align="left" style="vertical-align: middle;">
                       <span style="display:inline-block; font-size:11px; font-weight:700; letter-spacing:0.8px; color:#6b6a62; text-transform:uppercase;">
@@ -131,6 +161,19 @@ export function renderUnseenDigestHtml(options: UnseenDigestEmailOptions): strin
                     </td>
                   </tr>
                 </table>
+
+                <!-- OG Preview Image Banner if available -->
+                ${previewImageUrl ? `
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-bottom: 12px;">
+                  <tr>
+                    <td>
+                      <a href="${webItemUrl}" target="_blank" style="display:block; text-decoration:none;">
+                        <img src="${escapeHtml(previewImageUrl)}" alt="${title}" border="0" style="display:block; width:100%; max-height:220px; object-fit:cover; border-radius:10px; border:1px solid #e5e2d6;" />
+                      </a>
+                    </td>
+                  </tr>
+                </table>
+                ` : ''}
 
                 <!-- Title -->
                 <h3 style="margin: 0 0 6px; font-size: 16px; font-weight: 700; line-height: 22px;">
@@ -339,8 +382,13 @@ export function renderUnseenDigestText(options: UnseenDigestEmailOptions): strin
     const webRescheduleUrl = `${appBaseUrl}/item/${item.id}?action=reschedule`;
     const appItemUrl = `${customScheme}item/${item.id}`;
 
+    const previewImage = getItemPreviewImageUrl(item);
+
     text += `${index + 1}. ${title}\n`;
     text += `   [${badge.domain ? `${badge.label} • ${badge.domain}` : badge.label}] (${waiting})\n`;
+    if (previewImage) {
+      text += `   [Image: ${previewImage}]\n`;
+    }
     if (snippet) {
       text += `   ${snippet}\n`;
     }
