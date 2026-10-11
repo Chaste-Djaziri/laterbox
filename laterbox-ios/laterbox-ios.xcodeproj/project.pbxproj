@@ -9,7 +9,7 @@
 /* Begin PBXBuildFile section */
 		3E8CA1BB48FC8305B7D75A1C /* LaterAIChrome.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81F2BE3A1CA37F34720FBB7A /* LaterAIChrome.swift */; };
 		4DF5DF6A52B4D2679DE9BEA5 /* SharedCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 498F59466D1129E98872BACB /* SharedCapture.swift */; };
-		5589579C7454F92A09BBABF0 /* LaterBoxShare.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = 9CD0ABE6B11066E3BE4E19C1 /* LaterBoxShare.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		5589579C7454F92A09BBABF0 /* LaterBoxShare.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 9CD0ABE6B11066E3BE4E19C1 /* LaterBoxShare.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		6BCE5025967DEFC753BDA913 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DAC0F63DC56B313D3701E636 /* Foundation.framework */; };
 		6F6C4FD026002CB02E6370CE /* SharedCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 498F59466D1129E98872BACB /* SharedCapture.swift */; };
 		75A2160469BA7EC3719EA8B8 /* LaterAIChrome.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81F2BE3A1CA37F34720FBB7A /* LaterAIChrome.swift */; };
@@ -41,15 +41,15 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
-		6D1AC84BA15C290289666033 /* Embed App Extensions */ = {
+		6D1AC84BA15C290289666033 /* Embed Foundation Extensions */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
 			dstPath = "";
 			dstSubfolderSpec = 13;
 			files = (
-				5589579C7454F92A09BBABF0 /* LaterBoxShare.appex in Embed App Extensions */,
+				5589579C7454F92A09BBABF0 /* LaterBoxShare.appex in Embed Foundation Extensions */,
 			);
-			name = "Embed App Extensions";
+			name = "Embed Foundation Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXCopyFilesBuildPhase section */
@@ -183,7 +183,7 @@
 				5194A4F43072E2E100DE79B5 /* Sources */,
 				5194A4F53072E2E100DE79B5 /* Frameworks */,
 				5194A4F63072E2E100DE79B5 /* Resources */,
-				6D1AC84BA15C290289666033 /* Embed App Extensions */,
+				6D1AC84BA15C290289666033 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
@@ -423,6 +423,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = LS42X27YFY;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -446,6 +447,7 @@
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 			};
@@ -485,6 +487,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = LS42X27YFY;
 				ENABLE_NS_ASSERTIONS = NO;
@@ -501,6 +504,7 @@
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
 			};
 			name = Release;
