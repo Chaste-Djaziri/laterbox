@@ -142,15 +142,21 @@ public struct EmailInboxRowView: View {
     }
 
     private var effectivePreviewImageUrl: String? {
+        var raw: String?
         if let p = item.previewImageUrl, !p.isEmpty {
-            return p
-        }
-        if let urlStr = item.url, let url = URL(string: urlStr) {
+            raw = p
+        } else if let urlStr = item.url, let url = URL(string: urlStr) {
             if let videoId = EmbeddedMediaType.extractYouTubeId(from: url) {
-                return "https://img.youtube.com/vi/\(videoId)/hqdefault.jpg"
+                raw = "https://img.youtube.com/vi/\(videoId)/mqdefault.jpg"
             }
         }
-        return nil
+        guard var url = raw else { return nil }
+        // Sanitize YouTube letterboxed 4:3 hqdefault.jpg/sddefault.jpg to true 16:9 mqdefault.jpg (no black bars)
+        if url.contains("youtube.com") || url.contains("ytimg.com") {
+            url = url.replacingOccurrences(of: "/hqdefault.jpg", with: "/mqdefault.jpg")
+                     .replacingOccurrences(of: "/sddefault.jpg", with: "/mqdefault.jpg")
+        }
+        return url
     }
 
     public var body: some View {
@@ -158,15 +164,18 @@ public struct EmailInboxRowView: View {
             // Right-aligned fading OG / Video cover image watermark (matching web anime-card style)
             if let previewUrlStr = effectivePreviewImageUrl, let previewUrl = URL(string: previewUrlStr) {
                 GeometryReader { geo in
+                    let cardHeight = geo.size.height
+                    let watermarkWidth = max(geo.size.width * 0.45, 185)
                     AsyncImage(url: previewUrl) { phase in
                         switch phase {
                         case .success(let image):
                             image
                                 .resizable()
                                 .scaledToFill()
-                                .frame(width: min(geo.size.width * 0.45, 180), height: geo.size.height)
+                                .frame(width: watermarkWidth, height: cardHeight)
+                                .scaleEffect(1.08, anchor: .center)
                                 .clipped()
-                                .opacity(0.65)
+                                .opacity(0.70)
                                 .mask(
                                     LinearGradient(
                                         stops: [
@@ -190,11 +199,12 @@ public struct EmailInboxRowView: View {
                                         endPoint: .trailing
                                     )
                                 )
-                                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .trailing)
+                                .frame(width: watermarkWidth, height: cardHeight)
                         default:
                             EmptyView()
                         }
                     }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .trailing)
                 }
                 .allowsHitTesting(false)
             }
