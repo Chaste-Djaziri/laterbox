@@ -276,9 +276,7 @@ public struct SFSafariViewWrapper: UIViewControllerRepresentable {
     public func makeUIViewController(context: Context) -> SFSafariViewController {
         let config = SFSafariViewController.Configuration()
         config.entersReaderIfAvailable = entersReaderIfAvailable
-        let vc = SFSafariViewController(url: url, configuration: config)
-        vc.preferredControlTintColor = UIColor(AppTheme.accent)
-        return vc
+        return SFSafariViewController(url: url, configuration: config)
     }
 
     public func updateUIViewController(_ uiViewController: SFSafariViewController, context: Context) {}
