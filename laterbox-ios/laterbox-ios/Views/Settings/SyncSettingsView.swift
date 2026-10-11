@@ -101,6 +101,27 @@ public struct SyncSettingsView: View {
                                     .font(.caption.weight(.semibold))
                                     .foregroundColor(AppTheme.textSecondary)
                             }
+
+                            if coordinator.syncState == .error, let errorMsg = coordinator.lastSyncErrorMessage, !errorMsg.isEmpty {
+                                Divider().background(AppTheme.cardBorder)
+
+                                HStack(alignment: .top, spacing: 8) {
+                                    Image(systemName: "exclamationmark.triangle.fill")
+                                        .foregroundColor(.red)
+                                        .font(.subheadline)
+                                    VStack(alignment: .leading, spacing: 3) {
+                                        Text("Sync Failure Reason")
+                                            .font(.caption.weight(.bold))
+                                            .foregroundColor(.red)
+                                        Text(errorMsg)
+                                            .font(.caption)
+                                            .foregroundColor(AppTheme.textSecondary)
+                                            .fixedSize(horizontal: false, vertical: true)
+                                    }
+                                    Spacer()
+                                }
+                                .padding(.vertical, 2)
+                            }
                         }
                         .padding(16)
                         .background(
@@ -208,10 +229,14 @@ public struct SyncSettingsView: View {
         }
         .navigationTitle("Cloud Sync & Diagnostics")
         .navigationBarTitleDisplayMode(.inline)
-        .alert("Cloud Sync", isPresented: $showingSyncCompleteAlert) {
+        .alert(coordinator.syncState == .error ? "Sync Failed" : "Cloud Sync", isPresented: $showingSyncCompleteAlert) {
             Button("OK", role: .cancel) {}
         } message: {
-            Text("Cloud sync completed successfully.")
+            if coordinator.syncState == .error {
+                Text(coordinator.lastSyncErrorMessage ?? "An unexpected error occurred during cloud sync.")
+            } else {
+                Text("Cloud sync completed successfully.")
+            }
         }
     }
 }
