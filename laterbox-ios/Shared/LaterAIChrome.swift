@@ -57,7 +57,7 @@ struct LaterAIComposer: View {
                     .background(LaterAIStyle.field, in: RoundedRectangle(cornerRadius: 24))
                     .overlay(RoundedRectangle(cornerRadius: 24).strokeBorder(Color.white.opacity(0.12), lineWidth: 1))
             }.padding(.horizontal, 16).padding(.top, 8)
-        }.background(.black).buttonStyle(.plain).environment(\.colorScheme, .light)
+        }.background(.black).buttonStyle(.plain).environment(\.colorScheme, .dark)
     }
 }
 
@@ -226,6 +226,6 @@ struct LaterAIOptionsDock: View {
         .padding(.top, 8)
         .padding(.bottom, 6)
         .background(Color.black)
-        .environment(\.colorScheme, .light)
+        .environment(\.colorScheme, .dark)
     }
 }
