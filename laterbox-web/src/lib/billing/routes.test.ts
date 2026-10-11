@@ -34,6 +34,10 @@ test('billing routes authenticate, scope subscriptions, and handle Paddle failur
     if (url.pathname.endsWith('/billing_customers')) return json(mode === 'no-customer' ? null : { customer_id: 'ctm_owned' });
     if (url.pathname.endsWith('/billing_subscriptions')) {
       subscriptionQueries.push(url.search);
+      if (!url.searchParams.has('customer_id')) {
+        if (mode === 'lookup-failure') return json({ message: 'unavailable' }, 503);
+        return json(mode === 'apple-active' || mode === 'paddle-active' ? [{ provider: mode === 'apple-active' ? 'apple' : 'paddle', status: 'active', current_period_ends_at: new Date(Date.now() + 60_000).toISOString(), updated_at: new Date().toISOString() }] : mode === 'expired' ? [{ provider: 'apple', status: 'active', current_period_ends_at: '2026-01-01T00:00:00Z', updated_at: '2026-01-01T00:00:00Z' }] : []);
+      }
       return json(mode === 'no-subscription' ? [] : [{ subscription_id: 'sub_owned', status: 'active', scheduled_change_action: mode === 'scheduled' ? 'cancel' : null }]);
     }
     if (url.hostname === 'api.paddle.com') {
@@ -70,6 +74,17 @@ test('billing routes authenticate, scope subscriptions, and handle Paddle failur
       assert.equal(paddleRequests.at(-1)?.body.items[0].price_id, `pri_${interval}`);
       assert.equal(paddleRequests.at(-1)?.body.custom_data.user_id, 'user-123');
     }
+    for (const provider of ['apple-active', 'paddle-active']) {
+      mode = provider;
+      const count = paddleRequests.length;
+      assert.equal((await checkout(request({ interval: 'month' }))).status, 409);
+      assert.equal(paddleRequests.length, count);
+    }
+    mode = 'expired';
+    assert.equal((await checkout(request({ interval: 'month' }))).status, 200);
+    mode = 'lookup-failure';
+    assert.equal((await checkout(request({ interval: 'month' }))).status, 503);
+    mode = 'active';
     process.env.NEXT_PUBLIC_PADDLE_PRO_MONTHLY_PRICE_ID_PROD = '';
     process.env.NEXT_PUBLIC_PADDLE_PRO_MONTHLY_PRICE_ID = '';
     assert.equal((await checkout(request({ interval: 'month' }))).status, 503);
