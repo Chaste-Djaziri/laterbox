@@ -54,84 +54,88 @@ struct ShareChatMessage: Identifiable, Equatable {
     func load() async {
         loading = true
         defer { loading = false }
-        do {
-            var detectedUrl: String?
-            for item in context?.inputItems as? [NSExtensionItem] ?? [] {
-                for provider in item.attachments ?? [] {
-                    if provider.hasItemConformingToTypeIdentifier(UTType.url.identifier) {
-                        if let value = try? await provider.loadItem(forTypeIdentifier: UTType.url.identifier) {
-                            if let url = value as? URL {
-                                if url.isFileURL {
-                                    let ext = url.pathExtension.isEmpty ? "data" : url.pathExtension
-                                    let typeId = UTType(filenameExtension: ext)?.identifier ?? UTType.item.identifier
-                                    if let attachment = try? SharedCaptureStore.copyFile(url, type: typeId) {
-                                        capture.attachments.append(attachment)
-                                        continue
-                                    }
-                                } else {
-                                    detectedUrl = url.absoluteString
-                                    capture.content += url.absoluteString + "\n"
-                                    continue
-                                }
-                            }
+
+        var detectedUrl: String?
+        for item in context?.inputItems as? [NSExtensionItem] ?? [] {
+            for provider in item.attachments ?? [] {
+                if provider.canLoadObject(ofClass: URL.self) {
+                    let loadedUrl: URL? = await withCheckedContinuation { continuation in
+                        _ = provider.loadObject(ofClass: URL.self) { obj, _ in
+                            continuation.resume(returning: obj as? URL)
                         }
                     }
-                    if provider.hasItemConformingToTypeIdentifier(UTType.plainText.identifier) {
-                        if let value = try? await provider.loadItem(forTypeIdentifier: UTType.plainText.identifier),
-                           let text = value as? String {
-                            capture.content += text + "\n"
-                            if detectedUrl == nil,
-                               let detector = try? NSDataDetector(types: NSTextCheckingResult.CheckingType.link.rawValue),
-                               let match = detector.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)),
-                               let matchUrl = match.url {
-                                detectedUrl = matchUrl.absoluteString
+                    if let url = loadedUrl {
+                        if url.isFileURL {
+                            let ext = url.pathExtension.isEmpty ? "data" : url.pathExtension
+                            let typeId = UTType(filenameExtension: ext)?.identifier ?? UTType.item.identifier
+                            if let attachment = try? SharedCaptureStore.copyFile(url, type: typeId) {
+                                capture.attachments.append(attachment)
+                                continue
                             }
+                        } else {
+                            detectedUrl = url.absoluteString
+                            capture.content += url.absoluteString + "\n"
                             continue
                         }
                     }
-                    guard let type = provider.registeredTypeIdentifiers.first else { continue }
-                    let attachment: SharedAttachment? = await withCheckedContinuation { continuation in
-                        provider.loadFileRepresentation(forTypeIdentifier: type) { url, error in
-                            guard let url, error == nil else {
-                                continuation.resume(returning: nil)
-                                return
-                            }
-                            do {
-                                let copied = try SharedCaptureStore.copyFile(url, type: type)
-                                continuation.resume(returning: copied)
-                            } catch {
-                                continuation.resume(returning: nil)
-                            }
+                }
+                if provider.canLoadObject(ofClass: String.self) {
+                    let loadedText: String? = await withCheckedContinuation { continuation in
+                        _ = provider.loadObject(ofClass: String.self) { obj, _ in
+                            continuation.resume(returning: obj as? String)
                         }
                     }
-                    if let attachment {
-                        capture.attachments.append(attachment)
+                    if let text = loadedText {
+                        capture.content += text + "\n"
+                        if detectedUrl == nil,
+                           let detector = try? NSDataDetector(types: NSTextCheckingResult.CheckingType.link.rawValue),
+                           let match = detector.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)),
+                           let matchUrl = match.url {
+                            detectedUrl = matchUrl.absoluteString
+                        }
+                        continue
                     }
                 }
+                guard let type = provider.registeredTypeIdentifiers.first else { continue }
+                let attachment: SharedAttachment? = await withCheckedContinuation { continuation in
+                    provider.loadFileRepresentation(forTypeIdentifier: type) { url, error in
+                        guard let url, error == nil else {
+                            continuation.resume(returning: nil)
+                            return
+                        }
+                        do {
+                            let copied = try SharedCaptureStore.copyFile(url, type: type)
+                            continuation.resume(returning: copied)
+                        } catch {
+                            continuation.resume(returning: nil)
+                        }
+                    }
+                }
+                if let attachment {
+                    capture.attachments.append(attachment)
+                }
             }
-
-            if capture.title.isEmpty {
-                capture.title = capture.attachments.first?.name ?? String(capture.content.trimmingCharacters(in: .whitespacesAndNewlines).prefix(100))
-            }
-            if capture.content.isEmpty && !capture.title.isEmpty {
-                capture.content = capture.title
-            }
-
-            // Inbuilt enrichment worker for web links & video embeds
-            if let detectedUrl {
-                await enrichIfLink(detectedUrl)
-            }
-
-            // Deterministic classification & contextual tags
-            processLocalClassification()
-
-            let tagSummary = capture.tags.isEmpty ? "" : " with tags " + capture.tags.prefix(3).map { "#\($0)" }.joined(separator: " ")
-            let question = "I've drafted ‘\(capture.title)’\(tagSummary). When would you like to see it again?"
-            messages.append(ShareChatMessage(text: question, isUser: false))
-            needsReturnDate = true
-        } catch {
-            self.error = "Could not read all shared content: \(error.localizedDescription). You can still save manually."
         }
+
+        if capture.title.isEmpty {
+            capture.title = capture.attachments.first?.name ?? String(capture.content.trimmingCharacters(in: .whitespacesAndNewlines).prefix(100))
+        }
+        if capture.content.isEmpty && !capture.title.isEmpty {
+            capture.content = capture.title
+        }
+
+        // Inbuilt enrichment worker for web links & video embeds
+        if let detectedUrl {
+            await enrichIfLink(detectedUrl)
+        }
+
+        // Deterministic classification & contextual tags
+        processLocalClassification()
+
+        let tagSummary = capture.tags.isEmpty ? "" : " with tags " + capture.tags.prefix(3).map { "#\($0)" }.joined(separator: " ")
+        let question = "I've drafted ‘\(capture.title)’\(tagSummary). When would you like to see it again?"
+        messages.append(ShareChatMessage(text: question, isUser: false))
+        needsReturnDate = true
     }
 
     private func isGenericTitle(_ title: String?) -> Bool {
