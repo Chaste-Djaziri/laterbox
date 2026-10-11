@@ -7,9 +7,9 @@ import UserNotifications
 final class ShareViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
-        overrideUserInterfaceStyle = .light
+        overrideUserInterfaceStyle = .dark
         let model = ShareCaptureModel(context: extensionContext)
-        let host = UIHostingController(rootView: ShareCaptureView(model: model).preferredColorScheme(.light))
+        let host = UIHostingController(rootView: ShareCaptureView(model: model).preferredColorScheme(.dark))
         addChild(host)
         view.addSubview(host.view)
         host.view.translatesAutoresizingMaskIntoConstraints = false
@@ -468,7 +468,7 @@ struct ShareCaptureView: View {
         }
         .background(Color.black.ignoresSafeArea())
         .foregroundStyle(.white)
-        .preferredColorScheme(.light)
+        .preferredColorScheme(.dark)
         .sheet(isPresented: $chooseReturnDate) {
             NavigationStack {
                 VStack(spacing: 20) {
@@ -480,7 +480,7 @@ struct ShareCaptureView: View {
                     )
                     .datePickerStyle(.graphical)
                     .tint(LaterAIStyle.accent)
-                    .environment(\.colorScheme, .light)
+                    .environment(\.colorScheme, .dark)
                     .padding()
                     .background(Color(white: 20.0/255), in: RoundedRectangle(cornerRadius: 16))
 
@@ -506,6 +506,8 @@ struct ShareCaptureView: View {
                 .background(Color.black.ignoresSafeArea())
                 .navigationTitle("Select Return Date")
                 .navigationBarTitleDisplayMode(.inline)
+                .toolbarColorScheme(.dark, for: .navigationBar)
+                .toolbarBackground(Color.black, for: .navigationBar)
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
                         Button("Cancel") { chooseReturnDate = false }
@@ -513,6 +515,7 @@ struct ShareCaptureView: View {
                     }
                 }
             }
+            .preferredColorScheme(.dark)
             .presentationDetents([.medium, .large])
         }
         .sheet(isPresented: $showEditSheet) {
@@ -647,8 +650,8 @@ struct ShareCaptureView: View {
     private var activeOptions: [LaterAIOptionItem] {
         guard !model.loading else { return [] }
 
-        if model.needsReturnDate && !model.saved {
-            return [
+        if model.needsReturnDate {
+            var options: [LaterAIOptionItem] = [
                 LaterAIOptionItem(
                     title: "In 10 Minutes",
                     subtitle: "Quick return",
@@ -723,6 +726,23 @@ struct ShareCaptureView: View {
                     chooseReturnDate = true
                 }
             ]
+
+            if model.saved {
+                options.append(
+                    LaterAIOptionItem(
+                        title: "Keep Current",
+                        subtitle: "Keep schedule",
+                        icon: "arrow.uturn.backward",
+                        isPrimary: false
+                    ) {
+                        sendOptionReply("Keep current schedule") {
+                            model.needsReturnDate = false
+                        }
+                    }
+                )
+            }
+
+            return options
         }
 
         if model.saved {
@@ -800,7 +820,7 @@ struct ShareCaptureView: View {
     }
 
     private var optionsTitle: String? {
-        if model.needsReturnDate && !model.saved {
+        if model.needsReturnDate {
             return "When would you like to return?"
         } else if model.saved {
             return "Saved item options"
@@ -823,57 +843,108 @@ struct ShareEditSheet: View {
     @Binding var capture: SharedCapture
     var onSaved: (() -> Void)? = nil
     @Environment(\.dismiss) private var dismiss
+    @State private var title: String = ""
+    @State private var content: String = ""
+    @State private var category: String = ""
     @State private var tagsString = ""
 
     var body: some View {
         NavigationStack {
-            Form {
-                Section("Title") {
-                    TextField("Title", text: $capture.title)
-                        .foregroundColor(.white)
-                }
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    fieldBlock(label: "Title") {
+                        TextField("", text: $title, prompt: promptText("Enter title..."))
+                            .font(.system(size: 15))
+                            .foregroundColor(.white)
+                    }
 
-                Section("Content or Link") {
-                    TextField("Content", text: $capture.content, axis: .vertical)
-                        .foregroundColor(.white)
-                        .lineLimit(2...6)
-                }
+                    fieldBlock(label: "Content or Link") {
+                        TextField("", text: $content, prompt: promptText("URL or content note..."), axis: .vertical)
+                            .font(.system(size: 14))
+                            .foregroundColor(.white)
+                            .lineLimit(2...6)
+                    }
 
-                Section("Category") {
-                    TextField("Category", text: $capture.category)
-                        .foregroundColor(.white)
-                }
+                    fieldBlock(label: "Category") {
+                        TextField("", text: $category, prompt: promptText("e.g. Watch Later, Reading..."))
+                            .font(.system(size: 15))
+                            .foregroundColor(.white)
+                    }
 
-                Section("Tags") {
-                    TextField("Comma separated tags", text: $tagsString)
-                        .foregroundColor(.white)
+                    fieldBlock(label: "Tags") {
+                        TextField("", text: $tagsString, prompt: promptText("Comma separated tags..."))
+                            .font(.system(size: 15))
+                            .foregroundColor(.white)
+                    }
                 }
+                .padding(.horizontal, 20)
+                .padding(.top, 22)
+                .padding(.bottom, 36)
             }
-            .scrollContentBackground(.hidden)
             .background(Color.black.ignoresSafeArea())
-            .preferredColorScheme(.light)
+            .preferredColorScheme(.dark)
             .navigationTitle("Edit Details")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarColorScheme(.dark, for: .navigationBar)
+            .toolbarBackground(Color.black, for: .navigationBar)
             .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") {
-                        capture.tags = tagsString.split(separator: ",")
-                            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: "#", with: "") }
-                            .filter { !$0.isEmpty }
-                        onSaved?()
-                        dismiss()
-                    }
-                    .foregroundColor(LaterAIStyle.accent)
-                    .font(.body.weight(.bold))
-                }
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
-                        .foregroundColor(.white.opacity(0.6))
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundColor(Color.white.opacity(0.7))
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(action: saveChanges) {
+                        Text("Done")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundColor(.black)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 7)
+                            .background(LaterAIStyle.accent, in: Capsule())
+                    }
                 }
             }
             .onAppear {
+                title = capture.title
+                content = capture.content
+                category = capture.category
                 tagsString = capture.tags.joined(separator: ", ")
             }
         }
+    }
+
+    private func fieldBlock<Content: View>(label: String, @ViewBuilder input: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(label.uppercased())
+                .font(.system(size: 11, weight: .bold))
+                .foregroundColor(Color.white.opacity(0.55))
+                .tracking(0.6)
+
+            HStack {
+                input()
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
+            .background(Color(white: 22.0/255), in: RoundedRectangle(cornerRadius: 12))
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .strokeBorder(Color.white.opacity(0.12), lineWidth: 1)
+            )
+        }
+    }
+
+    private func promptText(_ text: String) -> Text {
+        Text(text).foregroundColor(Color.white.opacity(0.32))
+    }
+
+    private func saveChanges() {
+        capture.title = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        capture.content = content.trimmingCharacters(in: .whitespacesAndNewlines)
+        capture.category = category.trimmingCharacters(in: .whitespacesAndNewlines)
+        capture.tags = tagsString.split(separator: ",")
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: "#", with: "") }
+            .filter { !$0.isEmpty }
+        onSaved?()
+        dismiss()
     }
 }
