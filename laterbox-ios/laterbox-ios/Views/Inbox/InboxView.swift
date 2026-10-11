@@ -178,8 +178,9 @@ public struct InboxView: View {
             ZStack {
                 Color(hex: "F7F5EE").ignoresSafeArea()
 
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 0) {
+                VStack(spacing: 0) {
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 0) {
                         // 1. Mobile Top Search Bar (Inactive vs Active Expanding state)
                         if !isSearchActive {
                             // Standard Top Bar
@@ -630,37 +631,39 @@ public struct InboxView: View {
                             }
                         }
                     }
-                    .padding(.bottom, 40)
-                }
-                .safeAreaInset(edge: .bottom, spacing: 0) {
-                    bottomStatusBar
+                    .padding(.bottom, 24)
                 }
 
-                // Floating Action Button (+): Home Page Only
-                if !isSearchActive && !showingSidebar {
-                    VStack {
+                bottomStatusBar
+            }
+            .ignoresSafeArea(edges: .bottom)
+
+            // Floating Action Button (+): Home Page Only
+            if !isSearchActive && !showingSidebar {
+                VStack {
+                    Spacer()
+                    HStack {
                         Spacer()
-                        HStack {
-                            Spacer()
-                            Button {
-                                LaterAIManager.shared.open()
-                            } label: {
-                                Image(systemName: "plus")
-                                    .font(.system(size: 24, weight: .medium))
-                                    .foregroundStyle(AppTheme.accent)
-                                    .frame(width: 56, height: 56)
-                                    .background(AppTheme.darkSurface, in: Circle())
-                                    .shadow(color: .black.opacity(0.18), radius: 8, y: 4)
-                            }
-                            .buttonStyle(.plain)
-                            .accessibilityLabel("Open Later AI")
-                            .padding(.trailing, 20)
-                            .padding(.bottom, 74)
+                        Button {
+                            LaterAIManager.shared.open()
+                        } label: {
+                            Image(systemName: "plus")
+                                .font(.system(size: 24, weight: .medium))
+                                .foregroundStyle(AppTheme.accent)
+                                .frame(width: 56, height: 56)
+                                .background(AppTheme.darkSurface, in: Circle())
+                                .shadow(color: .black.opacity(0.18), radius: 8, y: 4)
                         }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Open Later AI")
+                        .padding(.trailing, 20)
+                        .padding(.bottom, max(10, bottomSafeAreaInset) + 56)
                     }
-                    .transition(.scale.combined(with: .opacity))
-                    .zIndex(10)
                 }
+                .ignoresSafeArea(edges: .bottom)
+                .transition(.scale.combined(with: .opacity))
+                .zIndex(10)
+            }
 
                 // Dimming backdrop
                 if showingSidebar {
@@ -947,7 +950,7 @@ public struct InboxView: View {
         }
         .padding(.horizontal, 16)
         .padding(.top, 10)
-        .padding(.bottom, 8)
+        .padding(.bottom, max(8, bottomSafeAreaInset))
         .frame(maxWidth: .infinity)
         .background(
             Color.white
@@ -958,5 +961,18 @@ public struct InboxView: View {
                     alignment: .top
                 )
         )
+    }
+
+    private var bottomSafeAreaInset: CGFloat {
+        #if canImport(UIKit)
+        let keyWindow = UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .flatMap { $0.windows }
+            .first { $0.isKeyWindow }
+        if let bottom = keyWindow?.safeAreaInsets.bottom, bottom > 0 {
+            return bottom
+        }
+        #endif
+        return 16
     }
 }
