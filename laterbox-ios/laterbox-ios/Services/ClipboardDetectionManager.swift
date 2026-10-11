@@ -7,6 +7,7 @@
 
 import SwiftUI
 import Combine
+import SwiftData
 #if canImport(UIKit)
 import UIKit
 #endif
@@ -178,10 +179,12 @@ public final class ClipboardDetectionManager: ObservableObject {
         )
     }
 
-    /// Confirms saving the copied item, launches Later AI with the item as attached subject to save.
-    public func confirmSave() {
+    /// Confirms saving the copied item directly to LaterBox scheduled for tomorrow 9 AM return,
+    /// triggering background link enrichment, notification scheduling, and cloud sync.
+    @discardableResult
+    public func confirmSave(context: ModelContext? = nil) -> LBItem? {
         dismissTask?.cancel()
-        guard let item = detectedItem else { return }
+        guard let item = detectedItem else { return nil }
 
         lastHandledHash = item.rawContent.hashValue
         #if canImport(UIKit)
@@ -194,8 +197,100 @@ public final class ClipboardDetectionManager: ObservableObject {
         }
         self.detectedItem = nil
 
-        // Open Later AI with the item attached and sent as subject to save
-        LaterAIManager.shared.open(with: item.rawContent, autoSend: true)
+        guard let targetContext = context ?? (try? ModelContainer(for: LBItem.self, LBCollection.self).mainContext) else {
+            return nil
+        }
+
+        // Calculate tomorrow at 9:00 AM for the scheduled return
+        let calendar = Calendar.current
+        let tomorrow = calendar.date(byAdding: .day, value: 1, to: Date()) ?? Date().addingTimeInterval(86400)
+        var comp = calendar.dateComponents([.year, .month, .day], from: tomorrow)
+        comp.hour = 9
+        comp.minute = 0
+        comp.second = 0
+        let returnAt = calendar.date(from: comp) ?? tomorrow
+
+        let savedItem: LBItem
+        if item.isURL, let url = item.detectedURL {
+            let urlString = url.absoluteString
+            let host = url.host?.replacingOccurrences(of: "www.", with: "") ?? "link"
+            let initialType: ItemContentType
+            let lowerUrl = urlString.lowercased()
+            if lowerUrl.contains("youtube.com") || lowerUrl.contains("youtu.be") || lowerUrl.contains("vimeo.com") {
+                initialType = .video
+            } else if lowerUrl.contains("spotify.com") || lowerUrl.contains("music.apple.com") || lowerUrl.contains("soundcloud.com") {
+                initialType = .music
+            } else {
+                initialType = .link
+            }
+
+            savedItem = LBItem(
+                userId: SyncCoordinator.shared.currentUserId,
+                url: urlString,
+                title: item.titlePreview,
+                textContent: item.rawContent == urlString ? nil : item.rawContent,
+                type: initialType,
+                status: .deferred,
+                returnAt: returnAt,
+                domain: host,
+                enrichmentStatus: "pending",
+                isSyncPending: true,
+                seen: false
+            )
+            targetContext.insert(savedItem)
+            try? targetContext.save()
+            LBHaptic.success()
+
+            // Asynchronously schedule return notification, enrich link metadata/OG cover, and sync
+            Task {
+                _ = try? await ReturnNotification.update(
+                    id: savedItem.id,
+                    title: savedItem.title,
+                    description: savedItem.notificationDescription,
+                    date: returnAt
+                )
+
+                await SyncCoordinator.shared.enrich(item: savedItem, context: targetContext)
+
+                _ = try? await ReturnNotification.update(
+                    id: savedItem.id,
+                    title: savedItem.title,
+                    description: savedItem.notificationDescription,
+                    date: returnAt
+                )
+
+                await SyncCoordinator.shared.syncPendingItems(context: targetContext)
+            }
+        } else {
+            savedItem = LBItem(
+                userId: SyncCoordinator.shared.currentUserId,
+                url: nil,
+                title: item.titlePreview,
+                textContent: item.rawContent,
+                type: .note,
+                status: .deferred,
+                returnAt: returnAt,
+                enrichmentStatus: "enriched",
+                isSyncPending: true,
+                seen: false
+            )
+            targetContext.insert(savedItem)
+            try? targetContext.save()
+            LBHaptic.success()
+
+            Task {
+                _ = try? await ReturnNotification.update(
+                    id: savedItem.id,
+                    title: savedItem.title,
+                    description: savedItem.notificationDescription,
+                    date: returnAt
+                )
+
+                await SyncCoordinator.shared.syncPendingItems(context: targetContext)
+            }
+        }
+
+        return savedItem
     }
 
     /// Dismisses the banner without saving and suppresses re-prompting for this item.
