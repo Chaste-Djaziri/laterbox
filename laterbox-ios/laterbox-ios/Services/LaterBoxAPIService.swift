@@ -29,7 +29,7 @@ public struct RemoteCollectionDTO: Codable {
     public let updated_at: String?
 }
 
-public struct AccountBillingEntitlement: Decodable {
+public nonisolated struct AccountBillingEntitlement: Decodable, Sendable {
     public let tier: String
     public let status: String
     public let provider: String?
