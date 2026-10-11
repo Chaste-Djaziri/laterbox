@@ -15,6 +15,8 @@ public struct SettingsView: View {
     @ObservedObject private var iconManager = AppIconManager.shared
     @StateObject private var storageManager = LocalStorageManager.shared
     @State private var notificationStatus: UNAuthorizationStatus = .notDetermined
+    @State private var showingSignOutAlert = false
+    @State private var showingAuthSheet = false
 
     public init() {}
 
@@ -24,58 +26,53 @@ public struct SettingsView: View {
                 .ignoresSafeArea()
 
             ScrollView(.vertical, showsIndicators: false) {
-                VStack(alignment: .leading, spacing: 22) {
-                    // Top Navigation Header
-                    HStack(alignment: .center, spacing: 12) {
-                        Button {
-                            dismiss()
-                            LBHaptic.light()
-                        } label: {
-                            Image(systemName: "chevron.left")
-                                .font(.system(size: 16, weight: .bold))
-                                .foregroundColor(AppTheme.textPrimary)
-                                .frame(width: 36, height: 36)
-                                .background(Color.black.opacity(0.04), in: Circle())
-                                .contentShape(Circle())
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel("Back to Inbox")
-
-                        HStack(spacing: 8) {
-                            Image("LaterboxIconGreen")
-                                .resizable()
-                                .scaledToFit()
-                                .frame(width: 28, height: 28)
-                                .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
-
-                            Text("Settings")
-                                .font(.system(size: 24, weight: .bold))
-                                .foregroundColor(AppTheme.textPrimary)
-                        }
-
-                        Spacer()
-
-                        // Sync Status Indicator Pill
-                        Button(action: {
-                            if !coordinator.isProUser {
+                VStack(spacing: 16) {
+                    // Header Bar (left back button, centered title, right sync dot)
+                    ZStack {
+                        HStack {
+                            Button {
+                                dismiss()
                                 LBHaptic.light()
-                                coordinator.showingPlansSheet = true
+                            } label: {
+                                Image(systemName: "arrow.left")
+                                    .font(.system(size: 15, weight: .bold))
+                                    .foregroundColor(AppTheme.textPrimary)
+                                    .frame(width: 38, height: 38)
+                                    .background(Color.black.opacity(0.04), in: Circle())
+                                    .contentShape(Circle())
                             }
-                        }) {
-                            HStack(spacing: 5) {
-                                Circle()
-                                    .fill(coordinator.syncHeaderColor)
-                                    .frame(width: 7, height: 7)
-                                Text(coordinator.syncHeaderTitle)
-                                    .font(.caption2.weight(.medium))
-                                    .foregroundColor(AppTheme.textSecondary)
+                            .buttonStyle(.plain)
+                            .accessibilityLabel("Back to Inbox")
+
+                            Spacer()
+
+                            // Sync status indicator
+                            Button(action: {
+                                if !coordinator.isProUser {
+                                    LBHaptic.light()
+                                    coordinator.showingPlansSheet = true
+                                }
+                            }) {
+                                HStack(spacing: 5) {
+                                    Circle()
+                                        .fill(coordinator.syncHeaderColor)
+                                        .frame(width: 7, height: 7)
+                                    Text(coordinator.syncHeaderTitle)
+                                        .font(.caption2.weight(.medium))
+                                        .foregroundColor(AppTheme.textSecondary)
+                                }
                             }
+                            .buttonStyle(.plain)
                         }
-                        .buttonStyle(.plain)
+
+                        Text("Settings")
+                            .font(.system(size: 18, weight: .bold))
+                            .foregroundColor(AppTheme.textPrimary)
                     }
                     .padding(.top, 4)
+                    .padding(.bottom, 6)
 
-                    // Profile & Account Summary Card (Navigation Link)
+                    // Profile Card (matching reference layout)
                     NavigationLink(destination: AccountSettingsView()) {
                         HStack(spacing: 14) {
                             ZStack {
@@ -83,31 +80,26 @@ public struct SettingsView: View {
                                     .fill(AppTheme.accent)
                                     .frame(width: 52, height: 52)
                                 Image(systemName: "person.fill")
-                                    .font(.system(size: 24, weight: .semibold))
+                                    .font(.system(size: 22, weight: .semibold))
                                     .foregroundColor(AppTheme.textPrimary)
                             }
 
                             VStack(alignment: .leading, spacing: 3) {
                                 if let email = coordinator.currentUserEmail {
                                     Text(email)
-                                        .font(.headline.weight(.bold))
+                                        .font(.system(size: 16, weight: .bold))
                                         .foregroundColor(AppTheme.textPrimary)
                                         .lineLimit(1)
 
-                                    HStack(spacing: 4) {
-                                        Image(systemName: "checkmark.seal.fill")
-                                            .font(.caption2)
-                                            .foregroundColor(AppTheme.textPrimary)
-                                        Text(coordinator.isProUser ? "LaterBox Pro Active" : "Free Cloud Account")
-                                            .font(.caption.weight(.medium))
-                                            .foregroundColor(AppTheme.textSecondary)
-                                    }
+                                    Text(coordinator.isProUser ? "LaterBox Pro Active" : "Free Cloud Account")
+                                        .font(.caption.weight(.medium))
+                                        .foregroundColor(AppTheme.textSecondary)
                                 } else {
                                     Text("Guest Mode")
-                                        .font(.headline.weight(.bold))
+                                        .font(.system(size: 16, weight: .bold))
                                         .foregroundColor(AppTheme.textPrimary)
 
-                                    Text("Tap to sign in & enable sync")
+                                    Text("Local saving active • Tap to sign in")
                                         .font(.caption)
                                         .foregroundColor(AppTheme.textSecondary)
                                 }
@@ -116,8 +108,8 @@ public struct SettingsView: View {
                             Spacer()
 
                             Image(systemName: "chevron.right")
-                                .font(.caption.weight(.bold))
-                                .foregroundColor(AppTheme.textSecondary.opacity(0.7))
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundColor(AppTheme.textSecondary.opacity(0.6))
                         }
                         .padding(16)
                         .frame(maxWidth: .infinity)
@@ -125,132 +117,158 @@ public struct SettingsView: View {
                         .liquidGlassCard(cornerRadius: 18)
                     }
                     .buttonStyle(.plain)
-                    .contentShape(Rectangle())
 
-                    // Section 1: Membership & Cloud
-                    VStack(alignment: .leading, spacing: 10) {
-                        sectionHeader("Membership & Cloud")
-
-                        VStack(spacing: 10) {
-                            NavigationLink(destination: SubscriptionSettingsView()) {
-                                settingsRow(
-                                    icon: "crown.fill",
-                                    iconColor: Color(hex: "EAB308"),
-                                    iconBg: Color(hex: "FEF9C3"),
-                                    title: "Subscription & Plans",
-                                    subtitle: "Pro features, trial & membership",
-                                    badge: coordinator.isProUser ? "PRO" : "Free"
-                                )
-                            }
-                            .buttonStyle(.plain)
-
-                            NavigationLink(destination: SyncSettingsView()) {
-                                settingsRow(
-                                    icon: "bolt.horizontal.icloud.fill",
-                                    iconColor: Color(hex: "0284C7"),
-                                    iconBg: Color(hex: "E0F2FE"),
-                                    title: "Cloud Sync & Diagnostics",
-                                    subtitle: "Multi-device sync & server status",
-                                    badge: coordinator.isAuthenticated ? coordinator.syncState.rawValue : "Local"
-                                )
-                            }
-                            .buttonStyle(.plain)
+                    // Group 1: Membership & Cloud
+                    VStack(spacing: 0) {
+                        NavigationLink(destination: SubscriptionSettingsView()) {
+                            groupedRow(
+                                icon: "crown",
+                                title: "Subscription & Plans",
+                                badge: coordinator.isProUser ? "Pro" : "Free"
+                            )
                         }
-                    }
+                        .buttonStyle(.plain)
 
-                    // Section 2: Preferences & System
-                    VStack(alignment: .leading, spacing: 10) {
-                        sectionHeader("Preferences & System")
+                        rowDivider
 
-                        VStack(spacing: 10) {
-                            NavigationLink(destination: NotificationsSettingsView()) {
-                                settingsRow(
-                                    icon: "bell.badge.fill",
-                                    iconColor: Color(hex: "EA580C"),
-                                    iconBg: Color(hex: "FFEDD5"),
-                                    title: "Notifications & Alerts",
-                                    subtitle: "Return reminders & permissions",
-                                    badge: notificationStatusTitle
-                                )
-                            }
-                            .buttonStyle(.plain)
-
-                            NavigationLink(destination: SecuritySettingsView()) {
-                                settingsRow(
-                                    icon: lockManager.biometryIconName,
-                                    iconColor: Color(hex: "16A34A"),
-                                    iconBg: Color(hex: "DCFCE7"),
-                                    title: "Security & Privacy",
-                                    subtitle: "\(lockManager.biometryName) & app protection",
-                                    badge: lockManager.isAppLockEnabled ? "On" : "Off"
-                                )
-                            }
-                            .buttonStyle(.plain)
-
-                            NavigationLink(destination: AppIconSelectionView()) {
-                                settingsRow(
-                                    icon: "paintpalette.fill",
-                                    iconColor: Color(hex: "9333EA"),
-                                    iconBg: Color(hex: "F3E8FF"),
-                                    title: "App Icon & Appearance",
-                                    subtitle: "Customize home screen icon",
-                                    badge: "\(AppIconManager.availableIcons.count) Icons"
-                                )
-                            }
-                            .buttonStyle(.plain)
+                        NavigationLink(destination: SyncSettingsView()) {
+                            groupedRow(
+                                icon: "bolt.horizontal.icloud",
+                                title: "Cloud Sync & Diagnostics",
+                                badge: coordinator.isAuthenticated ? coordinator.syncState.rawValue : "Local"
+                            )
                         }
+                        .buttonStyle(.plain)
                     }
+                    .liquidGlassCard(cornerRadius: 18)
 
-                    // Section 3: Data & Intelligence
-                    VStack(alignment: .leading, spacing: 10) {
-                        sectionHeader("Data & Intelligence")
-
-                        VStack(spacing: 10) {
-                            NavigationLink(destination: StorageManagementView()) {
-                                settingsRow(
-                                    icon: "internaldrive.fill",
-                                    iconColor: Color(hex: "0D9488"),
-                                    iconBg: Color(hex: "CCFBF1"),
-                                    title: "Local Storage & Vault",
-                                    subtitle: "Disk usage, cleanup & duplicates",
-                                    badge: storageManager.breakdown.formattedTotal
-                                )
-                            }
-                            .buttonStyle(.plain)
-
-                            NavigationLink(destination: AIModelSettingsView()) {
-                                settingsRow(
-                                    icon: "sparkles",
-                                    iconColor: Color(hex: "6366F1"),
-                                    iconBg: Color(hex: "EEF2FF"),
-                                    title: "Later AI Models",
-                                    subtitle: "Intelligence & provider keys",
-                                    badge: coordinator.isProUser ? "Configured" : "Pro"
-                                )
-                            }
-                            .buttonStyle(.plain)
+                    // Group 2: Preferences & System
+                    VStack(spacing: 0) {
+                        NavigationLink(destination: NotificationsSettingsView()) {
+                            groupedRow(
+                                icon: "bell",
+                                title: "Notifications & Alerts",
+                                badge: notificationStatusTitle
+                            )
                         }
+                        .buttonStyle(.plain)
+
+                        rowDivider
+
+                        NavigationLink(destination: SecuritySettingsView()) {
+                            groupedRow(
+                                icon: "lock.shield",
+                                title: "Security & Privacy",
+                                badge: lockManager.isAppLockEnabled ? "On" : "Off"
+                            )
+                        }
+                        .buttonStyle(.plain)
+
+                        rowDivider
+
+                        NavigationLink(destination: AppIconSelectionView()) {
+                            groupedRow(
+                                icon: "paintpalette",
+                                title: "App Icon & Appearance",
+                                badge: "\(AppIconManager.availableIcons.count) Icons"
+                            )
+                        }
+                        .buttonStyle(.plain)
                     }
+                    .liquidGlassCard(cornerRadius: 18)
 
-                    // Section 4: Support & Feedback
-                    VStack(alignment: .leading, spacing: 10) {
-                        sectionHeader("Support & Feedback")
+                    // Group 3: Data & Intelligence
+                    VStack(spacing: 0) {
+                        NavigationLink(destination: StorageManagementView()) {
+                            groupedRow(
+                                icon: "internaldrive",
+                                title: "Local Storage & Vault",
+                                badge: storageManager.breakdown.formattedTotal
+                            )
+                        }
+                        .buttonStyle(.plain)
 
+                        rowDivider
+
+                        NavigationLink(destination: AIModelSettingsView()) {
+                            groupedRow(
+                                icon: "sparkles",
+                                title: "Later AI Models",
+                                badge: coordinator.isProUser ? "Configured" : "Pro"
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    .liquidGlassCard(cornerRadius: 18)
+
+                    // Group 4: Support & Legal
+                    VStack(spacing: 0) {
                         NavigationLink(destination: SupportRequestView()) {
-                            settingsRow(
-                                icon: "questionmark.bubble.fill",
-                                iconColor: Color(hex: "2563EB"),
-                                iconBg: Color(hex: "DBEAFE"),
+                            groupedRow(
+                                icon: "questionmark.circle",
                                 title: "Help & Report a Problem",
-                                subtitle: "Contact support, questions & feedback",
                                 badge: nil
                             )
                         }
                         .buttonStyle(.plain)
                     }
+                    .liquidGlassCard(cornerRadius: 18)
+
+                    // Bottom Session Action Button (matching reference)
+                    if coordinator.isAuthenticated {
+                        Button(action: {
+                            LBHaptic.medium()
+                            showingSignOutAlert = true
+                        }) {
+                            HStack(spacing: 8) {
+                                Image(systemName: "rectangle.portrait.and.arrow.right")
+                                    .font(.system(size: 15, weight: .semibold))
+                                Text("Log Out")
+                                    .font(.system(size: 15, weight: .bold))
+                            }
+                            .foregroundColor(.red)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                            .background(
+                                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                    .fill(AppTheme.cardBackground)
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                    .strokeBorder(AppTheme.cardBorder, lineWidth: 1)
+                            )
+                        }
+                        .buttonStyle(.plain)
+                        .padding(.top, 4)
+                    } else {
+                        Button(action: {
+                            LBHaptic.light()
+                            showingAuthSheet = true
+                        }) {
+                            HStack(spacing: 8) {
+                                Image(systemName: "person.crop.circle.badge.plus")
+                                    .font(.system(size: 15, weight: .semibold))
+                                Text("Sign In to LaterBox")
+                                    .font(.system(size: 15, weight: .bold))
+                            }
+                            .foregroundColor(AppTheme.textPrimary)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                            .background(
+                                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                    .fill(AppTheme.cardBackground)
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                    .strokeBorder(AppTheme.cardBorder, lineWidth: 1)
+                            )
+                        }
+                        .buttonStyle(.plain)
+                        .padding(.top, 4)
+                    }
 
                     // App Version Footer
-                    VStack(spacing: 4) {
+                    VStack(spacing: 3) {
                         Text("LaterBox for iOS • Liquid Glass Edition")
                             .font(.caption2)
                             .foregroundColor(.secondary)
@@ -259,10 +277,9 @@ public struct SettingsView: View {
                             .foregroundColor(.secondary.opacity(0.6))
                     }
                     .frame(maxWidth: .infinity)
-                    .padding(.top, 8)
+                    .padding(.top, 6)
                     .padding(.bottom, 24)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, 20)
                 .padding(.top, 12)
                 .padding(.bottom, 20)
@@ -273,6 +290,17 @@ public struct SettingsView: View {
         .onAppear {
             iconManager.refreshCurrentIcon()
             storageManager.refreshBreakdown()
+        }
+        .sheet(isPresented: $showingAuthSheet) {
+            NavigationStack {
+                AuthView()
+            }
+        }
+        .alert("Sign Out", isPresented: $showingSignOutAlert) {
+            Button("Sign Out", role: .destructive) { coordinator.signOut() }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Your local items will be safely kept on this device.")
         }
         .task {
             await refreshNotificationStatus()
@@ -286,63 +314,42 @@ public struct SettingsView: View {
 
     // MARK: - Subcomponents
 
-    private func sectionHeader(_ title: String) -> some View {
-        Text(title)
-            .font(.caption.weight(.bold))
-            .foregroundColor(.secondary)
-            .textCase(.uppercase)
-            .padding(.leading, 4)
+    private var rowDivider: some View {
+        Divider()
+            .background(AppTheme.cardBorder.opacity(0.7))
+            .padding(.leading, 48)
     }
 
-    private func settingsRow(
+    private func groupedRow(
         icon: String,
-        iconColor: Color,
-        iconBg: Color,
         title: String,
-        subtitle: String,
         badge: String?
     ) -> some View {
-        HStack(spacing: 14) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(iconBg)
-                    .frame(width: 40, height: 40)
-                Image(systemName: icon)
-                    .font(.system(size: 17, weight: .semibold))
-                    .foregroundColor(iconColor)
-            }
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .font(.system(size: 17, weight: .regular))
+                .foregroundColor(AppTheme.textPrimary)
+                .frame(width: 24, alignment: .center)
 
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundColor(AppTheme.textPrimary)
-                Text(subtitle)
-                    .font(.caption2)
-                    .foregroundColor(AppTheme.textSecondary)
-                    .lineLimit(1)
-            }
+            Text(title)
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundColor(AppTheme.textPrimary)
 
             Spacer()
 
             if let badge {
                 Text(badge)
-                    .font(.caption2.weight(.bold))
-                    .foregroundColor(AppTheme.textPrimary)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 3)
-                    .background(
-                        Capsule().fill(Color.black.opacity(0.05))
-                    )
+                    .font(.caption.weight(.medium))
+                    .foregroundColor(AppTheme.textSecondary)
             }
 
             Image(systemName: "chevron.right")
-                .font(.caption.weight(.bold))
+                .font(.system(size: 13, weight: .semibold))
                 .foregroundColor(AppTheme.textSecondary.opacity(0.6))
         }
-        .padding(14)
-        .frame(maxWidth: .infinity)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
         .contentShape(Rectangle())
-        .liquidGlassCard(cornerRadius: 16)
     }
 
     private var notificationStatusTitle: String {
