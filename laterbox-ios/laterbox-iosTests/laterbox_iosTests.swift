@@ -389,7 +389,7 @@ extension LaterAITests {
         manager.detectedItem = payload
         manager.isShowingBanner = true
 
-        let saved = try #require(manager.confirmSave(context: context))
+        let saved = try #require(manager.confirmSave(context: context, runBackgroundTasks: false))
         #expect(manager.isShowingBanner == false)
         #expect(manager.detectedItem == nil)
         #expect(saved.url == "https://news.ycombinator.com")
