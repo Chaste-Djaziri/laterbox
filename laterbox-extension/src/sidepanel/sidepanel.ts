@@ -227,26 +227,3 @@ function domainFor(value: string): string {
     return "CURRENT PAGE";
   }
 }
-
-const modeControls = document.createElement('div');
-modeControls.className = 'connection';
-const modeLabel = document.createElement('p');
-modeLabel.id = 'capture-mode-label';
-modeControls.append(modeLabel);
-const localButton = document.createElement('button');
-localButton.textContent = 'Local library';
-localButton.addEventListener('click', async () => {
-  await browser.storage.local.set({ captureMode: 'local' });
-  await cancelConnectionRequest();
-  await updateConnectionState();
-  setStatus('Local library selected. Captures stay on this browser.');
-});
-const accountButton = document.createElement('button');
-accountButton.textContent = 'Connect account';
-accountButton.addEventListener('click', () => void connect());
-const libraryButton = document.createElement('button');
-libraryButton.textContent = 'Open local library';
-libraryButton.addEventListener('click', () => void browser.tabs.create({ url: `${LOCAL_ORIGIN}/home` }));
-modeControls.append(localButton, accountButton, libraryButton);
-document.querySelector('main')!.append(modeControls);
-void updateConnectionState();
