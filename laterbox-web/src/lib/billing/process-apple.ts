@@ -8,59 +8,37 @@ import { getBillingAdminClient } from './server';
 export async function upsertAppleSubscription(
   transaction: JWSTransactionDecodedPayload,
   renewal?: JWSRenewalInfoDecodedPayload | null,
+  notificationAt?: string,
 ) {
   assertAppleTransaction(transaction);
   const admin = getBillingAdminClient();
-  const userId = transaction.appAccountToken!;
-  const subscriptionId = transaction.originalTransactionId!;
-  const occurredAt = new Date(transaction.signedDate ?? Date.now()).toISOString();
+  const userId = transaction.appAccountToken!.toLowerCase();
   const state = appleSubscriptionState(transaction, renewal);
-
-  const { error: customerError } = await admin.from('billing_customers').upsert(
-    {
+  const occurredAt = notificationAt ?? new Date(transaction.signedDate ?? Date.now()).toISOString();
+  const { error } = await admin.rpc('apply_apple_subscription', {
+    p_notification: Boolean(notificationAt),
+    p_subscription: {
       provider: 'apple',
-      customer_id: userId,
-      user_id: userId,
-      updated_at: occurredAt,
-    },
-    { onConflict: 'provider,customer_id' },
-  );
-  if (customerError) throw customerError;
-
-  const { data: current } = await admin
-    .from('billing_subscriptions')
-    .select('occurred_at,past_due_at')
-    .eq('provider', 'apple')
-    .eq('subscription_id', subscriptionId)
-    .maybeSingle();
-  if (current?.occurred_at && new Date(current.occurred_at) > new Date(occurredAt)) return;
-
-  const { error } = await admin.from('billing_subscriptions').upsert(
-    {
-      provider: 'apple',
-      subscription_id: subscriptionId,
+      subscription_id: transaction.originalTransactionId,
       customer_id: userId,
       user_id: userId,
       status: state.status,
       product_id: transaction.productId,
       price_id: transaction.productId,
       trial_ends_at: state.status === 'trialing' ? state.periodEnd : null,
-      current_period_starts_at: state.status === 'past_due'
-        ? current?.past_due_at ?? occurredAt
-        : state.periodStart,
-      current_period_ends_at: state.status === 'past_due'
-        ? state.graceEnd ?? state.periodEnd
-        : state.periodEnd,
+      current_period_starts_at: state.periodStart,
+      current_period_ends_at: state.status === 'past_due' ? state.graceEnd : state.periodEnd,
       scheduled_change_action: state.willCancel ? 'cancel' : null,
       scheduled_change_at: state.willCancel ? state.periodEnd : null,
-      past_due_at: state.status === 'past_due'
-        ? current?.past_due_at ?? occurredAt
-        : null,
+      past_due_at: state.status === 'past_due' ? occurredAt : null,
       occurred_at: occurredAt,
-      updated_at: new Date().toISOString(),
+      apple_environment: transaction.environment,
+      apple_transaction_id: transaction.transactionId,
+      apple_notification_at: notificationAt ?? null,
+      revoked_at: transaction.revocationDate ? new Date(transaction.revocationDate).toISOString() : null,
+      renewal_known: Boolean(renewal),
     },
-    { onConflict: 'provider,subscription_id' },
-  );
+  });
   if (error) throw error;
 }
 
@@ -72,15 +50,16 @@ export async function processAppleNotification(
   renewal: JWSRenewalInfoDecodedPayload | null,
 ) {
   const admin = getBillingAdminClient();
-  const { data: existing } = await admin
+  const { data: existing, error: lookupError } = await admin
     .from('billing_webhook_events')
     .select('event_id')
     .eq('provider', 'apple')
     .eq('event_id', eventId)
     .maybeSingle();
+  if (lookupError) throw lookupError;
   if (existing) return;
 
-  if (transaction) await upsertAppleSubscription(transaction, renewal);
+  if (transaction) await upsertAppleSubscription(transaction, renewal, occurredAt);
 
   const { error } = await admin.from('billing_webhook_events').insert({
     provider: 'apple',
