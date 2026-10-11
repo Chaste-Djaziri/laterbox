@@ -474,38 +474,48 @@ struct ShareCaptureView: View {
         .preferredColorScheme(.dark)
         .sheet(isPresented: $chooseReturnDate) {
             NavigationStack {
-                VStack(spacing: 20) {
-                    DatePicker(
-                        "Return Date",
-                        selection: $selectedReturnDate,
-                        in: Date()...,
-                        displayedComponents: [.date, .hourAndMinute]
-                    )
-                    .datePickerStyle(.graphical)
-                    .tint(LaterAIStyle.accent)
-                    .environment(\.colorScheme, .dark)
-                    .padding()
-                    .background(Color(white: 20.0/255), in: RoundedRectangle(cornerRadius: 16))
-
-                    Button(action: {
-                        chooseReturnDate = false
-                        let label = selectedReturnDate.formatted(date: .abbreviated, time: .shortened)
-                        sendOptionReply(label) {
-                            Task { await model.scheduleAndSave(date: selectedReturnDate, optionLabel: label) }
+                VStack(spacing: 0) {
+                    ScrollView(showsIndicators: false) {
+                        VStack(spacing: 16) {
+                            DatePicker(
+                                "Return Date",
+                                selection: $selectedReturnDate,
+                                in: Date()...,
+                                displayedComponents: [.date, .hourAndMinute]
+                            )
+                            .datePickerStyle(.graphical)
+                            .tint(LaterAIStyle.accent)
+                            .environment(\.colorScheme, .dark)
+                            .padding()
+                            .background(Color(white: 20.0/255), in: RoundedRectangle(cornerRadius: 16))
                         }
-                    }) {
-                        Text("Confirm Return Date")
-                            .font(.system(size: 16, weight: .bold))
-                            .foregroundColor(.black)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 14)
-                            .background(LaterAIStyle.accent, in: RoundedRectangle(cornerRadius: 14))
+                        .padding(16)
                     }
-                    .buttonStyle(.plain)
 
-                    Spacer()
+                    // Pinned bottom confirmation dock (fixed even when half expanded)
+                    VStack(spacing: 0) {
+                        Divider().background(Color.white.opacity(0.10))
+                        Button(action: {
+                            chooseReturnDate = false
+                            let label = selectedReturnDate.formatted(date: .abbreviated, time: .shortened)
+                            sendOptionReply(label) {
+                                Task { await model.scheduleAndSave(date: selectedReturnDate, optionLabel: label) }
+                            }
+                        }) {
+                            Text("Confirm Return Date")
+                                .font(.system(size: 16, weight: .bold))
+                                .foregroundColor(.black)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 14)
+                                .background(LaterAIStyle.accent, in: RoundedRectangle(cornerRadius: 14))
+                        }
+                        .buttonStyle(.plain)
+                        .padding(.horizontal, 16)
+                        .padding(.top, 12)
+                        .padding(.bottom, 12)
+                    }
+                    .background(Color.black.ignoresSafeArea(edges: .bottom))
                 }
-                .padding(20)
                 .background(Color.black.ignoresSafeArea())
                 .navigationTitle("Select Return Date")
                 .navigationBarTitleDisplayMode(.inline)
