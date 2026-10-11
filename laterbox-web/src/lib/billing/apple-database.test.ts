@@ -41,7 +41,7 @@ test('Apple migration registers Sandbox/Production, expires access, and scopes R
   try {
     await apply(db, subscription());
     assert.equal(await pro(db), true);
-    assert.equal((await db.query('select apple_environment from billing_subscriptions')).rows[0].apple_environment, 'Sandbox');
+    assert.equal((await db.query<{apple_environment: string}>('select apple_environment from billing_subscriptions')).rows[0].apple_environment, 'Sandbox');
     assert.equal((await db.query<{value: boolean}>('select has_pro_entitlement($1::uuid) as value', [other])).rows[0].value, false);
     for (const status of ['active', 'trialing', 'canceled', 'past_due']) {
       await db.exec(`update billing_subscriptions set status='${status}',current_period_ends_at=now()-interval '1 second',past_due_at=now();`);
@@ -65,13 +65,13 @@ test('Apple cancellation, grace and refund survive device replay and out-of-orde
     const notification = { ...initial, apple_notification_at: new Date(time + 1000).toISOString(), renewal_known: true, scheduled_change_action: 'cancel', scheduled_change_at: initial.current_period_ends_at };
     await apply(db, notification, true);
     await apply(db, { ...initial, occurred_at: new Date(time + 2000).toISOString() });
-    assert.equal((await db.query('select will_cancel from get_my_entitlement()')).rows[0].will_cancel, true);
+    assert.equal((await db.query<{will_cancel: boolean}>('select will_cancel from get_my_entitlement()')).rows[0].will_cancel, true);
     await apply(db, { ...notification, apple_notification_at: new Date(time).toISOString(), scheduled_change_action: null }, true);
-    assert.equal((await db.query('select will_cancel from get_my_entitlement()')).rows[0].will_cancel, true);
+    assert.equal((await db.query<{will_cancel: boolean}>('select will_cancel from get_my_entitlement()')).rows[0].will_cancel, true);
     const grace = { ...notification, status: 'past_due', apple_notification_at: new Date(time + 3000).toISOString(), past_due_at: new Date(time).toISOString() };
     await apply(db, grace, true);
     await apply(db, { ...initial, occurred_at: new Date(time + 4000).toISOString() });
-    assert.equal((await db.query('select status from get_my_entitlement()')).rows[0].status, 'past_due');
+    assert.equal((await db.query<{status: string}>('select status from get_my_entitlement()')).rows[0].status, 'past_due');
     assert.equal(await pro(db), true);
     const refund = { ...notification, status: 'canceled', revoked_at: new Date(time).toISOString(), apple_notification_at: new Date(time + 5000).toISOString() };
     await apply(db, refund, true);
@@ -85,6 +85,6 @@ test('Apple cancellation, grace and refund survive device replay and out-of-orde
     await apply(db, renewed);
     await apply(db, { ...refund, apple_notification_at: new Date(time + 15000).toISOString() }, true);
     assert.equal(await pro(db), true);
-    assert.equal((await db.query('select apple_transaction_id from billing_subscriptions')).rows[0].apple_transaction_id, 'renewed');
+    assert.equal((await db.query<{apple_transaction_id: string}>('select apple_transaction_id from billing_subscriptions')).rows[0].apple_transaction_id, 'renewed');
   } finally { await db.close(); }
 });
