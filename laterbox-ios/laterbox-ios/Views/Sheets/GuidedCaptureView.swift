@@ -1,4 +1,6 @@
 import SwiftUI
+import UniformTypeIdentifiers
+import PhotosUI
 
 struct GuidedCaptureView: View {
     @Binding var draft: CaptureDraft
@@ -12,11 +14,25 @@ struct GuidedCaptureView: View {
     @State private var date = Date().addingTimeInterval(86400)
     private let categories = ["General", "Reading", "Work", "Ideas", "Learning", "Personal"]
 
+    // Attachments state
+    private enum AttachmentMode {
+        case attach
+        case saveOnly
+    }
+    @State private var attachmentMode: AttachmentMode = .attach
+    @State private var showingFilePicker = false
+    @State private var showingPhotoPicker = false
+    @State private var selectedPhotoItem: PhotosPickerItem? = nil
+
     init(draft: Binding<CaptureDraft>, onCancel: (() -> Void)? = nil, fillsAvailableSpace: Bool = false, save: @escaping () -> Void) {
         self._draft = draft
         self.onCancel = onCancel
         self.fillsAvailableSpace = fillsAvailableSpace
         self.save = save
+    }
+
+    private var canProceed: Bool {
+        !draft.content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !draft.attachments.isEmpty
     }
 
     var body: some View {
@@ -61,6 +77,21 @@ struct GuidedCaptureView: View {
                 }
             } catch { /* Metadata is optional; manual saving stays available. */ }
         }
+        .fileImporter(
+            isPresented: $showingFilePicker,
+            allowedContentTypes: [.item],
+            allowsMultipleSelection: false
+        ) { result in
+            handleDocumentPick(result: result)
+        }
+        .photosPicker(
+            isPresented: $showingPhotoPicker,
+            selection: $selectedPhotoItem,
+            matching: .any(of: [.images, .videos])
+        )
+        .onChange(of: selectedPhotoItem) { _, newItem in
+            handlePhotoPick(item: newItem)
+        }
         .padding(fillsAvailableSpace ? 0 : 20)
         .foregroundStyle(.white)
         .background(
@@ -85,61 +116,33 @@ struct GuidedCaptureView: View {
         }
     }
 
-    // MARK: - Header
+    // MARK: - Header (No step indicators or badge text per user request)
     private var headerView: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                HStack(spacing: 5) {
-                    ForEach(0..<4) { i in
-                        Capsule()
-                            .fill(i == step ? LaterAIStyle.accent : (i < step ? LaterAIStyle.accent.opacity(0.5) : Color.white.opacity(0.16)))
-                            .frame(height: 3.5)
-                            .animation(.easeInOut(duration: 0.25), value: step)
-                    }
+        HStack {
+            Spacer()
+            if let onCancel {
+                Button(action: onCancel) {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundColor(Color.white.opacity(0.6))
+                        .padding(6)
+                        .background(Color(white: 26.0 / 255), in: Circle())
                 }
-
-                Spacer()
-
-                if let onCancel {
-                    Button(action: onCancel) {
-                        HStack(spacing: 4) {
-                            Image(systemName: "sparkles")
-                                .font(.system(size: 11, weight: .bold))
-                            Text("Back to AI")
-                                .font(.system(size: 11, weight: .semibold))
-                        }
-                        .foregroundColor(LaterAIStyle.accent)
-                        .padding(.horizontal, 9)
-                        .padding(.vertical, 4)
-                        .background(Color(white: 26.0 / 255), in: Capsule())
-                        .overlay(Capsule().strokeBorder(Color.white.opacity(0.1), lineWidth: 1))
-                    }
-                    .buttonStyle(.plain)
-                }
+                .buttonStyle(.plain)
             }
-
-            Text("GUIDED CAPTURE • STEP \(step + 1) OF 4")
-                .font(.system(size: 11, weight: .bold))
-                .foregroundColor(LaterAIStyle.accent)
-                .tracking(0.6)
         }
     }
 
-    // MARK: - Step 0: Content
+    // MARK: - Step 0: Content ("Start typing here" and input only per user request)
     private var step0ContentView: some View {
         VStack(alignment: .leading, spacing: 12) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("What would you like to save?")
-                    .font(.system(size: 17, weight: .bold))
-                    .foregroundColor(.white)
-                Text("Paste a link, note, quote, or draft content.")
-                    .font(.system(size: 13))
-                    .foregroundColor(Color.white.opacity(0.6))
-            }
+            Text("Start typing here")
+                .font(.system(size: 17, weight: .bold))
+                .foregroundColor(.white)
 
             ZStack(alignment: .topLeading) {
                 if draft.content.isEmpty {
-                    Text("Paste a link or write your content...")
+                    Text("Start typing here...")
                         .font(.system(size: 15))
                         .foregroundColor(Color.white.opacity(0.35))
                         .padding(.horizontal, 14)
@@ -152,11 +155,40 @@ struct GuidedCaptureView: View {
                     .foregroundColor(.white)
                     .tint(LaterAIStyle.accent)
                     .padding(8)
-                    .frame(minHeight: 110, maxHeight: fillsAvailableSpace ? .infinity : 160)
+                    .frame(minHeight: 120, maxHeight: fillsAvailableSpace ? .infinity : 180)
             }
             .background(Color(white: 24.0 / 255), in: RoundedRectangle(cornerRadius: 14))
             .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(Color.white.opacity(0.12), lineWidth: 1))
             .accessibilityIdentifier("capture.content")
+
+            // Attached Documents or Photos Pills
+            if !draft.attachments.isEmpty {
+                VStack(alignment: .leading, spacing: 6) {
+                    ForEach(draft.attachments) { att in
+                        HStack(spacing: 8) {
+                            Image(systemName: att.typeIdentifier.contains("image") ? "photo.fill" : "doc.fill")
+                                .font(.system(size: 12, weight: .bold))
+                                .foregroundColor(LaterAIStyle.accent)
+                            Text(att.name)
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundColor(.white)
+                                .lineLimit(1)
+                            Spacer()
+                            Button {
+                                draft.attachments.removeAll { $0.id == att.id }
+                            } label: {
+                                Image(systemName: "xmark.circle.fill")
+                                    .font(.system(size: 14))
+                                    .foregroundColor(Color.white.opacity(0.4))
+                            }
+                            .buttonStyle(.plain)
+                        }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background(Color(white: 28.0 / 255), in: RoundedRectangle(cornerRadius: 10))
+                    }
+                }
+            }
 
             if let detectedUrl = draft.url, !detectedUrl.isEmpty {
                 HStack(spacing: 6) {
@@ -471,9 +503,9 @@ struct GuidedCaptureView: View {
         .buttonStyle(.plain)
     }
 
-    // MARK: - Footer Navigation
+    // MARK: - Footer Navigation (with + attachment options beside Continue)
     private var footerNavigation: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 10) {
             if step > 0 {
                 Button(action: {
                     withAnimation(.easeInOut(duration: 0.22)) {
@@ -497,12 +529,18 @@ struct GuidedCaptureView: View {
                 .buttonStyle(.plain)
             }
 
+            // '+' Attachment Options Button
+            attachmentMenuButton
+
             if !fillsAvailableSpace { Spacer() }
 
+            // Continue / Save Button
             Button(action: {
                 if step == 0 {
                     let inferred = CaptureDraft.manual(draft.content)
-                    if draft.title.isEmpty { draft.title = inferred.title }
+                    if draft.title.isEmpty {
+                        draft.title = draft.attachments.first?.name ?? inferred.title
+                    }
                     if draft.tags.isEmpty { draft.tags = inferred.tags }
                     tagText = draft.tags.joined(separator: ", ")
                 }
@@ -529,13 +567,111 @@ struct GuidedCaptureView: View {
                 .padding(.vertical, 12)
                 .background(
                     RoundedRectangle(cornerRadius: fillsAvailableSpace ? 24 : 14)
-                        .fill(draft.content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? Color.gray.opacity(0.3) : LaterAIStyle.accent)
+                        .fill(canProceed ? LaterAIStyle.accent : Color.gray.opacity(0.3))
                 )
             }
             .buttonStyle(.plain)
-            .disabled(draft.content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            .disabled(!canProceed)
         }
         .padding(.top, 4)
+    }
+
+    // MARK: - Attachment Menu Button (+ icon)
+    private var attachmentMenuButton: some View {
+        Menu {
+            Section("Attach to Item") {
+                Button {
+                    attachmentMode = .attach
+                    showingFilePicker = true
+                } label: {
+                    Label("Attach Document", systemImage: "doc.fill")
+                }
+
+                Button {
+                    attachmentMode = .attach
+                    showingPhotoPicker = true
+                } label: {
+                    Label("Attach Photo", systemImage: "photo.fill")
+                }
+            }
+
+            Section("Save Attachments Only") {
+                Button {
+                    attachmentMode = .saveOnly
+                    showingFilePicker = true
+                } label: {
+                    Label("Save Document Only", systemImage: "arrow.down.doc.fill")
+                }
+
+                Button {
+                    attachmentMode = .saveOnly
+                    showingPhotoPicker = true
+                } label: {
+                    Label("Save Photo Only", systemImage: "arrow.down.circle.fill")
+                }
+            }
+        } label: {
+            Image(systemName: "plus")
+                .font(.system(size: 16, weight: .bold))
+                .foregroundColor(.white)
+                .frame(width: 44, height: 44)
+                .background(Color(white: 26.0 / 255), in: RoundedRectangle(cornerRadius: 14))
+                .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(Color.white.opacity(0.12), lineWidth: 1))
+        }
+        .buttonStyle(.plain)
+    }
+
+    // MARK: - Handlers for Attachments
+    private func handleDocumentPick(result: Result<[URL], Error>) {
+        guard case .success(let urls) = result, let sourceURL = urls.first else { return }
+        do {
+            let ext = sourceURL.pathExtension.lowercased()
+            let utType = UTType(filenameExtension: ext)?.identifier ?? "public.item"
+            let attachment = try SharedCaptureStore.copyFile(sourceURL, type: utType)
+
+            if attachmentMode == .saveOnly {
+                draft.attachments = [attachment]
+                if draft.title.isEmpty { draft.title = attachment.name }
+                if draft.content.isEmpty { draft.content = attachment.name }
+                save()
+            } else {
+                draft.attachments.append(attachment)
+                if draft.title.isEmpty { draft.title = attachment.name }
+            }
+            LBHaptic.medium()
+        } catch {
+            print("Failed to attach document: \(error.localizedDescription)")
+        }
+    }
+
+    private func handlePhotoPick(item: PhotosPickerItem?) {
+        guard let item else { return }
+        Task {
+            guard let data = try? await item.loadTransferable(type: Data.self) else { return }
+            let filename = "photo-\(UUID().uuidString.prefix(8)).jpg"
+            let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(filename)
+            try? data.write(to: tempURL)
+            do {
+                let attachment = try SharedCaptureStore.copyFile(tempURL, type: "public.jpeg")
+                try? FileManager.default.removeItem(at: tempURL)
+
+                await MainActor.run {
+                    if attachmentMode == .saveOnly {
+                        draft.attachments = [attachment]
+                        if draft.title.isEmpty { draft.title = attachment.name }
+                        if draft.content.isEmpty { draft.content = attachment.name }
+                        save()
+                    } else {
+                        draft.attachments.append(attachment)
+                        if draft.title.isEmpty { draft.title = attachment.name }
+                    }
+                    selectedPhotoItem = nil
+                    LBHaptic.medium()
+                }
+            } catch {
+                print("Failed to attach photo: \(error.localizedDescription)")
+            }
+        }
     }
 
     private var suggestedTags: [String] {
