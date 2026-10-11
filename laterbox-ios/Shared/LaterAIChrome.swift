@@ -6,6 +6,7 @@ enum LaterAIStyle {
     static let field = Color(red: 31.0 / 255, green: 31.0 / 255, blue: 33.0 / 255)
 }
 struct LaterAIHeader: View {
+    var title: String = "Save to LaterBox"
     var canReset: Bool
     var close: () -> Void
     var reset: () -> Void
@@ -13,16 +14,14 @@ struct LaterAIHeader: View {
         VStack(spacing: 10) {
             Capsule().fill(Color.white.opacity(0.3)).frame(width: 38, height: 4.5).padding(.top, 6)
             HStack {
-                Button(action: close) { icon("chevron.down", enabled: true) }.accessibilityLabel("Close Later AI")
+                Button(action: close) { icon("chevron.down", enabled: true) }.accessibilityLabel("Close")
                 Spacer()
                 HStack(spacing: 7) {
-                    Image(systemName: "sparkles").font(.system(size: 15, weight: .semibold)).foregroundStyle(LaterAIStyle.accent)
-                    Text("Later AI").font(.system(size: 17, weight: .bold)).foregroundStyle(.white)
-                    Text("PREVIEW").font(.system(size: 9, weight: .bold)).foregroundStyle(.black)
-                        .padding(.horizontal, 5).padding(.vertical, 2).background(LaterAIStyle.accent, in: Capsule())
+                    Image(systemName: "tray.and.arrow.down.fill").font(.system(size: 15, weight: .semibold)).foregroundStyle(LaterAIStyle.accent)
+                    Text(title).font(.system(size: 17, weight: .bold)).foregroundStyle(.white)
                 }
                 Spacer()
-                Button(action: reset) { icon("square.and.pencil", enabled: canReset) }.disabled(!canReset).accessibilityLabel("New chat")
+                Button(action: reset) { icon("arrow.counterclockwise", enabled: canReset) }.disabled(!canReset).accessibilityLabel("Reset")
             }.padding(.horizontal, 18).padding(.bottom, 8)
             Divider().background(Color.white.opacity(0.08))
         }.buttonStyle(.plain)
@@ -58,7 +57,6 @@ struct LaterAIComposer: View {
                     .background(LaterAIStyle.field, in: RoundedRectangle(cornerRadius: 24))
                     .overlay(RoundedRectangle(cornerRadius: 24).strokeBorder(Color.white.opacity(0.12), lineWidth: 1))
             }.padding(.horizontal, 16).padding(.top, 8)
-            Text("Later AI can make mistakes. Verify important info.").font(.system(size: 11)).foregroundStyle(Color.white.opacity(0.35)).padding(.bottom, 6)
         }.background(.black).buttonStyle(.plain).environment(\.colorScheme, .light)
     }
 }
@@ -67,6 +65,7 @@ struct LaterAIChatRow: View {
     var text: String
     var isUser: Bool
     var timestamp: Date?
+    var iconName: String = "tray.and.arrow.down.fill"
     var body: some View {
         if isUser {
             HStack {
@@ -77,7 +76,7 @@ struct LaterAIChatRow: View {
             }
         } else {
             HStack(alignment: .top, spacing: 12) {
-                Image(systemName: "sparkles").font(.system(size: 13, weight: .semibold)).foregroundStyle(LaterAIStyle.accent)
+                Image(systemName: iconName).font(.system(size: 13, weight: .semibold)).foregroundStyle(LaterAIStyle.accent)
                     .frame(width: 30, height: 30).background(Color(white: 28.0/255), in: Circle())
                 VStack(alignment: .leading, spacing: 6) {
                     Text(text).font(.system(size: 15)).foregroundStyle(.white).lineSpacing(4)
@@ -92,15 +91,15 @@ struct LaterAIChatRow: View {
 }
 struct LaterAIThinkingIndicator: View {
     var thinking: Bool
-    var statusText: String = "Later AI is writing..."
+    var statusText: String = "Preparing draft..."
     var body: some View {
         HStack(alignment: .center, spacing: 10) {
             ZStack {
                 Circle()
                     .fill(Color(white: 28.0/255))
                     .frame(width: 32, height: 32)
-                Image(systemName: "sparkles")
-                    .font(.system(size: 14, weight: .semibold))
+                Image(systemName: "tray.and.arrow.down.fill")
+                    .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(LaterAIStyle.accent)
             }
             HStack(spacing: 8) {
@@ -154,7 +153,7 @@ public struct LaterAIOptionItem: Identifiable, Equatable {
 struct LaterAIOptionsDock: View {
     var title: String? = nil
     var options: [LaterAIOptionItem]
-    var onManualType: () -> Void
+    var onManualType: (() -> Void)? = nil
 
     var body: some View {
         VStack(spacing: 8) {
@@ -167,16 +166,18 @@ struct LaterAIOptionsDock: View {
                         .tracking(0.5)
                 }
                 Spacer()
-                Button(action: onManualType) {
-                    HStack(spacing: 4) {
-                        Image(systemName: "keyboard")
-                            .font(.system(size: 11))
-                        Text("Type instead")
-                            .font(.system(size: 12, weight: .medium))
+                if let onManualType {
+                    Button(action: onManualType) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "keyboard")
+                                .font(.system(size: 11))
+                            Text("Type instead")
+                                .font(.system(size: 12, weight: .medium))
+                        }
+                        .foregroundColor(Color.white.opacity(0.55))
                     }
-                    .foregroundColor(Color.white.opacity(0.55))
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
             }
             .padding(.horizontal, 18)
 
@@ -221,13 +222,9 @@ struct LaterAIOptionsDock: View {
                 .padding(.horizontal, 16)
                 .padding(.vertical, 4)
             }
-
-            Text("Later AI can make mistakes. Verify important info.")
-                .font(.system(size: 11))
-                .foregroundColor(Color.white.opacity(0.35))
-                .padding(.bottom, 6)
         }
         .padding(.top, 8)
+        .padding(.bottom, 6)
         .background(Color.black)
         .environment(\.colorScheme, .light)
     }
