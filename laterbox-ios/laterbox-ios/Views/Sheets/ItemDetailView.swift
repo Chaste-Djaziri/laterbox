@@ -20,19 +20,19 @@ public struct ItemDetailView: View {
     @Environment(\.modelContext) private var modelContext
     @Bindable public var item: LBItem
     @ObservedObject var coordinator = SyncCoordinator.shared
+    @Query(sort: \LBCollection.name) private var availableCollections: [LBCollection]
 
-    // Follow-ups & Notes chat state
+    // Follow-ups & Notes state
     @State private var threadData: ItemThreadData = ItemThreadData()
-    @State private var followUpText: String = ""
+    @State private var noteDraftText: String = ""
     @State private var quotedSnippet: String? = nil
-    @FocusState private var isInputFocused: Bool
+    @FocusState private var isNoteFocused: Bool
 
     // Item metadata & sheets
     @State private var editedTitle: String = ""
-    @State private var tagsText: String = ""
     @State private var showingDeleteConfirm: Bool = false
-    @State private var showingCategoryEdit: Bool = false
-    @State private var newCategoryText: String = ""
+    @State private var showingCollectionSheet: Bool = false
+    @State private var newCollectionName: String = ""
     @State private var saveError: String?
     @State private var previewDocumentURL: URL?
     @State private var showingSafariReader: Bool = false
@@ -45,7 +45,6 @@ public struct ItemDetailView: View {
         self.item = item
         self.isModal = isModal
         self._editedTitle = State(initialValue: item.title)
-        self._tagsText = State(initialValue: item.tags.joined(separator: ", "))
         self._threadData = State(initialValue: ItemThreadParser.parse(from: item.noteContent))
     }
 
@@ -74,124 +73,77 @@ public struct ItemDetailView: View {
                 .ignoresSafeArea()
 
             VStack(spacing: 0) {
-                // 1. Top Navigation Bar (Full page, matching web top action row)
+                // 1. Top Navigation Bar with web-aligned action controls at top right
                 topNavigationBar
 
-                // 2. Scrollable Body Content & Follow-ups Stream
-                ScrollViewReader { proxy in
-                    ScrollView {
-                        VStack(alignment: .leading, spacing: 14) {
-                            // Document & Files Preview Card
-                            if let data = item.attachmentsData,
-                               let files = try? JSONDecoder().decode([SharedAttachment].self, from: data),
-                               !files.isEmpty {
-                                attachmentsCard(files: files)
-                            }
+                // 2. Focused scrollable body: Show what the user came back for
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 14) {
+                        // Return Schedule Banner (if scheduled)
+                        if let ret = item.returnAt {
+                            returnScheduleBanner(ret: ret)
+                        }
 
-                            // Embedded In-App Media Player (YouTube, Vimeo, Spotify, Apple Music)
-                            let mediaType = EmbeddedMediaType.detect(url: item.url)
-                            if mediaType != .none && mediaType != .webArticle(url: URL(string: item.url ?? "")!) {
-                                VStack(alignment: .leading, spacing: 6) {
-                                    InlineVideoEmbedView(embedType: mediaType, previewImageUrl: item.previewImageUrl)
-                                }
-                                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                                .shadow(color: Color.black.opacity(0.04), radius: 6, y: 2)
-                            }
+                        // Attachments & Files Card (if any)
+                        if let data = item.attachmentsData,
+                           let files = try? JSONDecoder().decode([SharedAttachment].self, from: data),
+                           !files.isEmpty {
+                            attachmentsCard(files: files)
+                        }
 
+                        // Embedded In-App Media Player (YouTube, Vimeo, Spotify, Apple Music)
+                        let mediaType = EmbeddedMediaType.detect(url: item.url)
+                        if mediaType != .none && mediaType != .webArticle(url: URL(string: item.url ?? "")!) {
+                            VStack(alignment: .leading, spacing: 6) {
+                                InlineVideoEmbedView(embedType: mediaType, previewImageUrl: item.previewImageUrl)
+                            }
+                            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                            .shadow(color: Color.black.opacity(0.04), radius: 6, y: 2)
+                        } else if let preview = item.previewImageUrl, !preview.isEmpty, URL(string: preview) != nil {
                             // Rich Visual Banner (OpenGraph Preview Image)
-                            if mediaType == .none || mediaType == .webArticle(url: URL(string: item.url ?? "")!) {
-                                RichMediaBanner(
-                                    type: item.parsedContentType,
-                                    url: item.url,
-                                    title: item.title,
-                                    previewImageUrl: item.previewImageUrl
-                                )
-                                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                                .shadow(color: Color.black.opacity(0.04), radius: 6, y: 2)
-                            }
-
-                            // Main Saved Content Header Card
-                            mainHeaderCard
-
-                            // Quick Action Buttons Row (Reader, Safari, Share, Status)
-                            quickActionsRow
-
-                            // Return Schedule Info Card (if scheduled)
-                            if let ret = item.returnAt {
-                                returnScheduleCard(ret: ret)
-                            }
-
-                            // AI Summary Card (if present)
-                            if !item.summary.isEmpty {
-                                aiSummaryCard
-                            }
-
-                            // Captured Content / Full Article Text Viewer
-                            let captured = item.textContent?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-                            let formatted = item.formattedContent.trimmingCharacters(in: .whitespacesAndNewlines)
-                            if !captured.isEmpty || !formatted.isEmpty {
-                                RichCapturedContentViewer(
-                                    title: "Captured Content",
-                                    content: !captured.isEmpty ? captured : formatted,
-                                    formattedHTML: !formatted.isEmpty ? formatted : nil
-                                )
-                                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                                .shadow(color: Color.black.opacity(0.04), radius: 6, y: 2)
-                            }
-
-                            // Follow-ups & Notes Chat Stream Header
-                            followUpsStreamHeader
-
-                            // Follow-ups & Notes Timeline Entries
-                            if threadData.entries.isEmpty {
-                                emptyFollowUpsCard
-                            } else {
-                                LazyVStack(spacing: 10) {
-                                    ForEach(threadData.entries) { entry in
-                                        followUpEntryCard(entry: entry)
-                                    }
-                                }
-                            }
-
-                            // Anchor for auto-scrolling to the bottom of the thread
-                            Color.clear
-                                .frame(height: 1)
-                                .id("thread-bottom")
-
-                            // Delete Item Button at the bottom
-                            Button(role: .destructive, action: { showingDeleteConfirm = true }) {
-                                HStack(spacing: 6) {
-                                    Image(systemName: "trash")
-                                        .font(.system(size: 14, weight: .semibold))
-                                    Text("Delete Item")
-                                        .font(.system(size: 14, weight: .semibold))
-                                }
-                                .foregroundColor(.red)
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 14)
-                                .background(Color.red.opacity(0.06))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                        .strokeBorder(Color.red.opacity(0.16), lineWidth: 1)
-                                )
-                                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                            }
-                            .buttonStyle(.plain)
-                            .padding(.top, 6)
+                            RichMediaBanner(
+                                type: item.parsedContentType,
+                                url: item.url,
+                                title: item.title,
+                                previewImageUrl: item.previewImageUrl
+                            )
+                            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                            .shadow(color: Color.black.opacity(0.04), radius: 6, y: 2)
                         }
-                        .padding(.horizontal, 14)
-                        .padding(.top, 12)
-                        .padding(.bottom, 80) // Leave ample room for the bottom chat input bar
-                    }
-                    .onChange(of: threadData.entries.count) { _, _ in
-                        withAnimation(.easeOut(duration: 0.25)) {
-                            proxy.scrollTo("thread-bottom", anchor: .bottom)
+
+                        // Main Header Card (Title, Domain, Metadata, Collections/Tags)
+                        mainHeaderCard
+
+                        // Captured Highlight Quote (if saved via extension text highlight)
+                        if let highlight = item.textSelector, !highlight.isEmpty, let text = item.textContent, !text.isEmpty {
+                            capturedHighlightCard(text: text)
                         }
+
+                        // AI Summary Card (if present)
+                        if !item.summary.isEmpty {
+                            aiSummaryCard
+                        }
+
+                        // Captured Content / Full Article Text Viewer
+                        let captured = item.textContent?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                        let formatted = item.formattedContent.trimmingCharacters(in: .whitespacesAndNewlines)
+                        if (!captured.isEmpty && item.textSelector == nil) || !formatted.isEmpty {
+                            RichCapturedContentViewer(
+                                title: "Captured Content",
+                                content: !captured.isEmpty ? captured : formatted,
+                                formattedHTML: !formatted.isEmpty ? formatted : nil
+                            )
+                            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                            .shadow(color: Color.black.opacity(0.04), radius: 6, y: 2)
+                        }
+
+                        // Personal Notes & Follow-ups Section (Clean & Non-intrusive)
+                        notesAndFollowUpsCard
                     }
+                    .padding(.horizontal, 14)
+                    .padding(.top, 10)
+                    .padding(.bottom, 36)
                 }
-
-                // 3. Fixed Bottom Chat Prompt / Input Bar (Matching Web follow-ups bar)
-                bottomChatInputBar
             }
         }
         .navigationBarHidden(true)
@@ -210,26 +162,11 @@ public struct ItemDetailView: View {
         .sheet(isPresented: $showingSchedulePicker) {
             schedulePickerSheet
         }
-        .alert("Edit Category", isPresented: $showingCategoryEdit) {
-            TextField("Category or Collection", text: $newCategoryText)
-            Button("Save") {
-                let trimmed = newCategoryText.trimmingCharacters(in: .whitespacesAndNewlines)
-                if !trimmed.isEmpty {
-                    let coll = coordinator.ensureCollectionExists(named: trimmed, context: modelContext)
-                    item.category = trimmed
-                    item.collectionName = coll?.name ?? trimmed
-                    item.collectionId = coll?.id ?? item.collectionId
-                } else {
-                    item.category = ""
-                    item.collectionName = nil
-                    item.collectionId = nil
-                }
-                persistEdit()
-            }
-            Button("Cancel", role: .cancel) {}
+        .sheet(isPresented: $showingCollectionSheet) {
+            collectionPickerSheet
         }
         .confirmationDialog("Are you sure you want to delete this item?", isPresented: $showingDeleteConfirm, titleVisibility: .visible) {
-            Button("Delete Forever", role: .destructive) {
+            Button("Delete Item", role: .destructive) {
                 coordinator.deleteItem(item: item, context: modelContext)
                 dismiss()
             }
@@ -239,7 +176,6 @@ public struct ItemDetailView: View {
             Task { await coordinator.syncPendingItems(context: modelContext) }
         }
         .task {
-            // Re-parse thread from item.noteContent in case it was updated in background
             threadData = ItemThreadParser.parse(from: item.noteContent)
 
             let needsTitleHeal = LinkMetadataLoader.isGenericTitle(item.title)
@@ -259,10 +195,10 @@ public struct ItemDetailView: View {
         }
     }
 
-    // MARK: - 1. Top Navigation Bar
+    // MARK: - 1. Top Navigation Bar (Controls at top right like web)
     private var topNavigationBar: some View {
-        HStack(spacing: 12) {
-            // Back Button
+        HStack(spacing: 8) {
+            // Left: Back Button
             Button {
                 dismiss()
                 LBHaptic.light()
@@ -271,7 +207,7 @@ public struct ItemDetailView: View {
                     Image(systemName: isModal ? "xmark" : "chevron.left")
                         .font(.system(size: isModal ? 14 : 16, weight: .bold))
                     Text(isModal ? "Done" : "Back")
-                        .font(.system(size: 15, weight: .medium))
+                        .font(.system(size: 14, weight: .semibold))
                 }
                 .foregroundColor(AppTheme.textPrimary)
                 .padding(.vertical, 8)
@@ -281,102 +217,108 @@ public struct ItemDetailView: View {
 
             Spacer()
 
-            // Center Domain / Sender badge
+            // Right Action Controls: Grouped together exactly like web
             HStack(spacing: 6) {
-                ZStack {
-                    Circle()
-                        .fill(Color(hex: "171711"))
-                        .frame(width: 22, height: 22)
-                    Text(senderInitial)
-                        .font(.system(size: 10, weight: .black))
-                        .foregroundColor(Color(hex: "E6EDB0"))
-                }
-                Text(domainOrSender)
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundColor(AppTheme.textPrimary)
-                    .lineLimit(1)
-            }
-
-            Spacer()
-
-            // Right Quick Action Icons
-            HStack(spacing: 6) {
-                // Star Button
+                // 1. Star / Favorite Button
                 Button {
                     coordinator.toggleFavorite(item: item, context: modelContext)
                     LBHaptic.medium()
                 } label: {
                     Image(systemName: item.favorite ? "star.fill" : "star")
-                        .font(.system(size: 17, weight: .semibold))
-                        .foregroundColor(item.favorite ? Color(hex: "F59E0B") : AppTheme.textPrimary)
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundColor(item.favorite ? Color(hex: "F59E0B") : Color(hex: "6C6B63"))
                         .frame(width: 34, height: 34)
-                        .background(Color.white, in: Circle())
-                        .overlay(Circle().strokeBorder(Color.black.opacity(0.08), lineWidth: 1))
+                        .background(item.favorite ? Color(hex: "FEF3C7") : Color.white, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                .strokeBorder(Color.black.opacity(0.08), lineWidth: 1)
+                        )
                 }
                 .buttonStyle(.plain)
 
-                // Share Button
+                // 2. Keep / Archive / Move to Inbox Status Action Pill
+                statusActionButton
+
+                // 3. Collections Button
+                Button {
+                    showingCollectionSheet = true
+                    LBHaptic.light()
+                } label: {
+                    Image(systemName: (item.collectionName != nil && !item.collectionName!.isEmpty) ? "folder.fill" : "folder.badge.plus")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(Color(hex: "0369A1"))
+                        .frame(width: 34, height: 34)
+                        .background(Color.white, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                .strokeBorder(Color.black.opacity(0.08), lineWidth: 1)
+                        )
+                }
+                .buttonStyle(.plain)
+
+                // 4. Share / Copy Link Button
                 if let urlStr = item.url, let url = URL(string: urlStr) {
                     ShareLink(item: url) {
                         Image(systemName: "square.and.arrow.up")
-                            .font(.system(size: 15, weight: .semibold))
-                            .foregroundColor(AppTheme.textPrimary)
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(Color(hex: "6C6B63"))
                             .frame(width: 34, height: 34)
-                            .background(Color.white, in: Circle())
-                            .overlay(Circle().strokeBorder(Color.black.opacity(0.08), lineWidth: 1))
+                            .background(Color.white, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                    .strokeBorder(Color.black.opacity(0.08), lineWidth: 1)
+                            )
+                    }
+                    .buttonStyle(.plain)
+                } else {
+                    Button {
+                        let textToCopy = item.title + (item.textContent.map { "\n\n\($0)" } ?? "")
+                        UIPasteboard.general.string = textToCopy
+                        LBHaptic.success()
+                    } label: {
+                        Image(systemName: "doc.on.doc")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(Color(hex: "6C6B63"))
+                            .frame(width: 34, height: 34)
+                            .background(Color.white, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                    .strokeBorder(Color.black.opacity(0.08), lineWidth: 1)
+                            )
                     }
                     .buttonStyle(.plain)
                 }
 
-                // Overflow Options Menu
-                Menu {
-                    Button {
-                        if item.status == ItemStatus.saved.rawValue {
-                            coordinator.scheduleItem(item: item, date: Date(), context: modelContext)
-                        } else {
-                            coordinator.markDone(item: item, context: modelContext)
-                        }
-                    } label: {
-                        Label(item.status == ItemStatus.saved.rawValue ? "Return Item" : "Mark as Done",
-                              systemImage: item.status == ItemStatus.saved.rawValue ? "arrow.uturn.backward" : "checkmark")
+                // 5. External Safari Link (if URL exists)
+                if let urlStr = item.url, let url = URL(string: urlStr) {
+                    Link(destination: url) {
+                        Image(systemName: "arrow.up.right.square")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(Color(hex: "6C6B63"))
+                            .frame(width: 34, height: 34)
+                            .background(Color.white, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                    .strokeBorder(Color.black.opacity(0.08), lineWidth: 1)
+                            )
                     }
+                    .buttonStyle(.plain)
+                }
 
-                    Button {
-                        scheduledDate = item.returnAt ?? Date().addingTimeInterval(86400)
-                        showingSchedulePicker = true
-                    } label: {
-                        Label("Schedule Return...", systemImage: "calendar.badge.clock")
-                    }
-
-                    Button {
-                        newCategoryText = item.category
-                        showingCategoryEdit = true
-                    } label: {
-                        Label("Edit Category / Tags", systemImage: "folder")
-                    }
-
-                    if let urlStr = item.url, URL(string: urlStr) != nil {
-                        Button {
-                            showingSafariReader = true
-                        } label: {
-                            Label("Open Reader View", systemImage: "book.pages")
-                        }
-                    }
-
-                    Divider()
-
-                    Button(role: .destructive) {
-                        showingDeleteConfirm = true
-                    } label: {
-                        Label("Delete Item", systemImage: "trash")
-                    }
+                // 6. Delete Button
+                Button {
+                    showingDeleteConfirm = true
+                    LBHaptic.light()
                 } label: {
-                    Image(systemName: "ellipsis")
-                        .font(.system(size: 15, weight: .bold))
-                        .foregroundColor(AppTheme.textPrimary)
+                    Image(systemName: "trash")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(Color(hex: "EF4444"))
                         .frame(width: 34, height: 34)
-                        .background(Color.white, in: Circle())
-                        .overlay(Circle().strokeBorder(Color.black.opacity(0.08), lineWidth: 1))
+                        .background(Color.white, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                .strokeBorder(Color.black.opacity(0.08), lineWidth: 1)
+                        )
                 }
                 .buttonStyle(.plain)
             }
@@ -387,18 +329,131 @@ public struct ItemDetailView: View {
         .background(AppTheme.canvasBackground)
     }
 
-    // MARK: - 2. Main Saved Content Header Card
+    // MARK: - Status Action Button (Keep / Archive / Move to Inbox)
+    private var statusActionButton: some View {
+        Button {
+            if item.status == ItemStatus.inbox.rawValue || item.status == ItemStatus.deferred.rawValue {
+                coordinator.markDone(item: item, context: modelContext) // Moves to saved (Kept)
+            } else if item.status == ItemStatus.saved.rawValue {
+                item.status = ItemStatus.archived.rawValue
+                persistEdit()
+                Task { await coordinator.syncPendingItems(context: modelContext) }
+                LBHaptic.medium()
+            } else {
+                item.status = ItemStatus.inbox.rawValue
+                persistEdit()
+                Task { await coordinator.syncPendingItems(context: modelContext) }
+                LBHaptic.light()
+            }
+        } label: {
+            HStack(spacing: 4) {
+                if item.status == ItemStatus.inbox.rawValue || item.status == ItemStatus.deferred.rawValue {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 12, weight: .bold))
+                    Text("Keep")
+                        .font(.system(size: 12, weight: .bold))
+                } else if item.status == ItemStatus.saved.rawValue {
+                    Image(systemName: "archivebox.fill")
+                        .font(.system(size: 12, weight: .bold))
+                    Text("Archive")
+                        .font(.system(size: 12, weight: .bold))
+                } else {
+                    Image(systemName: "tray.fill")
+                        .font(.system(size: 12, weight: .bold))
+                    Text("Inbox")
+                        .font(.system(size: 12, weight: .bold))
+                }
+            }
+            .padding(.horizontal, 10)
+            .frame(height: 34)
+            .background(
+                (item.status == ItemStatus.inbox.rawValue || item.status == ItemStatus.deferred.rawValue)
+                    ? Color(hex: "E6EDB0")
+                    : Color.white,
+                in: RoundedRectangle(cornerRadius: 10, style: .continuous)
+            )
+            .foregroundColor(Color(hex: "171711"))
+            .overlay(
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .strokeBorder(Color.black.opacity(0.08), lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
+    // MARK: - 2. Return Schedule Banner
+    private func returnScheduleBanner(ret: Date) -> some View {
+        let isTodayOrOverdue = Calendar.current.isDateInToday(ret) || ret < Date()
+        return HStack(spacing: 10) {
+            ZStack {
+                Circle()
+                    .fill(isTodayOrOverdue ? Color(hex: "171711") : Color(hex: "E6EDB0"))
+                    .frame(width: 30, height: 30)
+                Image(systemName: isTodayOrOverdue ? "exclamationmark.clock.fill" : "calendar.badge.clock")
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundColor(isTodayOrOverdue ? Color(hex: "E6EDB0") : Color(hex: "171711"))
+            }
+
+            VStack(alignment: .leading, spacing: 1) {
+                Text(isTodayOrOverdue ? "Due Today" : "Scheduled Return")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundColor(AppTheme.textPrimary)
+                Text(ret, format: .dateTime.month().day().year().hour().minute())
+                    .font(.system(size: 11))
+                    .foregroundColor(Color.secondary)
+            }
+
+            Spacer()
+
+            Button("Reschedule") {
+                scheduledDate = ret
+                showingSchedulePicker = true
+                LBHaptic.light()
+            }
+            .font(.system(size: 11, weight: .bold))
+            .foregroundColor(AppTheme.textPrimary)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 5)
+            .background(Color.black.opacity(0.04), in: Capsule())
+
+            Button {
+                item.returnAt = nil
+                item.status = ItemStatus.inbox.rawValue
+                persistEdit()
+                Task {
+                    _ = try? await ReturnNotification.update(id: item.id, title: item.title, date: nil)
+                }
+                LBHaptic.light()
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundColor(.secondary)
+                    .frame(width: 24, height: 24)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(Color.white)
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .strokeBorder(Color.black.opacity(0.06), lineWidth: 1)
+        )
+        .shadow(color: Color.black.opacity(0.02), radius: 4, y: 1)
+    }
+
+    // MARK: - 3. Main Header Card
     private var mainHeaderCard: some View {
         VStack(alignment: .leading, spacing: 12) {
             // Top sender & metadata chips
             HStack(spacing: 8) {
-                // Sender circle
                 ZStack {
                     Circle()
                         .fill(Color(hex: "171711"))
-                        .frame(width: 24, height: 24)
+                        .frame(width: 22, height: 22)
                     Text(senderInitial)
-                        .font(.system(size: 11, weight: .black))
+                        .font(.system(size: 10, weight: .black))
                         .foregroundColor(Color(hex: "E6EDB0"))
                 }
 
@@ -406,7 +461,6 @@ public struct ItemDetailView: View {
                     .font(.system(size: 13, weight: .bold))
                     .foregroundColor(AppTheme.textPrimary)
 
-                // Format pill
                 Text(item.parsedContentType.rawValue.capitalized)
                     .font(.system(size: 10, weight: .bold))
                     .padding(.horizontal, 7)
@@ -416,7 +470,6 @@ public struct ItemDetailView: View {
 
                 Spacer()
 
-                // Date
                 Text(item.createdAt, format: .dateTime.month().day().year())
                     .font(.system(size: 11, weight: .medium))
                     .foregroundColor(Color.secondary)
@@ -441,23 +494,25 @@ public struct ItemDetailView: View {
                     .lineSpacing(2)
             }
 
-            // Category & Tags Chips
+            // Collections, Tags & Reader View shortcut
             HStack(spacing: 6) {
-                if !item.category.isEmpty {
-                    HStack(spacing: 4) {
-                        Image(systemName: "folder.fill")
-                            .font(.system(size: 10))
-                        Text(item.category)
-                            .font(.system(size: 11, weight: .bold))
+                if let collName = item.collectionName ?? (item.category.isEmpty ? nil : item.category), !collName.isEmpty {
+                    Button {
+                        showingCollectionSheet = true
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "folder.fill")
+                                .font(.system(size: 10))
+                                .foregroundColor(Color(hex: "0369A1"))
+                            Text(collName)
+                                .font(.system(size: 11, weight: .bold))
+                                .foregroundColor(Color(hex: "0369A1"))
+                        }
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Color(hex: "E0F2FE"), in: RoundedRectangle(cornerRadius: 6))
                     }
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(Color(hex: "E6EDB0").opacity(0.6), in: RoundedRectangle(cornerRadius: 6))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 6)
-                            .strokeBorder(Color(hex: "D0DB84"), lineWidth: 1)
-                    )
-                    .foregroundColor(Color(hex: "171711"))
+                    .buttonStyle(.plain)
                 }
 
                 ForEach(item.tags, id: \.self) { tag in
@@ -471,24 +526,26 @@ public struct ItemDetailView: View {
 
                 Spacer()
 
-                // Reply to root content shortcut
-                Button {
-                    quotedSnippet = item.title
-                    isInputFocused = true
-                    LBHaptic.light()
-                } label: {
-                    HStack(spacing: 3) {
-                        Image(systemName: "arrowshape.turn.up.left.fill")
-                            .font(.system(size: 10))
-                        Text("Reply")
-                            .font(.system(size: 11, weight: .bold))
+                // In-app Reader View button (if URL is valid)
+                if let urlStr = item.url, URL(string: urlStr) != nil {
+                    Button {
+                        showingSafariReader = true
+                        LBHaptic.light()
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "book.pages")
+                                .font(.system(size: 11, weight: .bold))
+                            Text("Reader")
+                                .font(.system(size: 11, weight: .bold))
+                        }
+                        .foregroundColor(AppTheme.textPrimary)
+                        .padding(.horizontal, 9)
+                        .padding(.vertical, 4)
+                        .background(Color(hex: "F7F5EE"), in: Capsule())
+                        .overlay(Capsule().strokeBorder(Color.black.opacity(0.08), lineWidth: 1))
                     }
-                    .foregroundColor(Color.secondary)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(Color.black.opacity(0.04), in: Capsule())
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
             }
         }
         .padding(16)
@@ -501,161 +558,35 @@ public struct ItemDetailView: View {
         .shadow(color: Color.black.opacity(0.03), radius: 6, y: 2)
     }
 
-    // MARK: - 3. Quick Actions Row (Reader, Safari, Share, Status)
-    private var quickActionsRow: some View {
-        HStack(spacing: 8) {
-            // In-app Reader View
-            if let urlStr = item.url, URL(string: urlStr) != nil {
-                Button {
-                    LBHaptic.light()
-                    showingSafariReader = true
-                } label: {
-                    HStack(spacing: 5) {
-                        Image(systemName: "book.pages")
-                            .font(.system(size: 13, weight: .bold))
-                        Text("Reader")
-                            .font(.system(size: 13, weight: .bold))
-                    }
-                    .foregroundColor(AppTheme.textPrimary)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 11)
-                    .background(Color.white)
-                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .strokeBorder(Color.black.opacity(0.07), lineWidth: 1)
-                    )
-                }
-                .buttonStyle(.plain)
-
-                // Safari external link
-                Link(destination: URL(string: urlStr)!) {
-                    HStack(spacing: 5) {
-                        Image(systemName: "safari")
-                            .font(.system(size: 13, weight: .bold))
-                        Text("Safari")
-                            .font(.system(size: 13, weight: .bold))
-                    }
-                    .foregroundColor(AppTheme.textPrimary)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 11)
-                    .background(Color.white)
-                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .strokeBorder(Color.black.opacity(0.07), lineWidth: 1)
-                    )
-                }
-                .buttonStyle(.plain)
+    // MARK: - 4. Captured Highlight Quote Card
+    private func capturedHighlightCard(text: String) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 5) {
+                Image(systemName: "quote.opening")
+                    .font(.system(size: 11, weight: .bold))
+                Text("CAPTURED HIGHLIGHT")
+                    .font(.system(size: 10, weight: .bold))
+                    .tracking(0.5)
             }
+            .foregroundColor(Color(hex: "B45309"))
 
-            // Return / Done Button
-            Button {
-                if item.status == ItemStatus.saved.rawValue {
-                    coordinator.scheduleItem(item: item, date: Date(), context: modelContext)
-                } else {
-                    coordinator.markDone(item: item, context: modelContext)
-                }
-                LBHaptic.medium()
-            } label: {
-                HStack(spacing: 5) {
-                    Image(systemName: item.status == ItemStatus.saved.rawValue ? "arrow.uturn.backward" : "checkmark")
-                        .font(.system(size: 13, weight: .bold))
-                    Text(item.status == ItemStatus.saved.rawValue ? "Return" : "Done")
-                        .font(.system(size: 13, weight: .bold))
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 11)
-                .background(
-                    item.status == ItemStatus.saved.rawValue
-                        ? Color(hex: "E6EDB0")
-                        : Color(hex: "171711")
-                )
-                .foregroundColor(item.status == ItemStatus.saved.rawValue ? Color(hex: "171711") : Color.white)
-                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-            }
-            .buttonStyle(.plain)
-        }
-    }
-
-    // MARK: - 4. Return Schedule Card
-    private func returnScheduleCard(ret: Date) -> some View {
-        let isTodayOrOverdue = Calendar.current.isDateInToday(ret) || ret < Date()
-        return HStack(spacing: 12) {
-            ZStack {
-                Circle()
-                    .fill(isTodayOrOverdue ? Color(hex: "171711") : Color(hex: "E6EDB0"))
-                    .frame(width: 36, height: 36)
-                Image(systemName: isTodayOrOverdue ? "exclamationmark.clock.fill" : "calendar.badge.clock")
-                    .font(.system(size: 15, weight: .bold))
-                    .foregroundColor(isTodayOrOverdue ? Color(hex: "E6EDB0") : Color(hex: "171711"))
-            }
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text(isTodayOrOverdue ? "Due Today" : "Scheduled Return")
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundColor(AppTheme.textPrimary)
-                Text(ret, format: .dateTime.month().day().year())
-                    .font(.system(size: 11))
-                    .foregroundColor(Color.secondary)
-            }
-
-            Spacer()
-
-            Button("Clear") {
-                item.returnAt = nil
-                item.status = ItemStatus.inbox.rawValue
-                persistEdit()
-                Task {
-                    _ = try? await ReturnNotification.update(id: item.id, title: item.title, date: nil)
-                }
-                LBHaptic.light()
-            }
-            .font(.system(size: 11, weight: .bold))
-            .foregroundColor(.red)
-            .padding(.horizontal, 10)
-            .padding(.vertical, 6)
-            .background(Color.red.opacity(0.08), in: Capsule())
-        }
-        .padding(14)
-        .background(Color.white)
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .strokeBorder(Color.black.opacity(0.06), lineWidth: 1)
-        )
-        .shadow(color: Color.black.opacity(0.03), radius: 6, y: 2)
-    }
-
-    // MARK: - 5. AI Summary Card
-    private var aiSummaryCard: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 6) {
-                Image(systemName: "sparkles")
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundColor(Color(hex: "1A73E8"))
-                Text("AI Summary")
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundColor(AppTheme.textPrimary)
-            }
-
-            Text(item.summary)
-                .font(.system(size: 13, weight: .regular))
-                .foregroundColor(Color(hex: "45443F"))
+            Text("“\(text)”")
+                .font(.system(size: 14, weight: .medium))
+                .foregroundColor(Color(hex: "92400E"))
+                .italic()
                 .lineSpacing(3)
         }
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.white)
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .background(Color(hex: "FEF3C7").opacity(0.7))
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .strokeBorder(Color.black.opacity(0.06), lineWidth: 1)
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .strokeBorder(Color(hex: "FDE68A"), lineWidth: 1)
         )
-        .shadow(color: Color.black.opacity(0.03), radius: 6, y: 2)
     }
 
-    // MARK: - 6. Document Attachments Card
+    // MARK: - 5. Document Attachments Card
     private func attachmentsCard(files: [SharedAttachment]) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 6) {
@@ -712,56 +643,124 @@ public struct ItemDetailView: View {
         }
     }
 
-    // MARK: - 7. Follow-ups & Notes Stream Header
-    private var followUpsStreamHeader: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "bubble.left.and.bubble.right.fill")
-                .font(.system(size: 13))
-                .foregroundColor(Color.secondary)
-            Text("FOLLOW-UPS & NOTES (\(threadData.entries.count))")
-                .font(.system(size: 11, weight: .bold))
-                .foregroundColor(Color.secondary)
-                .tracking(0.6)
+    // MARK: - 6. AI Summary Card
+    private var aiSummaryCard: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 6) {
+                Image(systemName: "sparkles")
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundColor(Color(hex: "1A73E8"))
+                Text("AI Summary")
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundColor(AppTheme.textPrimary)
+            }
 
-            Rectangle()
-                .fill(Color.black.opacity(0.08))
-                .frame(height: 1)
+            Text(item.summary)
+                .font(.system(size: 13, weight: .regular))
+                .foregroundColor(Color(hex: "45443F"))
+                .lineSpacing(3)
         }
-        .padding(.top, 8)
-        .padding(.bottom, 2)
-    }
-
-    // MARK: - 8. Empty Follow-ups State
-    private var emptyFollowUpsCard: some View {
-        VStack(spacing: 8) {
-            Image(systemName: "sparkles")
-                .font(.system(size: 24))
-                .foregroundColor(Color.secondary.opacity(0.7))
-            Text("No follow-ups added yet")
-                .font(.system(size: 13, weight: .bold))
-                .foregroundColor(AppTheme.textPrimary)
-            Text("Use the prompt below to add notes, attach thoughts, or track progress.")
-                .font(.system(size: 11))
-                .foregroundColor(Color.secondary)
-                .multilineTextAlignment(.center)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 24)
-        .padding(.horizontal, 20)
-        .background(Color.white.opacity(0.7))
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.white)
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .strokeBorder(Color.black.opacity(0.08), style: StrokeStyle(lineWidth: 1, dash: [4, 4]))
+                .strokeBorder(Color.black.opacity(0.06), lineWidth: 1)
         )
+        .shadow(color: Color.black.opacity(0.03), radius: 6, y: 2)
     }
 
-    // MARK: - 9. Individual Follow-up Entry Card
+    // MARK: - 7. Notes & Follow-ups Card (Unobtrusive & Cleanly Integrated)
+    private var notesAndFollowUpsCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 6) {
+                Image(systemName: "square.and.pencil")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundColor(Color.secondary)
+                Text("NOTES & FOLLOW-UPS (\(threadData.entries.count))")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundColor(Color.secondary)
+                    .tracking(0.6)
+            }
+
+            // Existing entries list
+            if !threadData.entries.isEmpty {
+                VStack(spacing: 8) {
+                    ForEach(threadData.entries) { entry in
+                        followUpEntryCard(entry: entry)
+                    }
+                }
+            }
+
+            // Inline Note Input Box (Non-intrusive)
+            VStack(spacing: 6) {
+                if let snippet = quotedSnippet {
+                    HStack(spacing: 6) {
+                        Image(systemName: "arrowshape.turn.up.left.fill")
+                            .font(.system(size: 10))
+                            .foregroundColor(Color.secondary)
+                        Text("Replying to: \"\(snippet)\"")
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundColor(AppTheme.textPrimary)
+                            .lineLimit(1)
+                        Spacer()
+                        Button {
+                            quotedSnippet = nil
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.system(size: 12))
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 4)
+                    .background(Color(hex: "F7F5EE"), in: RoundedRectangle(cornerRadius: 6))
+                }
+
+                HStack(alignment: .bottom, spacing: 8) {
+                    TextField("Add a note or thought...", text: $noteDraftText, axis: .vertical)
+                        .font(.system(size: 13))
+                        .foregroundColor(AppTheme.textPrimary)
+                        .lineLimit(1...4)
+                        .focused($isNoteFocused)
+
+                    let canSend = !noteDraftText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                    Button {
+                        sendNote()
+                    } label: {
+                        ZStack {
+                            Circle()
+                                .fill(canSend ? Color(hex: "171711") : Color.black.opacity(0.1))
+                                .frame(width: 28, height: 28)
+                            Image(systemName: "arrow.up")
+                                .font(.system(size: 11, weight: .bold))
+                                .foregroundColor(canSend ? Color(hex: "E6EDB0") : Color.white)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(!canSend)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(Color(hex: "F7F5EE"))
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            }
+        }
+        .padding(14)
+        .background(Color.white)
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .strokeBorder(Color.black.opacity(0.06), lineWidth: 1)
+        )
+        .shadow(color: Color.black.opacity(0.02), radius: 4, y: 1)
+    }
+
+    // MARK: - Follow-up Entry Card
     private func followUpEntryCard(entry: ItemThreadEntry) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            // Author info & Actions
             HStack(spacing: 8) {
-                // Author Avatar
                 ZStack {
                     Circle()
                         .fill(Color(hex: "171711"))
@@ -775,25 +774,15 @@ public struct ItemDetailView: View {
                     .font(.system(size: 12, weight: .bold))
                     .foregroundColor(AppTheme.textPrimary)
 
-                if entry.type == "note" {
-                    Text("Note")
-                        .font(.system(size: 9, weight: .bold))
-                        .padding(.horizontal, 5)
-                        .padding(.vertical, 2)
-                        .background(Color(hex: "E6EDB0"), in: RoundedRectangle(cornerRadius: 4))
-                        .foregroundColor(Color(hex: "171711"))
-                }
-
                 Text(entry.formattedRelativeTime)
                     .font(.system(size: 10))
                     .foregroundColor(Color.secondary)
 
                 Spacer()
 
-                // Reply to this entry button
                 Button {
                     quotedSnippet = entry.content
-                    isInputFocused = true
+                    isNoteFocused = true
                     LBHaptic.light()
                 } label: {
                     Image(systemName: "arrowshape.turn.up.left")
@@ -803,7 +792,6 @@ public struct ItemDetailView: View {
                 }
                 .buttonStyle(.plain)
 
-                // Delete entry button
                 Button {
                     deleteFollowUp(id: entry.id)
                 } label: {
@@ -815,7 +803,6 @@ public struct ItemDetailView: View {
                 .buttonStyle(.plain)
             }
 
-            // Attached Quote Snippet (if replying)
             if let snippet = entry.attachedSnippet, !snippet.isEmpty {
                 HStack(alignment: .top, spacing: 6) {
                     Rectangle()
@@ -832,135 +819,105 @@ public struct ItemDetailView: View {
                 .background(Color(hex: "F7F5EE"), in: RoundedRectangle(cornerRadius: 6))
             }
 
-            // Main Message Content
             Text(entry.content)
-                .font(.system(size: 14, weight: .regular))
+                .font(.system(size: 13, weight: .regular))
                 .foregroundColor(AppTheme.textPrimary)
                 .lineSpacing(2)
                 .textSelection(.enabled)
-
-            // Reactions Bar
-            HStack(spacing: 6) {
-                let reactions = ["👍", "❤️", "💡", "🔥"]
-                ForEach(reactions, id: \.self) { emoji in
-                    let count = entry.reactions?[emoji] ?? 0
-                    let hasReacted = (entry.userReactions ?? []).contains(emoji)
-
-                    Button {
-                        toggleReaction(entryId: entry.id, emoji: emoji)
-                    } label: {
-                        HStack(spacing: 3) {
-                            Text(emoji)
-                                .font(.system(size: 11))
-                            if count > 0 {
-                                Text("\(count)")
-                                    .font(.system(size: 10, weight: .bold))
-                                    .foregroundColor(hasReacted ? Color(hex: "171711") : Color.secondary)
-                            }
-                        }
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 3)
-                        .background(hasReacted ? Color(hex: "E6EDB0") : Color.black.opacity(0.03), in: Capsule())
-                        .overlay(
-                            Capsule().strokeBorder(hasReacted ? Color(hex: "D0DB84") : Color.clear, lineWidth: 1)
-                        )
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-            .padding(.top, 2)
         }
-        .padding(14)
-        .background(Color.white)
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .strokeBorder(Color.black.opacity(0.06), lineWidth: 1)
-        )
-        .shadow(color: Color.black.opacity(0.03), radius: 6, y: 2)
+        .padding(12)
+        .background(Color(hex: "FAFAF8"))
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
-    // MARK: - 10. Fixed Bottom Chat Input Bar (Matching Web style)
-    private var bottomChatInputBar: some View {
-        VStack(spacing: 0) {
-            // Quoted banner above the bar if replying
-            if let snippet = quotedSnippet {
-                HStack(spacing: 8) {
-                    Image(systemName: "arrowshape.turn.up.left.fill")
-                        .font(.system(size: 11))
-                        .foregroundColor(Color.secondary)
-
-                    Text("Replying to: \"\(snippet)\"")
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundColor(AppTheme.textPrimary)
-                        .lineLimit(1)
-
-                    Spacer()
-
-                    Button {
-                        quotedSnippet = nil
-                        LBHaptic.light()
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.system(size: 14))
-                            .foregroundColor(Color.secondary)
-                    }
-                    .buttonStyle(.plain)
-                }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 6)
-                .background(Color(hex: "F7F5EE"))
-                .transition(.opacity.combined(with: .move(edge: .bottom)))
-            }
-
-            // Input Pill
-            HStack(spacing: 10) {
-                // Text Input
-                TextField("Add follow-up, thought, or note...", text: $followUpText, axis: .vertical)
-                    .font(.system(size: 14))
-                    .foregroundColor(AppTheme.textPrimary)
-                    .lineLimit(1...4)
-                    .focused($isInputFocused)
-                    .submitLabel(.send)
-                    .padding(.leading, 6)
-                    .onSubmit {
-                        sendFollowUp()
-                    }
-
-                // Send Button
-                let canSend = !followUpText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                Button {
-                    sendFollowUp()
-                } label: {
-                    ZStack {
-                        Circle()
-                            .fill(canSend ? Color(hex: "171711") : Color.black.opacity(0.12))
-                            .frame(width: 32, height: 32)
-                        Image(systemName: "arrow.up")
+    // MARK: - Collection Picker Sheet
+    private var collectionPickerSheet: some View {
+        NavigationStack {
+            List {
+                Section("Current Collection") {
+                    if let current = item.collectionName, !current.isEmpty {
+                        HStack {
+                            Image(systemName: "folder.fill")
+                                .foregroundColor(Color(hex: "0369A1"))
+                            Text(current)
+                                .font(.system(size: 15, weight: .semibold))
+                            Spacer()
+                            Button("Remove") {
+                                item.collectionName = nil
+                                item.collectionId = nil
+                                item.category = ""
+                                persistEdit()
+                                showingCollectionSheet = false
+                                LBHaptic.light()
+                            }
                             .font(.system(size: 13, weight: .bold))
-                            .foregroundColor(canSend ? Color(hex: "E6EDB0") : Color.white)
+                            .foregroundColor(.red)
+                        }
+                    } else {
+                        Text("No collection assigned")
+                            .font(.system(size: 14))
+                            .foregroundColor(.secondary)
                     }
                 }
-                .buttonStyle(.plain)
-                .disabled(!canSend)
+
+                Section("Available Collections") {
+                    ForEach(availableCollections) { coll in
+                        Button {
+                            item.collectionName = coll.name
+                            item.collectionId = coll.id
+                            item.category = coll.name
+                            persistEdit()
+                            showingCollectionSheet = false
+                            LBHaptic.medium()
+                        } label: {
+                            HStack {
+                                Image(systemName: coll.iconName)
+                                    .foregroundColor(Color(hex: coll.colorHex))
+                                Text(coll.name)
+                                    .font(.system(size: 15, weight: .medium))
+                                    .foregroundColor(AppTheme.textPrimary)
+                                Spacer()
+                                if item.collectionName == coll.name {
+                                    Image(systemName: "checkmark")
+                                        .font(.system(size: 13, weight: .bold))
+                                        .foregroundColor(Color(hex: "0369A1"))
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Section("Create New Collection") {
+                    HStack {
+                        TextField("New collection name", text: $newCollectionName)
+                            .font(.system(size: 14))
+                        Button("Add") {
+                            let trimmed = newCollectionName.trimmingCharacters(in: .whitespacesAndNewlines)
+                            if !trimmed.isEmpty {
+                                let coll = coordinator.ensureCollectionExists(named: trimmed, context: modelContext)
+                                item.collectionName = coll?.name ?? trimmed
+                                item.collectionId = coll?.id ?? item.collectionId
+                                item.category = trimmed
+                                persistEdit()
+                                newCollectionName = ""
+                                showingCollectionSheet = false
+                                LBHaptic.medium()
+                            }
+                        }
+                        .disabled(newCollectionName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                        .font(.system(size: 13, weight: .bold))
+                    }
+                }
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background(Color.white)
-            .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .strokeBorder(Color.black.opacity(0.1), lineWidth: 1)
-            )
-            .shadow(color: Color.black.opacity(0.06), radius: 8, y: 3)
-            .padding(.horizontal, 14)
-            .padding(.top, 6)
-            .padding(.bottom, 8)
+            .navigationTitle("Collections")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Done") { showingCollectionSheet = false }
+                }
+            }
         }
-        .background(
-            AppTheme.canvasBackground
-                .shadow(color: Color.black.opacity(0.03), radius: 4, y: -2)
-        )
+        .presentationDetents([.medium, .large])
     }
 
     // MARK: - Schedule Picker Sheet
@@ -1014,8 +971,8 @@ public struct ItemDetailView: View {
     }
 
     // MARK: - Actions & Persistence
-    private func sendFollowUp() {
-        let text = followUpText.trimmingCharacters(in: .whitespacesAndNewlines)
+    private func sendNote() {
+        let text = noteDraftText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return }
 
         let snippet = quotedSnippet
@@ -1026,36 +983,15 @@ public struct ItemDetailView: View {
             attachedSnippet: snippet
         )
 
-        followUpText = ""
+        noteDraftText = ""
         quotedSnippet = nil
+        isNoteFocused = false
         persistThread()
         LBHaptic.medium()
     }
 
     private func deleteFollowUp(id: String) {
         threadData.entries.removeAll { $0.id == id }
-        persistThread()
-        LBHaptic.light()
-    }
-
-    private func toggleReaction(entryId: String, emoji: String) {
-        guard let idx = threadData.entries.firstIndex(where: { $0.id == entryId }) else { return }
-        var entry = threadData.entries[idx]
-        var reactions = entry.reactions ?? [:]
-        var userReactions = entry.userReactions ?? []
-
-        if userReactions.contains(emoji) {
-            userReactions.removeAll { $0 == emoji }
-            reactions[emoji] = max(0, (reactions[emoji] ?? 1) - 1)
-            if reactions[emoji] == 0 { reactions.removeValue(forKey: emoji) }
-        } else {
-            userReactions.append(emoji)
-            reactions[emoji] = (reactions[emoji] ?? 0) + 1
-        }
-
-        entry.reactions = reactions
-        entry.userReactions = userReactions
-        threadData.entries[idx] = entry
         persistThread()
         LBHaptic.light()
     }
