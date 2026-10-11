@@ -26,19 +26,19 @@ public struct SyncSettingsView: View {
                     VStack(spacing: 12) {
                         ZStack {
                             Circle()
-                                .fill(coordinator.isAuthenticated ? AppTheme.accent : Color.orange.opacity(0.15))
+                                .fill((coordinator.isAuthenticated && coordinator.isProUser) ? AppTheme.accent : Color.orange.opacity(0.15))
                                 .frame(width: 72, height: 72)
-                            Image(systemName: coordinator.isAuthenticated ? coordinator.syncState.iconName : "bolt.horizontal.icloud.fill")
+                            Image(systemName: (coordinator.isAuthenticated && coordinator.isProUser) ? coordinator.syncState.iconName : ((coordinator.isAuthenticated) ? "crown.fill" : "bolt.horizontal.icloud.fill"))
                                 .font(.system(size: 32, weight: .semibold))
-                                .foregroundColor(coordinator.isAuthenticated ? coordinator.syncState.statusColor : Color.orange)
+                                .foregroundColor((coordinator.isAuthenticated && coordinator.isProUser) ? coordinator.syncState.statusColor : Color.orange)
                         }
 
                         VStack(spacing: 4) {
-                            Text(coordinator.isAuthenticated ? coordinator.syncState.rawValue : "Local Mode")
+                            Text((coordinator.isAuthenticated && coordinator.isProUser) ? coordinator.syncState.rawValue : (coordinator.isAuthenticated ? "Free Plan (Local Only)" : "Local Mode"))
                                 .font(.system(size: 20, weight: .bold))
                                 .foregroundColor(AppTheme.textPrimary)
 
-                            Text(coordinator.isAuthenticated ? "Multi-device cloud synchronization active" : "Items are stored privately on this device")
+                            Text((coordinator.isAuthenticated && coordinator.isProUser) ? "Multi-device cloud synchronization active" : (coordinator.isAuthenticated ? "Cloud sync is exclusive to Pro. Upgrade to sync across all devices." : "Items are stored privately on this device"))
                                 .font(.subheadline)
                                 .foregroundColor(AppTheme.textSecondary)
                                 .multilineTextAlignment(.center)
@@ -58,15 +58,15 @@ public struct SyncSettingsView: View {
                             HStack {
                                 HStack(spacing: 8) {
                                     Image(systemName: "arrow.triangle.2.circlepath")
-                                        .foregroundColor(coordinator.syncState.statusColor)
+                                        .foregroundColor((coordinator.isAuthenticated && coordinator.isProUser) ? coordinator.syncState.statusColor : AppTheme.textSecondary)
                                     Text("Sync Engine Status")
                                         .font(.subheadline)
                                         .foregroundColor(AppTheme.textPrimary)
                                 }
                                 Spacer()
-                                Text(coordinator.isAuthenticated ? coordinator.syncState.rawValue : "Off (Local Only)")
+                                Text((coordinator.isAuthenticated && coordinator.isProUser) ? coordinator.syncState.rawValue : (coordinator.isAuthenticated ? "Off (Pro Required)" : "Off (Local Only)"))
                                     .font(.subheadline.weight(.semibold))
-                                    .foregroundColor(coordinator.isAuthenticated ? coordinator.syncState.statusColor : AppTheme.textSecondary)
+                                    .foregroundColor((coordinator.isAuthenticated && coordinator.isProUser) ? coordinator.syncState.statusColor : AppTheme.textSecondary)
                             }
 
                             Divider().background(AppTheme.cardBorder)
@@ -80,7 +80,7 @@ public struct SyncSettingsView: View {
                                         .foregroundColor(AppTheme.textPrimary)
                                 }
                                 Spacer()
-                                Text(coordinator.isAuthenticated ? (coordinator.lastSyncedAt != nil ? coordinator.lastSyncedAt!.formatted(date: .omitted, time: .shortened) : "Just now") : "Never (Local)")
+                                Text((coordinator.isAuthenticated && coordinator.isProUser) ? (coordinator.lastSyncedAt != nil ? coordinator.lastSyncedAt!.formatted(date: .omitted, time: .shortened) : "Just now") : (coordinator.isAuthenticated ? "Disabled on Free Plan" : "Never (Local)"))
                                     .font(.caption.weight(.medium))
                                     .foregroundColor(AppTheme.textPrimary)
                             }
@@ -102,7 +102,7 @@ public struct SyncSettingsView: View {
                                     .foregroundColor(AppTheme.textSecondary)
                             }
 
-                            if coordinator.syncState == .error, let errorMsg = coordinator.lastSyncErrorMessage, !errorMsg.isEmpty {
+                            if coordinator.isAuthenticated, coordinator.isProUser, coordinator.syncState == .error, let errorMsg = coordinator.lastSyncErrorMessage, !errorMsg.isEmpty {
                                 Divider().background(AppTheme.cardBorder)
 
                                 HStack(alignment: .top, spacing: 8) {
@@ -141,7 +141,7 @@ public struct SyncSettingsView: View {
                             .foregroundColor(.secondary)
                             .textCase(.uppercase)
 
-                        if coordinator.isAuthenticated {
+                        if coordinator.isAuthenticated && coordinator.isProUser {
                             Button(action: {
                                 LBHaptic.medium()
                                 isSyncing = true
@@ -160,7 +160,7 @@ public struct SyncSettingsView: View {
                                     } else {
                                         Image(systemName: "arrow.triangle.2.circlepath")
                                     }
-                                    Text(isSyncing ? "Syncing with Cloud…" : "Trigger Sync Now")
+                                    Text(isSyncing ? "Syncing with Cloud…" : "Force Sync Now")
                                         .font(.subheadline.weight(.semibold))
                                 }
                                 .frame(maxWidth: .infinity)
@@ -174,11 +174,16 @@ public struct SyncSettingsView: View {
                         } else {
                             Button(action: {
                                 LBHaptic.light()
-                                coordinator.showingPlansSheet = true
+                                if !coordinator.isAuthenticated {
+                                    coordinator.showingAuthSheet = true
+                                } else {
+                                    coordinator.showingPlansSheet = true
+                                }
                             }) {
                                 HStack(spacing: 8) {
                                     Image(systemName: "crown.fill")
-                                    Text("Upgrade to Pro to Enable Cloud Sync")
+                                        .foregroundColor(.orange)
+                                    Text(coordinator.isAuthenticated ? "Upgrade to Pro to Force Sync" : "Sign in & Upgrade to Pro to Sync")
                                         .font(.subheadline.weight(.semibold))
                                 }
                                 .frame(maxWidth: .infinity)
