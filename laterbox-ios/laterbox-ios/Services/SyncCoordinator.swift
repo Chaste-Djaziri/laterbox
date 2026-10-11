@@ -413,6 +413,19 @@ public final class SyncCoordinator: ObservableObject {
         LBHaptic.light()
     }
 
+    public func markItemSeen(item: LBItem, context: ModelContext) {
+        guard item.parsedStatus == .inbox, !item.seen else { return }
+        item.seen = true
+        item.updatedAt = Date()
+        item.isSyncPending = true
+        do {
+            try context.save()
+            Task { await syncPendingItems(context: context) }
+        } catch {
+            context.rollback()
+        }
+    }
+
     public func deleteItem(item: LBItem, context: ModelContext) {
         item.status = ItemStatus.deleted.rawValue
         item.updatedAt = Date()

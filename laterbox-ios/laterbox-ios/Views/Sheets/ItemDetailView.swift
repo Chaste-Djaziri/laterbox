@@ -179,6 +179,9 @@ public struct ItemDetailView: View {
             Task { await coordinator.syncPendingItems(context: modelContext) }
         }
         .task {
+            if item.parsedStatus == .inbox && !item.seen {
+                coordinator.markItemSeen(item: item, context: modelContext)
+            }
             threadData = ItemThreadParser.parse(from: item.noteContent)
 
             let needsTitleHeal = LinkMetadataLoader.isGenericTitle(item.title)
