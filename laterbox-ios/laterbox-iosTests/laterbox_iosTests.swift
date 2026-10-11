@@ -776,6 +776,98 @@ extension LaterAITests {
         coordinator.updateProFromStoreKit(false)
         modelManager.selectedProvider = .cloudGemini
     }
+
+    @Test
+    func syncConflictEqualTimestampDeleteWins() async throws {
+        let coordinator = SyncCoordinator.shared
+        let previous = (coordinator.currentUserId, coordinator.currentUserEmail, coordinator.authToken)
+        let uid = "user-conflict-test-001"
+        coordinator.currentUserId = uid
+        coordinator.currentUserEmail = "user@test.com"
+        coordinator.authToken = "tok"
+        coordinator.updateProFromStoreKit(true)
+        defer {
+            coordinator.currentUserId = previous.0
+            coordinator.currentUserEmail = previous.1
+            coordinator.authToken = previous.2
+            coordinator.updateProFromStoreKit(false)
+        }
+
+        let container = try ModelContainer(for: LBItem.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+        let context = container.mainContext
+
+        let timestampString = "2026-10-10T12:00:00Z"
+        let timestamp = SyncCoordinator.cloudDate(timestampString)!
+
+        // Case A: Local is active, remote is deleted with SAME timestamp -> remote delete wins
+        let itemA = LBItem(id: "item-a", title: "Active local", updatedAt: timestamp)
+        itemA.status = "inbox"
+        itemA.userId = uid
+        context.insert(itemA)
+
+        // Case B: Local is deleted, remote is active with SAME timestamp -> local delete wins (preserved)
+        let itemB = LBItem(id: "item-b", title: "Deleted local", updatedAt: timestamp)
+        itemB.status = "deleted"
+        itemB.userId = uid
+        context.insert(itemB)
+        try context.save()
+
+        let transport = MockCloudTransport()
+        transport.snapshots = [
+            CloudItemSnapshot(id: "item-a", user_id: uid, title: "Active local", status: "deleted", updated_at: timestampString, deleted_at: timestampString),
+            CloudItemSnapshot(id: "item-b", user_id: uid, title: "Active remote", status: "inbox", updated_at: timestampString, deleted_at: nil)
+        ]
+
+        try await coordinator.performCloudSync(context: context, transport: transport)
+
+        // Item A should have taken the remote deletion
+        #expect(itemA.status == "deleted")
+
+        // Item B should have preserved local deletion
+        #expect(itemB.status == "deleted")
+    }
+
+    @Test
+    func syncReportsSpecificErrorDiagnostics() async throws {
+        let coordinator = SyncCoordinator.shared
+        let previous = (coordinator.currentUserId, coordinator.currentUserEmail, coordinator.authToken)
+        let uid = "user-err-test-002"
+        coordinator.currentUserId = uid
+        coordinator.currentUserEmail = "user@test.com"
+        coordinator.authToken = "tok"
+        coordinator.updateProFromStoreKit(true)
+        defer {
+            coordinator.currentUserId = previous.0
+            coordinator.currentUserEmail = previous.1
+            coordinator.authToken = previous.2
+            coordinator.updateProFromStoreKit(false)
+        }
+
+        let container = try ModelContainer(for: LBItem.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+        let context = container.mainContext
+
+        // 1. Unauthorized / Session Expired
+        let authTransport = MockCloudTransport()
+        authTransport.errorToThrow = CloudSyncError.unauthorized(message: "JWT expired")
+        await coordinator.syncPendingItems(context: context, transport: authTransport)
+        #expect(coordinator.syncState == .error)
+        #expect(coordinator.lastSyncErrorMessage?.contains("JWT expired") == true)
+
+        // 2. Server Error with Status Code
+        let serverTransport = MockCloudTransport()
+        serverTransport.errorToThrow = CloudSyncError.serverError(statusCode: 503, message: "Gateway Timeout")
+        await coordinator.syncPendingItems(context: context, transport: serverTransport)
+        #expect(coordinator.syncState == .error)
+        #expect(coordinator.lastSyncErrorMessage?.contains("503") == true)
+        #expect(coordinator.lastSyncErrorMessage?.contains("Gateway Timeout") == true)
+
+        // 3. Network Offline URLError
+        let networkTransport = MockCloudTransport()
+        networkTransport.errorToThrow = URLError(.notConnectedToInternet)
+        await coordinator.syncPendingItems(context: context, transport: networkTransport)
+        #expect(coordinator.syncState == .error)
+        #expect(coordinator.lastSyncErrorMessage?.contains("No internet connection") == true)
+    }
 }
 @MainActor
 private final class MockCloudTransport: IOSCloudTransport {
@@ -783,9 +875,18 @@ private final class MockCloudTransport: IOSCloudTransport {
     var uploads: [[String: Any]] = []
     var snapshots: [CloudItemSnapshot] = []
     var failUpload = false
-    func downloadSnapshots(userID: String, token: String) async throws -> [CloudItemSnapshot] { downloads += 1; return snapshots }
-    func cloudRequest(_ path: String, token: String, method: String, body: Any?) async throws -> Data { Data() }
+    var errorToThrow: Error? = nil
+    func downloadSnapshots(userID: String, token: String) async throws -> [CloudItemSnapshot] {
+        if let err = errorToThrow { throw err }
+        downloads += 1
+        return snapshots
+    }
+    func cloudRequest(_ path: String, token: String, method: String, body: Any?) async throws -> Data {
+        if let err = errorToThrow { throw err }
+        return Data()
+    }
     func uploadSnapshot(_ body: [String: Any], metadata: [String: Any], note: [String: Any], collection: [String: Any]?, token: String) async throws {
+        if let err = errorToThrow { throw err }
         if failUpload { throw URLError(.notConnectedToInternet) }
         uploads.append(body)
     }
