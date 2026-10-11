@@ -1,14 +1,18 @@
 import type { LaterBoxItem } from '../supabase/types';
+import { resolveReturnPreset } from '../utils/schedule';
 export const LOCAL_ORIGIN = 'http://localhost:8080';
 export const LOCAL_KEY = 'laterbox_local_items_guest';
 
 export function isAllowedImportOrigin(origin: string): boolean {
   if (!origin) return false;
+  try {
+    const u = new URL(origin);
+    if ((u.hostname === 'localhost' || u.hostname === '127.0.0.1') && ['http:', 'https:'].includes(u.protocol)) return true;
+    if (u.protocol === 'https:' && (u.hostname.endsWith('.laterbox.dev') || u.hostname.endsWith('.laterbox.com'))) return true;
+  } catch {}
   return origin === 'http://localhost:8080'
     || origin === 'http://localhost:3000'
-    || origin === 'https://app.laterbox.dev'
-    || origin.endsWith('.laterbox.dev')
-    || origin.endsWith('.laterbox.com');
+    || origin === 'https://app.laterbox.dev';
 }
 
 type LocalCapture = {
@@ -17,6 +21,7 @@ type LocalCapture = {
   description?: string; author?: string; publishedAt?: string; truncated?: boolean;
   previewImageUrl?: string; faviconUrl?: string; siteName?: string;
   selector?: { exact?: string; before?: string; after?: string }; createdAt: string;
+  returnAt?: string | null;
 };
 
 export function localCaptureItem(raw: unknown, userId?: string | null): LaterBoxItem {
@@ -24,7 +29,7 @@ export function localCaptureItem(raw: unknown, userId?: string | null): LaterBox
   const c = raw as LocalCapture;
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(c.captureId)
     || typeof c.createdAt !== 'string' || !Number.isFinite(Date.parse(c.createdAt))) throw new Error('Invalid capture identity');
-  for (const field of ['url','canonicalUrl','text','markdown','title','description','author','publishedAt','previewImageUrl','faviconUrl','siteName'] as const) {
+  for (const field of ['url','canonicalUrl','text','markdown','title','description','author','publishedAt','previewImageUrl','faviconUrl','siteName','returnAt'] as const) {
     if (c[field] !== undefined && typeof c[field] !== 'string') throw new Error('Invalid capture field');
   }
   if ((c.url && !/^https?:\/\//i.test(c.url)) || (c.url?.length || 0) > 8192
@@ -32,10 +37,13 @@ export function localCaptureItem(raw: unknown, userId?: string | null): LaterBox
   if (c.kind && !['page','link','highlight','social'].includes(c.kind)) throw new Error('Invalid capture kind');
   const domain = c.url ? new URL(c.url).hostname : null;
   const ownerId = userId || null;
+  const returnAt = (typeof c.returnAt === 'string' && Number.isFinite(Date.parse(c.returnAt)))
+    ? c.returnAt
+    : resolveReturnPreset('tomorrow', new Date(c.createdAt || Date.now()));
   return {
     id: c.captureId, user_id: ownerId, url: c.url || null, title: c.title || domain || 'Capture',
     text_content: c.text || null, text_selector: c.selector ? JSON.stringify(c.selector) : null,
-    type: 'link', status: 'deferred', return_at: null, favorite: false,
+    type: 'link', status: 'deferred', return_at: returnAt, favorite: false,
     created_at: c.createdAt, updated_at: c.createdAt, attachments: [],
     content: { item_id: c.captureId, user_id: ownerId || '', capture_id: c.captureId,
       kind: c.kind || 'page', source_url: c.url, canonical_url: c.canonicalUrl,

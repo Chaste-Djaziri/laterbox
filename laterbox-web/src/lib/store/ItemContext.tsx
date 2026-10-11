@@ -156,37 +156,49 @@ export function ItemProvider({ children }: { children: ReactNode }) {
   const migrateGuestItems = useCallback(async (userId: string) => {
     try {
       const guestStored = localStorage.getItem(`${LOCAL_ITEMS_KEY}_guest`);
-      if (!guestStored) return;
-      const guestItems = JSON.parse(guestStored) as LaterBoxItem[];
+      const legacyStored = localStorage.getItem(LOCAL_ITEMS_KEY);
+      const guestItems = (guestStored ? JSON.parse(guestStored) as LaterBoxItem[] : []).concat(
+        legacyStored && !guestStored ? JSON.parse(legacyStored) as LaterBoxItem[] : []
+      );
       // Filter out demo items
       const userItems = guestItems.filter((i) => !i.id.startsWith('guest-item-') && i.content?.user_id !== '');
       if (userItems.length === 0) return;
 
-      const supabase = getSupabaseClient();
-      for (const item of userItems) {
-        const migrated: LaterBoxItem = {
-          ...item,
-          user_id: userId,
-          updated_at: new Date().toISOString(),
-        };
-        // Upsert to Supabase
-        await supabase.from('items').upsert(itemRow(migrated));
-        if (migrated.metadata) {
-          await supabase.from('item_metadata').upsert({
-            ...migrated.metadata,
-            item_id: migrated.id,
-            user_id: userId,
-            updated_at: new Date().toISOString(),
-          });
-        }
-        if (migrated.note?.content) {
-          await supabase.from('item_notes').upsert({
-            item_id: migrated.id,
-            user_id: userId,
-            content: migrated.note.content,
-            created_at: migrated.note.created_at || new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          });
+      // Merge into local storage for this authenticated user (preserves items for Free accounts)
+      const userKey = `${LOCAL_ITEMS_KEY}_${userId}`;
+      const userStored = localStorage.getItem(userKey);
+      const currentUserItems = userStored ? (JSON.parse(userStored) as LaterBoxItem[]) : [];
+      const userItemIds = new Set(currentUserItems.map(i => i.id));
+      const newlyMigrated: LaterBoxItem[] = userItems.map(item => ({
+        ...item,
+        user_id: userId,
+        updated_at: new Date().toISOString(),
+      }));
+      const mergedLocal = [...currentUserItems, ...newlyMigrated.filter(i => !userItemIds.has(i.id))];
+      localStorage.setItem(userKey, JSON.stringify(mergedLocal));
+
+      if (isPro) {
+        const supabase = getSupabaseClient();
+        for (const item of newlyMigrated) {
+          // Upsert to Supabase
+          await supabase.from('items').upsert(itemRow(item));
+          if (item.metadata) {
+            await supabase.from('item_metadata').upsert({
+              ...item.metadata,
+              item_id: item.id,
+              user_id: userId,
+              updated_at: new Date().toISOString(),
+            });
+          }
+          if (item.note?.content) {
+            await supabase.from('item_notes').upsert({
+              item_id: item.id,
+              user_id: userId,
+              content: item.note.content,
+              created_at: item.note.created_at || new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            });
+          }
         }
       }
       // Reset guest storage once migrated
@@ -194,7 +206,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
     } catch (err) {
       console.warn('[ItemContext] Error migrating guest items:', err);
     }
-  }, []);
+  }, [isPro]);
 
   // Fetch from Supabase
   const fetchData = useCallback(async () => {

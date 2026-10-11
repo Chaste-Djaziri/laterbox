@@ -7,6 +7,10 @@ test('local snapshot conversion preserves content and rejects invalid captures',
  const item = localCaptureItem(capture);
  assert.equal(item.user_id, null); assert.equal(item.content?.markdown, '# Article');
  assert.equal(JSON.parse(item.text_selector!).exact, 'Quote');
+ assert.ok(item.return_at);
+ assert.equal(new Date(item.return_at).getHours(), 9);
+ const custom = localCaptureItem({ ...capture, returnAt: '2026-10-15T09:00:00.000Z' });
+ assert.equal(custom.return_at, '2026-10-15T09:00:00.000Z');
  for (const invalid of [{ ...capture, captureId: 'bad' }, { ...capture, url: 'javascript:alert(1)' }, { ...capture, markdown: 'é'.repeat(102401) }]) {
   assert.throws(() => localCaptureItem(invalid));
  }

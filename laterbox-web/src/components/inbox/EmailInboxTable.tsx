@@ -4,7 +4,7 @@ import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { LaterBoxItem } from '@/lib/supabase/types';
 import { useItems } from '@/lib/store/ItemContext';
-import { resolveReturnPreset, ReturnPreset } from '@/lib/utils/schedule';
+import { resolveReturnPreset, ReturnPreset, scheduleItems } from '@/lib/utils/schedule';
 import {
   Inbox,
   Tag,
@@ -72,6 +72,7 @@ export function EmailInboxTable({
   const router = useRouter();
   const pathname = usePathname();
   const {
+    items: allItems,
     setFavorite,
     archiveItem,
     deleteItem,
@@ -412,6 +413,19 @@ export function EmailInboxTable({
     }
 
     // 10. Default: Primary Inbox
+    const upcomingCount = scheduleItems(allItems || [], 'upcoming', now).length;
+    if (upcomingCount > 0 && activeTab === 'primary') {
+      return {
+        icon: <CalendarDays className="w-6 h-6 stroke-[1.5] text-[#171711]" />,
+        title: 'Inbox is clear — returns scheduled',
+        description: `You have ${upcomingCount} item${upcomingCount === 1 ? '' : 's'} scheduled to return tomorrow or upcoming.`,
+        primaryAction: {
+          label: 'View Upcoming',
+          onClick: () => router.push('/upcoming'),
+          icon: <CalendarDays className="w-3.5 h-3.5" />,
+        },
+      };
+    }
     return {
       icon: <Mail className="w-6 h-6 stroke-[1.5] text-[#171711]" />,
       title: activeTab === 'primary' ? 'Your inbox is all clear' : `No ${tabSuffix} in your inbox`,
@@ -422,7 +436,7 @@ export function EmailInboxTable({
         icon: <Plus className="w-3.5 h-3.5" />,
       },
     };
-  }, [isSearchActive, searchQuery, activeTab, pathname, propTitle, onOpenCapture]);
+  }, [isSearchActive, searchQuery, activeTab, pathname, propTitle, onOpenCapture, allItems, now, router]);
 
   // Selection helpers
   const allPagedSelected = pagedItems.length > 0 && pagedItems.every((i) => selectedIds.has(i.id));
