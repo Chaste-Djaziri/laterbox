@@ -9,6 +9,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- **[iOS] Clipboard banner direct save with tomorrow return schedule and full link enrichment**: Enhanced the in-app copied item detection banner so tapping Save instantly captures the link or note scheduled for tomorrow morning 9:00 AM return. Automatically triggers background link metadata enrichment (authentic title, domain, description, keywords, non-letterboxed OG preview cover, and favicon), schedules local notifications with enriched content, and synchronizes with cloud storage without requiring conversational AI prompts.
 - **[Email] Resend template and digest service for unseen inbox items**: Added a branded Resend email template and delivery service showcasing unseen inbox items that have been waiting without being opened. Supports Open Graph preview images and non-letterboxed media covers, styled with LaterBox's warm-canvas palette, dark headers, logo, and action buttons prompting users to review or reschedule items directly on the Web or via deep links in the mobile app. The email sending feature is restricted exclusively to active Pro subscribers.
 
 ### Changed
