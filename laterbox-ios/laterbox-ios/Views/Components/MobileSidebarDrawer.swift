@@ -42,7 +42,6 @@ public struct MobileSidebarDrawer: View {
     public var onSelectMailbox: (MailboxViewType) -> Void = { _ in }
     public var onSelectCollection: (String) -> Void = { _ in }
     public var onOpenReturns: (ReturnSegment) -> Void = { _ in }
-    public var onOpenLibrary: () -> Void = {}
     public var onOpenPlans: () -> Void = {}
     public var onOpenSettings: () -> Void = {}
     public var onOpenSaveItem: () -> Void = {}
@@ -63,7 +62,6 @@ public struct MobileSidebarDrawer: View {
         onSelectMailbox: @escaping (MailboxViewType) -> Void = { _ in },
         onSelectCollection: @escaping (String) -> Void = { _ in },
         onOpenReturns: @escaping (ReturnSegment) -> Void = { _ in },
-        onOpenLibrary: @escaping () -> Void = {},
         onOpenPlans: @escaping () -> Void = {},
         onOpenSettings: @escaping () -> Void = {},
         onOpenSaveItem: @escaping () -> Void = {}
@@ -74,7 +72,6 @@ public struct MobileSidebarDrawer: View {
         self.onSelectMailbox = onSelectMailbox
         self.onSelectCollection = onSelectCollection
         self.onOpenReturns = onOpenReturns
-        self.onOpenLibrary = onOpenLibrary
         self.onOpenPlans = onOpenPlans
         self.onOpenSettings = onOpenSettings
         self.onOpenSaveItem = onOpenSaveItem
@@ -417,15 +414,6 @@ public struct MobileSidebarDrawer: View {
                 .padding(.top, 4)
 
             VStack(spacing: 2) {
-                navLinkRow(
-                    title: "Library",
-                    systemIcon: "books.vertical.fill",
-                    badgeCount: 0,
-                    isActive: false
-                ) {
-                    close()
-                    onOpenLibrary()
-                }
 
                 navLinkRow(
                     title: "Plans",
