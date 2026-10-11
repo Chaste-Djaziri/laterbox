@@ -190,6 +190,9 @@ export function BillingProvider({ children }: { children: React.ReactNode }) {
   const subscribe = useCallback(
     async (interval: Interval, returnTo?: string) => {
       setError(null);
+      if (hasProAccess(entitlement) && entitlement.provider) {
+        throw new Error('Your subscription is already active. Manage it with your current payment provider; switch after access ends.');
+      }
       if (!paddle) throw new Error(checkoutError || 'Secure checkout is still loading. Please try again shortly.');
       const result = await authenticatedRequest('/api/billing/checkout', {
         method: 'POST',
@@ -202,7 +205,7 @@ export function BillingProvider({ children }: { children: React.ReactNode }) {
         settings: { variant: 'one-page', successUrl },
       });
     },
-    [authenticatedRequest, paddle, checkoutError]
+    [authenticatedRequest, paddle, checkoutError, entitlement]
   );
 
   const manage = useCallback(async (action: 'manage' | 'cancel' = 'manage') => {
