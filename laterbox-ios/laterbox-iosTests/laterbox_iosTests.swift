@@ -387,18 +387,17 @@ extension LaterAITests {
         manager.detectedItem = payload
         manager.isShowingBanner = true
 
-        let saved = manager.confirmSave(context: context)
+        let saved = try #require(manager.confirmSave(context: context))
         #expect(manager.isShowingBanner == false)
         #expect(manager.detectedItem == nil)
-        #expect(saved != nil)
-        #expect(saved?.url == "https://news.ycombinator.com")
-        #expect(saved?.status == ItemStatus.deferred.rawValue)
-        #expect(saved?.returnAt != nil)
-        #expect(saved?.returnAt! > Date())
-        #expect(saved?.isSyncPending == true)
+        #expect(saved.url == "https://news.ycombinator.com")
+        #expect(saved.status == ItemStatus.deferred.rawValue)
+        let returnAt = try #require(saved.returnAt)
+        #expect(returnAt > Date())
+        #expect(saved.isSyncPending == true)
 
         let calendar = Calendar.current
-        let hour = calendar.component(.hour, from: saved!.returnAt!)
+        let hour = calendar.component(.hour, from: returnAt)
         #expect(hour == 9)
     }
     @Test func laterAIManagerOpenWithAttachedSubject() {
