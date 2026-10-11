@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[Billing] Shared Apple subscription access**: Repair account-linked App Store and TestFlight purchase registration, subscription lifecycle checks, provider-specific management, and duplicate checkout prevention across iOS and web.
+
 - Browser capture is free for all accounts; local captures work without an account or Supabase and import into the local web library.
 
 # Changelog
