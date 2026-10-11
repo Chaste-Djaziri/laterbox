@@ -149,7 +149,9 @@ public enum LinkMetadataLoader {
 
             let rawTitle = (json["title"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
             let author = (json["author_name"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
-            let thumb = (json["thumbnail_url"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
+            let rawThumb = (json["thumbnail_url"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
+            let thumb = rawThumb?.replacingOccurrences(of: "/hqdefault.jpg", with: "/mqdefault.jpg")
+                                 .replacingOccurrences(of: "/sddefault.jpg", with: "/mqdefault.jpg")
             let provider = (json["provider_name"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? (host.contains("youtube") ? "YouTube" : host)
 
             let title = cleanTitle(rawTitle) ?? rawTitle
@@ -222,7 +224,9 @@ public enum LinkMetadataLoader {
 
             let dto = try JSONDecoder().decode(EnrichResponseDTO.self, from: data)
             let site = dto.siteName ?? dto.site_name ?? dto.domain ?? url.host
-            let img = dto.previewImageUrl ?? dto.preview_image_url
+            let rawImg = dto.previewImageUrl ?? dto.preview_image_url
+            let img = rawImg?.replacingOccurrences(of: "/hqdefault.jpg", with: "/mqdefault.jpg")
+                             .replacingOccurrences(of: "/sddefault.jpg", with: "/mqdefault.jpg")
             let favicon = dto.faviconUrl ?? dto.favicon_url
             let tags = dto.keywords ?? []
             let cType = dto.classification?.contentType ?? dto.classification?.type

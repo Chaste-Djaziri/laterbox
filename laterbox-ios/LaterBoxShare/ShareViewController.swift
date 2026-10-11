@@ -267,7 +267,8 @@ struct ShareChatMessage: Identifiable, Equatable {
                         oembedAuthor = author
                     }
                     if let thumb = (ytJson["thumbnail_url"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines), !thumb.isEmpty {
-                        oembedThumb = thumb
+                        oembedThumb = thumb.replacingOccurrences(of: "/hqdefault.jpg", with: "/mqdefault.jpg")
+                                           .replacingOccurrences(of: "/sddefault.jpg", with: "/mqdefault.jpg")
                     }
                 }
             }
@@ -327,7 +328,9 @@ struct ShareChatMessage: Identifiable, Equatable {
                 }
             }
             if let img, !img.isEmpty, capture.previewImageUrl == nil || capture.previewImageUrl?.isEmpty == true {
-                capture.previewImageUrl = img
+                let cleanImg = img.replacingOccurrences(of: "/hqdefault.jpg", with: "/mqdefault.jpg")
+                                  .replacingOccurrences(of: "/sddefault.jpg", with: "/mqdefault.jpg")
+                capture.previewImageUrl = cleanImg
             }
             if !keywords.isEmpty {
                 let junkTags: Set<String> = ["sharing", "camera phone", "video phone", "free", "upload", "playlist", "video playlist", "youtube"]
