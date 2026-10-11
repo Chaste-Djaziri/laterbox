@@ -40,6 +40,7 @@ public final class StoreKitManager: ObservableObject {
     @Published public private(set) var cloudPurchaseConfirmed = false
     @Published public private(set) var registrationAccountId: String? = nil
     private var registrationInProgress = false
+    private var pendingTransactions: Set<String> = []
 
     public static func registrationFailureMessage(status: Int, code: String?) -> String {
         switch code {
@@ -130,6 +131,17 @@ public final class StoreKitManager: ObservableObject {
             }
         }
 
+        var unfinished: [Transaction] = []
+        for await result in Transaction.unfinished {
+            guard case .verified(let transaction) = result,
+                  Self.allProductIds.contains(transaction.productID) else { continue }
+            if transaction.environment == .xcode {
+                await transaction.finish()
+            } else {
+                unfinished.append(transaction)
+                pendingTransactions.insert(result.jwsRepresentation)
+            }
+        }
         verifiedTransactions = signedTransactions
         self.isProSubscriptionActive = hasActivePro
         self.activeProductId = matchedId
@@ -137,27 +149,31 @@ public final class StoreKitManager: ObservableObject {
 
         // Synchronize with global SyncCoordinator
         SyncCoordinator.shared.updateProFromStoreKit(hasActivePro)
-        await registerAccountPurchases()
+        if await registerAccountPurchases() {
+            for transaction in unfinished { await transaction.finish() }
+        }
     }
 
-    public func registerAccountPurchases(extraTransactions: [String] = []) async {
+    @discardableResult
+    public func registerAccountPurchases(extraTransactions: [String] = []) async -> Bool {
+        pendingTransactions.formUnion(extraTransactions)
         let coordinator = SyncCoordinator.shared
         guard !registrationInProgress, let token = coordinator.authToken,
-              let uid = coordinator.currentUserId else { return }
-        let transactions = Array(Set(verifiedTransactions + extraTransactions))
+              let uid = coordinator.currentUserId else { return false }
+        let transactions = Array(Set(verifiedTransactions).union(pendingTransactions))
         registrationAccountId = uid
         cloudPurchaseConfirmed = false
         guard !transactions.isEmpty else {
             cloudRegistrationMessage = isProSubscriptionActive
                 ? "Local StoreKit tests unlock this device only. Use TestFlight to test web Pro." : nil
-            return
+            return false
         }
         registrationInProgress = true
         defer { registrationInProgress = false }
         cloudRegistrationMessage = "Syncing your App Store purchase with your LaterBox account…"
         var failure: String?
         for signed in transactions {
-            guard uid == coordinator.currentUserId, token == coordinator.authToken else { return }
+            guard uid == coordinator.currentUserId, token == coordinator.authToken else { return false }
             do {
                 var request = URLRequest(url: URL(string: "\(LaterBoxAPIService.shared.billingUrl)/api/billing/apple/verify")!)
                 request.httpMethod = "POST"
@@ -166,23 +182,26 @@ public final class StoreKitManager: ObservableObject {
                 request.setValue("application/json", forHTTPHeaderField: "Content-Type")
                 request.httpBody = try JSONEncoder().encode(["signedTransaction": signed])
                 let (data, response) = try await URLSession.shared.data(for: request)
-                guard uid == coordinator.currentUserId, token == coordinator.authToken else { return }
+                guard uid == coordinator.currentUserId, token == coordinator.authToken else { return false }
                 let status = (response as? HTTPURLResponse)?.statusCode ?? 503
                 if status != 200 {
                     let payload = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
                     failure = Self.registrationFailureMessage(status: status, code: payload?["code"] as? String)
+                } else {
+                    pendingTransactions.remove(signed)
                 }
             } catch {
                 failure = "Your device purchase is retained. Cloud verification will retry when you reconnect or return to the app."
             }
         }
-        guard uid == coordinator.currentUserId, token == coordinator.authToken else { return }
+        guard uid == coordinator.currentUserId, token == coordinator.authToken else { return false }
         await coordinator.refreshEntitlement()
         cloudPurchaseConfirmed = failure == nil && coordinator.billingEntitlement?.provider == "apple"
             && coordinator.billingEntitlement?.hasAccess == true
         cloudRegistrationMessage = failure ?? (cloudPurchaseConfirmed
             ? "Pro is synced with your LaterBox account and available on the web."
             : coordinator.billingError ?? "Your Apple subscription is no longer active.")
+        return failure == nil
     }
 
     // MARK: - Purchase Flow
@@ -218,8 +237,7 @@ public final class StoreKitManager: ObservableObject {
 
             switch result {
             case .success(let verification):
-                let transaction = try checkVerified(verification)
-                await transaction.finish()
+                _ = try checkVerified(verification)
                 await updatePurchasedProducts()
                 isPurchasing = false
                 purchaseSuccessAlert = true
@@ -300,10 +318,11 @@ public final class StoreKitManager: ObservableObject {
             for await result in Transaction.updates {
                 do {
                     let transaction = try self.checkVerified(result)
-                    if transaction.environment != .xcode {
-                        await self.registerAccountPurchases(extraTransactions: [result.jwsRepresentation])
+                    if transaction.environment == .xcode {
+                        await transaction.finish()
+                    } else if await self.registerAccountPurchases(extraTransactions: [result.jwsRepresentation]) {
+                        await transaction.finish()
                     }
-                    await transaction.finish()
                     await self.updatePurchasedProducts()
                 } catch {
                     // Ignore unverified or invalid transactions
