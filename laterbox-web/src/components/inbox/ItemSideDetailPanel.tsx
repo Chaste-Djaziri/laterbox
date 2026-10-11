@@ -326,8 +326,14 @@ interface ItemSideDetailPanelProps {
 
 export function ItemSideDetailPanel({ item, onClose }: ItemSideDetailPanelProps) {
   const router = useRouter();
-  const { setFavorite, archiveItem, deleteItem, saveNote, attachFilesToItem } = useItems();
+  const { setFavorite, archiveItem, deleteItem, saveNote, attachFilesToItem, markSeen } = useItems();
   const { userName, user } = useAuth();
+
+  useEffect(() => {
+    if (item && item.status === 'inbox' && !item.seen) {
+      markSeen(item.id);
+    }
+  }, [item?.id, item?.status, item?.seen, markSeen]);
 
   const authorName = userName || user?.user_metadata?.full_name || 'You';
 

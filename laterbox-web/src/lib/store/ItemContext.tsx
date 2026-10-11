@@ -40,6 +40,7 @@ interface ItemContextType {
   setStatus: (id: string, status: ItemStatus) => Promise<void>;
   keepItem: (id: string) => Promise<void>;
   archiveItem: (id: string) => Promise<void>;
+  markSeen: (id: string) => Promise<void>;
   markUnseen: (id: string) => Promise<void>;
   deleteItem: (id: string) => Promise<void>;
   restoreItem: (id: string) => Promise<void>;
@@ -584,6 +585,48 @@ export function ItemProvider({ children }: { children: ReactNode }) {
   const archiveItem = (id: string) => setStatus(id, 'archived');
   const markUnseen = (id: string) => reschedule(id, new Date().toISOString());
 
+  const markSeen = async (id: string) => {
+    const item = items.find(i => i.id === id);
+    if (!item || item.status !== 'inbox' || item.seen) return;
+    const timestamp = new Date().toISOString();
+
+    let updatedMetadata = item.metadata;
+    let structured: any = {};
+    if (updatedMetadata?.structured_data) {
+      try {
+        structured = typeof updatedMetadata.structured_data === 'string'
+          ? JSON.parse(updatedMetadata.structured_data)
+          : { ...updatedMetadata.structured_data };
+      } catch {}
+    }
+    structured.seen = true;
+
+    const newMetadata: any = updatedMetadata ? {
+      ...updatedMetadata,
+      structured_data: typeof updatedMetadata.structured_data === 'string'
+        ? JSON.stringify(structured)
+        : structured,
+      updated_at: timestamp,
+    } : {
+      item_id: item.id,
+      user_id: item.user_id,
+      status: 'pending',
+      attempt_count: 0,
+      structured_data: structured,
+      created_at: timestamp,
+      updated_at: timestamp,
+    };
+
+    const updated = items.map(i => i.id === id ? { ...i, seen: true, metadata: newMetadata, updated_at: timestamp } : i);
+    setItems(updated);
+    saveLocalData(updated);
+    const changed = updated.find(i => i.id === id);
+    if (changed) queueCapture(changed);
+    if (user) {
+      await safeSyncPending(user.id);
+    }
+  };
+
   const deleteItem = async (id: string) => {
     const now = new Date().toISOString();
     const deleted = items.find(item => item.id === id);
@@ -912,6 +955,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
         setStatus,
         keepItem,
         archiveItem,
+        markSeen,
         markUnseen,
         deleteItem,
         restoreItem,

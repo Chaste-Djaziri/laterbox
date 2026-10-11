@@ -228,6 +228,7 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
     reschedule,
     keepItem,
     archiveItem,
+    markSeen,
     markUnseen,
     deleteItem,
   } = useItems();
@@ -237,6 +238,12 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
   const [imgError, setImgError] = useState(false);
 
   const item = getItemById(id);
+
+  useEffect(() => {
+    if (item && item.status === 'inbox' && !item.seen) {
+      markSeen(item.id);
+    }
+  }, [item?.id, item?.status, item?.seen, markSeen]);
 
   if (!item) {
     return (

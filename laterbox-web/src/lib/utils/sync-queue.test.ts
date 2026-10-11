@@ -23,6 +23,7 @@ function createMockItem(overrides: Partial<LaterBoxItem>): LaterBoxItem {
     text_selector: overrides.text_selector || null,
     type: overrides.type || 'link',
     favorite: overrides.favorite || false,
+    seen: overrides.seen ?? false,
     status: overrides.status || 'inbox',
     return_at: overrides.return_at !== undefined ? overrides.return_at : null,
     created_at: overrides.created_at || '2026-10-11T01:00:00.000Z',
@@ -330,4 +331,24 @@ test('queueCapture, queueHardDelete, and clearPendingItem operate on localStorag
     if (original) Object.defineProperty(globalThis, 'localStorage', original);
     else Reflect.deleteProperty(globalThis, 'localStorage');
   }
+});
+
+test('items preserve and propagate seen attribute across local queue and reconciliation', () => {
+  const itemSeen = createMockItem({
+    id: 'item-seen',
+    status: 'inbox',
+    seen: true,
+    updated_at: '2026-10-11T02:00:00.000Z',
+  });
+
+  const result = reconcileItemsWithRemote({
+    remoteActive: [itemSeen],
+    remoteDeleted: [],
+    localCached: [],
+    localDeleted: [],
+    pendingQueue: {},
+  });
+
+  assert.equal(result.reconciledActive.length, 1);
+  assert.equal(result.reconciledActive[0].seen, true);
 });

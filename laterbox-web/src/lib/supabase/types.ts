@@ -104,6 +104,7 @@ export interface LaterBoxItem {
   text_selector?: string | null;
   type: string;
   favorite: boolean;
+  seen?: boolean;
   status: ItemStatus;
   return_at?: string | null;
   created_at: string;

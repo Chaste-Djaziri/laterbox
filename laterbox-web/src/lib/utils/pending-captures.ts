@@ -332,11 +332,25 @@ function buildRemoteItem(
 
   const resolvedTextContent = row.text_content || localCached?.text_content || null;
 
+  let remoteSeen = false;
+  if (mergedMeta?.structured_data) {
+    try {
+      const parsed = typeof mergedMeta.structured_data === 'string'
+        ? JSON.parse(mergedMeta.structured_data)
+        : mergedMeta.structured_data;
+      if (typeof parsed?.seen === 'boolean') {
+        remoteSeen = parsed.seen;
+      }
+    } catch {}
+  }
+  const resolvedSeen = remoteSeen || (localCached?.seen ?? false);
+
   return {
     ...migrateSchedule(row),
     title: resolvedTitle,
     text_content: resolvedTextContent,
     metadata: mergedMeta,
+    seen: resolvedSeen,
     content: contentMap.get(row.id) || localCached?.content || null,
     note: noteMap.get(row.id) || localCached?.note || null,
     collections: itemColsMap.get(row.id) || localCached?.collections || [],
