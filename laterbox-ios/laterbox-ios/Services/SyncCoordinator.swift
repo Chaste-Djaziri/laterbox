@@ -47,6 +47,8 @@ public final class SyncCoordinator: ObservableObject {
     @Published public private(set) var isPro: Bool = false
     private var storeKitPro = false
     private var accountPro = false
+    @Published public private(set) var billingEntitlement: AccountBillingEntitlement?
+    @Published public private(set) var billingError: String?
     @Published public var systemStatusText: String = "Operational"
     @Published public var isSystemOperational: Bool = true
     @Published public var activeFilter: ItemContentType? = nil
@@ -90,16 +92,30 @@ public final class SyncCoordinator: ObservableObject {
         isPro = active
     }
 
-    public func refreshEntitlement() async {
+    @discardableResult
+    public func refreshEntitlement() async -> Bool {
         guard let uid = currentUserId, let token = authToken else {
             accountPro = false
+            billingEntitlement = nil
+            billingError = nil
             isPro = storeKitPro
-            return
+            return false
         }
-        let active = await api.checkProEntitlement(userId: uid, token: token)
-        guard uid == currentUserId, token == authToken else { return }
-        accountPro = active
-        isPro = accountPro || storeKitPro
+        do {
+            let entitlement = try await api.fetchBillingEntitlement(token: token)
+            guard uid == currentUserId, token == authToken else { return false }
+            billingEntitlement = entitlement
+            billingError = nil
+            accountPro = entitlement.hasAccess
+            isPro = accountPro || storeKitPro
+            return true
+        } catch {
+            guard uid == currentUserId, token == authToken else { return false }
+            billingError = "Unable to check your account subscription. Reconnect or sign in again, then retry."
+            accountPro = billingEntitlement?.hasAccess ?? false
+            isPro = accountPro || storeKitPro
+            return false
+        }
     }
 
     public var syncHeaderTitle: String {
@@ -143,6 +159,7 @@ public final class SyncCoordinator: ObservableObject {
     }
 
     public func setSession(email: String, userId: String, token: String) {
+        if currentUserId != userId { billingEntitlement = nil; accountPro = false }
         self.currentUserEmail = email
         self.currentUserId = userId
         self.authToken = token
@@ -152,7 +169,7 @@ public final class SyncCoordinator: ObservableObject {
         defaults.set(userId, forKey: "lb_user_id")
         defaults.set(token, forKey: "lb_auth_token")
         defaults.set(false, forKey: "lb_guest_mode")
-        Task { await StoreKitManager.shared.registerAccountPurchases(); await refreshEntitlement() }
+        Task { await StoreKitManager.shared.updatePurchasedProducts(); await refreshEntitlement() }
         LBHaptic.success()
     }
 
@@ -164,6 +181,8 @@ public final class SyncCoordinator: ObservableObject {
     }
 
     public func signOut() {
+        billingEntitlement = nil
+        billingError = nil
         accountPro = false
         isPro = storeKitPro
         self.currentUserEmail = nil
