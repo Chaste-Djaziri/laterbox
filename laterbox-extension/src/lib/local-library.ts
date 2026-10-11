@@ -13,9 +13,21 @@ export const TRUSTED_ORIGINS = new Set([
   'https://app.laterbox.com',
 ]);
 
+export function resolveTomorrowPreset(reference?: string): string {
+  const date = reference ? new Date(reference) : new Date();
+  date.setDate(date.getDate() + 1);
+  date.setHours(9, 0, 0, 0);
+  return date.toISOString();
+}
+
 export function isTrustedDashboardOrigin(origin: string): boolean {
   if (!origin) return false;
   if (TRUSTED_ORIGINS.has(origin)) return true;
+  try {
+    const u = new URL(origin);
+    if ((u.hostname === 'localhost' || u.hostname === '127.0.0.1') && ['http:', 'https:'].includes(u.protocol)) return true;
+    if (u.protocol === 'https:' && (u.hostname.endsWith('.laterbox.dev') || u.hostname.endsWith('.laterbox.com'))) return true;
+  } catch {}
   const configured = import.meta.env?.VITE_LATERBOX_WEB_URL;
   if (configured) {
     try {
@@ -44,7 +56,7 @@ export async function readLocalCaptures(userId?: string): Promise<Capture[]> {
   const { localCaptures } = await browser.storage.local.get('localCaptures');
   const rows = Array.isArray(localCaptures) ? localCaptures : [];
   if (userId) {
-    return rows.filter((row: any) => !row.userId || row.userId === userId);
+    return rows.filter((row: any) => !row.userId || !userId || row.userId === userId);
   }
   return rows;
 }
@@ -53,7 +65,13 @@ export function saveLocalCapture(capture: Capture): Promise<CaptureResult> {
   return localOperation(async () => {
     const rows = await readLocalCaptures();
     const { connectedUserId } = await browser.storage.local.get('connectedUserId');
-    const entry = { ...capture, captureId: capture.captureId || crypto.randomUUID(), userId: connectedUserId || undefined };
+    const returnAt = capture.returnAt || resolveTomorrowPreset(capture.createdAt);
+    const entry = {
+      ...capture,
+      returnAt,
+      captureId: capture.captureId || crypto.randomUUID(),
+      userId: connectedUserId || undefined,
+    };
     if (!rows.some(row => row.captureId === entry.captureId)) rows.push(entry);
     await browser.storage.local.set({ localCaptures: rows });
     await browser.action.setBadgeText({ text: '✓' });

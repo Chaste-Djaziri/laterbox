@@ -1,4 +1,5 @@
 import { browser } from '../platform/api';
+import { resolveTomorrowPreset } from './local-library';
 import type { Capture, CaptureKind } from '../types/capture';
 export interface TextSelector { before: string; after: string; exact?: string }
 export interface PageContext {
@@ -88,5 +89,5 @@ export function captureFromPage(page: PageContext, kind: CaptureKind = 'page', e
   const url = kind === 'highlight' ? buildScrollToTextFragment(page.url,exact,selector) : page.url;
   if (new TextEncoder().encode(url).length > 8192) throw new Error('The source URL is too long to save. Select a shorter quote.');
   return { ...page, url, kind, text: kind === 'highlight' ? new TextDecoder().decode(new TextEncoder().encode(exact).slice(0,10000)).replace(/\uFFFD$/,'') : undefined,
-    selector: kind === 'highlight' ? selector : undefined, captureId: crypto.randomUUID(), source: 'browserExtension', createdAt: new Date().toISOString() };
+    selector: kind === 'highlight' ? selector : undefined, captureId: crypto.randomUUID(), source: 'browserExtension', createdAt: new Date().toISOString(), returnAt: resolveTomorrowPreset() };
 }

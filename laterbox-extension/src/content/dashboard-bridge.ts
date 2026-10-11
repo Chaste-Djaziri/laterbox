@@ -3,8 +3,8 @@ import { sendRuntimeMessage } from '../platform/messaging';
 const trustedHosts = new Set(['laterbox.dev', 'www.laterbox.dev', 'app.laterbox.dev', 'laterbox.micorp.pro', 'app.laterbox.com']);
 
 export function installDashboardBridge(): void {
-  const trusted = (location.protocol === 'https:' && trustedHosts.has(location.hostname))
-    || (location.hostname === 'localhost' && ['http:', 'https:'].includes(location.protocol));
+  const trusted = (location.protocol === 'https:' && (trustedHosts.has(location.hostname) || location.hostname.endsWith('.laterbox.dev') || location.hostname.endsWith('.laterbox.com')))
+    || ((location.hostname === 'localhost' || location.hostname === '127.0.0.1') && ['http:', 'https:'].includes(location.protocol));
   if (!trusted) return;
   window.addEventListener('message', event => {
     if (event.source !== window || event.origin !== location.origin) return;

@@ -47,11 +47,13 @@ browser.contextMenus.onClicked.addListener((info, tab) => {
 browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (sender.id !== browser.runtime.id) return false;
   if (message?.type === 'local-import' || message?.type === 'local-ack') {
-    const origin = sender.origin || (sender.url ? new URL(sender.url).origin : '');
+    const senderUrl = sender.url || sender.tab?.url;
+    const origin = sender.origin || (senderUrl ? new URL(senderUrl).origin : '');
     if (!isTrustedDashboardOrigin(origin)) return false;
     if (message.type === 'local-import') {
       void Promise.all([isLocalMode(), getConnectedUserId()]).then(async ([enabled, userId]) => {
-        sendResponse({ captures: enabled ? (await readLocalCaptures(userId)).slice(0, 10) : [] });
+        const captures = await readLocalCaptures(userId);
+        sendResponse({ captures: (enabled || captures.length > 0) ? captures.slice(0, 10) : [] });
       });
     } else {
       if (!Array.isArray(message.ids) || message.ids.length > 10 || !message.ids.every((id: unknown) => typeof id === 'string' && id.length <= 100)) return false;

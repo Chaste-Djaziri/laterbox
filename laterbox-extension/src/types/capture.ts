@@ -19,6 +19,7 @@ export type Capture = {
   selector?: { exact?: string; before?: string; after?: string };
   source: CaptureSource;
   createdAt: string;
+  returnAt?: string | null;
 };
 export type CaptureResult = {
   local?: boolean;
