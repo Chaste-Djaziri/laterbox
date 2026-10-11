@@ -56,6 +56,7 @@ public final class ClipboardDetectionManager: ObservableObject {
 
     private var internalCopyHashes: Set<Int> = []
     private var dismissTask: Task<Void, Never>? = nil
+    public private(set) var lastSaveTask: Task<Void, Never>? = nil
 
     public init(userDefaults: UserDefaults = .standard) {
         self.userDefaults = userDefaults
@@ -182,8 +183,9 @@ public final class ClipboardDetectionManager: ObservableObject {
     /// Confirms saving the copied item directly to LaterBox scheduled for tomorrow 9 AM return,
     /// triggering background link enrichment, notification scheduling, and cloud sync.
     @discardableResult
-    public func confirmSave(context: ModelContext? = nil) -> LBItem? {
+    public func confirmSave(context: ModelContext? = nil, runBackgroundTasks: Bool = true) -> LBItem? {
         dismissTask?.cancel()
+        lastSaveTask?.cancel()
         guard let item = detectedItem else { return nil }
 
         lastHandledHash = item.rawContent.hashValue
@@ -241,25 +243,29 @@ public final class ClipboardDetectionManager: ObservableObject {
             try? targetContext.save()
             LBHaptic.success()
 
-            // Asynchronously schedule return notification, enrich link metadata/OG cover, and sync
-            Task {
-                _ = try? await ReturnNotification.update(
-                    id: savedItem.id,
-                    title: savedItem.title,
-                    description: savedItem.notificationDescription,
-                    date: returnAt
-                )
+            if runBackgroundTasks {
+                lastSaveTask = Task {
+                    _ = try? await ReturnNotification.update(
+                        id: savedItem.id,
+                        title: savedItem.title,
+                        description: savedItem.notificationDescription,
+                        date: returnAt
+                    )
 
-                await SyncCoordinator.shared.enrich(item: savedItem, context: targetContext)
+                    guard !Task.isCancelled, savedItem.modelContext != nil else { return }
+                    await SyncCoordinator.shared.enrich(item: savedItem, context: targetContext)
 
-                _ = try? await ReturnNotification.update(
-                    id: savedItem.id,
-                    title: savedItem.title,
-                    description: savedItem.notificationDescription,
-                    date: returnAt
-                )
+                    guard !Task.isCancelled, savedItem.modelContext != nil else { return }
+                    _ = try? await ReturnNotification.update(
+                        id: savedItem.id,
+                        title: savedItem.title,
+                        description: savedItem.notificationDescription,
+                        date: returnAt
+                    )
 
-                await SyncCoordinator.shared.syncPendingItems(context: targetContext)
+                    guard !Task.isCancelled, savedItem.modelContext != nil else { return }
+                    await SyncCoordinator.shared.syncPendingItems(context: targetContext)
+                }
             }
         } else {
             savedItem = LBItem(
@@ -278,15 +284,18 @@ public final class ClipboardDetectionManager: ObservableObject {
             try? targetContext.save()
             LBHaptic.success()
 
-            Task {
-                _ = try? await ReturnNotification.update(
-                    id: savedItem.id,
-                    title: savedItem.title,
-                    description: savedItem.notificationDescription,
-                    date: returnAt
-                )
+            if runBackgroundTasks {
+                lastSaveTask = Task {
+                    _ = try? await ReturnNotification.update(
+                        id: savedItem.id,
+                        title: savedItem.title,
+                        description: savedItem.notificationDescription,
+                        date: returnAt
+                    )
 
-                await SyncCoordinator.shared.syncPendingItems(context: targetContext)
+                    guard !Task.isCancelled, savedItem.modelContext != nil else { return }
+                    await SyncCoordinator.shared.syncPendingItems(context: targetContext)
+                }
             }
         }
 
