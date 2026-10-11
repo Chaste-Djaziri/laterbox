@@ -84,6 +84,12 @@ public final class SyncCoordinator: ObservableObject {
         isPro = accountPro || active
     }
 
+    public func setProForTesting(_ active: Bool) {
+        accountPro = active
+        storeKitPro = active
+        isPro = active
+    }
+
     public func refreshEntitlement() async {
         guard let uid = currentUserId, let token = authToken else {
             accountPro = false
