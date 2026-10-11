@@ -20,6 +20,7 @@ const SAMPLE_ITEMS: UnseenDigestItem[] = [
       site_name: 'Apple Developer',
       description: 'An in-depth exploration of gesture-driven animations, tactile feedback, and natural user interfaces.',
       content_type: 'article',
+      preview_image_url: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=1200&auto=format&fit=crop&q=80',
     },
   },
   {
@@ -111,6 +112,28 @@ export async function POST(request: Request) {
   try {
     const body = ((await request.json().catch(() => ({}))) || {}) as DigestRequestBody;
     const user = await getRequestUser(request);
+
+    // If not in preview mode, sending is restricted strictly to verified Pro subscribers
+    if (!body.preview) {
+      if (!user) {
+        return NextResponse.json(
+          { error: 'Authentication required. Please sign in to send email digests.' },
+          { status: 401 }
+        );
+      }
+
+      const admin = getBillingAdminClient();
+      const { data: pro, error: proError } = await admin.rpc('has_pro_entitlement', {
+        target_user_id: user.id,
+      });
+
+      if (proError || pro !== true) {
+        return NextResponse.json(
+          { error: 'Email digest notifications require an active LaterBox Pro subscription.' },
+          { status: 403 }
+        );
+      }
+    }
 
     const to = body.to || user?.email;
     if (!to) {
