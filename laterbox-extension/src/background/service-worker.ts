@@ -1,4 +1,4 @@
-import { isLocalMode, saveLocalCapture, readLocalCaptures, acknowledgeLocalCaptures, LOCAL_ORIGIN } from '../lib/local-library';
+import { isLocalMode, saveLocalCapture, readLocalCaptures, acknowledgeLocalCaptures, LOCAL_ORIGIN, isTrustedDashboardOrigin } from '../lib/local-library';
 import {
   cancelPendingConnection,
   connectLaterBoxViaTab,
@@ -12,6 +12,11 @@ import type { Capture, CaptureResult } from "../types/capture";
 const flushQueue = async () => await isLocalMode() ? 0 : captureQueue.flush();
 async function saveCapture(capture: Capture): Promise<CaptureResult> {
   if (!capture || typeof capture !== "object" || (capture.url && !/^https?:\/\//i.test(capture.url)) || (capture.url?.length || 0) > 8192 || (capture.text?.length || 0) > 10000 || new TextEncoder().encode(capture.markdown || "").length > 204800) return { status: "error", reason: "invalid" };
+  const token = await getAccessToken();
+  const userId = await getConnectedUserId();
+  if (!token || !userId) {
+    return { status: "needsAuth" };
+  }
   if (await isLocalMode()) return saveLocalCapture(capture);
   return captureQueue.save(await enrichCapture(capture));
 }
@@ -42,9 +47,12 @@ browser.contextMenus.onClicked.addListener((info, tab) => {
 browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (sender.id !== browser.runtime.id) return false;
   if (message?.type === 'local-import' || message?.type === 'local-ack') {
-    if (sender.origin !== LOCAL_ORIGIN && (!sender.url || new URL(sender.url).origin !== LOCAL_ORIGIN)) return false;
+    const origin = sender.origin || (sender.url ? new URL(sender.url).origin : '');
+    if (!isTrustedDashboardOrigin(origin)) return false;
     if (message.type === 'local-import') {
-      void isLocalMode().then(async enabled => sendResponse({ captures: enabled ? (await readLocalCaptures()).slice(0, 10) : [] }));
+      void Promise.all([isLocalMode(), getConnectedUserId()]).then(async ([enabled, userId]) => {
+        sendResponse({ captures: enabled ? (await readLocalCaptures(userId)).slice(0, 10) : [] });
+      });
     } else {
       if (!Array.isArray(message.ids) || message.ids.length > 10 || !message.ids.every((id: unknown) => typeof id === 'string' && id.length <= 100)) return false;
       void acknowledgeLocalCaptures(message.ids).then(() => sendResponse({ ok: true })).catch(() => sendResponse({ ok: false }));
