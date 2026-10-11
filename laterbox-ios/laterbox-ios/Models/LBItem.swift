@@ -86,6 +86,7 @@ public final class LBItem {
 
     // Sync state
     public var isSyncPending: Bool
+    public var seen: Bool = false
 
     public init(
         id: String = UUID().uuidString,
@@ -109,7 +110,8 @@ public final class LBItem {
         noteContent: String? = nil,
         collectionId: String? = nil,
         collectionName: String? = nil,
-        isSyncPending: Bool = true
+        isSyncPending: Bool = true,
+        seen: Bool = false
     ) {
         self.id = id
         self.userId = userId
@@ -133,6 +135,7 @@ public final class LBItem {
         self.collectionId = collectionId
         self.collectionName = collectionName
         self.isSyncPending = isSyncPending
+        self.seen = seen
     }
 
     public var parsedContentType: ItemContentType {
