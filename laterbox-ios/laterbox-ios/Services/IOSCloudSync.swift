@@ -27,12 +27,12 @@ struct CloudMetadata: Codable {
     var structured_data: CloudClassification?
 }
 struct CloudClassification: Codable {
-    var tags: [String]?; var category: String?; var summary: String?; var formattedContent: String?
+    var tags: [String]?; var category: String?; var summary: String?; var formattedContent: String?; var seen: Bool?
 }
 
 // Older clients can send classification as a JSON string as well as an object.
 extension CloudClassification {
-    enum CodingKeys: String, CodingKey { case tags, category, summary, formattedContent }
+    enum CodingKeys: String, CodingKey { case tags, category, summary, formattedContent, seen }
     init(from decoder: Decoder) throws {
         if let string = try? decoder.singleValueContainer().decode(String.self) {
             self = (try? JSONDecoder().decode(Self.self, from: Data(string.utf8))) ?? Self()
@@ -43,6 +43,7 @@ extension CloudClassification {
         category = try? values.decodeIfPresent(String.self, forKey: .category)
         summary = try? values.decodeIfPresent(String.self, forKey: .summary)
         formattedContent = try? values.decodeIfPresent(String.self, forKey: .formattedContent)
+        seen = try? values.decodeIfPresent(Bool.self, forKey: .seen)
     }
 }
 
@@ -215,6 +216,7 @@ extension SyncCoordinator {
                 item.faviconUrl = metadata.favicon_url; item.previewImageUrl = metadata.preview_image_url; item.enrichmentStatus = metadata.status
                 item.tags = metadata.structured_data?.tags ?? []; item.category = metadata.structured_data?.category ?? ""
                 item.summary = metadata.structured_data?.summary ?? ""; item.formattedContent = metadata.structured_data?.formattedContent ?? ""
+                if let seenVal = metadata.structured_data?.seen { item.seen = seenVal }
             }
             item.noteContent = snapshot.item_notes?.deleted_at == nil ? snapshot.item_notes?.content : nil
             item.collectionId = snapshot.collection_items?.first?.collection_id
@@ -235,7 +237,7 @@ extension SyncCoordinator {
                 "site_name": item.siteName as Any? ?? null, "description": item.metadataDescription as Any? ?? null,
                 "favicon_url": item.faviconUrl as Any? ?? null, "preview_image_url": item.previewImageUrl as Any? ?? null,
                 "status": item.enrichmentStatus, "content_type": item.type, "updated_at": stamp,
-                "structured_data": ["tags": item.tags, "category": item.category, "summary": item.summary, "formattedContent": item.formattedContent]]
+                "structured_data": ["tags": item.tags, "category": item.category, "summary": item.summary, "formattedContent": item.formattedContent, "seen": item.seen]]
             let note: [String: Any] = ["item_id": item.id, "user_id": uid, "content": item.noteContent ?? "", "updated_at": stamp, "deleted_at": item.noteContent == nil ? stamp as Any : null]
             var collection: [String: Any]?
             if let name = item.collectionName, !name.isEmpty {
@@ -330,6 +332,7 @@ extension SyncCoordinator {
                     item.category = metadata.structured_data?.category ?? ""
                     item.summary = metadata.structured_data?.summary ?? ""
                     item.formattedContent = metadata.structured_data?.formattedContent ?? ""
+                    if let seenVal = metadata.structured_data?.seen { item.seen = seenVal }
                 }
                 item.noteContent = snapshot.item_notes?.deleted_at == nil ? snapshot.item_notes?.content : nil
 
