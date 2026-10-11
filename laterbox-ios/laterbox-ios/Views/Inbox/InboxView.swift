@@ -632,7 +632,6 @@ public struct InboxView: View {
                     }
                     .padding(.bottom, 40)
                 }
-                .trackPullDownForLaterAI()
                 .safeAreaInset(edge: .bottom, spacing: 0) {
                     bottomStatusBar
                 }
