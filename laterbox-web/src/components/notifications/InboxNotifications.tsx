@@ -34,7 +34,15 @@ export function InboxNotificationController() {
             if (stopped || localStorage.getItem(event)) return;
             if (state.cloud && isNotificationHandedOff(item.id, item.return_at)) return;
             const reg = await notificationWorker();
-            await reg.showNotification('LaterBox', { body: 'An item is ready in your inbox.', tag: event, data: { item_id: item.id, user_id: user?.id || null } });
+            const rawTitle = item.title?.trim() || item.metadata?.title?.trim();
+            const rawDesc = item.metadata?.description?.trim()
+              || item.note?.content?.trim()
+              || item.text_content?.trim()
+              || item.content?.markdown?.trim()
+              || item.url?.trim();
+            const title = rawTitle || 'LaterBox';
+            const body = (rawDesc && rawDesc !== rawTitle) ? rawDesc : (rawTitle ? 'Ready in your inbox.' : 'An item is ready in your inbox.');
+            await reg.showNotification(title, { body, tag: event, data: { item_id: item.id, user_id: user?.id || null } });
             localStorage.setItem(event, String(now));
           };
           // A cross-tab lock prevents two running tabs showing the same reminder.

@@ -33,8 +33,11 @@ self.addEventListener('push', (event) => {
     if (data.kind === 'return' ? !account.preferences.returns : !account.preferences.saves) return;
     const seen = await read('seen') || [];
     if (seen.includes(data.event_id)) return;
-    await self.registration.showNotification('LaterBox', {
-      body: data.kind === 'return' ? 'An item is ready in your inbox.' : 'An item was added to your inbox.',
+    const title = data.title?.trim() || 'LaterBox';
+    const fallbackBody = data.kind === 'return' ? 'An item is ready in your inbox.' : 'An item was added to your inbox.';
+    const body = data.description?.trim() || data.body?.trim() || fallbackBody;
+    await self.registration.showNotification(title, {
+      body,
       tag: data.event_id, data: { item_id: data.item_id, user_id: data.user_id },
     });
     await write('seen', [...seen.slice(-499), data.event_id]);

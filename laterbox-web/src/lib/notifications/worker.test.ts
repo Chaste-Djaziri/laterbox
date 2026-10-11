@@ -23,8 +23,8 @@ function worker() {
   const configure = (userId: string | null, enabled = true) => dispatch('message', {
     data: { type: 'configure', userId, preferences: { enabled, returns: true, saves: true } }, ports: [],
   });
-  const push = (eventId: string, userId = 'a', kind = 'return') => dispatch('push', {
-    data: { json: () => ({ event_id: eventId, user_id: userId, kind, item_id: '00000000-0000-4000-8000-000000000001' }) },
+  const push = (eventId: string, userId = 'a', kind = 'return', extra: Record<string, unknown> = {}) => dispatch('push', {
+    data: { json: () => ({ event_id: eventId, user_id: userId, kind, item_id: '00000000-0000-4000-8000-000000000001', ...extra }) },
   });
   return { shown, opened, configure, push, dispatch };
 }
@@ -35,6 +35,13 @@ test('push retries and simultaneous events show one generic notification', async
   assert.equal(w.shown[0].title, 'LaterBox');
   assert.equal(w.shown[0].options.body, 'An item is ready in your inbox.');
   await w.push('next', 'a', 'save'); assert.equal(w.shown.length, 2);
+});
+test('push includes title and description when provided in payload', async () => {
+  const w = worker(); await w.configure('a');
+  await w.push('custom', 'a', 'return', { title: 'My Article', description: 'Summary of article' });
+  assert.equal(w.shown.length, 1);
+  assert.equal(w.shown[0].title, 'My Article');
+  assert.equal(w.shown[0].options.body, 'Summary of article');
 });
 test('logout, permission preferences and account changes suppress stale pushes', async () => {
   const w = worker(); await w.configure('a');
