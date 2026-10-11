@@ -46,6 +46,39 @@ extension CloudClassification {
     }
 }
 
+public enum CloudSyncError: LocalizedError, CustomStringConvertible, Sendable, Equatable {
+    case unauthenticated
+    case unauthorized(message: String)
+    case serverError(statusCode: Int, message: String)
+    case networkUnavailable(String)
+    case decodingError(String)
+    case other(String)
+
+    public var errorDescription: String? {
+        description
+    }
+
+    public var description: String {
+        switch self {
+        case .unauthenticated:
+            return "Session expired or missing authentication. Please sign in again."
+        case .unauthorized(let message):
+            let trimmed = message.trimmingCharacters(in: .whitespacesAndNewlines)
+            return trimmed.isEmpty ? "Authentication required or access denied (401/403)." : "Authentication error: \(trimmed)"
+        case .serverError(let code, let message):
+            let trimmed = message.trimmingCharacters(in: .whitespacesAndNewlines)
+            return trimmed.isEmpty ? "Server error (HTTP \(code)). Please try again later." : "Server error (HTTP \(code)): \(trimmed)"
+        case .networkUnavailable(let message):
+            let trimmed = message.trimmingCharacters(in: .whitespacesAndNewlines)
+            return trimmed.isEmpty ? "Network offline. Changes will sync when reconnected." : "Network error: \(trimmed)"
+        case .decodingError(let message):
+            return "Failed to parse cloud response: \(message)"
+        case .other(let message):
+            return message
+        }
+    }
+}
+
 protocol IOSCloudTransport: Sendable {
     func downloadSnapshots(userID: String, token: String) async throws -> [CloudItemSnapshot]
     func cloudRequest(_ path: String, token: String, method: String, body: Any?) async throws -> Data
@@ -54,7 +87,7 @@ protocol IOSCloudTransport: Sendable {
 
 extension LaterBoxAPIService: IOSCloudTransport {
     func cloudRequest(_ path: String, token: String, method: String = "GET", body: Any? = nil) async throws -> Data {
-        guard let url = URL(string: "\(supabaseUrl)/rest/v1/\(path)") else { throw URLError(.badURL) }
+        guard let url = URL(string: "\(supabaseUrl)/rest/v1/\(path)") else { throw CloudSyncError.other("Invalid server URL") }
         var request = URLRequest(url: url)
         request.httpMethod = method
         request.setValue(anonKey, forHTTPHeaderField: "apikey")
@@ -62,8 +95,38 @@ extension LaterBoxAPIService: IOSCloudTransport {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("resolution=merge-duplicates,return=minimal", forHTTPHeaderField: "Prefer")
         if let body { request.httpBody = try JSONSerialization.data(withJSONObject: body) }
-        let (data, response) = try await URLSession.shared.data(for: request)
-        guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else { throw URLError(.badServerResponse) }
+
+        let data: Data
+        let response: URLResponse
+        do {
+            (data, response) = try await URLSession.shared.data(for: request)
+        } catch let urlErr as URLError {
+            switch urlErr.code {
+            case .notConnectedToInternet, .networkConnectionLost, .dnsLookupFailed:
+                throw CloudSyncError.networkUnavailable("No internet connection")
+            case .timedOut:
+                throw CloudSyncError.networkUnavailable("Request timed out connecting to cloud server")
+            default:
+                throw CloudSyncError.networkUnavailable(urlErr.localizedDescription)
+            }
+        } catch {
+            throw CloudSyncError.other(error.localizedDescription)
+        }
+
+        guard let http = response as? HTTPURLResponse else { throw CloudSyncError.other("Invalid response from cloud server") }
+        guard (200..<300).contains(http.statusCode) else {
+            var serverMsg = ""
+            if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                serverMsg = (json["message"] as? String) ?? (json["msg"] as? String) ?? (json["error_description"] as? String) ?? (json["error"] as? String) ?? ""
+            } else if let rawString = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines), !rawString.isEmpty {
+                serverMsg = rawString
+            }
+            if http.statusCode == 401 || http.statusCode == 403 {
+                throw CloudSyncError.unauthorized(message: serverMsg.isEmpty ? "Authentication token expired or unauthorized access" : serverMsg)
+            } else {
+                throw CloudSyncError.serverError(statusCode: http.statusCode, message: serverMsg)
+            }
+        }
         return data
     }
     func downloadSnapshots(userID: String, token: String) async throws -> [CloudItemSnapshot] {
@@ -71,10 +134,14 @@ extension LaterBoxAPIService: IOSCloudTransport {
         var offset = 0
         while true {
             let data = try await cloudRequest("items?user_id=eq.\(userID)&select=*,item_metadata(*),item_notes(*),collection_items(collection_id,collections(id,name))&order=id.asc&limit=100&offset=\(offset)", token: token)
-            let page = try JSONDecoder().decode([CloudItemSnapshot].self, from: data)
-            result += page
-            if page.count < 100 { break }
-            offset += page.count
+            do {
+                let page = try JSONDecoder().decode([CloudItemSnapshot].self, from: data)
+                result += page
+                if page.count < 100 { break }
+                offset += page.count
+            } catch {
+                throw CloudSyncError.decodingError(error.localizedDescription)
+            }
         }
         return result
     }
@@ -102,7 +169,10 @@ extension LaterBoxAPIService: IOSCloudTransport {
 @MainActor
 extension SyncCoordinator {
     func performCloudSync(context: ModelContext, transport: (any IOSCloudTransport)? = nil) async throws {
-        guard isProUser, isAuthenticated, let uid = currentUserId, let token = authToken else { return }
+        guard isProUser, isAuthenticated, let uid = currentUserId, let token = authToken else {
+            if !isAuthenticated { throw CloudSyncError.unauthenticated }
+            return
+        }
         let api: any IOSCloudTransport = transport ?? LaterBoxAPIService.shared
         for id in cloudDeletionQueue {
             guard currentUserId == uid, authToken == token else { return }
@@ -117,7 +187,19 @@ extension SyncCoordinator {
             let date = snapshot.updated_at.flatMap(Self.cloudDate) ?? .distantPast
             let item: LBItem
             if let existing = byID[snapshot.id] {
-                if existing.updatedAt >= date { continue }
+                if existing.updatedAt > date { continue }
+                if existing.updatedAt == date {
+                    // Tie-breaker matching Web's resolveActionConflict:
+                    // If local is deleted and remote is not deleted, local wins (keep local deleted, upload)
+                    if existing.status == "deleted" && snapshot.deleted_at == nil {
+                        continue
+                    }
+                    // If both are active or both are deleted with identical timestamps, already in sync
+                    if (existing.status == "deleted") == (snapshot.deleted_at != nil) {
+                        continue
+                    }
+                    // Remote is deleted while local is active: remote delete wins
+                }
                 item = existing
             } else {
                 item = LBItem(id: snapshot.id, title: snapshot.title ?? snapshot.url ?? "Untitled")
@@ -216,7 +298,11 @@ extension SyncCoordinator {
                 let date = snapshot.updated_at.flatMap(Self.cloudDate) ?? .distantPast
                 let item: LBItem
                 if let existing = byID[snapshot.id] {
-                    if existing.updatedAt >= date { continue }
+                    if existing.updatedAt > date { continue }
+                    if existing.updatedAt == date {
+                        if existing.status == "deleted" && snapshot.deleted_at == nil { continue }
+                        if (existing.status == "deleted") == (snapshot.deleted_at != nil) { continue }
+                    }
                     item = existing
                 } else {
                     item = LBItem(id: snapshot.id, title: snapshot.title ?? snapshot.url ?? "Untitled")
