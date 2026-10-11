@@ -40,6 +40,7 @@ public final class SyncCoordinator: ObservableObject {
 
     @Published public var syncState: CloudSyncState = .synced
     @Published public var lastSyncedAt: Date? = nil
+    @Published public var lastSyncErrorMessage: String? = nil
     @Published public var currentUserEmail: String? = nil
     @Published public var currentUserId: String? = nil
     @Published public var authToken: String? = nil
@@ -459,8 +460,13 @@ public final class SyncCoordinator: ObservableObject {
 
     // MARK: - Full Bidirectional Sync
     public func syncPendingItems(context: ModelContext) async {
+        await syncPendingItems(context: context, transport: nil)
+    }
+
+    func syncPendingItems(context: ModelContext, transport: (any IOSCloudTransport)?) async {
         guard isAuthenticated && isProUser else {
             self.syncState = .offline
+            self.lastSyncErrorMessage = nil
             return
         }
         guard syncState != .syncing else { return }
@@ -468,12 +474,27 @@ public final class SyncCoordinator: ObservableObject {
 
         do {
             await StoreKitManager.shared.registerAccountPurchases()
-            try await performCloudSync(context: context)
+            try await performCloudSync(context: context, transport: transport)
 
             self.syncState = .synced
             self.lastSyncedAt = Date()
+            self.lastSyncErrorMessage = nil
         } catch {
             self.syncState = .error
+            if let syncErr = error as? CloudSyncError {
+                self.lastSyncErrorMessage = syncErr.localizedDescription
+            } else if let urlErr = error as? URLError {
+                switch urlErr.code {
+                case .notConnectedToInternet, .networkConnectionLost, .dnsLookupFailed:
+                    self.lastSyncErrorMessage = "No internet connection. Changes will sync once back online."
+                case .timedOut:
+                    self.lastSyncErrorMessage = "Request timed out connecting to cloud server."
+                default:
+                    self.lastSyncErrorMessage = urlErr.localizedDescription
+                }
+            } else {
+                self.lastSyncErrorMessage = error.localizedDescription
+            }
         }
     }
 }
