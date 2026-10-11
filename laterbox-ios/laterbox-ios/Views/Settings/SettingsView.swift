@@ -15,7 +15,6 @@ public struct SettingsView: View {
     @Query private var allItems: [LBItem]
     @ObservedObject var coordinator = SyncCoordinator.shared
     @ObservedObject private var lockManager = AppLockManager.shared
-    @ObservedObject private var modelManager = LaterAIModelManager.shared
     @ObservedObject private var iconManager = AppIconManager.shared
 
     @State private var showingAuthSheet = false
@@ -36,7 +35,7 @@ public struct SettingsView: View {
             AppTheme.canvasBackground
                 .ignoresSafeArea()
 
-            ScrollView {
+            ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 20) {
                     // Top Level Header (Scrolls normally, uncontainerized on canvas)
                     HStack(alignment: .center, spacing: 12) {
@@ -218,10 +217,20 @@ public struct SettingsView: View {
 
                                 Divider().background(AppTheme.cardBorder)
 
-                                HStack(spacing: 10) {
-                                    benefitPill(icon: "icloud.fill", text: "Cloud Sync")
-                                    benefitPill(icon: "wand.and.stars", text: "AI Organizer")
-                                    benefitPill(icon: "safari.fill", text: "Extensions")
+                                ViewThatFits(in: .horizontal) {
+                                    HStack(spacing: 8) {
+                                        benefitPill(icon: "icloud.fill", text: "Cloud Sync")
+                                        benefitPill(icon: "wand.and.stars", text: "AI Organizer")
+                                        benefitPill(icon: "safari.fill", text: "Extensions")
+                                    }
+
+                                    VStack(alignment: .leading, spacing: 6) {
+                                        HStack(spacing: 8) {
+                                            benefitPill(icon: "icloud.fill", text: "Cloud Sync")
+                                            benefitPill(icon: "wand.and.stars", text: "AI Organizer")
+                                        }
+                                        benefitPill(icon: "safari.fill", text: "Extensions")
+                                    }
                                 }
 
                                 Button(action: {
@@ -304,13 +313,24 @@ public struct SettingsView: View {
                                         proFeatureRow(icon: "lock.icloud.fill", text: "Encrypted cloud backup & restore")
                                     }
 
-                                    HStack(alignment: .firstTextBaseline) {
-                                        Text("$3.99")
-                                            .font(.title3.weight(.bold))
-                                            .foregroundColor(AppTheme.textPrimary)
-                                        Text("/ month or $39.99 / year • 14-day free trial")
-                                            .font(.caption)
-                                            .foregroundColor(AppTheme.textSecondary)
+                                    ViewThatFits(in: .horizontal) {
+                                        HStack(alignment: .firstTextBaseline, spacing: 4) {
+                                            Text("$3.99")
+                                                .font(.title3.weight(.bold))
+                                                .foregroundColor(AppTheme.textPrimary)
+                                            Text("/ month or $39.99 / year • 14-day free trial")
+                                                .font(.caption)
+                                                .foregroundColor(AppTheme.textSecondary)
+                                        }
+
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text("$3.99 / month")
+                                                .font(.title3.weight(.bold))
+                                                .foregroundColor(AppTheme.textPrimary)
+                                            Text("$39.99 / year • 14-day free trial")
+                                                .font(.caption)
+                                                .foregroundColor(AppTheme.textSecondary)
+                                        }
                                     }
                                     .padding(.top, 2)
 
@@ -459,95 +479,7 @@ public struct SettingsView: View {
                             .shadow(color: Color.black.opacity(0.03), radius: 6, x: 0, y: 2)
                         }
 
-                        // Later AI & Intelligence Card
-                        VStack(alignment: .leading, spacing: 14) {
-                            Text("Later AI & Intelligence")
-                                .font(.caption.weight(.bold))
-                                .foregroundColor(.secondary)
-                                .textCase(.uppercase)
 
-                            VStack(spacing: 12) {
-                                // Active Model Row
-                                HStack {
-                                    HStack(spacing: 8) {
-                                        Image(systemName: modelManager.selectedProvider.iconName)
-                                            .foregroundColor(AppTheme.textPrimary)
-                                        Text("Active Engine")
-                                            .font(.subheadline)
-                                            .foregroundColor(AppTheme.textPrimary)
-                                    }
-                                    Spacer()
-                                    Text(modelManager.selectedProvider.displayName)
-                                        .font(.subheadline.weight(.semibold))
-                                        .foregroundColor(AppTheme.textPrimary)
-                                }
-
-                                Divider().background(AppTheme.cardBorder)
-
-                                // Model Identifier
-                                HStack {
-                                    Text("Selected Model")
-                                        .font(.subheadline)
-                                        .foregroundColor(AppTheme.textSecondary)
-                                    Spacer()
-                                    Text(modelManager.activeModelName)
-                                        .font(.caption.monospaced())
-                                        .foregroundColor(AppTheme.textPrimary)
-                                        .padding(.horizontal, 8)
-                                        .padding(.vertical, 3)
-                                        .background(AppTheme.accent)
-                                        .clipShape(Capsule())
-                                }
-
-                                Divider().background(AppTheme.cardBorder)
-
-                                // Search Refinement Status
-                                HStack {
-                                    Text("Search Refinement")
-                                        .font(.subheadline)
-                                        .foregroundColor(AppTheme.textSecondary)
-                                    Spacer()
-                                    Text(modelManager.canRefineSearch && modelManager.enableSearchRefine ? "Enabled" : "Disabled")
-                                        .font(.caption.weight(.medium))
-                                        .foregroundColor(modelManager.canRefineSearch && modelManager.enableSearchRefine ? Color.green : AppTheme.textSecondary)
-                                }
-
-                                Divider().background(AppTheme.cardBorder)
-
-                                // Configure Models NavigationLink
-                                NavigationLink(destination: AIModelSettingsView()) {
-                                    HStack(spacing: 6) {
-                                        Image(systemName: "slider.horizontal.3")
-                                        Text("Configure AI Models & Keys")
-                                            .font(.subheadline.weight(.semibold))
-                                        Spacer()
-
-                                        Image(systemName: "chevron.right")
-                                            .font(.caption.weight(.bold))
-                                            .foregroundColor(AppTheme.textSecondary)
-                                    }
-                                    .padding(.vertical, 10)
-                                    .padding(.horizontal, 12)
-                                    .frame(maxWidth: .infinity)
-                                    .contentShape(Rectangle())
-                                    .background(Color.black.opacity(0.04))
-                                    .foregroundColor(AppTheme.textPrimary)
-                                    .clipShape(RoundedRectangle(cornerRadius: 10))
-                                }
-                                .buttonStyle(.plain)
-                                .contentShape(Rectangle())
-                            }
-                            .padding(16)
-                            .background(
-                                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                    .fill(AppTheme.cardBackground)
-                            )
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                    .strokeBorder(AppTheme.cardBorder, lineWidth: 1)
-                            )
-                            .shadow(color: Color.black.opacity(0.03), radius: 6, x: 0, y: 2)
-                        }
 
                         // Notifications & Alerts Card
                         VStack(alignment: .leading, spacing: 14) {
@@ -915,18 +847,29 @@ public struct SettingsView: View {
 
                                 // Quick Storage Bar
                                 GeometryReader { geo in
+                                    let totalSpacing: CGFloat = 4
+                                    let availableWidth = max(geo.size.width - totalSpacing, 0)
+                                    let rawDb = availableWidth * CGFloat(storageManager.breakdown.databasePercentage)
+                                    let rawAtt = availableWidth * CGFloat(storageManager.breakdown.attachmentsPercentage)
+                                    let rawCache = availableWidth * CGFloat(storageManager.breakdown.cachePercentage)
+                                    let dbW = max(rawDb, 4)
+                                    let attW = max(rawAtt, 4)
+                                    let cacheW = max(rawCache, 4)
+                                    let sum = dbW + attW + cacheW
+                                    let scale = sum > availableWidth && sum > 0 ? availableWidth / sum : 1.0
+
                                     HStack(spacing: 2) {
                                         Rectangle()
                                             .fill(AppTheme.accent)
-                                            .frame(width: max(geo.size.width * CGFloat(storageManager.breakdown.databasePercentage), 6))
+                                            .frame(width: dbW * scale)
 
                                         Rectangle()
                                             .fill(Color(hex: "3B82F6"))
-                                            .frame(width: max(geo.size.width * CGFloat(storageManager.breakdown.attachmentsPercentage), 6))
+                                            .frame(width: attW * scale)
 
                                         Rectangle()
                                             .fill(Color(hex: "F59E0B"))
-                                            .frame(width: max(geo.size.width * CGFloat(storageManager.breakdown.cachePercentage), 6))
+                                            .frame(width: cacheW * scale)
                                     }
                                     .clipShape(Capsule())
                                 }
@@ -1039,11 +982,12 @@ public struct SettingsView: View {
                         .padding(.top, 10)
                         .padding(.bottom, 20)
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 20)
                     .padding(.top, 12)
                     .padding(.bottom, 20)
                 }
-                .trackPullDownForLaterAI()
+                .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
             }
             .navigationBarHidden(true)
             .onAppear {
