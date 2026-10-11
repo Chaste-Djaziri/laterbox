@@ -233,7 +233,7 @@ public final class SyncCoordinator: ObservableObject {
 
     @discardableResult
     func saveDraft(_ draft: CaptureDraft, context: ModelContext) throws -> LBItem {
-        guard !draft.content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { throw AIProviderError.invalidCapture }
+        guard !draft.content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !draft.attachments.isEmpty else { throw AIProviderError.invalidCapture }
         let id = draft.id
         if let existing = try context.fetch(FetchDescriptor<LBItem>(predicate: #Predicate { $0.id == id })).first { return existing }
 
@@ -252,10 +252,15 @@ public final class SyncCoordinator: ObservableObject {
             }
         }
 
+        let fallbackTitle = draft.attachments.first?.name ?? String(draft.content.prefix(100))
         let item = LBItem(id: id, userId: currentUserId, url: draft.url,
-                          title: draft.title.isEmpty ? String(draft.content.prefix(100)) : draft.title,
-                          textContent: draft.content, type: draft.type, status: draft.returnAt == nil ? .inbox : .deferred, returnAt: draft.returnAt,
+                          title: draft.title.isEmpty ? fallbackTitle : draft.title,
+                          textContent: draft.content.isEmpty ? (draft.attachments.first?.name ?? "") : draft.content,
+                          type: draft.type, status: draft.returnAt == nil ? .inbox : .deferred, returnAt: draft.returnAt,
                           domain: draft.url.flatMap { URL(string: $0)?.host })
+        if !draft.attachments.isEmpty {
+            item.attachmentsData = try? JSONEncoder().encode(draft.attachments)
+        }
         item.tags = draft.tags.map { $0.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: "#", with: "") }.filter { !$0.isEmpty }
         item.enrichmentStatus = draft.url == nil ? "enriched" : "pending"
         item.category = resolvedCollName ?? draft.category
