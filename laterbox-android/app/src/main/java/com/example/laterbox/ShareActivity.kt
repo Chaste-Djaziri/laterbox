@@ -18,9 +18,7 @@ import com.example.laterbox.data.local.AppDatabase
 import com.example.laterbox.data.local.ItemEntity
 import com.example.laterbox.theme.LaterboxAccent
 import com.example.laterbox.theme.LaterboxTheme
-import com.example.laterbox.ui.capture.Choice
-import com.example.laterbox.ui.capture.GuidedCapture
-import androidx.compose.ui.unit.sp
+import com.example.laterbox.ui.capture.ShareCaptureScreen
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -40,119 +38,16 @@ class ShareActivity : FragmentActivity() {
             val text = intent.getCharSequenceExtra(Intent.EXTRA_TEXT)?.toString().orEmpty()
             val files = savedInstanceState?.getString("files") ?: withContext(Dispatchers.IO) { copyAttachments() }
             intent.putExtra("copied_files", files)
-            setContent { LaterboxTheme {
-                var savedItem by remember { mutableStateOf<ItemEntity?>(null) }
-                var isSaving by remember { mutableStateOf(false) }
-                var saveError by remember { mutableStateOf<String?>(null) }
-                val store = remember { VaultStore(this@ShareActivity) }
-                val repository = remember { com.example.laterbox.data.DefaultDataRepository(this@ShareActivity, AppDatabase.getDatabase(this@ShareActivity)) }
-
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    contentAlignment = androidx.compose.ui.Alignment.Center
-                ) {
-                    if (locked) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(24.dp),
-                            horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(14.dp)
-                        ) {
-                            Text(
-                                "Unlock to save to your private vault",
-                                color = androidx.compose.ui.graphics.Color.White,
-                                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
-                                fontSize = 16.sp
-                            )
-                            Button(
-                                onClick = { AppLockService.authenticate(this@ShareActivity, { locked = false }, {}) },
-                                colors = ButtonDefaults.buttonColors(containerColor = LaterboxAccent, contentColor = androidx.compose.ui.graphics.Color(0xFF171711))
-                            ) {
-                                Text("Unlock LaterBox", fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
-                            }
-                            TextButton(onClick = { finish() }) {
-                                Text("Cancel", color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.6f))
-                            }
-                        }
-                    } else if (savedItem == null) {
-                        Column(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            GuidedCapture(
-                                initial = text,
-                                attachments = files,
-                                dark = true,
-                                onCancel = { finish() },
-                                onSave = { draft ->
-                                    if (!isSaving) {
-                                        isSaving = true
-                                        saveError = null
-                                        lifecycleScope.launch {
-                                            try {
-                                                val saved = store.save(draft)
-                                                savedItem = saved
-                                                repository.syncNow()
-                                                withContext(Dispatchers.IO) {
-                                                    store.metadata(draft)
-                                                }
-                                            } catch (failure: Exception) {
-                                                saveError = failure.message
-                                            } finally {
-                                                isSaving = false
-                                            }
-                                        }
-                                    }
-                                }
-                            )
-                            if (isSaving) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.align(androidx.compose.ui.Alignment.CenterHorizontally),
-                                    color = LaterboxAccent
-                                )
-                            }
-                            saveError?.let {
-                                Text(it, color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
-                            }
-                        }
-                    } else {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(20.dp),
-                            verticalArrangement = Arrangement.spacedBy(14.dp)
-                        ) {
-                            Text(
-                                text = "Saved ‘${savedItem?.title}’",
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
-                                color = androidx.compose.ui.graphics.Color.White
-                            )
-                            Text(
-                                text = "Saved to your LaterBox vault.",
-                                fontSize = 13.sp,
-                                color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.6f)
-                            )
-                            Choice("Done", "Return to what you were doing", dark = true) {
-                                finish()
-                            }
-                            Choice("Undo", "Remove this item from your library", dark = true) {
-                                lifecycleScope.launch {
-                                    try {
-                                        store.undo(savedItem!!)
-                                        repository.syncNow()
-                                    } finally {
-                                        finish()
-                                    }
-                                }
-                            }
-                        }
-                    }
+            setContent {
+                LaterboxTheme {
+                    ShareCaptureScreen(
+                        initialText = text,
+                        attachmentsJson = files,
+                        isLockedInitially = locked,
+                        onClose = { finish() }
+                    )
                 }
-            } }
+            }
         }
     }
     @Suppress("DEPRECATION")
