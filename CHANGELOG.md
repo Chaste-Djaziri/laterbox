@@ -15,6 +15,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 - **[Email] Resend template and digest service for unseen inbox items**: Added a branded Resend email template and delivery service showcasing unseen inbox items that have been waiting without being opened. Supports Open Graph preview images and non-letterboxed media covers, styled with LaterBox's warm-canvas palette, dark headers, logo, and action buttons prompting users to review or reschedule items directly on the Web or via deep links in the mobile app. The email sending feature is restricted exclusively to active Pro subscribers.
 
 ### Changed
+- **[Android] Remove mobile bottom navigation bar and retire home screen**: Removed the bottom navigation bar and its buttons to align Android with the iOS UI experience. Retired the home screen overview and focused the primary interface directly on the Inbox screen while keeping other vault screens and settings available for subsequent navigation updates.
 - **[Docs] README prerequisites**: Specify Node.js 22 to match the web and extension CI toolchain.
 - **[Docs] Native project documentation refresh**: Replace the web starter README, document Kotlin/Compose setup and releases, correct workflow and macOS readiness claims, and update contributor, architecture, and extension navigation after retiring Flutter.
 - **[Docs] README navigation**: Added a direct link to the changelog from the README.
