@@ -34,6 +34,8 @@ import androidx.core.content.FileProvider
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.activity.compose.BackHandler
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import com.example.laterbox.BuildConfig
 import com.example.laterbox.R
 import com.example.laterbox.data.DataRepository
@@ -45,7 +47,10 @@ import kotlinx.coroutines.withContext
 import java.io.File
 
 @Composable
-fun NativeSettings(repository: DataRepository, onAuth: () -> Unit, onTrash: () -> Unit) {
+fun NativeSettings(repository: DataRepository, onAuth: () -> Unit, onTrash: () -> Unit, onBack: (() -> Unit)? = null) {
+    if (onBack != null) {
+        BackHandler { onBack() }
+    }
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val account by AccountService.state.collectAsState()
@@ -85,7 +90,13 @@ fun NativeSettings(repository: DataRepository, onAuth: () -> Unit, onTrash: () -
     LazyColumn(Modifier.fillMaxSize().background(LaterboxBg), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
         item {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Image(painterResource(R.drawable.laterbox_icon_green), "LaterBox", Modifier.size(28.dp).clip(RoundedCornerShape(7.dp)))
+                if (onBack != null) {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back to Inbox", tint = LaterboxTextPrimary)
+                    }
+                } else {
+                    Image(painterResource(R.drawable.laterbox_icon_green), "LaterBox", Modifier.size(28.dp).clip(RoundedCornerShape(7.dp)))
+                }
                 Text("Settings", Modifier.weight(1f).padding(start = 8.dp), fontSize = 24.sp, fontWeight = FontWeight.Bold, color = LaterboxTextPrimary)
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
                     Box(Modifier.size(7.dp).background(if (sync == "Synced") LaterboxEmerald else LaterboxAmber, CircleShape))
