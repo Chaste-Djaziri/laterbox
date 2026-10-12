@@ -39,7 +39,11 @@ export async function currentAppleSubscription(proof: JWSTransactionDecodedPaylo
       if (renewal && renewal.originalTransactionId !== transaction.originalTransactionId) throw new AppleBillingError('verification_failed', 'Apple renewal does not match this subscription.');
       if (item.status === 5 && !transaction.revocationDate) throw new AppleBillingError('linking_unavailable', 'Apple reports revoked access. Please restore purchases and retry.', 503);
       if (item.status === 4 && !renewal?.gracePeriodExpiresDate) throw new AppleBillingError('linking_unavailable', 'Apple grace period information is unavailable. Please retry.', 503);
-      const stateAt = new Date(Math.max(transaction.signedDate ?? 0, renewal?.signedDate ?? 0)).toISOString();
+      if (![1, 2, 3, 4, 5].includes(item.status ?? 0)) throw new AppleBillingError('linking_unavailable', 'Apple subscription status is unavailable. Please retry.', 503);
+      if ((item.status === 2 || item.status === 3) && (transaction.expiresDate ?? 0) > Date.now()) throw new AppleBillingError('linking_unavailable', 'Apple subscription status is inconsistent. Please restore and retry.', 503);
+      const signedDate = Math.max(transaction.signedDate ?? 0, renewal?.signedDate ?? 0);
+      if (!signedDate || !Number.isFinite(signedDate)) throw new AppleBillingError('verification_failed', 'Apple status timestamp is missing.');
+      const stateAt = new Date(signedDate).toISOString();
       return { transaction, renewal, stateAt };
     }
   }
