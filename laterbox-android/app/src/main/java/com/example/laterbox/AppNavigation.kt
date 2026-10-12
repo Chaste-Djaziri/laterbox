@@ -79,101 +79,35 @@ fun AppNavigation(notificationItemId: String? = null, context: android.content.C
         return
     }
     if (!entered && account.userId == null) WelcomeScreen(onContinueAsGuest = { entered = true; preferences.edit().putBoolean("entered", true).apply() }, onOpenSignIn = { auth = true })
-    else Scaffold(containerColor = LaterboxBg, bottomBar = {
-        Column(modifier = Modifier.fillMaxWidth()) {
-            HorizontalDivider(
-                thickness = 0.5.dp,
-                color = LaterboxBorder
-            )
-            NavigationBar(
-                containerColor = LaterboxCard,
-                tonalElevation = 0.dp,
-                windowInsets = NavigationBarDefaults.windowInsets
+    else Scaffold(
+        containerColor = LaterboxBg,
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = { capture = true },
+                shape = CircleShape,
+                containerColor = LaterboxDarkSurface,
+                contentColor = LaterboxAccent
             ) {
-                val names = listOf("Home", "Inbox", "Returns", "Library", "Settings")
-                val activeIcons = listOf(
-                    Icons.Filled.Home,
-                    Icons.Filled.Inbox,
-                    Icons.Filled.CalendarToday,
-                    Icons.Filled.Folder,
-                    Icons.Filled.Settings
-                )
-                val inactiveIcons = listOf(
-                    Icons.Outlined.Home,
-                    Icons.Outlined.Inbox,
-                    Icons.Outlined.CalendarToday,
-                    Icons.Outlined.Folder,
-                    Icons.Outlined.Settings
-                )
-                val inboxCount = items.count { it.status == "inbox" && it.deletedAt == null }
-
-                names.forEachIndexed { index, name ->
-                    val isSelected = tab == index
-                    NavigationBarItem(
-                        selected = isSelected,
-                        onClick = { tab = index },
-                        icon = {
-                            if (index == 1 && inboxCount > 0) {
-                                BadgedBox(
-                                    badge = {
-                                        Badge(
-                                            containerColor = LaterboxDarkSurface,
-                                            contentColor = LaterboxAccent
-                                        ) {
-                                            Text(
-                                                text = if (inboxCount > 99) "99+" else inboxCount.toString(),
-                                                style = MaterialTheme.typography.labelSmall
-                                            )
-                                        }
-                                    }
-                                ) {
-                                    Icon(
-                                        imageVector = if (isSelected) activeIcons[index] else inactiveIcons[index],
-                                        contentDescription = name
-                                    )
-                                }
-                            } else {
-                                Icon(
-                                    imageVector = if (isSelected) activeIcons[index] else inactiveIcons[index],
-                                    contentDescription = name
-                                )
-                            }
-                        },
-                        label = {
-                            Text(
-                                text = name,
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
-                            )
-                        },
-                        colors = NavigationBarItemDefaults.colors(
-                            indicatorColor = LaterboxAccent,
-                            selectedIconColor = LaterboxDarkSurface,
-                            selectedTextColor = LaterboxDarkSurface,
-                            unselectedIconColor = LaterboxTextSecondary,
-                            unselectedTextColor = LaterboxTextSecondary
-                        )
-                    )
-                }
+                Icon(Icons.Default.Add, "Capture item")
             }
         }
-    }, floatingActionButton = { if (tab != 4) FloatingActionButton(onClick = { ai = true }, shape = CircleShape, containerColor = LaterboxDarkSurface, contentColor = LaterboxAccent) { Icon(Icons.Default.Add, "Later AI") } }) { padding ->
+    ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
             if (tab < 4) {
                 vaultState.SaveableStateProvider("${account.userId ?: "guest"}:$tab") {
                     VaultScreen(
-                tab = tab,
-                repository = repository,
-                onCapture = { capture = true },
-                onAI = { ai = true },
-                onItem = { selected = it },
-                onOrganizer = { organizer = true },
-                onSignOut = {
-                    preferences.edit().putBoolean("entered", false).apply()
-                    entered = false
-                },
-                onAuth = { auth = true },
-                profileEnabled = !ai
+                        tab = tab,
+                        repository = repository,
+                        onCapture = { capture = true },
+                        onAI = { ai = true },
+                        onItem = { selected = it },
+                        onOrganizer = { organizer = true },
+                        onSignOut = {
+                            preferences.edit().putBoolean("entered", false).apply()
+                            entered = false
+                        },
+                        onAuth = { auth = true },
+                        profileEnabled = !ai
                     )
                 }
             } else NativeSettings(repository, { auth = true }, { trash = true })
