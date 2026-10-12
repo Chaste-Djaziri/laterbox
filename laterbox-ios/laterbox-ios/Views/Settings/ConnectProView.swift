@@ -5,6 +5,8 @@ public struct ConnectProView: View {
     @ObservedObject private var coordinator = SyncCoordinator.shared
     @ObservedObject private var storeKit = StoreKitManager.shared
     @State private var confirming = false
+    @State private var destinationId: String?
+    @State private var destinationEmail: String?
     public init() {}
 
     public var body: some View {
@@ -17,7 +19,7 @@ public struct ConnectProView: View {
                     Text("Connect to: \(email)").font(.caption.weight(.semibold))
                 }
                 Button {
-                    if coordinator.isAuthenticated { confirming = true }
+                    if coordinator.isAuthenticated { destinationId = coordinator.currentUserId; destinationEmail = coordinator.currentUserEmail; confirming = true }
                     else { coordinator.showingAuthSheet = true }
                 } label: {
                     HStack {
@@ -33,8 +35,11 @@ public struct ConnectProView: View {
             .padding(16)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(AppTheme.cardBackground, in: RoundedRectangle(cornerRadius: 16))
-            .confirmationDialog("Connect Pro to \(coordinator.currentUserEmail ?? "your LaterBox account")?", isPresented: $confirming, titleVisibility: .visible) {
-                Button("Connect Pro") { Task { await storeKit.connectPurchaseToAccount() } }
+            .confirmationDialog("Connect Pro to \(destinationEmail ?? "your LaterBox account")?", isPresented: $confirming, titleVisibility: .visible) {
+                Button("Connect Pro") {
+                    guard destinationId == coordinator.currentUserId else { storeKit.errorMessage = "Your account changed. Review the destination account and try again."; return }
+                    Task { await storeKit.connectPurchaseToAccount() }
+                }
                 Button("Cancel", role: .cancel) {}
             } message: {
                 Text("This purchase will be linked to this account for web and cloud access. A purchase already connected to another account cannot be transferred here.")
