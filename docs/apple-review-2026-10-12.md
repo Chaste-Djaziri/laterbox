@@ -30,6 +30,7 @@ Uncheck “Sign-in required” for the guest review flow. If supplying optional 
 
 ## Verification and submission handoff
 
+- [Local StoreKit iPad walkthrough](../assets/app_store/ipad/review/guest-subscription-local-storekit.mp4) shows guest plan access, legal disclosures, simulated purchase delivery, restore, and the optional connection action. This is a local simulation, not a completed TestFlight account-linking check.
 - Local iPad Air 11-inch (M3), iOS 27: native tests cover guest StoreKit purchase/restore, local access, finished transactions, durable anonymous identity, and outbox persistence.
 - Local StoreKit recordings are simulations and do **not** demonstrate Apple server verification or TestFlight-to-web linking. Label them accordingly. Prefer a corrected TestFlight recording for Apple's final review response.
 - Automated backend tests cover concurrent ownership claims, idempotency, account mismatch, unlinked guest notifications, lifecycle updates, and current-status lookup. They do not replace real App Store Server API validation.
