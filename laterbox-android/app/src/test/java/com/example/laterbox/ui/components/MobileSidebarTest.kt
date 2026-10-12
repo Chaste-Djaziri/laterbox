@@ -54,4 +54,26 @@ class MobileSidebarTest {
         assertEquals(2, count("Work"))
         assertEquals(0, count("Personal"))
     }
+
+    @Test
+    fun `today and upcoming counts only include deferred items`() {
+        val now = java.time.Instant.parse("2026-10-12T12:00:00Z")
+        val endOfToday = now.atZone(java.time.ZoneId.systemDefault()).toLocalDate().plusDays(1).atStartOfDay(java.time.ZoneId.systemDefault()).toInstant()
+        val dueTodayDeferred = ItemEntity(id = "1", status = "deferred", returnAt = "2026-10-12T15:00:00Z", createdAt = "2026-10-12T10:00:00Z", updatedAt = "2026-10-12T10:00:00Z")
+        val dueTodayInbox = ItemEntity(id = "2", status = "inbox", returnAt = "2026-10-12T11:00:00Z", createdAt = "2026-10-12T10:00:00Z", updatedAt = "2026-10-12T10:00:00Z")
+        val upcomingDeferred = ItemEntity(id = "3", status = "deferred", returnAt = "2026-10-15T09:00:00Z", createdAt = "2026-10-12T10:00:00Z", updatedAt = "2026-10-12T10:00:00Z")
+        val items = listOf(dueTodayDeferred, dueTodayInbox, upcomingDeferred)
+
+        val todayCount = items.count {
+            it.deletedAt == null && it.status == "deferred" &&
+                it.returnAt != null && runCatching { java.time.Instant.parse(it.returnAt) <= endOfToday }.getOrDefault(false)
+        }
+        val upcomingCount = items.count {
+            it.deletedAt == null && it.status == "deferred" &&
+                it.returnAt != null && runCatching { java.time.Instant.parse(it.returnAt) > endOfToday }.getOrDefault(false)
+        }
+
+        assertEquals(1, todayCount)
+        assertEquals(1, upcomingCount)
+    }
 }
