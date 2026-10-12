@@ -1117,8 +1117,8 @@ private fun SwipeActionButton(
     contentAlpha: Float = 1f,
     onClick: () -> Unit
 ) {
-    if (width <= 2.dp) return
-    val buttonShape = RoundedCornerShape(22.dp)
+    if (width <= 4.dp || contentAlpha <= 0.02f) return
+    val buttonShape = CircleShape
     Surface(
         modifier = Modifier
             .fillMaxHeight()
@@ -1178,6 +1178,11 @@ internal fun SwipeableEmailInboxRow(
     val revealWidth = 164.dp
     val revealWidthPx = with(density) { revealWidth.toPx() }
     val fullSwipeThresholdPx = with(density) { 226.dp.toPx() }
+    val extendRangePx = with(density) { 60.dp.toPx() }
+    val padding20Px = with(density) { 20.dp.toPx() }
+    val padding12Px = with(density) { 12.dp.toPx() }
+    val gap8Px = with(density) { 8.dp.toPx() }
+    val baseBtnWidthPx = with(density) { 72.dp.toPx() }
 
     val cardShape = RoundedCornerShape(
         topStart = topRadius,
@@ -1205,24 +1210,34 @@ internal fun SwipeableEmailInboxRow(
                     .clip(cardShape)
             ) {
                 // Leading side (revealed on right swipe): Star & Collection
+                // Continues to swipe right: Star extends as the default action
                 if (currentOffset > 0f) {
-                    val halfAvailable = with(density) {
-                        ((absOffset - with(density) { 20.dp.toPx() }) / 2f).coerceAtLeast(0f).toDp()
-                    }
+                    val extendProgress = ((absOffset - revealWidthPx) / extendRangePx).coerceIn(0f, 1f)
                     val starWidth: androidx.compose.ui.unit.Dp
                     val collectionWidth: androidx.compose.ui.unit.Dp
                     val starScale: Float
-                    val collectionScale = baseScale
+                    val collectionScale: Float
+                    val collectionAlpha: Float
 
                     if (absOffset < revealWidthPx) {
+                        val halfAvailable = with(density) {
+                            ((absOffset - padding20Px) / 2f).coerceAtLeast(0f).toDp()
+                        }
                         starWidth = halfAvailable
                         collectionWidth = halfAvailable
                         starScale = baseScale
+                        collectionScale = baseScale
+                        collectionAlpha = baseAlpha
                     } else {
-                        val extraDp = with(density) { (absOffset - revealWidthPx).toDp() }
-                        starWidth = 72.dp + extraDp
-                        collectionWidth = 72.dp
-                        starScale = if (absOffset >= fullSwipeThresholdPx) 1.15f else 1f
+                        collectionAlpha = (1f - extendProgress) * baseAlpha
+                        collectionScale = (1f - 0.2f * extendProgress) * baseScale
+                        val collWidthDp = 72.dp * (1f - extendProgress)
+                        collectionWidth = if (collWidthDp > 4.dp) collWidthDp else 0.dp
+                        val usedCollPx = if (collectionWidth > 0.dp) with(density) { collectionWidth.toPx() } + gap8Px else 0f
+                        starWidth = with(density) {
+                            (absOffset - padding12Px - usedCollPx).coerceAtLeast(baseBtnWidthPx).toDp()
+                        }
+                        starScale = 1f + 0.15f * extendProgress
                     }
 
                     Box(
@@ -1257,7 +1272,7 @@ internal fun SwipeableEmailInboxRow(
                                 backgroundColor = Color(0xFF0284C7),
                                 width = collectionWidth,
                                 contentScale = collectionScale,
-                                contentAlpha = baseAlpha,
+                                contentAlpha = collectionAlpha,
                                 onClick = {
                                     coroutineScope.launch { offsetX.animateTo(0f, spring(stiffness = Spring.StiffnessMediumLow)) }
                                     onAddToCollection()
@@ -1270,24 +1285,34 @@ internal fun SwipeableEmailInboxRow(
                 }
 
                 // Trailing side (revealed on left swipe): Snooze & Delete
+                // Continues to swipe left: Delete extends as the default action
                 if (currentOffset < 0f) {
-                    val halfAvailable = with(density) {
-                        ((absOffset - with(density) { 20.dp.toPx() }) / 2f).coerceAtLeast(0f).toDp()
-                    }
+                    val extendProgress = ((absOffset - revealWidthPx) / extendRangePx).coerceIn(0f, 1f)
                     val snoozeWidth: androidx.compose.ui.unit.Dp
                     val deleteWidth: androidx.compose.ui.unit.Dp
-                    val snoozeScale = baseScale
+                    val snoozeScale: Float
                     val deleteScale: Float
+                    val snoozeAlpha: Float
 
                     if (absOffset < revealWidthPx) {
+                        val halfAvailable = with(density) {
+                            ((absOffset - padding20Px) / 2f).coerceAtLeast(0f).toDp()
+                        }
                         snoozeWidth = halfAvailable
                         deleteWidth = halfAvailable
+                        snoozeScale = baseScale
                         deleteScale = baseScale
+                        snoozeAlpha = baseAlpha
                     } else {
-                        val extraDp = with(density) { (absOffset - revealWidthPx).toDp() }
-                        snoozeWidth = 72.dp
-                        deleteWidth = 72.dp + extraDp
-                        deleteScale = if (absOffset >= fullSwipeThresholdPx) 1.15f else 1f
+                        snoozeAlpha = (1f - extendProgress) * baseAlpha
+                        snoozeScale = (1f - 0.2f * extendProgress) * baseScale
+                        val snzWidthDp = 72.dp * (1f - extendProgress)
+                        snoozeWidth = if (snzWidthDp > 4.dp) snzWidthDp else 0.dp
+                        val usedSnzPx = if (snoozeWidth > 0.dp) with(density) { snoozeWidth.toPx() } + gap8Px else 0f
+                        deleteWidth = with(density) {
+                            (absOffset - padding12Px - usedSnzPx).coerceAtLeast(baseBtnWidthPx).toDp()
+                        }
+                        deleteScale = 1f + 0.15f * extendProgress
                     }
 
                     Box(
@@ -1309,7 +1334,7 @@ internal fun SwipeableEmailInboxRow(
                                 backgroundColor = Color(0xFFEA580C),
                                 width = snoozeWidth,
                                 contentScale = snoozeScale,
-                                contentAlpha = baseAlpha,
+                                contentAlpha = snoozeAlpha,
                                 onClick = {
                                     coroutineScope.launch { offsetX.animateTo(0f, spring(stiffness = Spring.StiffnessMediumLow)) }
                                     onSnooze()
@@ -1343,7 +1368,7 @@ internal fun SwipeableEmailInboxRow(
                         onHorizontalDrag = { _, dragAmount ->
                             coroutineScope.launch {
                                 val newOffset = (offsetX.value + dragAmount)
-                                    .coerceIn(-fullSwipeThresholdPx * 1.15f, fullSwipeThresholdPx * 1.15f)
+                                    .coerceIn(-fullSwipeThresholdPx * 1.4f, fullSwipeThresholdPx * 1.4f)
                                 offsetX.snapTo(newOffset)
                             }
                         },
