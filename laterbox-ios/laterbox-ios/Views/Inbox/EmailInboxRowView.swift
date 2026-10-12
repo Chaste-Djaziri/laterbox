@@ -21,6 +21,7 @@ public struct EmailInboxRowView: View {
     public var onDelete: () -> Void = {}
     public var onDeletePermanently: (() -> Void)? = nil
     public var onRestore: (() -> Void)? = nil
+    public var onAddToCollection: (() -> Void)? = nil
 
     public init(
         item: LBItem,
@@ -34,7 +35,8 @@ public struct EmailInboxRowView: View {
         onSchedule: @escaping (Date) -> Void = { _ in },
         onDelete: @escaping () -> Void = {},
         onDeletePermanently: (() -> Void)? = nil,
-        onRestore: (() -> Void)? = nil
+        onRestore: (() -> Void)? = nil,
+        onAddToCollection: (() -> Void)? = nil
     ) {
         self.item = item
         self.isSelectionMode = isSelectionMode
@@ -48,6 +50,7 @@ public struct EmailInboxRowView: View {
         self.onDelete = onDelete
         self.onDeletePermanently = onDeletePermanently
         self.onRestore = onRestore
+        self.onAddToCollection = onAddToCollection
     }
 
     private var senderText: String {
@@ -345,6 +348,15 @@ public struct EmailInboxRowView: View {
                 Label(item.favorite ? "Unstar" : "Star", systemImage: item.favorite ? "star.slash.fill" : "star.fill")
             }
             .tint(AppTheme.amber)
+
+            if let onAddToCollection {
+                Button {
+                    onAddToCollection()
+                } label: {
+                    Label("Collection", systemImage: "folder.fill")
+                }
+                .tint(Color(hex: "0284C7"))
+            }
         }
         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
             Button(role: .destructive) {

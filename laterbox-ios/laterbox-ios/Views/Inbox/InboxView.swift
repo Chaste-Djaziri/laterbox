@@ -11,6 +11,7 @@ import SwiftData
 public struct InboxView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \LBItem.createdAt, order: .reverse) private var allItems: [LBItem]
+    @Query(sort: \LBCollection.name) private var availableCollections: [LBCollection]
     @ObservedObject var coordinator = SyncCoordinator.shared
     @ObservedObject var storeKit = StoreKitManager.shared
 
@@ -31,6 +32,8 @@ public struct InboxView: View {
     @State private var navigateToCapture: Bool = false
     @State private var showingQuickCapture: Bool = false
     @State private var showingEmptyTrashConfirm: Bool = false
+    @State private var collectionTargetItem: LBItem? = nil
+    @State private var newCollectionName: String = ""
 
     // Search Interaction States
     @State private var isSearchActive: Bool = false
@@ -519,7 +522,8 @@ public struct InboxView: View {
                                                         onSchedule: { date in coordinator.scheduleItem(item: item, date: date, context: modelContext) },
                                                         onDelete: { coordinator.deleteItem(item: item, context: modelContext) },
                                                         onDeletePermanently: { deletePermanently(item: item) },
-                                                        onRestore: { restoreItem(item: item) }
+                                                        onRestore: { restoreItem(item: item) },
+                                                        onAddToCollection: { collectionTargetItem = item }
                                                     )
                                                 }
                                                 .buttonStyle(.plain)
@@ -621,7 +625,8 @@ public struct InboxView: View {
                                                 onSchedule: { date in coordinator.scheduleItem(item: item, date: date, context: modelContext) },
                                                 onDelete: { coordinator.deleteItem(item: item, context: modelContext) },
                                                 onDeletePermanently: { deletePermanently(item: item) },
-                                                onRestore: { restoreItem(item: item) }
+                                                onRestore: { restoreItem(item: item) },
+                                                onAddToCollection: { collectionTargetItem = item }
                                             )
                                         }
                                         .buttonStyle(.plain)
@@ -767,6 +772,9 @@ public struct InboxView: View {
             .sheet(isPresented: $showingQuickCapture) {
                 QuickCaptureSheet()
             }
+            .sheet(item: $collectionTargetItem) { targetItem in
+                collectionPickerSheet(for: targetItem)
+            }
         }
     }
 
@@ -776,6 +784,104 @@ public struct InboxView: View {
         modelContext.delete(item)
         try? modelContext.save()
         LBHaptic.warning()
+    }
+
+    // MARK: - Collection Picker Sheet
+
+    private func collectionPickerSheet(for targetItem: LBItem) -> some View {
+        NavigationStack {
+            List {
+                Section("Current Collection") {
+                    if let current = targetItem.collectionName, !current.isEmpty {
+                        HStack {
+                            Text(current)
+                                .font(.system(size: 15, weight: .semibold))
+                            Spacer()
+                            Button("Remove") {
+                                targetItem.collectionName = nil
+                                targetItem.collectionId = nil
+                                targetItem.category = ""
+                                targetItem.updatedAt = Date()
+                                targetItem.isSyncPending = true
+                                try? modelContext.save()
+                                Task { await coordinator.syncPendingItems(context: modelContext) }
+                                collectionTargetItem = nil
+                                LBHaptic.light()
+                            }
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundColor(.red)
+                        }
+                    } else {
+                        Text("No collection assigned")
+                            .font(.system(size: 14))
+                            .foregroundColor(.secondary)
+                    }
+                }
+
+                Section("Available Collections") {
+                    ForEach(availableCollections) { coll in
+                        Button {
+                            targetItem.collectionName = coll.name
+                            targetItem.collectionId = coll.id
+                            targetItem.category = coll.name
+                            targetItem.updatedAt = Date()
+                            targetItem.isSyncPending = true
+                            try? modelContext.save()
+                            Task { await coordinator.syncPendingItems(context: modelContext) }
+                            collectionTargetItem = nil
+                            LBHaptic.medium()
+                        } label: {
+                            HStack {
+                                Image(systemName: coll.iconName)
+                                    .foregroundColor(Color(hex: coll.colorHex))
+                                Text(coll.name)
+                                    .font(.system(size: 15, weight: .medium))
+                                    .foregroundColor(AppTheme.textPrimary)
+                                Spacer()
+                                if targetItem.collectionName == coll.name {
+                                    Image(systemName: "checkmark")
+                                        .font(.system(size: 13, weight: .bold))
+                                        .foregroundColor(Color(hex: "0369A1"))
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Section("Create New Collection") {
+                    HStack {
+                        TextField("New collection name", text: $newCollectionName)
+                            .font(.system(size: 14))
+                        Button("Add") {
+                            let trimmed = newCollectionName.trimmingCharacters(in: .whitespacesAndNewlines)
+                            if !trimmed.isEmpty {
+                                let coll = coordinator.ensureCollectionExists(named: trimmed, context: modelContext)
+                                targetItem.collectionName = coll?.name ?? trimmed
+                                targetItem.collectionId = coll?.id ?? targetItem.collectionId
+                                targetItem.category = trimmed
+                                targetItem.updatedAt = Date()
+                                targetItem.isSyncPending = true
+                                try? modelContext.save()
+                                Task { await coordinator.syncPendingItems(context: modelContext) }
+                                newCollectionName = ""
+                                collectionTargetItem = nil
+                                LBHaptic.medium()
+                            }
+                        }
+                        .disabled(newCollectionName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                        .font(.system(size: 13, weight: .bold))
+                    }
+                }
+            }
+            .navigationTitle("Collections")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Done") { collectionTargetItem = nil }
+                }
+            }
+        }
+        .presentationDetents([.medium, .large])
     }
 
     private func restoreItem(item: LBItem) {
