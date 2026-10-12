@@ -45,6 +45,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -1107,6 +1108,56 @@ private fun formatEmailDate(dateStr: String): String {
 }
 
 @Composable
+private fun SwipeActionButton(
+    icon: ImageVector,
+    label: String,
+    backgroundColor: Color,
+    width: androidx.compose.ui.unit.Dp,
+    contentScale: Float = 1f,
+    contentAlpha: Float = 1f,
+    onClick: () -> Unit
+) {
+    if (width <= 2.dp) return
+    Surface(
+        modifier = Modifier
+            .fillMaxHeight()
+            .width(width)
+            .clip(RoundedCornerShape(12.dp))
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(12.dp),
+        color = backgroundColor
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .graphicsLayer {
+                    scaleX = contentScale
+                    scaleY = contentScale
+                    alpha = contentAlpha
+                },
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = label,
+                tint = Color.White,
+                modifier = Modifier.size(20.dp)
+            )
+            Spacer(Modifier.height(3.dp))
+            Text(
+                text = label,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.White,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+    }
+}
+
+@Composable
 internal fun SwipeableEmailInboxRow(
     item: ItemEntity,
     metadata: ItemMetadataEntity?,
@@ -1123,7 +1174,7 @@ internal fun SwipeableEmailInboxRow(
     val coroutineScope = rememberCoroutineScope()
     val offsetX = remember(item.id) { Animatable(0f) }
 
-    val revealWidth = 150.dp
+    val revealWidth = 158.dp
     val revealWidthPx = with(density) { revealWidth.toPx() }
     val fullSwipeThresholdPx = with(density) { 220.dp.toPx() }
 
@@ -1141,7 +1192,12 @@ internal fun SwipeableEmailInboxRow(
     ) {
         // Background Action Buttons
         val currentOffset = offsetX.value
-        if (currentOffset != 0f) {
+        val absOffset = kotlin.math.abs(currentOffset)
+        if (absOffset > 1f) {
+            val progress = (absOffset / revealWidthPx).coerceIn(0f, 1f)
+            val baseScale = 0.7f + 0.3f * progress
+            val baseAlpha = (progress * 1.5f).coerceIn(0f, 1f)
+
             Row(
                 modifier = Modifier
                     .matchParentSize()
@@ -1149,76 +1205,63 @@ internal fun SwipeableEmailInboxRow(
             ) {
                 // Leading side (revealed on right swipe): Star & Collection
                 if (currentOffset > 0f) {
+                    val halfAvailable = with(density) {
+                        ((absOffset - with(density) { 14.dp.toPx() }) / 2f).coerceAtLeast(0f).toDp()
+                    }
+                    val starWidth: androidx.compose.ui.unit.Dp
+                    val collectionWidth: androidx.compose.ui.unit.Dp
+                    val starScale: Float
+                    val collectionScale = baseScale
+
+                    if (absOffset < revealWidthPx) {
+                        starWidth = halfAvailable
+                        collectionWidth = halfAvailable
+                        starScale = baseScale
+                    } else {
+                        val extraDp = with(density) { (absOffset - revealWidthPx).toDp() }
+                        starWidth = 72.dp + extraDp
+                        collectionWidth = 72.dp
+                        starScale = if (absOffset >= fullSwipeThresholdPx) 1.15f else 1f
+                    }
+
                     Box(
                         modifier = Modifier
                             .fillMaxHeight()
                             .weight(1f),
                         contentAlignment = Alignment.CenterStart
                     ) {
-                        Row(modifier = Modifier.fillMaxHeight()) {
-                            // Star action
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxHeight()
-                                    .width(75.dp)
-                                    .background(LaterboxAmber)
-                                    .clickable {
-                                        coroutineScope.launch { offsetX.animateTo(0f, spring(stiffness = Spring.StiffnessMediumLow)) }
-                                        onToggleFavorite()
-                                    },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Column(
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.Center
-                                ) {
-                                    Icon(
-                                        imageVector = if (item.favorite) Icons.Default.Star else Icons.Outlined.StarBorder,
-                                        contentDescription = if (item.favorite) "Unstar" else "Star",
-                                        tint = Color.White,
-                                        modifier = Modifier.size(22.dp)
-                                    )
-                                    Spacer(Modifier.height(3.dp))
-                                    Text(
-                                        text = if (item.favorite) "Unstar" else "Star",
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color.White
-                                    )
+                        Row(
+                            modifier = Modifier
+                                .fillMaxHeight()
+                                .padding(horizontal = 4.dp, vertical = 4.dp),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            SwipeActionButton(
+                                icon = if (item.favorite) Icons.Default.Star else Icons.Outlined.StarBorder,
+                                label = if (item.favorite) "Unstar" else "Star",
+                                backgroundColor = LaterboxAmber,
+                                width = starWidth,
+                                contentScale = starScale,
+                                contentAlpha = baseAlpha,
+                                onClick = {
+                                    coroutineScope.launch { offsetX.animateTo(0f, spring(stiffness = Spring.StiffnessMediumLow)) }
+                                    onToggleFavorite()
                                 }
-                            }
+                            )
 
-                            // Collection action
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxHeight()
-                                    .width(75.dp)
-                                    .background(Color(0xFF1967D2))
-                                    .clickable {
-                                        coroutineScope.launch { offsetX.animateTo(0f, spring(stiffness = Spring.StiffnessMediumLow)) }
-                                        onAddToCollection()
-                                    },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Column(
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.Center
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Folder,
-                                        contentDescription = "Collection",
-                                        tint = Color.White,
-                                        modifier = Modifier.size(22.dp)
-                                    )
-                                    Spacer(Modifier.height(3.dp))
-                                    Text(
-                                        text = "Collection",
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color.White
-                                    )
+                            SwipeActionButton(
+                                icon = Icons.Default.Folder,
+                                label = "Collection",
+                                backgroundColor = Color(0xFF0284C7),
+                                width = collectionWidth,
+                                contentScale = collectionScale,
+                                contentAlpha = baseAlpha,
+                                onClick = {
+                                    coroutineScope.launch { offsetX.animateTo(0f, spring(stiffness = Spring.StiffnessMediumLow)) }
+                                    onAddToCollection()
                                 }
-                            }
+                            )
                         }
                     }
                 } else {
@@ -1227,76 +1270,63 @@ internal fun SwipeableEmailInboxRow(
 
                 // Trailing side (revealed on left swipe): Snooze & Delete
                 if (currentOffset < 0f) {
+                    val halfAvailable = with(density) {
+                        ((absOffset - with(density) { 14.dp.toPx() }) / 2f).coerceAtLeast(0f).toDp()
+                    }
+                    val snoozeWidth: androidx.compose.ui.unit.Dp
+                    val deleteWidth: androidx.compose.ui.unit.Dp
+                    val snoozeScale = baseScale
+                    val deleteScale: Float
+
+                    if (absOffset < revealWidthPx) {
+                        snoozeWidth = halfAvailable
+                        deleteWidth = halfAvailable
+                        deleteScale = baseScale
+                    } else {
+                        val extraDp = with(density) { (absOffset - revealWidthPx).toDp() }
+                        snoozeWidth = 72.dp
+                        deleteWidth = 72.dp + extraDp
+                        deleteScale = if (absOffset >= fullSwipeThresholdPx) 1.15f else 1f
+                    }
+
                     Box(
                         modifier = Modifier
                             .fillMaxHeight()
                             .weight(1f),
                         contentAlignment = Alignment.CenterEnd
                     ) {
-                        Row(modifier = Modifier.fillMaxHeight()) {
-                            // Snooze action
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxHeight()
-                                    .width(75.dp)
-                                    .background(Color(0xFFEA580C))
-                                    .clickable {
-                                        coroutineScope.launch { offsetX.animateTo(0f, spring(stiffness = Spring.StiffnessMediumLow)) }
-                                        onSnooze()
-                                    },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Column(
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.Center
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Schedule,
-                                        contentDescription = "Snooze",
-                                        tint = Color.White,
-                                        modifier = Modifier.size(22.dp)
-                                    )
-                                    Spacer(Modifier.height(3.dp))
-                                    Text(
-                                        text = "Snooze",
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color.White
-                                    )
+                        Row(
+                            modifier = Modifier
+                                .fillMaxHeight()
+                                .padding(horizontal = 4.dp, vertical = 4.dp),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            SwipeActionButton(
+                                icon = Icons.Default.Schedule,
+                                label = "Snooze",
+                                backgroundColor = Color(0xFFEA580C),
+                                width = snoozeWidth,
+                                contentScale = snoozeScale,
+                                contentAlpha = baseAlpha,
+                                onClick = {
+                                    coroutineScope.launch { offsetX.animateTo(0f, spring(stiffness = Spring.StiffnessMediumLow)) }
+                                    onSnooze()
                                 }
-                            }
+                            )
 
-                            // Delete action
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxHeight()
-                                    .width(75.dp)
-                                    .background(Color(0xFFDC2626))
-                                    .clickable {
-                                        coroutineScope.launch { offsetX.animateTo(0f, spring(stiffness = Spring.StiffnessMediumLow)) }
-                                        onDelete()
-                                    },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Column(
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.Center
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Delete,
-                                        contentDescription = "Delete",
-                                        tint = Color.White,
-                                        modifier = Modifier.size(22.dp)
-                                    )
-                                    Spacer(Modifier.height(3.dp))
-                                    Text(
-                                        text = "Delete",
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color.White
-                                    )
+                            SwipeActionButton(
+                                icon = Icons.Default.Delete,
+                                label = "Delete",
+                                backgroundColor = Color(0xFFDC2626),
+                                width = deleteWidth,
+                                contentScale = deleteScale,
+                                contentAlpha = baseAlpha,
+                                onClick = {
+                                    coroutineScope.launch { offsetX.animateTo(0f, spring(stiffness = Spring.StiffnessMediumLow)) }
+                                    onDelete()
                                 }
-                            }
+                            )
                         }
                     }
                 }
