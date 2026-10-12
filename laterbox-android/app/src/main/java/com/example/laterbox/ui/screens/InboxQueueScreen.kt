@@ -45,6 +45,8 @@ import com.example.laterbox.data.local.ItemEntity
 import com.example.laterbox.data.local.ItemMetadataEntity
 import com.example.laterbox.services.AccountService
 import com.example.laterbox.theme.*
+import com.example.laterbox.ui.components.MailboxViewType
+import com.example.laterbox.ui.components.MobileSidebarDrawer
 import kotlinx.coroutines.launch
 import java.net.URI
 import java.time.Instant
@@ -67,10 +69,81 @@ fun InboxQueueScreen(
     val collections by repository.collections.collectAsState(emptyList())
     val account by AccountService.state.collectAsState()
     var showingSearch by rememberSaveable { mutableStateOf(false) }
+    var showingSidebar by rememberSaveable { mutableStateOf(false) }
+    var showingPlans by rememberSaveable { mutableStateOf(false) }
+    var selectedMailbox by rememberSaveable { mutableStateOf(MailboxViewType.INBOX) }
+    var selectedCollection by rememberSaveable { mutableStateOf<String?>(null) }
     var actionError by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
-    val inbox = allItems.filter { it.status == "inbox" && it.deletedAt == null }
-    val queue = inbox.sortedBy { inboxArrival(it) }
+
+    val rawItems = remember(allItems, collections, selectedMailbox, selectedCollection) {
+        if (selectedCollection != null) {
+            allItems.filter {
+                it.deletedAt == null && it.status != "deleted" &&
+                    (it.category.equals(selectedCollection, ignoreCase = true) ||
+                        collections.find { c -> c.id == it.collectionId }?.name?.equals(selectedCollection, ignoreCase = true) == true)
+            }
+        } else {
+            val now = Instant.now()
+            val endOfToday = now.atZone(ZoneId.systemDefault()).toLocalDate().plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant()
+            when (selectedMailbox) {
+                MailboxViewType.INBOX -> allItems.filter { it.status == "inbox" && it.deletedAt == null }
+                MailboxViewType.TODAY -> allItems.filter {
+                    it.deletedAt == null && it.status != "archived" && it.status != "deleted" &&
+                        it.returnAt != null && runCatching { Instant.parse(it.returnAt) <= endOfToday }.getOrDefault(false)
+                }
+                MailboxViewType.SCHEDULED -> allItems.filter {
+                    it.deletedAt == null && it.status != "archived" && it.status != "deleted" &&
+                        it.returnAt != null && runCatching { Instant.parse(it.returnAt) > endOfToday }.getOrDefault(false)
+                }
+                MailboxViewType.SOMEDAY -> allItems.filter {
+                    it.deletedAt == null && it.status == "deferred" && it.returnAt == null
+                }
+                MailboxViewType.STARRED -> allItems.filter {
+                    it.favorite && it.deletedAt == null && it.status != "deleted"
+                }
+                MailboxViewType.KEPT -> allItems.filter {
+                    it.deletedAt == null && (it.status == "saved" || it.status == "done")
+                }
+                MailboxViewType.ARCHIVED -> allItems.filter {
+                    it.deletedAt == null && it.status == "archived"
+                }
+                MailboxViewType.TRASH -> allItems.filter {
+                    it.deletedAt != null || it.status == "deleted"
+                }
+            }
+        }
+    }
+    val queue = remember(rawItems) { rawItems.sortedBy { inboxArrival(it) } }
+
+    val emptyTitle = remember(selectedMailbox, selectedCollection) {
+        if (selectedCollection != null) "No items in #$selectedCollection"
+        else when (selectedMailbox) {
+            MailboxViewType.INBOX -> "Inbox Zero!"
+            MailboxViewType.TODAY -> "No Items Due Today"
+            MailboxViewType.SCHEDULED -> "No Scheduled Items"
+            MailboxViewType.SOMEDAY -> "Someday Vault is Empty"
+            MailboxViewType.STARRED -> "No Starred Items"
+            MailboxViewType.KEPT -> "No Kept Items"
+            MailboxViewType.ARCHIVED -> "No Archived Items"
+            MailboxViewType.TRASH -> "Trash is Empty"
+        }
+    }
+
+    val emptySubtitle = remember(selectedMailbox, selectedCollection) {
+        if (selectedCollection != null) "Items tagged with this collection will appear here."
+        else when (selectedMailbox) {
+            MailboxViewType.INBOX -> "All caught up. Everything saved has been processed or reviewed."
+            MailboxViewType.TODAY -> "You have no items scheduled for review today."
+            MailboxViewType.SCHEDULED -> "Items scheduled for upcoming dates will appear here."
+            MailboxViewType.SOMEDAY -> "Ideas, inspiration, and backlog items with no deadline appear here."
+            MailboxViewType.STARRED -> "Star items to quickly find them here."
+            MailboxViewType.KEPT -> "Items you've kept will appear here."
+            MailboxViewType.ARCHIVED -> "Archived items will appear here."
+            MailboxViewType.TRASH -> "Deleted items will appear here before being permanently erased."
+        }
+    }
+
     val syncTitle = when {
         !account.pro -> "Local only"
         allItems.any { it.syncStatus == "failed" } -> "Sync needs attention"
@@ -84,45 +157,50 @@ fun InboxQueueScreen(
         DedicatedSearchScreen(allItems = allItems, repository = repository, onClose = { showingSearch = false }, onItemClick = onItem)
         return
     }
-    LazyColumn(
-        modifier = Modifier.fillMaxSize().background(LaterboxBg),
-        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 24.dp),
-        verticalArrangement = Arrangement.spacedBy(2.5.dp)
-    ) {
-        // 3 Components Top Bar: 3-line Sidebar Opener (left), Centered Search (middle), Profile Pic with Menu (right)
-        item {
-            var profileExpanded by remember { mutableStateOf(false) }
-            val userInitial = remember(account.displayName, account.email) {
-                account.displayName?.trim()?.firstOrNull()?.uppercase()
-                    ?: account.email?.trim()?.firstOrNull()?.uppercase()
-                    ?: "U"
-            }
 
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 6.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                // 1. Top left: 3 lines sidebar opener
-                Surface(
-                    modifier = Modifier
-                        .size(36.dp)
-                        .clip(CircleShape)
-                        .clickable(onClick = onOpenSidebar),
-                    shape = CircleShape,
-                    color = Color.Transparent
-                ) {
-                    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                        Icon(
-                            imageVector = Icons.Default.Menu,
-                            contentDescription = "Open sidebar",
-                            tint = LaterboxTextPrimary,
-                            modifier = Modifier.size(22.dp)
-                        )
-                    }
+    Box(modifier = Modifier.fillMaxSize()) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize().background(LaterboxBg),
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(2.5.dp)
+        ) {
+            // 3 Components Top Bar: 3-line Sidebar Opener (left), Centered Search (middle), Profile Pic with Menu (right)
+            item {
+                var profileExpanded by remember { mutableStateOf(false) }
+                val userInitial = remember(account.displayName, account.email) {
+                    account.displayName?.trim()?.firstOrNull()?.uppercase()
+                        ?: account.email?.trim()?.firstOrNull()?.uppercase()
+                        ?: "U"
                 }
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    // 1. Top left: 3 lines sidebar opener
+                    Surface(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .clickable(onClick = {
+                                showingSidebar = true
+                                onOpenSidebar()
+                            }),
+                        shape = CircleShape,
+                        color = Color.Transparent
+                    ) {
+                        Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                            Icon(
+                                imageVector = Icons.Default.Menu,
+                                contentDescription = "Open sidebar",
+                                tint = LaterboxTextPrimary,
+                                modifier = Modifier.size(22.dp)
+                            )
+                        }
+                    }
 
                 // 2. Centered search bar (matching iOS Ask LaterBox pill)
                 Surface(
@@ -244,22 +322,74 @@ fun InboxQueueScreen(
                     .padding(top = 8.dp, bottom = 4.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                val headerTitle = if (selectedCollection != null) "#$selectedCollection" else selectedMailbox.title
                 Text(
-                    text = "Inbox",
+                    text = headerTitle,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Bold,
                     color = LaterboxTextSecondary
                 )
+                if (selectedCollection != null || selectedMailbox != MailboxViewType.INBOX) {
+                    Spacer(Modifier.weight(1f))
+                    Row(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(Color(0xFFE6EDB0))
+                            .clickable {
+                                selectedMailbox = MailboxViewType.INBOX
+                                selectedCollection = null
+                            }
+                            .padding(horizontal = 8.dp, vertical = 3.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(
+                            text = "Back to Inbox",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF171711)
+                        )
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Clear filter",
+                            tint = Color(0xFF171711),
+                            modifier = Modifier.size(12.dp)
+                        )
+                    }
+                }
             }
         }
         actionError?.let { message -> item { Text(message, color = MaterialTheme.colorScheme.error) } }
         if (queue.isEmpty()) item {
             Surface(shape = RoundedCornerShape(16.dp), color = Color.White, border = BorderStroke(1.dp, Color.Black.copy(alpha = 0.06f)), modifier = Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(48.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                    Icon(Icons.Default.Inbox, null, Modifier.size(40.dp), tint = LaterboxTextSecondary.copy(alpha = 0.35f))
-                    Text(if (inbox.isEmpty()) "Inbox Zero!" else "No matches", fontSize = 17.sp, fontWeight = FontWeight.Bold, color = LaterboxTextPrimary)
-                    Text(if (inbox.isEmpty()) "All caught up. Everything saved has been processed or reviewed." else "Try another search or content format.", fontSize = 12.sp, color = LaterboxTextSecondary, textAlign = TextAlign.Center)
-                    if (inbox.isEmpty()) TextButton(onClick = onCapture) { Text("Save something") }
+                    Icon(
+                        imageVector = when (selectedMailbox) {
+                            MailboxViewType.INBOX -> Icons.Default.Inbox
+                            MailboxViewType.TODAY -> Icons.Default.Schedule
+                            MailboxViewType.SCHEDULED -> Icons.Default.CalendarToday
+                            MailboxViewType.SOMEDAY -> Icons.Default.DateRange
+                            MailboxViewType.STARRED -> Icons.Default.Star
+                            MailboxViewType.KEPT -> Icons.Default.CheckCircle
+                            MailboxViewType.ARCHIVED -> Icons.Default.Archive
+                            MailboxViewType.TRASH -> Icons.Default.Delete
+                        },
+                        contentDescription = null,
+                        modifier = Modifier.size(40.dp),
+                        tint = LaterboxTextSecondary.copy(alpha = 0.35f)
+                    )
+                    Text(emptyTitle, fontSize = 17.sp, fontWeight = FontWeight.Bold, color = LaterboxTextPrimary)
+                    Text(emptySubtitle, fontSize = 12.sp, color = LaterboxTextSecondary, textAlign = TextAlign.Center)
+                    if (selectedMailbox == MailboxViewType.INBOX && selectedCollection == null) {
+                        TextButton(onClick = onCapture) { Text("Save something") }
+                    } else {
+                        TextButton(onClick = {
+                            selectedMailbox = MailboxViewType.INBOX
+                            selectedCollection = null
+                        }) {
+                            Text("Back to Inbox")
+                        }
+                    }
                 }
             }
         }
@@ -281,6 +411,37 @@ fun InboxQueueScreen(
             )
         }
     }
+
+    MobileSidebarDrawer(
+        isOpen = showingSidebar,
+        onDismiss = { showingSidebar = false },
+        activeMailbox = selectedMailbox,
+        activeCollection = selectedCollection,
+        allItems = allItems,
+        collections = collections,
+        isPro = account.pro,
+        userEmail = account.email,
+        onSelectMailbox = { mailbox ->
+            selectedMailbox = mailbox
+            selectedCollection = null
+        },
+        onSelectCollection = { colName ->
+            selectedCollection = colName
+        },
+        onCreateCollection = { name ->
+            scope.launch {
+                repository.addCollection(name, "#0369A1", "folder")
+            }
+        },
+        onOpenSaveItem = onCapture,
+        onOpenPlans = { showingPlans = true },
+        onOpenSettings = onOpenSettings
+    )
+
+    if (showingPlans) {
+        PlansSheet(onDismiss = { showingPlans = false })
+    }
+}
 }
 
 @Composable
