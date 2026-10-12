@@ -1,9 +1,8 @@
 package com.example.laterbox.ui.screens
 
-import android.Manifest
 import android.content.Intent
 import android.net.Uri
-import android.os.Build
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
@@ -15,12 +14,16 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -31,11 +34,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.FileProvider
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.compose.LocalLifecycleOwner
-import androidx.activity.compose.BackHandler
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import com.example.laterbox.BuildConfig
 import com.example.laterbox.R
 import com.example.laterbox.data.DataRepository
@@ -45,18 +43,35 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+
+enum class SettingsSubpage(val title: String) {
+    ACCOUNT("Account Details"),
+    SUBSCRIPTION("Subscription & Plans"),
+    SYNC("Cloud Sync & Diagnostics"),
+    NOTIFICATIONS("Notifications & Alerts"),
+    SECURITY("Security & Privacy"),
+    STORAGE("Local Storage & Vault"),
+    AI_MODELS("Later AI Models"),
+    UPDATES("Check for Updates")
+}
 
 @Composable
-fun NativeSettings(repository: DataRepository, onAuth: () -> Unit, onTrash: () -> Unit, onBack: (() -> Unit)? = null) {
-    if (onBack != null) {
-        BackHandler { onBack() }
-    }
+fun NativeSettings(
+    repository: DataRepository,
+    onAuth: () -> Unit,
+    onTrash: () -> Unit,
+    onBack: (() -> Unit)? = null
+) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val account by AccountService.state.collectAsState()
     val status by repository.webStatus.collectAsState()
     val items by repository.items.collectAsState(emptyList())
     val trash by repository.trash.collectAsState(emptyList())
+
     val preferences = remember { context.getSharedPreferences("laterbox", 0) }
     var lock by remember { mutableStateOf(preferences.getBoolean("app_lock", false)) }
     var fallback by remember { mutableStateOf(preferences.getBoolean("gemini_fallback", false)) }
@@ -70,201 +85,1117 @@ fun NativeSettings(repository: DataRepository, onAuth: () -> Unit, onTrash: () -
     var busy by remember { mutableStateOf(false) }
     var bytes by remember { mutableLongStateOf(0) }
     var storageRefresh by remember { mutableIntStateOf(0) }
+    var activeSubpage by rememberSaveable { mutableStateOf<SettingsSubpage?>(null) }
+
     LaunchedEffect(items.size, trash.size, storageRefresh) {
-        bytes = withContext(Dispatchers.IO) { File(context.filesDir, "captures").walkTopDown().filter { it.isFile }.sumOf { it.length() } }
+        bytes = withContext(Dispatchers.IO) {
+            File(context.filesDir, "captures").walkTopDown().filter { it.isFile }.sumOf { it.length() }
+        }
     }
+
     fun task(block: suspend () -> Unit) {
         if (busy) return
-        scope.launch { busy = true; try { block() } catch (cancelled: kotlinx.coroutines.CancellationException) { throw cancelled } catch (failure: Exception) { message = failure.message ?: "Unable to complete this action. Please try again." } finally { busy = false } }
+        scope.launch {
+            busy = true
+            try {
+                block()
+            } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                throw cancelled
+            } catch (failure: Exception) {
+                message = failure.message ?: "Unable to complete this action. Please try again."
+            } finally {
+                busy = false
+            }
+        }
     }
-    fun open(intent: Intent) { runCatching { context.startActivity(intent) }.onFailure { message = "No app is available to open this page." } }
-    val importer = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> if (uri != null) task {
-        val count = BackupService.import(context, uri); message = "Imported $count captures"; repository.syncNow(); storageRefresh++
-    } }
-    val sync = when { !account.pro -> "Local only"; items.any { it.syncStatus == "failed" } -> "Needs attention"; items.any { it.syncStatus == "pending" } -> "Pending sync"; else -> "Synced" }
+
+    fun open(intent: Intent) {
+        runCatching { context.startActivity(intent) }.onFailure {
+            message = "No app is available to open this page."
+        }
+    }
+
+    val importer = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) task {
+            val count = BackupService.import(context, uri)
+            message = "Imported $count captures"
+            repository.syncNow()
+            storageRefresh++
+        }
+    }
+
+    val sync = when {
+        !account.pro -> "Local only"
+        items.any { it.syncStatus == "failed" } -> "Needs attention"
+        items.any { it.syncStatus == "pending" } -> "Pending sync"
+        else -> "Synced"
+    }
+
     val secure = remember { SecureSettings(context) }
     val nanoStatus by NanoAIService.status.collectAsState()
     LaunchedEffect(Unit) { NanoAIService.refresh() }
     val aiProvider = remember(aiSettings, account.pro) { secure.provider }
-    val aiModel = remember(aiSettings, account.pro) { if (!account.pro) "Gemini Nano (when ready), local fallback" else secure.model }
-    LazyColumn(Modifier.fillMaxSize().background(LaterboxBg), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
-        item {
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                if (onBack != null) {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back to Inbox", tint = LaterboxTextPrimary)
+    val aiModel = remember(aiSettings, account.pro) {
+        if (!account.pro) "Gemini Nano (when ready), local fallback" else secure.model
+    }
+
+    val notificationsEnabled = remember {
+        NotificationManagerCompat.from(context).areNotificationsEnabled()
+    }
+
+    if (activeSubpage != null) {
+        BackHandler { activeSubpage = null }
+    } else if (onBack != null) {
+        BackHandler { onBack() }
+    }
+
+    Box(Modifier.fillMaxSize().background(LaterboxBg)) {
+        if (activeSubpage == null) {
+            // MAIN SETTINGS VIEW: Only links leading to subpages (matching iOS SettingsView)
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(horizontal = 20.dp, vertical = 20.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // Header Bar (matching iOS Header Bar)
+                item {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 4.dp, bottom = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        if (onBack != null) {
+                            Surface(
+                                modifier = Modifier
+                                    .size(38.dp)
+                                    .clip(CircleShape)
+                                    .clickable { onBack() },
+                                shape = CircleShape,
+                                color = Color.Black.copy(alpha = 0.04f)
+                            ) {
+                                Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                        contentDescription = "Back to Inbox",
+                                        tint = LaterboxTextPrimary,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                            }
+                        } else {
+                            Image(
+                                painter = painterResource(R.drawable.laterbox_icon_green),
+                                contentDescription = "LaterBox",
+                                modifier = Modifier
+                                    .size(34.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                            )
+                        }
+
+                        Text(
+                            text = "Settings",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = LaterboxTextPrimary,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.weight(1f)
+                        )
+
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(5.dp),
+                            modifier = Modifier.clickable {
+                                if (!account.pro) plans = true
+                            }
+                        ) {
+                            Box(
+                                Modifier
+                                    .size(7.dp)
+                                    .background(if (sync == "Synced") LaterboxEmerald else LaterboxAmber, CircleShape)
+                            )
+                            Text(sync, fontSize = 11.sp, fontWeight = FontWeight.Medium, color = LaterboxTextSecondary)
+                        }
                     }
-                } else {
-                    Image(painterResource(R.drawable.laterbox_icon_green), "LaterBox", Modifier.size(28.dp).clip(RoundedCornerShape(7.dp)))
                 }
-                Text("Settings", Modifier.weight(1f).padding(start = 8.dp), fontSize = 24.sp, fontWeight = FontWeight.Bold, color = LaterboxTextPrimary)
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                    Box(Modifier.size(7.dp).background(if (sync == "Synced") LaterboxEmerald else LaterboxAmber, CircleShape))
-                    Text(sync, fontSize = 10.sp, color = LaterboxTextSecondary)
-                }
-            }
-        }
-        message?.let { text -> item {
-            Surface(color = LaterboxAccent.copy(alpha = 0.4f), shape = RoundedCornerShape(14.dp)) {
-                Row(Modifier.padding(start = 14.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text(text, Modifier.weight(1f), fontSize = 13.sp, color = LaterboxTextPrimary)
-                    IconButton(onClick = { message = null }) { Icon(Icons.Default.Close, "Dismiss message", Modifier.size(18.dp)) }
-                }
-            }
-        } }
-        item {
-            Column(Modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Box(Modifier.size(72.dp).background(LaterboxAccent, CircleShape), contentAlignment = Alignment.Center) { Icon(Icons.Default.Person, null, Modifier.size(34.dp), tint = LaterboxTextPrimary) }
-                Text(account.displayName?.takeIf { it.isNotBlank() } ?: account.email ?: "Guest Mode", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = LaterboxTextPrimary, textAlign = TextAlign.Center)
-                account.email?.let { Text(it, fontSize = 13.sp, color = LaterboxTextSecondary, textAlign = TextAlign.Center) }
-                Text(if (account.pro) "LaterBox Pro Active" else if (account.userId == null) "Local saving active · Sign in for cloud sync" else "Free local vault", fontSize = 13.sp, color = LaterboxTextSecondary, textAlign = TextAlign.Center)
-                if (account.userId == null) Button(onClick = onAuth) { Text("Sign In") }
-                else TextButton(onClick = { signOut = true }, enabled = !busy) { Text("Sign Out", color = LaterboxTextSecondary) }
-            }
-        }
-        item {
-            SettingsGroup("YOUR PLAN", Icons.Default.WorkspacePremium) {
-                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Column(Modifier.weight(1f)) {
-                        Text(if (account.pro) "LaterBox Pro" else "LaterBox Local", fontSize = 19.sp, fontWeight = FontWeight.Bold, color = LaterboxTextPrimary)
-                        Text(if (account.pro) "Connected features unlocked" else "Offline storage on this device", fontSize = 12.sp, color = LaterboxTextSecondary)
-                    }
-                    Surface(color = LaterboxAccent, shape = RoundedCornerShape(50)) { Text(if (account.pro) "Active" else "Free Forever", Modifier.padding(horizontal = 10.dp, vertical = 5.dp), fontSize = 10.sp, fontWeight = FontWeight.Bold) }
-                }
-                Text(if (account.pro) "Cloud sync, connected extensions, and AI organization are available with your plan." else "Save, read, organize, and export your items offline. Upgrade for cloud sync and connected features.", fontSize = 13.sp, color = LaterboxTextSecondary)
-                Button(onClick = { plans = true }, modifier = Modifier.fillMaxWidth()) { Text(if (account.pro) "View Plans & Subscriptions" else "Get Pro to Sync") }
-                SettingsAction(Icons.Default.Refresh, "Refresh subscription", "Check Pro access purchased on LaterBox Web") {
-                    scope.launch {
-                        try {
-                            AccountService.refresh()
-                            repository.syncNow()
-                            message = if (AccountService.state.value.pro) "Pro is active. Cloud sync is enabled." else "No active Pro access. Sign in with your web subscription account."
-                        } catch (_: Exception) { message = "Could not refresh subscription. Please try again." }
+
+                message?.let { text ->
+                    item {
+                        Surface(color = LaterboxAccent.copy(alpha = 0.4f), shape = RoundedCornerShape(14.dp)) {
+                            Row(Modifier.padding(start = 14.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Text(text, Modifier.weight(1f), fontSize = 13.sp, color = LaterboxTextPrimary)
+                                IconButton(onClick = { message = null }) {
+                                    Icon(Icons.Default.Close, "Dismiss message", Modifier.size(18.dp))
+                                }
+                            }
+                        }
                     }
                 }
-            }
-        }
-        item {
-            SettingsGroup("CLOUD SYNC & DIAGNOSTICS", Icons.Default.CloudSync) {
-                SettingsValue("Sync status", sync)
-                SettingsValue("Last updated", items.mapNotNull { it.lastSyncedAt }.maxOrNull()?.let { stamp -> runCatching { java.time.Instant.parse(stamp).atZone(java.time.ZoneId.systemDefault()).format(java.time.format.DateTimeFormatter.ofPattern("MMM d · HH:mm")) }.getOrDefault(stamp) } ?: "Not synced yet")
-                SettingsAction(Icons.Default.Public, "LaterBox Web Platform", status.label) { repository.refreshWebStatus(); message = "Refreshing platform status…" }
-                SettingsAction(Icons.Default.Sync, if (account.pro) "Trigger Sync Now" else "Get Pro to Enable Cloud Sync", if (account.pro) "Sync saved items across your devices" else "Your local vault stays available offline") {
-                    if (account.pro) { repository.syncNow(); message = "Sync queued" } else plans = true
+
+                // Profile Card Link (matching iOS Profile Card)
+                item {
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(18.dp))
+                            .clickable { activeSubpage = SettingsSubpage.ACCOUNT },
+                        shape = RoundedCornerShape(18.dp),
+                        color = LaterboxCard,
+                        border = BorderStroke(1.dp, LaterboxBorder)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(14.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(52.dp)
+                                    .background(LaterboxAccent, CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Person,
+                                    contentDescription = null,
+                                    tint = LaterboxTextPrimary,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
+
+                            Column(
+                                modifier = Modifier.weight(1f),
+                                verticalArrangement = Arrangement.spacedBy(3.dp)
+                            ) {
+                                val email = account.email
+                                if (!email.isNullOrBlank()) {
+                                    Text(
+                                        text = email,
+                                        fontSize = 16.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = LaterboxTextPrimary,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                    Text(
+                                        text = if (account.pro) "LaterBox Pro Active" else "Free Cloud Account",
+                                        fontSize = 12.sp,
+                                        color = LaterboxTextSecondary,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                } else {
+                                    Text(
+                                        text = "Guest Mode",
+                                        fontSize = 16.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = LaterboxTextPrimary
+                                    )
+                                    Text(
+                                        text = "Local saving active • Tap to sign in",
+                                        fontSize = 12.sp,
+                                        color = LaterboxTextSecondary
+                                    )
+                                }
+                            }
+
+                            Icon(
+                                imageVector = Icons.Default.ChevronRight,
+                                contentDescription = null,
+                                tint = LaterboxTextSecondary.copy(alpha = 0.5f),
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
+                }
+
+                // Group 1: Membership & Cloud
+                item {
+                    SettingsGroupCard(title = "MEMBERSHIP & CLOUD") {
+                        SettingsLinkRow(
+                            icon = Icons.Default.WorkspacePremium,
+                            title = "Subscription & Plans",
+                            subtitle = "Cloud sync, AI models & storage tiers",
+                            badge = if (account.pro) "Pro" else "Free",
+                            onClick = { activeSubpage = SettingsSubpage.SUBSCRIPTION }
+                        )
+                        HorizontalDivider(color = LaterboxBorder, thickness = 0.5.dp)
+                        SettingsLinkRow(
+                            icon = Icons.Default.CloudSync,
+                            title = "Cloud Sync & Diagnostics",
+                            subtitle = "Real-time sync status & platform health",
+                            badge = sync,
+                            onClick = { activeSubpage = SettingsSubpage.SYNC }
+                        )
+                    }
+                }
+
+                // Group 2: Preferences & System
+                item {
+                    SettingsGroupCard(title = "PREFERENCES & SYSTEM") {
+                        SettingsLinkRow(
+                            icon = Icons.Default.Notifications,
+                            title = "Notifications & Alerts",
+                            subtitle = "Daily delivery schedule & system channel",
+                            badge = if (notificationsEnabled) "On" else "Off",
+                            onClick = { activeSubpage = SettingsSubpage.NOTIFICATIONS }
+                        )
+                        HorizontalDivider(color = LaterboxBorder, thickness = 0.5.dp)
+                        SettingsLinkRow(
+                            icon = Icons.Default.Lock,
+                            title = "Security & Privacy",
+                            subtitle = "App Lock biometrics & screen protection",
+                            badge = if (lock) "On" else "Off",
+                            onClick = { activeSubpage = SettingsSubpage.SECURITY }
+                        )
+                    }
+                }
+
+                // Group 3: Data & Intelligence
+                item {
+                    SettingsGroupCard(title = "DATA & INTELLIGENCE") {
+                        SettingsLinkRow(
+                            icon = Icons.Default.Storage,
+                            title = "Local Storage & Vault",
+                            subtitle = "Backups, export & trash management",
+                            badge = android.text.format.Formatter.formatFileSize(context, bytes),
+                            onClick = { activeSubpage = SettingsSubpage.STORAGE }
+                        )
+                        HorizontalDivider(color = LaterboxBorder, thickness = 0.5.dp)
+                        SettingsLinkRow(
+                            icon = Icons.Default.AutoAwesome,
+                            title = "Later AI Models",
+                            subtitle = "Providers, API keys & local fallbacks",
+                            badge = if (account.pro) "Configured" else "Pro",
+                            onClick = { activeSubpage = SettingsSubpage.AI_MODELS }
+                        )
+                    }
+                }
+
+                // Group 4: Support & Updates
+                item {
+                    SettingsGroupCard(title = "SUPPORT & UPDATES") {
+                        SettingsLinkRow(
+                            icon = Icons.Default.Update,
+                            title = "Check for Updates",
+                            subtitle = "Release notes & update channel",
+                            badge = "v${BuildConfig.VERSION_NAME}",
+                            onClick = { activeSubpage = SettingsSubpage.UPDATES }
+                        )
+                        HorizontalDivider(color = LaterboxBorder, thickness = 0.5.dp)
+                        SettingsLinkRow(
+                            icon = Icons.Default.QuestionAnswer,
+                            title = "Help & Report a Problem",
+                            subtitle = "Send diagnostics, suggestions or bug reports",
+                            badge = null,
+                            onClick = { supportSheet = true }
+                        )
+                    }
+                }
+
+                // Bottom Session Action Button (matching iOS)
+                item {
+                    if (account.userId != null) {
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(16.dp))
+                                .clickable { signOut = true },
+                            shape = RoundedCornerShape(16.dp),
+                            color = LaterboxCard,
+                            border = BorderStroke(1.dp, LaterboxBorder)
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 14.dp),
+                                horizontalArrangement = Arrangement.Center,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.Logout,
+                                    contentDescription = null,
+                                    tint = Color(0xFFEF4444),
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(Modifier.width(8.dp))
+                                Text(
+                                    text = "Log Out",
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFFEF4444)
+                                )
+                            }
+                        }
+                    } else {
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(16.dp))
+                                .clickable(onClick = onAuth),
+                            shape = RoundedCornerShape(16.dp),
+                            color = Color(0xFF171711)
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 14.dp),
+                                horizontalArrangement = Arrangement.Center,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Person,
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(Modifier.width(8.dp))
+                                Text(
+                                    text = "Sign In",
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // App Version Footer
+                item {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 16.dp, top = 4.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(
+                            text = "LaterBox for Android",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = LaterboxTextSecondary
+                        )
+                        Text(
+                            text = "Version ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})",
+                            fontSize = 11.sp,
+                            color = LaterboxTextSecondary.copy(alpha = 0.7f)
+                        )
+                    }
                 }
             }
-        }
-        item {
-            SettingsGroup("LATER AI & INTELLIGENCE", Icons.Default.AutoAwesome) {
-                SettingsValue("Active engine", if (!account.pro) nanoStatus else aiProvider.replaceFirstChar { it.uppercase() })
-                SettingsValue("Selected model", aiModel)
-                Text(if (account.pro) "Ask questions, enrich captures, and organize saved content using your configured AI provider." else "Guided capture and keyword search are available locally. Pro adds AI answers and organization.", fontSize = 12.sp, color = LaterboxTextSecondary)
-                SettingsAction(Icons.Default.Tune, "Configure AI Models & Keys", "Model selection and encrypted custom keys") { aiSettings = true }
-                if (RemoteAIService.ENABLED && account.pro) SettingsToggle("Pro Gemini fallback", "Use cloud AI after local failures", fallback) { enabled ->
-                    fallback = enabled; preferences.edit().putBoolean("gemini_fallback", enabled).apply()
+        } else {
+            // SUBPAGE VIEW: Rendered when user taps any settings link
+            Column(Modifier.fillMaxSize()) {
+                // Subpage Header
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Surface(
+                        modifier = Modifier
+                            .size(38.dp)
+                            .clip(CircleShape)
+                            .clickable { activeSubpage = null },
+                        shape = CircleShape,
+                        color = Color.Black.copy(alpha = 0.04f)
+                    ) {
+                        Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Back to Settings",
+                                tint = LaterboxTextPrimary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    }
+
+                    Text(
+                        text = activeSubpage!!.title,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = LaterboxTextPrimary,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.weight(1f)
+                    )
+
+                    Spacer(Modifier.size(38.dp))
                 }
-            }
-        }
-        item {
-            SettingsGroup("NOTIFICATIONS & ALERTS", Icons.Default.Notifications) {
-                NotificationAccess()
-            }
-        }
-        item {
-            SettingsGroup("SECURITY & PRIVACY", Icons.Default.Lock) {
-                SettingsToggle("App Lock", "Require biometrics or device PIN", lock) { enabled ->
-                    if (!enabled || AppLockService.supported(context)) { lock = enabled; preferences.edit().putBoolean("app_lock", enabled).apply() }
-                    else message = "Set up a screen lock or biometrics first."
+
+                LazyColumn(
+                    modifier = Modifier.weight(1f),
+                    contentPadding = PaddingValues(horizontal = 20.dp, vertical = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    when (activeSubpage) {
+                        SettingsSubpage.ACCOUNT -> {
+                            item {
+                                Surface(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(18.dp),
+                                    color = LaterboxCard,
+                                    border = BorderStroke(1.dp, LaterboxBorder)
+                                ) {
+                                    Column(
+                                        modifier = Modifier.padding(20.dp),
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(72.dp)
+                                                .background(LaterboxAccent, CircleShape),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Person,
+                                                contentDescription = null,
+                                                tint = LaterboxTextPrimary,
+                                                modifier = Modifier.size(34.dp)
+                                            )
+                                        }
+                                        Text(
+                                            text = account.displayName?.takeIf { it.isNotBlank() } ?: account.email ?: "Guest Mode",
+                                            fontSize = 20.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = LaterboxTextPrimary,
+                                            textAlign = TextAlign.Center
+                                        )
+                                        account.email?.let {
+                                            Text(it, fontSize = 13.sp, color = LaterboxTextSecondary, textAlign = TextAlign.Center)
+                                        }
+                                        Text(
+                                            text = if (account.pro) "LaterBox Pro Active" else if (account.userId == null) "Local saving active · Sign in for cloud sync" else "Free cloud account",
+                                            fontSize = 13.sp,
+                                            color = LaterboxTextSecondary,
+                                            textAlign = TextAlign.Center
+                                        )
+                                        if (account.userId == null) {
+                                            Button(onClick = onAuth, modifier = Modifier.padding(top = 8.dp)) {
+                                                Text("Sign In")
+                                            }
+                                        } else {
+                                            OutlinedButton(
+                                                onClick = { signOut = true },
+                                                modifier = Modifier.padding(top = 8.dp)
+                                            ) {
+                                                Text("Sign Out", color = Color(0xFFEF4444))
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            item {
+                                SettingsGroupCard(title = "ACCOUNT DETAILS") {
+                                    SubpageValueRow("Status", if (account.userId != null) "Signed In" else "Local Guest")
+                                    HorizontalDivider(color = LaterboxBorder, thickness = 0.5.dp)
+                                    SubpageValueRow("Account Type", if (account.pro) "Pro" else if (account.userId != null) "Free" else "Guest")
+                                    HorizontalDivider(color = LaterboxBorder, thickness = 0.5.dp)
+                                    SubpageValueRow("User ID", account.userId?.take(12)?.plus("…") ?: "Not registered")
+                                }
+                            }
+                        }
+
+                        SettingsSubpage.SUBSCRIPTION -> {
+                            item {
+                                Surface(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(18.dp),
+                                    color = LaterboxCard,
+                                    border = BorderStroke(1.dp, LaterboxBorder)
+                                ) {
+                                    Column(
+                                        modifier = Modifier.padding(20.dp),
+                                        verticalArrangement = Arrangement.spacedBy(14.dp)
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Column(modifier = Modifier.weight(1f)) {
+                                                Text(
+                                                    text = if (account.pro) "LaterBox Pro" else "LaterBox Local",
+                                                    fontSize = 20.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = LaterboxTextPrimary
+                                                )
+                                                Text(
+                                                    text = if (account.pro) "Connected cloud features active" else "Free offline vault active",
+                                                    fontSize = 12.sp,
+                                                    color = LaterboxTextSecondary
+                                                )
+                                            }
+                                            Surface(
+                                                color = LaterboxAccent,
+                                                shape = RoundedCornerShape(50)
+                                            ) {
+                                                Text(
+                                                    text = if (account.pro) "Active" else "Free Forever",
+                                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                                                    fontSize = 11.sp,
+                                                    fontWeight = FontWeight.Bold
+                                                )
+                                            }
+                                        }
+
+                                        Text(
+                                            text = if (account.pro)
+                                                "Cloud sync, connected extensions, and Later AI models are active across your devices."
+                                            else
+                                                "Save, organize, and export your captures offline. Upgrade to Pro for cloud sync across devices and full AI intelligence.",
+                                            fontSize = 13.sp,
+                                            color = LaterboxTextSecondary,
+                                            lineHeight = 18.sp
+                                        )
+
+                                        Button(
+                                            onClick = { plans = true },
+                                            modifier = Modifier.fillMaxWidth()
+                                        ) {
+                                            Text(if (account.pro) "View Plans & Inclusions" else "Explore Plans ($3.99/mo)")
+                                        }
+
+                                        OutlinedButton(
+                                            onClick = {
+                                                scope.launch {
+                                                    try {
+                                                        AccountService.refresh()
+                                                        repository.syncNow()
+                                                        message = if (AccountService.state.value.pro) "Pro access confirmed." else "Subscription refreshed. Pro not active on this account."
+                                                    } catch (_: Exception) {
+                                                        message = "Could not refresh subscription."
+                                                    }
+                                                }
+                                            },
+                                            modifier = Modifier.fillMaxWidth()
+                                        ) {
+                                            Text("Refresh Subscription Status")
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        SettingsSubpage.SYNC -> {
+                            item {
+                                SettingsGroupCard(title = "CLOUD SYNC STATUS") {
+                                    SubpageValueRow("Sync State", sync)
+                                    HorizontalDivider(color = LaterboxBorder, thickness = 0.5.dp)
+                                    val lastSyncStamp = items.mapNotNull { it.lastSyncedAt }.maxOrNull()?.let { stamp ->
+                                        runCatching {
+                                            Instant.parse(stamp).atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("MMM d · HH:mm"))
+                                        }.getOrDefault(stamp)
+                                    } ?: "Not synced yet"
+                                    SubpageValueRow("Last Synced", lastSyncStamp)
+                                    HorizontalDivider(color = LaterboxBorder, thickness = 0.5.dp)
+                                    SubpageValueRow("Platform Health", status.label)
+                                }
+                            }
+                            item {
+                                Surface(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(18.dp),
+                                    color = LaterboxCard,
+                                    border = BorderStroke(1.dp, LaterboxBorder)
+                                ) {
+                                    Column(
+                                        modifier = Modifier.padding(18.dp),
+                                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                                    ) {
+                                        Text(
+                                            text = "Sync Actions",
+                                            fontSize = 14.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = LaterboxTextPrimary
+                                        )
+                                        Button(
+                                            onClick = {
+                                                if (account.pro) {
+                                                    repository.syncNow()
+                                                    message = "Sync initiated"
+                                                } else {
+                                                    plans = true
+                                                }
+                                            },
+                                            modifier = Modifier.fillMaxWidth()
+                                        ) {
+                                            Text(if (account.pro) "Trigger Sync Now" else "Upgrade to Enable Cloud Sync")
+                                        }
+                                        OutlinedButton(
+                                            onClick = {
+                                                repository.refreshWebStatus()
+                                                message = "Platform health check refreshed."
+                                            },
+                                            modifier = Modifier.fillMaxWidth()
+                                        ) {
+                                            Text("Refresh Platform Health")
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        SettingsSubpage.NOTIFICATIONS -> {
+                            item {
+                                Surface(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(18.dp),
+                                    color = LaterboxCard,
+                                    border = BorderStroke(1.dp, LaterboxBorder)
+                                ) {
+                                    Column(
+                                        modifier = Modifier.padding(18.dp),
+                                        verticalArrangement = Arrangement.spacedBy(14.dp)
+                                    ) {
+                                        Text(
+                                            text = "Notification Preferences",
+                                            fontSize = 16.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = LaterboxTextPrimary
+                                        )
+                                        Text(
+                                            text = "LaterBox sends reminders at your scheduled return times (e.g. tomorrow at 9:00 AM) so you can review saved links when ready.",
+                                            fontSize = 13.sp,
+                                            color = LaterboxTextSecondary
+                                        )
+                                        NotificationAccess()
+                                    }
+                                }
+                            }
+                        }
+
+                        SettingsSubpage.SECURITY -> {
+                            item {
+                                Surface(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(18.dp),
+                                    color = LaterboxCard,
+                                    border = BorderStroke(1.dp, LaterboxBorder)
+                                ) {
+                                    Column(
+                                        modifier = Modifier.padding(18.dp),
+                                        verticalArrangement = Arrangement.spacedBy(14.dp)
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.SpaceBetween
+                                        ) {
+                                            Column(modifier = Modifier.weight(1f)) {
+                                                Text(
+                                                    text = "App Lock",
+                                                    fontWeight = FontWeight.SemiBold,
+                                                    fontSize = 15.sp,
+                                                    color = LaterboxTextPrimary
+                                                )
+                                                Text(
+                                                    text = "Require biometrics or device PIN to open",
+                                                    fontSize = 12.sp,
+                                                    color = LaterboxTextSecondary
+                                                )
+                                            }
+                                            Switch(
+                                                checked = lock,
+                                                onCheckedChange = { enabled ->
+                                                    if (!enabled || AppLockService.supported(context)) {
+                                                        lock = enabled
+                                                        preferences.edit().putBoolean("app_lock", enabled).apply()
+                                                    } else {
+                                                        message = "Set up a screen lock or biometrics on your device first."
+                                                    }
+                                                }
+                                            )
+                                        }
+
+                                        HorizontalDivider(color = LaterboxBorder, thickness = 0.5.dp)
+
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.SpaceBetween
+                                        ) {
+                                            Column(modifier = Modifier.weight(1f)) {
+                                                Text(
+                                                    text = "Screen Protection",
+                                                    fontWeight = FontWeight.SemiBold,
+                                                    fontSize = 15.sp,
+                                                    color = LaterboxTextPrimary
+                                                )
+                                                Text(
+                                                    text = "Hide screenshots and app previews in task switcher",
+                                                    fontSize = 12.sp,
+                                                    color = LaterboxTextSecondary
+                                                )
+                                            }
+                                            Switch(
+                                                checked = protect,
+                                                onCheckedChange = { enabled ->
+                                                    protect = enabled
+                                                    preferences.edit().putBoolean("screen_protection", enabled).apply()
+                                                    val activity = context as? android.app.Activity
+                                                    if (enabled) {
+                                                        activity?.window?.addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
+                                                    } else {
+                                                        activity?.window?.clearFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
+                                                    }
+                                                }
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        SettingsSubpage.STORAGE -> {
+                            item {
+                                SettingsGroupCard(title = "VAULT STORAGE USAGE") {
+                                    SubpageValueRow("Attachment Storage", android.text.format.Formatter.formatFileSize(context, bytes))
+                                    HorizontalDivider(color = LaterboxBorder, thickness = 0.5.dp)
+                                    SubpageValueRow("Saved Items", items.size.toString())
+                                    HorizontalDivider(color = LaterboxBorder, thickness = 0.5.dp)
+                                    SubpageValueRow("Recently Deleted", trash.size.toString())
+                                }
+                            }
+                            item {
+                                Surface(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(18.dp),
+                                    color = LaterboxCard,
+                                    border = BorderStroke(1.dp, LaterboxBorder)
+                                ) {
+                                    Column(
+                                        modifier = Modifier.padding(18.dp),
+                                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                                    ) {
+                                        Text(
+                                            text = "Backup & Vault Tools",
+                                            fontSize = 14.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = LaterboxTextPrimary
+                                        )
+                                        Button(
+                                            onClick = {
+                                                task {
+                                                    val file = BackupService.export(context)
+                                                    val uri = FileProvider.getUriForFile(context, context.packageName + ".files", file)
+                                                    open(
+                                                        Intent.createChooser(
+                                                            Intent(Intent.ACTION_SEND).setType("application/zip").putExtra(Intent.EXTRA_STREAM, uri).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION),
+                                                            "Export LaterBox backup"
+                                                        )
+                                                    )
+                                                }
+                                            },
+                                            enabled = !busy,
+                                            modifier = Modifier.fillMaxWidth()
+                                        ) {
+                                            Text("Export Vault Backup (ZIP)")
+                                        }
+
+                                        OutlinedButton(
+                                            onClick = {
+                                                importer.launch(arrayOf("application/zip", "application/octet-stream"))
+                                            },
+                                            enabled = !busy,
+                                            modifier = Modifier.fillMaxWidth()
+                                        ) {
+                                            Text("Import Vault Backup")
+                                        }
+
+                                        OutlinedButton(
+                                            onClick = { clearing = true },
+                                            enabled = !busy,
+                                            modifier = Modifier.fillMaxWidth()
+                                        ) {
+                                            Text("Empty Trash Permanently", color = Color(0xFFEF4444))
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        SettingsSubpage.AI_MODELS -> {
+                            item {
+                                SettingsGroupCard(title = "ACTIVE AI CONFIGURATION") {
+                                    SubpageValueRow("Active Engine", if (!account.pro) nanoStatus else aiProvider.replaceFirstChar { it.uppercase() })
+                                    HorizontalDivider(color = LaterboxBorder, thickness = 0.5.dp)
+                                    SubpageValueRow("Selected Model", aiModel)
+                                }
+                            }
+                            item {
+                                Surface(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(18.dp),
+                                    color = LaterboxCard,
+                                    border = BorderStroke(1.dp, LaterboxBorder)
+                                ) {
+                                    Column(
+                                        modifier = Modifier.padding(18.dp),
+                                        verticalArrangement = Arrangement.spacedBy(14.dp)
+                                    ) {
+                                        Text(
+                                            text = "Model Settings",
+                                            fontSize = 14.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = LaterboxTextPrimary
+                                        )
+                                        Text(
+                                            text = if (account.pro)
+                                                "Configure custom Gemini, OpenAI, Claude, or local Ollama endpoints and encrypted keys."
+                                            else
+                                                "Guided capture and keyword search are available locally. Pro adds custom AI models and cloud intelligence.",
+                                            fontSize = 12.sp,
+                                            color = LaterboxTextSecondary
+                                        )
+                                        Button(
+                                            onClick = { aiSettings = true },
+                                            modifier = Modifier.fillMaxWidth()
+                                        ) {
+                                            Text("Configure AI Models & Keys")
+                                        }
+                                        if (RemoteAIService.ENABLED && account.pro) {
+                                            HorizontalDivider(color = LaterboxBorder, thickness = 0.5.dp)
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.SpaceBetween
+                                            ) {
+                                                Column(modifier = Modifier.weight(1f)) {
+                                                    Text("Pro Cloud Fallback", fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = LaterboxTextPrimary)
+                                                    Text("Use cloud AI after local model failures", fontSize = 11.sp, color = LaterboxTextSecondary)
+                                                }
+                                                Switch(
+                                                    checked = fallback,
+                                                    onCheckedChange = { enabled ->
+                                                        fallback = enabled
+                                                        preferences.edit().putBoolean("gemini_fallback", enabled).apply()
+                                                    }
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        SettingsSubpage.UPDATES -> {
+                            item {
+                                SettingsGroupCard(title = "APP INFORMATION") {
+                                    SubpageValueRow("Application", "LaterBox for Android")
+                                    HorizontalDivider(color = LaterboxBorder, thickness = 0.5.dp)
+                                    SubpageValueRow("Version", BuildConfig.VERSION_NAME)
+                                    HorizontalDivider(color = LaterboxBorder, thickness = 0.5.dp)
+                                    SubpageValueRow("Build Code", BuildConfig.VERSION_CODE.toString())
+                                    HorizontalDivider(color = LaterboxBorder, thickness = 0.5.dp)
+                                    SubpageValueRow("Channel", "Stable")
+                                }
+                            }
+                            item {
+                                Surface(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(18.dp),
+                                    color = LaterboxCard,
+                                    border = BorderStroke(1.dp, LaterboxBorder)
+                                ) {
+                                    Column(
+                                        modifier = Modifier.padding(18.dp),
+                                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                                    ) {
+                                        Button(
+                                            onClick = { message = "You are using the latest version of LaterBox." },
+                                            modifier = Modifier.fillMaxWidth()
+                                        ) {
+                                            Text("Check for Updates")
+                                        }
+                                        OutlinedButton(
+                                            onClick = { open(Intent(Intent.ACTION_VIEW, Uri.parse("https://laterbox.dev/privacy"))) },
+                                            modifier = Modifier.fillMaxWidth()
+                                        ) {
+                                            Text("Privacy Policy")
+                                        }
+                                        OutlinedButton(
+                                            onClick = { open(Intent(Intent.ACTION_VIEW, Uri.parse("https://laterbox.dev/terms"))) },
+                                            modifier = Modifier.fillMaxWidth()
+                                        ) {
+                                            Text("Terms of Service")
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        null -> {}
+                    }
                 }
-                HorizontalDivider(color = LaterboxBorder)
-                SettingsToggle("Screen Protection", "Hide screenshots and app previews", protect) { enabled ->
-                    protect = enabled; preferences.edit().putBoolean("screen_protection", enabled).apply()
-                    val activity = context as? android.app.Activity
-                    if (enabled) activity?.window?.addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE) else activity?.window?.clearFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
-                }
-            }
-        }
-        item {
-            SettingsGroup("LOCAL STORAGE & VAULT", Icons.Default.Storage) {
-                SettingsValue("Attachment storage", android.text.format.Formatter.formatFileSize(context, bytes))
-                SettingsValue("Saved items", items.size.toString())
-                SettingsValue("Recently deleted", trash.size.toString())
-                Text("Your saved items remain available offline. Backups include notes, metadata, and attachments.", fontSize = 12.sp, color = LaterboxTextSecondary)
-                SettingsAction(Icons.Default.UploadFile, "Export Vault Backup", "Share a backup of your vault", !busy) { task {
-                    val file = BackupService.export(context); val uri = FileProvider.getUriForFile(context, context.packageName + ".files", file)
-                    open(Intent.createChooser(Intent(Intent.ACTION_SEND).setType("application/zip").putExtra(Intent.EXTRA_STREAM, uri).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION), "Export LaterBox backup"))
-                } }
-                SettingsAction(Icons.Default.Download, "Import Vault Backup", "Keep existing items and restore missing captures", !busy) { importer.launch(arrayOf("application/zip", "application/octet-stream")) }
-                SettingsAction(Icons.Default.DeleteOutline, "Recently Deleted", "Restore items from Trash") { onTrash() }
-                SettingsAction(Icons.Default.DeleteForever, "Empty Trash", "Permanently remove deleted local captures", !busy) { clearing = true }
-                if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())
-            }
-        }
-        item {
-            SettingsGroup("HELP & FEEDBACK", Icons.Default.SupportAgent) {
-                SettingsAction(Icons.Default.QuestionAnswer, "Help & Report a Problem", "Contact us for issues, questions, or feedback") { supportSheet = true }
-            }
-        }
-        item {
-            SettingsGroup("ABOUT LATERBOX", Icons.Default.Info) {
-                SettingsAction(Icons.Default.PrivacyTip, "Privacy Policy") { open(Intent(Intent.ACTION_VIEW, Uri.parse("https://laterbox.dev/privacy"))) }
-                SettingsAction(Icons.Default.Description, "Terms of Service") { open(Intent(Intent.ACTION_VIEW, Uri.parse("https://laterbox.dev/terms"))) }
-            }
-        }
-        item {
-            Column(Modifier.fillMaxWidth().padding(bottom = 16.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                Text("LaterBox for Android", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = LaterboxTextSecondary)
-                Text("Version ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})", fontSize = 11.sp, color = LaterboxTextSecondary)
             }
         }
     }
-    if (signOut) AlertDialog(onDismissRequest = { if (!busy) signOut = false }, title = { Text("Sign out?") }, text = { Text("Your local captures will be kept on this device.") }, confirmButton = { TextButton(enabled = !busy, onClick = { task { AccountService.signOut(); signOut = false; message = "Signed out. Local captures are preserved." } }) { Text("Sign Out") } }, dismissButton = { TextButton(onClick = { signOut = false }) { Text("Cancel") } })
-    if (clearing) AlertDialog(onDismissRequest = { if (!busy) clearing = false }, title = { Text("Empty trash permanently?") }, text = { Text("Deleted local captures and unused attachments will be removed. Export a backup first if you need them.") }, confirmButton = { TextButton(enabled = !busy, onClick = { task { BackupService.clearTrash(context); clearing = false; storageRefresh++; message = "Trash cleanup completed." } }) { Text("Empty Trash") } }, dismissButton = { TextButton(onClick = { clearing = false }) { Text("Cancel") } })
+
+    if (signOut) {
+        AlertDialog(
+            onDismissRequest = { if (!busy) signOut = false },
+            title = { Text("Sign out?") },
+            text = { Text("Your local captures will be preserved on this device.") },
+            confirmButton = {
+                TextButton(
+                    enabled = !busy,
+                    onClick = {
+                        task {
+                            AccountService.signOut()
+                            signOut = false
+                            message = "Signed out. Local captures are preserved."
+                        }
+                    }
+                ) {
+                    Text("Sign Out", color = Color(0xFFEF4444))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { signOut = false }) { Text("Cancel") }
+            }
+        )
+    }
+
+    if (clearing) {
+        AlertDialog(
+            onDismissRequest = { if (!busy) clearing = false },
+            title = { Text("Empty trash permanently?") },
+            text = { Text("Deleted captures and local files will be removed.") },
+            confirmButton = {
+                TextButton(
+                    enabled = !busy,
+                    onClick = {
+                        task {
+                            BackupService.clearTrash(context)
+                            clearing = false
+                            storageRefresh++
+                            message = "Trash cleanup completed."
+                        }
+                    }
+                ) {
+                    Text("Empty Trash", color = Color(0xFFEF4444))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { clearing = false }) { Text("Cancel") }
+            }
+        )
+    }
+
     if (plans) PlansSheet { plans = false }
     if (aiSettings) AISettingsSheet { aiSettings = false }
     if (supportSheet) SupportRequestSheet { supportSheet = false }
 }
 
 @Composable
-private fun SettingsGroup(title: String, icon: ImageVector, content: @Composable ColumnScope.() -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Text(title, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 0.6.sp, color = LaterboxTextSecondary)
-        Surface(shape = RoundedCornerShape(20.dp), color = LaterboxCard, border = BorderStroke(1.dp, LaterboxBorder), modifier = Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Box(Modifier.size(32.dp).background(LaterboxAccent, RoundedCornerShape(9.dp)), contentAlignment = Alignment.Center) { Icon(icon, null, Modifier.size(18.dp), tint = LaterboxTextPrimary) }
-                content()
+private fun SettingsGroupCard(
+    title: String,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            text = title,
+            fontSize = 10.sp,
+            fontWeight = FontWeight.Black,
+            letterSpacing = 1.sp,
+            color = Color(0xFF9E9B92),
+            modifier = Modifier.padding(horizontal = 14.dp)
+        )
+        Surface(
+            shape = RoundedCornerShape(18.dp),
+            color = LaterboxCard,
+            border = BorderStroke(1.dp, LaterboxBorder),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(content = content)
+        }
+    }
+}
+
+@Composable
+private fun SettingsLinkRow(
+    icon: ImageVector,
+    title: String,
+    subtitle: String? = null,
+    badge: String? = null,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .background(LaterboxAccent, CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = LaterboxTextPrimary,
+                modifier = Modifier.size(18.dp)
+            )
+        }
+
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
+            Text(
+                text = title,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = LaterboxTextPrimary
+            )
+            subtitle?.let {
+                Text(
+                    text = it,
+                    fontSize = 12.sp,
+                    color = LaterboxTextSecondary
+                )
             }
         }
-    }
-}
 
-@Composable
-private fun SettingsAction(icon: ImageVector, title: String, subtitle: String? = null, enabled: Boolean = true, onClick: () -> Unit) {
-    Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).clickable(enabled = enabled, onClick = onClick).padding(vertical = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        Icon(icon, null, Modifier.size(20.dp), tint = LaterboxTextSecondary)
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-            Text(title, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = LaterboxTextPrimary.copy(alpha = if (enabled) 1f else 0.5f))
-            subtitle?.let { Text(it, fontSize = 11.sp, color = LaterboxTextSecondary) }
+        badge?.let {
+            Text(
+                text = it,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Medium,
+                color = LaterboxTextSecondary
+            )
         }
-        Icon(Icons.Default.ChevronRight, null, Modifier.size(16.dp), tint = LaterboxTextSecondary)
+
+        Icon(
+            imageVector = Icons.Default.ChevronRight,
+            contentDescription = null,
+            tint = LaterboxTextSecondary.copy(alpha = 0.5f),
+            modifier = Modifier.size(16.dp)
+        )
     }
 }
 
 @Composable
-private fun SettingsValue(label: String, value: String) {
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-        Text(label, Modifier.weight(1f), fontSize = 13.sp, color = LaterboxTextSecondary)
-        Text(value, Modifier.weight(1f), fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = LaterboxTextPrimary, textAlign = TextAlign.End, maxLines = 2, overflow = TextOverflow.Ellipsis)
-    }
-}
-
-@Composable
-private fun SettingsToggle(title: String, subtitle: String, checked: Boolean, onChange: (Boolean) -> Unit) {
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(title, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = LaterboxTextPrimary)
-            Text(subtitle, fontSize = 11.sp, color = LaterboxTextSecondary)
-        }
-        Switch(checked = checked, onCheckedChange = onChange)
+private fun SubpageValueRow(label: String, value: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(label, fontSize = 14.sp, color = LaterboxTextSecondary)
+        Text(
+            value,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = LaterboxTextPrimary,
+            textAlign = TextAlign.End,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
     }
 }
