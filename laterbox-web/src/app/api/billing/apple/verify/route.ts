@@ -20,13 +20,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Signed transaction is required.' }, { status: 400 });
     }
     const transaction = await verifyAppleTransaction(body.signedTransaction);
-    assertAppleTransaction(transaction, user.id);
+    assertAppleTransaction(transaction, undefined, true);
     if (body.productId && transaction.productId !== body.productId) {
       return NextResponse.json({ error: 'Product identifier does not match.' }, { status: 400 });
     }
     try {
-      await upsertAppleSubscription(transaction);
-    } catch {
+      const registered = await upsertAppleSubscription(transaction, undefined, undefined, user.id);
+      if (!registered) return NextResponse.json({ code: 'link_required', error: 'Pro is active on your device. Choose Connect Pro to your account to enable web access.' }, { status: 409 });
+    } catch (error) {
+      if (error instanceof AppleBillingError) throw error;
       throw new AppleBillingError('registration_unavailable', 'Purchase registration is temporarily unavailable. Please retry.', 503);
     }
     return NextResponse.json({
