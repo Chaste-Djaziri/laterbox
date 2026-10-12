@@ -170,7 +170,7 @@ extension LaterBoxAPIService: IOSCloudTransport {
 @MainActor
 extension SyncCoordinator {
     func performCloudSync(context: ModelContext, transport: (any IOSCloudTransport)? = nil) async throws {
-        guard isProUser else { return }
+        guard hasCloudPro else { return }
         guard isAuthenticated, let uid = currentUserId, let token = authToken else {
             throw CloudSyncError.unauthenticated
         }
