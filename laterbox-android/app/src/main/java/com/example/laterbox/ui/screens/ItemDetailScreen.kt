@@ -173,13 +173,13 @@ fun ItemDetailScreen(
         Modifier
             .fillMaxSize()
             .background(LaterboxBg)
-            .safeDrawingPadding()
     ) {
         Column(Modifier.fillMaxSize()) {
             // 1. TOP NAVIGATION BAR (Actions top-right matching iOS & Web)
             Row(
                 Modifier
                     .fillMaxWidth()
+                    .statusBarsPadding()
                     .padding(horizontal = 14.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -878,14 +878,15 @@ fun ItemDetailScreen(
                     }
                 }
 
-                Spacer(Modifier.height(40.dp))
+                Spacer(Modifier.height(16.dp))
             }
 
-            // 3. DOCKED BOTTOM CHAT INPUT BAR
-            Surface(
-                color = LaterboxBg,
-                shadowElevation = 6.dp,
-                modifier = Modifier.fillMaxWidth().imePadding()
+            // 3. DOCKED BOTTOM CHAT INPUT BAR (No background, sits right on bottom)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .imePadding()
             ) {
                 Column(Modifier.fillMaxWidth()) {
                     // Quoted reply banner
@@ -894,8 +895,10 @@ fun ItemDetailScreen(
                             Row(
                                 Modifier
                                     .fillMaxWidth()
-                                    .background(Color(0xFFEDEADF))
-                                    .padding(horizontal = 16.dp, vertical = 6.dp),
+                                    .padding(horizontal = 14.dp, vertical = 4.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(Color.Black.copy(alpha = 0.05f))
+                                    .padding(horizontal = 12.dp, vertical = 6.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
@@ -916,22 +919,22 @@ fun ItemDetailScreen(
                         }
                     }
 
-                    // Input pill
+                    // Input pill sitting cleanly on bottom with no background
                     Row(
                         Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 14.dp, vertical = 8.dp),
+                            .padding(start = 14.dp, end = 14.dp, bottom = 8.dp, top = 4.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Surface(
-                            color = Color.White,
+                            color = Color.Transparent,
                             shape = RoundedCornerShape(24.dp),
-                            border = BorderStroke(1.dp, Color.Black.copy(alpha = 0.10f)),
-                            shadowElevation = 3.dp,
+                            border = BorderStroke(1.dp, Color.Black.copy(alpha = 0.15f)),
+                            shadowElevation = 0.dp,
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Row(
-                                Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
+                                Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
