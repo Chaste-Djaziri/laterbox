@@ -105,9 +105,9 @@ public struct AccountSettingsView: View {
                                     .font(.subheadline)
                                     .foregroundColor(AppTheme.textSecondary)
                                 Spacer()
-                                Text(coordinator.isProUser ? "Enabled (Multi-device)" : "Local Only")
+                                Text(coordinator.hasCloudPro ? "Enabled (Multi-device)" : "Local Only")
                                     .font(.subheadline.weight(.medium))
-                                    .foregroundColor(coordinator.isProUser ? Color.green : AppTheme.textSecondary)
+                                    .foregroundColor(coordinator.hasCloudPro ? Color.green : AppTheme.textSecondary)
                             }
                         }
                         .padding(16)
