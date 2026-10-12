@@ -1,5 +1,5 @@
 // Public Apple verification settings only. No App Store private key is required.
-import { X509Certificate } from 'node:crypto';
+import { createPrivateKey, X509Certificate } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 
 const roots = [
@@ -27,8 +27,20 @@ if (!process.argv.includes('--check-only')) {
   const wrangler = 'node_modules/wrangler/bin/wrangler.js';
   const inventory = spawnSync(process.execPath, [wrangler, 'secret', 'list', '--name', 'laterbox-web'], { encoding: 'utf8' });
   if (inventory.status !== 0) throw new Error('Unable to access the existing laterbox-web Worker in the configured account.');
+  const accountLinkCredentials = {};
+  const credentialNames = ['APPLE_PRIVATE_KEY', 'APPLE_KEY_ID', 'APPLE_ISSUER_ID'];
+  const supplied = credentialNames.filter((name) => process.env[name]);
+  if (supplied.length && supplied.length !== credentialNames.length) throw new Error('Provide all three dedicated In-App Purchase API credentials together.');
+  if (supplied.length) {
+    const privateKey = process.env.APPLE_PRIVATE_KEY.replace(/\\n/g, '\n');
+    const key = createPrivateKey(privateKey);
+    if (key.asymmetricKeyType !== 'ec' || key.asymmetricKeyDetails?.namedCurve !== 'prime256v1') throw new Error('Apple In-App Purchase key must be a P-256 private key.');
+    if (!/^[A-Z0-9]{10}$/.test(process.env.APPLE_KEY_ID) || !/^[0-9a-f-]{36}$/i.test(process.env.APPLE_ISSUER_ID)) throw new Error('Invalid Apple key ID or issuer ID.');
+    Object.assign(accountLinkCredentials, { APPLE_PRIVATE_KEY: privateKey, APPLE_KEY_ID: process.env.APPLE_KEY_ID, APPLE_ISSUER_ID: process.env.APPLE_ISSUER_ID });
+  }
   const result = spawnSync(process.execPath, [wrangler, 'secret', 'bulk', '--name', 'laterbox-web'], {
     input: JSON.stringify({
+      ...accountLinkCredentials,
       APPLE_APP_ID: '6804139119',
       APPLE_BUNDLE_ID: 'pro.micorp.laterbox',
       APPLE_ROOT_CERTIFICATES_BASE64: encoded.join(','),
@@ -36,5 +48,7 @@ if (!process.argv.includes('--check-only')) {
     encoding: 'utf8',
   });
   if (result.status !== 0) throw new Error('Unable to configure Apple verification on the existing Worker.');
+  if (supplied.length) console.log('Configured dedicated server-only Apple account-link credentials.');
+  else console.log('Existing account-link credentials are retained; missing credentials leave optional account connection unavailable.');
   console.log('Configured Apple verification for the existing LaterBox App Store application.');
 }
