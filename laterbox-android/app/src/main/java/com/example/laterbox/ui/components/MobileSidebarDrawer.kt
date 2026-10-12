@@ -2,8 +2,12 @@ package com.example.laterbox.ui.components
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.*
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.*
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -72,8 +76,6 @@ fun MobileSidebarDrawer(
     onOpenPlans: () -> Unit = {},
     onOpenSettings: () -> Unit = {}
 ) {
-    if (!isOpen) return
-
     BackHandler(enabled = isOpen) {
         onDismiss()
     }
@@ -129,27 +131,45 @@ fun MobileSidebarDrawer(
     var isCreatingCollection by remember { mutableStateOf(false) }
     var newCollectionName by remember { mutableStateOf("") }
 
-    Box(
-        Modifier
-            .fillMaxSize()
-            .zIndex(150f)
+    AnimatedVisibility(
+        visible = isOpen,
+        enter = fadeIn(animationSpec = tween(durationMillis = 280, easing = LinearEasing)),
+        exit = fadeOut(animationSpec = tween(durationMillis = 240, easing = LinearEasing))
     ) {
-        // Semi-transparent scrim backdrop
         Box(
             Modifier
                 .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.35f))
-                .clickable { onDismiss() }
-        )
-
-        // Slide-in drawer body
-        Surface(
-            modifier = Modifier
-                .width(drawerWidth)
-                .fillMaxHeight(),
-            color = LaterboxBg,
-            shadowElevation = 16.dp
+                .zIndex(150f)
         ) {
+            // Semi-transparent scrim backdrop
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.35f))
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null
+                    ) { onDismiss() }
+            )
+
+            // Slide-in drawer body
+            Surface(
+                modifier = Modifier
+                    .width(drawerWidth)
+                    .fillMaxHeight()
+                    .animateEnterExit(
+                        enter = slideInHorizontally(
+                            initialOffsetX = { -it },
+                            animationSpec = tween(durationMillis = 280, easing = FastOutSlowInEasing)
+                        ),
+                        exit = slideOutHorizontally(
+                            targetOffsetX = { -it },
+                            animationSpec = tween(durationMillis = 240, easing = FastOutSlowInEasing)
+                        )
+                    ),
+                color = LaterboxBg,
+                shadowElevation = 16.dp
+            ) {
             Column(
                 Modifier
                     .fillMaxSize()
@@ -597,6 +617,7 @@ fun MobileSidebarDrawer(
                 }
             }
         }
+    }
     }
 }
 
