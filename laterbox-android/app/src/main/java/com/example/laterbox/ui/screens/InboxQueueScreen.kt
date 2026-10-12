@@ -440,7 +440,12 @@ fun InboxQueueScreen(
         },
         onCreateCollection = { name ->
             scope.launch {
-                repository.addCollection(name, "#0369A1", "folder")
+                try {
+                    repository.addCollection(name, "#0369A1", "folder")
+                    repository.syncNow()
+                } catch (e: Exception) {
+                    actionError = e.message ?: "Unable to create collection"
+                }
             }
         },
         onOpenSaveItem = onCapture,
