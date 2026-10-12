@@ -152,6 +152,11 @@ public final class StoreKitManager: ObservableObject {
     @discardableResult
     public func registerAccountPurchases() async -> Bool {
         let coordinator = SyncCoordinator.shared
+        if registrationAccountId != coordinator.currentUserId {
+            cloudPurchaseConfirmed = false
+            cloudRegistrationMessage = nil
+            needsAccountConnection = isProSubscriptionActive
+        }
         guard !registrationInProgress, let token = coordinator.authToken,
               let uid = coordinator.currentUserId else {
             if coordinator.currentUserId == nil { cloudPurchaseConfirmed = false; needsAccountConnection = isProSubscriptionActive }
