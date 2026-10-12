@@ -57,6 +57,7 @@ fun AppNavigation(notificationItemId: String? = null, context: android.content.C
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) scope.launch {
                 AccountService.refresh()
+                repository.promoteDueItems()
                 repository.syncNow()
             }
         }
@@ -69,9 +70,9 @@ fun AppNavigation(notificationItemId: String? = null, context: android.content.C
     LaunchedEffect(Unit) {
         AccountService.refresh()
         if (account.userId != null) entered = true
+        repository.promoteDueItems()
         val dao = AppDatabase.getDatabase(context).itemDao()
-        dao.promoteDue(Instant.now().toString())
-        dao.getAllItems().forEach { ReturnsService.schedule(context, it) }
+        dao.getAllItems().filter { it.status == "deferred" && it.deletedAt == null }.forEach { ReturnsService.schedule(context, it) }
         repository.syncNow()
     }
     selected?.let { item ->
