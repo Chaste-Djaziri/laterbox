@@ -157,7 +157,7 @@ public final class StoreKitManager: ObservableObject {
             cloudRegistrationMessage = nil
             needsAccountConnection = isProSubscriptionActive
         }
-        guard !registrationInProgress, let token = coordinator.authToken,
+        guard !coordinator.isGuestMode, coordinator.isAuthenticated, !registrationInProgress, let token = coordinator.authToken,
               let uid = coordinator.currentUserId else {
             if coordinator.currentUserId == nil { cloudPurchaseConfirmed = false; needsAccountConnection = isProSubscriptionActive }
             return false
@@ -249,7 +249,8 @@ public final class StoreKitManager: ObservableObject {
         let accountToken: UUID
         do {
             // No login or LaterBox network request is necessary to buy.
-            if let token = coordinator.currentUserId.flatMap(UUID.init(uuidString:)) { accountToken = token }
+            if !coordinator.isGuestMode, coordinator.isAuthenticated,
+               let token = coordinator.currentUserId.flatMap(UUID.init(uuidString:)) { accountToken = token }
             else { accountToken = try vault.anonymousToken() }
         } catch { errorMessage = "Unable to save the purchase identity securely on this device. Please retry."; return false }
         let options: Set<Product.PurchaseOption> = [.appAccountToken(accountToken)]
