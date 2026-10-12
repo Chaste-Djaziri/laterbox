@@ -130,17 +130,23 @@ class DefaultDataRepository(
     }
 
     override suspend fun addCollection(name: String, colorHex: String, iconName: String): CollectionEntity {
+        val trimmed = name.trim()
+        require(trimmed.isNotBlank()) { "Collection name cannot be blank." }
+        val currentUserId = com.example.laterbox.services.AccountService.state.value.userId
+        val existing = database.collectionDao().findByName(trimmed, currentUserId)
+        if (existing != null) {
+            return existing
+        }
         val now = DateTimeFormatter.ISO_INSTANT.format(Instant.now())
         val collection = CollectionEntity(
             id = UUID.randomUUID().toString(),
-            userId = com.example.laterbox.services.AccountService.state.value.userId,
-            name = name.trim(),
+            userId = currentUserId,
+            name = trimmed,
             colorHex = colorHex,
             iconName = iconName,
             createdAt = now,
             updatedAt = now
         )
-        require(collection.name.isNotBlank())
         database.collectionDao().insertCollection(collection)
         syncNow()
         return collection
