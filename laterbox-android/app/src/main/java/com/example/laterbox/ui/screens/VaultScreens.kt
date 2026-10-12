@@ -79,178 +79,20 @@ fun VaultScreen(
     onOpenSidebar: () -> Unit = {},
     onOpenSettings: () -> Unit = {}
 ) {
-    if (tab == 1) {
-        InboxQueueScreen(
-            repository = repository,
-            onItem = onItem,
-            onOrganizer = onOrganizer,
-            onCapture = onCapture,
-            onOpenSidebar = onOpenSidebar,
-            onSignOut = onSignOut,
-            onAuth = onAuth,
-            onOpenSettings = onOpenSettings
+    val initialMailbox = when (tab) {
+        2 -> com.example.laterbox.ui.components.MailboxViewType.TODAY
+        else -> com.example.laterbox.ui.components.MailboxViewType.INBOX
+    }
+    InboxQueueScreen(
+        repository = repository,
+        onItem = onItem,
+        onOrganizer = onOrganizer,
+        onCapture = onCapture,
+        onOpenSidebar = onOpenSidebar,
+        onSignOut = onSignOut,
+        onAuth = onAuth,
+        onOpenSettings = onOpenSettings,
         )
-        return
-    }
-    if (tab == 3) {
-        LibraryScreen(repository, onItem)
-        return
-    }
-    val allItems by repository.items.collectAsState(emptyList())
-    val collections by repository.collections.collectAsState(emptyList())
-    var query by rememberSaveable(tab) { mutableStateOf("") }
-    var searchActive by rememberSaveable(tab) { mutableStateOf(false) }
-    var type by rememberSaveable(tab) { mutableStateOf("All") }
-    var collection by rememberSaveable(tab) { mutableStateOf<String?>(null) }
-    var category by rememberSaveable(tab) { mutableStateOf("All") }
-    var sort by rememberSaveable { mutableStateOf("Newest") }
-    var addCollection by remember { mutableStateOf(false) }
-    var newName by remember { mutableStateOf("") }; var error by remember { mutableStateOf<String?>(null) }
-    val scope = rememberCoroutineScope()
-    val context = LocalContext.current
-    val account by com.example.laterbox.services.AccountService.state.collectAsState()
-    val isPro = account.pro
-    val model = remember(context) { LaterAIService(context) }
-    var interpreted by remember { mutableStateOf("" to "") }
-    DisposableEffect(model) { onDispose { model.close() } }
-    LaunchedEffect(query, isPro) {
-        interpreted = query to ""
-        if (isPro && query.trim().length >= 3) {
-            delay(350)
-            interpreted = query to model.interpretQuery(query)
-        }
-    }
-    val filtered = remember(allItems, tab, type, category, collection, query, sort, interpreted, isPro) {
-        val eligible = allItems.filter { item -> when(tab) {
-            1 -> item.status == "inbox"
-            2 -> item.returnAt != null && item.status != "deleted" && item.status != "done" && item.status != "archived"
-            3 -> when(category) { "Starred" -> item.favorite; "Archive" -> item.status == "archived"; "Done" -> item.status == "done"; else -> true }
-            else -> true
-        } }.filter { type == "All" || it.type == type.lowercase() }.filter { collection == null || it.collectionId == collection }
-        if (query.isBlank()) {
-            if (sort == "Oldest") eligible.sortedBy { it.createdAt } else if (tab == 2) eligible.sortedBy { it.returnAt } else eligible.sortedByDescending { it.createdAt }
-        } else if (isPro) {
-            val expanded = if (interpreted.first == query) interpreted.second else ""
-            val exact = LocalSearch.search(query, eligible)
-            val aiMatches = if (expanded.isNotBlank() && expanded != query) {
-                LocalSearch.search(expanded, eligible)
-            } else {
-                emptyList()
-            }
-            (exact + aiMatches).distinctBy { it.id }
-        } else {
-            LocalSearch.search(query, eligible).sortedByDescending { it.createdAt }
-        }
-    }
-    val userName = remember(account.displayName, account.email) {
-        account.displayName?.takeIf { it.isNotBlank() }
-            ?: account.email?.takeIf { it.isNotBlank() }?.substringBefore("@")?.replaceFirstChar { it.uppercase() }
-            ?: "Guest"
-    }
-
-    if (searchActive) {
-        DedicatedSearchScreen(
-            allItems = allItems,
-            repository = repository,
-            onClose = { searchActive = false },
-            onItemClick = onItem
-        )
-        return
-    }
-
-    LazyColumn(
-        Modifier.fillMaxSize().background(LaterboxBg),
-        contentPadding = PaddingValues(20.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(end = 12.dp)
-                ) {
-                    val titles = mapOf(1 to "Inbox", 2 to "Returns", 3 to "Library")
-                    Text(titles[tab] ?: "Vault", style = MaterialTheme.typography.headlineLarge)
-                    Text("${filtered.size} saved items", color = LaterboxTextSecondary)
-                }
-
-                ProfileMenuButton(
-                    userName = userName,
-                    account = account,
-                    onSignOut = onSignOut,
-                    onAuth = onAuth,
-                    enabled = profileEnabled
-                )
-            }
-        }
-        item {
-            VaultSearchBar(
-                query = query,
-                onQueryChange = { query = it },
-                placeholder = "Search your vault...",
-                onClick = { searchActive = true }
-            )
-        }
-        item {
-            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                listOf("All", "Link", "Article", "Video", "Music", "Note", "Document", "Image").forEach { option ->
-                    FilterChip(selected = type == option, onClick = { type = option }, label = { Text(option) })
-                }
-            }
-        }
-        if (tab == 1) item { OutlinedButton(onClick = onOrganizer) { Text("✦ Organize inbox") } }
-        if (tab == 3) {
-            item {
-                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    listOf("All", "Starred", "Archive", "Done").forEach { option ->
-                        FilterChip(category == option, { category = option }, label = { Text(option) })
-                    }
-                }
-            }
-            item {
-                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FilterChip(collection == null, { collection = null }, label = { Text("All collections") })
-                    collections.forEach { group -> FilterChip(collection == group.id, { collection = group.id }, label = { Text(group.name) }) }
-                    OutlinedButton(onClick = { addCollection = true }) { Text("+ Collection") }
-                }
-            }
-            if (collection != null) item { TextButton(onClick = { scope.launch { repository.deleteCollection(collection!!); collection = null } }) { Text("Delete collection") } }
-        }
-        if (tab != 0 || query.isNotEmpty()) {
-            item { TextButton(onClick = { sort = if (sort == "Newest") "Oldest" else "Newest" }) { Text("Sort: $sort") } }
-        }
-        if (filtered.isEmpty() && (tab != 0 || query.isNotEmpty())) {
-            item {
-                Column(Modifier.fillMaxWidth().background(LaterboxCard, RoundedCornerShape(20.dp)).padding(24.dp)) {
-                    Text(if (query.isEmpty()) "Nothing here yet" else "No matches", style = MaterialTheme.typography.titleLarge)
-                    Text("Add a capture or try a topic, tag, or phrase you remember.")
-                    TextButton(onClick = onCapture) { Text("Save something") }
-                }
-            }
-        }
-        if (tab != 0 || query.isNotEmpty()) {
-            items(filtered, key = { it.id }) { item ->
-                ItemCardView(
-                    item = item,
-                    onToggleFavorite = { scope.launch { repository.toggleFavorite(item.id, item.favorite) } },
-                    onMarkDone = { scope.launch { repository.updateItemStatus(item.id, "done") } },
-                    onScheduleReturn = { date -> scope.launch { repository.scheduleReturn(item.id, date) } },
-                    onDelete = { scope.launch { repository.deleteItem(item.id) } },
-                    onClick = { onItem(item) }
-                )
-            }
-        }
-    }
-    if (addCollection) com.example.laterbox.ui.capture.DialogContent("New collection", { addCollection = false }) {
-        Field(newName, { newName = it }, "Collection name")
-        error?.let { Text(it) }
-        Button(onClick = { scope.launch { try { require(newName.isNotBlank()); repository.addCollection(newName.trim()); addCollection = false; newName = "" } catch (failure: Exception) { error = "Enter a collection name and retry." } } }) { Text("Create") }
-    }
 }
 
 @Composable
