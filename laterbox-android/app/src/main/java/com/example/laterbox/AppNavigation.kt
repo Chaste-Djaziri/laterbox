@@ -81,17 +81,7 @@ fun AppNavigation(notificationItemId: String? = null, context: android.content.C
     }
     if (!entered && account.userId == null) WelcomeScreen(onContinueAsGuest = { entered = true; preferences.edit().putBoolean("entered", true).apply() }, onOpenSignIn = { auth = true })
     else Scaffold(
-        containerColor = LaterboxBg,
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = { capture = true },
-                shape = CircleShape,
-                containerColor = LaterboxDarkSurface,
-                contentColor = LaterboxAccent
-            ) {
-                Icon(Icons.Default.Add, "Capture item")
-            }
-        }
+        containerColor = LaterboxBg
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
             if (tab < 4) {

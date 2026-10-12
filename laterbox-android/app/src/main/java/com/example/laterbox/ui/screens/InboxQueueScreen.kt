@@ -240,11 +240,14 @@ fun InboxQueueScreen(
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        LazyColumn(
-            modifier = Modifier.fillMaxSize().background(LaterboxBg),
-            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(2.5.dp)
-        ) {
+        Column(modifier = Modifier.fillMaxSize().background(LaterboxBg)) {
+            LazyColumn(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
+                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(2.5.dp)
+            ) {
             // Top Bar: Inactive 3-Component Bar vs Active Expanded Search Bar
             item {
                 if (!isSearchActive) {
@@ -816,6 +819,39 @@ fun InboxQueueScreen(
                         onAddToCollection = { collectingItem = item }
                     )
                 }
+            }
+        }
+
+        // Bottom Status & Motivational Bar matching iOS
+        InboxBottomStatusBar(
+            isGuest = account.userId == null,
+            isPro = account.pro,
+            onSignIn = onAuth,
+            onGetPro = { showingPlans = true }
+        )
+    }
+
+        // Floating Action Button (+): Home Page Only (matching iOS)
+        if (!isSearchActive && !showingSidebar) {
+            FloatingActionButton(
+                onClick = onCapture,
+                shape = CircleShape,
+                containerColor = Color(0xFFE6EDB0),
+                contentColor = Color(0xFF171711),
+                elevation = FloatingActionButtonDefaults.elevation(
+                    defaultElevation = 6.dp,
+                    pressedElevation = 8.dp
+                ),
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .navigationBarsPadding()
+                    .padding(end = 20.dp, bottom = 72.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = "Capture item",
+                    modifier = Modifier.size(24.dp)
+                )
             }
         }
     }
@@ -1585,6 +1621,281 @@ private fun SearchFilterChip(
                 fontWeight = FontWeight.Medium,
                 color = if (isSelected) Color(0xFFE6EDB0) else LaterboxTextPrimary
             )
+        }
+    }
+}
+
+@Composable
+fun InboxBottomStatusBar(
+    isGuest: Boolean,
+    isPro: Boolean,
+    onSignIn: () -> Unit,
+    onGetPro: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        color = Color.White
+    ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            HorizontalDivider(
+                color = Color.Black.copy(alpha = 0.06f),
+                thickness = 0.5.dp
+            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .padding(horizontal = 16.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                if (isGuest) {
+                    // Guest / Local Vault status
+                    Box(
+                        modifier = Modifier
+                            .size(34.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFF3B82F6).copy(alpha = 0.12f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Person,
+                            contentDescription = null,
+                            tint = Color(0xFF2563EB),
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(2.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Text(
+                                text = "Guest / Local Vault",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = LaterboxTextPrimary
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .size(4.dp)
+                                    .clip(CircleShape)
+                                    .background(Color(0xFF9E9B92))
+                            )
+                            Text(
+                                text = "Offline",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = LaterboxTextSecondary
+                            )
+                        }
+
+                        Text(
+                            text = "Sign in to backup & sync across devices",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Normal,
+                            color = LaterboxTextSecondary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+
+                    Surface(
+                        modifier = Modifier
+                            .clip(CircleShape)
+                            .clickable(onClick = onSignIn),
+                        shape = CircleShape,
+                        color = Color(0xFF171711)
+                    ) {
+                        Text(
+                            text = "Sign In",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White,
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp)
+                        )
+                    }
+                } else if (!isPro) {
+                    // Free Plan status
+                    Box(
+                        modifier = Modifier
+                            .size(34.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFFF59E0B).copy(alpha = 0.14f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.AutoAwesome,
+                            contentDescription = null,
+                            tint = Color(0xFFD97706),
+                            modifier = Modifier.size(17.dp)
+                        )
+                    }
+
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(2.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Text(
+                                text = "Free Plan",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = LaterboxTextPrimary
+                            )
+
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(Color(0xFFF59E0B).copy(alpha = 0.14f))
+                                    .padding(horizontal = 5.dp, vertical = 1.5.dp)
+                            ) {
+                                Text(
+                                    text = "LIMITED",
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = Color(0xFFD97706)
+                                )
+                            }
+                        }
+
+                        Text(
+                            text = "Upgrade to Pro for cloud sync & AI",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Normal,
+                            color = LaterboxTextSecondary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+
+                    Surface(
+                        modifier = Modifier
+                            .clip(CircleShape)
+                            .clickable(onClick = onGetPro),
+                        shape = CircleShape,
+                        color = Color(0xFF171711)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 13.dp, vertical = 7.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.WorkspacePremium,
+                                contentDescription = null,
+                                tint = Color(0xFFE6EDB0),
+                                modifier = Modifier.size(13.dp)
+                            )
+                            Text(
+                                text = "Get Pro",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                        }
+                    }
+                } else {
+                    // Pro Member status (motivational)
+                    Box(
+                        modifier = Modifier
+                            .size(34.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFF10B981).copy(alpha = 0.14f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.WorkspacePremium,
+                            contentDescription = null,
+                            tint = Color(0xFF10B981),
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(2.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Text(
+                                text = "Pro Member",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = LaterboxTextPrimary
+                            )
+
+                            Row(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(Color(0xFF10B981).copy(alpha = 0.12f))
+                                    .padding(horizontal = 6.dp, vertical = 2.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(3.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(5.dp)
+                                        .clip(CircleShape)
+                                        .background(Color(0xFF10B981))
+                                )
+                                Text(
+                                    text = "ACTIVE",
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = Color(0xFF10B981)
+                                )
+                            }
+                        }
+
+                        Text(
+                            text = "Cloud sync active • Unlimited AI unlocked. Keep conquering!",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Normal,
+                            color = LaterboxTextSecondary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+
+                    Surface(
+                        modifier = Modifier
+                            .clip(CircleShape)
+                            .clickable(onClick = onGetPro),
+                        shape = CircleShape,
+                        color = Color(0xFF10B981).copy(alpha = 0.12f)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 11.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.AutoAwesome,
+                                contentDescription = null,
+                                tint = Color(0xFF10B981),
+                                modifier = Modifier.size(11.dp)
+                            )
+                            Text(
+                                text = "Active",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF10B981)
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 }
