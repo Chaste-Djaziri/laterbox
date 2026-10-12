@@ -8,7 +8,7 @@ final class laterbox_iosUITests: XCTestCase {
     private func reveal(_ button: XCUIElement, in app: XCUIApplication) {
         for _ in 0..<6 {
             if button.isHittable { return }
-            app.scrollViews.firstMatch.swipeUp()
+            app.scrollViews.containing(.button, identifier: button.identifier.isEmpty ? button.label : button.identifier).firstMatch.swipeUp()
         }
         XCTAssertTrue(button.isHittable)
     }
@@ -42,7 +42,7 @@ final class laterbox_iosUITests: XCTestCase {
         legal.name = "Guest purchase legal disclosures — local StoreKit simulation"
         legal.lifetime = .keepAlways
         add(legal)
-        for _ in 0..<6 { if buy.isHittable { break }; app.scrollViews.firstMatch.swipeDown() }
+        for _ in 0..<6 { if buy.isHittable { break }; app.scrollViews.containing(.button, identifier: "billing.purchase").firstMatch.swipeDown() }
         XCTAssertTrue(buy.isEnabled)
         buy.tap()
         XCTAssertTrue(app.alerts["Welcome to Pro!"].waitForExistence(timeout: 15))
