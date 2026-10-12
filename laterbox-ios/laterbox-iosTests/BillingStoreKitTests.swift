@@ -47,7 +47,11 @@ extension LaterAITests {
         await manager.updatePurchasedProducts()
         #expect(manager.isProSubscriptionActive)
         try session.refundTransaction(identifier: transaction.identifier)
-        await manager.updatePurchasedProducts()
+        for _ in 0..<20 {
+            await manager.updatePurchasedProducts()
+            if !manager.isProSubscriptionActive { break }
+            try await Task.sleep(for: .milliseconds(100))
+        }
         #expect(!manager.isProSubscriptionActive && !coordinator.hasCloudPro)
     }
 
