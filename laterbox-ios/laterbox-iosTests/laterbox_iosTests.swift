@@ -241,13 +241,15 @@ extension LaterAITests {
     @Test func proSyncPreservesNewerLocalCaptureAndImportsRemoteMetadata() async throws {
         try await Task.sleep(for: .milliseconds(100))
         let coordinator = SyncCoordinator.shared
-        let previous = (coordinator.currentUserId, coordinator.currentUserEmail, coordinator.authToken, coordinator.isProUser)
+        let previous = (coordinator.currentUserId, coordinator.currentUserEmail, coordinator.authToken, coordinator.isProUser, coordinator.isGuestMode)
         let uid = "00000000-0000-4000-8000-000000000009"
         coordinator.currentUserId = uid; coordinator.currentUserEmail = "test@example.com"; coordinator.authToken = "test"
+        coordinator.isGuestMode = false
         coordinator.setProForTesting(true)
         defer {
             coordinator.currentUserId = previous.0; coordinator.currentUserEmail = previous.1; coordinator.authToken = previous.2
             coordinator.setProForTesting(previous.3)
+            coordinator.isGuestMode = previous.4
         }
         let container = try ModelContainer(for: LBItem.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
         let context = container.mainContext
@@ -273,12 +275,14 @@ extension LaterAITests {
     @Test func failedUploadRemainsPending() async throws {
         try await Task.sleep(for: .milliseconds(100))
         let coordinator = SyncCoordinator.shared
-        let previous = (coordinator.currentUserId, coordinator.currentUserEmail, coordinator.authToken, coordinator.isProUser)
+        let previous = (coordinator.currentUserId, coordinator.currentUserEmail, coordinator.authToken, coordinator.isProUser, coordinator.isGuestMode)
         coordinator.currentUserId = "00000000-0000-4000-8000-000000000010"; coordinator.currentUserEmail = "test@example.com"; coordinator.authToken = "test"
+        coordinator.isGuestMode = false
         coordinator.setProForTesting(true)
         defer {
             coordinator.currentUserId = previous.0; coordinator.currentUserEmail = previous.1; coordinator.authToken = previous.2
             coordinator.setProForTesting(previous.3)
+            coordinator.isGuestMode = previous.4
         }
         let container = try ModelContainer(for: LBItem.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
         let context = container.mainContext
