@@ -16,6 +16,7 @@ test('Apple registration persists environment, retries failed storage, and dedup
     requests.push({ path: url.pathname, body: init?.body ? JSON.parse(String(init.body)) : null });
     const json = (value: unknown, status = 200) => new Response(JSON.stringify(value), { status, headers: { 'Content-Type': 'application/json' } });
     if (url.pathname.endsWith('/billing_webhook_events') && !init?.body) return json(mode === 'duplicate' ? { event_id: 'event' } : null);
+    if (url.pathname.endsWith('/rpc/resolve_apple_purchase_owner')) return json(mode === 'guest' ? null : user);
     if (url.pathname.endsWith('/rpc/apply_apple_subscription')) return mode === 'storage-failure' ? json({ message: 'database unavailable' }, 503) : json(null);
     if (url.pathname.endsWith('/billing_webhook_events')) return json(null);
     throw new Error(`Unexpected request ${url.pathname}`);
@@ -29,6 +30,13 @@ test('Apple registration persists environment, retries failed storage, and dedup
     await processAppleNotification('event', 'DID_RENEW', occurredAt, transaction, { autoRenewStatus: 1 });
     assert.equal(requests.at(-2)?.body.p_notification, true);
     assert.equal(requests.at(-2)?.body.p_subscription.apple_notification_at, occurredAt);
+    mode = 'guest';
+    requests.length = 0;
+    await processAppleNotification('guest-event', 'SUBSCRIBED', occurredAt, { ...transaction, appAccountToken: '00000000-0000-4000-8000-000000000003' }, null);
+    assert.ok(!requests.some((request) => request.path.endsWith('/rpc/apply_apple_subscription')));
+    assert.equal(requests.at(-1)?.body.event_id, 'guest-event');
+    mode = 'success';
+    await assert.rejects(upsertAppleSubscription(transaction, null, undefined, 'other-account'), /Sign in/);
     mode = 'duplicate';
     requests.length = 0;
     await processAppleNotification('event', 'DID_RENEW', occurredAt, transaction, null);
