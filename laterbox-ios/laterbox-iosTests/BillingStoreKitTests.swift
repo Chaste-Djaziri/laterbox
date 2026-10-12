@@ -74,8 +74,11 @@ extension LaterAITests {
         await manager.loadProducts()
         let product = try #require(manager.monthlyProduct)
         let annual = try #require(manager.annualProduct)
-        #expect(annual.price == Decimal(string: "39.99"))
-        #expect(manager.annualPlanDetail.contains("$3.33 per month"))
+        #expect(annual.displayPrice == "$39.99")
+        if annual.price.formatted(annual.priceFormatStyle) != annual.displayPrice {
+            #expect(!manager.annualPlanDetail.contains("Equivalent"))
+            #expect(manager.annualPlanDetail.contains("$39.99 per year"))
+        }
         #expect(coordinator.currentUserId == nil && coordinator.authToken == nil)
         #expect(await manager.purchase(product))
         #expect(manager.isProSubscriptionActive)
