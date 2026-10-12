@@ -60,6 +60,9 @@ interface ItemDao {
     @Query("UPDATE items SET return_at = :returnAt, status = :status, updated_at = :updatedAt, sync_status = 'pending' WHERE id = :id")
     suspend fun updateReturnAt(id: String, returnAt: String?, status: String, updatedAt: String)
 
+    @Query("UPDATE items SET collectionId = :collectionId, updated_at = :updatedAt, sync_status = 'pending' WHERE id = :id")
+    suspend fun updateCollection(id: String, collectionId: String?, updatedAt: String)
+
     @Query("UPDATE items SET deleted_at = :deletedAt, updated_at = :deletedAt, sync_status = 'pending' WHERE id = :id")
     suspend fun softDelete(id: String, deletedAt: String)
 

@@ -42,6 +42,7 @@ interface DataRepository {
     suspend fun updateItemStatus(id: String, status: String)
     suspend fun toggleFavorite(id: String, currentFavorite: Boolean)
     suspend fun scheduleReturn(id: String, returnAt: String?)
+    suspend fun setItemCollection(id: String, collectionId: String?) { }
     suspend fun deleteItem(id: String)
     fun watchMetadata(itemId: String): Flow<ItemMetadataEntity?> = kotlinx.coroutines.flow.flow { emit(getMetadata(itemId)) }
     suspend fun getMetadata(itemId: String): ItemMetadataEntity?
@@ -151,6 +152,12 @@ class DefaultDataRepository(
         } else {
             com.example.laterbox.services.ReturnsService.cancel(context, id)
         }
+        syncNow()
+    }
+
+    override suspend fun setItemCollection(id: String, collectionId: String?) {
+        val now = DateTimeFormatter.ISO_INSTANT.format(Instant.now())
+        database.itemDao().updateCollection(id, collectionId, now)
         syncNow()
     }
 

@@ -1,9 +1,13 @@
 package com.example.laterbox.ui.screens
 
 import android.text.format.DateUtils
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -13,6 +17,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.IntOffset
+import kotlin.math.roundToInt
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -51,6 +59,7 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.laterbox.R
 import com.example.laterbox.data.DataRepository
+import com.example.laterbox.data.local.CollectionEntity
 import com.example.laterbox.data.local.ItemEntity
 import com.example.laterbox.data.local.ItemMetadataEntity
 import com.example.laterbox.services.AccountService
@@ -223,6 +232,9 @@ fun InboxQueueScreen(
         allItems.any { it.syncStatus == "pending" } -> "Pending sync"
         else -> "Synced"
     }
+    var schedulingItem by remember { mutableStateOf<ItemEntity?>(null) }
+    var collectingItem by remember { mutableStateOf<ItemEntity?>(null) }
+
     fun action(block: suspend () -> Unit) {
         scope.launch { try { block(); actionError = null } catch (_: Exception) { actionError = "Unable to update this item. Please try again." } }
     }
@@ -684,14 +696,17 @@ fun InboxQueueScreen(
                             val bottomRadius = if (isLast) 12.dp else 4.dp
                             val metadata by remember(repository, item.id) { repository.watchMetadata(item.id) }.collectAsState(null)
 
-                            EmailInboxRowCard(
+                            SwipeableEmailInboxRow(
                                 item = item,
                                 metadata = metadata,
                                 collectionName = collections.find { it.id == item.collectionId }?.name,
                                 topRadius = topRadius,
                                 bottomRadius = bottomRadius,
                                 onClick = { onItem(item) },
-                                onToggleFavorite = { action { repository.toggleFavorite(item.id, item.favorite) } }
+                                onToggleFavorite = { action { repository.toggleFavorite(item.id, item.favorite) } },
+                                onDelete = { action { repository.deleteItem(item.id) } },
+                                onSnooze = { schedulingItem = item },
+                                onAddToCollection = { collectingItem = item }
                             )
                         }
                     }
@@ -788,14 +803,17 @@ fun InboxQueueScreen(
                     val bottomRadius = if (isLast) 12.dp else 4.dp
                     val metadata by remember(repository, item.id) { repository.watchMetadata(item.id) }.collectAsState(null)
 
-                    EmailInboxRowCard(
+                    SwipeableEmailInboxRow(
                         item = item,
                         metadata = metadata,
                         collectionName = collections.find { it.id == item.collectionId }?.name,
                         topRadius = topRadius,
                         bottomRadius = bottomRadius,
                         onClick = { onItem(item) },
-                        onToggleFavorite = { action { repository.toggleFavorite(item.id, item.favorite) } }
+                        onToggleFavorite = { action { repository.toggleFavorite(item.id, item.favorite) } },
+                        onDelete = { action { repository.deleteItem(item.id) } },
+                        onSnooze = { schedulingItem = item },
+                        onAddToCollection = { collectingItem = item }
                     )
                 }
             }
@@ -857,6 +875,41 @@ fun InboxQueueScreen(
                 TextButton(onClick = { showingEmptyTrashDialog = false }) {
                     Text("Cancel")
                 }
+            }
+        )
+    }
+
+    schedulingItem?.let { item ->
+        SchedulePickerDialog(
+            currentReturnAt = item.returnAt,
+            onDismiss = { schedulingItem = null },
+            onSetDate = { newDate ->
+                action { repository.scheduleReturn(item.id, newDate) }
+                schedulingItem = null
+            }
+        )
+    }
+
+    collectingItem?.let { item ->
+        val currentCollName = collections.find { it.id == item.collectionId }?.name
+        CollectionPickerDialog(
+            currentCollectionName = currentCollName,
+            collections = collections,
+            onDismiss = { collectingItem = null },
+            onSelect = { coll ->
+                action { repository.setItemCollection(item.id, coll.id) }
+                collectingItem = null
+            },
+            onRemove = {
+                action { repository.setItemCollection(item.id, null) }
+                collectingItem = null
+            },
+            onCreateNew = { name ->
+                action {
+                    val created = repository.addCollection(name)
+                    repository.setItemCollection(item.id, created.id)
+                }
+                collectingItem = null
             }
         )
     }
@@ -1014,6 +1067,269 @@ private fun formatEmailDate(dateStr: String): String {
         }
     } catch (_: Exception) {
         ""
+    }
+}
+
+@Composable
+internal fun SwipeableEmailInboxRow(
+    item: ItemEntity,
+    metadata: ItemMetadataEntity?,
+    collectionName: String?,
+    topRadius: androidx.compose.ui.unit.Dp,
+    bottomRadius: androidx.compose.ui.unit.Dp,
+    onClick: () -> Unit,
+    onToggleFavorite: () -> Unit,
+    onDelete: () -> Unit,
+    onSnooze: () -> Unit,
+    onAddToCollection: () -> Unit
+) {
+    val density = LocalDensity.current
+    val coroutineScope = rememberCoroutineScope()
+    val offsetX = remember(item.id) { Animatable(0f) }
+
+    val revealWidth = 150.dp
+    val revealWidthPx = with(density) { revealWidth.toPx() }
+    val fullSwipeThresholdPx = with(density) { 220.dp.toPx() }
+
+    val cardShape = RoundedCornerShape(
+        topStart = topRadius,
+        topEnd = topRadius,
+        bottomStart = bottomRadius,
+        bottomEnd = bottomRadius
+    )
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(cardShape)
+    ) {
+        // Background Action Buttons
+        val currentOffset = offsetX.value
+        if (currentOffset != 0f) {
+            Row(
+                modifier = Modifier
+                    .matchParentSize()
+                    .clip(cardShape)
+            ) {
+                // Leading side (revealed on right swipe): Star & Collection
+                if (currentOffset > 0f) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxHeight()
+                            .weight(1f),
+                        contentAlignment = Alignment.CenterStart
+                    ) {
+                        Row(modifier = Modifier.fillMaxHeight()) {
+                            // Star action
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxHeight()
+                                    .width(75.dp)
+                                    .background(LaterboxAmber)
+                                    .clickable {
+                                        coroutineScope.launch { offsetX.animateTo(0f, spring(stiffness = Spring.StiffnessMediumLow)) }
+                                        onToggleFavorite()
+                                    },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.Center
+                                ) {
+                                    Icon(
+                                        imageVector = if (item.favorite) Icons.Default.Star else Icons.Outlined.StarBorder,
+                                        contentDescription = if (item.favorite) "Unstar" else "Star",
+                                        tint = Color.White,
+                                        modifier = Modifier.size(22.dp)
+                                    )
+                                    Spacer(Modifier.height(3.dp))
+                                    Text(
+                                        text = if (item.favorite) "Unstar" else "Star",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color.White
+                                    )
+                                }
+                            }
+
+                            // Collection action
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxHeight()
+                                    .width(75.dp)
+                                    .background(Color(0xFF1967D2))
+                                    .clickable {
+                                        coroutineScope.launch { offsetX.animateTo(0f, spring(stiffness = Spring.StiffnessMediumLow)) }
+                                        onAddToCollection()
+                                    },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Folder,
+                                        contentDescription = "Collection",
+                                        tint = Color.White,
+                                        modifier = Modifier.size(22.dp)
+                                    )
+                                    Spacer(Modifier.height(3.dp))
+                                    Text(
+                                        text = "Collection",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color.White
+                                    )
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    Spacer(Modifier.weight(1f))
+                }
+
+                // Trailing side (revealed on left swipe): Snooze & Delete
+                if (currentOffset < 0f) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxHeight()
+                            .weight(1f),
+                        contentAlignment = Alignment.CenterEnd
+                    ) {
+                        Row(modifier = Modifier.fillMaxHeight()) {
+                            // Snooze action
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxHeight()
+                                    .width(75.dp)
+                                    .background(Color(0xFFEA580C))
+                                    .clickable {
+                                        coroutineScope.launch { offsetX.animateTo(0f, spring(stiffness = Spring.StiffnessMediumLow)) }
+                                        onSnooze()
+                                    },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Schedule,
+                                        contentDescription = "Snooze",
+                                        tint = Color.White,
+                                        modifier = Modifier.size(22.dp)
+                                    )
+                                    Spacer(Modifier.height(3.dp))
+                                    Text(
+                                        text = "Snooze",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color.White
+                                    )
+                                }
+                            }
+
+                            // Delete action
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxHeight()
+                                    .width(75.dp)
+                                    .background(Color(0xFFDC2626))
+                                    .clickable {
+                                        coroutineScope.launch { offsetX.animateTo(0f, spring(stiffness = Spring.StiffnessMediumLow)) }
+                                        onDelete()
+                                    },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Delete,
+                                        contentDescription = "Delete",
+                                        tint = Color.White,
+                                        modifier = Modifier.size(22.dp)
+                                    )
+                                    Spacer(Modifier.height(3.dp))
+                                    Text(
+                                        text = "Delete",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color.White
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Foreground Email Card
+        Box(
+            modifier = Modifier
+                .offset { IntOffset(offsetX.value.roundToInt(), 0) }
+                .pointerInput(item.id) {
+                    detectHorizontalDragGestures(
+                        onHorizontalDrag = { _, dragAmount ->
+                            coroutineScope.launch {
+                                val newOffset = (offsetX.value + dragAmount)
+                                    .coerceIn(-fullSwipeThresholdPx * 1.15f, fullSwipeThresholdPx * 1.15f)
+                                offsetX.snapTo(newOffset)
+                            }
+                        },
+                        onDragEnd = {
+                            coroutineScope.launch {
+                                val current = offsetX.value
+                                when {
+                                    current > fullSwipeThresholdPx -> {
+                                        offsetX.animateTo(0f, spring(stiffness = Spring.StiffnessMediumLow))
+                                        onToggleFavorite()
+                                    }
+                                    current > revealWidthPx * 0.4f -> {
+                                        offsetX.animateTo(revealWidthPx, spring(stiffness = Spring.StiffnessMediumLow))
+                                    }
+                                    current < -fullSwipeThresholdPx -> {
+                                        offsetX.animateTo(0f, spring(stiffness = Spring.StiffnessMediumLow))
+                                        onDelete()
+                                    }
+                                    current < -revealWidthPx * 0.4f -> {
+                                        offsetX.animateTo(-revealWidthPx, spring(stiffness = Spring.StiffnessMediumLow))
+                                    }
+                                    else -> {
+                                        offsetX.animateTo(0f, spring(stiffness = Spring.StiffnessMediumLow))
+                                    }
+                                }
+                            }
+                        },
+                        onDragCancel = {
+                            coroutineScope.launch {
+                                offsetX.animateTo(0f, spring(stiffness = Spring.StiffnessMediumLow))
+                            }
+                        }
+                    )
+                }
+        ) {
+            EmailInboxRowCard(
+                item = item,
+                metadata = metadata,
+                collectionName = collectionName,
+                topRadius = topRadius,
+                bottomRadius = bottomRadius,
+                onClick = {
+                    if (offsetX.value != 0f) {
+                        coroutineScope.launch {
+                            offsetX.animateTo(0f, spring(stiffness = Spring.StiffnessMediumLow))
+                        }
+                    } else {
+                        onClick()
+                    }
+                },
+                onToggleFavorite = onToggleFavorite
+            )
+        }
     }
 }
 

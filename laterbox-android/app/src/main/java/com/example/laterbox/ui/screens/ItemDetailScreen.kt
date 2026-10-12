@@ -1175,7 +1175,7 @@ private fun FollowUpEntryCard(
 }
 
 @Composable
-private fun CollectionPickerDialog(
+internal fun CollectionPickerDialog(
     currentCollectionName: String?,
     collections: List<CollectionEntity>,
     onDismiss: () -> Unit,
@@ -1278,7 +1278,7 @@ private fun CollectionPickerDialog(
 }
 
 @Composable
-private fun SchedulePickerDialog(
+internal fun SchedulePickerDialog(
     currentReturnAt: String?,
     onDismiss: () -> Unit,
     onSetDate: (String?) -> Unit
