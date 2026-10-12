@@ -13,6 +13,8 @@ import com.example.laterbox.data.local.ItemMetadataEntity
 import com.example.laterbox.data.sync.SyncWorker
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -44,6 +46,8 @@ interface DataRepository {
     fun watchMetadata(itemId: String): Flow<ItemMetadataEntity?> = kotlinx.coroutines.flow.flow { emit(getMetadata(itemId)) }
     suspend fun getMetadata(itemId: String): ItemMetadataEntity?
 
+    suspend fun promoteDueItems(): List<ItemEntity> = emptyList()
+
     suspend fun addCollection(name: String, colorHex: String = "#F59E0B", iconName: String = "folder"): CollectionEntity
     suspend fun renameCollection(id: String, name: String) { error("Collection renaming is unavailable.") }
     suspend fun deleteCollection(id: String)
@@ -69,6 +73,33 @@ class DefaultDataRepository(
 
     init {
         refreshWebStatus()
+        startRealtimePromotionTicker()
+    }
+
+    private fun startRealtimePromotionTicker() {
+        scope.launch {
+            while (isActive) {
+                try {
+                    promoteDueItems()
+                } catch (e: Exception) {
+                    // Ignore transient exceptions
+                }
+                delay(4000)
+            }
+        }
+    }
+
+    override suspend fun promoteDueItems(): List<ItemEntity> {
+        val now = DateTimeFormatter.ISO_INSTANT.format(Instant.now())
+        val due = database.itemDao().getDueItems(now)
+        if (due.isNotEmpty()) {
+            database.itemDao().promoteDue(now)
+            due.forEach { item ->
+                com.example.laterbox.services.ReturnsService.sendReturnNotification(context, item.copy(status = "inbox"))
+            }
+            syncNow()
+        }
+        return due
     }
 
     override val items: Flow<List<ItemEntity>> = kotlinx.coroutines.flow.combine(database.itemDao().watchAllItems(), com.example.laterbox.services.AccountService.state) { items, account -> items.filter { it.userId == null || it.userId == account.userId } }
@@ -99,6 +130,9 @@ class DefaultDataRepository(
     override suspend fun updateItemStatus(id: String, status: String) {
         val now = DateTimeFormatter.ISO_INSTANT.format(Instant.now())
         database.itemDao().updateStatus(id, status, now)
+        if (status != "deferred") {
+            com.example.laterbox.services.ReturnsService.cancel(context, id)
+        }
         syncNow()
     }
 
@@ -112,14 +146,18 @@ class DefaultDataRepository(
         val now = DateTimeFormatter.ISO_INSTANT.format(Instant.now())
         val status = if (returnAt != null) "deferred" else "inbox"
         database.itemDao().updateReturnAt(id, returnAt, status, now)
-        database.itemDao().getItemById(id)?.let { com.example.laterbox.services.ReturnsService.schedule(context, it) }
+        if (returnAt != null) {
+            database.itemDao().getItemById(id)?.let { com.example.laterbox.services.ReturnsService.schedule(context, it) }
+        } else {
+            com.example.laterbox.services.ReturnsService.cancel(context, id)
+        }
         syncNow()
     }
 
     override suspend fun deleteItem(id: String) {
         val now = DateTimeFormatter.ISO_INSTANT.format(Instant.now())
         database.itemDao().softDelete(id, now)
-        androidx.work.WorkManager.getInstance(context).cancelUniqueWork("return-$id")
+        com.example.laterbox.services.ReturnsService.cancel(context, id)
         syncNow()
     }
 
