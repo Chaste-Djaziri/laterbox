@@ -126,7 +126,9 @@ public final class StoreKitManager: ObservableObject {
         for await result in Transaction.currentEntitlements {
             guard case .verified(let transaction) = result,
                   Self.allProductIds.contains(transaction.productID), transaction.revocationDate == nil,
-                  !transaction.isUpgraded, transaction.expirationDate.map({ $0 > Date() }) ?? true else { continue }
+                  !transaction.isUpgraded else { continue }
+            // StoreKit includes subscribed and valid billing-grace entitlements here.
+            // A grace entitlement can retain the last paid transaction's past expiry.
             if !active || (transaction.expirationDate ?? .distantFuture) > (latestExpiration ?? .distantPast) {
                 active = true
                 matchedId = transaction.productID
