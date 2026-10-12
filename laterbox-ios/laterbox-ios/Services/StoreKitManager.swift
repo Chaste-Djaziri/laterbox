@@ -31,6 +31,7 @@ public final class StoreKitManager: ObservableObject {
     @Published public private(set) var isProSubscriptionActive: Bool = false
     @Published public private(set) var activeProductId: String? = nil
     @Published public private(set) var expirationDate: Date? = nil
+    @Published public private(set) var eligibleIntroProducts: Set<String> = []
     @Published public var isLoadingProducts: Bool = false
     @Published public var isPurchasing: Bool = false
     @Published public var isRestoring: Bool = false
@@ -87,7 +88,11 @@ public final class StoreKitManager: ObservableObject {
             let fetchedProducts = try await Product.products(for: Self.allProductIds)
             self.products = fetchedProducts
 
+            eligibleIntroProducts = []
             for product in fetchedProducts {
+                if let subscription = product.subscription, await subscription.isEligibleForIntroOffer {
+                    eligibleIntroProducts.insert(product.id)
+                }
                 if product.id == Self.monthlyId {
                     self.monthlyProduct = product
                 } else if product.id == Self.annualId {
@@ -316,13 +321,40 @@ public final class StoreKitManager: ObservableObject {
         }
     }
 
-    // MARK: - Display Price Helpers
-    public var monthlyDisplayPrice: String {
-        monthlyProduct?.displayPrice ?? "$3.99"
-    }
+    // MARK: - StoreKit prices and offer terms
+    public var monthlyDisplayPrice: String { monthlyProduct?.displayPrice ?? "Price unavailable" }
+    public var annualDisplayPrice: String { annualProduct?.displayPrice ?? "Price unavailable" }
 
-    public var annualDisplayPrice: String {
-        annualProduct?.displayPrice ?? "$39.99"
+    private func trialLabel(_ product: Product?) -> String? {
+        guard let product, eligibleIntroProducts.contains(product.id),
+              let offer = product.subscription?.introductoryOffer, offer.paymentMode == .freeTrial else { return nil }
+        let count = offer.period.value * offer.periodCount
+        let unit: String
+        switch offer.period.unit {
+        case .day: unit = count == 1 ? "day" : "days"
+        case .week: unit = count == 1 ? "week" : "weeks"
+        case .month: unit = count == 1 ? "month" : "months"
+        case .year: unit = count == 1 ? "year" : "years"
+        @unknown default: return nil
+        }
+        return "\(count) \(unit) free"
+    }
+    public func purchaseButtonTitle(annual: Bool) -> String {
+        let product = annual ? annualProduct : monthlyProduct
+        if let trial = trialLabel(product) { return "Start \(trial) trial" }
+        return annual ? "Subscribe annually" : "Subscribe monthly"
+    }
+    public var monthlyPlanDetail: String {
+        guard let product = monthlyProduct else { return "App Store prices are loading" }
+        let price = "\(product.displayPrice) per month"
+        return trialLabel(product).map { "\($0), then \(price)" } ?? "\(price), automatically renews"
+    }
+    public var annualPlanDetail: String {
+        guard let product = annualProduct else { return "App Store prices are loading" }
+        let equivalent = (product.price / 12).formatted(product.priceFormatStyle)
+        let price = "\(product.displayPrice) per year"
+        let offer = trialLabel(product).map { "\($0), then \(price). " } ?? "\(price). "
+        return "\(offer)Equivalent to \(equivalent) per month, billed annually"
     }
 
     // MARK: - Background Transaction Listener
