@@ -301,11 +301,15 @@ public final class StoreKitManager: ObservableObject {
         }
     }
 
-    public func manageSubscription() async {
+    public var managementProvider: String? {
+        isProSubscriptionActive ? "apple" : SyncCoordinator.shared.billingEntitlement?.provider
+    }
+
+    public func manageSubscription(provider: String? = nil) async {
         let coordinator = SyncCoordinator.shared
         errorMessage = nil
         do {
-            if coordinator.billingEntitlement?.provider == "paddle" {
+            if (provider ?? managementProvider) == "paddle" {
                 guard let token = coordinator.authToken else { throw URLError(.userAuthenticationRequired) }
                 let url = try await LaterBoxAPIService.shared.paddleManagementURL(token: token)
                 await UIApplication.shared.open(url)
