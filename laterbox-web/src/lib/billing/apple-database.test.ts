@@ -12,7 +12,7 @@ async function fixture() {
     create function auth.uid() returns uuid language sql as $$select nullif(current_setting('request.sub',true),'')::uuid$$;
     create function auth.role() returns text language sql as $$select current_setting('request.role',true)$$;
     grant usage on schema auth to authenticated;`);
-  for (const file of ['202609100001_create_billing_entitlements.sql', '202609100003_allow_service_entitlement_checks.sql', '202609100004_add_entitlement_phase_timing.sql', '202610120001_apple_subscription_sync.sql', '202610120002_apple_device_revocation.sql']) {
+  for (const file of ['202609100001_create_billing_entitlements.sql', '202609100003_allow_service_entitlement_checks.sql', '202609100004_add_entitlement_phase_timing.sql', '202610120001_apple_subscription_sync.sql', '202610120002_apple_device_revocation.sql', '202610120003_optional_apple_account_links.sql']) {
     await db.exec(await readFile(new URL(`../../../../supabase/migrations/${file}`, import.meta.url), 'utf8'));
   }
   await db.exec(`delete from billing_entitlement_grants; select set_config('request.sub','${user}',false); select set_config('request.role','authenticated',false);`);
@@ -93,5 +93,35 @@ test('Apple cancellation, grace and refund survive device replay and out-of-orde
     await apply(db, { ...refund, apple_notification_at: new Date(time + 15000).toISOString() }, true);
     assert.equal(await pro(db), true);
     assert.equal((await db.query<{apple_transaction_id: string}>('select apple_transaction_id from billing_subscriptions')).rows[0].apple_transaction_id, 'renewed');
+  } finally { await db.close(); }
+});
+
+
+test('Guest linking is atomic, idempotent, private, and cannot transfer ownership', async () => {
+  const db = await fixture();
+  const guest = '00000000-0000-4000-8000-000000000003';
+  const resolve = async () => (await db.query<{owner: string | null}>("select resolve_apple_purchase_owner('guest','Sandbox',$1::uuid) as owner", [guest])).rows[0].owner;
+  const claim = (owner: string) => db.query("select claim_apple_purchase('guest','Sandbox',$1::uuid,$2::uuid,$3::jsonb)", [guest, owner, JSON.stringify(subscription({ subscription_id: 'guest', customer_id: owner, user_id: owner }))]);
+  try {
+    assert.equal(await resolve(), null);
+    assert.equal(await pro(db), false);
+    const claims = await Promise.allSettled([claim(user), claim(other)]);
+    assert.equal(claims.filter((result) => result.status === 'fulfilled').length, 1);
+    const owner = await resolve();
+    assert.ok(owner === user || owner === other);
+    await claim(owner!);
+    await assert.rejects(claim(owner === user ? other : user), /another account/);
+    assert.equal((await db.query('select * from billing_apple_purchase_links')).rows.length, 1);
+    await db.exec('set role authenticated;');
+    await assert.rejects(resolve(), /permission denied/);
+    await assert.rejects(db.query('select * from billing_apple_purchase_links'), /permission denied/);
+  } finally { await db.close(); }
+});
+
+test('Existing signed-in purchases cannot be claimed by a different account', async () => {
+  const db = await fixture();
+  try {
+    await assert.rejects(db.query("select claim_apple_purchase('legacy','Production',$1::uuid,$2::uuid,$3::jsonb)", [user, other, JSON.stringify(subscription({ subscription_id: 'legacy', apple_environment: 'Production', user_id: other, customer_id: other }))]), /another account/);
+    assert.equal((await db.query('select * from billing_apple_purchase_links')).rows.length, 0);
   } finally { await db.close(); }
 });
