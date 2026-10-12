@@ -47,8 +47,9 @@ final class laterbox_iosUITests: XCTestCase {
         buy.tap()
         XCTAssertTrue(app.alerts["Welcome to Pro!"].waitForExistence(timeout: 15))
         app.alerts["Welcome to Pro!"].buttons["Continue"].tap()
-        let connect = app.buttons["billing.connect"]
-        XCTAssertTrue(connect.waitForExistence(timeout: 5))
+        let connections = app.buttons.matching(identifier: "billing.connect")
+        XCTAssertTrue(connections.firstMatch.waitForExistence(timeout: 5))
+        let connect = try XCTUnwrap(connections.allElementsBoundByIndex.last)
         for _ in 0..<6 { if connect.isHittable { break }; (app.scrollViews.allElementsBoundByIndex.last ?? app.scrollViews.firstMatch).swipeDown() }
         reveal(connect, in: app)
         XCTAssertEqual(connect.label, "Sign in to connect Pro (optional)")
@@ -60,7 +61,7 @@ final class laterbox_iosUITests: XCTestCase {
         let restore = app.buttons["Restore Purchases"]
         reveal(restore, in: app)
         restore.tap()
-        XCTAssertTrue(app.buttons["billing.connect"].exists)
+        XCTAssertTrue(connections.firstMatch.exists)
         XCTAssertEqual(session.allTransactions().count, 1)
     }
 
