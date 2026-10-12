@@ -75,10 +75,21 @@ fun VaultScreen(
     onOrganizer: () -> Unit,
     onSignOut: () -> Unit = {},
     onAuth: () -> Unit = {},
-    profileEnabled: Boolean = true
+    profileEnabled: Boolean = true,
+    onOpenSidebar: () -> Unit = {},
+    onOpenSettings: () -> Unit = {}
 ) {
     if (tab == 1) {
-        InboxQueueScreen(repository, onItem, onOrganizer, onCapture)
+        InboxQueueScreen(
+            repository = repository,
+            onItem = onItem,
+            onOrganizer = onOrganizer,
+            onCapture = onCapture,
+            onOpenSidebar = onOpenSidebar,
+            onSignOut = onSignOut,
+            onAuth = onAuth,
+            onOpenSettings = onOpenSettings
+        )
         return
     }
     if (tab == 3) {
