@@ -48,7 +48,7 @@ public struct SettingsView: View {
 
                             // Sync status indicator
                             Button(action: {
-                                if !coordinator.isProUser {
+                                if !coordinator.hasCloudPro {
                                     LBHaptic.light()
                                     coordinator.showingPlansSheet = true
                                 }
