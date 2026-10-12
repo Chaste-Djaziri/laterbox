@@ -13,6 +13,11 @@ extension LaterAITests {
         session.clearTransactions()
         defer { session.clearTransactions() }
         let coordinator = SyncCoordinator.shared
+        let previous = (coordinator.currentUserId, coordinator.currentUserEmail, coordinator.authToken, coordinator.isGuestMode, coordinator.isProUser)
+        defer {
+            coordinator.currentUserId = previous.0; coordinator.currentUserEmail = previous.1; coordinator.authToken = previous.2
+            coordinator.isGuestMode = previous.3; coordinator.setProForTesting(previous.4)
+        }
         coordinator.signOut()
         coordinator.continueAsGuest()
         let manager = StoreKitManager.shared
@@ -53,6 +58,11 @@ extension LaterAITests {
         session.clearTransactions()
         defer { session.clearTransactions() }
         let coordinator = SyncCoordinator.shared
+        let previous = (coordinator.currentUserId, coordinator.currentUserEmail, coordinator.authToken, coordinator.isGuestMode, coordinator.isProUser)
+        defer {
+            coordinator.currentUserId = previous.0; coordinator.currentUserEmail = previous.1; coordinator.authToken = previous.2
+            coordinator.isGuestMode = previous.3; coordinator.setProForTesting(previous.4)
+        }
         coordinator.signOut()
         coordinator.continueAsGuest()
         let manager = StoreKitManager.shared
