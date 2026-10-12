@@ -121,9 +121,9 @@ APPLE_KEY_ID=...
 APPLE_PRIVATE_KEY=...
 ```
 
-The current verification path uses Apple-signed StoreKit transaction JWS data and does not require the private API key for ordinary purchase verification. Keep the issuer/key values configured for App Store Server API operations and future subscription recovery tooling.
+The current verification path uses Apple-signed StoreKit transaction JWS data and does not require the private API key for ordinary purchase verification. Explicit guest account linking requires all three dedicated In-App Purchase API credentials to retrieve current subscription status from Apple before granting cloud access. Use an In-App Purchase key from Users and Access → Integrations, not the App Store Connect upload key. Configure the repository secrets `APPLE_PRIVATE_KEY`, `APPLE_KEY_ID`, and `APPLE_ISSUER_ID`; the web release workflow installs them as Worker secrets. Never log or commit the private key.
 
-StoreKit purchases require an authenticated LaterBox account. The Supabase user UUID is sent as `appAccountToken`; the server rejects transactions that are missing it or belong to another user. The Apple ID paying for a purchase may differ from the LaterBox login email. Email matching never assigns ownership.
+StoreKit purchase, restore, and Apple management work without a LaterBox account or successful backend request. Signed-in purchases use the Supabase user UUID as `appAccountToken`; guest purchases use a device-only Keychain UUID. Signing in alone never claims a guest purchase. The optional Connect Pro action confirms the destination account, verifies current Apple status, and atomically claims `(environment, original_transaction_id)` in service-only `billing_apple_purchase_links`. Same-account retries succeed; another account cannot transfer ownership. The Apple ID paying for a purchase may differ from the LaterBox login email. Email matching never assigns ownership.
 
 The web release workflow configures the three public verification settings on the existing Worker using the deployment account: App Apple ID `6804139119`, bundle ID `pro.micorp.laterbox`, and trusted roots fetched directly from [Apple PKI](https://www.apple.com/certificateauthority/). Certificate CA status, self-signature, and validity dates are checked before installation. To check downloads without changing deployment settings:
 
@@ -132,15 +132,15 @@ cd laterbox-web
 node scripts/configure-apple-verification.mjs --check-only
 ```
 
-Apply `202610120001_apple_subscription_sync.sql` and `202610120002_apple_device_revocation.sql` before deploying this billing release. It adds verified environment, transaction, notification, and revocation metadata and the service-role-only atomic registration RPC. Existing billing migrations must already be applied. A dry run must list only the intended pending migrations before pushing them.
+Apply `202610120001_apple_subscription_sync.sql`, `202610120002_apple_device_revocation.sql`, and `202610120003_optional_apple_account_links.sql` before deploying this billing release. It adds verified environment, transaction, notification, and revocation metadata and the service-role-only atomic registration RPC. Existing billing migrations must already be applied. A dry run must list only the intended pending migrations before pushing them.
 
 ### Shared access and testing
 
 Verified Apple Production and Sandbox transactions unlock the same LaterBox account on web and iOS. TestFlight uses Sandbox: purchases do not charge the tester or pay the developer, and access lasts only until the sandbox subscription expiry. Local Xcode StoreKit transactions unlock the device only and are rejected by the cloud verifier. The signed Apple environment is stored as `apple_environment`.
 
-Registration runs on launch, sign-in, foreground return, purchase, and restore. Device purchase success and cloud registration success are shown separately. Registration failures retain the local purchase and retry on subsequent refreshes. Real transactions remain unfinished until cloud registration succeeds; launch and foreground refresh recover unfinished transactions, including revocations, so a failed request is not silently discarded. Missing account tokens require support-led ownership recovery; signing in or restoring does not manufacture a token for an old purchase.
+Registration runs on launch, sign-in, foreground return, purchase, and restore. Device purchase success and cloud registration success are shown separately. Registration failures retain the local purchase and retry on subsequent refreshes. Transactions finish after verified device access is delivered. A separate durable Keychain outbox retains verified real receipts and retries account registration without blocking delivery or transaction completion. Guest receipts require explicit account linking. Valid unlinked guest notifications are acknowledged without granting account access. Missing account tokens require support-led ownership recovery; signing in or restoring does not manufacture a token for an old purchase.
 
-An active paid-provider subscription, including a trial or valid grace period, blocks a second checkout. Apple subscriptions are managed through the App Store; Paddle subscriptions through the authenticated Paddle portal. To switch, cancel renewal with the current provider, retain access until expiry, and then subscribe with the other provider. Launch grants do not block checkout.
+An active StoreKit subscription or known paid account subscription, including a trial or valid grace period, blocks a second checkout. A signed-out app cannot discover an unrelated Paddle subscription. Apple subscriptions are managed through the App Store; Paddle subscriptions through the authenticated Paddle portal. To switch, cancel renewal with the current provider, retain access until expiry, and then subscribe with the other provider. Launch grants do not block checkout.
 
 ### Release acceptance and incident diagnosis
 
