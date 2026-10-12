@@ -91,6 +91,7 @@ export async function decodeNotificationData(payload: ResponseBodyV2DecodedPaylo
 export function assertAppleTransaction(
   transaction: JWSTransactionDecodedPayload,
   expectedUserId?: string,
+  allowUnlinked = false,
 ) {
   if (!transaction.productId || !APPLE_PRODUCTS.has(transaction.productId)) {
     throw new Error('Unknown LaterBox App Store product.');
@@ -101,15 +102,23 @@ export function assertAppleTransaction(
   if (transaction.environment !== Environment.PRODUCTION && transaction.environment !== Environment.SANDBOX) {
     throw new AppleBillingError('unsupported_environment', 'Only App Store and TestFlight purchases can enable cloud access.');
   }
-  if (!transaction.appAccountToken) {
+  if (!transaction.appAccountToken && !allowUnlinked) {
     throw new AppleBillingError('account_token_missing', 'This purchase is not linked to a LaterBox account. Contact support for purchase recovery.');
   }
-  if (expectedUserId && transaction.appAccountToken.toLowerCase() !== expectedUserId.toLowerCase()) {
+  if (expectedUserId && transaction.appAccountToken?.toLowerCase() !== expectedUserId.toLowerCase()) {
     throw new AppleBillingError('account_mismatch', 'Sign in to the LaterBox account used for this purchase.', 403);
   }
   if (transaction.bundleId && transaction.bundleId !== bundleId) {
     throw new Error('Apple transaction bundle does not match LaterBox.');
   }
+}
+
+export function verifyAppleTransactionInEnvironment(value: string, environment: Environment) {
+  return verifier(environment).verifyAndDecodeTransaction(value);
+}
+
+export function verifyAppleRenewalInEnvironment(value: string, environment: Environment) {
+  return verifier(environment).verifyAndDecodeRenewalInfo(value);
 }
 
 export function appleSubscriptionState(
