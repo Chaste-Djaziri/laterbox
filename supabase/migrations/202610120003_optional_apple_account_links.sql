@@ -48,7 +48,8 @@ begin
   if p_environment not in ('Sandbox','Production') or p_environment is null or p_token is null or p_user is null
     or p_original_id is null or p_subscription->>'subscription_id' is distinct from p_original_id
     or p_subscription->>'apple_environment' is distinct from p_environment
-    or p_subscription->>'user_id' is distinct from p_user::text then
+    or p_subscription->>'user_id' is distinct from p_user::text
+    or p_subscription->>'apple_notification_at' is null then
     raise exception 'Invalid Apple account connection';
   end if;
   perform pg_advisory_xact_lock(hashtextextended('apple:' || p_original_id, 0));
