@@ -102,7 +102,7 @@ fun MobileSidebarDrawer(
         val now = Instant.now()
         val endOfToday = now.atZone(ZoneId.systemDefault()).toLocalDate().plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant()
         allItems.count {
-            it.deletedAt == null && it.status != "archived" && it.status != "deleted" &&
+            it.deletedAt == null && it.status == "deferred" &&
                 it.returnAt != null && runCatching { Instant.parse(it.returnAt) <= endOfToday }.getOrDefault(false)
         }
     }
@@ -110,7 +110,7 @@ fun MobileSidebarDrawer(
         val now = Instant.now()
         val endOfToday = now.atZone(ZoneId.systemDefault()).toLocalDate().plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant()
         allItems.count {
-            it.deletedAt == null && it.status != "archived" && it.status != "deleted" &&
+            it.deletedAt == null && it.status == "deferred" &&
                 it.returnAt != null && runCatching { Instant.parse(it.returnAt) > endOfToday }.getOrDefault(false)
         }
     }
