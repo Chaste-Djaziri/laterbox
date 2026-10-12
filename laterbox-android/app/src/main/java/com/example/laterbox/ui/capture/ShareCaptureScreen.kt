@@ -2,6 +2,11 @@ package com.example.laterbox.ui.capture
 
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
+import android.content.Context
+import android.net.Uri
+import android.provider.OpenableColumns
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -34,6 +39,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
@@ -97,15 +103,6 @@ data class ShareAttachmentItem(
     val size: Long
 )
 
-private data class EnrichedLinkData(
-    val title: String? = null,
-    val author: String? = null,
-    val description: String? = null,
-    val previewImageUrl: String? = null,
-    val siteName: String? = null,
-    val keywords: List<String> = emptyList()
-)
-
 private fun isGenericTitle(title: String?): Boolean {
     if (title.isNullOrBlank()) return true
     val lower = title.trim().lowercase()
@@ -147,12 +144,39 @@ private fun isGenericDescription(desc: String?): Boolean {
         lower.contains("share it all with friends, family")
 }
 
+private fun copyUriToAttachment(context: Context, uri: Uri): ShareAttachmentItem? {
+    val contentResolver = context.contentResolver
+    val name = runCatching {
+        contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
+            if (cursor.moveToFirst()) cursor.getString(0) else "Attached file"
+        }
+    }.getOrNull() ?: "Attached file"
+    val ext = name.substringAfterLast('.', "").take(10).filter { it.isLetterOrDigit() }
+    val directory = File(context.filesDir, "captures").apply { mkdirs() }
+    val file = File(directory, UUID.randomUUID().toString() + if (ext.isBlank()) "" else ".$ext")
+    return runCatching {
+        contentResolver.openInputStream(uri)?.use { input ->
+            file.outputStream().use { output ->
+                input.copyTo(output)
+            }
+        }
+        val mime = contentResolver.getType(uri) ?: "application/octet-stream"
+        ShareAttachmentItem(
+            name = name,
+            path = file.absolutePath,
+            mime = mime,
+            size = file.length()
+        )
+    }.getOrNull()
+}
+
 @Composable
 fun ShareCaptureScreen(
-    initialText: String,
-    attachmentsJson: String,
-    isLockedInitially: Boolean,
-    onClose: () -> Unit
+    initialText: String = "",
+    attachmentsJson: String = "[]",
+    isLockedInitially: Boolean = false,
+    onClose: () -> Unit,
+    onSaved: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -175,34 +199,41 @@ fun ShareCaptureScreen(
 
     var savedItem by remember { mutableStateOf<ItemEntity?>(null) }
     var needsReturnDate by remember { mutableStateOf(false) }
-    var isLoading by remember { mutableStateOf(true) }
+    var isLoading by remember { mutableStateOf(false) }
     var isSaving by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var showEditSheet by remember { mutableStateOf(false) }
     var showManualInput by remember { mutableStateOf(false) }
     var manualInputText by remember { mutableStateOf("") }
 
+    // Initial input state when started empty in-app
+    val startsEmpty = remember { initialText.isBlank() && (attachmentsJson.isBlank() || attachmentsJson == "[]") }
+    var isInitialDrafting by remember { mutableStateOf(startsEmpty) }
+    var contentInput by remember { mutableStateOf("") }
+    val activeAttachments = remember { mutableStateListOf<ShareAttachmentItem>() }
+
     val messages = remember { mutableStateListOf<ShareChatMessage>() }
     val scrollState = rememberScrollState()
 
-    // Parse attachments
-    val attachments = remember(attachmentsJson) {
-        val list = mutableListOf<ShareAttachmentItem>()
-        runCatching {
-            val jsonArray = JSONArray(attachmentsJson)
-            for (i in 0 until jsonArray.length()) {
-                val obj = jsonArray.getJSONObject(i)
-                list.add(
-                    ShareAttachmentItem(
-                        name = obj.optString("name", "File"),
-                        path = obj.optString("path", ""),
-                        mime = obj.optString("mime", "application/octet-stream"),
-                        size = obj.optLong("size", 0L)
+    // Initialize attachments from JSON if provided
+    LaunchedEffect(attachmentsJson) {
+        if (attachmentsJson.isNotBlank() && attachmentsJson != "[]") {
+            runCatching {
+                val jsonArray = JSONArray(attachmentsJson)
+                activeAttachments.clear()
+                for (i in 0 until jsonArray.length()) {
+                    val obj = jsonArray.getJSONObject(i)
+                    activeAttachments.add(
+                        ShareAttachmentItem(
+                            name = obj.optString("name", "File"),
+                            path = obj.optString("path", ""),
+                            mime = obj.optString("mime", "application/octet-stream"),
+                            size = obj.optLong("size", 0L)
+                        )
                     )
-                )
+                }
             }
         }
-        list
     }
 
     // Detected URL
@@ -210,31 +241,19 @@ fun ShareCaptureScreen(
         Regex("https?://[^\\s]+").find(content)?.value?.trim()
     }
 
-    // Reset Function
-    fun resetDraft() {
-        messages.clear()
-        savedItem = null
-        returnAt = null
-        errorMessage = null
-        needsReturnDate = true
-        showManualInput = false
-        val tagSummary = if (tags.isEmpty()) "" else " with tags " + tags.take(3).joinToString(" ") { "#$it" }
-        val prompt = "I've drafted ‘$title’$tagSummary. When would you like to see it again?"
-        messages.add(ShareChatMessage(text = prompt, isUser = false))
-    }
-
-    // Enrichment Pipeline
-    LaunchedEffect(Unit) {
+    // Asynchronous enrichment logic
+    fun executeEnrichment(rawContent: String, attList: List<ShareAttachmentItem>) {
         isLoading = true
-        withContext(Dispatchers.IO) {
+        coroutineScope.launch(Dispatchers.IO) {
+            val urlInText = Regex("https?://[^\\s]+").find(rawContent)?.value?.trim()
             var rawTitle: String? = null
             var rawSummary: String? = null
-            var rawKeywords = mutableListOf<String>()
+            val rawKeywords = mutableListOf<String>()
             var rawImage: String? = null
             var rawSite: String? = null
 
             // Check if local attachments have an image
-            val localImage = attachments.firstOrNull {
+            val localImage = attList.firstOrNull {
                 it.mime.startsWith("image/") || it.name.endsWith(".jpg", true) ||
                 it.name.endsWith(".png", true) || it.name.endsWith(".webp", true) ||
                 it.name.endsWith(".jpeg", true)
@@ -244,16 +263,16 @@ fun ShareCaptureScreen(
                 rawSite = "Photo"
             }
 
-            if (detectedUrl != null) {
-                val host = runCatching { URI(detectedUrl).host?.lowercase().orEmpty() }.getOrDefault("")
+            if (urlInText != null) {
+                val host = runCatching { URI(urlInText).host?.lowercase().orEmpty() }.getOrDefault("")
 
                 // Tier 1: YouTube / Vimeo oEmbed
                 if (host.contains("youtube.com") || host == "youtu.be" || host.contains("vimeo.com")) {
                     rawSite = if (host.contains("vimeo")) "Vimeo" else "YouTube"
                     val oembedEndpoint = if (host.contains("vimeo")) {
-                        "https://vimeo.com/api/oembed.json?url=${URLEncoder.encode(detectedUrl, "UTF-8")}"
+                        "https://vimeo.com/api/oembed.json?url=${URLEncoder.encode(urlInText, "UTF-8")}"
                     } else {
-                        "https://www.youtube.com/oembed?url=${URLEncoder.encode(detectedUrl, "UTF-8")}&format=json"
+                        "https://www.youtube.com/oembed?url=${URLEncoder.encode(urlInText, "UTF-8")}&format=json"
                     }
                     runCatching {
                         val conn = URL(oembedEndpoint).openConnection() as HttpURLConnection
@@ -284,7 +303,7 @@ fun ShareCaptureScreen(
                     conn.readTimeout = 6000
                     conn.doOutput = true
                     conn.setRequestProperty("Content-Type", "application/json")
-                    val body = JSONObject().put("url", detectedUrl).toString()
+                    val body = JSONObject().put("url", urlInText).toString()
                     conn.outputStream.use { it.write(body.toByteArray()) }
                     if (conn.responseCode in 200..299) {
                         val resp = conn.inputStream.bufferedReader().use { it.readText() }
@@ -315,7 +334,7 @@ fun ShareCaptureScreen(
                 // Tier 3: Jsoup Mobile Scraper
                 if (rawTitle == null || isGenericTitle(rawTitle) || rawImage == null) {
                     runCatching {
-                        val doc = Jsoup.connect(detectedUrl)
+                        val doc = Jsoup.connect(urlInText)
                             .userAgent("Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1")
                             .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
                             .timeout(5000)
@@ -362,16 +381,16 @@ fun ShareCaptureScreen(
             // Fallback Title Resolution
             val fallbackTitle = when {
                 !rawTitle.isNullOrBlank() && !isGenericTitle(rawTitle) -> rawTitle
-                attachments.isNotEmpty() -> attachments.first().name.substringBeforeLast('.')
-                content.isNotBlank() -> {
-                    val withoutUrl = content.replace(Regex("https?://[^\\s]+"), "").trim()
+                attList.isNotEmpty() -> attList.first().name.substringBeforeLast('.')
+                rawContent.isNotBlank() -> {
+                    val withoutUrl = rawContent.replace(Regex("https?://[^\\s]+"), "").trim()
                     if (withoutUrl.isNotBlank()) {
                         withoutUrl.lines().firstOrNull()?.trim()?.take(70) ?: "Shared Item"
                     } else if (!rawSummary.isNullOrBlank()) {
                         rawSummary.take(70)
                     } else if (!rawSite.isNullOrBlank()) {
-                        if (detectedUrl?.contains("/reel/") == true) "$rawSite Reel"
-                        else if (detectedUrl?.contains("/p/") == true) "$rawSite Post"
+                        if (urlInText?.contains("/reel/") == true) "$rawSite Reel"
+                        else if (urlInText?.contains("/p/") == true) "$rawSite Post"
                         else "$rawSite Link"
                     } else "Shared Item"
                 }
@@ -383,14 +402,13 @@ fun ShareCaptureScreen(
             rawKeywords.forEach { kw ->
                 kw.split(",").map { it.trim().lowercase() }.filter { it.length in 2..30 }.forEach { inferredTags.add(it) }
             }
-            // Detect hashtags in content or title
-            val fullText = "$fallbackTitle $content"
+            val fullText = "$fallbackTitle $rawContent"
             Regex("#([\\p{L}\\d_-]+)").findAll(fullText).forEach { match ->
                 val tag = match.groupValues[1].lowercase()
                 if (tag.length in 2..30) inferredTags.add(tag)
             }
-            if (detectedUrl != null) {
-                val host = runCatching { URI(detectedUrl).host?.lowercase().orEmpty() }.getOrDefault("")
+            if (urlInText != null) {
+                val host = runCatching { URI(urlInText).host?.lowercase().orEmpty() }.getOrDefault("")
                 if (host.contains("youtube") || host.contains("youtu.be") || host.contains("vimeo")) {
                     inferredTags.add("video")
                 } else if (host.contains("instagram")) {
@@ -403,7 +421,7 @@ fun ShareCaptureScreen(
             }
             if (localImage != null) {
                 inferredTags.add("photo")
-            } else if (attachments.isNotEmpty()) {
+            } else if (attList.isNotEmpty()) {
                 inferredTags.add("document")
             }
 
@@ -412,10 +430,10 @@ fun ShareCaptureScreen(
             }
 
             val inferredCategory = when {
-                detectedUrl != null && (detectedUrl.contains("youtube") || detectedUrl.contains("vimeo")) -> "Watch Later"
-                detectedUrl != null && (detectedUrl.contains("medium") || detectedUrl.contains("substack")) -> "Reading"
+                urlInText != null && (urlInText.contains("youtube") || urlInText.contains("vimeo")) -> "Watch Later"
+                urlInText != null && (urlInText.contains("medium") || urlInText.contains("substack")) -> "Reading"
                 localImage != null -> "Photos"
-                attachments.isNotEmpty() -> "Documents"
+                attList.isNotEmpty() -> "Documents"
                 else -> "Inbox"
             }
 
@@ -428,20 +446,72 @@ fun ShareCaptureScreen(
                 tags = cleanTags
                 resolvedType = when {
                     localImage != null -> "image"
-                    attachments.isNotEmpty() -> "document"
-                    detectedUrl != null && (detectedUrl.contains("youtube") || detectedUrl.contains("vimeo")) -> "video"
-                    detectedUrl != null -> "link"
+                    attList.isNotEmpty() -> "document"
+                    urlInText != null && (urlInText.contains("youtube") || urlInText.contains("vimeo")) -> "video"
+                    urlInText != null -> "link"
                     else -> "note"
                 }
                 isLoading = false
-                resetDraft()
+                needsReturnDate = true
+                val tagSummary = if (cleanTags.isEmpty()) "" else " with tags " + cleanTags.take(3).joinToString(" ") { "#$it" }
+                val prompt = "I've drafted ‘$fallbackTitle’$tagSummary. When would you like to see it again?"
+                messages.add(ShareChatMessage(text = prompt, isUser = false))
             }
         }
     }
 
+    // Reset Function
+    fun resetDraft() {
+        messages.clear()
+        savedItem = null
+        returnAt = null
+        errorMessage = null
+        showManualInput = false
+        if (startsEmpty) {
+            isInitialDrafting = true
+            contentInput = ""
+            activeAttachments.clear()
+            content = ""
+            title = ""
+            previewImageUrl = null
+            needsReturnDate = false
+            messages.add(ShareChatMessage(text = "What would you like to save to LaterBox?", isUser = false))
+        } else {
+            isInitialDrafting = false
+            needsReturnDate = true
+            val tagSummary = if (tags.isEmpty()) "" else " with tags " + tags.take(3).joinToString(" ") { "#$it" }
+            val prompt = "I've drafted ‘$title’$tagSummary. When would you like to see it again?"
+            messages.add(ShareChatMessage(text = prompt, isUser = false))
+        }
+    }
+
+    // Initial setup on open
+    LaunchedEffect(Unit) {
+        if (isInitialDrafting) {
+            messages.add(ShareChatMessage(text = "What would you like to save to LaterBox?", isUser = false))
+        } else {
+            executeEnrichment(initialText, activeAttachments)
+        }
+    }
+
     // Auto-scroll on changes
-    LaunchedEffect(messages.size, isLoading, showManualInput) {
+    LaunchedEffect(messages.size, isLoading, isInitialDrafting, showManualInput) {
         scrollState.animateScrollTo(scrollState.maxValue)
+    }
+
+    // Submit handler from initial text input
+    fun submitInitialInput() {
+        val text = contentInput.trim()
+        if (text.isBlank() && activeAttachments.isEmpty()) return
+        content = text
+        isInitialDrafting = false
+        contentInput = ""
+
+        // Post user bubble
+        val displayText = text.ifBlank { "Attached ${activeAttachments.size} file(s)" }
+        messages.add(ShareChatMessage(text = displayText, isUser = true))
+
+        executeEnrichment(text, activeAttachments)
     }
 
     // Schedule and Save Handler
@@ -452,6 +522,18 @@ fun ShareCaptureScreen(
 
         messages.add(ShareChatMessage(text = optionLabel, isUser = true))
 
+        val attachmentsJsonString = JSONArray().apply {
+            activeAttachments.forEach { att ->
+                put(
+                    JSONObject()
+                        .put("name", att.name)
+                        .put("path", att.path)
+                        .put("mime", att.mime)
+                        .put("size", att.size)
+                )
+            }
+        }.toString()
+
         coroutineScope.launch {
             try {
                 returnAt = instant
@@ -461,13 +543,14 @@ fun ShareCaptureScreen(
                     tags = tags.joinToString(", "),
                     category = category,
                     returnAt = instant,
-                    attachments = attachmentsJson,
+                    attachments = attachmentsJsonString,
                     id = captureId,
                     type = resolvedType,
                     summary = summary
                 )
                 val saved = store.save(draft)
                 savedItem = saved
+                onSaved()
                 repository.syncNow()
 
                 withContext(Dispatchers.IO) {
@@ -569,6 +652,7 @@ fun ShareCaptureScreen(
                         val updatedNotes = if (current.notes.isBlank()) text else "${current.notes}\n$text"
                         val updated = current.copy(notes = updatedNotes, summary = updatedNotes)
                         store.edit(updated)
+                        onSaved()
                         repository.syncNow()
                         savedItem = updated
                         messages.add(
@@ -584,8 +668,8 @@ fun ShareCaptureScreen(
     }
 
     // Active Options Dock
-    val activeOptions = remember(needsReturnDate, savedItem, isLoading) {
-        if (isLoading) return@remember emptyList<ShareOptionItem>()
+    val activeOptions = remember(needsReturnDate, savedItem, isLoading, isInitialDrafting) {
+        if (isLoading || isInitialDrafting) return@remember emptyList<ShareOptionItem>()
 
         if (needsReturnDate) {
             val list = mutableListOf<ShareOptionItem>()
@@ -727,6 +811,7 @@ fun ShareCaptureScreen(
                         if (toUndo != null) {
                             coroutineScope.launch {
                                 store.undo(toUndo)
+                                onSaved()
                                 repository.syncNow()
                                 savedItem = null
                                 needsReturnDate = false
@@ -789,6 +874,16 @@ fun ShareCaptureScreen(
         )
     }
 
+    // File picker launcher
+    val filePickerLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
+        if (uri != null) {
+            val att = copyUriToAttachment(context, uri)
+            if (att != null) {
+                activeAttachments.add(att)
+            }
+        }
+    }
+
     CompositionLocalProvider(LocalDensity provides compactDensity) {
         // App Lock Guard
         if (locked) {
@@ -836,6 +931,67 @@ fun ShareCaptureScreen(
             Column(
                 modifier = Modifier.fillMaxSize()
             ) {
+                // Top Bar
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Save to LaterBox",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        if (messages.size > 1 || !isInitialDrafting) {
+                            Surface(
+                                modifier = Modifier
+                                    .size(30.dp)
+                                    .clip(CircleShape)
+                                    .clickable { resetDraft() },
+                                shape = CircleShape,
+                                color = Color(0xFF222226)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        imageVector = Icons.Default.Refresh,
+                                        contentDescription = "Reset",
+                                        tint = Color.White.copy(alpha = 0.7f),
+                                        modifier = Modifier.size(15.dp)
+                                    )
+                                }
+                            }
+                        }
+
+                        Surface(
+                            modifier = Modifier
+                                .size(30.dp)
+                                .clip(CircleShape)
+                                .clickable(onClick = onClose),
+                            shape = CircleShape,
+                            color = Color(0xFF222226)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = "Close",
+                                    tint = Color.White.copy(alpha = 0.7f),
+                                    modifier = Modifier.size(15.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+
+                HorizontalDivider(color = Color.White.copy(alpha = 0.08f), thickness = 1.dp)
+
                 // Scrollable Content
                 Column(
                     modifier = Modifier
@@ -844,32 +1000,205 @@ fun ShareCaptureScreen(
                         .padding(horizontal = 16.dp, vertical = 12.dp),
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
-                    // Shared Preview Card (shows banner if image/URL, or rich link/note preview)
-                    SharePreviewCard(
-                        title = title,
-                        previewImageUrl = previewImageUrl,
-                        siteName = siteName,
-                        detectedUrl = detectedUrl,
-                        content = content,
-                        attachments = attachments,
-                        returnAt = returnAt,
-                        onClearReturn = {
-                            returnAt = null
-                            val currentSaved = savedItem
-                            if (currentSaved != null) {
-                                coroutineScope.launch {
-                                    val updated = currentSaved.copy(returnAt = null, status = "inbox")
-                                    store.edit(updated)
-                                    repository.syncNow()
-                                    savedItem = updated
+                    // If not in initial drafting, show the enriched preview card
+                    if (!isInitialDrafting) {
+                        SharePreviewCard(
+                            title = title,
+                            previewImageUrl = previewImageUrl,
+                            siteName = siteName,
+                            detectedUrl = detectedUrl,
+                            content = content,
+                            attachments = activeAttachments,
+                            returnAt = returnAt,
+                            onClearReturn = {
+                                returnAt = null
+                                val currentSaved = savedItem
+                                if (currentSaved != null) {
+                                    coroutineScope.launch {
+                                        val updated = currentSaved.copy(returnAt = null, status = "inbox")
+                                        store.edit(updated)
+                                        onSaved()
+                                        repository.syncNow()
+                                        savedItem = updated
+                                    }
                                 }
                             }
-                        }
-                    )
+                        )
+                    }
 
                     // Message transcript bubbles
                     messages.forEach { msg ->
                         ShareMessageBubble(message = msg)
+                    }
+
+                    // INITIAL INPUT STATE (when no item is attached yet)
+                    if (isInitialDrafting) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(Color(0xFF1B1B1E))
+                                .border(1.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(16.dp))
+                                .padding(14.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            BasicTextField(
+                                value = contentInput,
+                                onValueChange = { contentInput = it },
+                                textStyle = TextStyle(
+                                    color = Color.White,
+                                    fontSize = 14.5.sp,
+                                    lineHeight = 21.sp
+                                ),
+                                cursorBrush = SolidColor(LaterboxAccent),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .heightIn(min = 90.dp, max = 200.dp),
+                                decorationBox = { inner ->
+                                    if (contentInput.isEmpty()) {
+                                        Text(
+                                            text = "Start typing here or paste a link...",
+                                            color = Color.White.copy(alpha = 0.35f),
+                                            fontSize = 14.5.sp,
+                                            lineHeight = 21.sp
+                                        )
+                                    }
+                                    inner()
+                                }
+                            )
+
+                            // Attached files chips
+                            if (activeAttachments.isNotEmpty()) {
+                                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    activeAttachments.forEachIndexed { idx, att ->
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clip(RoundedCornerShape(10.dp))
+                                                .background(Color(0xFF242428))
+                                                .padding(horizontal = 10.dp, vertical = 6.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.AttachFile,
+                                                contentDescription = null,
+                                                tint = LaterboxAccent,
+                                                modifier = Modifier.size(14.dp)
+                                            )
+                                            Text(
+                                                text = att.name,
+                                                color = Color.White,
+                                                fontSize = 12.sp,
+                                                modifier = Modifier.weight(1f),
+                                                maxLines = 1
+                                            )
+                                            Icon(
+                                                imageVector = Icons.Default.Close,
+                                                contentDescription = "Remove",
+                                                tint = Color.White.copy(alpha = 0.5f),
+                                                modifier = Modifier
+                                                    .size(14.dp)
+                                                    .clickable { activeAttachments.removeAt(idx) }
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Bottom actions of input card: Paste, Attach, Next
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    val clipboardManager = LocalClipboardManager.current
+                                    Surface(
+                                        shape = RoundedCornerShape(12.dp),
+                                        color = Color(0xFF26262A),
+                                        modifier = Modifier.clickable {
+                                            val clip = clipboardManager.getText()?.text
+                                            if (!clip.isNullOrBlank()) {
+                                                contentInput = if (contentInput.isBlank()) clip else "$contentInput\n$clip"
+                                            }
+                                        }
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.ContentPaste,
+                                                contentDescription = null,
+                                                tint = LaterboxAccent,
+                                                modifier = Modifier.size(13.dp)
+                                            )
+                                            Text(
+                                                text = "Paste",
+                                                fontSize = 11.5.sp,
+                                                color = Color.White.copy(alpha = 0.85f),
+                                                fontWeight = FontWeight.Medium
+                                            )
+                                        }
+                                    }
+
+                                    Surface(
+                                        shape = RoundedCornerShape(12.dp),
+                                        color = Color(0xFF26262A),
+                                        modifier = Modifier.clickable { filePickerLauncher.launch("*/*") }
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.AttachFile,
+                                                contentDescription = null,
+                                                tint = LaterboxAccent,
+                                                modifier = Modifier.size(13.dp)
+                                            )
+                                            Text(
+                                                text = "Attach",
+                                                fontSize = 11.5.sp,
+                                                color = Color.White.copy(alpha = 0.85f),
+                                                fontWeight = FontWeight.Medium
+                                            )
+                                        }
+                                    }
+                                }
+
+                                Button(
+                                    onClick = { submitInitialInput() },
+                                    enabled = contentInput.isNotBlank() || activeAttachments.isNotEmpty(),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = LaterboxAccent,
+                                        contentColor = Color(0xFF171711),
+                                        disabledContainerColor = Color(0xFF26262A),
+                                        disabledContentColor = Color.White.copy(alpha = 0.3f)
+                                    ),
+                                    shape = RoundedCornerShape(14.dp),
+                                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        Text("Next", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                        Icon(
+                                            imageVector = Icons.AutoMirrored.Filled.Send,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(13.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
                     }
 
                     // Loading Indicator
@@ -903,7 +1232,7 @@ fun ShareCaptureScreen(
                                 .clip(RoundedCornerShape(12.dp))
                                 .background(Color(0xFF331515))
                                 .border(1.dp, Color(0xFFE53E3E).copy(alpha = 0.4f), RoundedCornerShape(12.dp))
-                            .padding(10.dp),
+                                .padding(10.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
@@ -930,128 +1259,130 @@ fun ShareCaptureScreen(
                         .fillMaxWidth()
                         .background(Color.Black)
                 ) {
-                    // Header Row: SAVED ITEM OPTIONS + Type instead
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 6.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = optionsTitle,
-                            fontSize = 10.5.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White.copy(alpha = 0.65f),
-                            letterSpacing = 0.5.sp
-                        )
-
-                        Row(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(8.dp))
-                                .clickable { showManualInput = !showManualInput }
-                                .padding(horizontal = 4.dp, vertical = 2.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Edit,
-                                contentDescription = "Type instead",
-                                tint = Color.White.copy(alpha = 0.55f),
-                                modifier = Modifier.size(12.dp)
-                            )
-                            Text(
-                                text = if (showManualInput) "Options" else "Type instead",
-                                fontSize = 11.5.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = Color.White.copy(alpha = 0.55f)
-                            )
-                        }
-                    }
-
-                    // Manual Type bar or Horizontal option pills
-                    if (showManualInput) {
+                    if (!isInitialDrafting) {
+                        // Header Row: SAVED ITEM OPTIONS + Type instead
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 6.dp)
-                                .clip(RoundedCornerShape(16.dp))
-                                .background(Color(0xFF1E1E22))
-                                .border(1.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(16.dp))
-                                .padding(horizontal = 12.dp, vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                .padding(horizontal = 16.dp, vertical = 6.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            BasicTextField(
-                                value = manualInputText,
-                                onValueChange = { manualInputText = it },
-                                textStyle = TextStyle(color = Color.White, fontSize = 13.5.sp),
-                                cursorBrush = SolidColor(LaterboxAccent),
-                                modifier = Modifier.weight(1f),
-                                decorationBox = { inner ->
-                                    if (manualInputText.isEmpty()) {
-                                        Text("Type instructions or schedule...", color = Color.White.copy(alpha = 0.35f), fontSize = 13.sp)
-                                    }
-                                    inner()
-                                }
+                            Text(
+                                text = optionsTitle,
+                                fontSize = 10.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White.copy(alpha = 0.65f),
+                                letterSpacing = 0.5.sp
                             )
 
-                            IconButton(
-                                onClick = { handleManualInput() },
-                                modifier = Modifier.size(28.dp)
+                            Row(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .clickable { showManualInput = !showManualInput }
+                                    .padding(horizontal = 4.dp, vertical = 2.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
                                 Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.Send,
-                                    contentDescription = "Send",
-                                    tint = if (manualInputText.isNotBlank()) LaterboxAccent else Color.White.copy(alpha = 0.3f),
-                                    modifier = Modifier.size(15.dp)
+                                    imageVector = Icons.Default.Edit,
+                                    contentDescription = "Type instead",
+                                    tint = Color.White.copy(alpha = 0.55f),
+                                    modifier = Modifier.size(12.dp)
+                                )
+                                Text(
+                                    text = if (showManualInput) "Options" else "Type instead",
+                                    fontSize = 11.5.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = Color.White.copy(alpha = 0.55f)
                                 )
                             }
                         }
-                    } else {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .horizontalScroll(rememberScrollState())
-                                .padding(horizontal = 16.dp, vertical = 6.dp),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            activeOptions.forEach { opt ->
-                                Surface(
-                                    shape = RoundedCornerShape(18.dp),
-                                    color = if (opt.isPrimary) LaterboxAccent else Color(0xFF1E1E22),
-                                    border = BorderStroke(
-                                        1.dp,
-                                        if (opt.isPrimary) Color.Black.copy(alpha = 0.12f) else Color.White.copy(alpha = 0.12f)
-                                    ),
-                                    modifier = Modifier.clickable { opt.action() }
-                                ) {
-                                    Row(
-                                        modifier = Modifier.padding(horizontal = 15.dp, vertical = 9.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(7.dp)
-                                    ) {
-                                        opt.icon?.let { iconVec ->
-                                            Icon(
-                                                imageVector = iconVec,
-                                                contentDescription = null,
-                                                tint = if (opt.isPrimary) Color(0xFF171711) else Color.White,
-                                                modifier = Modifier.size(15.dp)
-                                            )
+
+                        // Manual Type bar or Horizontal option pills
+                        if (showManualInput) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 6.dp)
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .background(Color(0xFF1E1E22))
+                                    .border(1.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(16.dp))
+                                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                BasicTextField(
+                                    value = manualInputText,
+                                    onValueChange = { manualInputText = it },
+                                    textStyle = TextStyle(color = Color.White, fontSize = 13.5.sp),
+                                    cursorBrush = SolidColor(LaterboxAccent),
+                                    modifier = Modifier.weight(1f),
+                                    decorationBox = { inner ->
+                                        if (manualInputText.isEmpty()) {
+                                            Text("Type instructions or schedule...", color = Color.White.copy(alpha = 0.35f), fontSize = 13.sp)
                                         }
-                                        Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
-                                            Text(
-                                                text = opt.title,
-                                                fontSize = 12.5.sp,
-                                                fontWeight = FontWeight.SemiBold,
-                                                color = if (opt.isPrimary) Color(0xFF171711) else Color.White
-                                            )
-                                            opt.subtitle?.let { sub ->
-                                                Text(
-                                                    text = sub,
-                                                    fontSize = 9.5.sp,
-                                                    color = if (opt.isPrimary) Color(0xFF171711).copy(alpha = 0.7f) else Color.White.copy(alpha = 0.55f)
+                                        inner()
+                                    }
+                                )
+
+                                IconButton(
+                                    onClick = { handleManualInput() },
+                                    modifier = Modifier.size(28.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Filled.Send,
+                                        contentDescription = "Send",
+                                        tint = if (manualInputText.isNotBlank()) LaterboxAccent else Color.White.copy(alpha = 0.3f),
+                                        modifier = Modifier.size(15.dp)
+                                    )
+                                }
+                            }
+                        } else {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .horizontalScroll(rememberScrollState())
+                                    .padding(horizontal = 16.dp, vertical = 6.dp),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                activeOptions.forEach { opt ->
+                                    Surface(
+                                        shape = RoundedCornerShape(18.dp),
+                                        color = if (opt.isPrimary) LaterboxAccent else Color(0xFF1E1E22),
+                                        border = BorderStroke(
+                                            1.dp,
+                                            if (opt.isPrimary) Color.Black.copy(alpha = 0.12f) else Color.White.copy(alpha = 0.12f)
+                                        ),
+                                        modifier = Modifier.clickable { opt.action() }
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(horizontal = 15.dp, vertical = 9.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(7.dp)
+                                        ) {
+                                            opt.icon?.let { iconVec ->
+                                                Icon(
+                                                    imageVector = iconVec,
+                                                    contentDescription = null,
+                                                    tint = if (opt.isPrimary) Color(0xFF171711) else Color.White,
+                                                    modifier = Modifier.size(15.dp)
                                                 )
+                                            }
+                                            Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                                                Text(
+                                                    text = opt.title,
+                                                    fontSize = 12.5.sp,
+                                                    fontWeight = FontWeight.SemiBold,
+                                                    color = if (opt.isPrimary) Color(0xFF171711) else Color.White
+                                                )
+                                                opt.subtitle?.let { sub ->
+                                                    Text(
+                                                        text = sub,
+                                                        fontSize = 9.5.sp,
+                                                        color = if (opt.isPrimary) Color(0xFF171711).copy(alpha = 0.7f) else Color.White.copy(alpha = 0.55f)
+                                                    )
+                                                }
                                             }
                                         }
                                     }
@@ -1098,6 +1429,7 @@ fun ShareCaptureScreen(
                                     tags = newTags.joinToString(", ")
                                 )
                                 store.edit(updated)
+                                onSaved()
                                 repository.syncNow()
                                 savedItem = updated
                                 messages.add(
