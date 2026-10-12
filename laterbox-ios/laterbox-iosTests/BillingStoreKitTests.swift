@@ -6,6 +6,46 @@ import Security
 @testable import laterbox_ios
 
 extension LaterAITests {
+    @Test func deviceSubscriptionPreservesGraceAndRemovesRefundedAccess() async throws {
+        let file = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().appendingPathComponent("laterbox-ios/Products.storekit")
+        let session = try SKTestSession(contentsOf: file)
+        session.disableDialogs = true
+        session.clearTransactions()
+        defer { session.clearTransactions() }
+        let coordinator = SyncCoordinator.shared
+        coordinator.signOut()
+        coordinator.continueAsGuest()
+        let manager = StoreKitManager.shared
+        await manager.updatePurchasedProducts()
+        await manager.loadProducts()
+        let product = try #require(manager.monthlyProduct)
+        #expect(await manager.purchase(product))
+        session.shouldEnterBillingRetryOnRenewal = true
+        session.billingGracePeriodIsEnabled = true
+        try session.forceRenewalOfSubscription(productIdentifier: product.id)
+        let subscription = try #require(product.subscription)
+        var inGrace = false
+        for _ in 0..<20 {
+            inGrace = try await subscription.status.contains { $0.state == .inGracePeriod }
+            if inGrace { break }
+            try await Task.sleep(for: .milliseconds(100))
+        }
+        #expect(inGrace)
+        await manager.updatePurchasedProducts()
+        #expect(manager.isProSubscriptionActive)
+        session.shouldEnterBillingRetryOnRenewal = false
+        session.clearTransactions()
+        await manager.updatePurchasedProducts()
+        #expect(await manager.purchase(product))
+        let transaction = try #require(session.allTransactions().first)
+        try session.disableAutoRenewForTransaction(identifier: transaction.identifier)
+        await manager.updatePurchasedProducts()
+        #expect(manager.isProSubscriptionActive)
+        try session.refundTransaction(identifier: transaction.identifier)
+        await manager.updatePurchasedProducts()
+        #expect(!manager.isProSubscriptionActive && !coordinator.hasCloudPro)
+    }
+
     @Test func guestPurchaseDeliversWithoutAnAccountAndFinishesTheTransaction() async throws {
         let file = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().appendingPathComponent("laterbox-ios/Products.storekit")
         let session = try SKTestSession(contentsOf: file)
