@@ -35,8 +35,10 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -51,8 +53,13 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
+import org.json.JSONObject
 import org.jsoup.Jsoup
+import java.io.File
+import java.net.HttpURLConnection
 import java.net.URI
+import java.net.URL
+import java.net.URLEncoder
 import java.text.SimpleDateFormat
 import java.time.DayOfWeek
 import java.time.Duration
@@ -89,6 +96,56 @@ data class ShareAttachmentItem(
     val mime: String,
     val size: Long
 )
+
+private data class EnrichedLinkData(
+    val title: String? = null,
+    val author: String? = null,
+    val description: String? = null,
+    val previewImageUrl: String? = null,
+    val siteName: String? = null,
+    val keywords: List<String> = emptyList()
+)
+
+private fun isGenericTitle(title: String?): Boolean {
+    if (title.isNullOrBlank()) return true
+    val lower = title.trim().lowercase()
+    val junk = listOf(
+        "instagram", "login • instagram", "instagram.com", "youtube", "- youtube",
+        "x", "twitter", "x.com", "facebook", "log in", "sign in", "reddit",
+        "tiktok", "vimeo", "shared item", "web", "untitled", "video playlist",
+        "watch", "watch video", "spotify", "soundcloud", "before you continue to youtube"
+    )
+    return lower in junk ||
+        lower.startsWith("login") ||
+        lower.startsWith("sign in") ||
+        lower.startsWith("watch |") ||
+        (lower.endsWith("youtube") && lower.length <= 14) ||
+        lower.startsWith("http://") ||
+        lower.startsWith("https://")
+}
+
+private fun cleanTitle(title: String?): String? {
+    if (title.isNullOrBlank()) return null
+    var cleaned = title.trim()
+    for (suffix in listOf(
+        " - YouTube", " | YouTube", " – YouTube", " — YouTube",
+        " - Vimeo", " | Vimeo", " on Spotify", " • Instagram photos and videos",
+        " / X", " on X", " | Twitter"
+    )) {
+        if (cleaned.endsWith(suffix, ignoreCase = true)) {
+            cleaned = cleaned.substring(0, cleaned.length - suffix.length).trim()
+        }
+    }
+    return if (isGenericTitle(cleaned)) null else cleaned
+}
+
+private fun isGenericDescription(desc: String?): Boolean {
+    if (desc.isNullOrBlank()) return true
+    val lower = desc.trim().lowercase()
+    return lower.contains("enjoy the videos and music you love") ||
+        lower.contains("upload original content") ||
+        lower.contains("share it all with friends, family")
+}
 
 @Composable
 fun ShareCaptureScreen(
@@ -150,7 +207,7 @@ fun ShareCaptureScreen(
 
     // Detected URL
     val detectedUrl = remember(content) {
-        Regex("https?://[^\\s]+").find(content)?.value
+        Regex("https?://[^\\s]+").find(content)?.value?.trim()
     }
 
     // Reset Function
@@ -166,76 +223,211 @@ fun ShareCaptureScreen(
         messages.add(ShareChatMessage(text = prompt, isUser = false))
     }
 
-    // Initial enrichment on load
+    // Enrichment Pipeline
     LaunchedEffect(Unit) {
         isLoading = true
         withContext(Dispatchers.IO) {
-            var rawTitle = ""
-            var rawSummary = ""
-            var rawKeywords: String? = null
+            var rawTitle: String? = null
+            var rawSummary: String? = null
+            var rawKeywords = mutableListOf<String>()
             var rawImage: String? = null
             var rawSite: String? = null
 
-            if (detectedUrl != null) {
-                runCatching {
-                    val doc = Jsoup.connect(detectedUrl).timeout(7000).maxBodySize(1024 * 1024).get()
-                    val ogTitle = doc.selectFirst("meta[property=og:title]")?.attr("content")?.takeIf { it.isNotBlank() }
-                    val pageTitle = doc.title().takeIf { it.isNotBlank() }
-                    rawTitle = ogTitle ?: pageTitle.orEmpty()
+            // Check if local attachments have an image
+            val localImage = attachments.firstOrNull {
+                it.mime.startsWith("image/") || it.name.endsWith(".jpg", true) ||
+                it.name.endsWith(".png", true) || it.name.endsWith(".webp", true) ||
+                it.name.endsWith(".jpeg", true)
+            }
+            if (localImage != null && File(localImage.path).exists()) {
+                rawImage = localImage.path
+                rawSite = "Photo"
+            }
 
-                    rawSummary = doc.selectFirst("meta[property=og:description], meta[name=description]")?.attr("content").orEmpty()
-                    rawKeywords = doc.selectFirst("meta[name=keywords]")?.attr("content")
-                    rawImage = doc.selectFirst("meta[property=og:image]")?.attr("content")
-                    rawSite = doc.selectFirst("meta[property=og:site_name]")?.attr("content")
-                    if (rawSite.isNullOrBlank()) {
-                        rawSite = runCatching { URI(detectedUrl).host?.removePrefix("www.") }.getOrNull()
+            if (detectedUrl != null) {
+                val host = runCatching { URI(detectedUrl).host?.lowercase().orEmpty() }.getOrDefault("")
+
+                // Tier 1: YouTube / Vimeo oEmbed
+                if (host.contains("youtube.com") || host == "youtu.be" || host.contains("vimeo.com")) {
+                    rawSite = if (host.contains("vimeo")) "Vimeo" else "YouTube"
+                    val oembedEndpoint = if (host.contains("vimeo")) {
+                        "https://vimeo.com/api/oembed.json?url=${URLEncoder.encode(detectedUrl, "UTF-8")}"
+                    } else {
+                        "https://www.youtube.com/oembed?url=${URLEncoder.encode(detectedUrl, "UTF-8")}&format=json"
+                    }
+                    runCatching {
+                        val conn = URL(oembedEndpoint).openConnection() as HttpURLConnection
+                        conn.connectTimeout = 4000
+                        conn.readTimeout = 4000
+                        conn.setRequestProperty("User-Agent", "Mozilla/5.0")
+                        if (conn.responseCode == 200) {
+                            val resp = conn.inputStream.bufferedReader().use { it.readText() }
+                            val json = JSONObject(resp)
+                            val oTitle = json.optString("title", "").trim()
+                            if (oTitle.isNotBlank()) rawTitle = cleanTitle(oTitle) ?: oTitle
+                            val author = json.optString("author_name", "").trim()
+                            if (author.isNotBlank()) rawSummary = "Video by $author on $rawSite"
+                            val thumb = json.optString("thumbnail_url", "").trim()
+                            if (thumb.isNotBlank() && rawImage == null) {
+                                rawImage = thumb.replace("/hqdefault.jpg", "/mqdefault.jpg")
+                                    .replace("/sddefault.jpg", "/mqdefault.jpg")
+                            }
+                        }
+                    }
+                }
+
+                // Tier 2: Laterbox Dedicated Enrich API
+                runCatching {
+                    val conn = URL("https://laterbox.dev/api/enrich").openConnection() as HttpURLConnection
+                    conn.requestMethod = "POST"
+                    conn.connectTimeout = 6000
+                    conn.readTimeout = 6000
+                    conn.doOutput = true
+                    conn.setRequestProperty("Content-Type", "application/json")
+                    val body = JSONObject().put("url", detectedUrl).toString()
+                    conn.outputStream.use { it.write(body.toByteArray()) }
+                    if (conn.responseCode in 200..299) {
+                        val resp = conn.inputStream.bufferedReader().use { it.readText() }
+                        val json = JSONObject(resp)
+                        val apiTitle = json.optString("title", "").trim()
+                        val cleanedApiTitle = cleanTitle(apiTitle)
+                        if (rawTitle == null || isGenericTitle(rawTitle)) {
+                            if (cleanedApiTitle != null) rawTitle = cleanedApiTitle
+                            else if (apiTitle.isNotBlank() && !isGenericTitle(apiTitle)) rawTitle = apiTitle
+                        }
+                        val apiSite = json.optString("siteName", json.optString("site_name", "")).trim()
+                        if (rawSite == null && apiSite.isNotBlank()) rawSite = apiSite
+                        val apiDesc = json.optString("description", "").trim()
+                        if (rawSummary == null && apiDesc.isNotBlank() && !isGenericDescription(apiDesc)) rawSummary = apiDesc
+                        val apiImg = json.optString("previewImageUrl", json.optString("preview_image_url", "")).trim()
+                        if (rawImage == null && apiImg.isNotBlank()) {
+                            rawImage = apiImg.replace("/hqdefault.jpg", "/mqdefault.jpg")
+                        }
+                        val kwArr = json.optJSONArray("keywords")
+                        if (kwArr != null) {
+                            for (i in 0 until kwArr.length()) {
+                                kwArr.optString(i).trim().takeIf { it.isNotBlank() }?.let { rawKeywords.add(it) }
+                            }
+                        }
+                    }
+                }
+
+                // Tier 3: Jsoup Mobile Scraper
+                if (rawTitle == null || isGenericTitle(rawTitle) || rawImage == null) {
+                    runCatching {
+                        val doc = Jsoup.connect(detectedUrl)
+                            .userAgent("Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1")
+                            .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+                            .timeout(5000)
+                            .maxBodySize(2 * 1024 * 1024)
+                            .get()
+
+                        val ogTitle = doc.selectFirst("meta[property=og:title], meta[name=twitter:title]")?.attr("content")?.trim()
+                        val pageTitle = doc.title().trim()
+                        val candidate = ogTitle?.takeIf { it.isNotBlank() } ?: pageTitle.takeIf { it.isNotBlank() }
+                        val cleaned = cleanTitle(candidate)
+                        if (rawTitle == null || isGenericTitle(rawTitle)) {
+                            if (cleaned != null) rawTitle = cleaned
+                            else if (!candidate.isNullOrBlank() && !isGenericTitle(candidate)) rawTitle = candidate
+                        }
+                        if (rawSummary == null) {
+                            val ogDesc = doc.selectFirst("meta[property=og:description], meta[name=description]")?.attr("content")?.trim()
+                            if (!ogDesc.isNullOrBlank() && !isGenericDescription(ogDesc)) rawSummary = ogDesc
+                        }
+                        if (rawImage == null) {
+                            val ogImg = doc.selectFirst("meta[property=og:image], meta[name=twitter:image]")?.attr("content")?.trim()
+                            if (!ogImg.isNullOrBlank()) rawImage = ogImg
+                        }
+                        if (rawSite == null) {
+                            val ogSite = doc.selectFirst("meta[property=og:site_name]")?.attr("content")?.trim()
+                            if (!ogSite.isNullOrBlank()) rawSite = ogSite
+                        }
+                    }
+                }
+
+                if (rawSite.isNullOrBlank()) {
+                    rawSite = when {
+                        host.contains("youtube") -> "YouTube"
+                        host.contains("instagram") -> "Instagram"
+                        host.contains("twitter") || host == "x.com" -> "X"
+                        host.contains("reddit") -> "Reddit"
+                        host.contains("tiktok") -> "TikTok"
+                        host.contains("github") -> "GitHub"
+                        host.contains("medium") -> "Medium"
+                        else -> host.removePrefix("www.")
                     }
                 }
             }
 
+            // Fallback Title Resolution
             val fallbackTitle = when {
-                rawTitle.isNotBlank() -> rawTitle
+                !rawTitle.isNullOrBlank() && !isGenericTitle(rawTitle) -> rawTitle
                 attachments.isNotEmpty() -> attachments.first().name.substringBeforeLast('.')
-                content.isNotBlank() -> content.lines().firstOrNull()?.trim()?.take(80) ?: "Shared Item"
-                else -> "Shared Item"
+                content.isNotBlank() -> {
+                    val withoutUrl = content.replace(Regex("https?://[^\\s]+"), "").trim()
+                    if (withoutUrl.isNotBlank()) {
+                        withoutUrl.lines().firstOrNull()?.trim()?.take(70) ?: "Shared Item"
+                    } else if (!rawSummary.isNullOrBlank()) {
+                        rawSummary.take(70)
+                    } else if (!rawSite.isNullOrBlank()) {
+                        if (detectedUrl?.contains("/reel/") == true) "$rawSite Reel"
+                        else if (detectedUrl?.contains("/p/") == true) "$rawSite Post"
+                        else "$rawSite Link"
+                    } else "Shared Item"
+                }
+                else -> rawSite ?: "Shared Item"
             }
 
+            // Inferred Tags
             val inferredTags = mutableListOf<String>()
-            if (!rawKeywords.isNullOrBlank()) {
-                val parsed = rawKeywords.split(",").map { it.trim().lowercase() }.filter { it.isNotBlank() }.distinct().take(4)
-                inferredTags.addAll(parsed)
+            rawKeywords.forEach { kw ->
+                kw.split(",").map { it.trim().lowercase() }.filter { it.length in 2..30 }.forEach { inferredTags.add(it) }
+            }
+            // Detect hashtags in content or title
+            val fullText = "$fallbackTitle $content"
+            Regex("#([\\p{L}\\d_-]+)").findAll(fullText).forEach { match ->
+                val tag = match.groupValues[1].lowercase()
+                if (tag.length in 2..30) inferredTags.add(tag)
             }
             if (detectedUrl != null) {
                 val host = runCatching { URI(detectedUrl).host?.lowercase().orEmpty() }.getOrDefault("")
-                if (host.contains("youtube") || host.contains("youtu.be")) {
+                if (host.contains("youtube") || host.contains("youtu.be") || host.contains("vimeo")) {
                     inferredTags.add("video")
-                    inferredTags.add("youtube")
-                } else if (host.contains("github")) {
-                    inferredTags.add("github")
-                    inferredTags.add("dev")
-                } else if (host.contains("twitter") || host.contains("x.com")) {
+                } else if (host.contains("instagram")) {
                     inferredTags.add("social")
+                } else if (host.contains("github")) {
+                    inferredTags.add("dev")
+                } else if (host.contains("medium") || host.contains("substack")) {
+                    inferredTags.add("reading")
                 }
             }
-            if (attachments.isNotEmpty()) {
-                inferredTags.add("file")
+            if (localImage != null) {
+                inferredTags.add("photo")
+            } else if (attachments.isNotEmpty()) {
+                inferredTags.add("document")
+            }
+
+            val cleanTags = inferredTags.distinct().filter {
+                it !in listOf("http", "https", "www", "untitled", "share", "video playlist", "playlist")
             }
 
             val inferredCategory = when {
-                detectedUrl != null && (detectedUrl.contains("youtube") || detectedUrl.contains("vimeo")) -> "Video"
+                detectedUrl != null && (detectedUrl.contains("youtube") || detectedUrl.contains("vimeo")) -> "Watch Later"
                 detectedUrl != null && (detectedUrl.contains("medium") || detectedUrl.contains("substack")) -> "Reading"
-                attachments.isNotEmpty() -> "Files"
+                localImage != null -> "Photos"
+                attachments.isNotEmpty() -> "Documents"
                 else -> "Inbox"
             }
 
             withContext(Dispatchers.Main) {
                 title = fallbackTitle
-                summary = rawSummary
+                summary = rawSummary.orEmpty()
                 previewImageUrl = rawImage
                 siteName = rawSite
                 category = inferredCategory
-                tags = inferredTags.distinct()
+                tags = cleanTags
                 resolvedType = when {
+                    localImage != null -> "image"
                     attachments.isNotEmpty() -> "document"
                     detectedUrl != null && (detectedUrl.contains("youtube") || detectedUrl.contains("vimeo")) -> "video"
                     detectedUrl != null -> "link"
@@ -247,7 +439,7 @@ fun ShareCaptureScreen(
         }
     }
 
-    // Auto-scroll when messages change
+    // Auto-scroll on changes
     LaunchedEffect(messages.size, isLoading, showManualInput) {
         scrollState.animateScrollTo(scrollState.maxValue)
     }
@@ -258,7 +450,6 @@ fun ShareCaptureScreen(
         isSaving = true
         errorMessage = null
 
-        // Add user response bubble
         messages.add(ShareChatMessage(text = optionLabel, isUser = true))
 
         coroutineScope.launch {
@@ -332,7 +523,7 @@ fun ShareCaptureScreen(
         ).show()
     }
 
-    // Manual Input Submit Handler
+    // Manual Input Handler
     fun handleManualInput() {
         val text = manualInputText.trim()
         if (text.isBlank() || isSaving) return
@@ -368,7 +559,6 @@ fun ShareCaptureScreen(
                 scheduleAndSave(null, "No reminder")
             }
             else -> {
-                // Treated as a note or instruction
                 messages.add(ShareChatMessage(text = text, isUser = true))
                 if (savedItem == null) {
                     summary = if (summary.isBlank()) text else "$summary\n$text"
@@ -393,13 +583,12 @@ fun ShareCaptureScreen(
         }
     }
 
-    // Generate Active Options Dock matching iOS
+    // Active Options Dock
     val activeOptions = remember(needsReturnDate, savedItem, isLoading) {
         if (isLoading) return@remember emptyList<ShareOptionItem>()
 
         if (needsReturnDate) {
             val list = mutableListOf<ShareOptionItem>()
-            // In 10 Minutes
             list.add(
                 ShareOptionItem(
                     title = "In 10 Minutes",
@@ -412,7 +601,6 @@ fun ShareCaptureScreen(
                     }
                 )
             )
-            // In 1 Hour
             list.add(
                 ShareOptionItem(
                     title = "In 1 Hour",
@@ -425,7 +613,6 @@ fun ShareCaptureScreen(
                     }
                 )
             )
-            // Tomorrow
             list.add(
                 ShareOptionItem(
                     title = "Tomorrow",
@@ -439,7 +626,6 @@ fun ShareCaptureScreen(
                     }
                 )
             )
-            // This Weekend
             list.add(
                 ShareOptionItem(
                     title = "This Weekend",
@@ -453,7 +639,6 @@ fun ShareCaptureScreen(
                     }
                 )
             )
-            // Next Week
             list.add(
                 ShareOptionItem(
                     title = "Next Week",
@@ -467,7 +652,6 @@ fun ShareCaptureScreen(
                     }
                 )
             )
-            // No Reminder
             list.add(
                 ShareOptionItem(
                     title = "No Reminder",
@@ -479,7 +663,6 @@ fun ShareCaptureScreen(
                     }
                 )
             )
-            // Choose Date
             list.add(
                 ShareOptionItem(
                     title = "Choose Date",
@@ -559,7 +742,6 @@ fun ShareCaptureScreen(
                 )
             )
         } else {
-            // Unsaved state (e.g. after undo)
             listOf(
                 ShareOptionItem(
                     title = "Save to Vault",
@@ -598,315 +780,334 @@ fun ShareCaptureScreen(
         }
     }
 
-    // App Lock Guard
-    if (locked) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            Text(
-                "Unlock to save to your private vault",
-                color = Color.White,
-                fontWeight = FontWeight.Bold,
-                fontSize = 16.sp
-            )
-            Button(
-                onClick = {
-                    AppLockService.authenticate(
-                        context as androidx.fragment.app.FragmentActivity,
-                        { locked = false },
-                        {}
-                    )
-                },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = LaterboxAccent,
-                    contentColor = Color(0xFF171711)
-                )
-            ) {
-                Text("Unlock LaterBox", fontWeight = FontWeight.Bold)
-            }
-            TextButton(onClick = onClose) {
-                Text("Cancel", color = Color.White.copy(alpha = 0.6f))
-            }
-        }
-        return
+    // Compact font scale provider to guarantee small, proportional text on zoomed displays
+    val currentDensity = LocalDensity.current
+    val compactDensity = remember(currentDensity.density, currentDensity.fontScale) {
+        Density(
+            density = currentDensity.density,
+            fontScale = currentDensity.fontScale.coerceIn(0.85f, 1.02f)
+        )
     }
 
-    // Main Share UI Layout (iOS Style AI layout popup)
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black)
-    ) {
-        Column(
-            modifier = Modifier.fillMaxSize()
-        ) {
-            // Scrollable Body Content
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .verticalScroll(scrollState)
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                // Shared Preview Card (matches top of screenshot)
-                SharePreviewCard(
-                    title = title,
-                    previewImageUrl = previewImageUrl,
-                    siteName = siteName,
-                    attachments = attachments,
-                    returnAt = returnAt,
-                    onClearReturn = {
-                        returnAt = null
-                        val currentSaved = savedItem
-                        if (currentSaved != null) {
-                            coroutineScope.launch {
-                                val updated = currentSaved.copy(returnAt = null, status = "inbox")
-                                store.edit(updated)
-                                repository.syncNow()
-                                savedItem = updated
-                            }
-                        }
-                    }
-                )
-
-                // Message transcript bubbles (matches chat rows in screenshot)
-                messages.forEach { msg ->
-                    ShareMessageBubble(message = msg)
-                }
-
-                // Loading Indicator
-                if (isLoading) {
-                    Row(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(14.dp))
-                            .background(Color(0xFF1E1E22))
-                            .padding(horizontal = 14.dp, vertical = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(14.dp),
-                            color = LaterboxAccent,
-                            strokeWidth = 2.dp
-                        )
-                        Text(
-                            text = "Preparing draft...",
-                            fontSize = 13.sp,
-                            color = Color.White.copy(alpha = 0.75f)
-                        )
-                    }
-                }
-
-                // Error Message Banner
-                errorMessage?.let { err ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(Color(0xFF331515))
-                            .border(1.dp, Color(0xFFE53E3E).copy(alpha = 0.4f), RoundedCornerShape(12.dp))
-                            .padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Warning,
-                            contentDescription = null,
-                            tint = Color(0xFFFC8181),
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Text(
-                            text = err,
-                            fontSize = 13.sp,
-                            color = Color(0xFFFEB2B2)
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-            }
-
-            // Bottom Area: Options Popups Dock (matches bottom of screenshot)
+    CompositionLocalProvider(LocalDensity provides compactDensity) {
+        // App Lock Guard
+        if (locked) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Color.Black)
+                    .padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // Header Row: SAVED ITEM OPTIONS + Type instead
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 6.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                Text(
+                    "Unlock to save to your private vault",
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 15.sp
+                )
+                Button(
+                    onClick = {
+                        AppLockService.authenticate(
+                            context as androidx.fragment.app.FragmentActivity,
+                            { locked = false },
+                            {}
+                        )
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = LaterboxAccent,
+                        contentColor = Color(0xFF171711)
+                    )
                 ) {
-                    Text(
-                        text = optionsTitle,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White.copy(alpha = 0.65f),
-                        letterSpacing = 0.6.sp
+                    Text("Unlock LaterBox", fontWeight = FontWeight.Bold)
+                }
+                TextButton(onClick = onClose) {
+                    Text("Cancel", color = Color.White.copy(alpha = 0.6f))
+                }
+            }
+            return@CompositionLocalProvider
+        }
+
+        // Main Share UI Layout (iOS Style AI popup)
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black)
+        ) {
+            Column(
+                modifier = Modifier.fillMaxSize()
+            ) {
+                // Scrollable Content
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .verticalScroll(scrollState)
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    // Shared Preview Card (shows banner if image/URL, or rich link/note preview)
+                    SharePreviewCard(
+                        title = title,
+                        previewImageUrl = previewImageUrl,
+                        siteName = siteName,
+                        detectedUrl = detectedUrl,
+                        content = content,
+                        attachments = attachments,
+                        returnAt = returnAt,
+                        onClearReturn = {
+                            returnAt = null
+                            val currentSaved = savedItem
+                            if (currentSaved != null) {
+                                coroutineScope.launch {
+                                    val updated = currentSaved.copy(returnAt = null, status = "inbox")
+                                    store.edit(updated)
+                                    repository.syncNow()
+                                    savedItem = updated
+                                }
+                            }
+                        }
                     )
 
-                    Row(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(8.dp))
-                            .clickable { showManualInput = !showManualInput }
-                            .padding(horizontal = 4.dp, vertical = 2.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Edit,
-                            contentDescription = "Type instead",
-                            tint = Color.White.copy(alpha = 0.55f),
-                            modifier = Modifier.size(12.dp)
-                        )
-                        Text(
-                            text = if (showManualInput) "Options" else "Type instead",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = Color.White.copy(alpha = 0.55f)
-                        )
+                    // Message transcript bubbles
+                    messages.forEach { msg ->
+                        ShareMessageBubble(message = msg)
                     }
-                }
 
-                // If "Type instead" is active, show inline input field
-                if (showManualInput) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 6.dp)
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(Color(0xFF1E1E22))
-                            .border(1.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(16.dp))
-                            .padding(horizontal = 14.dp, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        BasicTextField(
-                            value = manualInputText,
-                            onValueChange = { manualInputText = it },
-                            textStyle = TextStyle(color = Color.White, fontSize = 14.sp),
-                            cursorBrush = SolidColor(LaterboxAccent),
-                            modifier = Modifier.weight(1f),
-                            decorationBox = { inner ->
-                                if (manualInputText.isEmpty()) {
-                                    Text("Type instructions or schedule...", color = Color.White.copy(alpha = 0.35f), fontSize = 13.5.sp)
-                                }
-                                inner()
-                            }
-                        )
-
-                        IconButton(
-                            onClick = { handleManualInput() },
-                            modifier = Modifier.size(30.dp)
+                    // Loading Indicator
+                    if (isLoading) {
+                        Row(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(14.dp))
+                                .background(Color(0xFF1E1E22))
+                                .padding(horizontal = 14.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.Send,
-                                contentDescription = "Send",
-                                tint = if (manualInputText.isNotBlank()) LaterboxAccent else Color.White.copy(alpha = 0.3f),
-                                modifier = Modifier.size(16.dp)
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(13.dp),
+                                color = LaterboxAccent,
+                                strokeWidth = 2.dp
+                            )
+                            Text(
+                                text = "Preparing draft...",
+                                fontSize = 12.sp,
+                                color = Color.White.copy(alpha = 0.75f)
                             )
                         }
                     }
-                } else {
-                    // Option Pills row (exact match to screenshot)
+
+                    // Error Message Banner
+                    errorMessage?.let { err ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(Color(0xFF331515))
+                                .border(1.dp, Color(0xFFE53E3E).copy(alpha = 0.4f), RoundedCornerShape(12.dp))
+                            .padding(10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Warning,
+                                contentDescription = null,
+                                tint = Color(0xFFFC8181),
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Text(
+                                text = err,
+                                fontSize = 12.sp,
+                                color = Color(0xFFFEB2B2)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+                }
+
+                // Bottom Popups Options Dock
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color.Black)
+                ) {
+                    // Header Row: SAVED ITEM OPTIONS + Type instead
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .horizontalScroll(rememberScrollState())
                             .padding(horizontal = 16.dp, vertical = 6.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        activeOptions.forEach { opt ->
-                            Surface(
-                                shape = RoundedCornerShape(18.dp),
-                                color = if (opt.isPrimary) LaterboxAccent else Color(0xFF1E1E22),
-                                border = BorderStroke(
-                                    1.dp,
-                                    if (opt.isPrimary) Color.Black.copy(alpha = 0.12f) else Color.White.copy(alpha = 0.12f)
-                                ),
-                                modifier = Modifier.clickable { opt.action() }
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    opt.icon?.let { iconVec ->
-                                        Icon(
-                                            imageVector = iconVec,
-                                            contentDescription = null,
-                                            tint = if (opt.isPrimary) Color(0xFF171711) else Color.White,
-                                            modifier = Modifier.size(16.dp)
-                                        )
+                        Text(
+                            text = optionsTitle,
+                            fontSize = 10.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White.copy(alpha = 0.65f),
+                            letterSpacing = 0.5.sp
+                        )
+
+                        Row(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .clickable { showManualInput = !showManualInput }
+                                .padding(horizontal = 4.dp, vertical = 2.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Edit,
+                                contentDescription = "Type instead",
+                                tint = Color.White.copy(alpha = 0.55f),
+                                modifier = Modifier.size(12.dp)
+                            )
+                            Text(
+                                text = if (showManualInput) "Options" else "Type instead",
+                                fontSize = 11.5.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = Color.White.copy(alpha = 0.55f)
+                            )
+                        }
+                    }
+
+                    // Manual Type bar or Horizontal option pills
+                    if (showManualInput) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 6.dp)
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(Color(0xFF1E1E22))
+                                .border(1.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(16.dp))
+                                .padding(horizontal = 12.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            BasicTextField(
+                                value = manualInputText,
+                                onValueChange = { manualInputText = it },
+                                textStyle = TextStyle(color = Color.White, fontSize = 13.5.sp),
+                                cursorBrush = SolidColor(LaterboxAccent),
+                                modifier = Modifier.weight(1f),
+                                decorationBox = { inner ->
+                                    if (manualInputText.isEmpty()) {
+                                        Text("Type instructions or schedule...", color = Color.White.copy(alpha = 0.35f), fontSize = 13.sp)
                                     }
-                                    Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
-                                        Text(
-                                            text = opt.title,
-                                            fontSize = 14.sp,
-                                            fontWeight = FontWeight.SemiBold,
-                                            color = if (opt.isPrimary) Color(0xFF171711) else Color.White
-                                        )
-                                        opt.subtitle?.let { sub ->
-                                            Text(
-                                                text = sub,
-                                                fontSize = 10.sp,
-                                                color = if (opt.isPrimary) Color(0xFF171711).copy(alpha = 0.7f) else Color.White.copy(alpha = 0.55f)
+                                    inner()
+                                }
+                            )
+
+                            IconButton(
+                                onClick = { handleManualInput() },
+                                modifier = Modifier.size(28.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.Send,
+                                    contentDescription = "Send",
+                                    tint = if (manualInputText.isNotBlank()) LaterboxAccent else Color.White.copy(alpha = 0.3f),
+                                    modifier = Modifier.size(15.dp)
+                                )
+                            }
+                        }
+                    } else {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .horizontalScroll(rememberScrollState())
+                                .padding(horizontal = 16.dp, vertical = 6.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            activeOptions.forEach { opt ->
+                                Surface(
+                                    shape = RoundedCornerShape(18.dp),
+                                    color = if (opt.isPrimary) LaterboxAccent else Color(0xFF1E1E22),
+                                    border = BorderStroke(
+                                        1.dp,
+                                        if (opt.isPrimary) Color.Black.copy(alpha = 0.12f) else Color.White.copy(alpha = 0.12f)
+                                    ),
+                                    modifier = Modifier.clickable { opt.action() }
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 15.dp, vertical = 9.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(7.dp)
+                                    ) {
+                                        opt.icon?.let { iconVec ->
+                                            Icon(
+                                                imageVector = iconVec,
+                                                contentDescription = null,
+                                                tint = if (opt.isPrimary) Color(0xFF171711) else Color.White,
+                                                modifier = Modifier.size(15.dp)
                                             )
+                                        }
+                                        Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                                            Text(
+                                                text = opt.title,
+                                                fontSize = 12.5.sp,
+                                                fontWeight = FontWeight.SemiBold,
+                                                color = if (opt.isPrimary) Color(0xFF171711) else Color.White
+                                            )
+                                            opt.subtitle?.let { sub ->
+                                                Text(
+                                                    text = sub,
+                                                    fontSize = 9.5.sp,
+                                                    color = if (opt.isPrimary) Color(0xFF171711).copy(alpha = 0.7f) else Color.White.copy(alpha = 0.55f)
+                                                )
+                                            }
                                         }
                                     }
                                 }
                             }
                         }
                     }
+
+                    // Disclaimer at the very bottom
+                    Text(
+                        text = "Later AI can make mistakes. Verify important info.",
+                        fontSize = 10.sp,
+                        color = Color.White.copy(alpha = 0.35f),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 4.dp, bottom = 8.dp),
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    )
                 }
-
-                // Disclaimer at the very bottom (exact match to screenshot)
-                Text(
-                    text = "Later AI can make mistakes. Verify important info.",
-                    fontSize = 11.sp,
-                    color = Color.White.copy(alpha = 0.35f),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 4.dp, bottom = 10.dp),
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                )
             }
-        }
 
-        // Edit Details Dialog Sheet
-        if (showEditSheet) {
-            ShareEditDetailsDialog(
-                initialTitle = title,
-                initialContent = content,
-                initialCategory = category,
-                initialTags = tags,
-                onDismiss = { showEditSheet = false },
-                onSave = { newTitle, newContent, newCategory, newTags ->
-                    title = newTitle
-                    content = newContent
-                    category = newCategory
-                    tags = newTags
-                    showEditSheet = false
+            // Edit Details Dialog Sheet
+            if (showEditSheet) {
+                ShareEditDetailsDialog(
+                    initialTitle = title,
+                    initialContent = content,
+                    initialCategory = category,
+                    initialTags = tags,
+                    onDismiss = { showEditSheet = false },
+                    onSave = { newTitle, newContent, newCategory, newTags ->
+                        title = newTitle
+                        content = newContent
+                        category = newCategory
+                        tags = newTags
+                        showEditSheet = false
 
-                    val current = savedItem
-                    if (current != null) {
-                        coroutineScope.launch {
-                            val updated = current.copy(
-                                title = newTitle,
-                                textContent = newContent,
-                                category = newCategory,
-                                tags = newTags.joinToString(", ")
-                            )
-                            store.edit(updated)
-                            repository.syncNow()
-                            savedItem = updated
+                        val current = savedItem
+                        if (current != null) {
+                            coroutineScope.launch {
+                                val updated = current.copy(
+                                    title = newTitle,
+                                    textContent = newContent,
+                                    category = newCategory,
+                                    tags = newTags.joinToString(", ")
+                                )
+                                store.edit(updated)
+                                repository.syncNow()
+                                savedItem = updated
+                                messages.add(
+                                    ShareChatMessage(
+                                        text = "Updated details for ‘$newTitle’.",
+                                        isUser = false
+                                    )
+                                )
+                            }
+                        } else {
                             messages.add(
                                 ShareChatMessage(
                                     text = "Updated details for ‘$newTitle’.",
@@ -914,16 +1115,9 @@ fun ShareCaptureScreen(
                                 )
                             )
                         }
-                    } else {
-                        messages.add(
-                            ShareChatMessage(
-                                text = "Updated details for ‘$newTitle’.",
-                                isUser = false
-                            )
-                        )
                     }
-                }
-            )
+                )
+            }
         }
     }
 }
@@ -934,6 +1128,8 @@ private fun SharePreviewCard(
     title: String,
     previewImageUrl: String?,
     siteName: String?,
+    detectedUrl: String?,
+    content: String,
     attachments: List<ShareAttachmentItem>,
     returnAt: String?,
     onClearReturn: () -> Unit
@@ -942,13 +1138,13 @@ private fun SharePreviewCard(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        // Web banner image with gradient overlay
+        // 1. Web or Photo Banner Image with Gradient Overlay
         if (!previewImageUrl.isNullOrBlank()) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(136.dp)
-                    .clip(RoundedCornerShape(16.dp))
+                    .height(132.dp)
+                    .clip(RoundedCornerShape(14.dp))
                     .background(Color(0xFF1E1E22))
             ) {
                 AsyncImage(
@@ -957,36 +1153,34 @@ private fun SharePreviewCard(
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize()
                 )
-                // Gradient Overlay
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
                         .background(
                             Brush.verticalGradient(
                                 colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.88f)),
-                                startY = 40f
+                                startY = 36f
                             )
                         )
                 )
-                // Bottom content row
                 Row(
                     modifier = Modifier
                         .align(Alignment.BottomStart)
                         .fillMaxWidth()
-                        .padding(horizontal = 14.dp, vertical = 12.dp),
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Language,
+                        imageVector = if (previewImageUrl.startsWith("/") || previewImageUrl.startsWith("file:")) Icons.Default.Image else Icons.Default.Language,
                         contentDescription = null,
                         tint = LaterboxAccent,
-                        modifier = Modifier.size(16.dp)
+                        modifier = Modifier.size(15.dp)
                     )
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = title,
-                            fontSize = 14.sp,
+                            fontSize = 13.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = Color.White,
                             maxLines = 1
@@ -994,23 +1188,115 @@ private fun SharePreviewCard(
                         if (!siteName.isNullOrBlank()) {
                             Text(
                                 text = siteName,
-                                fontSize = 11.5.sp,
+                                fontSize = 10.5.sp,
                                 color = Color.White.copy(alpha = 0.65f),
                                 maxLines = 1
                             )
                         }
                     }
+                    if (detectedUrl != null) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.OpenInNew,
+                            contentDescription = null,
+                            tint = Color.White.copy(alpha = 0.75f),
+                            modifier = Modifier.size(14.dp)
+                        )
+                    }
+                }
+            }
+        } else if (detectedUrl != null) {
+            // 2. Link Preview Card without image
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(Color(0xFF1E1E22))
+                    .border(1.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(14.dp))
+                    .padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(34.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(Color(0xFF26262A)),
+                    contentAlignment = Alignment.Center
+                ) {
                     Icon(
-                        imageVector = Icons.AutoMirrored.Filled.OpenInNew,
+                        imageVector = Icons.Default.Language,
                         contentDescription = null,
-                        tint = Color.White.copy(alpha = 0.75f),
-                        modifier = Modifier.size(15.dp)
+                        tint = LaterboxAccent,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(
+                        text = title,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color.White,
+                        maxLines = 1
+                    )
+                    Text(
+                        text = siteName ?: runCatching { URI(detectedUrl).host?.removePrefix("www.") }.getOrNull() ?: detectedUrl,
+                        fontSize = 10.5.sp,
+                        color = Color.White.copy(alpha = 0.60f),
+                        maxLines = 1
+                    )
+                }
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.OpenInNew,
+                    contentDescription = null,
+                    tint = Color.White.copy(alpha = 0.60f),
+                    modifier = Modifier.size(14.dp)
+                )
+            }
+        } else if (content.isNotBlank()) {
+            // 3. Shared Note / Text Card
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(Color(0xFF1E1E22))
+                    .border(1.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(14.dp))
+                    .padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(34.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(Color(0xFF26262A)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Description,
+                        contentDescription = null,
+                        tint = LaterboxAccent,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(
+                        text = title,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color.White,
+                        maxLines = 1
+                    )
+                    Text(
+                        text = content.take(90),
+                        fontSize = 11.sp,
+                        color = Color.White.copy(alpha = 0.60f),
+                        maxLines = 1
                     )
                 }
             }
         }
 
-        // Attachments pills
+        // 4. Attachments list
         attachments.forEach { file ->
             Row(
                 modifier = Modifier
@@ -1018,19 +1304,19 @@ private fun SharePreviewCard(
                     .clip(RoundedCornerShape(12.dp))
                     .background(Color(0xFF1B1B1E))
                     .border(1.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(12.dp))
-                    .padding(horizontal = 14.dp, vertical = 10.dp),
+                    .padding(horizontal = 12.dp, vertical = 9.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                horizontalArrangement = Arrangement.spacedBy(9.dp)
             ) {
                 Icon(
                     imageVector = Icons.Default.AttachFile,
                     contentDescription = null,
                     tint = LaterboxAccent,
-                    modifier = Modifier.size(16.dp)
+                    modifier = Modifier.size(15.dp)
                 )
                 Text(
                     text = file.name,
-                    fontSize = 13.5.sp,
+                    fontSize = 12.5.sp,
                     fontWeight = FontWeight.Medium,
                     color = Color.White,
                     maxLines = 1,
@@ -1039,7 +1325,7 @@ private fun SharePreviewCard(
             }
         }
 
-        // Return Countdown Badge
+        // 5. Return Countdown Badge
         if (!returnAt.isNullOrBlank()) {
             val formatted = remember(returnAt) {
                 runCatching {
@@ -1063,27 +1349,27 @@ private fun SharePreviewCard(
                     .clip(RoundedCornerShape(12.dp))
                     .background(Color(0xFF1B1B1E))
                     .border(1.dp, LaterboxAccent.copy(alpha = 0.25f), RoundedCornerShape(12.dp))
-                    .padding(horizontal = 14.dp, vertical = 10.dp),
+                    .padding(horizontal = 12.dp, vertical = 9.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                horizontalArrangement = Arrangement.spacedBy(9.dp)
             ) {
                 Icon(
                     imageVector = Icons.Default.Timer,
                     contentDescription = null,
                     tint = LaterboxAccent,
-                    modifier = Modifier.size(16.dp)
+                    modifier = Modifier.size(15.dp)
                 )
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = "RETURN SCHEDULED",
-                        fontSize = 9.sp,
+                        fontSize = 8.5.sp,
                         fontWeight = FontWeight.Bold,
                         color = LaterboxAccent,
-                        letterSpacing = 0.6.sp
+                        letterSpacing = 0.5.sp
                     )
                     Text(
                         text = formatted,
-                        fontSize = 12.5.sp,
+                        fontSize = 11.5.sp,
                         color = Color.White.copy(alpha = 0.9f)
                     )
                 }
@@ -1092,7 +1378,7 @@ private fun SharePreviewCard(
                     contentDescription = "Clear return date",
                     tint = Color.White.copy(alpha = 0.45f),
                     modifier = Modifier
-                        .size(16.dp)
+                        .size(15.dp)
                         .clickable(onClick = onClearReturn)
                 )
             }
@@ -1109,16 +1395,14 @@ private fun ShareMessageBubble(message: ShareChatMessage) {
     }
 
     if (!isUser) {
-        // Assistant Message with Sparkles Circle Avatar on the left
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.Start,
             verticalAlignment = Alignment.Top
         ) {
-            // Sparkles Avatar circle
             Box(
                 modifier = Modifier
-                    .size(32.dp)
+                    .size(28.dp)
                     .clip(CircleShape)
                     .background(Color(0xFF26262A)),
                 contentAlignment = Alignment.Center
@@ -1127,31 +1411,30 @@ private fun ShareMessageBubble(message: ShareChatMessage) {
                     imageVector = Icons.Default.AutoAwesome,
                     contentDescription = null,
                     tint = LaterboxAccent,
-                    modifier = Modifier.size(14.dp)
+                    modifier = Modifier.size(13.dp)
                 )
             }
 
-            Spacer(modifier = Modifier.width(12.dp))
+            Spacer(modifier = Modifier.width(10.dp))
 
             Column(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
+                verticalArrangement = Arrangement.spacedBy(3.dp)
             ) {
                 Text(
                     text = message.text,
-                    fontSize = 15.sp,
-                    lineHeight = 22.sp,
+                    fontSize = 13.5.sp,
+                    lineHeight = 19.sp,
                     color = Color.White
                 )
                 Text(
                     text = timeFormatted,
-                    fontSize = 11.sp,
+                    fontSize = 10.sp,
                     color = Color.White.copy(alpha = 0.40f)
                 )
             }
         }
     } else {
-        // User Message: Right aligned dark rounded bubble
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.End
@@ -1159,13 +1442,13 @@ private fun ShareMessageBubble(message: ShareChatMessage) {
             Surface(
                 shape = RoundedCornerShape(18.dp),
                 color = Color(0xFF2C2C2E),
-                modifier = Modifier.widthIn(max = 280.dp)
+                modifier = Modifier.widthIn(max = 260.dp)
             ) {
                 Text(
                     text = message.text,
-                    fontSize = 15.sp,
+                    fontSize = 13.5.sp,
                     color = Color.White,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)
                 )
             }
         }
@@ -1189,18 +1472,18 @@ private fun ShareEditDetailsDialog(
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(
-            shape = RoundedCornerShape(20.dp),
+            shape = RoundedCornerShape(18.dp),
             color = Color(0xFF18181C),
             border = BorderStroke(1.dp, Color.White.copy(alpha = 0.12f)),
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 16.dp)
+                .padding(vertical = 14.dp)
         ) {
             Column(
                 modifier = Modifier
-                    .padding(20.dp)
+                    .padding(18.dp)
                     .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -1209,97 +1492,92 @@ private fun ShareEditDetailsDialog(
                 ) {
                     Text(
                         text = "Edit Details",
-                        fontSize = 18.sp,
+                        fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color.White
                     )
                     TextButton(onClick = onDismiss) {
-                        Text("Cancel", color = Color.White.copy(alpha = 0.6f))
+                        Text("Cancel", color = Color.White.copy(alpha = 0.6f), fontSize = 13.sp)
                     }
                 }
 
-                // Title Field
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text("TITLE", fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = Color.White.copy(alpha = 0.5f))
+                Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                    Text("TITLE", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White.copy(alpha = 0.5f))
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(10.dp))
                             .background(Color(0xFF222226))
-                            .padding(12.dp)
+                            .padding(10.dp)
                     ) {
                         BasicTextField(
                             value = editTitle,
                             onValueChange = { editTitle = it },
-                            textStyle = TextStyle(color = Color.White, fontSize = 14.sp),
+                            textStyle = TextStyle(color = Color.White, fontSize = 13.5.sp),
                             cursorBrush = SolidColor(LaterboxAccent),
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
                 }
 
-                // Content Field
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text("CONTENT OR LINK", fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = Color.White.copy(alpha = 0.5f))
+                Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                    Text("CONTENT OR LINK", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White.copy(alpha = 0.5f))
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .heightIn(min = 60.dp, max = 120.dp)
+                            .heightIn(min = 55.dp, max = 110.dp)
                             .clip(RoundedCornerShape(10.dp))
                             .background(Color(0xFF222226))
-                            .padding(12.dp)
+                            .padding(10.dp)
                     ) {
                         BasicTextField(
                             value = editContent,
                             onValueChange = { editContent = it },
-                            textStyle = TextStyle(color = Color.White, fontSize = 14.sp),
+                            textStyle = TextStyle(color = Color.White, fontSize = 13.sp),
                             cursorBrush = SolidColor(LaterboxAccent),
                             modifier = Modifier.fillMaxSize()
                         )
                     }
                 }
 
-                // Category Field
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text("CATEGORY", fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = Color.White.copy(alpha = 0.5f))
+                Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                    Text("CATEGORY", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White.copy(alpha = 0.5f))
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(10.dp))
                             .background(Color(0xFF222226))
-                            .padding(12.dp)
+                            .padding(10.dp)
                     ) {
                         BasicTextField(
                             value = editCategory,
                             onValueChange = { editCategory = it },
-                            textStyle = TextStyle(color = Color.White, fontSize = 14.sp),
+                            textStyle = TextStyle(color = Color.White, fontSize = 13.5.sp),
                             cursorBrush = SolidColor(LaterboxAccent),
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
                 }
 
-                // Tags Field
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text("TAGS (COMMA SEPARATED)", fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = Color.White.copy(alpha = 0.5f))
+                Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                    Text("TAGS (COMMA SEPARATED)", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White.copy(alpha = 0.5f))
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(10.dp))
                             .background(Color(0xFF222226))
-                            .padding(12.dp)
+                            .padding(10.dp)
                     ) {
                         BasicTextField(
                             value = editTagsStr,
                             onValueChange = { editTagsStr = it },
-                            textStyle = TextStyle(color = Color.White, fontSize = 14.sp),
+                            textStyle = TextStyle(color = Color.White, fontSize = 13.5.sp),
                             cursorBrush = SolidColor(LaterboxAccent),
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
                 }
 
-                // Done Button
                 Button(
                     onClick = {
                         val parsedTags = editTagsStr.split(",")
@@ -1314,7 +1592,7 @@ private fun ShareEditDetailsDialog(
                     ),
                     shape = RoundedCornerShape(12.dp)
                 ) {
-                    Text("Done", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                    Text("Done", fontWeight = FontWeight.Bold, fontSize = 14.sp)
                 }
             }
         }
