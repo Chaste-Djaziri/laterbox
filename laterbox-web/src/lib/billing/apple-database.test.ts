@@ -101,7 +101,7 @@ test('Guest linking is atomic, idempotent, private, and cannot transfer ownershi
   const db = await fixture();
   const guest = '00000000-0000-4000-8000-000000000003';
   const resolve = async () => (await db.query<{owner: string | null}>("select resolve_apple_purchase_owner('guest','Sandbox',$1::uuid) as owner", [guest])).rows[0].owner;
-  const claim = (owner: string) => db.query("select claim_apple_purchase('guest','Sandbox',$1::uuid,$2::uuid,$3::jsonb)", [guest, owner, JSON.stringify(subscription({ subscription_id: 'guest', customer_id: owner, user_id: owner }))]);
+  const claim = (owner: string) => db.query("select claim_apple_purchase('guest','Sandbox',$1::uuid,$2::uuid,$3::jsonb)", [guest, owner, JSON.stringify(subscription({ subscription_id: 'guest', customer_id: owner, user_id: owner, apple_notification_at: new Date().toISOString() }))]);
   try {
     assert.equal(await resolve(), null);
     assert.equal(await pro(db), false);
@@ -121,7 +121,7 @@ test('Guest linking is atomic, idempotent, private, and cannot transfer ownershi
 test('Existing signed-in purchases cannot be claimed by a different account', async () => {
   const db = await fixture();
   try {
-    await assert.rejects(db.query("select claim_apple_purchase('legacy','Production',$1::uuid,$2::uuid,$3::jsonb)", [user, other, JSON.stringify(subscription({ subscription_id: 'legacy', apple_environment: 'Production', user_id: other, customer_id: other }))]), /another account/);
+    await assert.rejects(db.query("select claim_apple_purchase('legacy','Production',$1::uuid,$2::uuid,$3::jsonb)", [user, other, JSON.stringify(subscription({ subscription_id: 'legacy', apple_environment: 'Production', user_id: other, customer_id: other, apple_notification_at: new Date().toISOString() }))]), /another account/);
     assert.equal((await db.query('select * from billing_apple_purchase_links')).rows.length, 0);
   } finally { await db.close(); }
 });
