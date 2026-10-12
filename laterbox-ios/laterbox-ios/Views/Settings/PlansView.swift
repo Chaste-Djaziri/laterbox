@@ -47,7 +47,7 @@ public struct PlansView: View {
                                     .font(.system(size: 28, weight: .bold))
                                     .foregroundColor(AppTheme.textPrimary)
 
-                                Text("Cloud sync, AI intelligence, and seamless ecosystem access across all your devices.")
+                                Text("Pro app icons and your choice of AI providers on this device. Connect an optional account for cloud sync, backup, and web access.")
                                     .font(.subheadline)
                                     .foregroundColor(AppTheme.textSecondary)
                                     .multilineTextAlignment(.center)
@@ -66,10 +66,10 @@ public struct PlansView: View {
                                 planOptionCard(
                                     interval: .annual,
                                     title: "Annual",
-                                    badge: "SAVE 17%",
+                                    badge: nil,
                                     price: storeKit.annualDisplayPrice,
                                     period: "/ year",
-                                    detail: "14-day free trial, then $3.33/mo",
+                                    detail: storeKit.annualPlanDetail,
                                     isSelected: selectedInterval == .annual
                                 )
 
@@ -80,7 +80,7 @@ public struct PlansView: View {
                                     badge: nil,
                                     price: storeKit.monthlyDisplayPrice,
                                     period: "/ month",
-                                    detail: "14-day free trial, cancel anytime",
+                                    detail: storeKit.monthlyPlanDetail,
                                     isSelected: selectedInterval == .monthly
                                 )
                             }
@@ -110,10 +110,15 @@ public struct PlansView: View {
                                 )
                             }
                             .buttonStyle(.plain)
-                            .disabled(storeKit.isPurchasing)
+                            .disabled(storeKit.isPurchasing || (selectedInterval == .annual ? storeKit.annualProduct : storeKit.monthlyProduct) == nil)
+                            .accessibilityIdentifier("billing.purchase")
                             }
                         }
 
+                        ConnectProView()
+                        if storeKit.monthlyProduct == nil || storeKit.annualProduct == nil {
+                            Button("Retry App Store prices") { Task { await storeKit.loadProducts() } }
+                        }
                         // Feature Breakdown
                         VStack(alignment: .leading, spacing: 14) {
                             Text("What's Included with Pro")
@@ -125,22 +130,22 @@ public struct PlansView: View {
                                 featureRow(
                                     icon: "icloud.fill",
                                     title: "Multi-Device Cloud Sync",
-                                    subtitle: "Sync items instantly between iPhone, iPad, Mac, and Web."
+                                    subtitle: "Optional account connection enables sync across your devices."
                                 )
                                 featureRow(
                                     icon: "wand.and.stars",
                                     title: "AI Inbox Organizer",
-                                    subtitle: "Smart suggestions, automatic tagging, and digest summaries."
+                                    subtitle: "Use compatible on-device AI or your own AI provider keys."
                                 )
                                 featureRow(
                                     icon: "safari.fill",
                                     title: "Browser & Desktop Extensions",
-                                    subtitle: "One-click capture for Safari, Chrome, and system share sheets."
+                                    subtitle: "Browser extensions and local capture remain free."
                                 )
                                 featureRow(
                                     icon: "lock.icloud.fill",
                                     title: "Encrypted Cloud Backup",
-                                    subtitle: "Secure cloud vault snapshot with effortless zero-loss restore."
+                                    subtitle: "Optional account connection enables cloud backup and restore."
                                 )
                             }
                             .padding(18)
@@ -204,10 +209,12 @@ public struct PlansView: View {
                                 .multilineTextAlignment(.center)
                                 .lineSpacing(2)
 
+                            Button("LaterBox Service Terms") { if let url = URL(string: StoreKitManager.termsOfServiceUrl) { openURL(url) } }
+                                .font(.caption)
                             // EULA & Privacy Policy Links
                             HStack(spacing: 16) {
                                 Button("Terms of Use (EULA)") {
-                                    if let url = URL(string: StoreKitManager.termsOfServiceUrl) {
+                                    if let url = URL(string: StoreKitManager.eulaUrl) {
                                         openURL(url)
                                     }
                                 }
@@ -251,13 +258,11 @@ public struct PlansView: View {
                 await coordinator.refreshEntitlement()
             }
             .alert("Welcome to Pro!", isPresented: $storeKit.purchaseSuccessAlert) {
-                Button("Done", role: .cancel) {
-                    dismiss()
-                }
+                Button("Continue", role: .cancel) {}
             } message: {
                 Text(storeKit.cloudPurchaseConfirmed
                     ? "Your purchase is synced with your LaterBox account. Pro is available on the web and your connected devices."
-                    : "Your App Store purchase is active on this device. \(storeKit.cloudRegistrationMessage ?? "Account verification is pending.")")
+                    : "Pro is active on this device. No registration is required. You can optionally connect Pro to your account for cloud and web access.")
             }
         }
     }
@@ -311,6 +316,7 @@ public struct PlansView: View {
                     }
 
                     Text(detail)
+                        .fixedSize(horizontal: false, vertical: true)
                         .font(.caption)
                         .foregroundColor(AppTheme.textSecondary)
                 }
@@ -359,7 +365,7 @@ public struct PlansView: View {
                                 .font(.caption)
                                 .foregroundColor(AppTheme.textSecondary)
                         } else {
-                            Text("All Pro capabilities unlocked")
+                            Text(coordinator.hasCloudPro ? "Device and account Pro active" : "Device Pro active · Account connection optional")
                                 .font(.caption)
                                 .foregroundColor(AppTheme.textSecondary)
                         }
@@ -440,12 +446,7 @@ public struct PlansView: View {
 
     // MARK: - Purchase Action
     private var primaryButtonTitle: String {
-        switch selectedInterval {
-        case .annual:
-            return "Start 14-Day Free Trial (Annual)"
-        case .monthly:
-            return "Start 14-Day Free Trial (Monthly)"
-        }
+        storeKit.purchaseButtonTitle(annual: selectedInterval == .annual)
     }
 
     private func handlePurchase() {
