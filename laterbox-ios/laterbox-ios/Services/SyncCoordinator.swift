@@ -63,6 +63,8 @@ public final class SyncCoordinator: ObservableObject {
         currentUserEmail != nil && !(currentUserEmail?.isEmpty ?? true)
     }
 
+    public var hasCloudPro: Bool { isAuthenticated && accountPro }
+
     public var isProUser: Bool {
         isPro
     }
@@ -119,14 +121,14 @@ public final class SyncCoordinator: ObservableObject {
     }
 
     public var syncHeaderTitle: String {
-        guard isAuthenticated && isProUser else {
-            return "Get Pro to sync"
+        guard hasCloudPro else {
+            return storeKitPro ? "Connect Pro to sync" : "Get Pro to sync"
         }
         return syncState.rawValue
     }
 
     public var syncHeaderColor: Color {
-        guard isAuthenticated && isProUser else {
+        guard hasCloudPro else {
             return Color.black.opacity(0.4)
         }
         return syncState == .synced ? Color.lbGreenTheme : syncState.statusColor
@@ -503,7 +505,7 @@ public final class SyncCoordinator: ObservableObject {
     }
 
     func syncPendingItems(context: ModelContext, transport: (any IOSCloudTransport)?) async {
-        guard isAuthenticated && isProUser else {
+        guard hasCloudPro else {
             self.syncState = .offline
             self.lastSyncErrorMessage = nil
             return
