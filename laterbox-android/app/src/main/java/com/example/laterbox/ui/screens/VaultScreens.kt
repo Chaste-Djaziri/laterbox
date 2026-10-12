@@ -136,17 +136,6 @@ fun VaultScreen(
             ?: account.email?.takeIf { it.isNotBlank() }?.substringBefore("@")?.replaceFirstChar { it.uppercase() }
             ?: "Guest"
     }
-    val greetingText = remember {
-        val hour = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)
-        when {
-            hour < 12 -> "Good Morning"
-            hour < 18 -> "Good Afternoon"
-            else -> "Good Evening"
-        }
-    }
-    val inboxWaitingItems = remember(allItems) {
-        allItems.filter { it.status == "inbox" && it.deletedAt == null }
-    }
 
     if (searchActive) {
         DedicatedSearchScreen(
@@ -163,71 +152,29 @@ fun VaultScreen(
         contentPadding = PaddingValues(20.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        if (tab == 0) {
-            item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(end = 12.dp)
                 ) {
-                    Column(
-                        modifier = Modifier
-                            .weight(1f)
-                            .padding(end = 12.dp),
-                        horizontalAlignment = Alignment.Start,
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        Text(
-                            text = "$greetingText, $userName",
-                            fontSize = 22.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = LaterboxTextPrimary,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        Text(
-                            text = "Your personal knowledge vault",
-                            fontSize = 13.sp,
-                            color = LaterboxTextSecondary,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-
-                    ProfileMenuButton(
-                        userName = userName,
-                        account = account,
-                        onSignOut = onSignOut,
-                        onAuth = onAuth,
-                        enabled = profileEnabled
-                    )
+                    val titles = mapOf(1 to "Inbox", 2 to "Returns", 3 to "Library")
+                    Text(titles[tab] ?: "Vault", style = MaterialTheme.typography.headlineLarge)
+                    Text("${filtered.size} saved items", color = LaterboxTextSecondary)
                 }
-            }
-        }
-        if (tab != 0) {
-            item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .weight(1f)
-                            .padding(end = 12.dp)
-                    ) {
-                        Text(listOf("Home", "Inbox", "Returns", "Library")[tab], style = MaterialTheme.typography.headlineLarge)
-                        Text("${filtered.size} saved items", color = LaterboxTextSecondary)
-                    }
 
-                    ProfileMenuButton(
-                        userName = userName,
-                        account = account,
-                        onSignOut = onSignOut,
-                        onAuth = onAuth,
-                        enabled = profileEnabled
-                    )
-                }
+                ProfileMenuButton(
+                    userName = userName,
+                    account = account,
+                    onSignOut = onSignOut,
+                    onAuth = onAuth,
+                    enabled = profileEnabled
+                )
             }
         }
         item {
@@ -238,106 +185,10 @@ fun VaultScreen(
                 onClick = { searchActive = true }
             )
         }
-        if (tab == 0) {
-            item {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    listOf("Inbox" to allItems.count { it.status == "inbox" }, "Returns" to allItems.count { it.status == "deferred" }, "Starred" to allItems.count { it.favorite }).forEach { (title, count) ->
-                        Column(
-                            Modifier.weight(1f).background(LaterboxCard, RoundedCornerShape(18.dp)).padding(16.dp)
-                        ) {
-                            Text(count.toString(), style = MaterialTheme.typography.headlineMedium)
-                            Text(title, style = MaterialTheme.typography.labelMedium, color = LaterboxTextSecondary)
-                        }
-                    }
-                }
-            }
-
-            item {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 6.dp, bottom = 2.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(
-                            text = "WAITING FOR YOU",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = LaterboxTextSecondary,
-                            letterSpacing = 0.8.sp
-                        )
-                        if (inboxWaitingItems.isNotEmpty()) {
-                            Text(
-                                text = "${inboxWaitingItems.size} in inbox",
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = LaterboxTextSecondary
-                            )
-                        }
-                    }
-
-                    if (inboxWaitingItems.isNotEmpty()) {
-                        inboxWaitingItems.take(3).forEach { item ->
-                            WaitingItemBar(
-                                item = item,
-                                onClick = { onItem(item) }
-                            )
-                        }
-                    } else {
-                        Surface(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(18.dp),
-                            color = LaterboxCard,
-                            border = BorderStroke(1.dp, LaterboxBorder)
-                        ) {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(24.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(40.dp)
-                                        .background(LaterboxAccent, CircleShape),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.CheckCircle,
-                                        contentDescription = null,
-                                        tint = LaterboxDarkSurface,
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                }
-                                Text(
-                                    text = "All caught up",
-                                    fontSize = 15.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = LaterboxTextPrimary
-                                )
-                                Text(
-                                    text = "Nothing waiting in your inbox right now.",
-                                    fontSize = 12.sp,
-                                    color = LaterboxTextSecondary
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        if (tab != 0 || query.isNotEmpty()) {
-            item {
-                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    listOf("All", "Link", "Article", "Video", "Music", "Note", "Document", "Image").forEach { option ->
-                        FilterChip(selected = type == option, onClick = { type = option }, label = { Text(option) })
-                    }
+        item {
+            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                listOf("All", "Link", "Article", "Video", "Music", "Note", "Document", "Image").forEach { option ->
+                    FilterChip(selected = type == option, onClick = { type = option }, label = { Text(option) })
                 }
             }
         }
