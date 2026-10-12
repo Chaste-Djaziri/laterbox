@@ -1118,13 +1118,14 @@ private fun SwipeActionButton(
     onClick: () -> Unit
 ) {
     if (width <= 2.dp) return
+    val buttonShape = RoundedCornerShape(22.dp)
     Surface(
         modifier = Modifier
             .fillMaxHeight()
             .width(width)
-            .clip(RoundedCornerShape(12.dp))
+            .clip(buttonShape)
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(12.dp),
+        shape = buttonShape,
         color = backgroundColor
     ) {
         Column(
@@ -1174,9 +1175,9 @@ internal fun SwipeableEmailInboxRow(
     val coroutineScope = rememberCoroutineScope()
     val offsetX = remember(item.id) { Animatable(0f) }
 
-    val revealWidth = 158.dp
+    val revealWidth = 164.dp
     val revealWidthPx = with(density) { revealWidth.toPx() }
-    val fullSwipeThresholdPx = with(density) { 220.dp.toPx() }
+    val fullSwipeThresholdPx = with(density) { 226.dp.toPx() }
 
     val cardShape = RoundedCornerShape(
         topStart = topRadius,
@@ -1206,7 +1207,7 @@ internal fun SwipeableEmailInboxRow(
                 // Leading side (revealed on right swipe): Star & Collection
                 if (currentOffset > 0f) {
                     val halfAvailable = with(density) {
-                        ((absOffset - with(density) { 14.dp.toPx() }) / 2f).coerceAtLeast(0f).toDp()
+                        ((absOffset - with(density) { 20.dp.toPx() }) / 2f).coerceAtLeast(0f).toDp()
                     }
                     val starWidth: androidx.compose.ui.unit.Dp
                     val collectionWidth: androidx.compose.ui.unit.Dp
@@ -1233,8 +1234,8 @@ internal fun SwipeableEmailInboxRow(
                         Row(
                             modifier = Modifier
                                 .fillMaxHeight()
-                                .padding(horizontal = 4.dp, vertical = 4.dp),
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                .padding(horizontal = 6.dp, vertical = 6.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             SwipeActionButton(
@@ -1271,7 +1272,7 @@ internal fun SwipeableEmailInboxRow(
                 // Trailing side (revealed on left swipe): Snooze & Delete
                 if (currentOffset < 0f) {
                     val halfAvailable = with(density) {
-                        ((absOffset - with(density) { 14.dp.toPx() }) / 2f).coerceAtLeast(0f).toDp()
+                        ((absOffset - with(density) { 20.dp.toPx() }) / 2f).coerceAtLeast(0f).toDp()
                     }
                     val snoozeWidth: androidx.compose.ui.unit.Dp
                     val deleteWidth: androidx.compose.ui.unit.Dp
@@ -1298,8 +1299,8 @@ internal fun SwipeableEmailInboxRow(
                         Row(
                             modifier = Modifier
                                 .fillMaxHeight()
-                                .padding(horizontal = 4.dp, vertical = 4.dp),
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                .padding(horizontal = 6.dp, vertical = 6.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             SwipeActionButton(
