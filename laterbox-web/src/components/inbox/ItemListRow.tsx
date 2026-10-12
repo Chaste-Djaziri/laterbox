@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { RescheduleAction } from '../scheduling/RescheduleAction';
 import { AddToCollectionModal } from '../collections/AddToCollectionModal';
+import { resolveItemPreviewImageUrl } from '@/lib/utils/emailFormatters';
 
 export function ItemListRow({ item }: { item: LaterBoxItem }) {
   const router = useRouter();
@@ -77,6 +78,8 @@ export function ItemListRow({ item }: { item: LaterBoxItem }) {
     setMenuOpen(false);
   };
 
+  const previewImageUrl = resolveItemPreviewImageUrl(item);
+
   return (
     <>
       <div
@@ -84,11 +87,11 @@ export function ItemListRow({ item }: { item: LaterBoxItem }) {
         className="group relative flex items-center justify-between gap-4 p-3.5 sm:p-4 rounded-2xl bg-white border border-[#e4e0d5] hover:border-[#cfdb84] hover:shadow-xs transition-all cursor-pointer overflow-hidden"
       >
         {/* Anime-card style right-aligned fading OG image watermark */}
-        {item.metadata?.preview_image_url && (
+        {previewImageUrl && (
           <div className="absolute right-0 top-0 bottom-0 w-48 sm:w-72 md:w-96 pointer-events-none overflow-hidden select-none z-0">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={item.metadata.preview_image_url}
+              src={previewImageUrl}
               alt=""
               className="w-full h-full object-cover object-right opacity-65 group-hover:opacity-85 transition-opacity duration-300"
               style={{

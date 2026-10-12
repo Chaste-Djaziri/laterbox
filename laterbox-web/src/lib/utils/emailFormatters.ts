@@ -138,3 +138,57 @@ export function itemMatchesFilters(item: LaterBoxItem, filters: InboxSearchFilte
 
   return true;
 }
+
+export function resolveItemPreviewImageUrl(item: LaterBoxItem): string | null {
+  // 1. Check metadata preview_image_url
+  let raw = item.metadata?.preview_image_url?.trim();
+  if (raw) {
+    if (raw.startsWith('//')) raw = `https:${raw}`;
+    if (raw.includes('youtube.com') || raw.includes('ytimg.com')) {
+      raw = raw.replace('/hqdefault.jpg', '/mqdefault.jpg')
+               .replace('/sddefault.jpg', '/mqdefault.jpg');
+    }
+    if (raw.startsWith('http://') || raw.startsWith('https://') || raw.startsWith('data:')) {
+      return raw;
+    }
+  }
+
+  // 2. YouTube derivation if url or text_content contains YouTube
+  const youtubeUrl = item.url || (item.text_content?.includes('youtube.com') || item.text_content?.includes('youtu.be') ? item.text_content : undefined);
+  if (youtubeUrl) {
+    try {
+      const match = youtubeUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?.*v=|shorts\/|embed\/|live\/))([A-Za-z0-9_-]+)/);
+      if (match && match[1]) {
+        return `https://img.youtube.com/vi/${match[1]}/mqdefault.jpg`;
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  // 3. Direct image url if type is image or url extension is image
+  if (item.type === 'image' || (item.url && /\.(?:png|jpg|jpeg|webp|gif|svg)(?:\?.*)?$/i.test(item.url))) {
+    if (item.url && (item.url.startsWith('http://') || item.url.startsWith('https://'))) {
+      return item.url;
+    }
+  }
+
+  // 4. Attachments preview
+  if (item.attachments && item.attachments.length > 0) {
+    const imgAtt = item.attachments.find(
+      (a) =>
+        (a.mime_type && a.mime_type.startsWith('image/')) ||
+        (a.file_extension && ['png', 'jpg', 'jpeg', 'webp', 'gif', 'svg'].includes(a.file_extension.toLowerCase().replace(/^\./, '')))
+    );
+    if (imgAtt) {
+      if (imgAtt.thumbnail_object_key) return imgAtt.thumbnail_object_key;
+      if (imgAtt.preview_object_key) return imgAtt.preview_object_key;
+      if (imgAtt.local_path && (imgAtt.local_path.startsWith('http') || imgAtt.local_path.startsWith('data:'))) {
+        return imgAtt.local_path;
+      }
+    }
+  }
+
+  return null;
+}
+

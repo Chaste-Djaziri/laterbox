@@ -42,6 +42,7 @@ import {
   getEmailSender,
   itemMatchesFilters,
   itemMatchesQuery,
+  resolveItemPreviewImageUrl,
 } from '@/lib/utils/emailFormatters';
 import { ItemSideDetailPanel } from '@/components/inbox/ItemSideDetailPanel';
 import { AddToCollectionModal } from '@/components/collections/AddToCollectionModal';
@@ -1220,6 +1221,7 @@ export function EmailInboxTable({
               item.metadata?.content_type === 'video' ||
               item.type === 'video' ||
               item.url?.includes('youtube.com');
+            const previewImageUrl = resolveItemPreviewImageUrl(item);
 
             return (
               <div
@@ -1232,11 +1234,11 @@ export function EmailInboxTable({
                 }`}
               >
                 {/* Anime-card style right-aligned fading OG image watermark */}
-                {item.metadata?.preview_image_url && (
+                {previewImageUrl && (
                   <div className="absolute right-0 top-0 bottom-0 w-48 sm:w-72 md:w-96 pointer-events-none overflow-hidden select-none z-0">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      src={item.metadata.preview_image_url}
+                      src={previewImageUrl}
                       alt=""
                       className="w-full h-full object-cover object-right opacity-65 group-hover:opacity-85 transition-opacity duration-300"
                       style={{
