@@ -35,7 +35,7 @@ final class laterbox_iosUITests: XCTestCase {
         upgrade.tap()
         let buy = app.buttons["billing.purchase"]
         XCTAssertTrue(buy.waitForExistence(timeout: 10))
-        let eula = try XCTUnwrap(app.buttons["Terms of Use (EULA)"].allElementsBoundByIndex.last)
+        let eula = try XCTUnwrap(app.buttons.matching(identifier: "Terms of Use (EULA)").allElementsBoundByIndex.last)
         reveal(eula, in: app)
         XCTAssertTrue(app.buttons["Privacy Policy"].firstMatch.exists)
         let legal = XCTAttachment(screenshot: app.screenshot())
