@@ -58,21 +58,25 @@ import java.time.format.DateTimeFormatter
 fun InboxQueueScreen(
     repository: DataRepository,
     onItem: (ItemEntity) -> Unit,
-    onOrganizer: () -> Unit,
-    onCapture: () -> Unit,
+    onOrganizer: () -> Unit = {},
+    onCapture: () -> Unit = {},
     onOpenSidebar: () -> Unit = {},
     onSignOut: () -> Unit = {},
     onAuth: () -> Unit = {},
-    onOpenSettings: () -> Unit = {}
+    onOpenSettings: () -> Unit = {},
+    initialMailbox: MailboxViewType = MailboxViewType.INBOX,
+    initialCollection: String? = null
 ) {
     val allItems by repository.items.collectAsState(emptyList())
     val collections by repository.collections.collectAsState(emptyList())
     val account by AccountService.state.collectAsState()
+    val context = LocalContext.current
     var showingSearch by rememberSaveable { mutableStateOf(false) }
     var showingSidebar by rememberSaveable { mutableStateOf(false) }
     var showingPlans by rememberSaveable { mutableStateOf(false) }
-    var selectedMailbox by rememberSaveable { mutableStateOf(MailboxViewType.INBOX) }
-    var selectedCollection by rememberSaveable { mutableStateOf<String?>(null) }
+    var showingEmptyTrashDialog by remember { mutableStateOf(false) }
+    var selectedMailbox by rememberSaveable(initialMailbox) { mutableStateOf(initialMailbox) }
+    var selectedCollection by rememberSaveable(initialCollection) { mutableStateOf(initialCollection) }
     var actionError by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
 
@@ -357,6 +361,12 @@ fun InboxQueueScreen(
                         )
                     }
                 }
+                if (selectedMailbox == MailboxViewType.TRASH && queue.isNotEmpty()) {
+                    Spacer(Modifier.width(8.dp))
+                    TextButton(onClick = { showingEmptyTrashDialog = true }) {
+                        Text("Empty Trash", color = Color(0xFFEF4444), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
             }
         }
         actionError?.let { message -> item { Text(message, color = MaterialTheme.colorScheme.error) } }
@@ -440,6 +450,30 @@ fun InboxQueueScreen(
 
     if (showingPlans) {
         PlansSheet(onDismiss = { showingPlans = false })
+    }
+
+    if (showingEmptyTrashDialog) {
+        AlertDialog(
+            onDismissRequest = { showingEmptyTrashDialog = false },
+            title = { Text("Empty trash permanently?", fontWeight = FontWeight.Bold) },
+            text = { Text("Deleted items will be permanently removed.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showingEmptyTrashDialog = false
+                    scope.launch {
+                        com.example.laterbox.services.BackupService.clearTrash(context)
+                        repository.syncNow()
+                    }
+                }) {
+                    Text("Empty Trash", color = Color(0xFFEF4444), fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showingEmptyTrashDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 }
 }
