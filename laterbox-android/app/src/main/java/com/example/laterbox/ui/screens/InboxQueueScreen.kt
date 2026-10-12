@@ -13,11 +13,16 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Article
 import androidx.compose.material.icons.automirrored.filled.Login
 import androidx.compose.material.icons.automirrored.filled.Logout
-import androidx.compose.material.icons.automirrored.filled.Article
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material3.*
@@ -27,13 +32,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -44,6 +54,7 @@ import com.example.laterbox.data.DataRepository
 import com.example.laterbox.data.local.ItemEntity
 import com.example.laterbox.data.local.ItemMetadataEntity
 import com.example.laterbox.services.AccountService
+import com.example.laterbox.services.LocalSearch
 import com.example.laterbox.theme.*
 import com.example.laterbox.ui.components.MailboxViewType
 import com.example.laterbox.ui.components.MobileSidebarDrawer
@@ -71,7 +82,12 @@ fun InboxQueueScreen(
     val collections by repository.collections.collectAsState(emptyList())
     val account by AccountService.state.collectAsState()
     val context = LocalContext.current
-    var showingSearch by rememberSaveable { mutableStateOf(false) }
+    var isSearchActive by rememberSaveable { mutableStateOf(false) }
+    var searchQuery by rememberSaveable { mutableStateOf("") }
+    var searchStarredOnly by rememberSaveable { mutableStateOf(false) }
+    var searchHasAttachmentOnly by rememberSaveable { mutableStateOf(false) }
+    var selectedSearchFormat by rememberSaveable { mutableStateOf<String?>(null) }
+    val searchFocusRequester = remember { FocusRequester() }
     var showingSidebar by rememberSaveable { mutableStateOf(false) }
     var showingPlans by rememberSaveable { mutableStateOf(false) }
     var showingEmptyTrashDialog by remember { mutableStateOf(false) }
@@ -120,6 +136,59 @@ fun InboxQueueScreen(
     }
     val queue = remember(rawItems) { rawItems.sortedBy { inboxArrival(it) } }
 
+    val defaultRecentSearches = remember(allItems) {
+        val recents = mutableListOf<String>()
+        val recentItems = allItems.filter { it.deletedAt == null && it.status != "deleted" }.take(3)
+        for (item in recentItems) {
+            val domain = runCatching { URI(item.url ?: "").host?.removePrefix("www.") }.getOrNull()
+            if (!domain.isNullOrBlank() && domain !in recents) {
+                recents.add(domain)
+            }
+        }
+        for (fallback in listOf("Articles", "Starred", "LaterBox", "Video")) {
+            if (fallback !in recents) {
+                recents.add(fallback)
+            }
+        }
+        recents.take(5)
+    }
+
+    val searchResults = remember(allItems, searchQuery, searchStarredOnly, searchHasAttachmentOnly, selectedSearchFormat) {
+        val active = allItems.filter { it.deletedAt == null && it.status != "deleted" }
+        var list = active
+
+        if (selectedSearchFormat != null) {
+            list = list.filter { it.type.equals(selectedSearchFormat, ignoreCase = true) }
+        }
+        if (searchStarredOnly) {
+            list = list.filter { it.favorite }
+        }
+        if (searchHasAttachmentOnly) {
+            list = list.filter { !it.attachments.isNullOrBlank() && it.attachments != "[]" }
+        }
+
+        val q = searchQuery.trim()
+        if (q.isEmpty()) {
+            list.sortedByDescending { it.createdAt }
+        } else {
+            LocalSearch.search(q, list)
+        }
+    }
+
+    LaunchedEffect(isSearchActive) {
+        if (isSearchActive) {
+            searchFocusRequester.requestFocus()
+        }
+    }
+
+    BackHandler(enabled = isSearchActive) {
+        isSearchActive = false
+        searchQuery = ""
+        selectedSearchFormat = null
+        searchStarredOnly = false
+        searchHasAttachmentOnly = false
+    }
+
     val emptyTitle = remember(selectedMailbox, selectedCollection) {
         if (selectedCollection != null) "No items in #$selectedCollection"
         else when (selectedMailbox) {
@@ -157,10 +226,6 @@ fun InboxQueueScreen(
     fun action(block: suspend () -> Unit) {
         scope.launch { try { block(); actionError = null } catch (_: Exception) { actionError = "Unable to update this item. Please try again." } }
     }
-    if (showingSearch) {
-        DedicatedSearchScreen(allItems = allItems, repository = repository, onClose = { showingSearch = false }, onItemClick = onItem)
-        return
-    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         LazyColumn(
@@ -168,257 +233,572 @@ fun InboxQueueScreen(
             contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(2.5.dp)
         ) {
-            // 3 Components Top Bar: 3-line Sidebar Opener (left), Centered Search (middle), Profile Pic with Menu (right)
+            // Top Bar: Inactive 3-Component Bar vs Active Expanded Search Bar
             item {
-                var profileExpanded by remember { mutableStateOf(false) }
-                val userInitial = remember(account.displayName, account.email) {
-                    account.displayName?.trim()?.firstOrNull()?.uppercase()
-                        ?: account.email?.trim()?.firstOrNull()?.uppercase()
-                        ?: "U"
-                }
-
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    // 1. Top left: 3 lines sidebar opener
-                    Surface(
-                        modifier = Modifier
-                            .size(36.dp)
-                            .clip(CircleShape)
-                            .clickable(onClick = {
-                                showingSidebar = true
-                                onOpenSidebar()
-                            }),
-                        shape = CircleShape,
-                        color = Color.Transparent
-                    ) {
-                        Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                            Icon(
-                                imageVector = Icons.Default.Menu,
-                                contentDescription = "Open sidebar",
-                                tint = LaterboxTextPrimary,
-                                modifier = Modifier.size(22.dp)
-                            )
-                        }
+                if (!isSearchActive) {
+                    var profileExpanded by remember { mutableStateOf(false) }
+                    val userInitial = remember(account.displayName, account.email) {
+                        account.displayName?.trim()?.firstOrNull()?.uppercase()
+                            ?: account.email?.trim()?.firstOrNull()?.uppercase()
+                            ?: "U"
                     }
 
-                // 2. Centered search bar (matching iOS Ask LaterBox pill)
-                Surface(
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(48.dp)
-                        .clip(CircleShape)
-                        .clickable { showingSearch = true },
-                    shape = CircleShape,
-                    color = Color.White,
-                    border = BorderStroke(1.dp, Color.Black.copy(alpha = 0.08f)),
-                    shadowElevation = 2.dp
-                ) {
                     Row(
                         modifier = Modifier
-                            .fillMaxSize()
-                            .padding(horizontal = 16.dp),
+                            .fillMaxWidth()
+                            .padding(bottom = 6.dp),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        Text(
-                            text = "Ask LaterBox",
-                            fontSize = 15.sp,
-                            color = LaterboxTextSecondary,
-                            fontWeight = FontWeight.Normal
-                        )
-                        Icon(
-                            imageVector = Icons.Default.AutoAwesome,
-                            contentDescription = null,
-                            tint = Color(0xFF1A73E8),
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
-                }
-
-                // 3. Top right: Profile pic / avatar with dropdown menu
-                Box {
-                    Surface(
-                        modifier = Modifier
-                            .size(36.dp)
-                            .clip(CircleShape)
-                            .clickable { profileExpanded = true },
-                        shape = CircleShape,
-                        color = Color(0xFF171711),
-                        border = BorderStroke(2.dp, Color(0xFF1A73E8))
-                    ) {
-                        Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                            Text(
-                                text = userInitial,
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White
-                            )
-                        }
-                    }
-
-                    DropdownMenu(
-                        expanded = profileExpanded,
-                        onDismissRequest = { profileExpanded = false },
-                        modifier = Modifier
-                            .background(LaterboxCard)
-                            .border(1.dp, LaterboxBorder, RoundedCornerShape(12.dp))
-                            .widthIn(min = 200.dp)
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text("Settings", fontWeight = FontWeight.Medium) },
-                            leadingIcon = { Icon(Icons.Default.Settings, contentDescription = null, modifier = Modifier.size(18.dp)) },
-                            onClick = {
-                                profileExpanded = false
-                                onOpenSettings()
-                            }
-                        )
-
-                        HorizontalDivider(color = LaterboxBorder, thickness = 0.5.dp)
-
-                        if (account.userId != null) {
-                            account.email?.let { email ->
-                                DropdownMenuItem(
-                                    text = {
-                                        Column {
-                                            Text(email, fontSize = 11.sp, color = LaterboxTextSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                        }
-                                    },
-                                    enabled = false,
-                                    onClick = {}
+                        // 1. Top left: 3 lines sidebar opener
+                        Surface(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(CircleShape)
+                                .clickable(onClick = {
+                                    showingSidebar = true
+                                    onOpenSidebar()
+                                }),
+                            shape = CircleShape,
+                            color = Color.Transparent
+                        ) {
+                            Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                                Icon(
+                                    imageVector = Icons.Default.Menu,
+                                    contentDescription = "Open sidebar",
+                                    tint = LaterboxTextPrimary,
+                                    modifier = Modifier.size(22.dp)
                                 )
                             }
-                            DropdownMenuItem(
-                                text = { Text("Sign Out", color = Color(0xFFE53935), fontWeight = FontWeight.SemiBold) },
-                                leadingIcon = { Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = null, tint = Color(0xFFE53935), modifier = Modifier.size(18.dp)) },
+                        }
+
+                        // 2. Centered search bar (matching iOS Ask LaterBox pill)
+                        Surface(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(48.dp)
+                                .clip(CircleShape)
+                                .clickable { isSearchActive = true },
+                            shape = CircleShape,
+                            color = Color.White,
+                            border = BorderStroke(1.dp, Color.Black.copy(alpha = 0.08f)),
+                            shadowElevation = 2.dp
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(horizontal = 16.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    text = "Ask LaterBox",
+                                    fontSize = 15.sp,
+                                    color = LaterboxTextSecondary,
+                                    fontWeight = FontWeight.Normal
+                                )
+                                Icon(
+                                    imageVector = Icons.Default.AutoAwesome,
+                                    contentDescription = null,
+                                    tint = Color(0xFF1A73E8),
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                        }
+
+                        // 3. Top right: Profile pic / avatar with dropdown menu
+                        Box {
+                            Surface(
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .clip(CircleShape)
+                                    .clickable { profileExpanded = true },
+                                shape = CircleShape,
+                                color = Color(0xFF171711),
+                                border = BorderStroke(2.dp, Color(0xFF1A73E8))
+                            ) {
+                                Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                                    Text(
+                                        text = userInitial,
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color.White
+                                    )
+                                }
+                            }
+
+                            DropdownMenu(
+                                expanded = profileExpanded,
+                                onDismissRequest = { profileExpanded = false },
+                                modifier = Modifier
+                                    .background(LaterboxCard)
+                                    .border(1.dp, LaterboxBorder, RoundedCornerShape(12.dp))
+                                    .widthIn(min = 200.dp)
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text("Settings", fontWeight = FontWeight.Medium) },
+                                    leadingIcon = { Icon(Icons.Default.Settings, contentDescription = null, modifier = Modifier.size(18.dp)) },
+                                    onClick = {
+                                        profileExpanded = false
+                                        onOpenSettings()
+                                    }
+                                )
+
+                                HorizontalDivider(color = LaterboxBorder, thickness = 0.5.dp)
+
+                                if (account.userId != null) {
+                                    account.email?.let { email ->
+                                        DropdownMenuItem(
+                                            text = {
+                                                Column {
+                                                    Text(email, fontSize = 11.sp, color = LaterboxTextSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                                }
+                                            },
+                                            enabled = false,
+                                            onClick = {}
+                                        )
+                                    }
+                                    DropdownMenuItem(
+                                        text = { Text("Sign Out", color = Color(0xFFE53935), fontWeight = FontWeight.SemiBold) },
+                                        leadingIcon = { Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = null, tint = Color(0xFFE53935), modifier = Modifier.size(18.dp)) },
+                                        onClick = {
+                                            profileExpanded = false
+                                            onSignOut()
+                                        }
+                                    )
+                                } else {
+                                    DropdownMenuItem(
+                                        text = { Text("Guest Mode", fontSize = 11.sp, color = LaterboxTextSecondary) },
+                                        enabled = false,
+                                        onClick = {}
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text("Sign In / Exit Guest", color = Color(0xFF1A73E8), fontWeight = FontWeight.SemiBold) },
+                                        leadingIcon = { Icon(Icons.AutoMirrored.Filled.Login, contentDescription = null, tint = Color(0xFF1A73E8), modifier = Modifier.size(18.dp)) },
+                                        onClick = {
+                                            profileExpanded = false
+                                            onAuth()
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    // Active Expanded Search Top Bar (Matching iOS)
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 6.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Surface(
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .clip(CircleShape)
+                                    .clickable {
+                                        isSearchActive = false
+                                        searchQuery = ""
+                                        selectedSearchFormat = null
+                                        searchStarredOnly = false
+                                        searchHasAttachmentOnly = false
+                                    },
+                                shape = CircleShape,
+                                color = Color.Transparent
+                            ) {
+                                Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                        contentDescription = "Back to inbox",
+                                        tint = LaterboxTextPrimary,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                            }
+
+                            Surface(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(48.dp),
+                                shape = CircleShape,
+                                color = Color.White,
+                                border = BorderStroke(1.dp, Color.Black.copy(alpha = 0.1f)),
+                                shadowElevation = 2.dp
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .padding(horizontal = 14.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Search,
+                                        contentDescription = null,
+                                        tint = LaterboxTextSecondary,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+
+                                    BasicTextField(
+                                        value = searchQuery,
+                                        onValueChange = { searchQuery = it },
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .focusRequester(searchFocusRequester),
+                                        singleLine = true,
+                                        textStyle = TextStyle(
+                                            fontSize = 15.sp,
+                                            color = LaterboxTextPrimary,
+                                            fontWeight = FontWeight.Normal
+                                        ),
+                                        cursorBrush = SolidColor(Color(0xFF1A73E8)),
+                                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                                        keyboardActions = KeyboardActions(onSearch = { /* search submitted */ }),
+                                        decorationBox = { innerTextField ->
+                                            Box(contentAlignment = Alignment.CenterStart) {
+                                                if (searchQuery.isEmpty()) {
+                                                    Text(
+                                                        text = "Search in LaterBox",
+                                                        fontSize = 15.sp,
+                                                        color = LaterboxTextSecondary
+                                                    )
+                                                }
+                                                innerTextField()
+                                            }
+                                        }
+                                    )
+
+                                    if (searchQuery.isNotEmpty()) {
+                                        Surface(
+                                            modifier = Modifier
+                                                .size(24.dp)
+                                                .clip(CircleShape)
+                                                .clickable { searchQuery = "" },
+                                            shape = CircleShape,
+                                            color = Color.Transparent
+                                        ) {
+                                            Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Close,
+                                                    contentDescription = "Clear search",
+                                                    tint = LaterboxTextSecondary,
+                                                    modifier = Modifier.size(16.dp)
+                                                )
+                                            }
+                                        }
+                                    } else {
+                                        Icon(
+                                            imageVector = Icons.Default.AutoAwesome,
+                                            contentDescription = null,
+                                            tint = Color(0xFF1A73E8),
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        // Horizontal Filter Chips Bar (Starred, Attachment, Article, Video, Note, Reset)
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            SearchFilterChip(
+                                text = "Starred",
+                                icon = if (searchStarredOnly) Icons.Default.Star else Icons.Outlined.StarBorder,
+                                isSelected = searchStarredOnly,
+                                onClick = { searchStarredOnly = !searchStarredOnly }
+                            )
+
+                            SearchFilterChip(
+                                text = "Attachment",
+                                icon = Icons.Default.AttachFile,
+                                isSelected = searchHasAttachmentOnly,
+                                onClick = { searchHasAttachmentOnly = !searchHasAttachmentOnly }
+                            )
+
+                            SearchFilterChip(
+                                text = "Article",
+                                icon = Icons.AutoMirrored.Filled.Article,
+                                isSelected = selectedSearchFormat == "article",
                                 onClick = {
-                                    profileExpanded = false
-                                    onSignOut()
+                                    selectedSearchFormat = if (selectedSearchFormat == "article") null else "article"
                                 }
                             )
-                        } else {
-                            DropdownMenuItem(
-                                text = { Text("Guest Mode", fontSize = 11.sp, color = LaterboxTextSecondary) },
-                                enabled = false,
-                                onClick = {}
-                            )
-                            DropdownMenuItem(
-                                text = { Text("Sign In / Exit Guest", color = Color(0xFF1A73E8), fontWeight = FontWeight.SemiBold) },
-                                leadingIcon = { Icon(Icons.AutoMirrored.Filled.Login, contentDescription = null, tint = Color(0xFF1A73E8), modifier = Modifier.size(18.dp)) },
+
+                            SearchFilterChip(
+                                text = "Video",
+                                icon = Icons.Default.PlayCircle,
+                                isSelected = selectedSearchFormat == "video",
                                 onClick = {
-                                    profileExpanded = false
-                                    onAuth()
+                                    selectedSearchFormat = if (selectedSearchFormat == "video") null else "video"
                                 }
                             )
+
+                            SearchFilterChip(
+                                text = "Note",
+                                icon = Icons.Default.EditNote,
+                                isSelected = selectedSearchFormat == "note",
+                                onClick = {
+                                    selectedSearchFormat = if (selectedSearchFormat == "note") null else "note"
+                                }
+                            )
+
+                            if (searchStarredOnly || searchHasAttachmentOnly || selectedSearchFormat != null) {
+                                TextButton(
+                                    onClick = {
+                                        searchStarredOnly = false
+                                        searchHasAttachmentOnly = false
+                                        selectedSearchFormat = null
+                                    },
+                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                                ) {
+                                    Text(
+                                        text = "Reset",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = LaterboxTextSecondary
+                                    )
+                                }
+                            }
                         }
                     }
                 }
             }
-        }
-        item {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 8.dp, bottom = 4.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                val headerTitle = if (selectedCollection != null) "#$selectedCollection" else selectedMailbox.title
-                Text(
-                    text = headerTitle,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = LaterboxTextSecondary
-                )
-                if (selectedCollection != null || selectedMailbox != MailboxViewType.INBOX) {
-                    Spacer(Modifier.weight(1f))
+            if (isSearchActive) {
+                val hasQueryOrFilters = searchQuery.isNotBlank() || searchStarredOnly || searchHasAttachmentOnly || selectedSearchFormat != null
+                if (!hasQueryOrFilters) {
+                    item {
+                        Text(
+                            text = "Recent searches",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = LaterboxTextSecondary,
+                            modifier = Modifier.padding(start = 2.dp, top = 8.dp, bottom = 4.dp)
+                        )
+                    }
+                    item {
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(16.dp),
+                            color = Color.White,
+                            border = BorderStroke(1.dp, Color.Black.copy(alpha = 0.06f))
+                        ) {
+                            Column {
+                                defaultRecentSearches.forEachIndexed { index, search ->
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable { searchQuery = search }
+                                            .padding(horizontal = 16.dp, vertical = 14.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(14.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.History,
+                                            contentDescription = null,
+                                            tint = LaterboxTextSecondary,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Text(
+                                            text = search,
+                                            fontSize = 15.sp,
+                                            fontWeight = FontWeight.Normal,
+                                            color = LaterboxTextPrimary,
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                        Icon(
+                                            imageVector = Icons.Default.NorthWest,
+                                            contentDescription = null,
+                                            tint = LaterboxTextSecondary.copy(alpha = 0.6f),
+                                            modifier = Modifier.size(14.dp)
+                                        )
+                                    }
+                                    if (index < defaultRecentSearches.size - 1) {
+                                        HorizontalDivider(color = Color.Black.copy(alpha = 0.05f), thickness = 0.5.dp)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    item {
+                        Text(
+                            text = "Quick results (${searchResults.size})",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = LaterboxTextSecondary,
+                            modifier = Modifier.padding(start = 2.dp, top = 8.dp, bottom = 4.dp)
+                        )
+                    }
+                    if (searchResults.isEmpty()) {
+                        item {
+                            Surface(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(16.dp),
+                                color = Color.White,
+                                border = BorderStroke(1.dp, Color.Black.copy(alpha = 0.06f))
+                            ) {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(40.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Search,
+                                        contentDescription = null,
+                                        tint = LaterboxTextSecondary.copy(alpha = 0.4f),
+                                        modifier = Modifier.size(36.dp)
+                                    )
+                                    Text(
+                                        text = if (searchQuery.isBlank()) "No items matching filters" else "No results for \"$searchQuery\"",
+                                        fontSize = 16.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = LaterboxTextPrimary,
+                                        textAlign = TextAlign.Center
+                                    )
+                                    Text(
+                                        text = "Try adjusting your keywords or clearing active filters.",
+                                        fontSize = 12.sp,
+                                        color = LaterboxTextSecondary,
+                                        textAlign = TextAlign.Center
+                                    )
+                                }
+                            }
+                        }
+                    } else {
+                        itemsIndexed(searchResults, key = { _, item -> item.id }) { index, item ->
+                            val isFirst = index == 0
+                            val isLast = index == searchResults.size - 1
+                            val topRadius = if (isFirst) 12.dp else 4.dp
+                            val bottomRadius = if (isLast) 12.dp else 4.dp
+                            val metadata by remember(repository, item.id) { repository.watchMetadata(item.id) }.collectAsState(null)
+
+                            EmailInboxRowCard(
+                                item = item,
+                                metadata = metadata,
+                                collectionName = collections.find { it.id == item.collectionId }?.name,
+                                topRadius = topRadius,
+                                bottomRadius = bottomRadius,
+                                onClick = { onItem(item) },
+                                onToggleFavorite = { action { repository.toggleFavorite(item.id, item.favorite) } }
+                            )
+                        }
+                    }
+                }
+            } else {
+                item {
                     Row(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(Color(0xFFE6EDB0))
-                            .clickable {
-                                selectedMailbox = MailboxViewType.INBOX
-                                selectedCollection = null
-                            }
-                            .padding(horizontal = 8.dp, vertical = 3.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            .fillMaxWidth()
+                            .padding(top = 8.dp, bottom = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
+                        val headerTitle = if (selectedCollection != null) "#$selectedCollection" else selectedMailbox.title
                         Text(
-                            text = "Back to Inbox",
-                            fontSize = 11.sp,
+                            text = headerTitle,
+                            fontSize = 13.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFF171711)
+                            color = LaterboxTextSecondary
                         )
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = "Clear filter",
-                            tint = Color(0xFF171711),
-                            modifier = Modifier.size(12.dp)
-                        )
-                    }
-                }
-                if (selectedMailbox == MailboxViewType.TRASH && queue.isNotEmpty()) {
-                    Spacer(Modifier.width(8.dp))
-                    TextButton(onClick = { showingEmptyTrashDialog = true }) {
-                        Text("Empty Trash", color = Color(0xFFEF4444), fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                    }
-                }
-            }
-        }
-        actionError?.let { message -> item { Text(message, color = MaterialTheme.colorScheme.error) } }
-        if (queue.isEmpty()) item {
-            Surface(shape = RoundedCornerShape(16.dp), color = Color.White, border = BorderStroke(1.dp, Color.Black.copy(alpha = 0.06f)), modifier = Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(48.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                    Icon(
-                        imageVector = when (selectedMailbox) {
-                            MailboxViewType.INBOX -> Icons.Default.Inbox
-                            MailboxViewType.TODAY -> Icons.Default.Schedule
-                            MailboxViewType.SCHEDULED -> Icons.Default.CalendarToday
-                            MailboxViewType.SOMEDAY -> Icons.Default.DateRange
-                            MailboxViewType.STARRED -> Icons.Default.Star
-                            MailboxViewType.KEPT -> Icons.Default.CheckCircle
-                            MailboxViewType.ARCHIVED -> Icons.Default.Archive
-                            MailboxViewType.TRASH -> Icons.Default.Delete
-                        },
-                        contentDescription = null,
-                        modifier = Modifier.size(40.dp),
-                        tint = LaterboxTextSecondary.copy(alpha = 0.35f)
-                    )
-                    Text(emptyTitle, fontSize = 17.sp, fontWeight = FontWeight.Bold, color = LaterboxTextPrimary)
-                    Text(emptySubtitle, fontSize = 12.sp, color = LaterboxTextSecondary, textAlign = TextAlign.Center)
-                    if (selectedMailbox == MailboxViewType.INBOX && selectedCollection == null) {
-                        TextButton(onClick = onCapture) { Text("Save something") }
-                    } else {
-                        TextButton(onClick = {
-                            selectedMailbox = MailboxViewType.INBOX
-                            selectedCollection = null
-                        }) {
-                            Text("Back to Inbox")
+                        if (selectedCollection != null || selectedMailbox != MailboxViewType.INBOX) {
+                            Spacer(Modifier.weight(1f))
+                            Row(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(Color(0xFFE6EDB0))
+                                    .clickable {
+                                        selectedMailbox = MailboxViewType.INBOX
+                                        selectedCollection = null
+                                    }
+                                    .padding(horizontal = 8.dp, vertical = 3.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Text(
+                                    text = "Back to Inbox",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF171711)
+                                )
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = "Clear filter",
+                                    tint = Color(0xFF171711),
+                                    modifier = Modifier.size(12.dp)
+                                )
+                            }
+                        }
+                        if (selectedMailbox == MailboxViewType.TRASH && queue.isNotEmpty()) {
+                            Spacer(Modifier.width(8.dp))
+                            TextButton(onClick = { showingEmptyTrashDialog = true }) {
+                                Text("Empty Trash", color = Color(0xFFEF4444), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            }
                         }
                     }
                 }
-            }
-        }
-        itemsIndexed(queue, key = { _, item -> item.id }) { index, item ->
-            val isFirst = index == 0
-            val isLast = index == queue.size - 1
-            val topRadius = if (isFirst) 12.dp else 4.dp
-            val bottomRadius = if (isLast) 12.dp else 4.dp
-            val metadata by remember(repository, item.id) { repository.watchMetadata(item.id) }.collectAsState(null)
+                actionError?.let { message -> item { Text(message, color = MaterialTheme.colorScheme.error) } }
+                if (queue.isEmpty()) item {
+                    Surface(shape = RoundedCornerShape(16.dp), color = Color.White, border = BorderStroke(1.dp, Color.Black.copy(alpha = 0.06f)), modifier = Modifier.fillMaxWidth()) {
+                        Column(Modifier.padding(48.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                            Icon(
+                                imageVector = when (selectedMailbox) {
+                                    MailboxViewType.INBOX -> Icons.Default.Inbox
+                                    MailboxViewType.TODAY -> Icons.Default.Schedule
+                                    MailboxViewType.SCHEDULED -> Icons.Default.CalendarToday
+                                    MailboxViewType.SOMEDAY -> Icons.Default.DateRange
+                                    MailboxViewType.STARRED -> Icons.Default.Star
+                                    MailboxViewType.KEPT -> Icons.Default.CheckCircle
+                                    MailboxViewType.ARCHIVED -> Icons.Default.Archive
+                                    MailboxViewType.TRASH -> Icons.Default.Delete
+                                },
+                                contentDescription = null,
+                                modifier = Modifier.size(40.dp),
+                                tint = LaterboxTextSecondary.copy(alpha = 0.35f)
+                            )
+                            Text(emptyTitle, fontSize = 17.sp, fontWeight = FontWeight.Bold, color = LaterboxTextPrimary)
+                            Text(emptySubtitle, fontSize = 12.sp, color = LaterboxTextSecondary, textAlign = TextAlign.Center)
+                            if (selectedMailbox == MailboxViewType.INBOX && selectedCollection == null) {
+                                TextButton(onClick = onCapture) { Text("Save something") }
+                            } else {
+                                TextButton(onClick = {
+                                    selectedMailbox = MailboxViewType.INBOX
+                                    selectedCollection = null
+                                }) {
+                                    Text("Back to Inbox")
+                                }
+                            }
+                        }
+                    }
+                }
+                itemsIndexed(queue, key = { _, item -> item.id }) { index, item ->
+                    val isFirst = index == 0
+                    val isLast = index == queue.size - 1
+                    val topRadius = if (isFirst) 12.dp else 4.dp
+                    val bottomRadius = if (isLast) 12.dp else 4.dp
+                    val metadata by remember(repository, item.id) { repository.watchMetadata(item.id) }.collectAsState(null)
 
-            EmailInboxRowCard(
-                item = item,
-                metadata = metadata,
-                collectionName = collections.find { it.id == item.collectionId }?.name,
-                topRadius = topRadius,
-                bottomRadius = bottomRadius,
-                onClick = { onItem(item) },
-                onToggleFavorite = { action { repository.toggleFavorite(item.id, item.favorite) } }
-            )
+                    EmailInboxRowCard(
+                        item = item,
+                        metadata = metadata,
+                        collectionName = collections.find { it.id == item.collectionId }?.name,
+                        topRadius = topRadius,
+                        bottomRadius = bottomRadius,
+                        onClick = { onItem(item) },
+                        onToggleFavorite = { action { repository.toggleFavorite(item.id, item.favorite) } }
+                    )
+                }
+            }
         }
     }
 
@@ -480,7 +860,6 @@ fun InboxQueueScreen(
             }
         )
     }
-}
 }
 
 @Composable
@@ -847,6 +1226,43 @@ internal fun EmailInboxRowCard(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun SearchFilterChip(
+    text: String,
+    icon: ImageVector,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    Surface(
+        modifier = Modifier
+            .height(32.dp)
+            .clip(CircleShape)
+            .clickable(onClick = onClick),
+        shape = CircleShape,
+        color = if (isSelected) Color(0xFF171711) else Color.White,
+        border = if (isSelected) null else BorderStroke(1.dp, Color.Black.copy(alpha = 0.08f))
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = if (isSelected) Color(0xFFE6EDB0) else LaterboxTextPrimary,
+                modifier = Modifier.size(13.dp)
+            )
+            Text(
+                text = text,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Medium,
+                color = if (isSelected) Color(0xFFE6EDB0) else LaterboxTextPrimary
+            )
         }
     }
 }
