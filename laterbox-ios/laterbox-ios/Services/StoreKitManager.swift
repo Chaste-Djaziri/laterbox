@@ -367,6 +367,11 @@ public final class StoreKitManager: ObservableObject {
         let equivalent = (product.price / 12).formatted(product.priceFormatStyle)
         let price = "\(product.displayPrice) per year"
         let offer = trialLabel(product).map { "\($0), then \(price). " } ?? "\(price). "
+        // Some StoreKit test runtimes return a rounded numeric price alongside a
+        // different display price. Omit a comparison when these disagree.
+        guard product.price.formatted(product.priceFormatStyle) == product.displayPrice else {
+            return "\(offer)Billed annually, automatically renews"
+        }
         return "\(offer)Equivalent to \(equivalent) per month, billed annually"
     }
 
