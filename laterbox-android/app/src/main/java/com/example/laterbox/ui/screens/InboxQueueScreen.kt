@@ -12,6 +12,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.material.icons.automirrored.filled.Login
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.automirrored.filled.Article
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.StarBorder
@@ -47,7 +51,16 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 @Composable
-fun InboxQueueScreen(repository: DataRepository, onItem: (ItemEntity) -> Unit, onOrganizer: () -> Unit, onCapture: () -> Unit) {
+fun InboxQueueScreen(
+    repository: DataRepository,
+    onItem: (ItemEntity) -> Unit,
+    onOrganizer: () -> Unit,
+    onCapture: () -> Unit,
+    onOpenSidebar: () -> Unit = {},
+    onSignOut: () -> Unit = {},
+    onAuth: () -> Unit = {},
+    onOpenSettings: () -> Unit = {}
+) {
     val allItems by repository.items.collectAsState(emptyList())
     val collections by repository.collections.collectAsState(emptyList())
     val account by AccountService.state.collectAsState()
@@ -78,25 +91,151 @@ fun InboxQueueScreen(repository: DataRepository, onItem: (ItemEntity) -> Unit, o
         contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 24.dp),
         verticalArrangement = Arrangement.spacedBy(18.dp)
     ) {
+        // 3 Components Top Bar: 3-line Sidebar Opener (left), Centered Search (middle), Profile Pic with Menu (right)
         item {
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Image(painterResource(R.drawable.laterbox_icon_green), "LaterBox logo", Modifier.size(28.dp).clip(RoundedCornerShape(7.dp)))
-                Spacer(Modifier.width(8.dp))
-                Text("Inbox", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = LaterboxTextPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                    Box(Modifier.size(7.dp).background(if (syncTitle == "Synced") LaterboxEmerald else LaterboxAmber, CircleShape))
-                    Text(syncTitle, fontSize = 10.sp, color = LaterboxTextSecondary)
+            var profileExpanded by remember { mutableStateOf(false) }
+            val userInitial = remember(account.displayName, account.email) {
+                account.displayName?.trim()?.firstOrNull()?.uppercase()
+                    ?: account.email?.trim()?.firstOrNull()?.uppercase()
+                    ?: "U"
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                // 1. Top left: 3 lines sidebar opener
+                Surface(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .clickable(onClick = onOpenSidebar),
+                    shape = CircleShape,
+                    color = Color.Transparent
+                ) {
+                    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                        Icon(
+                            imageVector = Icons.Default.Menu,
+                            contentDescription = "Open sidebar",
+                            tint = LaterboxTextPrimary,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
                 }
-                IconButton(onClick = onOrganizer) { Icon(Icons.Default.AutoAwesome, "AI Inbox Organizer", tint = LaterboxTextSecondary, modifier = Modifier.size(20.dp)) }
-                IconButton(onClick = { showingSearch = true }) {
-                    Box(Modifier.size(32.dp).background(Color.Transparent, CircleShape), contentAlignment = Alignment.Center) {
-                        Icon(Icons.Default.Search, "Search inbox", tint = LaterboxTextPrimary, modifier = Modifier.size(18.dp))
+
+                // 2. Centered search bar (matching iOS Ask LaterBox pill)
+                Surface(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(48.dp)
+                        .clip(CircleShape)
+                        .clickable { showingSearch = true },
+                    shape = CircleShape,
+                    color = Color.White,
+                    border = BorderStroke(1.dp, Color.Black.copy(alpha = 0.08f)),
+                    shadowElevation = 2.dp
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = "Ask LaterBox",
+                            fontSize = 15.sp,
+                            color = LaterboxTextSecondary,
+                            fontWeight = FontWeight.Normal
+                        )
+                        Icon(
+                            imageVector = Icons.Default.AutoAwesome,
+                            contentDescription = null,
+                            tint = Color(0xFF1A73E8),
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
+
+                // 3. Top right: Profile pic / avatar with dropdown menu
+                Box {
+                    Surface(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .clickable { profileExpanded = true },
+                        shape = CircleShape,
+                        color = Color(0xFF171711),
+                        border = BorderStroke(2.dp, Color(0xFF1A73E8))
+                    ) {
+                        Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                            Text(
+                                text = userInitial,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                        }
+                    }
+
+                    DropdownMenu(
+                        expanded = profileExpanded,
+                        onDismissRequest = { profileExpanded = false },
+                        modifier = Modifier
+                            .background(LaterboxCard)
+                            .border(1.dp, LaterboxBorder, RoundedCornerShape(12.dp))
+                            .widthIn(min = 200.dp)
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Settings", fontWeight = FontWeight.Medium) },
+                            leadingIcon = { Icon(Icons.Default.Settings, contentDescription = null, modifier = Modifier.size(18.dp)) },
+                            onClick = {
+                                profileExpanded = false
+                                onOpenSettings()
+                            }
+                        )
+
+                        HorizontalDivider(color = LaterboxBorder, thickness = 0.5.dp)
+
+                        if (account.userId != null) {
+                            account.email?.let { email ->
+                                DropdownMenuItem(
+                                    text = {
+                                        Column {
+                                            Text(email, fontSize = 11.sp, color = LaterboxTextSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                        }
+                                    },
+                                    enabled = false,
+                                    onClick = {}
+                                )
+                            }
+                            DropdownMenuItem(
+                                text = { Text("Sign Out", color = Color(0xFFE53935), fontWeight = FontWeight.SemiBold) },
+                                leadingIcon = { Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = null, tint = Color(0xFFE53935), modifier = Modifier.size(18.dp)) },
+                                onClick = {
+                                    profileExpanded = false
+                                    onSignOut()
+                                }
+                            )
+                        } else {
+                            DropdownMenuItem(
+                                text = { Text("Guest Mode", fontSize = 11.sp, color = LaterboxTextSecondary) },
+                                enabled = false,
+                                onClick = {}
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Sign In / Exit Guest", color = Color(0xFF1A73E8), fontWeight = FontWeight.SemiBold) },
+                                leadingIcon = { Icon(Icons.AutoMirrored.Filled.Login, contentDescription = null, tint = Color(0xFF1A73E8), modifier = Modifier.size(18.dp)) },
+                                onClick = {
+                                    profileExpanded = false
+                                    onAuth()
+                                }
+                            )
+                        }
                     }
                 }
             }
-        }
-        item {
-            VaultSearchBar(query = "", onQueryChange = {}, placeholder = "Search your vault...", onClick = { showingSearch = true })
         }
         if (formats.isNotEmpty()) item {
             Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
