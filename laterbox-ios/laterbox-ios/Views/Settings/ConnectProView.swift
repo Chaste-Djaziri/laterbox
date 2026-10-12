@@ -15,7 +15,7 @@ public struct ConnectProView: View {
                 Text("Pro on this device").font(.headline)
                 Text("Your Apple purchase works without a LaterBox account. Connecting an account is optional and enables cloud sync, backup, and Pro on the web.")
                     .font(.caption).foregroundColor(AppTheme.textSecondary)
-                if let email = coordinator.currentUserEmail {
+                if let email = coordinator.currentUserEmail, !email.isEmpty {
                     Text("Connect to: \(email)").font(.caption.weight(.semibold))
                 }
                 Button {
