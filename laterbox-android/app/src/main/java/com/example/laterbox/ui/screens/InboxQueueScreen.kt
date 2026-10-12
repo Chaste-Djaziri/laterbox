@@ -109,11 +109,11 @@ fun InboxQueueScreen(
             when (selectedMailbox) {
                 MailboxViewType.INBOX -> allItems.filter { it.status == "inbox" && it.deletedAt == null }
                 MailboxViewType.TODAY -> allItems.filter {
-                    it.deletedAt == null && it.status != "archived" && it.status != "deleted" &&
+                    it.deletedAt == null && it.status == "deferred" &&
                         it.returnAt != null && runCatching { Instant.parse(it.returnAt) <= endOfToday }.getOrDefault(false)
                 }
                 MailboxViewType.SCHEDULED -> allItems.filter {
-                    it.deletedAt == null && it.status != "archived" && it.status != "deleted" &&
+                    it.deletedAt == null && it.status == "deferred" &&
                         it.returnAt != null && runCatching { Instant.parse(it.returnAt) > endOfToday }.getOrDefault(false)
                 }
                 MailboxViewType.SOMEDAY -> allItems.filter {
