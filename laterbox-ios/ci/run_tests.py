@@ -54,7 +54,10 @@ def main():
     print(f'Created CI simulator {simulator} ({runtime})', flush=True)
     base = ['xcodebuild', '-project', 'laterbox-ios/laterbox-ios.xcodeproj', '-scheme', 'laterbox-ios',
             '-destination', 'platform=iOS Simulator,id=' + simulator, '-derivedDataPath', str(root / 'DerivedData'),
-            'CODE_SIGNING_ALLOWED=NO']
+            # Keychain-backed purchase identity requires the app identifier entitlement.
+            # Simulator ad-hoc signing supplies it without a distribution certificate.
+            'CODE_SIGNING_ALLOWED=YES', 'CODE_SIGN_IDENTITY=-',
+            'CODE_SIGN_STYLE=Manual', 'DEVELOPMENT_TEAM=LS42X27YFY']
     try:
         run('SimulatorBoot', ['xcrun', 'simctl', 'boot', simulator], 90)
         # A fresh device performs first-boot data migration. Keep it bounded, but
