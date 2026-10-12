@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.Label
@@ -18,6 +20,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -25,6 +29,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -356,6 +361,20 @@ fun MobileSidebarDrawer(
                         }
 
                         if (isCreatingCollection) {
+                            val focusRequester = remember { FocusRequester() }
+                            LaunchedEffect(Unit) {
+                                focusRequester.requestFocus()
+                            }
+
+                            val submit = {
+                                val trimmed = newCollectionName.trim()
+                                if (trimmed.isNotBlank()) {
+                                    onCreateCollection(trimmed)
+                                    newCollectionName = ""
+                                    isCreatingCollection = false
+                                }
+                            }
+
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -366,32 +385,34 @@ fun MobileSidebarDrawer(
                                 BasicTextField(
                                     value = newCollectionName,
                                     onValueChange = { newCollectionName = it },
+                                    singleLine = true,
+                                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                                    keyboardActions = KeyboardActions(onDone = { submit() }),
                                     textStyle = TextStyle(fontSize = 13.sp, color = LaterboxTextPrimary),
                                     cursorBrush = SolidColor(LaterboxTextPrimary),
                                     modifier = Modifier
                                         .weight(1f)
                                         .height(36.dp)
+                                        .focusRequester(focusRequester)
                                         .clip(RoundedCornerShape(10.dp))
                                         .background(Color.White)
                                         .border(BorderStroke(1.dp, Color.Black.copy(alpha = 0.1f)), RoundedCornerShape(10.dp))
-                                        .padding(horizontal = 10.dp, vertical = 8.dp),
+                                        .padding(horizontal = 10.dp),
                                     decorationBox = { inner ->
-                                        if (newCollectionName.isBlank()) {
-                                            Text("New collection name...", fontSize = 13.sp, color = LaterboxTextSecondary)
+                                        Box(
+                                            contentAlignment = Alignment.CenterStart,
+                                            modifier = Modifier.fillMaxSize()
+                                        ) {
+                                            if (newCollectionName.isBlank()) {
+                                                Text("New collection name...", fontSize = 13.sp, color = LaterboxTextSecondary)
+                                            }
+                                            inner()
                                         }
-                                        inner()
                                     }
                                 )
 
                                 Button(
-                                    onClick = {
-                                        val trimmed = newCollectionName.trim()
-                                        if (trimmed.isNotBlank()) {
-                                            onCreateCollection(trimmed)
-                                            newCollectionName = ""
-                                            isCreatingCollection = false
-                                        }
-                                    },
+                                    onClick = { submit() },
                                     enabled = newCollectionName.isNotBlank(),
                                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE6EDB0), contentColor = Color(0xFF171711)),
                                     shape = RoundedCornerShape(8.dp),
