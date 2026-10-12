@@ -107,10 +107,12 @@ fun AppNavigation(notificationItemId: String? = null, context: android.content.C
                             entered = false
                         },
                         onAuth = { auth = true },
-                        profileEnabled = !ai
+                        profileEnabled = !ai,
+                        onOpenSidebar = {},
+                        onOpenSettings = { tab = 4 }
                     )
                 }
-            } else NativeSettings(repository, { auth = true }, { trash = true })
+            } else NativeSettings(repository, { auth = true }, { trash = true }, onBack = { tab = 1 })
         }
     }
     if (capture) QuickCaptureSheet(repository, { capture = false }, { repository.syncNow() })
