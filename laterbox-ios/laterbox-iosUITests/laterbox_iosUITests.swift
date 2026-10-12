@@ -49,6 +49,7 @@ final class laterbox_iosUITests: XCTestCase {
         app.alerts["Welcome to Pro!"].buttons["Continue"].tap()
         let connect = app.buttons["billing.connect"]
         XCTAssertTrue(connect.waitForExistence(timeout: 5))
+        for _ in 0..<6 { if connect.isHittable { break }; (app.scrollViews.allElementsBoundByIndex.last ?? app.scrollViews.firstMatch).swipeDown() }
         reveal(connect, in: app)
         XCTAssertEqual(connect.label, "Sign in to connect Pro (optional)")
         XCTAssertFalse(app.textFields["Email"].exists)
