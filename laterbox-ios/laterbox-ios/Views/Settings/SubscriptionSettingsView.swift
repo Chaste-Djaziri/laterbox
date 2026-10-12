@@ -112,8 +112,8 @@ public struct SubscriptionSettingsView: View {
                                 Task { await storeKit.manageSubscription() }
                             }) {
                                 HStack(spacing: 8) {
-                                    Image(systemName: coordinator.billingEntitlement?.provider == "paddle" ? "creditcard" : "applelogo")
-                                    Text(coordinator.billingEntitlement?.provider == "paddle" ? "Manage Paddle Subscription" : "Manage Apple Subscription")
+                                    Image(systemName: storeKit.managementProvider == "paddle" ? "creditcard" : "applelogo")
+                                    Text(storeKit.managementProvider == "paddle" ? "Manage Paddle Subscription" : "Manage Apple Subscription")
                                         .font(.subheadline.weight(.semibold))
                                     Spacer()
                                     Image(systemName: "arrow.up.right")
@@ -163,6 +163,10 @@ public struct SubscriptionSettingsView: View {
                             }
                         }
 
+                        if storeKit.isProSubscriptionActive && coordinator.billingEntitlement?.provider == "paddle" {
+                            Button("Manage account’s Paddle subscription") { Task { await storeKit.manageSubscription(provider: "paddle") } }
+                                .font(.caption)
+                        }
                         if let entitlement = coordinator.billingEntitlement, entitlement.provider != nil {
                             Text("Managed by \(entitlement.provider == "apple" ? "Apple" : "Paddle"). To switch payment providers, cancel renewal there and subscribe with the other provider after access ends.")
                                 .font(.caption)
