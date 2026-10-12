@@ -37,7 +37,7 @@ public struct SubscriptionSettingsView: View {
                                 .font(.system(size: 22, weight: .bold))
                                 .foregroundColor(AppTheme.textPrimary)
 
-                            Text(coordinator.isProUser ? "All features and multi-device cloud sync unlocked" : "Free offline vault • Cloud synchronization available")
+                            Text(coordinator.isProUser ? coordinator.hasCloudPro ? "Device Pro and account cloud access active" : "Device Pro active • Account connection optional" : "Free offline vault • Cloud synchronization available")
                                 .font(.subheadline)
                                 .foregroundColor(AppTheme.textSecondary)
                                 .multilineTextAlignment(.center)
@@ -67,7 +67,7 @@ public struct SubscriptionSettingsView: View {
 
                         VStack(alignment: .leading, spacing: 10) {
                             if coordinator.isProUser {
-                                Text("Your active Pro subscription gives you seamless access to LaterBox on iOS, macOS, Chrome, Safari, and the web.")
+                                Text(coordinator.hasCloudPro ? "Your connected account has Pro access on iOS and the web." : "Pro works on this device without registration. Connect an account only if you want cloud sync, backup, and web access.")
                                     .font(.subheadline)
                                     .foregroundColor(AppTheme.textSecondary)
                                     .lineSpacing(2)
@@ -81,10 +81,10 @@ public struct SubscriptionSettingsView: View {
                             Divider().background(AppTheme.cardBorder)
 
                             VStack(alignment: .leading, spacing: 8) {
-                                featureRow(icon: "icloud.fill", title: "Multi-Device Cloud Sync", unlocked: coordinator.isProUser)
-                                featureRow(icon: "wand.and.stars", title: "AI Inbox Suggestions & Tagging", unlocked: coordinator.isProUser)
-                                featureRow(icon: "safari.fill", title: "Desktop Web & Browser Extensions", unlocked: coordinator.isProUser)
-                                featureRow(icon: "lock.icloud.fill", title: "Encrypted Cloud Backup & Restore", unlocked: coordinator.isProUser)
+                                featureRow(icon: "icloud.fill", title: "Multi-Device Cloud Sync", unlocked: coordinator.hasCloudPro)
+                                featureRow(icon: "wand.and.stars", title: "Pro AI Provider Options", unlocked: coordinator.isProUser)
+                                featureRow(icon: "safari.fill", title: "Web Pro Access", unlocked: coordinator.hasCloudPro)
+                                featureRow(icon: "lock.icloud.fill", title: "Cloud Backup & Restore", unlocked: coordinator.hasCloudPro)
                             }
                         }
                         .padding(16)
@@ -98,6 +98,7 @@ public struct SubscriptionSettingsView: View {
                         )
                     }
 
+                    ConnectProView()
                     // Subscription Management Actions
                     VStack(alignment: .leading, spacing: 12) {
                         Text("Plan Actions")
@@ -155,7 +156,7 @@ public struct SubscriptionSettingsView: View {
                                 }
                                 .buttonStyle(.plain)
 
-                                Text("$3.99 / month or $39.99 / year • 14-day free trial included")
+                                Text("\(storeKit.monthlyDisplayPrice) / month or \(storeKit.annualDisplayPrice) / year")
                                     .font(.caption)
                                     .foregroundColor(AppTheme.textSecondary)
                                     .frame(maxWidth: .infinity, alignment: .center)
@@ -201,10 +202,12 @@ public struct SubscriptionSettingsView: View {
                         .buttonStyle(.plain)
                     }
 
+                    Button("LaterBox Service Terms") { if let url = URL(string: StoreKitManager.termsOfServiceUrl) { openURL(url) } }
+                        .font(.caption)
                     // Legal Links
                     HStack(spacing: 16) {
                         Button("Terms of Use (EULA)") {
-                            if let url = URL(string: StoreKitManager.termsOfServiceUrl) {
+                            if let url = URL(string: StoreKitManager.eulaUrl) {
                                 openURL(url)
                             }
                         }
