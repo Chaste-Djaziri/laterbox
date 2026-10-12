@@ -24,6 +24,12 @@ interface ItemDao {
     @Query("UPDATE items SET status = 'inbox', updated_at = :now, sync_status = 'pending' WHERE status = 'deferred' AND return_at <= :now AND deleted_at IS NULL")
     suspend fun promoteDue(now: String)
 
+    @Query("SELECT * FROM items WHERE status = 'deferred' AND return_at <= :now AND deleted_at IS NULL")
+    suspend fun getDueItems(now: String): List<ItemEntity>
+
+    @Query("UPDATE items SET status = 'inbox', updated_at = :now, sync_status = 'pending' WHERE id = :id AND status = 'deferred' AND deleted_at IS NULL")
+    suspend fun promoteItem(id: String, now: String)
+
     @Query("UPDATE items SET deleted_at = NULL, status = 'inbox', updated_at = :now, sync_status = 'pending' WHERE id = :id")
     suspend fun restore(id: String, now: String)
 
