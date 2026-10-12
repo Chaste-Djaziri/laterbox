@@ -8,7 +8,7 @@ final class laterbox_iosUITests: XCTestCase {
     private func reveal(_ button: XCUIElement, in app: XCUIApplication) {
         for _ in 0..<6 {
             if button.isHittable { return }
-            app.scrollViews.containing(.button, identifier: button.identifier.isEmpty ? button.label : button.identifier).firstMatch.swipeUp()
+            (app.scrollViews.allElementsBoundByIndex.last ?? app.scrollViews.firstMatch).swipeUp()
         }
         XCTAssertTrue(button.isHittable)
     }
@@ -35,14 +35,14 @@ final class laterbox_iosUITests: XCTestCase {
         upgrade.tap()
         let buy = app.buttons["billing.purchase"]
         XCTAssertTrue(buy.waitForExistence(timeout: 10))
-        let eula = app.buttons["Terms of Use (EULA)"]
+        let eula = try XCTUnwrap(app.buttons["Terms of Use (EULA)"].allElementsBoundByIndex.last)
         reveal(eula, in: app)
-        XCTAssertTrue(app.buttons["Privacy Policy"].exists)
+        XCTAssertTrue(app.buttons["Privacy Policy"].firstMatch.exists)
         let legal = XCTAttachment(screenshot: app.screenshot())
         legal.name = "Guest purchase legal disclosures — local StoreKit simulation"
         legal.lifetime = .keepAlways
         add(legal)
-        for _ in 0..<6 { if buy.isHittable { break }; app.scrollViews.containing(.button, identifier: "billing.purchase").firstMatch.swipeDown() }
+        for _ in 0..<6 { if buy.isHittable { break }; (app.scrollViews.allElementsBoundByIndex.last ?? app.scrollViews.firstMatch).swipeDown() }
         XCTAssertTrue(buy.isEnabled)
         buy.tap()
         XCTAssertTrue(app.alerts["Welcome to Pro!"].waitForExistence(timeout: 15))
