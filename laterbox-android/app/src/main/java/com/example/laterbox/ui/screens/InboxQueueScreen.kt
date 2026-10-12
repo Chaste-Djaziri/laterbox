@@ -868,8 +868,7 @@ internal fun InboxRichItemCard(item: ItemEntity, metadata: ItemMetadataEntity?, 
     val context = LocalContext.current
     val domain = metadata?.domain?.takeIf { it.isNotBlank() } ?: runCatching { URI(item.url.orEmpty()).host?.removePrefix("www.") }.getOrNull()
     val title = item.title?.takeIf { it.isNotBlank() } ?: metadata?.title?.takeIf { it.isNotBlank() } ?: domain ?: inboxFormatLabel(item.type)
-    val preview = metadata?.previewImageUrl?.takeIf { it.startsWith("https://") || it.startsWith("http://") }
-        ?: if (item.type == "image") item.url else null
+    val preview = resolveEffectivePreviewImageUrl(item, metadata)
     val age = runCatching { DateUtils.getRelativeTimeSpanString(Instant.parse(item.createdAt).toEpochMilli(), System.currentTimeMillis(), DateUtils.MINUTE_IN_MILLIS).toString() }.getOrDefault("")
     val note = item.notes.takeIf { it.isNotBlank() } ?: item.summary.takeIf { it.isNotBlank() } ?: item.textContent?.takeIf { it.isNotBlank() }
     Surface(onClick = onOpen, shape = RoundedCornerShape(20.dp), color = LaterboxCard, border = BorderStroke(1.dp, LaterboxBorder)) {
@@ -1039,8 +1038,7 @@ internal fun EmailInboxRowCard(
         ?: item.textContent?.takeIf { it.isNotBlank() }
         ?: item.url
         ?: "Saved item"
-    val preview = metadata?.previewImageUrl?.takeIf { it.startsWith("http") }
-        ?: if (item.type == "image") item.url else null
+    val preview = resolveEffectivePreviewImageUrl(item, metadata)
 
     val cardShape = RoundedCornerShape(
         topStart = topRadius,
@@ -1059,31 +1057,39 @@ internal fun EmailInboxRowCard(
         Box(modifier = Modifier.fillMaxWidth()) {
             // Right-aligned fading preview watermark matching iOS
             if (!preview.isNullOrBlank()) {
-                Box(
-                    modifier = Modifier.matchParentSize(),
+                BoxWithConstraints(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .clip(cardShape),
                     contentAlignment = Alignment.CenterEnd
                 ) {
-                    AsyncImage(
-                        model = preview,
-                        contentDescription = null,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .fillMaxHeight()
-                            .width(185.dp)
-                            .alpha(0.65f)
-                    )
+                    val watermarkWidth = maxOf(maxWidth * 0.45f, 185.dp)
                     Box(
                         modifier = Modifier
-                            .matchParentSize()
-                            .background(
-                                Brush.horizontalGradient(
-                                    0.0f to Color.White,
-                                    0.35f to Color.White.copy(alpha = 0.85f),
-                                    0.70f to Color.White.copy(alpha = 0.25f),
-                                    1.0f to Color.Transparent
+                            .fillMaxHeight()
+                            .width(watermarkWidth)
+                    ) {
+                        AsyncImage(
+                            model = preview,
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .alpha(0.70f)
+                        )
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(
+                                    Brush.horizontalGradient(
+                                        0.00f to Color.White,
+                                        0.35f to Color.White.copy(alpha = 0.85f),
+                                        0.70f to Color.White.copy(alpha = 0.20f),
+                                        1.00f to Color.Transparent
+                                    )
                                 )
-                            )
-                    )
+                        )
+                    }
                 }
             }
 
