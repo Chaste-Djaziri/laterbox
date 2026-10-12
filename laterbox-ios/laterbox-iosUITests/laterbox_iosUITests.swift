@@ -1,4 +1,5 @@
 import XCTest
+import StoreKitTest
 
 final class laterbox_iosUITests: XCTestCase {
     override func setUpWithError() throws { continueAfterFailure = false }
@@ -10,6 +11,56 @@ final class laterbox_iosUITests: XCTestCase {
             app.scrollViews.firstMatch.swipeUp()
         }
         XCTAssertTrue(button.isHittable)
+    }
+
+    @MainActor
+    func testGuestSubscriptionReviewWalkthrough() throws {
+        let file = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().appendingPathComponent("laterbox-ios/Products.storekit")
+        let session = try SKTestSession(contentsOf: file)
+        session.disableDialogs = true
+        session.clearTransactions()
+        defer { session.clearTransactions() }
+        let app = XCUIApplication()
+        app.launchArguments = ["-lb_guest_mode", "YES", "-lb_user_email", ""]
+        app.launch()
+        XCTAssertTrue(app.buttons["Profile menu"].waitForExistence(timeout: 15))
+        app.buttons["Profile menu"].tap()
+        app.buttons["Settings"].tap()
+        let subscriptions = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "Subscription & Plans")).firstMatch
+        XCTAssertTrue(subscriptions.waitForExistence(timeout: 5))
+        subscriptions.tap()
+        let upgrade = app.buttons["Upgrade to LaterBox Pro"]
+        XCTAssertTrue(upgrade.waitForExistence(timeout: 5))
+        reveal(upgrade, in: app)
+        upgrade.tap()
+        let buy = app.buttons["billing.purchase"]
+        XCTAssertTrue(buy.waitForExistence(timeout: 10))
+        let eula = app.buttons["Terms of Use (EULA)"]
+        reveal(eula, in: app)
+        XCTAssertTrue(app.buttons["Privacy Policy"].exists)
+        let legal = XCTAttachment(screenshot: app.screenshot())
+        legal.name = "Guest purchase legal disclosures — local StoreKit simulation"
+        legal.lifetime = .keepAlways
+        add(legal)
+        for _ in 0..<6 { if buy.isHittable { break }; app.scrollViews.firstMatch.swipeDown() }
+        XCTAssertTrue(buy.isEnabled)
+        buy.tap()
+        XCTAssertTrue(app.alerts["Welcome to Pro!"].waitForExistence(timeout: 15))
+        app.alerts["Welcome to Pro!"].buttons["Continue"].tap()
+        let connect = app.buttons["billing.connect"]
+        XCTAssertTrue(connect.waitForExistence(timeout: 5))
+        reveal(connect, in: app)
+        XCTAssertEqual(connect.label, "Sign in to connect Pro (optional)")
+        XCTAssertFalse(app.textFields["Email"].exists)
+        let connected = XCTAttachment(screenshot: app.screenshot())
+        connected.name = "Device Pro with optional account connection"
+        connected.lifetime = .keepAlways
+        add(connected)
+        let restore = app.buttons["Restore Purchases"]
+        reveal(restore, in: app)
+        restore.tap()
+        XCTAssertTrue(app.buttons["billing.connect"].exists)
+        XCTAssertEqual(session.allTransactions().count, 1)
     }
 
     @MainActor
