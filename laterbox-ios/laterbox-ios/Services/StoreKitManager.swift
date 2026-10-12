@@ -244,7 +244,8 @@ public final class StoreKitManager: ObservableObject {
         let accountToken: UUID
         do {
             // No login or LaterBox network request is necessary to buy.
-            accountToken = coordinator.currentUserId.flatMap(UUID.init(uuidString:)) ?? (try vault.anonymousToken())
+            if let token = coordinator.currentUserId.flatMap(UUID.init(uuidString:)) { accountToken = token }
+            else { accountToken = try vault.anonymousToken() }
         } catch { errorMessage = "Unable to save the purchase identity securely on this device. Please retry."; return false }
         let options: Set<Product.PurchaseOption> = [.appAccountToken(accountToken)]
 
