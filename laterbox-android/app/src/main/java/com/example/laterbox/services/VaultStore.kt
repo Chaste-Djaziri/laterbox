@@ -71,16 +71,50 @@ class VaultStore(private val context: Context) {
         }
     }
     companion object {
-        fun draft(content: String, title: String = "", tags: String = "", category: String = "", returnAt: String? = null, attachments: String = "[]", id: String = UUID.randomUUID().toString()): ItemEntity {
+        fun draft(
+            content: String,
+            title: String = "",
+            tags: String = "",
+            category: String = "",
+            returnAt: String? = null,
+            attachments: String = "[]",
+            id: String = UUID.randomUUID().toString(),
+            type: String? = null,
+            summary: String = ""
+        ): ItemEntity {
             val url = Regex("https?://[^\\s]+").find(content)?.value
             val host = url?.let { runCatching { java.net.URI(it).host }.getOrNull() }.orEmpty()
             val mime = runCatching { JSONArray(attachments).optJSONObject(0)?.optString("mime") }.getOrNull().orEmpty()
-            val type = when { mime.startsWith("image/") -> "image"; mime.startsWith("video/") -> "video"; mime.startsWith("audio/") -> "music"; attachments != "[]" -> "document"; url == null -> "note"; host.contains("youtube") || host.contains("youtu.be") -> "video"; host.contains("spotify") || host.contains("soundcloud") -> "music"; url.endsWith(".pdf") -> "document"; else -> "link" }
+            val resolvedType = type?.takeIf { it.isNotBlank() } ?: when {
+                mime.startsWith("image/") -> "image"
+                mime.startsWith("video/") -> "video"
+                mime.startsWith("audio/") -> "music"
+                attachments != "[]" -> "document"
+                url == null -> "note"
+                host.contains("youtube") || host.contains("youtu.be") || host.contains("vimeo") -> "video"
+                host.contains("spotify") || host.contains("soundcloud") || host.contains("music.apple") -> "music"
+                host.contains("medium") || host.contains("substack") -> "article"
+                url.endsWith(".pdf") -> "document"
+                else -> "link"
+            }
             val hashtags = Regex("#([\\p{L}\\d_-]+)").findAll(content).map { it.groupValues[1] }.toList()
             val stamp = Instant.now().toString()
-            return ItemEntity(id, title = title.ifBlank { host.ifBlank { content.lineSequence().firstOrNull().orEmpty().take(100).ifBlank { "Shared file" } } }, url = url,
-                textContent = content, type = type, tags = (tags.split(Regex("[,\\s]+")) + hashtags).map { it.removePrefix("#") }.filter { it.isNotBlank() }.distinct().joinToString(", "), category = category,
-                returnAt = returnAt, status = if (returnAt == null) "inbox" else "deferred", attachments = attachments, createdAt = stamp, updatedAt = stamp)
+            return ItemEntity(
+                id = id,
+                title = title.ifBlank { host.ifBlank { content.lineSequence().firstOrNull().orEmpty().take(100).ifBlank { "Shared file" } } },
+                url = url,
+                textContent = content,
+                type = resolvedType,
+                tags = (tags.split(Regex("[,\\s]+")) + hashtags).map { it.removePrefix("#") }.filter { it.isNotBlank() }.distinct().joinToString(", "),
+                category = category,
+                summary = summary,
+                notes = summary,
+                returnAt = returnAt,
+                status = if (returnAt == null) "inbox" else "deferred",
+                attachments = attachments,
+                createdAt = stamp,
+                updatedAt = stamp
+            )
         }
     }
 }
