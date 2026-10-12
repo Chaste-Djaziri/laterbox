@@ -63,7 +63,7 @@ public final class SyncCoordinator: ObservableObject {
         currentUserEmail != nil && !(currentUserEmail?.isEmpty ?? true)
     }
 
-    public var hasCloudPro: Bool { isAuthenticated && accountPro }
+    public var hasCloudPro: Bool { !isGuestMode && isAuthenticated && accountPro }
 
     public var isProUser: Bool {
         isPro
@@ -96,7 +96,7 @@ public final class SyncCoordinator: ObservableObject {
 
     @discardableResult
     public func refreshEntitlement() async -> Bool {
-        guard let uid = currentUserId, let token = authToken else {
+        guard !isGuestMode, isAuthenticated, let uid = currentUserId, let token = authToken else {
             accountPro = false
             billingEntitlement = nil
             billingError = nil
