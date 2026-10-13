@@ -1,0 +1,51 @@
+name: Apple Subscription Review Metadata
+on:
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: Apply the prepared EULA and optional-sign-in review notes
+        type: boolean
+        default: false
+permissions:
+  contents: read
+jobs:
+  metadata:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      APP_STORE_CONNECT_API_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_API_KEY_BASE64 }}
+      APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+      APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - run: pip install -r laterbox-ios/ci/requirements.txt
+      - name: Validate metadata preservation
+        run: python -m unittest discover -s scripts/tests -p 'test_apple_review_metadata.py'
+      - name: Prepare existing App Store Connect credential
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          test -n "$APP_STORE_CONNECT_API_KEY_BASE64"
+          ASC_KEY_PATH="$RUNNER_TEMP/laterbox-metadata-key.p8"
+          printf '%s' "$APP_STORE_CONNECT_API_KEY_BASE64" | base64 --decode > "$ASC_KEY_PATH"
+          echo "ASC_KEY_PATH=$ASC_KEY_PATH" >> "$GITHUB_ENV"
+      - name: Inspect or apply prepared metadata
+        env:
+          APPLY_METADATA: ${{ inputs.apply }}
+        shell: bash
+        run: |
+          if [ "$APPLY_METADATA" = 'true' ]; then
+            python scripts/apple-review-metadata.py --apply
+          else
+            python scripts/apple-review-metadata.py
+          fi
+      - name: Remove temporary credential
+        if: always()
+        shell: bash
+        run: |
+          if [ -n "${ASC_KEY_PATH:-}" ]; then rm -f "$ASC_KEY_PATH"; fi
