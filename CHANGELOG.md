@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[Billing] Apple notification delivery on Cloudflare**: Fix the Apple SDK transport compatibility so signed subscription updates and account status checks can run with certificate revocation verification enabled.
+
 - **[iOS / Billing] Optional registration and Apple review disclosures**: Allow guest Pro purchases and restores, add explicit secure account connection for web access, separate device delivery from cloud retries, and use the Apple standard EULA with localized subscription disclosures.
 
 - **[Billing] Shared Apple subscription access**: Repair account-linked App Store and TestFlight purchase registration, subscription lifecycle checks, provider-specific management, and duplicate checkout prevention across iOS and web.
