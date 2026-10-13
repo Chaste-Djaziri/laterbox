@@ -67,6 +67,22 @@ final class laterbox_iosUITests: XCTestCase {
         XCTAssertFalse(app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@", "Could not restore purchases:")).firstMatch.exists)
         XCTAssertTrue(connections.firstMatch.exists)
         XCTAssertEqual(session.allTransactions().count, 1)
+        XCTAssertFalse(app.buttons["billing.purchase"].exists)
+
+        // Exercise real device entitlement updates in a foreground application.
+        // A headless unit-test host cannot reliably verify StoreKit receipts.
+        let transaction = try XCTUnwrap(session.allTransactions().first)
+        try session.disableAutoRenewForTransaction(identifier: transaction.identifier)
+        XCTAssertTrue(connections.firstMatch.exists, "Cancellation must preserve paid access")
+        try session.enableAutoRenewForTransaction(identifier: transaction.identifier)
+        session.shouldEnterBillingRetryOnRenewal = true
+        session.billingGracePeriodIsEnabled = true
+        try session.forceRenewalOfSubscription(productIdentifier: transaction.productIdentifier)
+        XCTAssertTrue(connections.firstMatch.exists, "Billing grace must preserve device access")
+        try session.refundTransaction(identifier: transaction.identifier)
+        let checkout = app.buttons["billing.purchase"]
+        XCTAssertTrue(checkout.waitForExistence(timeout: 15), "Refunded access must be revoked")
+        XCTAssertFalse(connections.firstMatch.exists)
     }
 
     @MainActor
