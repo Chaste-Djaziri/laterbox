@@ -38,3 +38,12 @@ Uncheck “Sign-in required” for the guest review flow. If supplying optional 
 - Update metadata, attach the actual walkthrough, add these notes, select the corrected build, and resubmit. Do not request the bug-fix exception. Approval remains Apple's decision.
 
 The owner elected to handle App Store metadata and submission. No review reply or resubmission has been sent by this task.
+
+## Delivery checks, October 13, 2026
+
+- Migration `202610120003_optional_apple_account_links.sql` is applied to the live Supabase project.
+- Dedicated In-App Purchase credentials are configured as encrypted deployment secrets and installed on the existing Worker. Sandbox and production API authentication were checked without using customer transactions.
+- Both App Store Server Notification URLs are saved as `https://app.laterbox.dev/api/billing/apple/webhook`. Apple reports `SUCCESS` for fresh V2 test notifications in both environments after the Worker transport fix. These test events grant no account access.
+- The deployed Worker accepts the signed test payloads with HTTP 204 while Apple's certificate chain and online certificate-status checks remain enabled.
+- Local validation passes: 92 web tests, web type checks, Cloudflare packaging, nine CI helper tests, 48 native unit tests, and three UI tests on a fresh iPhone 18 Pro simulator. The iPad Air M3 walkthrough and reference captures are linked above.
+- A corrected TestFlight upload is still subject to CI and Apple's build processing. A real TestFlight purchase → explicit account connection → Supabase Apple record → web Pro check remains outstanding. The local simulation does not satisfy that check.
