@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[App Store] Subscription review metadata**: Add the Apple standard EULA to localized descriptions and provide review instructions for guest purchases and optional account connection.
+
 - **[iOS / Billing] App Store confirmation window**: Anchor purchases to the active LaterBox window so the confirmation flow remains reliable after a fresh launch.
 
 - **[Billing] Apple notification delivery on Cloudflare**: Fix the Apple SDK transport compatibility so signed subscription updates and account status checks can run with certificate revocation verification enabled.
