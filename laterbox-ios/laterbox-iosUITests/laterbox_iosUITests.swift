@@ -79,7 +79,11 @@ final class laterbox_iosUITests: XCTestCase {
         session.billingGracePeriodIsEnabled = true
         try session.forceRenewalOfSubscription(productIdentifier: transaction.productIdentifier)
         XCTAssertTrue(connections.firstMatch.exists, "Billing grace must preserve device access")
-        try session.refundTransaction(identifier: transaction.identifier)
+        // A renewal can create a new entitlement transaction; revoke the entire
+        // simulated subscription rather than only its original purchase.
+        for purchased in session.allTransactions() {
+            try session.refundTransaction(identifier: purchased.identifier)
+        }
         let checkout = app.buttons["billing.purchase"]
         XCTAssertTrue(checkout.waitForExistence(timeout: 15), "Refunded access must be revoked")
         XCTAssertFalse(connections.firstMatch.exists)
