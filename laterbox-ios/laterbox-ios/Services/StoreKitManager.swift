@@ -9,6 +9,9 @@ import Foundation
 import StoreKit
 import SwiftUI
 import Combine
+#if canImport(UIKit)
+import UIKit
+#endif
 
 @MainActor
 public final class StoreKitManager: ObservableObject {
@@ -258,7 +261,15 @@ public final class StoreKitManager: ObservableObject {
         let options: Set<Product.PurchaseOption> = [.appAccountToken(accountToken)]
 
         do {
+#if os(iOS)
+            guard let scene = UIApplication.shared.connectedScenes.first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene else {
+                errorMessage = "The purchase screen is not ready. Return to LaterBox and try again."
+                return false
+            }
+            let result = try await product.purchase(confirmIn: scene, options: options)
+#else
             let result = try await product.purchase(options: options)
+#endif
 
             switch result {
             case .success(let verification):
