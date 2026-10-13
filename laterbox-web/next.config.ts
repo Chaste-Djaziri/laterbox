@@ -1,6 +1,11 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  turbopack: {
+    resolveAlias: {
+      'node-fetch': './src/lib/billing/apple-fetch.cjs',
+    },
+  },
   env: {
     GITHUB_TOKEN: process.env.GITHUB_TOKEN || process.env.NEXT_PUBLIC_GITHUB_TOKEN || '',
   },
