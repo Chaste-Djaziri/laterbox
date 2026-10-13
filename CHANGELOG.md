@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[iOS / Billing] App Store confirmation window**: Anchor purchases to the active LaterBox window so the confirmation flow remains reliable after a fresh launch.
+
 - **[Billing] Apple notification delivery on Cloudflare**: Fix the Apple SDK transport compatibility so signed subscription updates and account status checks can run with certificate revocation verification enabled.
 
 - **[iOS / Billing] Optional registration and Apple review disclosures**: Allow guest Pro purchases and restores, add explicit secure account connection for web access, separate device delivery from cloud retries, and use the Apple standard EULA with localized subscription disclosures.
