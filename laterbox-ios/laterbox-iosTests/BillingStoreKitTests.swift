@@ -11,6 +11,7 @@ extension LaterAITests {
         print("Billing integration: configuring StoreKit session")
         let session = try SKTestSession(contentsOf: file)
         session.disableDialogs = true
+        session.timeRate = .realTime
         session.clearTransactions()
         defer { session.clearTransactions() }
         let coordinator = SyncCoordinator.shared
@@ -68,6 +69,7 @@ extension LaterAITests {
         print("Billing integration: configuring StoreKit session")
         let session = try SKTestSession(contentsOf: file)
         session.disableDialogs = true
+        session.timeRate = .realTime
         session.clearTransactions()
         defer { session.clearTransactions() }
         let coordinator = SyncCoordinator.shared
@@ -95,7 +97,11 @@ extension LaterAITests {
         let guestToken = try AppleBillingVault().anonymousToken()
         let purchase = try await session.buyProduct(identifier: product.id, options: [.appAccountToken(guestToken)])
         #expect(purchase.appAccountToken == guestToken)
-        await manager.updatePurchasedProducts()
+        for _ in 0..<20 {
+            await manager.updatePurchasedProducts()
+            if manager.isProSubscriptionActive && coordinator.isProUser { break }
+            try await Task.sleep(for: .milliseconds(100))
+        }
         #expect(manager.isProSubscriptionActive)
         #expect(coordinator.isProUser && !coordinator.hasCloudPro)
         #expect(!coordinator.showingAuthSheet)
@@ -104,7 +110,9 @@ extension LaterAITests {
         #expect(unfinished == 0)
         let transaction = try #require(session.allTransactions().first)
         #expect(transaction.productIdentifier == StoreKitManager.monthlyId)
-        await manager.restorePurchases()
+        // Launch entitlement recovery does not require a confirmation window.
+        // AppStore.sync's user-facing restore action is exercised by the UI test.
+        await manager.updatePurchasedProducts()
         #expect(manager.isProSubscriptionActive)
         #expect(coordinator.currentUserId == nil)
         // A second purchase on this device is blocked without requesting signup.
