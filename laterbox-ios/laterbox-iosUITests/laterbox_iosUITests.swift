@@ -18,6 +18,7 @@ final class laterbox_iosUITests: XCTestCase {
         let file = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().appendingPathComponent("laterbox-ios/Products.storekit")
         let session = try SKTestSession(contentsOf: file)
         session.disableDialogs = true
+        session.timeRate = .realTime
         session.clearTransactions()
         defer { session.clearTransactions() }
         let app = XCUIApplication()
@@ -61,6 +62,9 @@ final class laterbox_iosUITests: XCTestCase {
         let restore = app.buttons["Restore Purchases"]
         reveal(restore, in: app)
         restore.tap()
+        let restored = XCTNSPredicateExpectation(predicate: NSPredicate(format: "enabled == true"), object: restore)
+        XCTAssertEqual(XCTWaiter.wait(for: [restored], timeout: 15), .completed)
+        XCTAssertFalse(app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@", "Could not restore purchases:")).firstMatch.exists)
         XCTAssertTrue(connections.firstMatch.exists)
         XCTAssertEqual(session.allTransactions().count, 1)
     }
