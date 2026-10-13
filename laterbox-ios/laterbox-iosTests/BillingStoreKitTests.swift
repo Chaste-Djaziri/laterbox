@@ -27,8 +27,10 @@ extension LaterAITests {
         print("Billing integration: loading StoreKit products")
         await manager.loadProducts()
         let product = try #require(manager.monthlyProduct)
-        print("Billing integration: purchasing through StoreKit")
-        #expect(await manager.purchase(product))
+        print("Billing integration: creating a verified StoreKit test transaction")
+        let guestToken = try AppleBillingVault().anonymousToken()
+        _ = try await session.buyProduct(identifier: product.id, options: [.appAccountToken(guestToken)])
+        await manager.updatePurchasedProducts()
         session.shouldEnterBillingRetryOnRenewal = true
         session.billingGracePeriodIsEnabled = true
         print("Billing integration: entering billing grace")
@@ -46,8 +48,8 @@ extension LaterAITests {
         session.shouldEnterBillingRetryOnRenewal = false
         session.clearTransactions()
         await manager.updatePurchasedProducts()
-        print("Billing integration: purchasing through StoreKit")
-        #expect(await manager.purchase(product))
+        _ = try await session.buyProduct(identifier: product.id, options: [.appAccountToken(guestToken)])
+        await manager.updatePurchasedProducts()
         let transaction = try #require(session.allTransactions().first)
         try session.disableAutoRenewForTransaction(identifier: transaction.identifier)
         await manager.updatePurchasedProducts()
@@ -61,7 +63,7 @@ extension LaterAITests {
         #expect(!manager.isProSubscriptionActive && !coordinator.hasCloudPro)
     }
 
-    @Test func guestPurchaseDeliversWithoutAnAccountAndFinishesTheTransaction() async throws {
+    @Test func guestEntitlementDeliversWithoutAnAccountAndFinishesTheTransaction() async throws {
         let file = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().appendingPathComponent("laterbox-ios/Products.storekit")
         print("Billing integration: configuring StoreKit session")
         let session = try SKTestSession(contentsOf: file)
@@ -89,8 +91,11 @@ extension LaterAITests {
             #expect(manager.annualPlanDetail.contains("$39.99 per year"))
         }
         #expect(coordinator.currentUserId == nil && coordinator.authToken == nil)
-        print("Billing integration: purchasing through StoreKit")
-        #expect(await manager.purchase(product))
+        print("Billing integration: creating a verified StoreKit test transaction")
+        let guestToken = try AppleBillingVault().anonymousToken()
+        let purchase = try await session.buyProduct(identifier: product.id, options: [.appAccountToken(guestToken)])
+        #expect(purchase.appAccountToken == guestToken)
+        await manager.updatePurchasedProducts()
         #expect(manager.isProSubscriptionActive)
         #expect(coordinator.isProUser && !coordinator.hasCloudPro)
         #expect(!coordinator.showingAuthSheet)
