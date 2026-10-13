@@ -8,6 +8,7 @@ import Security
 extension LaterAITests {
     @Test func deviceSubscriptionPreservesGraceAndRemovesRefundedAccess() async throws {
         let file = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().appendingPathComponent("laterbox-ios/Products.storekit")
+        print("Billing integration: configuring StoreKit session")
         let session = try SKTestSession(contentsOf: file)
         session.disableDialogs = true
         session.clearTransactions()
@@ -21,12 +22,16 @@ extension LaterAITests {
         coordinator.signOut()
         coordinator.continueAsGuest()
         let manager = StoreKitManager.shared
+        print("Billing integration: refreshing device entitlements")
         await manager.updatePurchasedProducts()
+        print("Billing integration: loading StoreKit products")
         await manager.loadProducts()
         let product = try #require(manager.monthlyProduct)
+        print("Billing integration: purchasing through StoreKit")
         #expect(await manager.purchase(product))
         session.shouldEnterBillingRetryOnRenewal = true
         session.billingGracePeriodIsEnabled = true
+        print("Billing integration: entering billing grace")
         try session.forceRenewalOfSubscription(productIdentifier: product.id)
         let subscription = try #require(product.subscription)
         var inGrace = false
@@ -41,6 +46,7 @@ extension LaterAITests {
         session.shouldEnterBillingRetryOnRenewal = false
         session.clearTransactions()
         await manager.updatePurchasedProducts()
+        print("Billing integration: purchasing through StoreKit")
         #expect(await manager.purchase(product))
         let transaction = try #require(session.allTransactions().first)
         try session.disableAutoRenewForTransaction(identifier: transaction.identifier)
@@ -57,6 +63,7 @@ extension LaterAITests {
 
     @Test func guestPurchaseDeliversWithoutAnAccountAndFinishesTheTransaction() async throws {
         let file = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().appendingPathComponent("laterbox-ios/Products.storekit")
+        print("Billing integration: configuring StoreKit session")
         let session = try SKTestSession(contentsOf: file)
         session.disableDialogs = true
         session.clearTransactions()
@@ -70,7 +77,9 @@ extension LaterAITests {
         coordinator.signOut()
         coordinator.continueAsGuest()
         let manager = StoreKitManager.shared
+        print("Billing integration: refreshing device entitlements")
         await manager.updatePurchasedProducts()
+        print("Billing integration: loading StoreKit products")
         await manager.loadProducts()
         let product = try #require(manager.monthlyProduct)
         let annual = try #require(manager.annualProduct)
@@ -80,6 +89,7 @@ extension LaterAITests {
             #expect(manager.annualPlanDetail.contains("$39.99 per year"))
         }
         #expect(coordinator.currentUserId == nil && coordinator.authToken == nil)
+        print("Billing integration: purchasing through StoreKit")
         #expect(await manager.purchase(product))
         #expect(manager.isProSubscriptionActive)
         #expect(coordinator.isProUser && !coordinator.hasCloudPro)
