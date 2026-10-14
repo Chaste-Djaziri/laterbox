@@ -10,6 +10,7 @@ import SwiftUI
 struct WelcomeView: View {
     @StateObject private var coordinator = SyncCoordinator.shared
     @State private var showingAuthView: Bool = false
+    @State private var showingPlans = false
 
     var body: some View {
         NavigationStack {
@@ -75,14 +76,14 @@ struct WelcomeView: View {
                     .padding(.horizontal, 24)
                     .padding(.bottom, 24)
 
-                    // Action Buttons: Black Continue & Guest Option
+                    // Account-free access is the primary action.
                     VStack(spacing: 12) {
-                        // Solid Black Continue Button
+                        // Enter the local library without registration.
                         Button(action: {
                             LBHaptic.medium()
-                            showingAuthView = true
+                            coordinator.continueAsGuest()
                         }) {
-                            Text("Continue")
+                            Text("Continue without account")
                                 .font(.system(size: 16, weight: .semibold))
                                 .foregroundColor(.white)
                                 .frame(maxWidth: .infinity)
@@ -93,16 +94,21 @@ struct WelcomeView: View {
 
                         // Continue Without Account
                         Button(action: {
-                            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                                coordinator.continueAsGuest()
-                            }
+                            showingAuthView = true
                         }) {
-                            Text("Continue without account")
+                            Text("Sign in for cloud and web access (optional)")
                                 .font(.system(size: 15, weight: .regular))
                                 .foregroundColor(Color.black.opacity(0.85))
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 8)
                         }
+
+                        Button("View Pro plans · Purchase or restore") {
+                            showingPlans = true
+                        }
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundColor(.black)
+                        .accessibilityIdentifier("welcome.plans")
 
                         // Legal Disclaimer
                         HStack(spacing: 4) {
@@ -123,6 +129,9 @@ struct WelcomeView: View {
                     .padding(.horizontal, 24)
                     .padding(.bottom, 20)
                 }
+            }
+            .sheet(isPresented: $showingPlans) {
+                PlansView()
             }
             .navigationDestination(isPresented: $showingAuthView) {
                 AuthView()
