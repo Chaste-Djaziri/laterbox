@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[iOS / Onboarding] Optional accounts**: Make account-free entry the primary welcome action and expose Pro plans, purchases, and restore directly before sign-in.
+
 - **[App Store] Subscription review metadata**: Add the Apple standard EULA to localized descriptions and provide review instructions for guest purchases and optional account connection.
 
 - **[iOS / Billing] App Store confirmation window**: Anchor purchases to the active LaterBox window so the confirmation flow remains reliable after a fresh launch.
