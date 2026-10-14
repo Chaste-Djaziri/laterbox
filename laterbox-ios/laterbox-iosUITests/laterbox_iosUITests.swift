@@ -14,6 +14,19 @@ final class laterbox_iosUITests: XCTestCase {
     }
 
     @MainActor
+    func testWelcomeOffersPurchaseAndRestoreWithoutRegistration() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["-lb_guest_mode", "NO", "-lb_user_email", ""]
+        app.launch()
+        XCTAssertTrue(app.buttons["Continue without account"].waitForExistence(timeout: 15))
+        let plans = app.buttons["welcome.plans"]
+        XCTAssertTrue(plans.isHittable)
+        plans.tap()
+        XCTAssertTrue(app.buttons["Restore Purchases"].waitForExistence(timeout: 10))
+        XCTAssertFalse(app.textFields["Email"].exists)
+    }
+
+    @MainActor
     func testGuestSubscriptionReviewWalkthrough() throws {
         let file = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().appendingPathComponent("laterbox-ios/Products.storekit")
         let session = try SKTestSession(contentsOf: file)
