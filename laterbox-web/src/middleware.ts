@@ -11,6 +11,9 @@ function routeDomain(request: NextRequest) {
   );
 
   const applyCors = (response: NextResponse) => {
+    if (hostname.startsWith('app.') || url.pathname === '/login' || url.pathname.startsWith('/extension/')) {
+      response.headers.set('X-Robots-Tag', 'noindex, follow');
+    }
     if (isTrustedOrigin && origin) {
       response.headers.set('Access-Control-Allow-Origin', origin);
       response.headers.set('Access-Control-Allow-Credentials', 'true');
@@ -34,6 +37,13 @@ function routeDomain(request: NextRequest) {
         },
       });
     }
+  }
+
+  if (hostname === 'www.laterbox.dev') {
+    const canonical = new URL(request.url);
+    canonical.hostname = 'laterbox.dev';
+    canonical.protocol = 'https:';
+    return applyCors(NextResponse.redirect(canonical, 308));
   }
 
   // Exclude static assets, api endpoints, branding, and files with extensions
@@ -104,7 +114,9 @@ function routeDomain(request: NextRequest) {
   if (isApexDomain) {
     // Marketing plans alias on apex domain (laterbox.dev/plans -> /pricing)
     if (url.pathname === '/plans') {
-      return applyCors(NextResponse.rewrite(new URL('/pricing', request.url)));
+      const pricing = new URL(request.url);
+      pricing.pathname = '/pricing';
+      return applyCors(NextResponse.redirect(pricing, 308));
     }
     // Canonical SEO Redirect for Docs: laterbox.dev/docs -> docs.laterbox.dev
     if (url.pathname === '/docs' || url.pathname === '/docs/') {
@@ -117,7 +129,7 @@ function routeDomain(request: NextRequest) {
 
     // App routes on apex domain redirect to app.laterbox.dev
     const isAppPath =
-      ['/today', '/upcoming', '/someday'].some(path => url.pathname === path) ||
+      ['/today', '/upcoming', '/someday', '/archived', '/kept', '/starred', '/trash', '/tutorial'].some(path => url.pathname === path) ||
       url.pathname.startsWith('/inbox') ||
       url.pathname.startsWith('/library') ||
       url.pathname.startsWith('/settings') ||
