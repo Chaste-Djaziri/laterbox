@@ -14,7 +14,7 @@ for (const path of paths) {
   assert.ok(title, path + ' title');
   assert.ok(!titles.has(title), path + ' unique title');
   titles.add(title);
-  assert.ok(html.includes('rel="canonical" href="https://laterbox.dev' + (path === '/' ? '/' : path) + '"'), path + ' canonical');
+  assert.ok(html.includes('rel="canonical" href="https://laterbox.dev' + (path === '/' ? '' : path) + '"'), path + ' canonical');
   assert.match(html, /name="description" content="[^"]+"/);
   assert.match(html, /property="og:image:width" content="1200"/);
   assert.match(html, /name="twitter:card" content="summary_large_image"/);
