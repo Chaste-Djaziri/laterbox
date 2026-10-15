@@ -1,8 +1,15 @@
 import assert from 'node:assert/strict';
+import http from 'node:http';
 
 const origin = process.env.SEO_TEST_ORIGIN || 'http://localhost:3100';
 async function request(path, host = 'laterbox.dev') {
-  return fetch(origin + path, { headers: { host }, redirect: 'manual' });
+  return new Promise((resolve, reject) => {
+    http.get(origin + path, { headers: { host } }, response => {
+      const chunks = [];
+      response.on('data', chunk => chunks.push(chunk));
+      response.on('end', () => resolve(new Response(Buffer.concat(chunks), { status: response.statusCode, headers: response.headers })));
+    }).on('error', reject);
+  });
 }
 const paths = ['/', '/features', '/about', '/browser-extension', '/download', '/guide', '/pricing', '/privacy', '/terms', '/refund'];
 const titles = new Set();
@@ -27,7 +34,7 @@ for (const [path, host, expected] of [
 ]) {
   const response = await request(path, host);
   assert.equal(response.status, 308);
-  assert.equal(response.headers.get('location'), expected);
+  assert.equal(new URL(response.headers.get('location'), 'https://' + host).href, expected);
 }
 for (const path of ['/login', '/inbox', '/plans', '/pricing', '/guide', '/download', '/extension/connect']) {
   const response = await request(path, 'app.laterbox.dev');
