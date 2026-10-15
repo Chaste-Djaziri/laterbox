@@ -32,7 +32,7 @@ export function LandingFaqSection() {
     {
       id: 'requires-internet',
       q: 'Does LaterBox require an internet connection?',
-      a: 'No. LaterBox is built with an offline-first SQLite core. All capture, search, and scheduling functions work completely offline without requiring an active internet connection.',
+      a: 'Supported native clients keep a local library you can use offline. Cloud synchronization, account services, and opening original web pages require an internet connection.',
     },
     {
       id: 'need-account',
@@ -90,7 +90,7 @@ export function LandingFaqSection() {
     {
       id: 'supported-os',
       q: 'Which operating systems does LaterBox support?',
-      a: 'LaterBox is available as a native application for Windows and macOS, as well as iOS, Android, and modern browser extensions (Chrome, Firefox, Safari).',
+      a: 'LaterBox includes web, native Apple and Android, and browser capture experiences. Platform release availability varies; visit Downloads for current installation options.',
     },
   ];
 
