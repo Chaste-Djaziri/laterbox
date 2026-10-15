@@ -20,6 +20,11 @@ All notable user-facing changes to LaterBox will be documented in this file.
 
 ## [Unreleased]
 
+### Public website SEO
+- Improve public page metadata, canonical URLs, social previews, structured data, mobile access, and host-specific indexing.
+- Add public Features, About LaterBox, and Browser Extension pages with navigation links.
+
+
 ### Added
 - **[Android] Bottom status bar and Get Pro indicator matching iOS**: Added the pinned bottom status bar to the Inbox screen matching iOS. Displays user status indicators with live status badges and subtitles: Guest mode shows "Guest / Local Vault" with "Offline" status and a "Sign In" button; Free tier shows "Free Plan" with a "LIMITED" badge and "Get Pro" upgrade button; Pro tier shows "Pro Member" with an "ACTIVE" badge and status indicators. Anchored the floating action button (+) seamlessly right above the bottom status bar.
 - **[iOS] Clipboard banner direct save with tomorrow return schedule and full link enrichment**: Enhanced the in-app copied item detection banner so tapping Save instantly captures the link or note scheduled for tomorrow morning 9:00 AM return. Automatically triggers background link metadata enrichment (authentic title, domain, description, keywords, non-letterboxed OG preview cover, and favicon), schedules local notifications with enriched content, and synchronizes with cloud storage without requiring conversational AI prompts.
