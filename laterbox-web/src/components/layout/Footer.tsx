@@ -94,7 +94,7 @@ export function Footer() {
             </Link>
 
             <p className="text-sm text-[#6c6b63] leading-relaxed max-w-sm">
-              The high-speed, save-for-later personal knowledge vault. Capture links, articles, and media from any device with zero friction, instant offline access, and automatic AI enrichment.
+              The high-speed, save-for-later personal knowledge vault. Save links, notes, and files, organize collections, and return to useful content. Local saving is available in supported clients, with optional synchronization.
             </p>
 
             {/* System Status & Version Pill */}
@@ -169,7 +169,7 @@ export function Footer() {
               </li>
               <li>
                 <Link
-                  href="/#features"
+                  href="/features"
                   className="hover:text-[#171711] transition-colors"
                 >
                   Pro Toolkit
@@ -355,13 +355,14 @@ export function Footer() {
             </ul>
           </div>
 
+          {/* Column 4: Legal & Privacy */}
+          <div className="space-y-4">
           <nav aria-label="About LaterBox" className="space-y-3 font-semibold">
             <Link className="block" href="/about">About LaterBox</Link>
             <Link className="block" href="/features">Features</Link>
             <Link className="block" href="/browser-extension">Browser extension</Link>
           </nav>
-          {/* Column 4: Legal & Privacy */}
-          <div className="space-y-4">
+
             <p className="text-xs font-bold uppercase tracking-wider text-[#171711]">
               Privacy & Legal
             </p>
