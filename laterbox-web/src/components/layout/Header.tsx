@@ -19,6 +19,7 @@ export function Header() {
   }, [pathname]);
 
   const navLinks = [
+    { href: '/features', label: 'Features' },
     { href: '/pricing', label: 'Plans' },
     { href: '/download', label: 'Downloads' },
     { href: '/docs', label: 'Docs' },
