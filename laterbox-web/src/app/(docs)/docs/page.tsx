@@ -1,50 +1,9 @@
+import { publicMetadata, DOCS_URL } from '@/lib/seo';
 import React from 'react';
 import { Metadata } from 'next';
 import { DocsReader } from '@/components/docs/DocsReader';
 
-export const metadata: Metadata = {
-  title: 'LaterBox Documentation | Local-First Architecture & Developer Guides',
-  description:
-    'Comprehensive developer guides, local SQLite Drift sync engine, Supabase Edge Functions, REST APIs, desktop quick capture, and self-hosting documentation for LaterBox.',
-  alternates: {
-    canonical: 'https://docs.laterbox.dev',
-  },
-  openGraph: {
-    title: 'LaterBox Documentation | Local-First Knowledge Vault',
-    description:
-      'Comprehensive developer guides, system architecture, local SQLite sync, and API reference for LaterBox.',
-    url: 'https://docs.laterbox.dev',
-    siteName: 'LaterBox Documentation',
-    images: [
-      {
-        url: 'https://laterbox.dev/branding/og-preview.png',
-        width: 1200,
-        height: 630,
-        alt: 'LaterBox Documentation',
-      },
-    ],
-    locale: 'en_US',
-    type: 'website',
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'LaterBox Documentation | Local-First Knowledge Vault',
-    description:
-      'Developer guides, architecture specifications, offline sync engine, and API reference for LaterBox.',
-    images: ['https://laterbox.dev/branding/og-preview.png'],
-  },
-  robots: {
-    index: true,
-    follow: true,
-    googleBot: {
-      index: true,
-      follow: true,
-      'max-video-preview': -1,
-      'max-image-preview': 'large',
-      'max-snippet': -1,
-    },
-  },
-};
+export const metadata: Metadata = publicMetadata('LaterBox Documentation', 'Explore LaterBox setup guides, supported clients, capture workflows, and technical documentation.', '/', DOCS_URL);
 
 export default function DocsPage() {
   const jsonLd = {
