@@ -41,7 +41,8 @@ function routeDomain(request: NextRequest) {
 
   if (hostname === 'www.laterbox.dev') {
     const canonical = new URL(request.url);
-    canonical.hostname = 'laterbox.dev';
+    canonical.host = 'laterbox.dev';
+    canonical.port = '';
     canonical.protocol = 'https:';
     return applyCors(NextResponse.redirect(canonical, 308));
   }
