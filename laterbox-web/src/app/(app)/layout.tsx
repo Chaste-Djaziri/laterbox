@@ -1,5 +1,5 @@
-'use client';
-
+import type { Metadata } from 'next';
+export const metadata: Metadata = { robots: { index: false, follow: true } };
 import { AccountGate } from '@/lib/auth/AccountGate';
 import React from 'react';
 import { MobileBlockOverlay } from '@/components/ui/MobileBlockOverlay';
