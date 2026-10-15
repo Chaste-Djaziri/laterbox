@@ -16,7 +16,6 @@ import { YourLaterBoxYourRulesSection } from '@/components/marketing/YourLaterBo
 import { OneShortcutAwaySection } from '@/components/marketing/OneShortcutAwaySection';
 import { YourThingsStaySection } from '@/components/marketing/YourThingsStaySection';
 import { LessMentalClutterSection } from '@/components/marketing/LessMentalClutterSection';
-import { UltimateWindowsOrganizerSection } from '@/components/marketing/UltimateWindowsOrganizerSection';
 import { WontForgetItLaterSection } from '@/components/marketing/WontForgetItLaterSection';
 import { LandingFaqSection } from '@/components/marketing/LandingFaqSection';
 import { AppStoreButton } from '@/components/download/AppStoreButton';
@@ -265,7 +264,7 @@ export default function LandingPage() {
       {/* ============================================================ */}
       {/* "The Ultimate Windows Productivity Organizer" Feature Tabs */}
       {/* ============================================================ */}
-      <UltimateWindowsOrganizerSection />
+
 
       {/* ============================================================ */}
       {/* "You don't need to do everything now." Core Statement */}
