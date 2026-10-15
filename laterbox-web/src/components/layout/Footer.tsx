@@ -355,6 +355,11 @@ export function Footer() {
             </ul>
           </div>
 
+          <nav aria-label="About LaterBox" className="space-y-3 font-semibold">
+            <Link className="block" href="/about">About LaterBox</Link>
+            <Link className="block" href="/features">Features</Link>
+            <Link className="block" href="/browser-extension">Browser extension</Link>
+          </nav>
           {/* Column 4: Legal & Privacy */}
           <div className="space-y-4">
             <p className="text-xs font-bold uppercase tracking-wider text-[#171711]">
