@@ -59,14 +59,13 @@ export default function LandingPage() {
 
           {/* Main Hero Heading */}
           <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight text-[#171711] leading-[1.08] mb-6">
-            Drop it now. <br />
-            Deal with it <span className="font-serif italic font-normal">later.</span>
+            LaterBox: save now. <br />
+            Return to it <span className="font-serif italic font-normal">later.</span>
           </h1>
 
           {/* Subheading */}
           <p className="max-w-2xl mx-auto text-base sm:text-xl text-[#6c6b63] leading-relaxed mb-10">
-            Save files, links, tasks, and ideas for later. <br className="hidden sm:inline" />
-            We&apos;ll bring them back when you&apos;re ready.
+            Your save-for-later app and bookmark manager for links, articles, videos, notes, and files. Organize collections and find what you saved when you need it.
           </p>
 
           {/* Action CTAs */}
@@ -274,6 +273,11 @@ export default function LandingPage() {
       <WontForgetItLaterSection />
 
       {/* ============================================================ */}
+      <nav aria-label="Learn about LaterBox" className="mx-auto flex max-w-5xl flex-wrap justify-center gap-6 px-6 py-10 font-bold underline">
+        <Link href="/features">Explore LaterBox features</Link>
+        <Link href="/about">About LaterBox</Link>
+        <Link href="/browser-extension">Save with the browser extension</Link>
+      </nav>
       {/* 2-Column Landing FAQ Section */}
       {/* ============================================================ */}
       <LandingFaqSection />
