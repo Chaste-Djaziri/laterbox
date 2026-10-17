@@ -75,6 +75,10 @@ public enum CloudSyncError: LocalizedError, CustomStringConvertible, Sendable, E
             return "Session expired or missing authentication. Please sign in again."
         case .unauthorized(let message):
             let trimmed = message.trimmingCharacters(in: .whitespacesAndNewlines)
+            let lower = trimmed.lowercased()
+            if lower.contains("jwt expired") || lower.contains("token expired") {
+                return "Session expired (JWT expired). Please sign in again to continue syncing."
+            }
             return trimmed.isEmpty ? "Authentication required or access denied (401/403)." : "Authentication error: \(trimmed)"
         case .serverError(let code, let message):
             let trimmed = message.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -204,11 +208,21 @@ extension SyncCoordinator {
     @discardableResult
     func performCloudPull(context: ModelContext, transport: (any IOSCloudTransport)? = nil) async throws -> Int {
         guard hasCloudPro else { return 0 }
-        guard isAuthenticated, let uid = currentUserId, let token = authToken else {
+        guard isAuthenticated, let uid = currentUserId, var token = authToken else {
             throw CloudSyncError.unauthenticated
         }
         let api: any IOSCloudTransport = transport ?? LaterBoxAPIService.shared
-        let remote = try await api.downloadSnapshots(userID: uid, token: token)
+        let remote: [CloudItemSnapshot]
+        do {
+            remote = try await api.downloadSnapshots(userID: uid, token: token)
+        } catch let err as CloudSyncError {
+            if case .unauthorized = err, await refreshAuthSession(), let refreshedToken = authToken {
+                token = refreshedToken
+                remote = try await api.downloadSnapshots(userID: uid, token: token)
+            } else {
+                throw err
+            }
+        }
         guard currentUserId == uid, authToken == token else { return 0 }
         let local = try context.fetch(FetchDescriptor<LBItem>())
         let byID = Dictionary(uniqueKeysWithValues: local.map { ($0.id, $0) })
@@ -273,15 +287,29 @@ extension SyncCoordinator {
     @discardableResult
     func performCloudPush(context: ModelContext, transport: (any IOSCloudTransport)? = nil) async throws -> Int {
         guard hasCloudPro else { return 0 }
-        guard isAuthenticated, let uid = currentUserId, let token = authToken else {
+        guard isAuthenticated, let uid = currentUserId, var token = authToken else {
             throw CloudSyncError.unauthenticated
         }
         let api: any IOSCloudTransport = transport ?? LaterBoxAPIService.shared
         var pushedCount = 0
 
+        func executeWithRetry<T>(_ block: (String) async throws -> T) async throws -> T {
+            do {
+                return try await block(token)
+            } catch let err as CloudSyncError {
+                if case .unauthorized = err, await refreshAuthSession(), let refreshedToken = authToken {
+                    token = refreshedToken
+                    return try await block(refreshedToken)
+                }
+                throw err
+            }
+        }
+
         for id in cloudDeletionQueue {
             guard currentUserId == uid, authToken == token else { return pushedCount }
-            _ = try await api.cloudRequest("items?id=eq.\(id)&user_id=eq.\(uid)", token: token, method: "DELETE", body: nil)
+            _ = try await executeWithRetry { curToken in
+                try await api.cloudRequest("items?id=eq.\(id)&user_id=eq.\(uid)", token: curToken, method: "DELETE", body: nil)
+            }
             cloudDeletionQueue.removeAll { $0 == id }
             pushedCount += 1
         }
@@ -316,7 +344,9 @@ extension SyncCoordinator {
                 }
                 collection = ["id": item.collectionId!, "user_id": uid, "name": name, "created_at": item.createdAt.ISO8601Format(), "updated_at": stamp]
             }
-            try await api.uploadSnapshot(body, metadata: metadata, note: note, collection: collection, token: token)
+            try await executeWithRetry { curToken in
+                try await api.uploadSnapshot(body, metadata: metadata, note: note, collection: collection, token: curToken)
+            }
             guard currentUserId == uid, authToken == token else { return pushedCount }
             item.userId = uid
             if item.updatedAt == revision { item.isSyncPending = false }
@@ -338,10 +368,11 @@ extension SyncCoordinator {
         email: String,
         userId: String,
         token: String,
+        refreshToken: String? = nil,
         context: ModelContext,
         transport: (any IOSCloudTransport)? = nil
     ) async throws {
-        self.setSession(email: email, userId: userId, token: token)
+        self.setSession(email: email, userId: userId, token: token, refreshToken: refreshToken)
         self.syncState = .syncing
 
         // 1. Resolve local items
