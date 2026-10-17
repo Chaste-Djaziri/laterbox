@@ -2,7 +2,7 @@
 create or replace function public.publish_item_attachments(item jsonb, assets jsonb)
 returns void language plpgsql security invoker set search_path = public as $$
 begin
-  if auth.uid() is null or (item->>'user_id')::uuid <> auth.uid() then
+  if auth.uid() is null or (item->>'user_id')::uuid is distinct from auth.uid() then
     raise exception 'Unauthorized item owner';
   end if;
   if jsonb_array_length(assets) = 0 or exists (
