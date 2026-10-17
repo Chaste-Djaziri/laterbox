@@ -18,6 +18,8 @@ struct ContentView: View {
     @StateObject private var aiManager = LaterAIManager.shared
     @ObservedObject private var clipboardManager = ClipboardDetectionManager.shared
     @State private var itemToPresent: LBItem? = nil
+    @State private var showingSyncReport = false
+    @State private var syncReportMessage = ""
 
     var body: some View {
         ZStack {
@@ -69,6 +71,28 @@ struct ContentView: View {
             }
         }
         .animation(.spring(response: 0.45, dampingFraction: 0.85), value: coordinator.hasAccess)
+        .alert("Sync failed", isPresented: $coordinator.showingSyncFailureAlert) {
+            if coordinator.sessionExpired {
+                Button("Sign In") { coordinator.showingAuthSheet = true }
+            }
+            Button("Report issue") {
+                syncReportMessage = "Cloud sync failed on iOS.\n\nWhat I was doing:\n\nError details:\n" + String((coordinator.lastSyncErrorMessage ?? "Unknown sync error").prefix(3000))
+                showingSyncReport = true
+            }
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(coordinator.friendlySyncFailureReason)
+        }
+        .sheet(isPresented: $showingSyncReport) {
+            NavigationStack {
+                SupportRequestView(initialSubject: "Cloud sync failed", initialMessage: syncReportMessage)
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button("Close") { showingSyncReport = false }
+                        }
+                    }
+            }
+        }
         .animation(.spring(response: 0.35, dampingFraction: 0.85), value: lockManager.isLocked)
         .animation(.spring(response: 0.44, dampingFraction: 0.82), value: clipboardManager.isShowingBanner)
         .onReceive(returnRouter.$itemID) { id in
