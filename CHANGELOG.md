@@ -22,6 +22,8 @@ All notable user-facing changes to LaterBox will be documented in this file.
 
 - **[iOS / Service Status] Add an interactive uptime history range picker and daily/hourly availability bars for each monitor.**
 
+- **[iOS / Sidebar] Allow the Collections section to collapse into its title.**
+
 - **[iOS / Service Status] Show historical uptime percentages and outage bars with day, week, month, and custom date ranges.**
 
 - **[iOS / Settings] Add a dedicated Status page showing every Better Stack monitor, live service health, last-check times, and pull-to-refresh through a backend-only API token.**
