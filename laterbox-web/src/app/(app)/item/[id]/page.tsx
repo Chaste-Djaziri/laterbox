@@ -197,9 +197,14 @@ function AttachmentRow({ attachment }: { attachment: Attachment }) {
             <p className="text-xs font-bold text-[#171711] truncate">
               {attachment.original_file_name}
             </p>
-            <p className="text-[10px] text-[#6c6b63]">
-              {attachment.file_extension.toUpperCase()} • {formatBytes(attachment.byte_size)}
-            </p>
+            <div className="flex items-center gap-2 text-[10px] text-[#6c6b63]">
+              <span>{attachment.file_extension.toUpperCase()} • {formatBytes(attachment.byte_size)}</span>
+              {attachment.r2_object_key && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-1.5 py-0.5 font-semibold text-emerald-700">
+                  <CheckCircle className="h-2.5 w-2.5" /> Cloud synced
+                </span>
+              )}
+            </div>
           </div>
         </div>
 
