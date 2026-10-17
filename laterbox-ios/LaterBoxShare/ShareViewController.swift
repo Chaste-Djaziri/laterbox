@@ -2,6 +2,7 @@ import UIKit
 import SwiftUI
 import UniformTypeIdentifiers
 import UserNotifications
+import PDFKit
 
 @objc(ShareViewController)
 final class ShareViewController: UIViewController {
@@ -399,6 +400,101 @@ struct ShareChatMessage: Identifiable, Equatable {
     }
 }
 
+private struct ShareAttachmentPreviewCard: View {
+    let attachment: SharedAttachment
+    @State private var preview: UIImage?
+    @State private var fileSize: Int64 = 0
+    @State private var isPDF = false
+
+    private var type: UTType {
+        UTType(attachment.typeIdentifier) ?? UTType(filenameExtension: (attachment.name as NSString).pathExtension) ?? .item
+    }
+
+    private var kindLabel: String {
+        if type.conforms(to: .image) { return "Image" }
+        if type.conforms(to: .pdf) { return "PDF document" }
+        if type.conforms(to: .text) || type.conforms(to: .sourceCode) { return "Text document" }
+        if type.conforms(to: .audio) { return "Audio" }
+        if type.conforms(to: .movie) { return "Video" }
+        return type.localizedDescription ?? "Document"
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            if let preview {
+                Image(uiImage: preview)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 170)
+                    .background(Color.black.opacity(0.32))
+                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    .padding(10)
+            } else {
+                HStack(spacing: 14) {
+                    Image(systemName: iconName)
+                        .font(.system(size: 25, weight: .semibold))
+                        .foregroundColor(LaterAIStyle.accent)
+                        .frame(width: 52, height: 52)
+                        .background(LaterAIStyle.accent.opacity(0.12), in: RoundedRectangle(cornerRadius: 13))
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(kindLabel.uppercased())
+                            .font(.system(size: 10, weight: .bold))
+                            .tracking(0.8)
+                            .foregroundColor(LaterAIStyle.accent)
+                        Text("Document ready to save")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundColor(.white)
+                    }
+                    Spacer()
+                }
+                .padding(14)
+            }
+
+            VStack(alignment: .leading, spacing: 7) {
+                Text(attachment.name)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundColor(.white)
+                    .lineLimit(2)
+                HStack(spacing: 8) {
+                    Text(kindLabel)
+                    Text("•")
+                    Text(ByteCountFormatter.string(fromByteCount: fileSize, countStyle: .file))
+                    if isPDF { Text("• Preview") }
+                    Spacer()
+                }
+                .font(.system(size: 12, weight: .medium))
+                .foregroundColor(.white.opacity(0.55))
+            }
+            .padding(.horizontal, 15)
+            .padding(.bottom, 15)
+        }
+        .background(Color(white: 24.0 / 255), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(Color.white.opacity(0.09), lineWidth: 1))
+        .task { loadPreview() }
+    }
+
+    private var iconName: String {
+        if type.conforms(to: .pdf) { return "doc.richtext.fill" }
+        if type.conforms(to: .text) || type.conforms(to: .sourceCode) { return "doc.text.fill" }
+        if type.conforms(to: .audio) { return "waveform" }
+        if type.conforms(to: .movie) { return "film.fill" }
+        if type.conforms(to: .archive) { return "archivebox.fill" }
+        return "doc.fill"
+    }
+
+    private func loadPreview() {
+        guard let url = try? SharedCaptureStore.fileURL(attachment) else { return }
+        fileSize = (try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize).map(Int64.init) ?? attachment.byteSize ?? 0
+        if type.conforms(to: .image) {
+            preview = UIImage(contentsOfFile: url.path)
+        } else if type.conforms(to: .pdf), let document = PDFDocument(url: url), let page = document.page(at: 0) {
+            isPDF = true
+            preview = page.thumbnail(of: CGSize(width: 900, height: 1200), for: .mediaBox)
+        }
+    }
+}
+
 struct ShareCaptureView: View {
     @ObservedObject var model: ShareCaptureModel
     @State private var chooseReturnDate = false
@@ -599,18 +695,7 @@ struct ShareCaptureView: View {
             }
 
             ForEach(model.capture.attachments) { file in
-                HStack(spacing: 12) {
-                    Image(systemName: "paperclip")
-                        .foregroundColor(LaterAIStyle.accent)
-                    Text(file.name)
-                        .font(.system(size: 14, weight: .medium))
-                        .lineLimit(1)
-                        .foregroundColor(.white)
-                    Spacer()
-                }
-                .padding(14)
-                .background(Color(white: 24.0/255), in: RoundedRectangle(cornerRadius: 14))
-                .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(Color.white.opacity(0.08), lineWidth: 1))
+                ShareAttachmentPreviewCard(attachment: file)
             }
 
             // Return Countdown Badge
