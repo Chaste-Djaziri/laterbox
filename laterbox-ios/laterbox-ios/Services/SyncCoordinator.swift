@@ -541,7 +541,12 @@ public final class SyncCoordinator: ObservableObject {
 
     // MARK: - Check Remote Changes
     @discardableResult
-    public func checkRemoteChanges(context: ModelContext, transport: (any IOSCloudTransport)? = nil) async -> Int {
+    public func checkRemoteChanges(context: ModelContext) async -> Int {
+        await checkRemoteChanges(context: context, transport: nil)
+    }
+
+    @discardableResult
+    func checkRemoteChanges(context: ModelContext, transport: (any IOSCloudTransport)?) async -> Int {
         guard hasCloudPro, isAuthenticated, let uid = currentUserId, let token = authToken else {
             self.pendingPullCount = 0
             return 0
@@ -585,7 +590,11 @@ public final class SyncCoordinator: ObservableObject {
     }
 
     // MARK: - Separate Pull Changes
-    public func pullChanges(context: ModelContext, transport: (any IOSCloudTransport)? = nil) async {
+    public func pullChanges(context: ModelContext) async {
+        await pullChanges(context: context, transport: nil)
+    }
+
+    func pullChanges(context: ModelContext, transport: (any IOSCloudTransport)?) async {
         guard hasCloudPro else { return }
         guard !isPulling && syncState != .syncing else { return }
         isPulling = true
@@ -605,7 +614,11 @@ public final class SyncCoordinator: ObservableObject {
     }
 
     // MARK: - Separate Push Changes
-    public func pushChanges(context: ModelContext, transport: (any IOSCloudTransport)? = nil) async {
+    public func pushChanges(context: ModelContext) async {
+        await pushChanges(context: context, transport: nil)
+    }
+
+    func pushChanges(context: ModelContext, transport: (any IOSCloudTransport)?) async {
         guard hasCloudPro else { return }
         guard !isPushing && syncState != .syncing else { return }
         isPushing = true
@@ -624,7 +637,11 @@ public final class SyncCoordinator: ObservableObject {
     }
 
     // MARK: - Full Bidirectional Sync (Pull then Push)
-    public func pullAndPushChanges(context: ModelContext, transport: (any IOSCloudTransport)? = nil) async {
+    public func pullAndPushChanges(context: ModelContext) async {
+        await pullAndPushChanges(context: context, transport: nil)
+    }
+
+    func pullAndPushChanges(context: ModelContext, transport: (any IOSCloudTransport)?) async {
         await syncPendingItems(context: context, transport: transport)
     }
 
