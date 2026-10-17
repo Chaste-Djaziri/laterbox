@@ -92,7 +92,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [syncStatus, setSyncStatus] = useState<SyncState>('synced');
   const [pendingPullCount, setPendingPullCount] = useState(0);
-  const remoteCheckVersion = useRef(0);
+  const remoteCheckVersion = React.useRef(0);
   const [pendingPushCount, setPendingPushCount] = useState(0);
   const [isPulling, setIsPulling] = useState(false);
   const [isPushing, setIsPushing] = useState(false);
