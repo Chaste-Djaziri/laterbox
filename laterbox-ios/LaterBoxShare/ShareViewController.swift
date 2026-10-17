@@ -64,7 +64,9 @@ struct ShareChatMessage: Identifiable, Equatable {
                 // first so the item receives a real attachment and can sync
                 // it to cloud storage.
                 if let imageType = provider.registeredTypeIdentifiers.first(where: {
-                    UTType($0)?.conforms(to: .image) == true || UTType($0)?.conforms(to: .data) == true
+                    guard let type = UTType($0) else { return false }
+                    return type.conforms(to: .image) ||
+                        (type.conforms(to: .data) && !type.conforms(to: .text) && !type.conforms(to: .url))
                 }) {
                     let data: Data? = await withCheckedContinuation { continuation in
                         _ = provider.loadDataRepresentation(forTypeIdentifier: imageType) { data, _ in
