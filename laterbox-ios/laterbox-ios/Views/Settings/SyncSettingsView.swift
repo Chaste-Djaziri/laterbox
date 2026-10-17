@@ -199,7 +199,7 @@ public struct SyncSettingsView: View {
                                 Task {
                                     await coordinator.pullChanges(context: modelContext)
                                     await MainActor.run {
-                                        showingSyncCompleteAlert = true
+                                        showingSyncCompleteAlert = coordinator.syncState != .error
                                     }
                                 }
                             }) {
@@ -233,7 +233,7 @@ public struct SyncSettingsView: View {
                                 Task {
                                     await coordinator.pushChanges(context: modelContext)
                                     await MainActor.run {
-                                        showingSyncCompleteAlert = true
+                                        showingSyncCompleteAlert = coordinator.syncState != .error
                                     }
                                 }
                             }) {
@@ -269,7 +269,7 @@ public struct SyncSettingsView: View {
                                     await coordinator.syncPendingItems(context: modelContext)
                                     await MainActor.run {
                                         isSyncing = false
-                                        showingSyncCompleteAlert = true
+                                        showingSyncCompleteAlert = coordinator.syncState != .error
                                     }
                                 }
                             }) {
