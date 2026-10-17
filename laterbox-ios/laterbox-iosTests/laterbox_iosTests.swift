@@ -11,6 +11,36 @@ struct LaterAITests {
         let container = try ModelContainer(for: LBItem.self, LBCollection.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
         return ModelContext(container)
     }
+    @Test func pullCannotAcknowledgeAnUnfinishedAttachmentUpload() async throws {
+        let coordinator = SyncCoordinator.shared
+        let previous = (coordinator.currentUserId, coordinator.currentUserEmail, coordinator.authToken, coordinator.isPro, coordinator.isGuestMode)
+        coordinator.isGuestMode = false
+        coordinator.setSession(email: "assets@example.com", userId: "asset-owner", token: "token")
+        coordinator.setProForTesting(true)
+        defer {
+            coordinator.currentUserId = previous.0; coordinator.currentUserEmail = previous.1
+            coordinator.authToken = previous.2; coordinator.setProForTesting(previous.3)
+            coordinator.isGuestMode = previous.4
+        }
+        let context = try context()
+        let date = Date(timeIntervalSince1970: 2000)
+        let item = LBItem(id: "pending-photo", title: "photo.jpg", createdAt: date, updatedAt: date)
+        item.userId = "asset-owner"
+        let attachment = SharedAttachment(name: "photo.jpg", relativePath: "Attachments/photo.jpg", typeIdentifier: "public.jpeg")
+        item.attachmentsData = try JSONEncoder().encode([attachment])
+        context.insert(item)
+        try context.save()
+        let transport = MockCloudTransport()
+        transport.snapshots = [CloudItemSnapshot(id: item.id, user_id: "asset-owner", title: item.title,
+            status: "inbox", updated_at: date.ISO8601Format())]
+        _ = try await coordinator.performCloudPull(context: context, transport: transport)
+        #expect(item.isSyncPending)
+        #expect(try JSONDecoder().decode([SharedAttachment].self, from: item.attachmentsData!) == [attachment])
+        await #expect(throws: (any Error).self) {
+            _ = try await coordinator.performCloudPush(context: context, transport: transport)
+        }
+        #expect(item.isSyncPending)
+    }
     @Test func cloudSupportsNullTitlesAndStringEncodedMetadata() throws {
         let data = Data(#"{"id":"id","user_id":"user","title":null,"type":"note","favorite":false,"status":"inbox","created_at":"2026-10-05T00:00:00Z","updated_at":"2026-10-05T00:00:00Z","item_metadata":{"status":"enriched","structured_data":"{\"tags\":[\"legacy\"]}"}}"#.utf8)
         let snapshot = try JSONDecoder().decode(CloudItemSnapshot.self, from: data)
