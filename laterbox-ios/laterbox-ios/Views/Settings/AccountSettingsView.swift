@@ -6,11 +6,15 @@
 //
 
 import SwiftUI
+import SwiftData
 
 public struct AccountSettingsView: View {
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
     @ObservedObject private var coordinator = SyncCoordinator.shared
     @State private var showingAuthSheet = false
     @State private var showingSignOutAlert = false
+    @State private var showingExitGuestAlert = false
 
     public init() {}
 
@@ -154,6 +158,31 @@ public struct AccountSettingsView: View {
                                 .foregroundColor(AppTheme.textSecondary)
                                 .lineSpacing(2)
                                 .padding(.horizontal, 4)
+
+                            Button(action: {
+                                LBHaptic.medium()
+                                showingExitGuestAlert = true
+                            }) {
+                                HStack(spacing: 8) {
+                                    Image(systemName: "rectangle.portrait.and.arrow.right")
+                                        .font(.subheadline.weight(.semibold))
+                                    Text("Exit Guest Mode")
+                                        .font(.subheadline.weight(.semibold))
+                                }
+                                .foregroundColor(.red)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 14)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                        .fill(Color.red.opacity(0.1))
+                                )
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                        .strokeBorder(Color.red.opacity(0.2), lineWidth: 1)
+                                )
+                            }
+                            .buttonStyle(.plain)
+                            .padding(.top, 4)
                         }
                     } else {
                         VStack(alignment: .leading, spacing: 10) {
@@ -205,6 +234,15 @@ public struct AccountSettingsView: View {
             Button("Cancel", role: .cancel) {}
         } message: {
             Text("Your local items will be safely kept on this device.")
+        }
+        .alert("Exit Guest Mode", isPresented: $showingExitGuestAlert) {
+            Button("Exit & Clear Data", role: .destructive) {
+                coordinator.exitGuest(context: modelContext)
+                dismiss()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Exiting guest mode will clear all items saved on this device during this guest session.")
         }
     }
 }
