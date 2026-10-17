@@ -18,6 +18,7 @@ public struct EmailInboxRowView: View {
     public var onToggleFavorite: () -> Void = {}
     public var onMarkDone: () -> Void = {}
     public var onSchedule: (Date) -> Void = { _ in }
+    public var onOpenSchedule: (() -> Void)? = nil
     public var onDelete: () -> Void = {}
     public var onDeletePermanently: (() -> Void)? = nil
     public var onRestore: (() -> Void)? = nil
@@ -33,6 +34,7 @@ public struct EmailInboxRowView: View {
         onToggleFavorite: @escaping () -> Void = {},
         onMarkDone: @escaping () -> Void = {},
         onSchedule: @escaping (Date) -> Void = { _ in },
+        onOpenSchedule: (() -> Void)? = nil,
         onDelete: @escaping () -> Void = {},
         onDeletePermanently: (() -> Void)? = nil,
         onRestore: (() -> Void)? = nil,
@@ -47,6 +49,7 @@ public struct EmailInboxRowView: View {
         self.onToggleFavorite = onToggleFavorite
         self.onMarkDone = onMarkDone
         self.onSchedule = onSchedule
+        self.onOpenSchedule = onOpenSchedule
         self.onDelete = onDelete
         self.onDeletePermanently = onDeletePermanently
         self.onRestore = onRestore
@@ -366,8 +369,12 @@ public struct EmailInboxRowView: View {
             }
 
             Button {
-                let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: Date()) ?? Date()
-                onSchedule(tomorrow)
+                if let onOpenSchedule {
+                    onOpenSchedule()
+                } else {
+                    let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: Date()) ?? Date()
+                    onSchedule(tomorrow)
+                }
             } label: {
                 Label("Snooze", systemImage: "clock.fill")
             }
@@ -394,10 +401,14 @@ public struct EmailInboxRowView: View {
             }
 
             Button {
-                let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: Date()) ?? Date()
-                onSchedule(tomorrow)
+                if let onOpenSchedule {
+                    onOpenSchedule()
+                } else {
+                    let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: Date()) ?? Date()
+                    onSchedule(tomorrow)
+                }
             } label: {
-                Label("Snooze Until Tomorrow", systemImage: "clock")
+                Label("Snooze...", systemImage: "clock")
             }
 
             Button {
