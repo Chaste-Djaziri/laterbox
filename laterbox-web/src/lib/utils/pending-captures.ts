@@ -169,7 +169,12 @@ export function reconcileItemsWithRemote(params: ReconcileParams): ReconcileResu
 
     const isPending = Boolean(pendingQueue[id]);
 
-    const resolution = resolveActionConflict(local, remote);
+    const hasUnpublishedAssets = isPending && !local?.deleted_at && local?.attachments?.some(asset =>
+      !remote?.attachments?.some(remoteAsset => remoteAsset.id === asset.id && Boolean(remoteAsset.r2_object_key))
+    );
+    const resolution = hasUnpublishedAssets && local
+      ? { winner: 'local' as const, item: local, shouldPush: true }
+      : resolveActionConflict(local, remote);
 
     if (resolution.winner === 'remote') {
       // Remote wins
