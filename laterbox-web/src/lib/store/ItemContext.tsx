@@ -64,6 +64,7 @@ interface ItemContextType {
   attachFilesToItem: (itemId: string, files: File[]) => Promise<Attachment[]>;
   createCollection: (name: string) => Promise<Collection>;
   deleteCollection: (id: string) => Promise<void>;
+  renameCollection: (id: string, name: string) => Promise<void>;
   addItemToCollection: (collectionId: string, itemId: string, colOverride?: Collection) => Promise<void>;
   removeItemFromCollection: (collectionId: string, itemId: string) => Promise<void>;
   syncNow: () => Promise<void>;
@@ -937,14 +938,46 @@ export function ItemProvider({ children }: { children: ReactNode }) {
 
   const deleteCollection = async (id: string) => {
     const now = new Date().toISOString();
-    const updated = collections.filter((c) => c.id !== id);
-    setCollections(updated);
-    saveLocalData(items, updated);
-
-    if (user) {
+    if (user && isPro) {
       const supabase = getSupabaseClient();
-      await supabase.from('collections').update({ deleted_at: now }).eq('id', id);
+      const { error: membershipError } = await supabase.from('collection_items')
+        .update({ deleted_at: now, updated_at: now }).eq('collection_id', id).eq('user_id', user.id);
+      if (membershipError) throw membershipError;
+      const { error } = await supabase.from('collections').update({ deleted_at: now, updated_at: now })
+        .eq('id', id).eq('user_id', user.id);
+      if (error) throw error;
     }
+    const updated = collections.filter((c) => c.id !== id);
+    const detach = (item: LaterBoxItem) => ({ ...item, collections: item.collections?.filter(c => c.id !== id) });
+    const active = items.map(detach);
+    const deleted = deletedItems.map(detach);
+    setCollections(updated);
+    setItems(active);
+    setDeletedItems(deleted);
+    saveLocalData(active, updated);
+    saveLocalDeleted(deleted);
+  };
+
+  const renameCollection = async (id: string, name: string) => {
+    const trimmed = name.trim();
+    if (!trimmed || trimmed.length > 80) throw new Error('Use a collection name between 1 and 80 characters.');
+    if (collections.some(c => c.id !== id && c.name.toLowerCase() === trimmed.toLowerCase())) {
+      throw new Error('A collection with that name already exists.');
+    }
+    const now = new Date().toISOString();
+    if (user && isPro) {
+      const supabase = getSupabaseClient();
+      const { error } = await supabase.from('collections').update({ name: trimmed, updated_at: now })
+        .eq('id', id).eq('user_id', user.id);
+      if (error) throw error;
+    }
+    const rename = (c: Collection) => c.id === id ? { ...c, name: trimmed, updated_at: now } : c;
+    const updated = collections.map(rename);
+    const refresh = (item: LaterBoxItem) => ({ ...item, collections: item.collections?.map(rename) });
+    const active = items.map(refresh);
+    const deleted = deletedItems.map(refresh);
+    setCollections(updated); setItems(active); setDeletedItems(deleted);
+    saveLocalData(active, updated); saveLocalDeleted(deleted);
   };
 
   const addItemToCollection = async (collectionId: string, itemId: string, colOverride?: Collection) => {
@@ -1088,6 +1121,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
         attachFilesToItem,
         createCollection,
         deleteCollection,
+        renameCollection,
         addItemToCollection,
         removeItemFromCollection,
         syncNow: pullAndPushChanges,
