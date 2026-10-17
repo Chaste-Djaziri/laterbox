@@ -7,10 +7,10 @@ import UniformTypeIdentifiers
         if let pending = try? SharedCaptureStore.pending() {
             for (file, capture) in pending {
                 let id = capture.id
-                let existing = try context.fetch(FetchDescriptor<LBItem>(predicate: #Predicate { $0.id == id })).first
+                let existing = try context.fetch(FetchDescriptor<LBItem>()).first { $0.id.caseInsensitiveCompare(id) == .orderedSame }
                 if let existing {
                     let current = existing.attachmentsData.flatMap { try? JSONDecoder().decode([SharedAttachment].self, from: $0) } ?? []
-                    let missing = capture.attachments.filter { asset in !current.contains(where: { $0.id == asset.id }) }
+                    let missing = capture.attachments.filter { asset in !current.contains(where: { $0.id.caseInsensitiveCompare(asset.id) == .orderedSame }) }
                     if !missing.isEmpty {
                         existing.attachmentsData = try JSONEncoder().encode(current + missing)
                         existing.isSyncPending = true
