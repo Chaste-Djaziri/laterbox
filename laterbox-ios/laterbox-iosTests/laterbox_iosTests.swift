@@ -763,6 +763,37 @@ extension LaterAITests {
         #expect(coordinator.countUnassignedLocalItems(context: context, targetUserId: testUID) == 0)
     }
 
+    @Test
+    func exitGuestClearsLocalGuestItemsAndResetsSession() throws {
+        let coordinator = SyncCoordinator.shared
+        coordinator.continueAsGuest()
+        #expect(coordinator.isGuestMode == true)
+
+        let container = try ModelContainer(for: LBItem.self, LBCollection.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+        let context = container.mainContext
+
+        let guestItem = LBItem(title: "Ephemeral Guest Item", textContent: "Temporary notes")
+        guestItem.userId = nil
+        context.insert(guestItem)
+
+        let guestCollection = LBCollection(name: "Guest Scratchpad")
+        guestCollection.userId = nil
+        context.insert(guestCollection)
+        try context.save()
+
+        #expect(coordinator.countUnassignedLocalItems(context: context) == 1)
+
+        coordinator.exitGuest(context: context)
+
+        #expect(coordinator.isGuestMode == false)
+        #expect(coordinator.hasAccess == false)
+
+        let remainingItems = try context.fetch(FetchDescriptor<LBItem>())
+        #expect(remainingItems.isEmpty)
+        let remainingCollections = try context.fetch(FetchDescriptor<LBCollection>())
+        #expect(remainingCollections.isEmpty)
+    }
+
     @Test func appIconSelectionRestrictedToProPlan() async {
         let coordinator = SyncCoordinator.shared
         let iconManager = AppIconManager.shared
