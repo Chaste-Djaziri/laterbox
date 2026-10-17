@@ -697,7 +697,7 @@ public final class SyncCoordinator: ObservableObject {
             let local = (try? context.fetch(FetchDescriptor<LBItem>())) ?? []
             self.pendingPullCount = countRemoteChanges(remoteList, local: local)
             _ = self.updateLocalPendingPushCount(context: context)
-            return count
+            return self.pendingPullCount
         } catch {
             if let syncErr = error as? CloudSyncError, case .unauthorized = syncErr {
                 if await refreshAuthSession(), let refreshedToken = authToken {
@@ -706,7 +706,7 @@ public final class SyncCoordinator: ObservableObject {
                         let local = (try? context.fetch(FetchDescriptor<LBItem>())) ?? []
                         self.pendingPullCount = countRemoteChanges(remoteList, local: local)
                         _ = self.updateLocalPendingPushCount(context: context)
-                        return count
+                        return self.pendingPullCount
                     }
                 }
                 self.sessionExpired = true
