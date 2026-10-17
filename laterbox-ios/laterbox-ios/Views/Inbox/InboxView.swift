@@ -48,49 +48,52 @@ public struct InboxView: View {
     public init() {}
 
     private var rawInboxItems: [LBItem] {
+        let items: [LBItem]
         if let col = selectedCollection {
-            return allItems.filter {
+            items = allItems.filter {
                 $0.status != ItemStatus.deleted.rawValue &&
                 ($0.category.localizedCaseInsensitiveCompare(col) == .orderedSame ||
                  $0.collectionName?.localizedCaseInsensitiveCompare(col) == .orderedSame)
             }
-        }
-        let now = Date()
-        let cal = Calendar.current
-        let endOfToday = cal.date(byAdding: .day, value: 1, to: cal.startOfDay(for: now)) ?? now
+        } else {
+            let now = Date()
+            let cal = Calendar.current
+            let endOfToday = cal.date(byAdding: .day, value: 1, to: cal.startOfDay(for: now)) ?? now
 
-        switch selectedMailbox {
-        case .inbox:
-            return allItems.filter {
-                $0.status == ItemStatus.inbox.rawValue ||
-                ($0.status == ItemStatus.deferred.rawValue && $0.returnAt != nil && $0.returnAt! <= now)
+            switch selectedMailbox {
+            case .inbox:
+                items = allItems.filter {
+                    $0.status == ItemStatus.inbox.rawValue ||
+                    ($0.status == ItemStatus.deferred.rawValue && $0.returnAt != nil && $0.returnAt! <= now)
+                }
+            case .today:
+                items = allItems.filter {
+                    $0.status == ItemStatus.deferred.rawValue &&
+                    $0.returnAt != nil &&
+                    $0.returnAt! > now &&
+                    $0.returnAt! <= endOfToday
+                }
+            case .scheduled:
+                items = allItems.filter {
+                    $0.status == ItemStatus.deferred.rawValue &&
+                    $0.returnAt != nil &&
+                    $0.returnAt! > endOfToday
+                }
+            case .someday:
+                items = allItems.filter {
+                    $0.status == ItemStatus.deferred.rawValue && $0.returnAt == nil
+                }
+            case .starred:
+                items = allItems.filter { $0.favorite && $0.status != ItemStatus.deleted.rawValue }
+            case .kept:
+                items = allItems.filter { $0.status == ItemStatus.saved.rawValue }
+            case .archived:
+                items = allItems.filter { $0.status == ItemStatus.archived.rawValue }
+            case .trash:
+                items = allItems.filter { $0.status == ItemStatus.deleted.rawValue }
             }
-        case .today:
-            return allItems.filter {
-                $0.status == ItemStatus.deferred.rawValue &&
-                $0.returnAt != nil &&
-                $0.returnAt! > now &&
-                $0.returnAt! <= endOfToday
-            }
-        case .scheduled:
-            return allItems.filter {
-                $0.status == ItemStatus.deferred.rawValue &&
-                $0.returnAt != nil &&
-                $0.returnAt! > endOfToday
-            }
-        case .someday:
-            return allItems.filter {
-                $0.status == ItemStatus.deferred.rawValue && $0.returnAt == nil
-            }
-        case .starred:
-            return allItems.filter { $0.favorite && $0.status != ItemStatus.deleted.rawValue }
-        case .kept:
-            return allItems.filter { $0.status == ItemStatus.saved.rawValue }
-        case .archived:
-            return allItems.filter { $0.status == ItemStatus.archived.rawValue }
-        case .trash:
-            return allItems.filter { $0.status == ItemStatus.deleted.rawValue }
         }
+        return items.deduplicatedForDisplay()
     }
 
     private var emptyTitleText: String {
@@ -158,7 +161,7 @@ public struct InboxView: View {
         }
 
         if q.isEmpty {
-            return list
+            return list.deduplicatedForDisplay()
         }
 
         return list.filter { item in
@@ -177,7 +180,7 @@ public struct InboxView: View {
                    summary.contains(q) ||
                    author.contains(q) ||
                    tags.contains(q)
-        }
+        }.deduplicatedForDisplay()
     }
 
     public var body: some View {
@@ -811,6 +814,7 @@ public struct InboxView: View {
                 collectionPickerSheet(for: targetItem)
             }
             .onAppear {
+                LBItem.cleanupDuplicatesInStore(context: modelContext)
                 coordinator.refreshPendingCounts(context: modelContext)
             }
         }
