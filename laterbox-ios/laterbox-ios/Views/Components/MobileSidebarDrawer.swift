@@ -79,7 +79,11 @@ public struct MobileSidebarDrawer: View {
 
     // Live counts matching web logic
     private var inboxCount: Int {
-        allItems.filter { $0.status == ItemStatus.inbox.rawValue }.count
+        let now = Date()
+        return allItems.filter {
+            $0.status == ItemStatus.inbox.rawValue ||
+            ($0.status == ItemStatus.deferred.rawValue && $0.returnAt != nil && $0.returnAt! <= now)
+        }.count
     }
 
     private var starredCount: Int {
@@ -99,24 +103,25 @@ public struct MobileSidebarDrawer: View {
     }
 
     private var todayCount: Int {
+        let now = Date()
         let cal = Calendar.current
-        let endOfToday = cal.date(byAdding: .day, value: 1, to: cal.startOfDay(for: Date())) ?? Date()
+        let endOfToday = cal.date(byAdding: .day, value: 1, to: cal.startOfDay(for: now)) ?? now
         return allItems.filter {
-            $0.status != ItemStatus.deleted.rawValue &&
-            $0.status != ItemStatus.archived.rawValue &&
+            $0.status == ItemStatus.deferred.rawValue &&
             $0.returnAt != nil &&
-            ($0.returnAt! <= endOfToday)
+            $0.returnAt! > now &&
+            $0.returnAt! <= endOfToday
         }.count
     }
 
     private var upcomingCount: Int {
+        let now = Date()
         let cal = Calendar.current
-        let endOfToday = cal.date(byAdding: .day, value: 1, to: cal.startOfDay(for: Date())) ?? Date()
+        let endOfToday = cal.date(byAdding: .day, value: 1, to: cal.startOfDay(for: now)) ?? now
         return allItems.filter {
-            $0.status != ItemStatus.deleted.rawValue &&
-            $0.status != ItemStatus.archived.rawValue &&
+            $0.status == ItemStatus.deferred.rawValue &&
             $0.returnAt != nil &&
-            ($0.returnAt! > endOfToday)
+            $0.returnAt! > endOfToday
         }.count
     }
 
