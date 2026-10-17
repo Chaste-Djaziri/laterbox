@@ -166,14 +166,8 @@ export function resolveItemPreviewImageUrl(item: LaterBoxItem): string | null {
     }
   }
 
-  // 3. Direct image url if type is image or url extension is image
-  if (item.type === 'image' || (item.url && /\.(?:png|jpg|jpeg|webp|gif|svg)(?:\?.*)?$/i.test(item.url))) {
-    if (item.url && (item.url.startsWith('http://') || item.url.startsWith('https://'))) {
-      return item.url;
-    }
-  }
-
-  // 4. Attachments preview
+  // 3. Stored attachment preview. Prefer this over external page images because
+  // social CDN URLs can expire or reject browser requests after capture.
   if (item.attachments && item.attachments.length > 0) {
     const imgAtt = item.attachments.find(
       (a) =>
@@ -186,6 +180,13 @@ export function resolveItemPreviewImageUrl(item: LaterBoxItem): string | null {
       if (imgAtt.local_path && (imgAtt.local_path.startsWith('http') || imgAtt.local_path.startsWith('data:'))) {
         return imgAtt.local_path;
       }
+    }
+  }
+
+  // 4. Direct image URL if no stored attachment preview is available.
+  if (item.type === 'image' || (item.url && /\.(?:png|jpg|jpeg|webp|gif|svg)(?:\?.*)?$/i.test(item.url))) {
+    if (item.url && (item.url.startsWith('http://') || item.url.startsWith('https://'))) {
+      return item.url;
     }
   }
 
