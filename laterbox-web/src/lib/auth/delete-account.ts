@@ -18,6 +18,10 @@ export async function deleteApplicationAccount(accountId: string): Promise<void>
     body: JSON.stringify({ action: 'delete-account-files', accountId }),
   });
   if (!response.ok) throw new Error('Attachment cleanup failed. Deletion remains queued.');
+  const { error: dataError } = await admin.rpc('delete_account_data', {
+    target_account_id: accountId,
+  });
+  if (dataError) throw dataError;
   const { error: authError } = await admin.auth.admin.deleteUser(accountId);
   if (authError && authError.status !== 404) throw authError;
   const { error: accountError } = await admin.from('accounts').delete().eq('id', accountId);
