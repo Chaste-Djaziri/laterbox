@@ -46,6 +46,16 @@ test('incoming badge clears for acknowledged items and unknown historical deleti
   assert.equal(countIncomingItemChanges([{ ...updated, id: updated.id.toUpperCase() }], [updated], {}), 0);
 });
 
+test('permanent deletion stays queued even if another device updated the item later', () => {
+  const local = { ...createMockItem({}), _action: 'hard_delete' };
+  const remote = createMockItem({ updated_at: '2026-10-13T01:00:00Z' });
+  const result = reconcileItemsWithRemote({ remoteActive: [remote], remoteDeleted: [],
+    localCached: [], localDeleted: [], pendingQueue: { [local.id]: local } });
+  assert.deepEqual(result.hardDeletesToPush, [local.id]);
+  assert.deepEqual(result.queueIdsToRemove, []);
+  assert.deepEqual(result.reconciledActive, []);
+});
+
 test('incoming badge uses queued actions instead of stale local cache', () => {
   const stale = createMockItem({});
   const remote = createMockItem({ updated_at: '2026-10-12T01:00:00Z' });
