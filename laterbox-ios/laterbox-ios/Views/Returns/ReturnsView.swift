@@ -26,6 +26,10 @@ public struct ReturnsView: View {
         self._selectedSegment = State(initialValue: initialSegment)
     }
 
+    private var deduplicatedItems: [LBItem] {
+        allItems.deduplicatedForDisplay()
+    }
+
     private var itemsForSegment: [LBItem] {
         let cal = Calendar.current
         let now = Date()
@@ -34,19 +38,19 @@ public struct ReturnsView: View {
 
         switch selectedSegment {
         case .today:
-            return allItems.filter {
+            return deduplicatedItems.filter {
                 guard $0.status == ItemStatus.deferred.rawValue else { return false }
                 guard let ret = $0.returnAt else { return false }
                 return ret > now && ret <= endOfToday
             }
         case .upcoming:
-            return allItems.filter {
+            return deduplicatedItems.filter {
                 guard $0.status == ItemStatus.deferred.rawValue else { return false }
                 guard let ret = $0.returnAt else { return false }
                 return ret > endOfToday
             }
         case .someday:
-            return allItems.filter {
+            return deduplicatedItems.filter {
                 $0.status == ItemStatus.deferred.rawValue && $0.returnAt == nil
             }
         }
@@ -60,19 +64,19 @@ public struct ReturnsView: View {
 
         switch segment {
         case .today:
-            return allItems.filter {
+            return deduplicatedItems.filter {
                 guard $0.status == ItemStatus.deferred.rawValue else { return false }
                 guard let ret = $0.returnAt else { return false }
                 return ret > now && ret <= endOfToday
             }.count
         case .upcoming:
-            return allItems.filter {
+            return deduplicatedItems.filter {
                 guard $0.status == ItemStatus.deferred.rawValue else { return false }
                 guard let ret = $0.returnAt else { return false }
                 return ret > endOfToday
             }.count
         case .someday:
-            return allItems.filter {
+            return deduplicatedItems.filter {
                 $0.status == ItemStatus.deferred.rawValue && $0.returnAt == nil
             }.count
         }
@@ -225,6 +229,9 @@ public struct ReturnsView: View {
                 }
             }
             .navigationBarHidden(true)
+            .onAppear {
+                LBItem.cleanupDuplicatesInStore(context: modelContext)
+            }
         }
     }
 }
