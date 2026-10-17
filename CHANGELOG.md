@@ -20,6 +20,8 @@ All notable user-facing changes to LaterBox will be documented in this file.
 
 ## [Unreleased]
 
+- **[iOS / Control Center] Dismiss Control Center and open the Quick Save input modal directly when tapping the Quick Save to LaterBox control.**
+
 - **[iOS / Shortcuts & Control Center] Add native iOS 18 Control Center quick save control and streamline App Shortcuts to a single Quick Save to LaterBox action.**
 
 - **[Web / iOS / Security] Account deletion now removes all account data and Cloudflare attachments, with a dedicated iOS Security page for destructive account controls.**
