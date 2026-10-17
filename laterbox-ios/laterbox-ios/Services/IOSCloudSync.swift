@@ -235,10 +235,21 @@ extension LaterBoxAPIService {
             var request = URLRequest(url: url); request.httpMethod = "PUT"; request.httpBody = data
             request.setValue(mime, forHTTPHeaderField: "Content-Type")
             request.setValue(digest, forHTTPHeaderField: "x-amz-meta-sha256")
-            request.setValue(attachment.id, forHTTPHeaderField: "x-amz-meta-attachment-id")
+            // The signing function normalizes UUIDs to lowercase. Signed metadata
+            // must match byte-for-byte (Swift UUID().uuidString is uppercase).
+            request.setValue(attachment.id.lowercased(), forHTTPHeaderField: "x-amz-meta-attachment-id")
             request.setValue(userID, forHTTPHeaderField: "x-amz-meta-user-id")
-            let (_, response) = try await URLSession.shared.data(for: request)
-            guard (response as? HTTPURLResponse)?.statusCode == 200 else { throw CloudSyncError.other("Attachment upload failed") }
+            let (responseData, response) = try await URLSession.shared.data(for: request)
+            let status = (response as? HTTPURLResponse)?.statusCode ?? 0
+            guard (200..<300).contains(status) else {
+                let xml = String(data: responseData, encoding: .utf8) ?? ""
+                let code = xml.range(of: "<Code>").flatMap { start in
+                    xml.range(of: "</Code>", range: start.upperBound..<xml.endIndex).map {
+                        String(xml[start.upperBound..<$0.lowerBound])
+                    }
+                } ?? "Storage request rejected"
+                throw CloudSyncError.other("Attachment upload failed (HTTP \(status): \(code))")
+            }
             let complete: [String: Any] = ["action": "complete-upload", "attachmentId": attachment.id, "itemId": itemID,
                 "originalFileName": attachment.name, "extension": ext, "mimeType": mime, "byteSize": data.count, "sha256": digest]
             let verified = try await attachmentFunction(complete, token: token)
