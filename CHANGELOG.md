@@ -20,6 +20,8 @@ All notable user-facing changes to LaterBox will be documented in this file.
 
 ## [Unreleased]
 
+- **[iOS & Web / Attachments] Show successful cloud uploads and make shared attachments downloadable across devices.**
+
 ### Public website SEO
 - Improve public page metadata, canonical URLs, social previews, structured data, mobile access, and host-specific indexing.
 - Add public Features, About LaterBox, and Browser Extension pages with navigation links.
