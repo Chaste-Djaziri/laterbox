@@ -126,6 +126,8 @@ jobs:
             "${{ steps.release_version.outputs.tag }}" \
             "$RUNNER_TEMP/release-assets" \
             "$RUNNER_TEMP/IPA"/*.ipa
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Attach iOS IPA to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
