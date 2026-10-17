@@ -37,7 +37,7 @@ export function ExactScheduleModal({ count, initialValue, onClose, onConfirm }: 
     <dialog ref={dialog} aria-labelledby={heading}
       onCancel={event => { if (busy) event.preventDefault(); else onClose(); }}
       onClose={onClose}
-      className="fixed inset-0 m-auto w-[calc(100%-2rem)] max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-3xl border border-[#e4e0d5] bg-[#faf9f5] p-0 text-[#171711] shadow-2xl backdrop:bg-black/40 backdrop:backdrop-blur-sm">
+      className="fixed inset-0 m-auto w-[calc(100%_-_2rem)] max-w-md max-h-[calc(100dvh_-_2rem)] overflow-y-auto rounded-3xl border border-[#e4e0d5] bg-[#faf9f5] p-0 text-[#171711] shadow-2xl backdrop:bg-black/40 backdrop:backdrop-blur-sm">
       <form onSubmit={async event => {
         event.preventDefault();
         if (busy) return;
