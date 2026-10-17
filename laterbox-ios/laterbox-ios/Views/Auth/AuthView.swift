@@ -312,6 +312,7 @@ struct AuthView: View {
                 .padding(.horizontal, 24)
             }
         }
+        .navigationBarBackButtonHidden(true)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
