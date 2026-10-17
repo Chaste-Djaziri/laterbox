@@ -177,6 +177,8 @@ jobs:
             laterbox-android/app/build/outputs/apk/release/laterbox-android.apk \
             laterbox-android/app/build/outputs/apk/release/laterbox-android-release.apk \
             laterbox-android/app/build/outputs/bundle/release/laterbox-android-release.aab
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Attach APK and App Bundle to GitHub Release
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
