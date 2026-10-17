@@ -171,7 +171,24 @@ public struct EmailInboxRowView: View {
     public var body: some View {
         ZStack(alignment: .trailing) {
             // Right-aligned fading OG / Video cover image watermark (matching web anime-card style)
-            if let previewUrlStr = effectivePreviewImageUrl, let previewUrl = URL(string: previewUrlStr) {
+            if let attachmentThumbnail {
+                GeometryReader { geo in
+                    Image(uiImage: attachmentThumbnail)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: max(geo.size.width * 0.45, 185), height: geo.size.height)
+                        .clipped()
+                        .opacity(0.70)
+                        .mask(LinearGradient(stops: [
+                            .init(color: .clear, location: 0),
+                            .init(color: .black.opacity(0.4), location: 0.35),
+                            .init(color: .black.opacity(0.85), location: 0.65),
+                            .init(color: .black, location: 1)
+                        ], startPoint: .leading, endPoint: .trailing))
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .trailing)
+                }
+                .allowsHitTesting(false)
+            } else if let previewUrlStr = effectivePreviewImageUrl, let previewUrl = URL(string: previewUrlStr) {
                 GeometryReader { geo in
                     let cardHeight = geo.size.height
                     let watermarkWidth = max(geo.size.width * 0.45, 185)
@@ -232,22 +249,12 @@ public struct EmailInboxRowView: View {
 
                 // Left: Colored Avatar Circle (Matching Gmail screenshot)
                 ZStack {
-                    if let attachmentThumbnail {
-                        Image(uiImage: attachmentThumbnail)
-                            .resizable()
-                            .scaledToFill()
-                            .frame(width: 52, height: 52)
-                            .clipped()
-                            .clipShape(RoundedRectangle(cornerRadius: 10))
-                            .accessibilityLabel("Image attachment preview")
-                    } else {
                     Circle()
                         .fill(avatarColor)
                         .frame(width: 40, height: 40)
                     Text(avatarInitial)
                         .font(.system(size: 17, weight: .semibold))
                         .foregroundColor(.white)
-                    }
                 }
                 .task(id: item.attachmentsData) {
                     attachmentThumbnail = nil
@@ -263,7 +270,7 @@ public struct EmailInboxRowView: View {
                           let thumbnail = CGImageSourceCreateThumbnailAtIndex(source, 0, [
                             kCGImageSourceCreateThumbnailFromImageAlways: true,
                             kCGImageSourceCreateThumbnailWithTransform: true,
-                            kCGImageSourceThumbnailMaxPixelSize: 160
+                            kCGImageSourceThumbnailMaxPixelSize: 800
                           ] as CFDictionary) else { return }
                     attachmentThumbnail = UIImage(cgImage: thumbnail)
                 }
