@@ -466,6 +466,12 @@ extension SyncCoordinator {
 
         for item in pending {
             guard currentUserId == uid, authToken == token else { return pushedCount }
+            if ["image", "file", "document"].contains(item.type), item.url == nil, item.status != "deleted" {
+                let assets = try item.attachmentsData.map { try JSONDecoder().decode([SharedAttachment].self, from: $0) } ?? []
+                guard !assets.isEmpty else {
+                    throw CloudSyncError.other("The file for ‘\(item.title)’ is missing. Share it again to upload the attachment. This item has not been synced.")
+                }
+            }
             let revision = item.updatedAt
             let stamp = revision.ISO8601Format()
             let null = NSNull()
