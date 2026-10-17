@@ -33,9 +33,10 @@ import Foundation
     }
 
     @Test func mailboxFiltersDistinguishInboxTodayAndUpcoming() throws {
-        let now = Date()
         let cal = Calendar.current
-        let endOfToday = cal.date(byAdding: .day, value: 1, to: cal.startOfDay(for: now))!
+        let startOfToday = cal.startOfDay(for: Date())
+        let now = cal.date(bySettingHour: 12, minute: 0, second: 0, of: startOfToday)!
+        let endOfToday = cal.date(byAdding: .day, value: 1, to: startOfToday)!
 
         let inboxWithReturn = LBItem(title: "Inbox Item with Return", status: .inbox, returnAt: now.addingTimeInterval(-3600))
         let deferredUpcomingToday = LBItem(title: "Deferred Today", status: .deferred, returnAt: now.addingTimeInterval(3600))
