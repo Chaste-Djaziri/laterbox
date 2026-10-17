@@ -20,6 +20,8 @@ All notable user-facing changes to LaterBox will be documented in this file.
 
 ## [Unreleased]
 
+- **[iOS & Web / Sync] Prevent permanently deleted items from being recreated by stale copies on another device.**
+
 - **[iOS & Web / Recently Deleted] Permanently delete item records and Cloudflare attachments together, retaining deletion requests for retry if file cleanup fails.**
 
 - **[Web / Sidebar] Collapse Collections to its heading, rename collections inline, and remove collections with a red minus control while keeping their items in the library.**
