@@ -166,4 +166,109 @@ public final class LBItem {
         }
         return nil
     }
+
+    public static func normalizeURL(_ url: String?) -> String? {
+        guard let raw = url?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased(),
+              !raw.isEmpty, raw != "http://", raw != "https://" else {
+            return nil
+        }
+        return raw.hasSuffix("/") ? String(raw.dropLast()) : raw
+    }
+
+    /// Reconciles and deletes redundant duplicate item records from the SwiftData store,
+    /// keeping the authoritative synced version and preserving any unique local notes or tags.
+    public static func cleanupDuplicatesInStore(context: ModelContext) {
+        guard let all = try? context.fetch(FetchDescriptor<LBItem>()) else { return }
+        var seenKeys: [String: LBItem] = [:]
+        var toDelete: [LBItem] = []
+
+        let sorted = all.sorted { a, b in
+            if a.isSyncPending != b.isSyncPending {
+                return !a.isSyncPending
+            }
+            if a.updatedAt != b.updatedAt {
+                return a.updatedAt > b.updatedAt
+            }
+            return a.createdAt > b.createdAt
+        }
+
+        for item in sorted {
+            let key: String?
+            if let norm = normalizeURL(item.url) {
+                key = "url:\(norm)"
+            } else if let text = item.textContent?.trimmingCharacters(in: .whitespacesAndNewlines), !text.isEmpty, text.count > 10 {
+                key = "text:\(text.lowercased())"
+            } else {
+                key = nil
+            }
+
+            if let k = key {
+                if let primary = seenKeys[k] {
+                    if (primary.noteContent == nil || primary.noteContent?.isEmpty == true) && item.noteContent?.isEmpty == false {
+                        primary.noteContent = item.noteContent
+                    }
+                    if primary.tags.isEmpty && !item.tags.isEmpty {
+                        primary.tags = item.tags
+                    }
+                    if primary.collectionName == nil && item.collectionName != nil {
+                        primary.collectionName = item.collectionName
+                        primary.collectionId = item.collectionId
+                    }
+                    toDelete.append(item)
+                } else {
+                    seenKeys[k] = item
+                }
+            }
+        }
+
+        if !toDelete.isEmpty {
+            for dup in toDelete {
+                context.delete(dup)
+            }
+            try? context.save()
+        }
+    }
+}
+
+extension Array where Element == LBItem {
+    /// Returns a deduplicated list of items. If both a local item and its cloud version exist,
+    /// only one local version is shown (preferring the up-to-date synced version).
+    public func deduplicatedForDisplay() -> [LBItem] {
+        var seenIds = Set<String>()
+        var seenKeys = Set<String>()
+        var result: [LBItem] = []
+
+        // Prioritize up-to-date synced items (!isSyncPending), then newer updatedAt, then newer createdAt
+        let sorted = self.sorted { a, b in
+            if a.isSyncPending != b.isSyncPending {
+                return !a.isSyncPending
+            }
+            if a.updatedAt != b.updatedAt {
+                return a.updatedAt > b.updatedAt
+            }
+            return a.createdAt > b.createdAt
+        }
+
+        for item in sorted {
+            if seenIds.contains(item.id) { continue }
+
+            let key: String?
+            if let normUrl = LBItem.normalizeURL(item.url) {
+                key = "url:\(normUrl)"
+            } else if let text = item.textContent?.trimmingCharacters(in: .whitespacesAndNewlines), !text.isEmpty, text.count > 10 {
+                key = "text:\(text.lowercased())"
+            } else {
+                key = "id:\(item.id)"
+            }
+
+            if let k = key {
+                if seenKeys.contains(k) { continue }
+                seenKeys.insert(k)
+            }
+            seenIds.insert(item.id)
+            result.append(item)
+        }
+
+        return result
+    }
 }
