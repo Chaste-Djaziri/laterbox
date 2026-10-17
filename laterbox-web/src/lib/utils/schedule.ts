@@ -1,14 +1,17 @@
 import type { LaterBoxItem } from '../supabase/types';
-export type ReturnPreset = 'now' | 'laterToday' | 'tomorrow' | 'weekend' | 'someday';
+export type ReturnPreset = 'now' | 'oneHour' | 'laterToday' | 'tomorrow' | 'weekend' | 'oneWeek' | 'oneMonth' | 'someday';
 export type ScheduleView = 'today' | 'upcoming' | 'someday';
 export function resolveReturnPreset(preset: ReturnPreset, now = new Date()): string | null {
   const date = new Date(now);
   switch (preset) {
     case 'someday': return null;
     case 'now': return date.toISOString();
+    case 'oneHour': return new Date(date.getTime() + 3600000).toISOString();
     case 'laterToday': return new Date(date.getTime() + 3 * 3600000).toISOString();
     case 'tomorrow': date.setDate(date.getDate() + 1); date.setHours(9, 0, 0, 0); break;
     case 'weekend': date.setDate(date.getDate() + ((6 - date.getDay() + 7) % 7 || 7)); date.setHours(9, 0, 0, 0); break;
+    case 'oneWeek': date.setDate(date.getDate() + 7); date.setHours(9, 0, 0, 0); break;
+    case 'oneMonth': date.setMonth(date.getMonth() + 1); date.setHours(9, 0, 0, 0); break;
   }
   return date.toISOString();
 }
