@@ -622,14 +622,30 @@ public final class SyncCoordinator: ObservableObject {
 
         let api: any IOSCloudTransport = transport ?? LaterBoxAPIService.shared
         do {
-            let data = try await api.cloudRequest("items?user_id=eq.\(uid)&select=id,updated_at,deleted_at", token: token, method: "GET", body: nil)
+            let data = try await api.cloudRequest("items?user_id=eq.\(uid)&select=id,url,updated_at,deleted_at", token: token, method: "GET", body: nil)
             let remoteList = (try? JSONDecoder().decode([CloudItemSnapshot].self, from: data)) ?? []
             let local = (try? context.fetch(FetchDescriptor<LBItem>())) ?? []
-            let byID = Dictionary(uniqueKeysWithValues: local.map { ($0.id, $0) })
+            var byID: [String: LBItem] = [:]
+            var byURL: [String: LBItem] = [:]
+            for loc in local {
+                byID[loc.id] = loc
+                if let norm = LBItem.normalizeURL(loc.url) {
+                    if let existing = byURL[norm] {
+                        if !loc.isSyncPending && existing.isSyncPending {
+                            byURL[norm] = loc
+                        }
+                    } else {
+                        byURL[norm] = loc
+                    }
+                }
+            }
             var count = 0
             for r in remoteList {
                 let rDate = r.updated_at.flatMap(Self.cloudDate) ?? .distantPast
-                if let loc = byID[r.id] {
+                let normSnapUrl = LBItem.normalizeURL(r.url)
+                let locMatch = byID[r.id] ?? (normSnapUrl.flatMap { byURL[$0] })
+
+                if let loc = locMatch {
                     if rDate > loc.updatedAt {
                         count += 1
                     } else if r.deleted_at != nil && loc.status != "deleted" && rDate >= loc.updatedAt {
@@ -645,14 +661,30 @@ public final class SyncCoordinator: ObservableObject {
         } catch {
             if let syncErr = error as? CloudSyncError, case .unauthorized = syncErr {
                 if await refreshAuthSession(), let refreshedToken = authToken {
-                    if let retryData = try? await api.cloudRequest("items?user_id=eq.\(uid)&select=id,updated_at,deleted_at", token: refreshedToken, method: "GET", body: nil) {
+                    if let retryData = try? await api.cloudRequest("items?user_id=eq.\(uid)&select=id,url,updated_at,deleted_at", token: refreshedToken, method: "GET", body: nil) {
                         let remoteList = (try? JSONDecoder().decode([CloudItemSnapshot].self, from: retryData)) ?? []
                         let local = (try? context.fetch(FetchDescriptor<LBItem>())) ?? []
-                        let byID = Dictionary(uniqueKeysWithValues: local.map { ($0.id, $0) })
+                        var byID: [String: LBItem] = [:]
+                        var byURL: [String: LBItem] = [:]
+                        for loc in local {
+                            byID[loc.id] = loc
+                            if let norm = LBItem.normalizeURL(loc.url) {
+                                if let existing = byURL[norm] {
+                                    if !loc.isSyncPending && existing.isSyncPending {
+                                        byURL[norm] = loc
+                                    }
+                                } else {
+                                    byURL[norm] = loc
+                                }
+                            }
+                        }
                         var count = 0
                         for r in remoteList {
                             let rDate = r.updated_at.flatMap(Self.cloudDate) ?? .distantPast
-                            if let loc = byID[r.id] {
+                            let normSnapUrl = LBItem.normalizeURL(r.url)
+                            let locMatch = byID[r.id] ?? (normSnapUrl.flatMap { byURL[$0] })
+
+                            if let loc = locMatch {
                                 if rDate > loc.updatedAt {
                                     count += 1
                                 } else if r.deleted_at != nil && loc.status != "deleted" && rDate >= loc.updatedAt {
