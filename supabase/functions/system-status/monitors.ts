@@ -1,6 +1,6 @@
 interface RawMonitor {
   id: string;
-  attributes?: { pronounceable_name?: string; status?: string; paused?: boolean; last_checked_at?: string; check_frequency?: number };
+  attributes?: { pronounceable_name?: string; status?: string; paused?: boolean; last_checked_at?: string; check_frequency?: number; created_at?: string };
 }
 
 const labels: Record<string, string> = {
@@ -34,7 +34,8 @@ export async function loadMonitorStatus(token: string, fetcher: typeof fetch = f
     const status = attributes.paused ? 'paused' : (attributes.status && labels[attributes.status] ? attributes.status : 'unknown');
     return [monitor.id, { id: monitor.id, name: attributes.pronounceable_name?.trim() || `Monitor ${index + 1}`,
       status, label: labels[status], lastCheckedAt: attributes.last_checked_at && Number.isFinite(Date.parse(attributes.last_checked_at)) ? attributes.last_checked_at : null,
-      checkFrequency: typeof attributes.check_frequency === 'number' && attributes.check_frequency > 0 ? attributes.check_frequency : null }];
+      checkFrequency: typeof attributes.check_frequency === 'number' && attributes.check_frequency > 0 ? attributes.check_frequency : null,
+      createdAt: attributes.created_at && Number.isFinite(Date.parse(attributes.created_at)) ? attributes.created_at : null }];
   })).values()];
   let status = 'unknown';
   let label = monitors.length ? 'Monitoring paused or awaiting checks' : 'No monitors configured';
