@@ -103,6 +103,22 @@ enum SharedCaptureStore {
         guard file.path.hasPrefix(root.standardizedFileURL.path) else { throw CocoaError(.fileReadInvalidFileName) }
         return file
     }
+
+    /// Cloud UUIDs are lowercase; Swift UUIDs are uppercase. Reuse the actual
+    /// directory spelling rather than trying to recreate it on a case-insensitive volume.
+    static func attachmentDirectory(id: String, root: URL) throws -> URL {
+        guard UUID(uuidString: id) != nil else { throw CocoaError(.fileReadInvalidFileName) }
+        let base = root.appendingPathComponent("Attachments", isDirectory: true)
+        try FileManager.default.createDirectory(at: base, withIntermediateDirectories: true)
+        if let existing = try FileManager.default.contentsOfDirectory(at: base, includingPropertiesForKeys: [.isDirectoryKey])
+            .first(where: { $0.lastPathComponent.caseInsensitiveCompare(id) == .orderedSame &&
+                (try? $0.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) == true }) {
+            return existing
+        }
+        let directory = base.appendingPathComponent(id.lowercased(), isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        return directory
+    }
 }
 enum ReturnNotification {
     static func currentAuthorizationStatus() async -> UNAuthorizationStatus {
