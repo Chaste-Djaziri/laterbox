@@ -117,7 +117,7 @@ public actor LaterBoxAPIService {
         return true
     }
 
-    public func verifyOTP(email: String, token: String) async throws -> (accessToken: String, userId: String) {
+    public func verifyOTP(email: String, token: String) async throws -> (accessToken: String, refreshToken: String?, userId: String) {
         guard let url = URL(string: "\(supabaseUrl)/auth/v1/verify") else {
             throw URLError(.badURL)
         }
@@ -141,7 +141,40 @@ public actor LaterBoxAPIService {
               let userId = user["id"] as? String else {
             throw URLError(.cannotParseResponse)
         }
+        let refreshToken = json["refresh_token"] as? String
+        return (token, refreshToken, userId)
+    }
+
+    public func verifyOTP(email: String, token: String) async throws -> (accessToken: String, userId: String) {
+        let (token, _, userId): (String, String?, String) = try await verifyOTP(email: email, token: token)
         return (token, userId)
+    }
+
+    // MARK: - Auth: Refresh Session Token
+    public func refreshSession(refreshToken: String) async throws -> (accessToken: String, refreshToken: String, userId: String) {
+        guard let url = URL(string: "\(supabaseUrl)/auth/v1/token?grant_type=refresh_token") else {
+            throw URLError(.badURL)
+        }
+        var req = URLRequest(url: url)
+        req.httpMethod = "POST"
+        for (k, v) in headers() { req.setValue(v, forHTTPHeaderField: k) }
+        let body: [String: Any] = [
+            "refresh_token": refreshToken
+        ]
+        req.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+        let (data, response) = try await session.data(for: req)
+        guard let http = response as? HTTPURLResponse, (200...299).contains(http.statusCode) else {
+            throw CloudSyncError.unauthenticated
+        }
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let newAccessToken = json["access_token"] as? String,
+              let newRefreshToken = (json["refresh_token"] as? String) ?? refreshToken,
+              let user = json["user"] as? [String: Any],
+              let userId = user["id"] as? String else {
+            throw CloudSyncError.unauthenticated
+        }
+        return (newAccessToken, newRefreshToken, userId)
     }
 
     public func fetchBillingEntitlement(token: String) async throws -> AccountBillingEntitlement {
