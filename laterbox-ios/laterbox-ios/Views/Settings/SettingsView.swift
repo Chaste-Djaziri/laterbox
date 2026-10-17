@@ -206,6 +206,13 @@ public struct SettingsView: View {
 
                     // Group 4: Support & Updates
                     VStack(spacing: 0) {
+                        NavigationLink(destination: ServiceStatusView()) {
+                            groupedRow(icon: "waveform.path.ecg", title: "Service Status", badge: nil)
+                        }
+                        .buttonStyle(.plain)
+
+                        rowDivider
+
                         NavigationLink(destination: CheckForUpdatesView()) {
                             groupedRow(
                                 icon: "arrow.triangle.2.circlepath",
