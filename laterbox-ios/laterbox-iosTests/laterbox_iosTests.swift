@@ -1245,7 +1245,7 @@ extension LaterAITests {
         let timestamp = Date(timeIntervalSince1970: 2000)
         let container = try ModelContainer(for: LBItem.self, LBCollection.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
         let context = container.mainContext
-        let existing = LBItem(id: "item-synced", title: "Already synced", url: "https://example.com/story", updatedAt: timestamp)
+        let existing = LBItem(id: "item-synced", url: "https://example.com/story", title: "Already synced", updatedAt: timestamp)
         existing.userId = uid
         context.insert(existing)
         try context.save()
