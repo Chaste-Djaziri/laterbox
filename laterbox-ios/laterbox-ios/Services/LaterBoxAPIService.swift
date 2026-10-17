@@ -178,10 +178,24 @@ public actor LaterBoxAPIService {
     }
 
     public func fetchBillingEntitlement(token: String) async throws -> AccountBillingEntitlement {
-        var request = URLRequest(url: URL(string: "\(billingUrl)/api/billing/entitlement")!)
+        guard let url = URL(string: "\(billingUrl)/api/billing/entitlement") else {
+            throw URLError(.badURL)
+        }
+        var request = URLRequest(url: url)
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         let (data, response) = try await session.data(for: request)
-        guard (response as? HTTPURLResponse)?.statusCode == 200 else { throw URLError(.badServerResponse) }
+        guard let http = response as? HTTPURLResponse else {
+            throw URLError(.badServerResponse)
+        }
+        if http.statusCode == 401 || http.statusCode == 403 {
+            let serverMsg = (try? JSONSerialization.jsonObject(with: data) as? [String: Any])?["error"] as? String
+                ?? (try? JSONSerialization.jsonObject(with: data) as? [String: Any])?["message"] as? String
+                ?? "JWT expired"
+            throw CloudSyncError.unauthorized(message: serverMsg)
+        }
+        guard (200...299).contains(http.statusCode) else {
+            throw CloudSyncError.serverError(statusCode: http.statusCode, message: "Subscription service unavailable")
+        }
         return try JSONDecoder().decode(AccountBillingEntitlement.self, from: data)
     }
 
