@@ -11,6 +11,55 @@ struct LaterAITests {
         let container = try ModelContainer(for: LBItem.self, LBCollection.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
         return ModelContext(container)
     }
+    @Test func attachmentDownloadReusesUppercaseDirectory() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let id = UUID().uuidString
+        let existing = root.appendingPathComponent("Attachments/\(id)", isDirectory: true)
+        try FileManager.default.createDirectory(at: existing, withIntermediateDirectories: true)
+        let photo = existing.appendingPathComponent("photo.jpg")
+        let bytes = Data([1, 2, 3])
+        try bytes.write(to: photo)
+        let resolved = try SharedCaptureStore.attachmentDirectory(id: id.lowercased(), root: root)
+        #expect(resolved.lastPathComponent == id)
+        #expect(try Data(contentsOf: resolved.appendingPathComponent("photo.jpg")) == bytes)
+    }
+
+    @Test func uploadedAttachmentDoesNotReadOrUploadMissingLocalFile() async throws {
+        let asset = SharedAttachment(name: "photo.jpg", relativePath: "missing-photo.jpg", typeIdentifier: "public.jpeg",
+            remoteObjectKey: "already-uploaded", byteSize: 3, sha256: String(repeating: "a", count: 64), mimeType: "image/jpeg")
+        let result = try await LaterBoxAPIService.shared.uploadAttachments([asset], itemID: UUID().uuidString,
+            userID: UUID().uuidString, token: "unused")
+        #expect(result == [asset])
+    }
+
+    @Test func cloudUUIDCasingDoesNotCreateAnotherItem() async throws {
+        let coordinator = SyncCoordinator.shared
+        let previous = (coordinator.currentUserId, coordinator.currentUserEmail, coordinator.authToken, coordinator.isPro, coordinator.isGuestMode)
+        coordinator.isGuestMode = false
+        coordinator.setSession(email: "assets@example.com", userId: "asset-owner", token: "token")
+        coordinator.setProForTesting(true)
+        defer {
+            coordinator.currentUserId = previous.0; coordinator.currentUserEmail = previous.1
+            coordinator.authToken = previous.2; coordinator.setProForTesting(previous.3)
+            coordinator.isGuestMode = previous.4
+        }
+        let context = try context()
+        let id = UUID().uuidString
+        let item = LBItem(id: id, title: "Local photo", updatedAt: Date(timeIntervalSince1970: 1000))
+        item.userId = "asset-owner"
+        item.isSyncPending = false
+        context.insert(item)
+        try context.save()
+        let transport = MockCloudTransport()
+        transport.snapshots = [CloudItemSnapshot(id: id.lowercased(), user_id: "asset-owner", title: "Cloud photo",
+            status: "inbox", updated_at: Date(timeIntervalSince1970: 2000).ISO8601Format())]
+        _ = try await coordinator.performCloudPull(context: context, transport: transport)
+        let items = try context.fetch(FetchDescriptor<LBItem>())
+        #expect(items.count == 1)
+        #expect(items.first?.id == id)
+        #expect(items.first?.title == "Cloud photo")
+    }
     @Test func pullCannotAcknowledgeAnUnfinishedAttachmentUpload() async throws {
         let coordinator = SyncCoordinator.shared
         let previous = (coordinator.currentUserId, coordinator.currentUserEmail, coordinator.authToken, coordinator.isPro, coordinator.isGuestMode)
