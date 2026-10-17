@@ -32,6 +32,8 @@ public struct InboxView: View {
     @State private var navigateToCapture: Bool = false
     @State private var showingQuickCapture: Bool = false
     @State private var showingEmptyTrashConfirm: Bool = false
+    @State private var showingExitGuestConfirm: Bool = false
+    @State private var showingSignOutConfirm: Bool = false
     @State private var collectionTargetItem: LBItem? = nil
     @State private var newCollectionName: String = ""
 
@@ -243,17 +245,24 @@ public struct InboxView: View {
                                     if let email = coordinator.currentUserEmail, !email.isEmpty {
                                         Section(email) {
                                             Button(role: .destructive) {
-                                                coordinator.signOut()
+                                                showingSignOutConfirm = true
                                             } label: {
                                                 Label("Sign Out", systemImage: "rectangle.portrait.and.arrow.right")
                                             }
                                         }
                                     } else {
                                         Section("Guest Mode") {
-                                            Button(role: .destructive) {
-                                                coordinator.signOut()
+                                            Button {
+                                                coordinator.showingAuthSheet = true
+                                                LBHaptic.medium()
                                             } label: {
-                                                Label("Sign In / Exit Guest", systemImage: "rectangle.portrait.and.arrow.right")
+                                                Label("Sign In to Account", systemImage: "person.crop.circle.badge.plus")
+                                            }
+
+                                            Button(role: .destructive) {
+                                                showingExitGuestConfirm = true
+                                            } label: {
+                                                Label("Exit Guest & Clear Data", systemImage: "rectangle.portrait.and.arrow.right")
                                             }
                                         }
                                     }
@@ -756,6 +765,30 @@ public struct InboxView: View {
                 Button("Cancel", role: .cancel) {}
             } message: {
                 Text("This action cannot be undone. All items in the trash will be permanently erased.")
+            }
+            .confirmationDialog(
+                "Exit Guest Mode",
+                isPresented: $showingExitGuestConfirm,
+                titleVisibility: .visible
+            ) {
+                Button("Exit & Clear Data", role: .destructive) {
+                    coordinator.exitGuest(context: modelContext)
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("Exiting guest mode will clear all items saved on this device during this guest session.")
+            }
+            .confirmationDialog(
+                "Sign Out",
+                isPresented: $showingSignOutConfirm,
+                titleVisibility: .visible
+            ) {
+                Button("Sign Out", role: .destructive) {
+                    coordinator.signOut()
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("Your local items will be safely kept on this device.")
             }
             .sheet(isPresented: $showingOrganizer) {
                 AIOrganizerSheet()
