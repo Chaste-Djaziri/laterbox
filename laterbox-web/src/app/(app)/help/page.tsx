@@ -369,21 +369,14 @@ export default function HelpPage() {
   };
 
   return (
-    <div className="flex-1 w-full bg-[#fbfaf7] min-h-[calc(100vh-65px)] flex flex-col p-4 md:p-6 lg:p-8 space-y-6 overflow-y-auto">
-      {/* Clean Minimal Header */}
-      <div className="space-y-1">
-        <h1 className="text-2xl font-black text-[#171711] tracking-tight">Help &amp; FAQs</h1>
-        <p className="text-xs sm:text-sm text-[#6c6b63]">
-          Find quick answers to common questions or report an issue directly to our team.
-        </p>
-      </div>
-
+    <div className="flex-1 w-full min-w-0 bg-[#fbfaf7] min-h-[calc(100vh-65px)] flex flex-col p-4 md:p-6 lg:p-8 space-y-6 overflow-y-auto">
       {/* Main Navigation Tabs */}
-      <div className="flex items-center gap-2 border-b border-[#e4e0d5] pb-3 overflow-x-auto">
+      <div className="w-full overflow-x-auto overflow-y-visible border-b border-[#e4e0d5] pb-3">
+        <div className="flex min-w-max items-center gap-2 px-0.5 py-1 md:min-w-0 md:flex-wrap">
         <button
           type="button"
           onClick={() => setActiveTab('faq')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+          className={`shrink-0 whitespace-nowrap px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
             activeTab === 'faq'
               ? 'bg-[#171711] text-[#e6edb0] shadow-xs'
               : 'bg-white border border-[#e4e0d5] text-[#6c6b63] hover:text-[#171711] hover:bg-[#f7f5ee]'
@@ -396,7 +389,7 @@ export default function HelpPage() {
         <button
           type="button"
           onClick={() => setActiveTab('report')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+          className={`shrink-0 whitespace-nowrap px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
             activeTab === 'report'
               ? 'bg-[#171711] text-[#e6edb0] shadow-xs'
               : 'bg-white border border-[#e4e0d5] text-[#6c6b63] hover:text-[#171711] hover:bg-[#f7f5ee]'
@@ -409,7 +402,7 @@ export default function HelpPage() {
         <button
           type="button"
           onClick={() => setActiveTab('tickets')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer relative ${
+          className={`shrink-0 whitespace-nowrap px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer relative ${
             activeTab === 'tickets'
               ? 'bg-[#171711] text-[#e6edb0] shadow-xs'
               : 'bg-white border border-[#e4e0d5] text-[#6c6b63] hover:text-[#171711] hover:bg-[#f7f5ee]'
@@ -427,11 +420,12 @@ export default function HelpPage() {
             </span>
           )}
         </button>
+        </div>
       </div>
 
       {/* TAB 1: Simplified FAQs */}
       {activeTab === 'faq' && (
-        <div className="max-w-3xl space-y-4">
+        <div className="w-full min-w-0 space-y-4">
           {/* Search bar */}
           <div className="relative">
             <Search className="w-4 h-4 text-[#9e9b92] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -526,7 +520,7 @@ export default function HelpPage() {
 
       {/* TAB 2: Report a Problem (FORM ONLY!) */}
       {activeTab === 'report' && (
-        <div className="max-w-2xl">
+        <div className="w-full min-w-0">
           <div className="rounded-3xl border border-[#e4e0d5] bg-white p-6 md:p-8 shadow-xs space-y-5">
             <div>
               <h2 className="text-base font-black text-[#171711] flex items-center gap-2">
