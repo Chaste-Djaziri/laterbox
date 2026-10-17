@@ -20,6 +20,8 @@ All notable user-facing changes to LaterBox will be documented in this file.
 
 ## [Unreleased]
 
+- **[Web / iOS / Security] Account deletion now removes all account data and Cloudflare attachments, with a dedicated iOS Security page for destructive account controls.**
+
 - **[Web / Help & FAQs] Let FAQ and help components sit directly on the site background instead of a separate page surface.**
 
 - **[Web / Help & FAQs] Fix the support tab switcher being vertically clipped under the app header.**
