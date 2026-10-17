@@ -4,6 +4,15 @@ import { Attachment } from '../supabase/types';
 
 const urlCache = new Map<string, { url: string; expiresAt: number }>();
 
+export async function permanentlyDeleteCloudItem(itemId: string): Promise<void> {
+  const { data, error } = await getSupabaseClient().functions.invoke('attachment-storage', {
+    body: { action: 'delete-item', itemId },
+  });
+  if (error || data?.deleted !== true) {
+    throw new Error('Cloud files could not be permanently deleted. Cleanup will be retried.');
+  }
+}
+
 export async function fetchAttachmentDownloadUrl(attachmentId: string, ownerId: string | null = null): Promise<string | null> {
   try {
     const local = await localAttachmentUrl(attachmentId, ownerId);
