@@ -352,3 +352,109 @@ test('items preserve and propagate seen attribute across local queue and reconci
   assert.equal(result.reconciledActive.length, 1);
   assert.equal(result.reconciledActive[0].seen, true);
 });
+
+test('conflict resolution: local recent delete beats remote older edit and marks for push', () => {
+  const remoteItem = createMockItem({
+    id: 'item-conflict-1',
+    title: 'Remote Title',
+    updated_at: '2026-10-11T01:00:00.000Z',
+    deleted_at: null,
+  });
+
+  const localDeleted = createMockItem({
+    id: 'item-conflict-1',
+    title: 'Local Deleted',
+    updated_at: '2026-10-11T02:00:00.000Z',
+    deleted_at: '2026-10-11T02:00:00.000Z',
+  });
+
+  const result = reconcileItemsWithRemote({
+    remoteActive: [remoteItem],
+    remoteDeleted: [],
+    localCached: [],
+    localDeleted: [localDeleted],
+    pendingQueue: { 'item-conflict-1': localDeleted },
+  });
+
+  assert.equal(result.reconciledActive.length, 0);
+  assert.equal(result.reconciledDeleted.length, 1);
+  assert.equal(result.reconciledDeleted[0].id, 'item-conflict-1');
+  assert.equal(result.itemsToPush.length, 1);
+  assert.equal(result.itemsToPush[0].deleted_at, '2026-10-11T02:00:00.000Z');
+  assert.equal(result.queueIdsToRemove.length, 0);
+});
+
+test('conflict resolution: remote recent delete beats local older edit and clears queue', () => {
+  const remoteDeleted = createMockItem({
+    id: 'item-conflict-2',
+    title: 'Remote Deleted',
+    updated_at: '2026-10-11T03:00:00.000Z',
+    deleted_at: '2026-10-11T03:00:00.000Z',
+  });
+
+  const localEdited = createMockItem({
+    id: 'item-conflict-2',
+    title: 'Local Older Edit',
+    updated_at: '2026-10-11T01:00:00.000Z',
+    deleted_at: null,
+  });
+
+  const result = reconcileItemsWithRemote({
+    remoteActive: [],
+    remoteDeleted: [remoteDeleted],
+    localCached: [localEdited],
+    localDeleted: [],
+    pendingQueue: { 'item-conflict-2': localEdited },
+  });
+
+  assert.equal(result.reconciledActive.length, 0);
+  assert.equal(result.reconciledDeleted.length, 1);
+  assert.equal(result.reconciledDeleted[0].id, 'item-conflict-2');
+  assert.equal(result.itemsToPush.length, 0);
+  assert.deepEqual(result.queueIdsToRemove, ['item-conflict-2']);
+});
+
+test('conflict resolution: local recent create beats remote and marks for push', () => {
+  const localNewItem = createMockItem({
+    id: 'item-conflict-3',
+    title: 'Local New Item',
+    created_at: '2026-10-11T04:00:00.000Z',
+    updated_at: '2026-10-11T04:00:00.000Z',
+  });
+
+  const result = reconcileItemsWithRemote({
+    remoteActive: [],
+    remoteDeleted: [],
+    localCached: [localNewItem],
+    localDeleted: [],
+    pendingQueue: { 'item-conflict-3': localNewItem },
+  });
+
+  assert.equal(result.reconciledActive.length, 1);
+  assert.equal(result.reconciledActive[0].id, 'item-conflict-3');
+  assert.equal(result.itemsToPush.length, 1);
+  assert.equal(result.itemsToPush[0].id, 'item-conflict-3');
+  assert.equal(result.queueIdsToRemove.length, 0);
+});
+
+test('conflict resolution: remote recent create pulls and updates active state without pushing', () => {
+  const remoteNewItem = createMockItem({
+    id: 'item-conflict-4',
+    title: 'Remote New Item',
+    created_at: '2026-10-11T05:00:00.000Z',
+    updated_at: '2026-10-11T05:00:00.000Z',
+  });
+
+  const result = reconcileItemsWithRemote({
+    remoteActive: [remoteNewItem],
+    remoteDeleted: [],
+    localCached: [],
+    localDeleted: [],
+    pendingQueue: {},
+  });
+
+  assert.equal(result.reconciledActive.length, 1);
+  assert.equal(result.reconciledActive[0].id, 'item-conflict-4');
+  assert.equal(result.itemsToPush.length, 0);
+});
+
