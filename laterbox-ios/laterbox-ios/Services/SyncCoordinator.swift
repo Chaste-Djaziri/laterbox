@@ -274,7 +274,7 @@ public final class SyncCoordinator: ObservableObject {
 
     public func deleteAccount(context: ModelContext) async throws {
         guard let token = authToken, !token.isEmpty else {
-            throw CloudSyncError.unauthorized
+            throw CloudSyncError.unauthenticated
         }
 
         try await api.deleteAccount(token: token)
