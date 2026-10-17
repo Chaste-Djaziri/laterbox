@@ -521,3 +521,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 - **Apps Download Link**: Desktop sidebar "Apps" link now points directly to the external download page (`https://laterbox.dev/download`).
 - **Platform Architecture**: Removed legacy Flutter web build configuration and web-specific updater services in favor of the dedicated `laterbox-web` Next.js application.
 - **Download Page**: Download page now only shows iOS and Android downloads. macOS, Windows, Linux, and browser extension downloads are hidden for now.
+## Unreleased
+
+- **[iOS] Lower minimum OS to iOS 17 and defer AI providers**: Removed Apple Intelligence and unfinished cloud/custom AI runtime paths, preserved the assistant-style capture UI with deterministic local responses, and marked provider switching as coming soon.
+
