@@ -20,6 +20,8 @@ All notable user-facing changes to LaterBox will be documented in this file.
 
 ## [Unreleased]
 
+- **[iOS / Sync] Show sync failures in an in-app popup with a simple explanation and a prefilled issue report for review.**
+
 - **[iOS & Web / Inbox] Display the first attached image as the fading right-side row background, matching OG previews.**
 
 - **[iOS & Web / Inbox] Show the first attached image as a thumbnail in email-style item rows, including web split view.**
