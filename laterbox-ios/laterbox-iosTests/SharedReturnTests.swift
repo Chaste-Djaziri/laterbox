@@ -31,4 +31,55 @@ import Foundation
         #expect(restored.attachments == capture.attachments)
         #expect(restored.returnAt == capture.returnAt)
     }
+
+    @Test func mailboxFiltersDistinguishInboxTodayAndUpcoming() throws {
+        let now = Date()
+        let cal = Calendar.current
+        let endOfToday = cal.date(byAdding: .day, value: 1, to: cal.startOfDay(for: now))!
+
+        let inboxWithReturn = LBItem(title: "Inbox Item with Return", status: .inbox, returnAt: now.addingTimeInterval(-3600))
+        let deferredUpcomingToday = LBItem(title: "Deferred Today", status: .deferred, returnAt: now.addingTimeInterval(3600))
+        let deferredLater = LBItem(title: "Deferred Tomorrow", status: .deferred, returnAt: endOfToday.addingTimeInterval(3600))
+        let deferredDue = LBItem(title: "Deferred Due", status: .deferred, returnAt: now.addingTimeInterval(-600))
+        let deferredSomeday = LBItem(title: "Deferred Someday", status: .deferred, returnAt: nil)
+
+        let allItems = [inboxWithReturn, deferredUpcomingToday, deferredLater, deferredDue, deferredSomeday]
+
+        let inboxFilter: (LBItem) -> Bool = {
+            $0.status == ItemStatus.inbox.rawValue ||
+            ($0.status == ItemStatus.deferred.rawValue && $0.returnAt != nil && $0.returnAt! <= now)
+        }
+
+        let todayFilter: (LBItem) -> Bool = {
+            $0.status == ItemStatus.deferred.rawValue &&
+            $0.returnAt != nil &&
+            $0.returnAt! > now &&
+            $0.returnAt! <= endOfToday
+        }
+
+        let upcomingFilter: (LBItem) -> Bool = {
+            $0.status == ItemStatus.deferred.rawValue &&
+            $0.returnAt != nil &&
+            $0.returnAt! > endOfToday
+        }
+
+        let inboxItems = allItems.filter(inboxFilter)
+        let todayItems = allItems.filter(todayFilter)
+        let upcomingItems = allItems.filter(upcomingFilter)
+
+        #expect(inboxItems.contains { $0.id == inboxWithReturn.id })
+        #expect(inboxItems.contains { $0.id == deferredDue.id })
+        #expect(!inboxItems.contains { $0.id == deferredUpcomingToday.id })
+        #expect(!inboxItems.contains { $0.id == deferredLater.id })
+
+        #expect(!todayItems.contains { $0.id == inboxWithReturn.id })
+        #expect(!todayItems.contains { $0.id == deferredDue.id })
+        #expect(todayItems.contains { $0.id == deferredUpcomingToday.id })
+        #expect(!todayItems.contains { $0.id == deferredLater.id })
+
+        #expect(!upcomingItems.contains { $0.id == inboxWithReturn.id })
+        #expect(!upcomingItems.contains { $0.id == deferredDue.id })
+        #expect(!upcomingItems.contains { $0.id == deferredUpcomingToday.id })
+        #expect(upcomingItems.contains { $0.id == deferredLater.id })
+    }
 }
