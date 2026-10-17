@@ -1276,6 +1276,194 @@ extension LaterAITests {
         #expect(coordinator.billingError == nil)
         #expect(coordinator.sessionExpired == false)
     }
+
+    @Test
+    func urlNormalizationAndDisplayDeduplication() {
+        let n1 = LBItem.normalizeURL("https://www.Example.COM/article/?utm_source=twitter&ref=share#section")
+        #expect(n1 == "example.com/article")
+
+        let n2 = LBItem.normalizeURL("http://example.com/article")
+        #expect(n2 == "example.com/article")
+
+        let t1 = Date(timeIntervalSince1970: 1000)
+        let t2 = Date(timeIntervalSince1970: 2000)
+
+        // Local item with pending sync vs up to date synced cloud copy
+        let localItem = LBItem(id: "local-1", title: "Local Draft", url: "https://example.com/post", createdAt: t1, updatedAt: t1)
+        localItem.isSyncPending = true
+
+        let syncedItem = LBItem(id: "cloud-1", title: "Synced Version", url: "https://www.example.com/post/", createdAt: t1, updatedAt: t2)
+        syncedItem.isSyncPending = false
+
+        let items = [localItem, syncedItem]
+        let displayList = items.deduplicatedForDisplay()
+
+        // Should show only ONE version, preferring the up to date synced version
+        #expect(displayList.count == 1)
+        #expect(displayList.first?.id == "cloud-1")
+        #expect(displayList.first?.title == "Synced Version")
+    }
+
+    @Test
+    func cloudPullMatchesLocalItemByURLAndReconcilesWithoutDuplicates() async throws {
+        let coordinator = SyncCoordinator.shared
+        let prev = (coordinator.currentUserId, coordinator.currentUserEmail, coordinator.authToken, coordinator.isProUser, coordinator.isGuestMode)
+        let uid = "00000000-0000-4000-8000-000000000099"
+        coordinator.currentUserId = uid; coordinator.currentUserEmail = "user99@test.com"; coordinator.authToken = "tok99"
+        coordinator.isGuestMode = false
+        coordinator.setProForTesting(true)
+        defer {
+            coordinator.currentUserId = prev.0; coordinator.currentUserEmail = prev.1; coordinator.authToken = prev.2
+            coordinator.setProForTesting(prev.3)
+            coordinator.isGuestMode = prev.4
+        }
+
+        let container = try ModelContainer(for: LBItem.self, LBCollection.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+        let context = container.mainContext
+
+        let tOld = Date(timeIntervalSince1970: 1000)
+        let tNew = Date(timeIntervalSince1970: 2000)
+
+        // Item captured locally before syncing to cloud (has local UUID)
+        let localPreSync = LBItem(id: "local-orig-uuid", title: "Local Title", url: "https://laterbox.app/guide", createdAt: tOld, updatedAt: tOld)
+        localPreSync.userId = uid
+        localPreSync.isSyncPending = true
+        context.insert(localPreSync)
+        try context.save()
+
+        // Remote snapshot from cloud (has cloud UUID, same URL, newer updatedAt)
+        let transport = MockCloudTransport()
+        transport.snapshots = [
+            CloudItemSnapshot(
+                id: "cloud-remote-uuid",
+                user_id: uid,
+                url: "https://www.laterbox.app/guide/",
+                title: "Updated Cloud Guide",
+                status: "inbox",
+                created_at: tOld.ISO8601Format(),
+                updated_at: tNew.ISO8601Format()
+            )
+        ]
+
+        let applied = try await coordinator.performCloudPull(context: context, transport: transport)
+        #expect(applied == 1)
+
+        let allLocal = try context.fetch(FetchDescriptor<LBItem>())
+        // Verified: only one local item exists in SwiftData for this URL, reconciled with cloud UUID
+        #expect(allLocal.count == 1)
+        let reconciled = allLocal.first!
+        #expect(reconciled.id == "cloud-remote-uuid")
+        #expect(reconciled.title == "Updated Cloud Guide")
+        #expect(reconciled.isSyncPending == false)
+    }
+
+    @Test
+    func cloudPullSavesCloudVersionLocallyForOfflineViewing() async throws {
+        let coordinator = SyncCoordinator.shared
+        let prev = (coordinator.currentUserId, coordinator.currentUserEmail, coordinator.authToken, coordinator.isProUser, coordinator.isGuestMode)
+        let uid = "00000000-0000-4000-8000-000000000077"
+        coordinator.currentUserId = uid; coordinator.currentUserEmail = "user77@test.com"; coordinator.authToken = "tok77"
+        coordinator.isGuestMode = false
+        coordinator.setProForTesting(true)
+        defer {
+            coordinator.currentUserId = prev.0; coordinator.currentUserEmail = prev.1; coordinator.authToken = prev.2
+            coordinator.setProForTesting(prev.3)
+            coordinator.isGuestMode = prev.4
+        }
+
+        let container = try ModelContainer(for: LBItem.self, LBCollection.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+        let context = container.mainContext
+
+        // Empty local storage initially
+        let initialItems = try context.fetch(FetchDescriptor<LBItem>())
+        #expect(initialItems.isEmpty)
+
+        let tRemote = Date(timeIntervalSince1970: 5000)
+        let transport = MockCloudTransport()
+        transport.snapshots = [
+            CloudItemSnapshot(
+                id: "cloud-item-offline",
+                user_id: uid,
+                url: "https://docs.swift.org/swift-book",
+                title: "The Swift Programming Language",
+                text_content: "Swift is a general-purpose programming language...",
+                type: "link",
+                favorite: true,
+                status: "inbox",
+                created_at: tRemote.ISO8601Format(),
+                updated_at: tRemote.ISO8601Format(),
+                item_metadata: CloudMetadata(
+                    domain: "docs.swift.org",
+                    site_name: "Swift.org",
+                    description: "Official Swift Language Documentation",
+                    favicon_url: "https://docs.swift.org/favicon.ico",
+                    preview_image_url: nil,
+                    status: "completed",
+                    structured_data: CloudClassification(
+                        tags: ["swift", "ios", "dev"],
+                        category: "Engineering",
+                        summary: "Complete reference for Swift language features",
+                        formattedContent: "",
+                        seen: false
+                    )
+                )
+            )
+        ]
+
+        let applied = try await coordinator.performCloudPull(context: context, transport: transport)
+        #expect(applied == 1)
+
+        // After pull, the item is persisted locally in SwiftData for full offline viewing
+        let savedLocally = try context.fetch(FetchDescriptor<LBItem>())
+        #expect(savedLocally.count == 1)
+        let item = savedLocally.first!
+        #expect(item.id == "cloud-item-offline")
+        #expect(item.title == "The Swift Programming Language")
+        #expect(item.textContent?.contains("general-purpose") == true)
+        #expect(item.domain == "docs.swift.org")
+        #expect(item.tags == ["swift", "ios", "dev"])
+        #expect(item.category == "Engineering")
+        #expect(item.isSyncPending == false)
+    }
+
+    @Test
+    func cleanupDuplicatesInStoreMergesDataAndRemovesRedundantRows() throws {
+        let container = try ModelContainer(for: LBItem.self, LBCollection.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+        let context = container.mainContext
+
+        let t1 = Date(timeIntervalSince1970: 1000)
+        let t2 = Date(timeIntervalSince1970: 2000)
+
+        // Local copy created offline with custom note
+        let local1 = LBItem(id: "item-dup-1", title: "Swift Guide (Draft)", url: "https://developer.apple.com/swift/", createdAt: t1, updatedAt: t1)
+        local1.noteContent = "Important note to keep"
+        local1.tags = ["local-tag"]
+        local1.isSyncPending = true
+
+        // Synced cloud copy pulled down
+        let local2 = LBItem(id: "item-dup-2", title: "Swift Guide (Official)", url: "https://developer.apple.com/swift", createdAt: t1, updatedAt: t2)
+        local2.tags = ["official"]
+        local2.isSyncPending = false
+
+        context.insert(local1)
+        context.insert(local2)
+        try context.save()
+
+        #expect(try context.fetch(FetchDescriptor<LBItem>()).count == 2)
+
+        LBItem.cleanupDuplicatesInStore(context: context)
+        try context.save()
+
+        let remaining = try context.fetch(FetchDescriptor<LBItem>())
+        #expect(remaining.count == 1)
+        let surviving = remaining.first!
+        // Preserves primary synced version
+        #expect(surviving.id == "item-dup-2")
+        // Merged local note and tags from duplicate
+        #expect(surviving.noteContent == "Important note to keep")
+        #expect(surviving.tags.contains("local-tag"))
+        #expect(surviving.tags.contains("official"))
+    }
 }
 @MainActor
 private final class MockCloudTransport: IOSCloudTransport {
@@ -1293,7 +1481,7 @@ private final class MockCloudTransport: IOSCloudTransport {
     }
     func cloudRequest(_ path: String, token: String, method: String, body: Any?) async throws -> Data {
         if let err = errorToThrow { throw err }
-        if path.contains("select=id,updated_at,deleted_at"), let data = manifestData {
+        if path.contains("select=id"), let data = manifestData {
             return data
         }
         return Data()
