@@ -81,21 +81,11 @@ public actor LaterBoxAPIService {
 
     // MARK: - System Status Check (Web Integration)
     public func fetchSystemStatus() async -> (status: String, isOperational: Bool) {
-        guard let url = URL(string: "\(webUrl)/api/system-status") else {
-            return ("Unknown", true)
-        }
         do {
-            let (data, response) = try await session.data(from: url)
-            guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
-                return ("Degraded", false)
-            }
-            if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-               let status = json["status"] as? String {
-                return (status.capitalized, status == "operational")
-            }
-            return ("Operational", true)
+            let snapshot = try await fetchServiceStatus()
+            return (snapshot.status.capitalized, snapshot.status == "operational")
         } catch {
-            return ("Offline", false)
+            return ("Status unavailable", false)
         }
     }
 
