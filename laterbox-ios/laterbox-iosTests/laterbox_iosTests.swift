@@ -39,6 +39,30 @@ struct LaterAITests {
         #expect(coordinator.cloudDeletionQueue.isEmpty)
         #expect(transport.uploads.isEmpty)
     }
+    @Test func permanentDeletionReceiptOverridesNewerLocalEdits() async throws {
+        let coordinator = SyncCoordinator.shared
+        let previous = (coordinator.currentUserId, coordinator.currentUserEmail, coordinator.authToken, coordinator.isPro, coordinator.isGuestMode)
+        coordinator.isGuestMode = false
+        coordinator.setSession(email: "cleanup@example.com", userId: "cleanup-owner", token: "token")
+        coordinator.setProForTesting(true)
+        defer {
+            coordinator.currentUserId = previous.0; coordinator.currentUserEmail = previous.1
+            coordinator.authToken = previous.2; coordinator.setProForTesting(previous.3)
+            coordinator.isGuestMode = previous.4
+        }
+        let context = try context()
+        let id = UUID().uuidString
+        let local = LBItem(id: id, title: "Stale photo", updatedAt: Date(timeIntervalSince1970: 3000))
+        local.userId = "cleanup-owner"
+        context.insert(local)
+        try context.save()
+        let transport = MockCloudTransport()
+        transport.snapshots = [CloudItemSnapshot(id: id.lowercased(), user_id: "cleanup-owner",
+            updated_at: Date(timeIntervalSince1970: 2000).ISO8601Format(),
+            deleted_at: Date(timeIntervalSince1970: 2000).ISO8601Format(), permanently_deleted: true)]
+        _ = try await coordinator.performCloudPull(context: context, transport: transport)
+        #expect(try context.fetch(FetchDescriptor<LBItem>()).isEmpty)
+    }
     @Test func attachmentDownloadReusesUppercaseDirectory() throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
         defer { try? FileManager.default.removeItem(at: root) }
