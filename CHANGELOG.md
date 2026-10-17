@@ -20,6 +20,8 @@ All notable user-facing changes to LaterBox will be documented in this file.
 
 ## [Unreleased]
 
+- **[Web / Inbox] Add an exact scheduling modal with a calendar, local time picker, schedule preview, and explicit confirmation for individual or selected items.**
+
 - **[Web / Inbox] Render snooze time controls outside email cards and table containers to prevent clipped popups.**
 
 - **[iOS / Sync] Reuse cloud attachment records before uploading, match UUIDs regardless of letter case, and reuse existing attachment folders when downloading.**
