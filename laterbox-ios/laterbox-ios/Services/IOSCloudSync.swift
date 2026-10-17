@@ -20,7 +20,9 @@ struct CloudItemSnapshot: Codable {
     var item_notes: CloudNote?
     var collection_items: [CloudMembership]?
     var attachments: [CloudAttachmentSnapshot]?
+    var permanently_deleted: Bool?
 }
+struct CloudDeletionReceipt: Codable { var item_id: String; var deleted_at: String }
 struct CloudAttachmentSnapshot: Codable {
     var id: String
     var item_id: String
@@ -172,7 +174,23 @@ extension LaterBoxAPIService: IOSCloudTransport {
                 throw CloudSyncError.decodingError(error.localizedDescription)
             }
         }
+        let receipts = try await downloadDeletionReceipts(userID: userID, token: token)
+        let removedIDs = Set(receipts.map { $0.item_id.lowercased() })
+        result.removeAll { removedIDs.contains($0.id.lowercased()) }
+        result += receipts.map { CloudItemSnapshot(id: $0.item_id, user_id: userID, updated_at: $0.deleted_at,
+            deleted_at: $0.deleted_at, permanently_deleted: true) }
         return result
+    }
+    func downloadDeletionReceipts(userID: String, token: String) async throws -> [CloudDeletionReceipt] {
+        var receipts: [CloudDeletionReceipt] = []
+        var offset = 0
+        while true {
+            let data = try await cloudRequest("item_deletion_receipts?user_id=eq.\(userID)&select=item_id,deleted_at&order=item_id&limit=1000&offset=\(offset)", token: token)
+            let page = try JSONDecoder().decode([CloudDeletionReceipt].self, from: data)
+            receipts += page
+            if page.count < 1000 { return receipts }
+            offset += page.count
+        }
     }
     func uploadSnapshot(_ body: [String: Any], metadata: [String: Any], note: [String: Any], collection: [String: Any]?, token: String) async throws {
         _ = try await cloudRequest("items?on_conflict=id", token: token, method: "POST", body: body)
@@ -357,6 +375,15 @@ extension SyncCoordinator {
         var appliedCount = 0
 
         for snapshot in remote {
+            if snapshot.permanently_deleted == true {
+                for item in local where item.id.caseInsensitiveCompare(snapshot.id) == .orderedSame {
+                    context.delete(item)
+                    appliedCount += 1
+                }
+                byID.removeValue(forKey: snapshot.id.lowercased())
+                cloudDeletionQueue.removeAll { $0.caseInsensitiveCompare(snapshot.id) == .orderedSame }
+                continue
+            }
             let remoteDate = snapshot.updated_at.flatMap(Self.cloudDate) ?? .distantPast
             let item: LBItem
             let normSnapUrl = LBItem.normalizeURL(snapshot.url)
@@ -689,6 +716,12 @@ extension SyncCoordinator {
             }
 
             for snapshot in remote {
+                if snapshot.permanently_deleted == true {
+                    for item in updatedLocal where item.id.caseInsensitiveCompare(snapshot.id) == .orderedSame {
+                        context.delete(item)
+                    }
+                    continue
+                }
                 let date = snapshot.updated_at.flatMap(Self.cloudDate) ?? .distantPast
                 let item: LBItem
                 let normSnapUrl = LBItem.normalizeURL(snapshot.url)
