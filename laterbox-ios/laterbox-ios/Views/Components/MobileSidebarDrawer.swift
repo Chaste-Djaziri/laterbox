@@ -54,6 +54,7 @@ public struct MobileSidebarDrawer: View {
 
     @State private var isCreatingCollection: Bool = false
     @State private var newCollectionName: String = ""
+    @State private var isCollectionsExpanded: Bool = true
 
     public init(
         isPresented: Binding<Bool>,
@@ -320,10 +321,24 @@ public struct MobileSidebarDrawer: View {
     private var collectionsSection: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
-                Text("COLLECTIONS")
-                    .font(.system(size: 10, weight: .black))
+                Button {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        isCollectionsExpanded.toggle()
+                    }
+                    LBHaptic.light()
+                } label: {
+                    HStack(spacing: 5) {
+                        Image(systemName: isCollectionsExpanded ? "chevron.down" : "chevron.right")
+                            .font(.system(size: 9, weight: .bold))
+                        Text("COLLECTIONS")
+                            .font(.system(size: 10, weight: .black))
+                            .tracking(1.0)
+                    }
                     .foregroundColor(Color(hex: "9E9B92"))
-                    .tracking(1.0)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(isCollectionsExpanded ? "Collapse collections" : "Expand collections")
 
                 Spacer()
 
@@ -341,7 +356,7 @@ public struct MobileSidebarDrawer: View {
             .padding(.horizontal, 16)
             .padding(.top, 4)
 
-            if isCreatingCollection {
+            if isCollectionsExpanded && isCreatingCollection {
                 HStack(spacing: 8) {
                     TextField("New collection name...", text: $newCollectionName)
                         .font(.system(size: 13))
@@ -372,40 +387,42 @@ public struct MobileSidebarDrawer: View {
                 .padding(.bottom, 4)
             }
 
-            VStack(spacing: 2) {
-                ForEach(collections) { col in
-                    let count = collectionItemCount(named: col.name)
-                    let isColActive = activeCollection == col.name
-                    navLinkRow(
-                        title: col.name,
-                        systemIcon: "tag.fill",
-                        badgeCount: count,
-                        isActive: isColActive
-                    ) {
-                        close()
-                        onSelectCollection(col.name)
-                    }
-                }
-
-                if collections.isEmpty && !isCreatingCollection {
-                    Button {
-                        isCreatingCollection = true
-                        LBHaptic.light()
-                    } label: {
-                        HStack(spacing: 6) {
-                            Image(systemName: "plus")
-                                .font(.system(size: 11, weight: .bold))
-                            Text("New collection...")
-                                .font(.system(size: 12))
+            if isCollectionsExpanded {
+                VStack(spacing: 2) {
+                    ForEach(collections) { col in
+                        let count = collectionItemCount(named: col.name)
+                        let isColActive = activeCollection == col.name
+                        navLinkRow(
+                            title: col.name,
+                            systemIcon: "tag.fill",
+                            badgeCount: count,
+                            isActive: isColActive
+                        ) {
+                            close()
+                            onSelectCollection(col.name)
                         }
-                        .foregroundColor(Color(hex: "9E9B92"))
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 8)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+
+                    if collections.isEmpty && !isCreatingCollection {
+                        Button {
+                            isCreatingCollection = true
+                            LBHaptic.light()
+                        } label: {
+                            HStack(spacing: 6) {
+                                Image(systemName: "plus")
+                                    .font(.system(size: 11, weight: .bold))
+                                Text("New collection...")
+                                    .font(.system(size: 12))
+                            }
+                            .foregroundColor(Color(hex: "9E9B92"))
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 8)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
                         .contentShape(Rectangle())
                     }
-                    .buttonStyle(.plain)
-                    .contentShape(Rectangle())
                 }
             }
         }
