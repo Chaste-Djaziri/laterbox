@@ -20,6 +20,8 @@ All notable user-facing changes to LaterBox will be documented in this file.
 
 ## [Unreleased]
 
+- **[iOS / Service Status] Add an interactive uptime history range picker and daily/hourly availability bars for each monitor.**
+
 - **[iOS / Service Status] Show historical uptime percentages and outage bars with day, week, month, and custom date ranges.**
 
 - **[iOS / Settings] Add a dedicated Status page showing every Better Stack monitor, live service health, last-check times, and pull-to-refresh through a backend-only API token.**
@@ -562,4 +564,3 @@ All notable user-facing changes to LaterBox will be documented in this file.
 - **[iOS Share] Add rich previews for shared files**: Images and documents now show visual previews or type-specific cards with filename and file metadata before saving.
 - **[iOS] Sync Pro attachments through Cloudflare R2**: Upload captured images, documents, and files to the existing attachment bucket and download them on other signed-in Pro devices.
 - **[iOS] Lower minimum OS to iOS 17 and defer AI providers**: Removed Apple Intelligence and unfinished cloud/custom AI runtime paths, preserved the assistant-style capture UI with deterministic local responses, and marked provider switching as coming soon.
-
