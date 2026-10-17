@@ -1,4 +1,5 @@
 import { authenticateAccount } from '../_shared/auth.ts';
+import { permanentlyDeleteCloudItem, type PermanentAttachment } from './permanent-delete.ts';
 import {
   DeleteObjectCommand,
   ListObjectsV2Command,
@@ -110,6 +111,8 @@ const handler = async (request: Request): Promise<Response> => {
         return await completeUpload(request, userId, body);
       case "prepare-download":
         return await prepareDownload(request, userId, body);
+      case "delete-item":
+        return await deleteItem(request, userId, body);
       case "delete":
         return await deleteAttachment(request, userId, body);
       default:
@@ -231,6 +234,51 @@ async function deleteAttachment(
       console.warn("R2 deleteObject warning:", error);
     }
   }
+  return json(request, { deleted: true }, 200);
+}
+
+async function deleteItem(request: Request, userId: string, body: AttachmentBody): Promise<Response> {
+  const itemId = requireUuid(body.itemId, 'itemId');
+  const client = r2Client();
+  const bucket = requiredEnv('R2_BUCKET');
+  await permanentlyDeleteCloudItem(itemId, userId, {
+    readItem: async () => {
+      const rows = await adminGet(`items?select=user_id&id=eq.${itemId}`) as { user_id: string }[];
+      if (rows[0] && rows[0].user_id.toLowerCase() !== userId.toLowerCase()) throw new RequestError('Unauthorized item ownership', 403);
+      return rows[0] ?? null;
+    },
+    readAttachments: async () => {
+      const attachments: PermanentAttachment[] = [];
+      for (let offset = 0; ; offset += 1000) {
+        const rows = await adminGet(`attachments?select=*&item_id=eq.${itemId}&user_id=eq.${userId}&order=id&limit=1000&offset=${offset}`) as PermanentAttachment[];
+        attachments.push(...rows);
+        if (rows.length < 1000) return attachments;
+      }
+    },
+    deleteFiles: async attachment => {
+      const keys = [attachment.r2_object_key, attachment.preview_object_key, attachment.thumbnail_object_key].filter((key): key is string => Boolean(key));
+      if (keys.some(key => !key.startsWith(`users/${userId}/`))) throw new Error('Attachment storage owner does not match');
+      if (keys.length) {
+        const result = await client.send(new DeleteObjectsCommand({ Bucket: bucket, Delete: { Objects: [...new Set(keys)].map(Key => ({ Key })), Quiet: true } }));
+        if (result.Errors?.length) throw new Error('Attachment cleanup could not finish');
+      }
+      // Remove derived files too, including previews not explicitly recorded in the row.
+      for (;;) {
+        const objects = await client.send(new ListObjectsV2Command({ Bucket: bucket, Prefix: `users/${userId}/attachments/${attachment.id.toLowerCase()}/` }));
+        if (!objects.Contents?.length) break;
+        const result = await client.send(new DeleteObjectsCommand({ Bucket: bucket, Delete: { Objects: objects.Contents.map(object => ({ Key: object.Key! })), Quiet: true } }));
+        if (result.Errors?.length) throw new Error('Attachment preview cleanup could not finish');
+      }
+    },
+    deleteRecords: async () => {
+      const serviceKey = requiredEnv('SUPABASE_SERVICE_ROLE_KEY');
+      const response = await fetch(`${requiredEnv('SUPABASE_URL')}/rest/v1/rpc/finish_permanent_item_deletion`, {
+        method: 'POST', headers: { apikey: serviceKey, authorization: `Bearer ${serviceKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ target_item_id: itemId, owner_id: userId }),
+      });
+      if (!response.ok) throw new Error(`Item deletion failed with ${response.status}`);
+    },
+  });
   return json(request, { deleted: true }, 200);
 }
 
