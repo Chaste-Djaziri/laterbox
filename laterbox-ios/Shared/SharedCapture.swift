@@ -6,6 +6,11 @@ struct SharedAttachment: Codable, Identifiable, Equatable {
     var name: String
     var relativePath: String
     var typeIdentifier: String
+    // Cloud metadata is populated after a Pro attachment upload or download.
+    var remoteObjectKey: String?
+    var byteSize: Int64?
+    var sha256: String?
+    var mimeType: String?
 }
 struct SharedCapture: Codable, Identifiable {
     var id = UUID().uuidString
