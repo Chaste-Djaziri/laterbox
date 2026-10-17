@@ -8,6 +8,7 @@
 import SwiftUI
 import SwiftData
 import Combine
+import UserNotifications
 
 public enum CloudSyncState: String {
     case synced = "Synced"
@@ -269,6 +270,39 @@ public final class SyncCoordinator: ObservableObject {
         defaults.removeObject(forKey: "lb_refresh_token")
         defaults.removeObject(forKey: "lb_guest_mode")
         LBHaptic.light()
+    }
+
+    public func deleteAccount(context: ModelContext) async throws {
+        guard let token = authToken, !token.isEmpty else {
+            throw CloudSyncError.unauthorized
+        }
+
+        try await api.deleteAccount(token: token)
+
+        let items = (try? context.fetch(FetchDescriptor<LBItem>())) ?? []
+        for item in items where item.userId == currentUserId {
+            UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [item.id])
+            if let data = item.attachmentsData,
+               let attachments = try? JSONDecoder().decode([SharedAttachment].self, from: data) {
+                for attachment in attachments {
+                    if let file = try? SharedCaptureStore.fileURL(attachment) {
+                        try? FileManager.default.removeItem(at: file.deletingLastPathComponent())
+                    }
+                }
+            }
+            context.delete(item)
+        }
+
+        let collections = (try? context.fetch(FetchDescriptor<LBCollection>())) ?? []
+        for collection in collections where collection.userId == currentUserId {
+            context.delete(collection)
+        }
+        try context.save()
+
+        if let root = try? SharedCaptureStore.root() {
+            try? FileManager.default.removeItem(at: root.appendingPathComponent("Captures", isDirectory: true))
+        }
+        signOut()
     }
 
     @discardableResult

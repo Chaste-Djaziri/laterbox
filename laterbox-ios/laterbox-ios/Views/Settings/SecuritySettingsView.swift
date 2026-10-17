@@ -8,7 +8,12 @@
 import SwiftUI
 
 public struct SecuritySettingsView: View {
+    @Environment(\.modelContext) private var modelContext
     @ObservedObject private var lockManager = AppLockManager.shared
+    @ObservedObject private var coordinator = SyncCoordinator.shared
+    @State private var showingDeleteAccountAlert = false
+    @State private var isDeletingAccount = false
+    @State private var deletionError: String?
 
     public init() {}
 
@@ -180,6 +185,62 @@ public struct SecuritySettingsView: View {
                                 .strokeBorder(AppTheme.cardBorder, lineWidth: 1)
                         )
                     }
+
+                    if coordinator.isAuthenticated {
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text("Account Data")
+                                .font(.caption.weight(.bold))
+                                .foregroundColor(.secondary)
+                                .textCase(.uppercase)
+
+                            VStack(alignment: .leading, spacing: 12) {
+                                Text("Permanently delete your LaterBox account, cloud data, Cloudflare attachments, and this account's local data from the device.")
+                                    .font(.caption)
+                                    .foregroundColor(AppTheme.textSecondary)
+                                    .lineSpacing(2)
+
+                                Button {
+                                    LBHaptic.medium()
+                                    showingDeleteAccountAlert = true
+                                } label: {
+                                    HStack(spacing: 8) {
+                                        if isDeletingAccount {
+                                            ProgressView()
+                                                .tint(.white)
+                                        } else {
+                                            Image(systemName: "trash.fill")
+                                        }
+                                        Text(isDeletingAccount ? "Deleting Account..." : "Delete Account")
+                                            .font(.subheadline.weight(.bold))
+                                    }
+                                    .foregroundColor(.white)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 13)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                            .fill(Color.red)
+                                    )
+                                }
+                                .buttonStyle(.plain)
+                                .disabled(isDeletingAccount)
+
+                                if let deletionError {
+                                    Text(deletionError)
+                                        .font(.caption2)
+                                        .foregroundColor(.red)
+                                }
+                            }
+                            .padding(16)
+                            .background(
+                                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                    .fill(AppTheme.cardBackground)
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                    .strokeBorder(Color.red.opacity(0.2), lineWidth: 1)
+                            )
+                        }
+                    }
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 12)
@@ -188,5 +249,22 @@ public struct SecuritySettingsView: View {
         }
         .navigationTitle("Security & Privacy")
         .navigationBarTitleDisplayMode(.inline)
+        .alert("Delete Account", isPresented: $showingDeleteAccountAlert) {
+            Button("Delete Everything", role: .destructive) {
+                isDeletingAccount = true
+                deletionError = nil
+                Task {
+                    do {
+                        try await coordinator.deleteAccount(context: modelContext)
+                    } catch {
+                        isDeletingAccount = false
+                        deletionError = error.localizedDescription
+                    }
+                }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This permanently deletes your account, cloud records, Cloudflare attachments, and local account data. This cannot be undone.")
+        }
     }
 }
