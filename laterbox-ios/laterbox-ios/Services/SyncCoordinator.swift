@@ -627,6 +627,54 @@ public final class SyncCoordinator: ObservableObject {
     }
 
     // MARK: - Check Remote Changes
+    private func countRemoteChanges(_ remoteList: [CloudItemSnapshot], local: [LBItem]) -> Int {
+        var byID: [String: LBItem] = [:]
+        var byURL: [String: LBItem] = [:]
+        for item in local {
+            byID[item.id.lowercased()] = item
+            if let normalized = LBItem.normalizeURL(item.url) {
+                if let existing = byURL[normalized] {
+                    if !item.isSyncPending && existing.isSyncPending {
+                        byURL[normalized] = item
+                    }
+                } else {
+                    byURL[normalized] = item
+                }
+            }
+        }
+
+        var countedKeys = Set<String>()
+        var count = 0
+        for remote in remoteList {
+            let remoteID = remote.id.lowercased()
+            let normalizedURL = LBItem.normalizeURL(remote.url)
+            let localMatch = byID[remoteID] ?? normalizedURL.flatMap { byURL[$0] }
+            let key = localMatch.map { "local:\($0.id.lowercased())" }
+                ?? normalizedURL.map { "url:\($0)" }
+                ?? "remote:\(remoteID)"
+            guard countedKeys.insert(key).inserted else { continue }
+
+            guard let localMatch else {
+                if remote.deleted_at == nil && !cloudDeletionQueue.contains(where: { $0.caseInsensitiveCompare(remote.id) == .orderedSame }) {
+                    count += 1
+                }
+                continue
+            }
+
+            let remoteDate = remote.updated_at.flatMap(Self.cloudDate) ?? .distantPast
+            if remoteDate > localMatch.updatedAt {
+                count += 1
+            } else if remoteDate == localMatch.updatedAt {
+                let remoteIsDeleted = remote.deleted_at != nil
+                let localIsDeleted = localMatch.status == ItemStatus.deleted.rawValue
+                if remoteIsDeleted && !localIsDeleted {
+                    count += 1
+                }
+            }
+        }
+        return count
+    }
+
     @discardableResult
     public func checkRemoteChanges(context: ModelContext) async -> Int {
         await checkRemoteChanges(context: context, transport: nil)
@@ -647,37 +695,7 @@ public final class SyncCoordinator: ObservableObject {
             let data = try await api.cloudRequest("items?user_id=eq.\(uid)&select=id,url,updated_at,deleted_at", token: token, method: "GET", body: nil)
             let remoteList = (try? JSONDecoder().decode([CloudItemSnapshot].self, from: data)) ?? []
             let local = (try? context.fetch(FetchDescriptor<LBItem>())) ?? []
-            var byID: [String: LBItem] = [:]
-            var byURL: [String: LBItem] = [:]
-            for loc in local {
-                byID[loc.id] = loc
-                if let norm = LBItem.normalizeURL(loc.url) {
-                    if let existing = byURL[norm] {
-                        if !loc.isSyncPending && existing.isSyncPending {
-                            byURL[norm] = loc
-                        }
-                    } else {
-                        byURL[norm] = loc
-                    }
-                }
-            }
-            var count = 0
-            for r in remoteList {
-                let rDate = r.updated_at.flatMap(Self.cloudDate) ?? .distantPast
-                let normSnapUrl = LBItem.normalizeURL(r.url)
-                let locMatch = byID[r.id] ?? (normSnapUrl.flatMap { byURL[$0] })
-
-                if let loc = locMatch {
-                    if rDate > loc.updatedAt {
-                        count += 1
-                    } else if r.deleted_at != nil && loc.status != "deleted" && rDate >= loc.updatedAt {
-                        count += 1
-                    }
-                } else if r.deleted_at == nil && !cloudDeletionQueue.contains(r.id) {
-                    count += 1
-                }
-            }
-            self.pendingPullCount = count
+            self.pendingPullCount = countRemoteChanges(remoteList, local: local)
             _ = self.updateLocalPendingPushCount(context: context)
             return count
         } catch {
@@ -686,37 +704,7 @@ public final class SyncCoordinator: ObservableObject {
                     if let retryData = try? await api.cloudRequest("items?user_id=eq.\(uid)&select=id,url,updated_at,deleted_at", token: refreshedToken, method: "GET", body: nil) {
                         let remoteList = (try? JSONDecoder().decode([CloudItemSnapshot].self, from: retryData)) ?? []
                         let local = (try? context.fetch(FetchDescriptor<LBItem>())) ?? []
-                        var byID: [String: LBItem] = [:]
-                        var byURL: [String: LBItem] = [:]
-                        for loc in local {
-                            byID[loc.id] = loc
-                            if let norm = LBItem.normalizeURL(loc.url) {
-                                if let existing = byURL[norm] {
-                                    if !loc.isSyncPending && existing.isSyncPending {
-                                        byURL[norm] = loc
-                                    }
-                                } else {
-                                    byURL[norm] = loc
-                                }
-                            }
-                        }
-                        var count = 0
-                        for r in remoteList {
-                            let rDate = r.updated_at.flatMap(Self.cloudDate) ?? .distantPast
-                            let normSnapUrl = LBItem.normalizeURL(r.url)
-                            let locMatch = byID[r.id] ?? (normSnapUrl.flatMap { byURL[$0] })
-
-                            if let loc = locMatch {
-                                if rDate > loc.updatedAt {
-                                    count += 1
-                                } else if r.deleted_at != nil && loc.status != "deleted" && rDate >= loc.updatedAt {
-                                    count += 1
-                                }
-                            } else if r.deleted_at == nil && !cloudDeletionQueue.contains(r.id) {
-                                count += 1
-                            }
-                        }
-                        self.pendingPullCount = count
+                        self.pendingPullCount = countRemoteChanges(remoteList, local: local)
                         _ = self.updateLocalPendingPushCount(context: context)
                         return count
                     }
@@ -791,13 +779,17 @@ public final class SyncCoordinator: ObservableObject {
     }
 
     public func syncPendingItems(context: ModelContext) async {
-        await syncPendingItems(context: context, transport: nil)
+        await syncPendingItems(context: context, announceFailure: true)
     }
 
-    func syncPendingItems(context: ModelContext, transport: (any IOSCloudTransport)?) async {
+    public func syncPendingItems(context: ModelContext, announceFailure: Bool) async {
+        await syncPendingItems(context: context, transport: nil, announceFailure: announceFailure)
+    }
+
+    func syncPendingItems(context: ModelContext, transport: (any IOSCloudTransport)?, announceFailure: Bool = true) async {
         if !hasCloudPro && !cloudDeletionQueue.isEmpty {
             do { _ = try await performCloudPush(context: context, transport: transport, deletionsOnly: true) }
-            catch { handleSyncError(error); return }
+            catch { handleSyncError(error, announce: announceFailure); return }
         }
         guard hasCloudPro else {
             self.syncState = .offline
@@ -817,11 +809,11 @@ public final class SyncCoordinator: ObservableObject {
             self.pendingPullCount = 0
             _ = self.updateLocalPendingPushCount(context: context)
         } catch {
-            self.handleSyncError(error)
+            self.handleSyncError(error, announce: announceFailure)
         }
     }
 
-    private func handleSyncError(_ error: Error) {
+    private func handleSyncError(_ error: Error, announce: Bool = true) {
         self.syncState = .error
         if let syncErr = error as? CloudSyncError {
             if case .unauthorized = syncErr {
@@ -840,6 +832,8 @@ public final class SyncCoordinator: ObservableObject {
         } else {
             self.lastSyncErrorMessage = error.localizedDescription
         }
-        self.showingSyncFailureAlert = true
+        if announce {
+            self.showingSyncFailureAlert = true
+        }
     }
 }
