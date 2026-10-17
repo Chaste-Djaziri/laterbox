@@ -364,12 +364,14 @@ extension SyncCoordinator {
                     let tagsToKeep = existing.tags
                     let collIdToKeep = existing.collectionId
                     let collNameToKeep = existing.collectionName
+                    let attachmentsToKeep = existing.attachmentsData
                     context.delete(existing)
                     if let direct = byID[snapshot.id] {
                         context.delete(direct)
                     }
                     item = LBItem(id: snapshot.id, title: snapshot.title ?? snapshot.url ?? "Untitled")
                     item.noteContent = noteToKeep
+                    item.attachmentsData = attachmentsToKeep
                     item.tags = tagsToKeep
                     item.collectionId = collIdToKeep
                     item.collectionName = collNameToKeep
