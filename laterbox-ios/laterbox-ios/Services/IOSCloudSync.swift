@@ -496,8 +496,8 @@ extension SyncCoordinator {
     }
 
     @discardableResult
-    func performCloudPush(context: ModelContext, transport: (any IOSCloudTransport)? = nil) async throws -> Int {
-        guard hasCloudPro else { return 0 }
+    func performCloudPush(context: ModelContext, transport: (any IOSCloudTransport)? = nil, deletionsOnly: Bool = false) async throws -> Int {
+        guard hasCloudPro || !cloudDeletionQueue.isEmpty else { return 0 }
         guard isAuthenticated, let uid = currentUserId, var token = authToken else {
             throw CloudSyncError.unauthenticated
         }
@@ -528,6 +528,8 @@ extension SyncCoordinator {
             cloudDeletionQueue.removeAll { $0 == id }
             pushedCount += 1
         }
+
+        guard hasCloudPro && !deletionsOnly else { return pushedCount }
 
         let pending = try context.fetch(FetchDescriptor<LBItem>())
             .filter { $0.isSyncPending && ($0.userId == nil || $0.userId == uid) }
@@ -621,6 +623,9 @@ extension SyncCoordinator {
     }
 
     func performCloudSync(context: ModelContext, transport: (any IOSCloudTransport)? = nil) async throws {
+        if !cloudDeletionQueue.isEmpty {
+            _ = try await performCloudPush(context: context, transport: transport, deletionsOnly: true)
+        }
         _ = try await performCloudPull(context: context, transport: transport)
         _ = try await performCloudPush(context: context, transport: transport)
     }
