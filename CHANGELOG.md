@@ -31,6 +31,7 @@ All notable user-facing changes to LaterBox will be documented in this file.
 - **[Email] Resend template and digest service for unseen inbox items**: Added a branded Resend email template and delivery service showcasing unseen inbox items that have been waiting without being opened. Supports Open Graph preview images and non-letterboxed media covers, styled with LaterBox's warm-canvas palette, dark headers, logo, and action buttons prompting users to review or reschedule items directly on the Web or via deep links in the mobile app. The email sending feature is restricted exclusively to active Pro subscribers.
 
 ### Fixed
+- **[iOS / Cloud Sync] Fix collection_items RLS policy violation and fetch pull**: Added the missing `user_id` to cloud sync upload payloads for `collection_items` to satisfy Postgres Row-Level Security policies. Updated cloud fetch pull and snapshot decoders to track `deleted_at` tombstones and synchronize local collection memberships.
 - **[iOS / Mailbox] Exclude inbox items from Today and isolate upcoming today vs upcoming later**: Fixed inbox items with past or current return dates showing up in the Today tab. The Today mailbox now strictly shows items scheduled to return later today, while Scheduled/Upcoming displays items scheduled beyond today.
 - **[iOS / Auth] Single back button on login screen**: Hide the system navigation bar back button on `AuthView` so only one back button is displayed when signing in.
 
