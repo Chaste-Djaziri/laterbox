@@ -279,14 +279,26 @@ extension LaterBoxAPIService {
     func downloadAttachment(_ attachment: CloudAttachmentSnapshot, token: String) async throws -> SharedAttachment {
         let response = try await attachmentFunction(["action": "prepare-download", "attachmentId": attachment.id], token: token)
         guard let rawURL = response["downloadUrl"] as? String, let url = URL(string: rawURL) else { throw CloudSyncError.other("Attachment download URL was unavailable") }
-        let (data, _) = try await URLSession.shared.data(from: url)
-        let safeName = attachment.original_file_name.isEmpty ? "attachment-\(attachment.id).\(attachment.file_extension)" : attachment.original_file_name
-        let relative = "Attachments/\(attachment.id)/\(safeName)"
-        let destination = try SharedCaptureStore.root().appendingPathComponent(relative)
-        try FileManager.default.createDirectory(at: destination.deletingLastPathComponent(), withIntermediateDirectories: true)
+        let (data, httpResponse) = try await URLSession.shared.data(from: url)
+        guard let http = httpResponse as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
+            throw CloudSyncError.other("Attachment download failed. Please try pulling again.")
+        }
+        let digest = SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
+        guard Int64(data.count) == attachment.byte_size, digest == attachment.sha256.lowercased() else {
+            throw CloudSyncError.other("Attachment download was incomplete. Please try pulling again.")
+        }
+        let safeName = attachment.original_file_name.isEmpty ? "attachment" : URL(fileURLWithPath: attachment.original_file_name).lastPathComponent
+        let directory = try SharedCaptureStore.attachmentDirectory(id: attachment.id, root: SharedCaptureStore.root())
+        let relative = "Attachments/\(directory.lastPathComponent)/\(safeName)"
+        let destination = directory.appendingPathComponent(safeName)
         try data.write(to: destination, options: .atomic)
         return SharedAttachment(id: attachment.id, name: safeName, relativePath: relative, typeIdentifier: UTType(mimeType: attachment.mime_type)?.identifier ?? attachment.mime_type,
             remoteObjectKey: attachment.r2_object_key, byteSize: attachment.byte_size, sha256: attachment.sha256, mimeType: attachment.mime_type)
+    }
+
+    func remoteAttachments(itemID: String, userID: String, token: String) async throws -> [CloudAttachmentSnapshot] {
+        let data = try await cloudRequest("attachments?item_id=eq.\(itemID)&user_id=eq.\(userID)&deleted_at=is.null&select=id,item_id,original_file_name,file_extension,mime_type,byte_size,sha256,r2_object_key,deleted_at", token: token)
+        return try JSONDecoder().decode([CloudAttachmentSnapshot].self, from: data)
     }
 
     private func attachmentFunction(_ body: [String: Any], token: String) async throws -> [String: Any] {
@@ -324,7 +336,7 @@ extension SyncCoordinator {
         var byID: [String: LBItem] = [:]
         var byURL: [String: LBItem] = [:]
         for loc in local {
-            byID[loc.id] = loc
+            byID[loc.id.lowercased()] = loc
             if let norm = LBItem.normalizeURL(loc.url) {
                 if let existing = byURL[norm] {
                     if !loc.isSyncPending && existing.isSyncPending {
@@ -341,7 +353,7 @@ extension SyncCoordinator {
             let remoteDate = snapshot.updated_at.flatMap(Self.cloudDate) ?? .distantPast
             let item: LBItem
             let normSnapUrl = LBItem.normalizeURL(snapshot.url)
-            let existingMatch = byID[snapshot.id] ?? (normSnapUrl.flatMap { byURL[$0] })
+            let existingMatch = byID[snapshot.id.lowercased()] ?? (normSnapUrl.flatMap { byURL[$0] })
 
             if let existing = existingMatch {
                 // A snapshot can arrive after the item upload but before its assets.
@@ -349,7 +361,7 @@ extension SyncCoordinator {
                 if existing.isSyncPending, let data = existing.attachmentsData,
                    let attachments = try? JSONDecoder().decode([SharedAttachment].self, from: data),
                    !attachments.isEmpty { continue }
-                let isIdChange = (existing.id != snapshot.id)
+                let isIdChange = existing.id.caseInsensitiveCompare(snapshot.id) != .orderedSame
 
                 // Conflict resolution taking the recent action based on timestamps:
                 if existing.updatedAt > remoteDate {
@@ -367,7 +379,7 @@ extension SyncCoordinator {
                         let localAssets = existing.attachmentsData.flatMap { try? JSONDecoder().decode([SharedAttachment].self, from: $0) } ?? []
                         let allAssetsAvailable = (snapshot.attachments ?? []).filter { $0.deleted_at == nil }.allSatisfy { remote in
                             localAssets.contains { local in
-                                local.id == remote.id && (try? SharedCaptureStore.fileURL(local)).map {
+                                local.id.caseInsensitiveCompare(remote.id) == .orderedSame && (try? SharedCaptureStore.fileURL(local)).map {
                                     FileManager.default.fileExists(atPath: $0.path)
                                 } == true
                             }
@@ -387,7 +399,7 @@ extension SyncCoordinator {
                     let collNameToKeep = existing.collectionName
                     let attachmentsToKeep = existing.attachmentsData
                     context.delete(existing)
-                    if let direct = byID[snapshot.id] {
+                    if let direct = byID[snapshot.id.lowercased()] {
                         context.delete(direct)
                     }
                     item = LBItem(id: snapshot.id, title: snapshot.title ?? snapshot.url ?? "Untitled")
@@ -400,7 +412,7 @@ extension SyncCoordinator {
                 } else {
                     item = existing
                 }
-                byID[snapshot.id] = item
+                byID[snapshot.id.lowercased()] = item
                 if let norm = normSnapUrl { byURL[norm] = item }
             } else {
                 if snapshot.deleted_at != nil || cloudDeletionQueue.contains(snapshot.id) {
@@ -409,7 +421,7 @@ extension SyncCoordinator {
                 // When no local version exists, take the cloud version and save locally for offline viewing
                 item = LBItem(id: snapshot.id, title: snapshot.title ?? snapshot.url ?? "Untitled")
                 context.insert(item)
-                byID[snapshot.id] = item
+                byID[snapshot.id.lowercased()] = item
                 if let norm = normSnapUrl { byURL[norm] = item }
             }
             item.userId = uid; item.title = snapshot.title ?? snapshot.url ?? "Untitled"; item.url = snapshot.url
@@ -432,8 +444,12 @@ extension SyncCoordinator {
                let attachmentAPI = api as? LaterBoxAPIService {
                 var localAttachments: [SharedAttachment] = []
                 for attachment in remoteAttachments {
-                    if let existing = try? JSONDecoder().decode([SharedAttachment].self, from: item.attachmentsData ?? Data()).first(where: { $0.id == attachment.id }),
+                    if var existing = try? JSONDecoder().decode([SharedAttachment].self, from: item.attachmentsData ?? Data()).first(where: { $0.id.caseInsensitiveCompare(attachment.id) == .orderedSame }),
                        (try? SharedCaptureStore.fileURL(existing)).map({ FileManager.default.fileExists(atPath: $0.path) }) == true {
+                        existing.remoteObjectKey = attachment.r2_object_key
+                        existing.byteSize = attachment.byte_size
+                        existing.sha256 = attachment.sha256
+                        existing.mimeType = attachment.mime_type
                         localAttachments.append(existing)
                     } else {
                         localAttachments.append(try await attachmentAPI.downloadAttachment(attachment, token: token))
