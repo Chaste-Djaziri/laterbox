@@ -1,4 +1,6 @@
 import Foundation
+import CryptoKit
+import UniformTypeIdentifiers
 import SwiftData
 
 struct CloudItemSnapshot: Codable {
@@ -17,6 +19,18 @@ struct CloudItemSnapshot: Codable {
     var item_metadata: CloudMetadata?
     var item_notes: CloudNote?
     var collection_items: [CloudMembership]?
+    var attachments: [CloudAttachmentSnapshot]?
+}
+struct CloudAttachmentSnapshot: Codable {
+    var id: String
+    var item_id: String
+    var original_file_name: String
+    var file_extension: String
+    var mime_type: String
+    var byte_size: Int64
+    var sha256: String
+    var r2_object_key: String?
+    var deleted_at: String?
 }
 struct CloudMembership: Codable {
     var collection_id: String
@@ -148,7 +162,7 @@ extension LaterBoxAPIService: IOSCloudTransport {
         var result: [CloudItemSnapshot] = []
         var offset = 0
         while true {
-            let data = try await cloudRequest("items?user_id=eq.\(userID)&select=*,item_metadata(*),item_notes(*),collection_items(collection_id,deleted_at,collections(id,name))&order=id.asc&limit=100&offset=\(offset)", token: token)
+            let data = try await cloudRequest("items?user_id=eq.\(userID)&select=*,item_metadata(*),item_notes(*),collection_items(collection_id,deleted_at,collections(id,name)),attachments(id,item_id,original_file_name,file_extension,mime_type,byte_size,sha256,r2_object_key,deleted_at)&order=id.asc&limit=100&offset=\(offset)", token: token)
             do {
                 let page = try JSONDecoder().decode([CloudItemSnapshot].self, from: data)
                 result += page
@@ -200,6 +214,65 @@ extension LaterBoxAPIService: IOSCloudTransport {
             let stamp = (body["deleted_at"] as? String) ?? (body["updated_at"] as? String) ?? ISO8601DateFormatter().string(from: Date())
             _ = try? await cloudRequest("collection_items?item_id=eq.\(itemID)&user_id=eq.\(userId)&deleted_at=is.null", token: token, method: "PATCH", body: ["deleted_at": stamp, "updated_at": stamp])
         }
+    }
+}
+
+extension LaterBoxAPIService {
+    func uploadAttachments(_ attachments: [SharedAttachment], itemID: String, userID: String, token: String) async throws -> [SharedAttachment] {
+        var uploaded = attachments
+        for index in uploaded.indices {
+            let attachment = uploaded[index]
+            guard attachment.remoteObjectKey == nil else { continue }
+            let source = try SharedCaptureStore.fileURL(attachment)
+            let data = try Data(contentsOf: source)
+            let digest = SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
+            let ext = source.pathExtension.lowercased().isEmpty ? "bin" : source.pathExtension.lowercased()
+            let mime = attachment.mimeType ?? UTType(filenameExtension: ext)?.preferredMIMEType ?? "application/octet-stream"
+            let payload: [String: Any] = ["action": "prepare-upload", "attachmentId": attachment.id, "itemId": itemID,
+                "originalFileName": attachment.name, "extension": ext, "mimeType": mime, "byteSize": data.count, "sha256": digest]
+            let prepared = try await attachmentFunction(payload, token: token)
+            guard let uploadURL = prepared["uploadUrl"] as? String, let url = URL(string: uploadURL) else { throw CloudSyncError.other("Attachment upload URL was unavailable") }
+            var request = URLRequest(url: url); request.httpMethod = "PUT"; request.httpBody = data
+            request.setValue(mime, forHTTPHeaderField: "Content-Type")
+            request.setValue(digest, forHTTPHeaderField: "x-amz-meta-sha256")
+            request.setValue(attachment.id, forHTTPHeaderField: "x-amz-meta-attachment-id")
+            request.setValue(userID, forHTTPHeaderField: "x-amz-meta-user-id")
+            let (_, response) = try await URLSession.shared.data(for: request)
+            guard (response as? HTTPURLResponse)?.statusCode == 200 else { throw CloudSyncError.other("Attachment upload failed") }
+            let complete: [String: Any] = ["action": "complete-upload", "attachmentId": attachment.id, "itemId": itemID,
+                "originalFileName": attachment.name, "extension": ext, "mimeType": mime, "byteSize": data.count, "sha256": digest]
+            let verified = try await attachmentFunction(complete, token: token)
+            guard let objectKey = verified["objectKey"] as? String else { throw CloudSyncError.other("Attachment verification failed") }
+            let now = ISO8601DateFormatter().string(from: Date())
+            let row: [String: Any] = ["id": attachment.id, "item_id": itemID, "user_id": userID, "original_file_name": attachment.name,
+                "file_extension": ext, "mime_type": mime, "byte_size": data.count, "sha256": digest, "r2_object_key": objectKey,
+                "created_at": now, "updated_at": now]
+            _ = try await cloudRequest("attachments?on_conflict=id", token: token, method: "POST", body: row)
+            uploaded[index].remoteObjectKey = objectKey; uploaded[index].byteSize = Int64(data.count); uploaded[index].sha256 = digest; uploaded[index].mimeType = mime
+        }
+        return uploaded
+    }
+
+    func downloadAttachment(_ attachment: CloudAttachmentSnapshot, token: String) async throws -> SharedAttachment {
+        let response = try await attachmentFunction(["action": "prepare-download", "attachmentId": attachment.id], token: token)
+        guard let rawURL = response["downloadUrl"] as? String, let url = URL(string: rawURL) else { throw CloudSyncError.other("Attachment download URL was unavailable") }
+        let (data, _) = try await URLSession.shared.data(from: url)
+        let safeName = attachment.original_file_name.isEmpty ? "attachment-\(attachment.id).\(attachment.file_extension)" : attachment.original_file_name
+        let relative = "Attachments/\(attachment.id)/\(safeName)"
+        let destination = try SharedCaptureStore.root().appendingPathComponent(relative)
+        try FileManager.default.createDirectory(at: destination.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try data.write(to: destination, options: .atomic)
+        return SharedAttachment(id: attachment.id, name: safeName, relativePath: relative, typeIdentifier: UTType(mimeType: attachment.mime_type)?.identifier ?? attachment.mime_type,
+            remoteObjectKey: attachment.r2_object_key, byteSize: attachment.byte_size, sha256: attachment.sha256, mimeType: attachment.mime_type)
+    }
+
+    private func attachmentFunction(_ body: [String: Any], token: String) async throws -> [String: Any] {
+        guard let url = URL(string: "\(supabaseUrl)/functions/v1/attachment-storage") else { throw CloudSyncError.other("Invalid attachment service URL") }
+        var request = URLRequest(url: url); request.httpMethod = "POST"; request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        request.setValue(anonKey, forHTTPHeaderField: "apikey"); request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization"); request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else { throw CloudSyncError.serverError(statusCode: (response as? HTTPURLResponse)?.statusCode ?? 0, message: String(data: data, encoding: .utf8) ?? "Attachment service failed") }
+        return (try JSONSerialization.jsonObject(with: data) as? [String: Any]) ?? [:]
     }
 }
 
@@ -315,6 +388,19 @@ extension SyncCoordinator {
             let activeMembership = snapshot.collection_items?.first { $0.deleted_at == nil }
             item.collectionId = activeMembership?.collection_id
             item.collectionName = activeMembership?.collections?.name
+            if let remoteAttachments = snapshot.attachments?.filter({ $0.deleted_at == nil }),
+               let attachmentAPI = api as? LaterBoxAPIService {
+                var localAttachments: [SharedAttachment] = []
+                for attachment in remoteAttachments {
+                    if let existing = try? JSONDecoder().decode([SharedAttachment].self, from: item.attachmentsData ?? Data()).first(where: { $0.id == attachment.id }),
+                       (try? SharedCaptureStore.fileURL(existing)).map({ FileManager.default.fileExists(atPath: $0.path) }) == true {
+                        localAttachments.append(existing)
+                    } else if let downloaded = try? await attachmentAPI.downloadAttachment(attachment, token: token) {
+                        localAttachments.append(downloaded)
+                    }
+                }
+                if !localAttachments.isEmpty { item.attachmentsData = try? JSONEncoder().encode(localAttachments) }
+            }
             if let collName = item.collectionName, !collName.isEmpty {
                 _ = ensureCollectionExists(named: collName, context: context)
             }
@@ -388,6 +474,15 @@ extension SyncCoordinator {
             }
             try await executeWithRetry { curToken in
                 try await api.uploadSnapshot(body, metadata: metadata, note: note, collection: collection, token: curToken)
+            }
+            if let attachmentAPI = api as? LaterBoxAPIService,
+               let attachmentData = item.attachmentsData,
+               let attachments = try? JSONDecoder().decode([SharedAttachment].self, from: attachmentData),
+               !attachments.isEmpty {
+                let uploaded = try await executeWithRetry { curToken in
+                    try await attachmentAPI.uploadAttachments(attachments, itemID: item.id, userID: uid, token: curToken)
+                }
+                item.attachmentsData = try? JSONEncoder().encode(uploaded)
             }
             guard currentUserId == uid, authToken == token else { return pushedCount }
             item.userId = uid
