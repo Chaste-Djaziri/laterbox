@@ -8,7 +8,7 @@ For a local preview run `npm run dev` in `laterbox-web/`. For a production build
 
 ## Apple
 
-Open `laterbox-ios/laterbox-ios.xcodeproj` and select `laterbox-ios`. `.github/workflows/ios.yml` runs native tests, validates signing, archives the app and share extension, and uploads to TestFlight. See [the native CI guide](../laterbox-ios/ci/README.md).
+Open `laterbox-ios/laterbox-ios.xcodeproj` and select `laterbox-ios`. `.github/workflows/ios.yml` runs native tests, validates signing, archives the app and share extension, uploads to TestFlight, and attaches the IPA to the shared GitHub Release. See [the native CI guide](../laterbox-ios/ci/README.md).
 
 The current release scheme targets iOS. macOS-specific source does not by itself establish a signed macOS product; configure and validate a native macOS release target before publishing.
 
@@ -34,7 +34,9 @@ Windows and Linux native packaging is future work; the legacy platform runners a
 
 ## Web release triggers
 
-The web workflow watches web source, extension source, root `version.json`, and its own workflow on main pushes. Supabase changes also trigger PR contract checks. Inspect `release.yml` before relying on a backend-only push to deploy anything.
+The web workflow watches web source, extension source, root `version.json`, release scripts, the changelog, and its own workflow on main pushes. Supabase changes also trigger PR contract checks. Inspect `release.yml` before relying on a backend-only push to deploy anything.
+
+Every platform workflow uploads `CHANGELOG.md` as a build artifact and includes it in the shared GitHub Release. `scripts/prepare_release_assets.sh` carries forward assets already present on the current release and then the previous non-draft release, so a web-only, iOS-only, Android-only, or extension-only build does not remove the other platform downloads.
 
 ## Build output locations
 
