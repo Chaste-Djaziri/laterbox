@@ -167,6 +167,23 @@ public actor LaterBoxAPIService {
         return (newAccessToken, newRefreshToken, userId)
     }
 
+    public func deleteAccount(token: String) async throws {
+        guard let url = URL(string: "\(billingUrl)/api/account/delete") else {
+            throw URLError(.badURL)
+        }
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("******", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        let (_, response) = try await session.data(for: request)
+        guard let http = response as? HTTPURLResponse else {
+            throw URLError(.badServerResponse)
+        }
+        guard (200..<300).contains(http.statusCode) else {
+            throw CloudSyncError.other("Account deletion could not finish. Please try again.")
+        }
+    }
+
     public func fetchBillingEntitlement(token: String) async throws -> AccountBillingEntitlement {
         guard let url = URL(string: "\(billingUrl)/api/billing/entitlement") else {
             throw URLError(.badURL)
