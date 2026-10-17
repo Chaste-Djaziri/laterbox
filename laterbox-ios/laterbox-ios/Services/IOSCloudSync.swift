@@ -503,6 +503,33 @@ extension SyncCoordinator {
 
         for item in pending {
             guard currentUserId == uid, authToken == token else { return pushedCount }
+            var knownAssets = try item.attachmentsData.map { try JSONDecoder().decode([SharedAttachment].self, from: $0) } ?? []
+            let isFileCapture = ["image", "file", "document"].contains(item.type) && item.url == nil
+            if item.status != "deleted", let attachmentAPI = api as? LaterBoxAPIService,
+               (isFileCapture && knownAssets.isEmpty) || knownAssets.contains(where: { $0.remoteObjectKey == nil || $0.sha256 == nil || $0.mimeType == nil }) {
+                let remoteAssets = try await executeWithRetry { curToken in
+                    try await attachmentAPI.remoteAttachments(itemID: item.id, userID: uid, token: curToken)
+                }
+                for remote in remoteAssets where remote.r2_object_key != nil {
+                    if let index = knownAssets.firstIndex(where: { $0.id.caseInsensitiveCompare(remote.id) == .orderedSame }) {
+                        knownAssets[index].remoteObjectKey = remote.r2_object_key
+                        knownAssets[index].byteSize = remote.byte_size
+                        knownAssets[index].sha256 = remote.sha256
+                        knownAssets[index].mimeType = remote.mime_type
+                    } else {
+                        let name = URL(fileURLWithPath: remote.original_file_name).lastPathComponent
+                        knownAssets.append(SharedAttachment(id: remote.id, name: name,
+                            relativePath: "Attachments/\(remote.id)/\(name)",
+                            typeIdentifier: UTType(mimeType: remote.mime_type)?.identifier ?? remote.mime_type,
+                            remoteObjectKey: remote.r2_object_key, byteSize: remote.byte_size,
+                            sha256: remote.sha256, mimeType: remote.mime_type))
+                    }
+                }
+                if !knownAssets.isEmpty {
+                    item.attachmentsData = try JSONEncoder().encode(knownAssets)
+                    try context.save()
+                }
+            }
             if ["image", "file", "document"].contains(item.type), item.url == nil, item.status != "deleted" {
                 let assets = try item.attachmentsData.map { try JSONDecoder().decode([SharedAttachment].self, from: $0) } ?? []
                 guard !assets.isEmpty else {
