@@ -238,7 +238,7 @@ public final class LBItem {
                        let incoming = try? JSONDecoder().decode([SharedAttachment].self, from: data),
                        !incoming.isEmpty {
                         let current = primary.attachmentsData.flatMap { try? JSONDecoder().decode([SharedAttachment].self, from: $0) } ?? []
-                        let missing = incoming.filter { asset in !current.contains(where: { $0.id == asset.id }) }
+                        let missing = incoming.filter { asset in !current.contains(where: { $0.id.caseInsensitiveCompare(asset.id) == .orderedSame }) }
                         if !missing.isEmpty {
                             primary.attachmentsData = try? JSONEncoder().encode(current + missing)
                             primary.isSyncPending = true
