@@ -7,8 +7,11 @@
 
 import SwiftUI
 import SwiftData
+import UniformTypeIdentifiers
+import ImageIO
 
 public struct EmailInboxRowView: View {
+    @State private var attachmentThumbnail: UIImage?
     public let item: LBItem
     public var isSelectionMode: Bool = false
     public var isSelected: Bool = false
@@ -229,12 +232,40 @@ public struct EmailInboxRowView: View {
 
                 // Left: Colored Avatar Circle (Matching Gmail screenshot)
                 ZStack {
+                    if let attachmentThumbnail {
+                        Image(uiImage: attachmentThumbnail)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: 52, height: 52)
+                            .clipped()
+                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                            .accessibilityLabel("Image attachment preview")
+                    } else {
                     Circle()
                         .fill(avatarColor)
                         .frame(width: 40, height: 40)
                     Text(avatarInitial)
                         .font(.system(size: 17, weight: .semibold))
                         .foregroundColor(.white)
+                    }
+                }
+                .task(id: item.attachmentsData) {
+                    attachmentThumbnail = nil
+                    guard let data = item.attachmentsData,
+                          let files = try? JSONDecoder().decode([SharedAttachment].self, from: data),
+                          let image = files.first(where: {
+                              UTType($0.typeIdentifier)?.conforms(to: .image) == true ||
+                              $0.mimeType?.hasPrefix("image/") == true ||
+                              ["jpg", "jpeg", "png", "gif", "webp", "heic", "heif", "avif"].contains(URL(fileURLWithPath: $0.name).pathExtension.lowercased())
+                          }),
+                          let url = try? SharedCaptureStore.fileURL(image),
+                          let source = CGImageSourceCreateWithURL(url as CFURL, nil),
+                          let thumbnail = CGImageSourceCreateThumbnailAtIndex(source, 0, [
+                            kCGImageSourceCreateThumbnailFromImageAlways: true,
+                            kCGImageSourceCreateThumbnailWithTransform: true,
+                            kCGImageSourceThumbnailMaxPixelSize: 160
+                          ] as CFDictionary) else { return }
+                    attachmentThumbnail = UIImage(cgImage: thumbnail)
                 }
 
                 // Middle & Right: 3-line email summary layout
