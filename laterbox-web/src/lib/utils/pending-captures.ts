@@ -3,7 +3,7 @@ import { installationId, uploadWithNotificationHandoff } from '../notifications/
 import type { LaterBoxItem, Attachment, Collection, ItemMetadata, ItemContent } from '../supabase/types';
 import { getSupabaseClient } from '../supabase/client';
 import { readLocalAttachment } from './local-attachments';
-import { uploadAttachmentFile } from './attachment';
+import { uploadAttachmentFile, permanentlyDeleteCloudItem } from './attachment';
 import { migrateSchedule } from './schedule';
 import { createQueryRecovery } from './query-recovery';
 
@@ -168,6 +168,11 @@ export function reconcileItemsWithRemote(params: ReconcileParams): ReconcileResu
     const local = pendingQueue[id] || localDeletedMap.get(id) || localCachedMap.get(id);
 
     const isPending = Boolean(pendingQueue[id]);
+
+    if (isPending && (local as LaterBoxItem & { _action?: string })?._action === 'hard_delete') {
+      hardDeletesToPush.push(id);
+      continue;
+    }
 
     const hasUnpublishedAssets = isPending && !local?.deleted_at && local?.attachments?.some(asset =>
       !remote?.attachments?.some(remoteAsset => remoteAsset.id === asset.id && Boolean(remoteAsset.r2_object_key))
@@ -609,7 +614,7 @@ export async function pushCloudChanges(userId: string): Promise<{ pushedCount: n
 
       try {
         if ((item as any)._action === 'hard_delete') {
-          await client.from('items').delete().eq('id', id).eq('user_id', userId);
+          await permanentlyDeleteCloudItem(id);
           clearPendingItem(userId, id);
           pushedCount++;
         } else if (item.deleted_at) {
