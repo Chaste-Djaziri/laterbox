@@ -41,7 +41,7 @@ struct ContentView: View {
                     }
                     .task {
                         // Trigger automatic sync on app launch
-                        await coordinator.syncPendingItems(context: modelContext)
+                        await coordinator.syncPendingItems(context: modelContext, announceFailure: false)
                     }
                     .transition(.opacity)
             }
@@ -133,7 +133,7 @@ struct ContentView: View {
             clipboardManager.checkForCopiedItem()
         }
         .onChange(of: coordinator.isProUser) { _, active in
-            if active { Task { await coordinator.syncPendingItems(context: modelContext) } }
+            if active { Task { await coordinator.syncPendingItems(context: modelContext, announceFailure: false) } }
         }
         .onChange(of: scenePhase) { _, newPhase in
             if newPhase == .active {
@@ -141,7 +141,7 @@ struct ContentView: View {
                 Task {
                     await StoreKitManager.shared.updatePurchasedProducts()
                     await coordinator.refreshEntitlement()
-                    await coordinator.syncPendingItems(context: modelContext)
+                    await coordinator.syncPendingItems(context: modelContext, announceFailure: false)
                 }
                 clipboardManager.checkForCopiedItem()
             }
