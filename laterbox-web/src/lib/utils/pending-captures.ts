@@ -413,6 +413,7 @@ export async function checkRemoteChangesWeb(userId: string): Promise<{ pendingPu
     return { pendingPullCount: 0, pendingPushCount: 0 };
   }
 
+  return syncQueue.enqueue(userId, async () => {
   const pendingQueue = getPendingQueue(userId);
   const pendingPushCount = Object.keys(pendingQueue).length;
 
@@ -440,6 +441,7 @@ export async function checkRemoteChangesWeb(userId: string): Promise<{ pendingPu
     console.warn('[checkRemoteChangesWeb] error checking remote changes:', err);
     return { pendingPullCount: 0, pendingPushCount };
   }
+  });
 }
 
 export async function pullCloudChanges(userId: string): Promise<SyncCloudResult | null> {
@@ -463,8 +465,10 @@ export async function pullCloudChanges(userId: string): Promise<SyncCloudResult 
         .eq('user_id', userId).order('id').range(offset, offset + limit - 1));
       return (data || []) as LaterBoxItem[];
     });
-    const itemRows = allItemRows.filter(row => !row.deleted_at);
-    const deletedRows = allItemRows.filter(row => row.deleted_at);
+    const itemRows = allItemRows.filter(row => !row.deleted_at)
+      .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at));
+    const deletedRows = allItemRows.filter(row => row.deleted_at)
+      .sort((a, b) => Date.parse(b.deleted_at!) - Date.parse(a.deleted_at!));
 
     const { data: metaRows } = await fetchWithRetry(() =>
       client.from('item_metadata').select('*').eq('user_id', userId)
