@@ -337,6 +337,8 @@ async function authenticateUser(token: string): Promise<string | null> {
 }
 
 async function verifyItemOwnership(itemId: string, userId: string): Promise<void> {
+  const receipts = await adminGet(`item_deletion_receipts?select=item_id&item_id=eq.${encodeURIComponent(itemId)}&user_id=eq.${encodeURIComponent(userId)}`);
+  if (Array.isArray(receipts) && receipts.length) throw new RequestError('This item was permanently deleted', 410);
   const rows = await adminGet(
     `items?select=id,user_id&id=eq.${encodeURIComponent(itemId)}`,
   );
