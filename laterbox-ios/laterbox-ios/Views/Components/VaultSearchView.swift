@@ -16,7 +16,7 @@ struct VaultSearchView: View {
         ItemContentType.allCases.filter { type in items.contains { $0.status != "deleted" && $0.type == type.rawValue } }
     }
     private var results: [LBItem] {
-        search.results.filter { selectedType == nil || $0.type == selectedType?.rawValue }
+        search.results.filter { selectedType == nil || $0.type == selectedType?.rawValue }.deduplicatedForDisplay()
     }
 
     var body: some View {
@@ -88,7 +88,7 @@ struct VaultSearchView: View {
             .toolbar(.hidden, for: .navigationBar)
             .task { focused = true }
             .task(id: query + items.map { $0.id + $0.updatedAt.ISO8601Format() + $0.status }.joined()) {
-                search.update(query, items: items)
+                search.update(query, items: items.deduplicatedForDisplay())
             }
             .onChange(of: availableTypes) { _, types in
                 if let selectedType, !types.contains(selectedType) { self.selectedType = nil }
