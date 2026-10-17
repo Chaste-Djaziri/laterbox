@@ -7,7 +7,17 @@ import UniformTypeIdentifiers
         if let pending = try? SharedCaptureStore.pending() {
             for (file, capture) in pending {
                 let id = capture.id
-                if try context.fetch(FetchDescriptor<LBItem>(predicate: #Predicate { $0.id == id })).isEmpty {
+                let existing = try context.fetch(FetchDescriptor<LBItem>(predicate: #Predicate { $0.id == id })).first
+                if let existing {
+                    let current = existing.attachmentsData.flatMap { try? JSONDecoder().decode([SharedAttachment].self, from: $0) } ?? []
+                    let missing = capture.attachments.filter { asset in !current.contains(where: { $0.id == asset.id }) }
+                    if !missing.isEmpty {
+                        existing.attachmentsData = try JSONEncoder().encode(current + missing)
+                        existing.isSyncPending = true
+                        existing.updatedAt = now
+                        try context.save()
+                    }
+                } else {
                     let type: ItemContentType = capture.attachments.first.map { attachment in
                         let type = UTType(attachment.typeIdentifier)
                         if type?.conforms(to: .movie) == true { return .video }
