@@ -40,6 +40,8 @@ import {
   Shield,
   Calendar,
   Sparkles,
+  ArrowDownCircle,
+  ArrowUpCircle,
 } from 'lucide-react';
 
 interface VersionInfo {
@@ -51,7 +53,19 @@ interface VersionInfo {
 
 export default function SettingsPage() {
   const { user, signOut, updatePassword, deleteAccount } = useAuth();
-  const { items, collections, syncNow } = useItems();
+  const {
+    items,
+    collections,
+    syncNow,
+    pullChanges,
+    pushChanges,
+    pullAndPushChanges,
+    pendingPullCount,
+    pendingPushCount,
+    isPulling,
+    isPushing,
+    syncStatus,
+  } = useItems();
   const { entitlement, isPro, loading: billingLoading, manage } = useBilling();
   const [billingMessage, setBillingMessage] = useState<string | null>(null);
   const plan = presentEntitlement(entitlement);
@@ -779,14 +793,71 @@ export default function SettingsPage() {
             </div>
           </div>
 
+          {/* Cloud Sync Status & Diagnostics */}
+          <div className="p-4 rounded-2xl bg-[#faf8f5] border border-[#e4e0d5] space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+              <div className="flex items-center gap-2">
+                <ArrowDownCircle className={`w-4 h-4 ${pendingPullCount > 0 ? 'text-blue-600' : 'text-[#8e8d87]'}`} />
+                <span className="font-bold text-[#171711]">Incoming Cloud Updates</span>
+              </div>
+              <span className={`font-semibold ${pendingPullCount > 0 ? 'text-blue-600' : 'text-[#8e8d87]'}`}>
+                {pendingPullCount > 0 ? `${pendingPullCount} available to pull` : 'Up to date'}
+              </span>
+            </div>
+
+            <div className="h-px bg-[#e4e0d5]/60" />
+
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+              <div className="flex items-center gap-2">
+                <ArrowUpCircle className={`w-4 h-4 ${pendingPushCount > 0 ? 'text-orange-600' : 'text-[#8e8d87]'}`} />
+                <span className="font-bold text-[#171711]">Unpushed Local Changes</span>
+              </div>
+              <span className={`font-semibold ${pendingPushCount > 0 ? 'text-orange-600' : 'text-[#8e8d87]'}`}>
+                {pendingPushCount > 0 ? `${pendingPushCount} pending push` : 'All pushed'}
+              </span>
+            </div>
+          </div>
+
           <div className="pt-2 flex flex-wrap items-center gap-3">
+            {/* 1. Separate Pull Changes */}
             <button
               type="button"
-              onClick={() => syncNow()}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#ebe7dc] hover:bg-[#e0dbc9] text-[#171711] text-xs font-bold transition-colors cursor-pointer"
+              disabled={isPulling || syncStatus === 'syncing'}
+              onClick={() => pullChanges()}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#ebe7dc] hover:bg-[#e0dbc9] text-[#171711] text-xs font-bold transition-colors cursor-pointer disabled:opacity-50"
             >
-              <RefreshCw className="w-3.5 h-3.5" />
-              <span>Force Sync Now</span>
+              {isPulling ? (
+                <RefreshCw className="w-3.5 h-3.5 animate-spin text-blue-600" />
+              ) : (
+                <ArrowDownCircle className={`w-3.5 h-3.5 ${pendingPullCount > 0 ? 'text-blue-600' : 'text-[#171711]'}`} />
+              )}
+              <span>{isPulling ? 'Pulling from Cloud…' : (pendingPullCount > 0 ? `Pull Changes (${pendingPullCount} Available)` : 'Pull Changes')}</span>
+            </button>
+
+            {/* 2. Separate Push Changes */}
+            <button
+              type="button"
+              disabled={isPushing || syncStatus === 'syncing'}
+              onClick={() => pushChanges()}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#ebe7dc] hover:bg-[#e0dbc9] text-[#171711] text-xs font-bold transition-colors cursor-pointer disabled:opacity-50"
+            >
+              {isPushing ? (
+                <RefreshCw className="w-3.5 h-3.5 animate-spin text-orange-600" />
+              ) : (
+                <ArrowUpCircle className={`w-3.5 h-3.5 ${pendingPushCount > 0 ? 'text-orange-600' : 'text-[#171711]'}`} />
+              )}
+              <span>{isPushing ? 'Pushing to Cloud…' : (pendingPushCount > 0 ? `Push Changes (${pendingPushCount} Unpushed)` : 'Push Changes')}</span>
+            </button>
+
+            {/* 3. Full Sync (Pull then Push) */}
+            <button
+              type="button"
+              disabled={syncStatus === 'syncing' || isPulling || isPushing}
+              onClick={() => pullAndPushChanges()}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#ebe7dc] hover:bg-[#e0dbc9] text-[#171711] text-xs font-bold transition-colors cursor-pointer disabled:opacity-50"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${syncStatus === 'syncing' ? 'animate-spin' : ''}`} />
+              <span>{syncStatus === 'syncing' ? 'Syncing with Cloud…' : 'Full Sync (Pull then Push)'}</span>
             </button>
 
             <button
