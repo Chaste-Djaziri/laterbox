@@ -201,40 +201,46 @@ extension LaterBoxAPIService: IOSCloudTransport {
 
 @MainActor
 extension SyncCoordinator {
-    func performCloudSync(context: ModelContext, transport: (any IOSCloudTransport)? = nil) async throws {
-        guard hasCloudPro else { return }
+    @discardableResult
+    func performCloudPull(context: ModelContext, transport: (any IOSCloudTransport)? = nil) async throws -> Int {
+        guard hasCloudPro else { return 0 }
         guard isAuthenticated, let uid = currentUserId, let token = authToken else {
             throw CloudSyncError.unauthenticated
         }
         let api: any IOSCloudTransport = transport ?? LaterBoxAPIService.shared
-        for id in cloudDeletionQueue {
-            guard currentUserId == uid, authToken == token else { return }
-            _ = try await api.cloudRequest("items?id=eq.\(id)&user_id=eq.\(uid)", token: token, method: "DELETE", body: nil)
-            cloudDeletionQueue.removeAll { $0 == id }
-        }
         let remote = try await api.downloadSnapshots(userID: uid, token: token)
-        guard currentUserId == uid, authToken == token else { return }
+        guard currentUserId == uid, authToken == token else { return 0 }
         let local = try context.fetch(FetchDescriptor<LBItem>())
         let byID = Dictionary(uniqueKeysWithValues: local.map { ($0.id, $0) })
+        var appliedCount = 0
+
         for snapshot in remote {
-            let date = snapshot.updated_at.flatMap(Self.cloudDate) ?? .distantPast
+            let remoteDate = snapshot.updated_at.flatMap(Self.cloudDate) ?? .distantPast
             let item: LBItem
             if let existing = byID[snapshot.id] {
-                if existing.updatedAt > date { continue }
-                if existing.updatedAt == date {
+                // Conflict resolution taking the recent action based on timestamps:
+                if existing.updatedAt > remoteDate {
+                    // Local edit/delete is newer than remote snapshot: local action takes precedence
+                    continue
+                }
+                if existing.updatedAt == remoteDate {
                     // Tie-breaker matching Web's resolveActionConflict:
-                    // If local is deleted and remote is not deleted, local wins (keep local deleted, upload)
+                    // If local is deleted and remote is not deleted, local delete wins
                     if existing.status == "deleted" && snapshot.deleted_at == nil {
                         continue
                     }
                     // If both are active or both are deleted with identical timestamps, already in sync
                     if (existing.status == "deleted") == (snapshot.deleted_at != nil) {
+                        existing.isSyncPending = false
                         continue
                     }
                     // Remote is deleted while local is active: remote delete wins
                 }
                 item = existing
             } else {
+                if snapshot.deleted_at != nil || cloudDeletionQueue.contains(snapshot.id) {
+                    continue
+                }
                 item = LBItem(id: snapshot.id, title: snapshot.title ?? snapshot.url ?? "Untitled")
                 context.insert(item)
             }
@@ -242,7 +248,7 @@ extension SyncCoordinator {
             item.textContent = snapshot.text_content; item.type = snapshot.type ?? "link"; item.favorite = snapshot.favorite ?? false
             item.status = snapshot.deleted_at == nil ? (snapshot.status ?? "inbox") : "deleted"
             item.returnAt = snapshot.return_at.flatMap(Self.cloudDate)
-            item.createdAt = snapshot.created_at.flatMap(Self.cloudDate) ?? date; item.updatedAt = date
+            item.createdAt = snapshot.created_at.flatMap(Self.cloudDate) ?? remoteDate; item.updatedAt = remoteDate
             if let metadata = snapshot.item_metadata {
                 item.domain = metadata.domain; item.siteName = metadata.site_name; item.metadataDescription = metadata.description
                 item.faviconUrl = metadata.favicon_url; item.previewImageUrl = metadata.preview_image_url; item.enrichmentStatus = metadata.status
@@ -258,10 +264,33 @@ extension SyncCoordinator {
                 _ = ensureCollectionExists(named: collName, context: context)
             }
             item.isSyncPending = false
+            appliedCount += 1
         }
         try context.save()
-        for item in try context.fetch(FetchDescriptor<LBItem>()) where item.isSyncPending && (item.userId == nil || item.userId == uid) {
-            guard currentUserId == uid, authToken == token else { return }
+        return appliedCount
+    }
+
+    @discardableResult
+    func performCloudPush(context: ModelContext, transport: (any IOSCloudTransport)? = nil) async throws -> Int {
+        guard hasCloudPro else { return 0 }
+        guard isAuthenticated, let uid = currentUserId, let token = authToken else {
+            throw CloudSyncError.unauthenticated
+        }
+        let api: any IOSCloudTransport = transport ?? LaterBoxAPIService.shared
+        var pushedCount = 0
+
+        for id in cloudDeletionQueue {
+            guard currentUserId == uid, authToken == token else { return pushedCount }
+            _ = try await api.cloudRequest("items?id=eq.\(id)&user_id=eq.\(uid)", token: token, method: "DELETE", body: nil)
+            cloudDeletionQueue.removeAll { $0 == id }
+            pushedCount += 1
+        }
+
+        let pending = try context.fetch(FetchDescriptor<LBItem>())
+            .filter { $0.isSyncPending && ($0.userId == nil || $0.userId == uid) }
+
+        for item in pending {
+            guard currentUserId == uid, authToken == token else { return pushedCount }
             let revision = item.updatedAt
             let stamp = revision.ISO8601Format()
             let null = NSNull()
@@ -288,11 +317,18 @@ extension SyncCoordinator {
                 collection = ["id": item.collectionId!, "user_id": uid, "name": name, "created_at": item.createdAt.ISO8601Format(), "updated_at": stamp]
             }
             try await api.uploadSnapshot(body, metadata: metadata, note: note, collection: collection, token: token)
-            guard currentUserId == uid, authToken == token else { return }
+            guard currentUserId == uid, authToken == token else { return pushedCount }
             item.userId = uid
             if item.updatedAt == revision { item.isSyncPending = false }
+            pushedCount += 1
             try context.save()
         }
+        return pushedCount
+    }
+
+    func performCloudSync(context: ModelContext, transport: (any IOSCloudTransport)? = nil) async throws {
+        _ = try await performCloudPull(context: context, transport: transport)
+        _ = try await performCloudPush(context: context, transport: transport)
     }
 
     /// Resolves local unassigned items on login (merge or discard), downloads cross-platform items from cloud,
