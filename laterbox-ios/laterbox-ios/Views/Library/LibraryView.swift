@@ -52,16 +52,20 @@ public struct LibraryView: View {
 
     public init() {}
 
+    private var deduplicatedItems: [LBItem] {
+        allItems.deduplicatedForDisplay()
+    }
+
     private func itemCount(for category: LibraryCategory) -> Int {
         switch category {
         case .favorites:
-            return allItems.filter { $0.favorite && $0.status != ItemStatus.deleted.rawValue }.count
+            return deduplicatedItems.filter { $0.favorite && $0.status != ItemStatus.deleted.rawValue }.count
         case .kept:
-            return allItems.filter { $0.status == ItemStatus.saved.rawValue }.count
+            return deduplicatedItems.filter { $0.status == ItemStatus.saved.rawValue }.count
         case .archived:
-            return allItems.filter { $0.status == ItemStatus.archived.rawValue }.count
+            return deduplicatedItems.filter { $0.status == ItemStatus.archived.rawValue }.count
         case .deleted:
-            return allItems.filter { $0.status == ItemStatus.deleted.rawValue }.count
+            return deduplicatedItems.filter { $0.status == ItemStatus.deleted.rawValue }.count
         }
     }
 
@@ -217,7 +221,7 @@ public struct LibraryView: View {
                             } else {
                                 LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
                                     ForEach(allCollectionNames, id: \.self) { name in
-                                        let count = allItems.filter { $0.collectionName == name && $0.status != ItemStatus.deleted.rawValue }.count
+                                        let count = deduplicatedItems.filter { $0.collectionName == name && $0.status != ItemStatus.deleted.rawValue }.count
                                         NavigationLink(destination: CollectionDetailView(collectionName: name)) {
                                             VStack(alignment: .leading, spacing: 12) {
                                                 HStack {
@@ -400,9 +404,10 @@ public struct LibrarySectionDetailView: View {
             base = allItems.filter { $0.status == ItemStatus.deleted.rawValue }
         }
 
+        let deduped = base.deduplicatedForDisplay()
         let q = searchText.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !q.isEmpty else { return base }
-        return search.results.filter { candidate in base.contains { $0.id == candidate.id } }
+        guard !q.isEmpty else { return deduped }
+        return search.results.filter { candidate in deduped.contains { $0.id == candidate.id } }.deduplicatedForDisplay()
     }
 
     public var body: some View {
@@ -718,10 +723,10 @@ public struct CollectionDetailView: View {
     }
 
     private var collectionItems: [LBItem] {
-        let base = allItems.filter { $0.collectionName == collectionName && $0.status != ItemStatus.deleted.rawValue }
+        let base = allItems.filter { $0.collectionName == collectionName && $0.status != ItemStatus.deleted.rawValue }.deduplicatedForDisplay()
         let q = searchText.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
         guard !q.isEmpty else { return base }
-        return search.results.filter { candidate in base.contains { $0.id == candidate.id } }
+        return search.results.filter { candidate in base.contains { $0.id == candidate.id } }.deduplicatedForDisplay()
     }
 
     public var body: some View {
