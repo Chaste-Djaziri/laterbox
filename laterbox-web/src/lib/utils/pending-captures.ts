@@ -370,7 +370,58 @@ export interface SyncCloudResult {
   collections: Collection[];
 }
 
-export async function syncCloudQueue(userId: string): Promise<SyncCloudResult | null> {
+export async function checkRemoteChangesWeb(userId: string): Promise<{ pendingPullCount: number; pendingPushCount: number }> {
+  if (!userId || typeof localStorage === 'undefined') {
+    return { pendingPullCount: 0, pendingPushCount: 0 };
+  }
+
+  const pendingQueue = getPendingQueue(userId);
+  const pendingPushCount = Object.keys(pendingQueue).length;
+
+  try {
+    const session = await getAccessToken();
+    if (!session) {
+      return { pendingPullCount: 0, pendingPushCount };
+    }
+
+    const client = getSupabaseClient();
+    const { data: remoteRows, error } = await client
+      .from('items')
+      .select('id, updated_at, deleted_at, created_at')
+      .eq('user_id', userId);
+
+    if (error || !remoteRows) {
+      return { pendingPullCount: 0, pendingPushCount };
+    }
+
+    const localCached = JSON.parse(localStorage.getItem(`laterbox_local_items_${userId}`) || '[]') as LaterBoxItem[];
+    const localDeleted = JSON.parse(localStorage.getItem(`laterbox_local_deleted_items_${userId}`) || '[]') as LaterBoxItem[];
+    const localMap = new Map<string, LaterBoxItem>();
+    for (const item of localCached) localMap.set(item.id, item);
+    for (const item of localDeleted) localMap.set(item.id, item);
+
+    let pendingPullCount = 0;
+    for (const row of remoteRows) {
+      const local = localMap.get(row.id);
+      if (!local) {
+        pendingPullCount++;
+      } else {
+        const remoteTime = getItemActionTimestamp(row);
+        const localTime = getItemActionTimestamp(local);
+        if (remoteTime > localTime) {
+          pendingPullCount++;
+        }
+      }
+    }
+
+    return { pendingPullCount, pendingPushCount };
+  } catch (err) {
+    console.warn('[checkRemoteChangesWeb] error checking remote changes:', err);
+    return { pendingPullCount: 0, pendingPushCount };
+  }
+}
+
+export async function pullCloudChanges(userId: string): Promise<SyncCloudResult | null> {
   if (!userId) return null;
 
   return syncQueue.enqueue(userId, async () => {
@@ -493,21 +544,61 @@ export async function syncCloudQueue(userId: string): Promise<SyncCloudResult | 
       clearPendingItem(userId, id);
     }
 
-    // Step 3: PUSH winning local actions
-    // Push permanent deletes
+    // Ensure winning local actions are tracked in pending queue to be pushed
+    for (const item of itemsToPush) {
+      if (!pendingQueue[item.id]) {
+        queueCapture(item);
+      }
+    }
     for (const id of hardDeletesToPush) {
-      try {
-        await client.from('items').delete().eq('id', id).eq('user_id', userId);
-        clearPendingItem(userId, id);
-      } catch (err) {
-        console.warn('[pending-captures] error executing queued hard delete:', err);
+      if (!pendingQueue[id]) {
+        queueHardDelete(userId, id);
       }
     }
 
-    // Push local additions, updates, and soft deletions
-    for (const item of itemsToPush) {
+    // Step 3: PERSIST authoritative reconciled state locally
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(`laterbox_local_items_${userId}`, JSON.stringify(reconciledActive));
+      localStorage.setItem(`laterbox_local_deleted_items_${userId}`, JSON.stringify(reconciledDeleted));
+      if (colRows) {
+        localStorage.setItem(`laterbox_local_collections_${userId}`, JSON.stringify(colRows));
+      }
+    }
+
+    return {
+      items: reconciledActive,
+      deletedItems: reconciledDeleted,
+      collections: colRows || [],
+    };
+  });
+}
+
+export async function pushCloudChanges(userId: string): Promise<{ pushedCount: number } | null> {
+  if (!userId) return null;
+
+  return syncQueue.enqueue(userId, async () => {
+    const session = await getAccessToken();
+    if (!session) return null;
+
+    const client = getSupabaseClient();
+    const pendingQueue = getPendingQueue(userId);
+    const itemIds = Object.keys(pendingQueue);
+    if (itemIds.length === 0) {
+      return { pushedCount: 0 };
+    }
+
+    let pushedCount = 0;
+
+    for (const id of itemIds) {
+      const item = pendingQueue[id];
+      if (!item) continue;
+
       try {
-        if (item.deleted_at) {
+        if ((item as any)._action === 'hard_delete') {
+          await client.from('items').delete().eq('id', id).eq('user_id', userId);
+          clearPendingItem(userId, id);
+          pushedCount++;
+        } else if (item.deleted_at) {
           // Soft-deleted item
           await uploadWithNotificationHandoff(item.id, null, async () => {
             const { error } = await client
@@ -518,6 +609,8 @@ export async function syncCloudQueue(userId: string): Promise<SyncCloudResult | 
               .lte('updated_at', item.updated_at);
             if (error) throw error;
           });
+          clearPendingItem(userId, item.id, item.updated_at);
+          pushedCount++;
         } else {
           // Active item upsert
           await uploadWithNotificationHandoff(item.id, item.return_at, async () => {
@@ -552,30 +645,30 @@ export async function syncCloudQueue(userId: string): Promise<SyncCloudResult | 
             const file = await readLocalAttachment(attachment.id, userId);
             if (file) await uploadAttachmentFile(file, item.id, userId, attachment.id);
           }
+
+          clearPendingItem(userId, item.id, item.updated_at);
+          pushedCount++;
         }
-
-        // Successfully pushed: remove from pending queue
-        clearPendingItem(userId, item.id, item.updated_at);
       } catch (pushErr) {
-        console.warn('[pending-captures] error pushing item:', item.id, pushErr);
+        console.warn('[pending-captures] error pushing item:', id, pushErr);
       }
     }
 
-    // Step 4: PERSIST authoritative reconciled state locally
-    if (typeof localStorage !== 'undefined') {
-      localStorage.setItem(`laterbox_local_items_${userId}`, JSON.stringify(reconciledActive));
-      localStorage.setItem(`laterbox_local_deleted_items_${userId}`, JSON.stringify(reconciledDeleted));
-      if (colRows) {
-        localStorage.setItem(`laterbox_local_collections_${userId}`, JSON.stringify(colRows));
-      }
-    }
-
-    return {
-      items: reconciledActive,
-      deletedItems: reconciledDeleted,
-      collections: colRows || [],
-    };
+    return { pushedCount };
   });
+}
+
+export async function syncCloudQueue(userId: string): Promise<SyncCloudResult | null> {
+  if (!userId) return null;
+
+  // Pull first to reconcile with latest remote state
+  const pullResult = await pullCloudChanges(userId);
+  if (!pullResult) return null;
+
+  // Push local queued actions
+  await pushCloudChanges(userId);
+
+  return pullResult;
 }
 
 export async function syncPendingCaptures(userId: string): Promise<SyncCloudResult | null> {
