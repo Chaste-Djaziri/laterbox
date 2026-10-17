@@ -675,6 +675,14 @@ public struct ItemDetailView: View {
                     .font(.system(size: 11, weight: .bold))
                     .foregroundColor(Color.secondary)
                     .tracking(0.6)
+                if files.allSatisfy({ $0.remoteObjectKey != nil }) {
+                    Label("Cloud synced", systemImage: "checkmark.icloud.fill")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundColor(Color(hex: "166534"))
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Color(hex: "DCFCE7"), in: Capsule())
+                }
             }
 
             ForEach(files) { file in
@@ -702,6 +710,13 @@ public struct ItemDetailView: View {
                         }
 
                         Spacer()
+
+                        if file.remoteObjectKey != nil {
+                            Image(systemName: "checkmark.icloud.fill")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundColor(Color(hex: "16A34A"))
+                                .accessibilityLabel("Uploaded to cloud")
+                        }
 
                         Image(systemName: "eye.fill")
                             .font(.system(size: 12, weight: .semibold))
