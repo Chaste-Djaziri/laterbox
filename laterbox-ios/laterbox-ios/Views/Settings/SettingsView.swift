@@ -7,15 +7,18 @@
 
 import SwiftUI
 import UserNotifications
+import SwiftData
 
 public struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
     @ObservedObject var coordinator = SyncCoordinator.shared
     @ObservedObject private var lockManager = AppLockManager.shared
     @ObservedObject private var iconManager = AppIconManager.shared
     @StateObject private var storageManager = LocalStorageManager.shared
     @State private var notificationStatus: UNAuthorizationStatus = .notDetermined
     @State private var showingSignOutAlert = false
+    @State private var showingExitGuestAlert = false
     @State private var showingAuthSheet = false
 
     public init() {}
@@ -252,29 +255,55 @@ public struct SettingsView: View {
                         .buttonStyle(.plain)
                         .padding(.top, 4)
                     } else {
-                        Button(action: {
-                            LBHaptic.light()
-                            showingAuthSheet = true
-                        }) {
-                            HStack(spacing: 8) {
-                                Image(systemName: "person.crop.circle.badge.plus")
-                                    .font(.system(size: 15, weight: .semibold))
-                                Text("Sign In to LaterBox")
-                                    .font(.system(size: 15, weight: .bold))
+                        VStack(spacing: 10) {
+                            Button(action: {
+                                LBHaptic.light()
+                                showingAuthSheet = true
+                            }) {
+                                HStack(spacing: 8) {
+                                    Image(systemName: "person.crop.circle.badge.plus")
+                                        .font(.system(size: 15, weight: .semibold))
+                                    Text("Sign In to LaterBox")
+                                        .font(.system(size: 15, weight: .bold))
+                                }
+                                .foregroundColor(AppTheme.textPrimary)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 14)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                        .fill(AppTheme.cardBackground)
+                                )
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                        .strokeBorder(AppTheme.cardBorder, lineWidth: 1)
+                                )
                             }
-                            .foregroundColor(AppTheme.textPrimary)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 14)
-                            .background(
-                                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                    .fill(AppTheme.cardBackground)
-                            )
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                    .strokeBorder(AppTheme.cardBorder, lineWidth: 1)
-                            )
+                            .buttonStyle(.plain)
+
+                            Button(action: {
+                                LBHaptic.medium()
+                                showingExitGuestAlert = true
+                            }) {
+                                HStack(spacing: 8) {
+                                    Image(systemName: "rectangle.portrait.and.arrow.right")
+                                        .font(.system(size: 15, weight: .semibold))
+                                    Text("Exit Guest Mode")
+                                        .font(.system(size: 15, weight: .bold))
+                                }
+                                .foregroundColor(.red)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 14)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                        .fill(AppTheme.cardBackground)
+                                )
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                        .strokeBorder(AppTheme.cardBorder, lineWidth: 1)
+                                )
+                            }
+                            .buttonStyle(.plain)
                         }
-                        .buttonStyle(.plain)
                         .padding(.top, 4)
                     }
 
@@ -312,6 +341,15 @@ public struct SettingsView: View {
             Button("Cancel", role: .cancel) {}
         } message: {
             Text("Your local items will be safely kept on this device.")
+        }
+        .alert("Exit Guest Mode", isPresented: $showingExitGuestAlert) {
+            Button("Exit & Clear Data", role: .destructive) {
+                coordinator.exitGuest(context: modelContext)
+                dismiss()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Exiting guest mode will clear all items saved on this device during this guest session.")
         }
         .task {
             await refreshNotificationStatus()
