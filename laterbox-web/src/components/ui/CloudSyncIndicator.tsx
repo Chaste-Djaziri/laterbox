@@ -4,7 +4,15 @@ import React from 'react';
 import { useItems } from '@/lib/store/ItemContext';
 import { useAuth } from '@/lib/store/AuthContext';
 import { useBilling } from '@/lib/store/BillingContext';
-import { Cloud, CloudOff, RefreshCw, AlertCircle } from 'lucide-react';
+import {
+  Cloud,
+  CloudOff,
+  RefreshCw,
+  AlertCircle,
+  ArrowDownCircle,
+  ArrowUpCircle,
+  ArrowUpDown,
+} from 'lucide-react';
 
 export function CloudSyncIndicator({
   compact = false,
@@ -15,7 +23,17 @@ export function CloudSyncIndicator({
   fullWidth?: boolean;
   className?: string;
 }) {
-  const { syncStatus, syncNow } = useItems();
+  const {
+    syncStatus,
+    syncNow,
+    pullChanges,
+    pushChanges,
+    pullAndPushChanges,
+    pendingPullCount,
+    pendingPushCount,
+    isPulling,
+    isPushing,
+  } = useItems();
   const { user, isGuest } = useAuth();
   const { isPro } = useBilling();
 
@@ -28,23 +46,89 @@ export function CloudSyncIndicator({
           ? 'Guest mode — items stored locally in browser storage.'
           : 'Free plan — items stored locally on this device. Upgrade to Pro for cloud sync.',
         color: 'bg-white border border-[#e4e0d5] text-[#6c6b63]',
+        badge: null,
+        onClick: () => window.location.assign('/plans'),
+      };
+    }
+
+    if (isPulling) {
+      return {
+        icon: <RefreshCw className="w-3.5 h-3.5 text-blue-700 animate-spin" />,
+        label: 'Pulling…',
+        tooltip: 'Pulling latest changes from cloud…',
+        color: 'bg-blue-50 border border-blue-200 text-blue-900',
+        badge: null,
+        onClick: () => {},
+      };
+    }
+
+    if (isPushing) {
+      return {
+        icon: <RefreshCw className="w-3.5 h-3.5 text-orange-700 animate-spin" />,
+        label: 'Pushing…',
+        tooltip: 'Pushing local edits to cloud…',
+        color: 'bg-orange-50 border border-orange-200 text-orange-900',
+        badge: null,
+        onClick: () => {},
+      };
+    }
+
+    if (syncStatus === 'syncing') {
+      return {
+        icon: <RefreshCw className="w-3.5 h-3.5 text-[#171711] animate-spin" />,
+        label: 'Syncing…',
+        tooltip: 'Resolving conflicts & syncing with Supabase cloud…',
+        color: 'bg-[#e6edb0] border border-[#d0db84] text-[#171711]',
+        badge: null,
+        onClick: () => {},
+      };
+    }
+
+    // Both Pull & Push available
+    if (pendingPullCount > 0 && pendingPushCount > 0) {
+      return {
+        icon: <ArrowUpDown className="w-3.5 h-3.5 text-purple-700" />,
+        label: `Pull & Push (${pendingPullCount}↓ • ${pendingPushCount}↑)`,
+        tooltip: `${pendingPullCount} incoming and ${pendingPushCount} unpushed changes. Pull remote changes first, then push local edits.`,
+        color: 'bg-purple-50 hover:bg-purple-100 border border-purple-200 text-purple-900',
+        badge: `${pendingPullCount}↓ ${pendingPushCount}↑`,
+        onClick: () => pullAndPushChanges(),
+      };
+    }
+
+    // Pull available
+    if (pendingPullCount > 0) {
+      return {
+        icon: <ArrowDownCircle className="w-3.5 h-3.5 text-blue-700" />,
+        label: `Pull Changes (${pendingPullCount})`,
+        tooltip: `${pendingPullCount} cloud change${pendingPullCount === 1 ? '' : 's'} available. Click to pull.`,
+        color: 'bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-900',
+        badge: `${pendingPullCount}↓`,
+        onClick: () => pullChanges(),
+      };
+    }
+
+    // Push available
+    if (pendingPushCount > 0) {
+      return {
+        icon: <ArrowUpCircle className="w-3.5 h-3.5 text-orange-700" />,
+        label: `Push Changes (${pendingPushCount})`,
+        tooltip: `${pendingPushCount} unpushed local change${pendingPushCount === 1 ? '' : 's'}. Click to push.`,
+        color: 'bg-orange-50 hover:bg-orange-100 border border-orange-200 text-orange-900',
+        badge: `${pendingPushCount}↑`,
+        onClick: () => pushChanges(),
       };
     }
 
     switch (syncStatus) {
-      case 'syncing':
-        return {
-          icon: <RefreshCw className="w-3.5 h-3.5 text-[#171711] animate-spin" />,
-          label: 'Syncing…',
-          tooltip: 'Syncing with Supabase cloud…',
-          color: 'bg-[#e6edb0] border border-[#d0db84] text-[#171711]',
-        };
       case 'offline':
         return {
           icon: <CloudOff className="w-3.5 h-3.5 text-amber-700" />,
           label: 'Offline',
           tooltip: 'Cloud sync unavailable. Showing cached data. Click to retry.',
           color: 'bg-amber-100 border border-amber-300 text-amber-900',
+          badge: null,
+          onClick: () => syncNow(),
         };
       case 'error':
         return {
@@ -52,14 +136,18 @@ export function CloudSyncIndicator({
           label: 'Sync Failed',
           tooltip: 'Could not reach cloud. Click to retry.',
           color: 'bg-amber-100 border border-amber-300 text-amber-900',
+          badge: null,
+          onClick: () => syncNow(),
         };
       case 'synced':
       default:
         return {
           icon: <Cloud className="w-3.5 h-3.5 text-[#171711]" />,
           label: 'Synced',
-          tooltip: 'All changes saved and synced with cloud.',
+          tooltip: 'All changes saved and synced with cloud. Click to check for updates.',
           color: 'bg-[#e6edb0] border border-[#d0db84] text-[#171711]',
+          badge: null,
+          onClick: () => syncNow(),
         };
     }
   };
@@ -69,18 +157,23 @@ export function CloudSyncIndicator({
   if (compact) {
     return (
       <button
-        onClick={() => isPro ? syncNow() : window.location.assign('/plans')}
+        onClick={status.onClick}
         title={status.tooltip}
-        className={`p-1.5 rounded-lg hover:bg-[#ebe7dc]/70 transition-colors focus:outline-none cursor-pointer ${className}`}
+        className={`relative p-1.5 rounded-lg hover:bg-[#ebe7dc]/70 transition-colors focus:outline-none cursor-pointer ${className}`}
       >
         {status.icon}
+        {status.badge && (
+          <span className="absolute -top-1 -right-1 px-1 min-w-3.5 h-3.5 rounded-full bg-[#171711] text-white text-[8px] font-mono font-bold flex items-center justify-center">
+            {pendingPullCount > 0 ? pendingPullCount : pendingPushCount}
+          </span>
+        )}
       </button>
     );
   }
 
   return (
     <button
-      onClick={() => isPro ? syncNow() : window.location.assign('/plans')}
+      onClick={status.onClick}
       title={status.tooltip}
       className={`inline-flex items-center gap-1.5 px-3 ${
         fullWidth
