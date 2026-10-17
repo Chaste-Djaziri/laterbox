@@ -218,6 +218,13 @@ extension LaterBoxAPIService: IOSCloudTransport {
 }
 
 extension LaterBoxAPIService {
+    func permanentlyDeleteCloudItem(itemID: String, token: String) async throws {
+        let result = try await attachmentFunction(["action": "delete-item", "itemId": itemID], token: token)
+        guard result["deleted"] as? Bool == true else {
+            throw CloudSyncError.other("Permanent deletion could not finish. It will be retried.")
+        }
+    }
+
     func uploadAttachments(_ attachments: [SharedAttachment], itemID: String, userID: String, token: String) async throws -> [SharedAttachment] {
         var uploaded = attachments
         for index in uploaded.indices {
@@ -435,7 +442,7 @@ extension SyncCoordinator {
                 byID[snapshot.id.lowercased()] = item
                 if let norm = normSnapUrl { byURL[norm] = item }
             } else {
-                if snapshot.deleted_at != nil || cloudDeletionQueue.contains(snapshot.id) {
+                if snapshot.deleted_at != nil || cloudDeletionQueue.contains(where: { $0.caseInsensitiveCompare(snapshot.id) == .orderedSame }) {
                     continue
                 }
                 // When no local version exists, take the cloud version and save locally for offline viewing
@@ -512,7 +519,11 @@ extension SyncCoordinator {
         for id in cloudDeletionQueue {
             guard currentUserId == uid, authToken == token else { return pushedCount }
             _ = try await executeWithRetry { curToken in
-                try await api.cloudRequest("items?id=eq.\(id)&user_id=eq.\(uid)", token: curToken, method: "DELETE", body: nil)
+                if let attachmentAPI = api as? LaterBoxAPIService {
+                    try await attachmentAPI.permanentlyDeleteCloudItem(itemID: id, token: curToken)
+                    return Data()
+                }
+                return try await api.cloudRequest("items?id=eq.\(id)&user_id=eq.\(uid)", token: curToken, method: "DELETE", body: nil)
             }
             cloudDeletionQueue.removeAll { $0 == id }
             pushedCount += 1
@@ -711,7 +722,7 @@ extension SyncCoordinator {
                     byID[snapshot.id] = item
                     if let norm = normSnapUrl { byURL[norm] = item }
                 } else {
-                    if snapshot.deleted_at != nil || cloudDeletionQueue.contains(snapshot.id) {
+                    if snapshot.deleted_at != nil || cloudDeletionQueue.contains(where: { $0.caseInsensitiveCompare(snapshot.id) == .orderedSame }) {
                         continue
                     }
                     item = LBItem(id: snapshot.id, title: snapshot.title ?? snapshot.url ?? "Untitled")
