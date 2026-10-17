@@ -20,6 +20,8 @@ All notable user-facing changes to LaterBox will be documented in this file.
 
 ## [Unreleased]
 
+- **[Web / Inbox] Render snooze time controls outside email cards and table containers to prevent clipped popups.**
+
 - **[iOS / Sync] Reuse cloud attachment records before uploading, match UUIDs regardless of letter case, and reuse existing attachment folders when downloading.**
 
 - **[iOS / Sync] Show sync failures in an in-app popup with a simple explanation and a prefilled issue report for review.**
