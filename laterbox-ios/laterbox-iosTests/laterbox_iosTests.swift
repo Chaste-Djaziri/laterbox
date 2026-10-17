@@ -11,6 +11,34 @@ struct LaterAITests {
         let container = try ModelContainer(for: LBItem.self, LBCollection.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
         return ModelContext(container)
     }
+    @Test func permanentCloudDeletionRetriesEvenWithoutPro() async throws {
+        let coordinator = SyncCoordinator.shared
+        let previous = (coordinator.currentUserId, coordinator.currentUserEmail, coordinator.authToken, coordinator.isPro, coordinator.isGuestMode)
+        coordinator.isGuestMode = false
+        coordinator.setSession(email: "cleanup@example.com", userId: "cleanup-owner", token: "token")
+        let oldQueue = coordinator.cloudDeletionQueue
+        coordinator.setProForTesting(false)
+        defer {
+            coordinator.cloudDeletionQueue = oldQueue
+            coordinator.currentUserId = previous.0; coordinator.currentUserEmail = previous.1
+            coordinator.authToken = previous.2; coordinator.setProForTesting(previous.3)
+            coordinator.isGuestMode = previous.4
+        }
+        let id = UUID().uuidString
+        coordinator.cloudDeletionQueue = [id]
+        let context = try context()
+        let transport = MockCloudTransport()
+        transport.errorToThrow = URLError(.notConnectedToInternet)
+        await #expect(throws: (any Error).self) {
+            _ = try await coordinator.performCloudPush(context: context, transport: transport, deletionsOnly: true)
+        }
+        #expect(coordinator.cloudDeletionQueue == [id])
+        transport.errorToThrow = nil
+        let count = try await coordinator.performCloudPush(context: context, transport: transport, deletionsOnly: true)
+        #expect(count == 1)
+        #expect(coordinator.cloudDeletionQueue.isEmpty)
+        #expect(transport.uploads.isEmpty)
+    }
     @Test func attachmentDownloadReusesUppercaseDirectory() throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
         defer { try? FileManager.default.removeItem(at: root) }
