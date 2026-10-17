@@ -92,6 +92,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [syncStatus, setSyncStatus] = useState<SyncState>('synced');
   const [pendingPullCount, setPendingPullCount] = useState(0);
+  const remoteCheckVersion = useRef(0);
   const [pendingPushCount, setPendingPushCount] = useState(0);
   const [isPulling, setIsPulling] = useState(false);
   const [isPushing, setIsPushing] = useState(false);
@@ -232,6 +233,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
   }, [isPro]);
 
   const checkRemoteChanges = useCallback(async () => {
+    const version = ++remoteCheckVersion.current;
     if (!user || !user.id || !isPro) {
       setPendingPullCount(0);
       setPendingPushCount(0);
@@ -239,6 +241,7 @@ export function ItemProvider({ children }: { children: ReactNode }) {
     }
     try {
       const counts = await checkRemoteChangesWeb(user.id);
+      if (version !== remoteCheckVersion.current) return;
       setPendingPullCount(counts.pendingPullCount);
       setPendingPushCount(counts.pendingPushCount);
     } catch {
