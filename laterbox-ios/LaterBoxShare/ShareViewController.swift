@@ -59,6 +59,31 @@ struct ShareChatMessage: Identifiable, Equatable {
         var detectedUrl: String?
         for item in context?.inputItems as? [NSExtensionItem] ?? [] {
             for provider in item.attachments ?? [] {
+                // Some share sources expose images only as data, while their
+                // URL representation is just a filename. Capture the bytes
+                // first so the item receives a real attachment and can sync
+                // it to cloud storage.
+                if let imageType = provider.registeredTypeIdentifiers.first(where: {
+                    UTType($0)?.conforms(to: .image) == true || UTType($0)?.conforms(to: .data) == true
+                }) {
+                    let data: Data? = await withCheckedContinuation { continuation in
+                        _ = provider.loadDataRepresentation(forTypeIdentifier: imageType) { data, _ in
+                            continuation.resume(returning: data)
+                        }
+                    }
+                    if let data {
+                        let ext = UTType(imageType)?.preferredFilenameExtension ?? "data"
+                        let temp = FileManager.default.temporaryDirectory
+                            .appendingPathComponent("share-\(UUID().uuidString).\(ext)")
+                        if (try? data.write(to: temp)) != nil,
+                           let attachment = try? SharedCaptureStore.copyFile(temp, type: imageType) {
+                            try? FileManager.default.removeItem(at: temp)
+                            capture.attachments.append(attachment)
+                            continue
+                        }
+                        try? FileManager.default.removeItem(at: temp)
+                    }
+                }
                 if provider.canLoadObject(ofClass: URL.self) {
                     let loadedUrl: URL? = await withCheckedContinuation { continuation in
                         _ = provider.loadObject(ofClass: URL.self) { obj, _ in
