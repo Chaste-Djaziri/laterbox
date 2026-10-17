@@ -1089,6 +1089,102 @@ extension LaterAITests {
         #expect(coll["name"] as? String == "Productivity")
         #expect(coll["id"] as? String != nil)
     }
+
+    @Test func separatePullAndPushOperationsResolveRecentLocalAndRemoteActions() async throws {
+        try await Task.sleep(for: .milliseconds(50))
+        let coordinator = SyncCoordinator.shared
+        let prev = (coordinator.currentUserId, coordinator.currentUserEmail, coordinator.authToken, coordinator.isProUser, coordinator.isGuestMode)
+        let uid = "00000000-0000-4000-8000-000000000077"
+        coordinator.currentUserId = uid; coordinator.currentUserEmail = "user77@test.com"; coordinator.authToken = "tok77"
+        coordinator.isGuestMode = false
+        coordinator.setProForTesting(true)
+        defer {
+            coordinator.currentUserId = prev.0; coordinator.currentUserEmail = prev.1; coordinator.authToken = prev.2
+            coordinator.setProForTesting(prev.3)
+            coordinator.isGuestMode = prev.4
+        }
+
+        let container = try ModelContainer(for: LBItem.self, LBCollection.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+        let context = container.mainContext
+
+        let t1 = Date(timeIntervalSince1970: 1000)
+        let t2 = Date(timeIntervalSince1970: 2000)
+
+        // Item A: Locally deleted at t2 (newer than cloud update at t1)
+        let itemA = LBItem(id: "item-a", title: "Item A Local Delete", status: .deleted, updatedAt: t2)
+        itemA.userId = uid
+        itemA.isSyncPending = true
+
+        // Item B: Locally created at t1 (older than cloud update at t2)
+        let itemB = LBItem(id: "item-b", title: "Item B Local Old", status: .inbox, updatedAt: t1)
+        itemB.userId = uid
+        itemB.isSyncPending = true
+
+        context.insert(itemA)
+        context.insert(itemB)
+        try context.save()
+
+        let transport = MockCloudTransport()
+        transport.snapshots = [
+            CloudItemSnapshot(id: "item-a", user_id: uid, title: "Item A Stale Active", status: "inbox", created_at: "1970-01-01T00:00:01Z", updated_at: t1.ISO8601Format()),
+            CloudItemSnapshot(id: "item-b", user_id: uid, title: "Item B Remote Updated", status: "inbox", created_at: "1970-01-01T00:00:01Z", updated_at: t2.ISO8601Format())
+        ]
+
+        // 1. Pull changes only
+        await coordinator.pullChanges(context: context, transport: transport)
+
+        // Item A: local delete was newer than cloud -> local delete preserved, pending push
+        #expect(itemA.status == "deleted")
+        #expect(itemA.isSyncPending == true)
+
+        // Item B: remote was newer than local -> remote update won, no longer pending
+        #expect(itemB.title == "Item B Remote Updated")
+        #expect(itemB.isSyncPending == false)
+
+        // 2. Push changes only
+        await coordinator.pushChanges(context: context, transport: transport)
+        #expect(transport.uploads.count == 1)
+        #expect(transport.uploads.first?["id"] as? String == "item-a")
+        #expect(transport.uploads.first?["status"] as? String == "deleted")
+        #expect(itemA.isSyncPending == false)
+    }
+
+    @Test func checkRemoteChangesComputesPendingPullCount() async throws {
+        try await Task.sleep(for: .milliseconds(50))
+        let coordinator = SyncCoordinator.shared
+        let prev = (coordinator.currentUserId, coordinator.currentUserEmail, coordinator.authToken, coordinator.isProUser, coordinator.isGuestMode)
+        let uid = "00000000-0000-4000-8000-000000000088"
+        coordinator.currentUserId = uid; coordinator.currentUserEmail = "user88@test.com"; coordinator.authToken = "tok88"
+        coordinator.isGuestMode = false
+        coordinator.setProForTesting(true)
+        defer {
+            coordinator.currentUserId = prev.0; coordinator.currentUserEmail = prev.1; coordinator.authToken = prev.2
+            coordinator.setProForTesting(prev.3)
+            coordinator.isGuestMode = prev.4
+        }
+
+        let container = try ModelContainer(for: LBItem.self, LBCollection.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+        let context = container.mainContext
+
+        let existing = LBItem(id: "item-existing", title: "Existing", updatedAt: Date(timeIntervalSince1970: 1000))
+        existing.userId = uid
+        context.insert(existing)
+        try context.save()
+
+        let manifestJSON = """
+        [
+            {"id": "item-existing", "updated_at": "1970-01-01T01:00:00Z", "deleted_at": null},
+            {"id": "item-brand-new", "updated_at": "1970-01-01T01:00:00Z", "deleted_at": null}
+        ]
+        """.data(using: .utf8)!
+
+        let transport = MockCloudTransport()
+        transport.manifestData = manifestJSON
+
+        let available = await coordinator.checkRemoteChanges(context: context, transport: transport)
+        #expect(available == 2)
+        #expect(coordinator.pendingPullCount == 2)
+    }
 }
 @MainActor
 private final class MockCloudTransport: IOSCloudTransport {
@@ -1096,6 +1192,7 @@ private final class MockCloudTransport: IOSCloudTransport {
     var uploads: [[String: Any]] = []
     var uploadedCollections: [[String: Any]] = []
     var snapshots: [CloudItemSnapshot] = []
+    var manifestData: Data? = nil
     var failUpload = false
     var errorToThrow: Error? = nil
     func downloadSnapshots(userID: String, token: String) async throws -> [CloudItemSnapshot] {
@@ -1105,6 +1202,9 @@ private final class MockCloudTransport: IOSCloudTransport {
     }
     func cloudRequest(_ path: String, token: String, method: String, body: Any?) async throws -> Data {
         if let err = errorToThrow { throw err }
+        if path.contains("select=id,updated_at,deleted_at"), let data = manifestData {
+            return data
+        }
         return Data()
     }
     func uploadSnapshot(_ body: [String: Any], metadata: [String: Any], note: [String: Any], collection: [String: Any]?, token: String) async throws {
