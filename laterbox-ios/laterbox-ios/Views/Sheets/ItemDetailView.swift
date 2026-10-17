@@ -250,7 +250,25 @@ public struct ItemDetailView: View {
                 // 2. Keep / Archive / Move to Inbox Status Action Pill
                 statusActionButton
 
-                // 3. Collections Button
+                // 3. Snooze / Return Schedule Button
+                Button {
+                    scheduledDate = item.returnAt ?? (SnoozePreset.oneDay.calculateDate() ?? Date().addingTimeInterval(86400))
+                    showingSchedulePicker = true
+                    LBHaptic.light()
+                } label: {
+                    Image(systemName: item.returnAt != nil ? "clock.fill" : "clock")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(item.returnAt != nil ? Color(hex: "F59E0B") : Color(hex: "6C6B63"))
+                        .frame(width: 34, height: 34)
+                        .background(item.returnAt != nil ? Color(hex: "FEF3C7") : Color.white, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                .strokeBorder(Color.black.opacity(0.08), lineWidth: 1)
+                        )
+                }
+                .buttonStyle(.plain)
+
+                // 4. Collections Button
                 Button {
                     showingCollectionSheet = true
                     LBHaptic.light()
@@ -1167,52 +1185,19 @@ public struct ItemDetailView: View {
 
     // MARK: - Schedule Picker Sheet
     private var schedulePickerSheet: some View {
-        NavigationStack {
-            VStack(spacing: 20) {
-                DatePicker("Scheduled Return", selection: $scheduledDate, in: Date()..., displayedComponents: [.date, .hourAndMinute])
-                    .datePickerStyle(.graphical)
-                    .padding()
-
-                HStack(spacing: 12) {
-                    Button("Tomorrow") {
-                        scheduledDate = Calendar.current.date(byAdding: .day, value: 1, to: Date()) ?? Date()
-                    }
-                    .font(.system(size: 13, weight: .semibold))
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 8)
-                    .background(Color(hex: "E6EDB0"), in: Capsule())
-                    .foregroundColor(Color(hex: "171711"))
-
-                    Button("Next Week") {
-                        scheduledDate = Calendar.current.date(byAdding: .day, value: 7, to: Date()) ?? Date()
-                    }
-                    .font(.system(size: 13, weight: .semibold))
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 8)
-                    .background(Color.white, in: Capsule())
-                    .overlay(Capsule().strokeBorder(Color.black.opacity(0.1), lineWidth: 1))
-                    .foregroundColor(AppTheme.textPrimary)
-                }
-
-                Spacer()
+        SnoozeDatePickerSheet(
+            itemTitle: item.title,
+            initialDate: item.returnAt,
+            onSchedule: { newDate in
+                coordinator.scheduleItem(item: item, date: newDate, context: modelContext)
+            },
+            onUnsnooze: {
+                item.status = ItemStatus.inbox.rawValue
+                item.returnAt = nil
+                persistEdit()
+                Task { await coordinator.syncPendingItems(context: modelContext) }
             }
-            .navigationTitle("Schedule Return")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { showingSchedulePicker = false }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Set") {
-                        coordinator.scheduleItem(item: item, date: scheduledDate, context: modelContext)
-                        showingSchedulePicker = false
-                        LBHaptic.medium()
-                    }
-                    .font(.system(size: 14, weight: .bold))
-                }
-            }
-        }
-        .presentationDetents([.medium, .large])
+        )
     }
 
     // MARK: - Actions & Persistence
