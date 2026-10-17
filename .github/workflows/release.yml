@@ -2,13 +2,13 @@ name: Web Build & Deploy
 on:
   push:
     branches: [main]
-    paths: ['laterbox-web/**', 'laterbox-extension/**', 'version.json', '.github/workflows/release.yml']
+    paths: ['laterbox-web/**', 'laterbox-extension/**', 'version.json', 'CHANGELOG.md', 'scripts/**', '.github/workflows/release.yml']
   pull_request:
     branches: [main]
-    paths: ['laterbox-web/**', 'laterbox-extension/**', 'supabase/**', '.github/workflows/release.yml']
+    paths: ['laterbox-web/**', 'laterbox-extension/**', 'supabase/**', 'version.json', 'CHANGELOG.md', 'scripts/**', '.github/workflows/release.yml']
   workflow_dispatch:
 permissions:
-  contents: read
+  contents: write
 concurrency:
   group: web-${{ github.ref }}
   cancel-in-progress: false
@@ -50,6 +50,39 @@ jobs:
           NEXT_PUBLIC_PADDLE_PRO_MONTHLY_PRICE_ID_PROD: ${{ vars.NEXT_PUBLIC_PADDLE_PRO_MONTHLY_PRICE_ID_PROD || 'pri_01m2g0r3xap0j8rdr8ewbk7wzj' }}
           NEXT_PUBLIC_PADDLE_PRO_YEARLY_PRICE_ID_PROD: ${{ vars.NEXT_PUBLIC_PADDLE_PRO_YEARLY_PRICE_ID_PROD || 'pri_01m2g0r48pvc4krq97kx0dyer0' }}
         run: npx opennextjs-cloudflare build
+      - name: Upload web changelog artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: laterbox-web-changelog-${{ github.run_id }}
+          path: CHANGELOG.md
+          if-no-files-found: error
+      - name: Resolve release version tag
+        id: release_version
+        run: |
+          VERSION=$(node -e "console.log(require('./version.json').version)")
+          echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "title=LaterBox v$VERSION" >> "$GITHUB_OUTPUT"
+          tar -czf "$RUNNER_TEMP/laterbox-web-$VERSION.tar.gz" -C laterbox-web .open-next
+      - name: Prepare complete release assets
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        run: |
+          scripts/prepare_release_assets.sh \
+            "${{ steps.release_version.outputs.tag }}" \
+            "$RUNNER_TEMP/release-assets" \
+          "$RUNNER_TEMP/laterbox-web-${{ steps.release_version.outputs.version }}.tar.gz"
+      - name: Attach web build to GitHub Release
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.release_version.outputs.tag }}
+          name: ${{ steps.release_version.outputs.title }}
+          draft: false
+          prerelease: false
+          files: |
+            ${{ runner.temp }}/release-assets/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Configure Apple purchase verification
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         working-directory: laterbox-web
