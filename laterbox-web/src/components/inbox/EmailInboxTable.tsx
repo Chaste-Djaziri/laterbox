@@ -48,7 +48,7 @@ import { ItemSideDetailPanel } from '@/components/inbox/ItemSideDetailPanel';
 import { AddToCollectionModal } from '@/components/collections/AddToCollectionModal';
 import { fetchAttachmentDownloadUrl } from '@/lib/utils/attachment';
 
-function InboxAttachmentThumbnail({ item }: { item: LaterBoxItem }) {
+function InboxImageBackground({ item }: { item: LaterBoxItem }) {
   const asset = item.attachments?.find(a => a.mime_type?.startsWith('image/') ||
     /^(jpg|jpeg|png|gif|webp|avif|heic|heif)$/i.test(a.file_extension?.replace(/^\./, '') || ''));
   const [preview, setPreview] = useState<{ id: string; url: string } | null>(null);
@@ -60,12 +60,17 @@ function InboxAttachmentThumbnail({ item }: { item: LaterBoxItem }) {
     });
     return () => { active = false; };
   }, [asset?.id, asset?.r2_object_key, asset?.user_id, item.user_id]);
-  if (!asset || preview?.id !== asset.id) return null;
+  const url = asset ? (preview?.id === asset.id ? preview.url : null) : resolveItemPreviewImageUrl(item);
+  if (!url) return null;
   return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img src={preview.url} alt={asset.original_file_name} loading="lazy"
-      className="relative z-10 h-14 w-14 shrink-0 rounded-lg border border-[#e4e0d5] bg-white object-cover"
-      onError={() => setPreview(null)} />
+    <div className="absolute right-0 inset-y-0 w-[55%] max-w-96 pointer-events-none overflow-hidden select-none z-0" aria-hidden="true">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={url} alt="" loading="lazy"
+        className="w-full h-full object-cover object-right opacity-65 group-hover:opacity-85 transition-opacity duration-300"
+        style={{ maskImage: 'linear-gradient(to left, black, rgba(0,0,0,.85) 35%, rgba(0,0,0,.4) 65%, transparent)', WebkitMaskImage: 'linear-gradient(to left, black, rgba(0,0,0,.85) 35%, rgba(0,0,0,.4) 65%, transparent)' }}
+        onError={event => { event.currentTarget.style.visibility = 'hidden'; }} />
+      <div className="absolute inset-0 bg-gradient-to-r from-white/95 via-transparent to-transparent group-hover:from-[#faf8f5]/95" />
+    </div>
   );
 }
 
@@ -1172,7 +1177,7 @@ export function EmailInboxTable({
                   <div
                     key={item.id}
                     onClick={() => setSelectedItemId(item.id)}
-                    className={`p-3 transition-colors cursor-pointer select-none text-left border-l-4 ${
+                    className={`group relative overflow-hidden p-3 transition-colors cursor-pointer select-none text-left border-l-4 ${
                       isCurrentActive
                         ? 'bg-[#faf8f5] border-[#171711]'
                         : isSelected
@@ -1181,6 +1186,8 @@ export function EmailInboxTable({
                     }`}
                   >
                     {/* Top line: Selection, Star, Sender, Timestamp */}
+                    <InboxImageBackground item={item} />
+                    <div className="relative z-10">
                     <div className="flex items-center justify-between gap-1.5 text-xs">
                       <div className="flex items-center gap-1.5 min-w-0">
                         <input
@@ -1221,7 +1228,6 @@ export function EmailInboxTable({
 
                     {/* Middle line: Subject Title */}
                     <div className="mt-1 flex items-center justify-between gap-2">
-                      <InboxAttachmentThumbnail item={item} />
                       <p
                         className={`text-xs truncate ${
                           isCurrentActive
@@ -1240,6 +1246,7 @@ export function EmailInboxTable({
                     <p className="text-[11px] text-[#6c6b63] truncate mt-0.5">
                       {snippet}
                     </p>
+                    </div>
                   </div>
                 );
               })}
@@ -1273,7 +1280,6 @@ export function EmailInboxTable({
               item.metadata?.content_type === 'video' ||
               item.type === 'video' ||
               item.url?.includes('youtube.com');
-            const previewImageUrl = resolveItemPreviewImageUrl(item);
 
             return (
               <div
@@ -1285,28 +1291,8 @@ export function EmailInboxTable({
                     : 'bg-white hover:bg-[#faf8f5]'
                 }`}
               >
-                {/* Anime-card style right-aligned fading OG image watermark */}
-                {previewImageUrl && (
-                  <div className="absolute right-0 top-0 bottom-0 w-48 sm:w-72 md:w-96 pointer-events-none overflow-hidden select-none z-0">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={previewImageUrl}
-                      alt=""
-                      className="w-full h-full object-cover object-right opacity-65 group-hover:opacity-85 transition-opacity duration-300"
-                      style={{
-                        maskImage: 'linear-gradient(to left, rgba(0,0,0,1) 0%, rgba(0,0,0,0.85) 35%, rgba(0,0,0,0.4) 65%, rgba(0,0,0,0) 100%)',
-                        WebkitMaskImage: 'linear-gradient(to left, rgba(0,0,0,1) 0%, rgba(0,0,0,0.85) 35%, rgba(0,0,0,0.4) 65%, rgba(0,0,0,0) 100%)',
-                      }}
-                      onError={(e) => {
-                        (e.currentTarget as HTMLElement).style.display = 'none';
-                      }}
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-r from-white/95 via-transparent to-transparent group-hover:from-[#faf8f5]/95 pointer-events-none" />
-                  </div>
-                )}
-
                 {/* 1. Checkbox */}
-                <InboxAttachmentThumbnail item={item} />
+                <InboxImageBackground item={item} />
                 <div
                   onClick={(e) => toggleItemSelect(item.id, e)}
                   className="p-1 -m-1 shrink-0 flex items-center relative z-10"
