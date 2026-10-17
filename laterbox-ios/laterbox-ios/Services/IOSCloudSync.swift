@@ -356,6 +356,26 @@ extension SyncCoordinator {
             let existingMatch = byID[snapshot.id.lowercased()] ?? (normSnapUrl.flatMap { byURL[$0] })
 
             if let existing = existingMatch {
+                // Restore files independently of item timestamps or pending edits.
+                // Updating a title must not prevent an already-uploaded image from downloading.
+                if let attachmentAPI = api as? LaterBoxAPIService,
+                   let remoteAssets = snapshot.attachments?.filter({ $0.deleted_at == nil }), !remoteAssets.isEmpty {
+                    var assets = existing.attachmentsData.flatMap { try? JSONDecoder().decode([SharedAttachment].self, from: $0) } ?? []
+                    for remote in remoteAssets {
+                        let index = assets.firstIndex { $0.id.caseInsensitiveCompare(remote.id) == .orderedSame }
+                        if let index, (try? SharedCaptureStore.fileURL(assets[index])).map({ FileManager.default.fileExists(atPath: $0.path) }) == true {
+                            assets[index].remoteObjectKey = remote.r2_object_key
+                            assets[index].byteSize = remote.byte_size
+                            assets[index].sha256 = remote.sha256
+                            assets[index].mimeType = remote.mime_type
+                        } else {
+                            let restored = try await attachmentAPI.downloadAttachment(remote, token: token)
+                            if let index { assets[index] = restored } else { assets.append(restored) }
+                        }
+                    }
+                    existing.attachmentsData = try JSONEncoder().encode(assets)
+                    try context.save()
+                }
                 // A snapshot can arrive after the item upload but before its assets.
                 // It must never acknowledge or replace an unfinished local capture.
                 if existing.isSyncPending, let data = existing.attachmentsData,
