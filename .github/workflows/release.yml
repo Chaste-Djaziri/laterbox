@@ -71,6 +71,8 @@ jobs:
             "${{ steps.release_version.outputs.tag }}" \
             "$RUNNER_TEMP/release-assets" \
           "$RUNNER_TEMP/laterbox-web-${{ steps.release_version.outputs.version }}.tar.gz"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Attach web build to GitHub Release
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
