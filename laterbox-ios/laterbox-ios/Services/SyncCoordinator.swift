@@ -595,7 +595,7 @@ public final class SyncCoordinator: ObservableObject {
 
     public func permanentlyDeleteItem(item: LBItem, context: ModelContext) {
         let id = item.id
-        let needsCloudDeletion = item.userId != nil && item.userId == currentUserId
+        let needsCloudDeletion = currentUserId != nil && (item.userId == nil || item.userId?.caseInsensitiveCompare(currentUserId!) == .orderedSame)
         // Keep a durable deletion request so an offline delete cannot reappear on download.
         if needsCloudDeletion, !cloudDeletionQueue.contains(id) { cloudDeletionQueue.append(id) }
         context.delete(item)
