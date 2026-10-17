@@ -20,6 +20,8 @@ All notable user-facing changes to LaterBox will be documented in this file.
 
 ## [Unreleased]
 
+- **[iOS / Shortcuts] Add Quick Save toolbar and shortcut support to capture notes, ideas, and links with nothing attached directly without opening the app.**
+
 - **[Web / iOS / Security] Account deletion now removes all account data and Cloudflare attachments, with a dedicated iOS Security page for destructive account controls.**
 
 - **[Web / Help & FAQs] Let FAQ and help components sit directly on the site background instead of a separate page surface.**
