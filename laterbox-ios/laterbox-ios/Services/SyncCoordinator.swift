@@ -41,6 +41,28 @@ public final class SyncCoordinator: ObservableObject {
     @Published public var syncState: CloudSyncState = .synced
     @Published public var lastSyncedAt: Date? = nil
     @Published public var lastSyncErrorMessage: String? = nil
+    @Published public var showingSyncFailureAlert = false
+
+    public var friendlySyncFailureReason: String {
+        let detail = (lastSyncErrorMessage ?? "").lowercased()
+        let reason: String
+        if sessionExpired || detail.contains("session expired") || detail.contains("authentication") {
+            reason = "Please sign in again to reconnect your account."
+        } else if detail.contains("internet") || detail.contains("offline") || detail.contains("network") {
+            reason = "Check your internet connection and try again."
+        } else if detail.contains("timed out") || detail.contains("timeout") {
+            reason = "The cloud took too long to respond. Please try again."
+        } else if detail.contains("couldn’t be saved") || detail.contains("couldn't be saved") || detail.contains("space") || detail.contains("folder") {
+            reason = "An attachment could not be saved on this device. Check your available storage and try again."
+        } else if detail.contains("missing") || detail.contains("does not exist") || detail.contains("no such file") {
+            reason = "An attachment is missing from this device. Share the original file again to restore it."
+        } else if detail.contains("attachment") || detail.contains("upload") {
+            reason = "An attachment could not finish transferring. Please try again, or report the issue if it continues."
+        } else {
+            reason = "We couldn’t connect your changes to the cloud. Please try again, or report the issue if it continues."
+        }
+        return reason + " Your local items are kept on this device."
+    }
     @Published public var currentUserEmail: String? = nil
     @Published public var currentUserId: String? = nil
     @Published public var authToken: String? = nil
@@ -814,5 +836,6 @@ public final class SyncCoordinator: ObservableObject {
         } else {
             self.lastSyncErrorMessage = error.localizedDescription
         }
+        self.showingSyncFailureAlert = true
     }
 }
