@@ -140,18 +140,3 @@ public struct QuickSaveIntent: AppIntent {
         }
     }
 }
-
-public struct OpenQuickSaveModalIntent: AppIntent {
-    public static var title: LocalizedStringResource = "Open Quick Save Modal"
-    public static var description = IntentDescription("Open the blank Quick Save modal in LaterBox.")
-
-    public static var openAppWhenRun: Bool = true
-
-    public init() {}
-
-    @MainActor
-    public func perform() async throws -> some IntentResult {
-        NotificationCenter.default.post(name: NSNotification.Name("OpenQuickSaveModal"), object: nil)
-        return .result()
-    }
-}

@@ -11,17 +11,8 @@ public struct LaterBoxShortcuts: AppShortcutsProvider {
                 "Add to \(.applicationName)",
                 "Quick capture in \(.applicationName)"
             ],
-            shortTitle: "Quick Save",
+            shortTitle: "Quick Save to LaterBox",
             systemImageName: "plus.square.fill.on.square.fill"
-        )
-        AppShortcut(
-            intent: OpenQuickSaveModalIntent(),
-            phrases: [
-                "Open Quick Save in \(.applicationName)",
-                "Add Item in \(.applicationName)"
-            ],
-            shortTitle: "Add Item",
-            systemImageName: "square.and.pencil"
         )
     }
 }

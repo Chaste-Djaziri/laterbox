@@ -1596,22 +1596,6 @@ extension LaterAITests {
         let nextWeek = try #require(LaterBoxReturnPreset.nextWeek.targetDate)
         #expect(nextWeek.timeIntervalSince(now) >= 86400 * 6.5)
     }
-
-    @Test func openQuickSaveModalIntentPostsNotification() async throws {
-        var notificationReceived = false
-        let observer = NotificationCenter.default.addObserver(
-            forName: NSNotification.Name("OpenQuickSaveModal"),
-            object: nil,
-            queue: .main
-        ) { _ in
-            notificationReceived = true
-        }
-        defer { NotificationCenter.default.removeObserver(observer) }
-
-        let intent = OpenQuickSaveModalIntent()
-        _ = try await intent.perform()
-        #expect(notificationReceived == true)
-    }
 }
 @MainActor
 private final class MockCloudTransport: IOSCloudTransport {
