@@ -77,36 +77,40 @@ public struct MobileSidebarDrawer: View {
         self.onOpenSaveItem = onOpenSaveItem
     }
 
+    private var deduplicatedItems: [LBItem] {
+        allItems.deduplicatedForDisplay()
+    }
+
     // Live counts matching web logic
     private var inboxCount: Int {
         let now = Date()
-        return allItems.filter {
+        return deduplicatedItems.filter {
             $0.status == ItemStatus.inbox.rawValue ||
             ($0.status == ItemStatus.deferred.rawValue && $0.returnAt != nil && $0.returnAt! <= now)
         }.count
     }
 
     private var starredCount: Int {
-        allItems.filter { $0.favorite && $0.status != ItemStatus.deleted.rawValue }.count
+        deduplicatedItems.filter { $0.favorite && $0.status != ItemStatus.deleted.rawValue }.count
     }
 
     private var keptCount: Int {
-        allItems.filter { $0.status == ItemStatus.saved.rawValue }.count
+        deduplicatedItems.filter { $0.status == ItemStatus.saved.rawValue }.count
     }
 
     private var archivedCount: Int {
-        allItems.filter { $0.status == ItemStatus.archived.rawValue }.count
+        deduplicatedItems.filter { $0.status == ItemStatus.archived.rawValue }.count
     }
 
     private var trashCount: Int {
-        allItems.filter { $0.status == ItemStatus.deleted.rawValue }.count
+        deduplicatedItems.filter { $0.status == ItemStatus.deleted.rawValue }.count
     }
 
     private var todayCount: Int {
         let now = Date()
         let cal = Calendar.current
         let endOfToday = cal.date(byAdding: .day, value: 1, to: cal.startOfDay(for: now)) ?? now
-        return allItems.filter {
+        return deduplicatedItems.filter {
             $0.status == ItemStatus.deferred.rawValue &&
             $0.returnAt != nil &&
             $0.returnAt! > now &&
@@ -118,7 +122,7 @@ public struct MobileSidebarDrawer: View {
         let now = Date()
         let cal = Calendar.current
         let endOfToday = cal.date(byAdding: .day, value: 1, to: cal.startOfDay(for: now)) ?? now
-        return allItems.filter {
+        return deduplicatedItems.filter {
             $0.status == ItemStatus.deferred.rawValue &&
             $0.returnAt != nil &&
             $0.returnAt! > endOfToday
@@ -126,13 +130,13 @@ public struct MobileSidebarDrawer: View {
     }
 
     private var somedayCount: Int {
-        allItems.filter {
+        deduplicatedItems.filter {
             $0.status == ItemStatus.deferred.rawValue && $0.returnAt == nil
         }.count
     }
 
     private func collectionItemCount(named name: String) -> Int {
-        allItems.filter {
+        deduplicatedItems.filter {
             $0.status != ItemStatus.deleted.rawValue &&
             ($0.category.localizedCaseInsensitiveCompare(name) == .orderedSame ||
              $0.collectionName?.localizedCaseInsensitiveCompare(name) == .orderedSame)
