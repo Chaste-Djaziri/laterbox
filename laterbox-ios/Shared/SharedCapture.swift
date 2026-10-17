@@ -121,12 +121,22 @@ enum SharedCaptureStore {
     }
 }
 enum ReturnNotification {
+    private static var isTestingOrExtension: Bool {
+        Bundle.main.bundlePath.hasSuffix(".appex") ||
+        ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil ||
+        ProcessInfo.processInfo.environment["XCInjectBundleInto"] != nil ||
+        NSClassFromString("XCTestCase") != nil
+    }
+
     static func currentAuthorizationStatus() async -> UNAuthorizationStatus {
         let settings = await UNUserNotificationCenter.current().notificationSettings()
         return settings.authorizationStatus
     }
 
     static func requestPermissions() async throws -> Bool {
+        if isTestingOrExtension {
+            return false
+        }
         let center = UNUserNotificationCenter.current()
         return try await center.requestAuthorization(options: [.alert, .sound, .badge])
     }
@@ -136,6 +146,9 @@ enum ReturnNotification {
         let settings = await center.notificationSettings()
         let isAuthorized = settings.authorizationStatus == .authorized || settings.authorizationStatus == .provisional
         if !isAuthorized {
+            if isTestingOrExtension {
+                return false
+            }
             let requested = try await requestPermissions()
             guard requested else { return false }
         }
@@ -159,7 +172,7 @@ enum ReturnNotification {
         let settings = await center.notificationSettings()
         let isAuthorized = settings.authorizationStatus == .authorized || settings.authorizationStatus == .provisional
         if !isAuthorized {
-            if Bundle.main.bundlePath.hasSuffix(".appex") || ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil {
+            if isTestingOrExtension {
                 return false
             }
             let allowed = try await requestPermissions()
@@ -193,6 +206,9 @@ enum ReturnNotification {
         let settings = await center.notificationSettings()
         let isAuthorized = settings.authorizationStatus == .authorized || settings.authorizationStatus == .provisional
         if !isAuthorized {
+            if isTestingOrExtension {
+                return false
+            }
             let requested = try await requestPermissions()
             guard requested else { return false }
         }
