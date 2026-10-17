@@ -3,6 +3,7 @@
 import React from 'react';
 import { useDashboard } from '@/lib/store/DashboardContext';
 import { EmailInboxTable } from '@/components/inbox/EmailInboxTable';
+import { InboxBottomSyncBadge } from '@/components/inbox/InboxBottomSyncBadge';
 import { LaterBoxItem } from '@/lib/supabase/types';
 
 interface DashboardViewProps {
@@ -55,6 +56,7 @@ export function DashboardView({ items, loading, title: propTitle, topBanner }: D
           />
         )}
       </div>
+      <InboxBottomSyncBadge isInbox={activeTitle === 'Inbox'} />
     </div>
   );
 }
