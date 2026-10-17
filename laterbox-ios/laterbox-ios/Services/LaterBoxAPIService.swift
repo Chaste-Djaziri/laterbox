@@ -169,11 +169,11 @@ public actor LaterBoxAPIService {
         }
         guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let newAccessToken = json["access_token"] as? String,
-              let newRefreshToken = (json["refresh_token"] as? String) ?? refreshToken,
               let user = json["user"] as? [String: Any],
               let userId = user["id"] as? String else {
             throw CloudSyncError.unauthenticated
         }
+        let newRefreshToken = (json["refresh_token"] as? String) ?? refreshToken
         return (newAccessToken, newRefreshToken, userId)
     }
 
