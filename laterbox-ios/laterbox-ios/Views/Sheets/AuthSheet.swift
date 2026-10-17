@@ -176,8 +176,8 @@ public struct AuthSheet: View {
         errorMessage = nil
         Task {
             do {
-                let (token, userId) = try await LaterBoxAPIService.shared.verifyOTP(email: email.trimmingCharacters(in: .whitespaces), token: otpCode.trimmingCharacters(in: .whitespaces))
-                coordinator.setSession(email: email, userId: userId, token: token)
+                let (token, refreshToken, userId) = try await LaterBoxAPIService.shared.verifyOTP(email: email.trimmingCharacters(in: .whitespaces), token: otpCode.trimmingCharacters(in: .whitespaces))
+                coordinator.setSession(email: email, userId: userId, token: token, refreshToken: refreshToken)
                 isLoading = false
                 dismiss()
             } catch {

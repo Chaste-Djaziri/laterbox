@@ -16,7 +16,7 @@ struct AuthView: View {
     enum AuthStep: Equatable {
         case enterEmail
         case verifyOTP
-        case resolveLocalData(unassignedCount: Int, token: String, userId: String)
+        case resolveLocalData(unassignedCount: Int, token: String, refreshToken: String?, userId: String)
     }
 
     @State private var step: AuthStep = .enterEmail
@@ -40,7 +40,7 @@ struct AuthView: View {
             return "We'll send you a code to sign in or create your account."
         case .verifyOTP:
             return "We sent an 8-digit code to \(email)."
-        case .resolveLocalData(let count, _, _):
+        case .resolveLocalData(let count, _, _, _):
             return "You have \(count) item\(count == 1 ? "" : "s") saved on this device. Choose how to sync."
         }
     }
@@ -149,7 +149,7 @@ struct AuthView: View {
                                 .stroke(Color.black.opacity(0.1), lineWidth: 1)
                         )
 
-                    case .resolveLocalData(let count, let token, let userId):
+                    case .resolveLocalData(let count, let token, let refreshToken, let userId):
                         VStack(spacing: 16) {
                             HStack(spacing: 14) {
                                 ZStack {
@@ -182,7 +182,7 @@ struct AuthView: View {
 
                             // Option 1: Merge Local Items (Primary)
                             Button(action: {
-                                resolveData(merge: true, token: token, userId: userId)
+                                resolveData(merge: true, token: token, refreshToken: refreshToken, userId: userId)
                             }) {
                                 HStack {
                                     if isLoading {
@@ -204,7 +204,7 @@ struct AuthView: View {
 
                             // Option 2: Remove Local Items
                             Button(action: {
-                                resolveData(merge: false, token: token, userId: userId)
+                                resolveData(merge: false, token: token, refreshToken: refreshToken, userId: userId)
                             }) {
                                 HStack {
                                     Image(systemName: "trash")
@@ -382,7 +382,7 @@ struct AuthView: View {
         Task {
             do {
                 let cleanEmail = email.trimmingCharacters(in: .whitespacesAndNewlines)
-                let (token, userId) = try await LaterBoxAPIService.shared.verifyOTP(
+                let (token, refreshToken, userId) = try await LaterBoxAPIService.shared.verifyOTP(
                     email: cleanEmail,
                     token: cleanToken
                 )
@@ -395,7 +395,7 @@ struct AuthView: View {
                     await MainActor.run {
                         isLoading = false
                         withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                            step = .resolveLocalData(unassignedCount: unassignedCount, token: token, userId: userId)
+                            step = .resolveLocalData(unassignedCount: unassignedCount, token: token, refreshToken: refreshToken, userId: userId)
                         }
                     }
                 } else {
@@ -405,6 +405,7 @@ struct AuthView: View {
                         email: cleanEmail,
                         userId: userId,
                         token: token,
+                        refreshToken: refreshToken,
                         context: modelContext
                     )
                     await MainActor.run {
@@ -424,7 +425,7 @@ struct AuthView: View {
     }
 
     // MARK: - Local Data Resolution
-    private func resolveData(merge: Bool, token: String, userId: String) {
+    private func resolveData(merge: Bool, token: String, refreshToken: String?, userId: String) {
         isLoading = true
         errorMessage = nil
         infoMessage = nil
@@ -438,6 +439,7 @@ struct AuthView: View {
                     email: cleanEmail,
                     userId: userId,
                     token: token,
+                    refreshToken: refreshToken,
                     context: modelContext
                 )
                 await MainActor.run {
