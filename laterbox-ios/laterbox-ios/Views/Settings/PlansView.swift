@@ -164,12 +164,41 @@ public struct PlansView: View {
                             Text(message).font(.caption).foregroundColor(AppTheme.textSecondary)
                         }
                         // Error Banner if any
-                        if let error = storeKit.errorMessage {
-                            Text(error)
-                                .font(.caption)
-                                .foregroundColor(.red)
-                                .multilineTextAlignment(.center)
-                                .padding(.horizontal)
+                        if let error = storeKit.errorMessage ?? coordinator.billingError {
+                            VStack(spacing: 8) {
+                                Text(error)
+                                    .font(.caption)
+                                    .foregroundColor(.red)
+                                    .multilineTextAlignment(.center)
+                                    .padding(.horizontal)
+
+                                Button(action: {
+                                    LBHaptic.medium()
+                                    Task {
+                                        await coordinator.refreshEntitlement()
+                                    }
+                                }) {
+                                    HStack(spacing: 6) {
+                                        if coordinator.isCheckingEntitlement {
+                                            ProgressView()
+                                                .tint(.red)
+                                                .scaleEffect(0.8)
+                                        } else {
+                                            Image(systemName: "arrow.clockwise")
+                                                .font(.caption.weight(.bold))
+                                        }
+                                        Text(coordinator.isCheckingEntitlement ? "Checking…" : "Retry")
+                                            .font(.caption.weight(.bold))
+                                    }
+                                    .padding(.horizontal, 14)
+                                    .padding(.vertical, 6)
+                                    .background(Color.red.opacity(0.12))
+                                    .foregroundColor(.red)
+                                    .clipShape(Capsule())
+                                }
+                                .buttonStyle(.plain)
+                                .disabled(coordinator.isCheckingEntitlement)
+                            }
                         }
 
                         // Compliance & Legal Footer (Apple App Store Guideline 3.1.2)

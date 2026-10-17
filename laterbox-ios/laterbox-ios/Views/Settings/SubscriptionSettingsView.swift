@@ -181,7 +181,74 @@ public struct SubscriptionSettingsView: View {
                             Text(message).font(.caption).foregroundColor(AppTheme.textSecondary)
                         }
                         if let error = storeKit.errorMessage ?? coordinator.billingError {
-                            Text(error).font(.caption).foregroundColor(.red)
+                            VStack(alignment: .leading, spacing: 8) {
+                                HStack(alignment: .top, spacing: 6) {
+                                    Image(systemName: "exclamationmark.triangle.fill")
+                                        .font(.caption)
+                                        .foregroundColor(.red)
+                                    Text(error)
+                                        .font(.caption)
+                                        .foregroundColor(.red)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                }
+
+                                HStack(spacing: 10) {
+                                    Button(action: {
+                                        LBHaptic.medium()
+                                        Task {
+                                            await coordinator.refreshEntitlement()
+                                        }
+                                    }) {
+                                        HStack(spacing: 6) {
+                                            if coordinator.isCheckingEntitlement {
+                                                ProgressView()
+                                                    .tint(.red)
+                                                    .scaleEffect(0.8)
+                                            } else {
+                                                Image(systemName: "arrow.clockwise")
+                                                    .font(.caption.weight(.bold))
+                                            }
+                                            Text(coordinator.isCheckingEntitlement ? "Checking…" : "Retry")
+                                                .font(.caption.weight(.bold))
+                                        }
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 6)
+                                        .background(Color.red.opacity(0.12))
+                                        .foregroundColor(.red)
+                                        .clipShape(Capsule())
+                                    }
+                                    .buttonStyle(.plain)
+                                    .disabled(coordinator.isCheckingEntitlement)
+
+                                    if coordinator.sessionExpired || error.localizedCaseInsensitiveContains("sign in") || error.localizedCaseInsensitiveContains("session expired") {
+                                        Button(action: {
+                                            LBHaptic.light()
+                                            coordinator.showingAuthSheet = true
+                                        }) {
+                                            HStack(spacing: 6) {
+                                                Image(systemName: "person.crop.circle.badge.exclamationmark")
+                                                    .font(.caption.weight(.bold))
+                                                Text("Sign In")
+                                                    .font(.caption.weight(.bold))
+                                            }
+                                            .padding(.horizontal, 12)
+                                            .padding(.vertical, 6)
+                                            .background(AppTheme.accent.opacity(0.25))
+                                            .foregroundColor(AppTheme.textPrimary)
+                                            .clipShape(Capsule())
+                                        }
+                                        .buttonStyle(.plain)
+                                    }
+                                }
+                            }
+                            .padding(12)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(Color.red.opacity(0.06))
+                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                    .strokeBorder(Color.red.opacity(0.15), lineWidth: 1)
+                            )
                         }
                         Button("Compare plans") { coordinator.showingPlansSheet = true }
                             .font(.caption.weight(.semibold))
