@@ -44,6 +44,8 @@ public final class SyncCoordinator: ObservableObject {
     @Published public var currentUserEmail: String? = nil
     @Published public var currentUserId: String? = nil
     @Published public var authToken: String? = nil
+    @Published public var refreshToken: String? = nil
+    @Published public var sessionExpired: Bool = false
     @Published public private(set) var isPro: Bool = false
     private var storeKitPro = false
     private var accountPro = false
@@ -101,7 +103,7 @@ public final class SyncCoordinator: ObservableObject {
 
     @discardableResult
     public func refreshEntitlement() async -> Bool {
-        guard !isGuestMode, isAuthenticated, let uid = currentUserId, let token = authToken else {
+        guard !isGuestMode, isAuthenticated, let uid = currentUserId, var token = authToken else {
             accountPro = false
             billingEntitlement = nil
             billingError = nil
@@ -117,6 +119,19 @@ public final class SyncCoordinator: ObservableObject {
             isPro = accountPro || storeKitPro
             return true
         } catch {
+            if let syncErr = error as? CloudSyncError, case .unauthorized = syncErr {
+                if await refreshAuthSession(), let refreshedToken = authToken {
+                    token = refreshedToken
+                    if let entitlement = try? await api.fetchBillingEntitlement(token: token) {
+                        billingEntitlement = entitlement
+                        billingError = nil
+                        accountPro = entitlement.hasAccess
+                        isPro = accountPro || storeKitPro
+                        return true
+                    }
+                }
+                self.sessionExpired = true
+            }
             guard uid == currentUserId, token == authToken else { return false }
             billingError = "Unable to check your account subscription. Reconnect or sign in again, then retry."
             accountPro = billingEntitlement?.hasAccess ?? false
@@ -150,6 +165,7 @@ public final class SyncCoordinator: ObservableObject {
         self.currentUserEmail = defaults.string(forKey: "lb_user_email")
         self.currentUserId = defaults.string(forKey: "lb_user_id")
         self.authToken = defaults.string(forKey: "lb_auth_token")
+        self.refreshToken = defaults.string(forKey: "lb_refresh_token")
         self.isGuestMode = defaults.bool(forKey: "lb_guest_mode")
         self.syncState = (currentUserEmail != nil && !(currentUserEmail?.isEmpty ?? true)) ? .synced : .offline
         
@@ -165,11 +181,16 @@ public final class SyncCoordinator: ObservableObject {
         self.isSystemOperational = ok
     }
 
-    public func setSession(email: String, userId: String, token: String) {
+    public func setSession(email: String, userId: String, token: String, refreshToken: String? = nil) {
         if currentUserId != userId { billingEntitlement = nil; accountPro = false }
         self.currentUserEmail = email
         self.currentUserId = userId
         self.authToken = token
+        if let refreshToken, !refreshToken.isEmpty {
+            self.refreshToken = refreshToken
+            defaults.set(refreshToken, forKey: "lb_refresh_token")
+        }
+        self.sessionExpired = false
         self.isGuestMode = false
         self.syncState = .synced
         defaults.set(email, forKey: "lb_user_email")
@@ -195,13 +216,36 @@ public final class SyncCoordinator: ObservableObject {
         self.currentUserEmail = nil
         self.currentUserId = nil
         self.authToken = nil
+        self.refreshToken = nil
+        self.sessionExpired = false
         self.isGuestMode = false
         self.syncState = .offline
         defaults.removeObject(forKey: "lb_user_email")
         defaults.removeObject(forKey: "lb_user_id")
         defaults.removeObject(forKey: "lb_auth_token")
+        defaults.removeObject(forKey: "lb_refresh_token")
         defaults.removeObject(forKey: "lb_guest_mode")
         LBHaptic.light()
+    }
+
+    @discardableResult
+    public func refreshAuthSession() async -> Bool {
+        guard let rToken = refreshToken ?? defaults.string(forKey: "lb_refresh_token"), !rToken.isEmpty else {
+            return false
+        }
+        do {
+            let (newAccess, newRefresh, uid) = try await api.refreshSession(refreshToken: rToken)
+            self.authToken = newAccess
+            self.refreshToken = newRefresh
+            self.currentUserId = uid
+            self.sessionExpired = false
+            defaults.set(newAccess, forKey: "lb_auth_token")
+            defaults.set(newRefresh, forKey: "lb_refresh_token")
+            defaults.set(uid, forKey: "lb_user_id")
+            return true
+        } catch {
+            return false
+        }
     }
 
     /// Exits guest mode and permanently clears all local guest/unassigned items and collections.
@@ -578,6 +622,32 @@ public final class SyncCoordinator: ObservableObject {
             _ = self.updateLocalPendingPushCount(context: context)
             return count
         } catch {
+            if let syncErr = error as? CloudSyncError, case .unauthorized = syncErr {
+                if await refreshAuthSession(), let refreshedToken = authToken {
+                    if let retryData = try? await api.cloudRequest("items?user_id=eq.\(uid)&select=id,updated_at,deleted_at", token: refreshedToken, method: "GET", body: nil) {
+                        let remoteList = (try? JSONDecoder().decode([CloudItemSnapshot].self, from: retryData)) ?? []
+                        let local = (try? context.fetch(FetchDescriptor<LBItem>())) ?? []
+                        let byID = Dictionary(uniqueKeysWithValues: local.map { ($0.id, $0) })
+                        var count = 0
+                        for r in remoteList {
+                            let rDate = r.updated_at.flatMap(Self.cloudDate) ?? .distantPast
+                            if let loc = byID[r.id] {
+                                if rDate > loc.updatedAt {
+                                    count += 1
+                                } else if r.deleted_at != nil && loc.status != "deleted" && rDate >= loc.updatedAt {
+                                    count += 1
+                                }
+                            } else if r.deleted_at == nil && !cloudDeletionQueue.contains(r.id) {
+                                count += 1
+                            }
+                        }
+                        self.pendingPullCount = count
+                        _ = self.updateLocalPendingPushCount(context: context)
+                        return count
+                    }
+                }
+                self.sessionExpired = true
+            }
             return self.pendingPullCount
         }
     }
@@ -675,6 +745,9 @@ public final class SyncCoordinator: ObservableObject {
     private func handleSyncError(_ error: Error) {
         self.syncState = .error
         if let syncErr = error as? CloudSyncError {
+            if case .unauthorized = syncErr {
+                self.sessionExpired = true
+            }
             self.lastSyncErrorMessage = syncErr.localizedDescription
         } else if let urlErr = error as? URLError {
             switch urlErr.code {
