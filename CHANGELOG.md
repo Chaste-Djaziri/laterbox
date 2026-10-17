@@ -20,6 +20,8 @@ All notable user-facing changes to LaterBox will be documented in this file.
 
 ## [Unreleased]
 
+- **[Web / Sidebar] Collapse Collections to its heading, rename collections inline, and remove collections with a red minus control while keeping their items in the library.**
+
 - **[Web / Cloud Sync] Clear phantom incoming-update badges by respecting pending local actions, ignoring unknown deleted items, and pulling all remote item pages.**
 
 - **[Web / Inbox] Add an exact scheduling modal with a calendar, local time picker, schedule preview, and explicit confirmation for individual or selected items.**
