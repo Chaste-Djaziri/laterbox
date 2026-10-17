@@ -20,6 +20,8 @@ All notable user-facing changes to LaterBox will be documented in this file.
 
 ## [Unreleased]
 
+- **[Build / Releases] Publish the changelog with every platform artifact and preserve prior platform assets when only one platform changes.**
+
 - **[iOS / Service Status] Add an interactive uptime history range picker and daily/hourly availability bars for each monitor.**
 
 - **[iOS / Sidebar] Allow the Collections section to collapse into its title.**
