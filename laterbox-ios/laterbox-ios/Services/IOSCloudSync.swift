@@ -243,14 +243,26 @@ extension LaterBoxAPIService {
                 "originalFileName": attachment.name, "extension": ext, "mimeType": mime, "byteSize": data.count, "sha256": digest]
             let verified = try await attachmentFunction(complete, token: token)
             guard let objectKey = verified["objectKey"] as? String else { throw CloudSyncError.other("Attachment verification failed") }
-            let now = ISO8601DateFormatter().string(from: Date())
-            let row: [String: Any] = ["id": attachment.id, "item_id": itemID, "user_id": userID, "original_file_name": attachment.name,
-                "file_extension": ext, "mime_type": mime, "byte_size": data.count, "sha256": digest, "r2_object_key": objectKey,
-                "created_at": now, "updated_at": now]
-            _ = try await cloudRequest("attachments?on_conflict=id", token: token, method: "POST", body: row)
             uploaded[index].remoteObjectKey = objectKey; uploaded[index].byteSize = Int64(data.count); uploaded[index].sha256 = digest; uploaded[index].mimeType = mime
         }
         return uploaded
+    }
+
+    func publishItemWithAttachments(_ body: [String: Any], attachments: [SharedAttachment], userID: String, token: String) async throws {
+        let stamp = ISO8601DateFormatter().string(from: Date())
+        let rows: [[String: Any]] = try attachments.map { attachment in
+            guard let key = attachment.remoteObjectKey, !key.isEmpty,
+                  let size = attachment.byteSize, let digest = attachment.sha256,
+                  let mime = attachment.mimeType else {
+                throw CloudSyncError.other("An attachment has not finished uploading")
+            }
+            let ext = URL(fileURLWithPath: attachment.name).pathExtension.lowercased()
+            return ["id": attachment.id, "item_id": body["id"]!, "user_id": userID,
+                "original_file_name": attachment.name, "file_extension": ext.isEmpty ? "bin" : ext,
+                "mime_type": mime, "byte_size": size, "sha256": digest, "r2_object_key": key,
+                "created_at": stamp, "updated_at": stamp]
+        }
+        _ = try await cloudRequest("rpc/publish_item_attachments", token: token, method: "POST", body: ["item": body, "assets": rows])
     }
 
     func downloadAttachment(_ attachment: CloudAttachmentSnapshot, token: String) async throws -> SharedAttachment {
@@ -321,6 +333,11 @@ extension SyncCoordinator {
             let existingMatch = byID[snapshot.id] ?? (normSnapUrl.flatMap { byURL[$0] })
 
             if let existing = existingMatch {
+                // A snapshot can arrive after the item upload but before its assets.
+                // It must never acknowledge or replace an unfinished local capture.
+                if existing.isSyncPending, let data = existing.attachmentsData,
+                   let attachments = try? JSONDecoder().decode([SharedAttachment].self, from: data),
+                   !attachments.isEmpty { continue }
                 let isIdChange = (existing.id != snapshot.id)
 
                 // Conflict resolution taking the recent action based on timestamps:
@@ -472,17 +489,24 @@ extension SyncCoordinator {
                 }
                 collection = ["id": item.collectionId!, "user_id": uid, "name": name, "created_at": item.createdAt.ISO8601Format(), "updated_at": stamp]
             }
-            try await executeWithRetry { curToken in
-                try await api.uploadSnapshot(body, metadata: metadata, note: note, collection: collection, token: curToken)
-            }
-            if let attachmentAPI = api as? LaterBoxAPIService,
-               let attachmentData = item.attachmentsData,
-               let attachments = try? JSONDecoder().decode([SharedAttachment].self, from: attachmentData),
-               !attachments.isEmpty {
+            if let attachmentData = item.attachmentsData {
+                let attachments = try JSONDecoder().decode([SharedAttachment].self, from: attachmentData)
+                if !attachments.isEmpty {
+                guard let attachmentAPI = api as? LaterBoxAPIService else {
+                    throw CloudSyncError.other("This sync connection cannot upload attachments")
+                }
                 let uploaded = try await executeWithRetry { curToken in
                     try await attachmentAPI.uploadAttachments(attachments, itemID: item.id, userID: uid, token: curToken)
                 }
-                item.attachmentsData = try? JSONEncoder().encode(uploaded)
+                try await executeWithRetry { curToken in
+                    try await attachmentAPI.publishItemWithAttachments(body, attachments: uploaded, userID: uid, token: curToken)
+                }
+                item.attachmentsData = try JSONEncoder().encode(uploaded)
+                try context.save()
+                }
+            }
+            try await executeWithRetry { curToken in
+                try await api.uploadSnapshot(body, metadata: metadata, note: note, collection: collection, token: curToken)
             }
             guard currentUserId == uid, authToken == token else { return pushedCount }
             item.userId = uid
