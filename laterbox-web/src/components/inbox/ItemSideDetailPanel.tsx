@@ -81,7 +81,8 @@ function ThreadAttachmentCard({
   const isPdf = ext === 'pdf' || mime === 'application/pdf';
   const isImg =
     mime.startsWith('image/') ||
-    ['jpg', 'jpeg', 'png', 'webp', 'gif', 'svg', 'heic', 'avif'].includes(ext);
+    ['jpg', 'jpeg', 'png', 'webp', 'gif', 'svg', 'heic', 'avif'].includes(ext) ||
+    ['public.image', 'public.jpeg', 'public.png', 'public.heic', 'public.webp', 'public.gif'].includes(mime);
   const isVid =
     mime.startsWith('video/') ||
     ['mp4', 'mov', 'webm', 'mkv', 'm4v', 'ogv'].includes(ext);
