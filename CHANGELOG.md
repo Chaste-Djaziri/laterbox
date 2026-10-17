@@ -20,6 +20,8 @@ All notable user-facing changes to LaterBox will be documented in this file.
 
 ## [Unreleased]
 
+- **[Web / Inbox] Prefer stored attachment previews over blocked external social-image URLs.**
+
 - **[Web / Attachments] Render iOS shared image attachments as real previews instead of filename-only cards.**
 
 - **[iOS & Web / Attachments] Show successful cloud uploads and make shared attachments downloadable across devices.**
