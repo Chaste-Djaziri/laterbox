@@ -27,6 +27,8 @@ import {
   CalendarClock,
   Trash2,
   HelpCircle,
+  Pencil,
+  Minus,
 } from 'lucide-react';
 
 interface AppSidebarProps {
@@ -36,9 +38,14 @@ interface AppSidebarProps {
 export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const { inboxItems, starredItems, savedItems, archivedItems, deletedItems, items, collections, createCollection } = useItems();
+  const { inboxItems, starredItems, savedItems, archivedItems, deletedItems, items, collections, createCollection, renameCollection, deleteCollection } = useItems();
   const { entitlement, isPro, manage } = useBilling();
   const [collapsed, setCollapsed] = useState(false);
+  const [collectionsCollapsed, setCollectionsCollapsed] = useState(false);
+  const [editingCollection, setEditingCollection] = useState<string | null>(null);
+  const [collectionName, setCollectionName] = useState('');
+  const [busyCollection, setBusyCollection] = useState<string | null>(null);
+  const [collectionError, setCollectionError] = useState('');
   const [now, setNow] = useState(() => new Date());
   const plan = useMemo(() => presentEntitlement(entitlement, now), [entitlement, now]);
 
@@ -264,12 +271,15 @@ export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
         <div className="pt-2">
           {!collapsed ? (
             <div className="flex items-center justify-between px-3 mb-1">
-              <span className="text-[10px] font-black tracking-widest uppercase text-[#9e9b92]">
+              <button type="button" onClick={() => setCollectionsCollapsed(!collectionsCollapsed)}
+                aria-expanded={!collectionsCollapsed} aria-label="Toggle collections"
+                className="flex items-center gap-1.5 py-1 text-[10px] font-black tracking-widest uppercase text-[#9e9b92] hover:text-[#171711]">
+                <ChevronRight className={`h-3 w-3 transition-transform ${collectionsCollapsed ? '' : 'rotate-90'}`} />
                 COLLECTIONS
-              </span>
+              </button>
               <button
                 type="button"
-                onClick={() => setIsCreatingCollection(true)}
+                onClick={() => { setCollectionsCollapsed(false); setIsCreatingCollection(true); }}
                 className="p-1 -mr-1 rounded-lg text-[#8e8d87] hover:text-[#171711] hover:bg-[#ebe7dc]/60 transition-colors cursor-pointer"
                 title="Create new collection"
                 aria-label="Create new collection"
@@ -283,6 +293,7 @@ export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
                 type="button"
                 onClick={() => {
                   setCollapsed(false);
+                  setCollectionsCollapsed(false);
                   setIsCreatingCollection(true);
                 }}
                 className="p-1.5 rounded-lg text-[#8e8d87] hover:text-[#171711] hover:bg-[#ebe7dc]/60 transition-colors cursor-pointer"
@@ -294,7 +305,7 @@ export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
           )}
 
           {/* Inline creation input */}
-          {isCreatingCollection && !collapsed && (
+          {isCreatingCollection && !collapsed && !collectionsCollapsed && (
             <form onSubmit={handleCreateCollection} className="px-1.5 py-1 mb-1">
               <div className="flex items-center gap-1.5 bg-white border border-[#171711] rounded-xl px-2.5 py-1.5 shadow-2xs">
                 <input
@@ -336,7 +347,7 @@ export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
           )}
 
           {/* Collections List */}
-          <nav className="space-y-1">
+          {!collectionsCollapsed && <nav className="space-y-1">
             {collections.map((col) => {
               const count = items.filter(
                 (item) => !item.deleted_at && item.collections?.some((c) => c.id === col.id)
@@ -345,11 +356,29 @@ export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
               const isActive = pathname === href;
 
               return (
+                <div key={col.id} className="group relative flex items-center">
+                {editingCollection === col.id && !collapsed ? (
+                  <form className="flex w-full items-center gap-1 rounded-xl border border-[#171711] bg-white p-2"
+                    onSubmit={async event => {
+                      event.preventDefault();
+                      if (busyCollection) return;
+                      setBusyCollection(col.id); setCollectionError('');
+                      try { await renameCollection(col.id, collectionName); setEditingCollection(null); }
+                      catch (error) { setCollectionError(error instanceof Error ? error.message : 'Could not rename the collection. Please try again.'); }
+                      finally { setBusyCollection(null); }
+                    }}>
+                    <input autoFocus aria-label="Collection name" maxLength={80} value={collectionName}
+                      disabled={Boolean(busyCollection)} onChange={event => setCollectionName(event.target.value)}
+                      onKeyDown={event => { if (event.key === 'Escape' && !busyCollection) setEditingCollection(null); }}
+                      className="min-w-0 flex-1 bg-transparent text-xs outline-none" />
+                    <button type="submit" disabled={!collectionName.trim() || Boolean(busyCollection)} aria-label="Save collection name" className="rounded-md bg-[#171711] p-1 text-white disabled:opacity-40"><Check className="h-3 w-3" /></button>
+                    <button type="button" disabled={Boolean(busyCollection)} onClick={() => setEditingCollection(null)} aria-label="Cancel rename" className="p-1"><X className="h-3 w-3" /></button>
+                  </form>
+                ) : <>
                 <Link
-                  key={col.id}
                   href={href}
                   title={collapsed ? col.name : undefined}
-                  className={`relative flex items-center ${
+                  className={`relative flex min-w-0 flex-1 items-center ${
                     collapsed ? 'justify-center px-0' : 'justify-between px-3'
                   } py-2.5 rounded-xl text-xs transition-all duration-150 ${
                     isActive
@@ -377,11 +406,28 @@ export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
                     {!collapsed && <span className="truncate">{col.name}</span>}
                   </div>
                   {!collapsed && count > 0 && (
-                    <span className="text-[10px] font-bold text-[#8e8d87] px-1.5 py-0.5 rounded-md bg-[#ebe7dc]/60 shrink-0">
+                    <span className="text-[10px] font-bold text-[#8e8d87] px-1.5 py-0.5 rounded-md bg-[#ebe7dc]/60 shrink-0 group-hover:opacity-0 group-focus-within:opacity-0">
                       {count}
                     </span>
                   )}
                 </Link>
+                {!collapsed && <div className="absolute right-2 flex items-center gap-1 rounded-lg bg-[#f7f5ee] p-0.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100">
+                  <button type="button" title={`Rename ${col.name}`} aria-label={`Rename ${col.name}`} disabled={Boolean(busyCollection)}
+                    onClick={() => { setCollectionName(col.name); setEditingCollection(col.id); setCollectionError(''); }}
+                    className="rounded-full p-1.5 text-[#6c6b63] hover:bg-[#ebe7dc] hover:text-[#171711] disabled:opacity-40"><Pencil className="h-3 w-3" /></button>
+                  <button type="button" title="Delete collection — items stay in your library" aria-label={`Delete ${col.name}, keep its items`} disabled={Boolean(busyCollection)}
+                    onClick={async () => {
+                      setBusyCollection(col.id); setCollectionError('');
+                      try {
+                        await deleteCollection(col.id);
+                        if (isActive) router.push('/inbox');
+                      } catch { setCollectionError('Could not remove the collection. Please try again.'); }
+                      finally { setBusyCollection(null); }
+                    }}
+                    className="rounded-full bg-red-100 p-1.5 text-red-600 hover:bg-red-600 hover:text-white disabled:opacity-40"><Minus className="h-3 w-3" strokeWidth={3} /></button>
+                </div>}
+                </>}
+                </div>
               );
             })}
 
@@ -395,7 +441,8 @@ export function AppSidebar({ onOpenCapture }: AppSidebarProps) {
                 <span>New collection...</span>
               </button>
             )}
-          </nav>
+          </nav>}
+          {collectionError && !collapsed && <p role="alert" className="px-3 py-2 text-xs text-red-700">{collectionError}</p>}
         </div>
 
         {/* Activity / System Section */}
