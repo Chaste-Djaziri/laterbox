@@ -51,7 +51,8 @@ export async function uploadAttachmentFile(
   file: File,
   itemId: string,
   userId: string,
-  existingAttachmentId?: string
+  existingAttachmentId?: string,
+  persistRecord = true
 ): Promise<Attachment> {
   const attachmentId = existingAttachmentId || crypto.randomUUID();
   const extension = file.name.split('.').pop()?.toLowerCase() || '';
@@ -131,6 +132,7 @@ export async function uploadAttachmentFile(
   };
 
   // Insert into attachments table in Supabase
+  if (!persistRecord) return record;
   try {
     const { error } = await supabase.from('attachments').upsert({
       id: attachmentId,
