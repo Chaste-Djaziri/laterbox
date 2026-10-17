@@ -159,6 +159,9 @@ enum ReturnNotification {
         let settings = await center.notificationSettings()
         let isAuthorized = settings.authorizationStatus == .authorized || settings.authorizationStatus == .provisional
         if !isAuthorized {
+            if Bundle.main.bundlePath.hasSuffix(".appex") || ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil {
+                return false
+            }
             let allowed = try await requestPermissions()
             guard allowed else { return false }
         }

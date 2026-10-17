@@ -52,10 +52,18 @@ public struct QuickSaveIntent: AppIntent {
     )
     public var content: String?
 
+    @Parameter(title: "Title", description: "Optional title for the item")
+    public var title: String?
+
+    @Parameter(title: "When to Return", description: "When to see this item back in your inbox")
+    public var returnPreset: LaterBoxReturnPreset?
+
     public init() {}
 
     public init(content: String? = nil, title: String? = nil, returnPreset: LaterBoxReturnPreset? = nil) {
         self.content = content
+        self.title = title
+        self.returnPreset = returnPreset
     }
 
     public static var parameterSummary: some ParameterSummary {
@@ -64,14 +72,12 @@ public struct QuickSaveIntent: AppIntent {
 
     @MainActor
     public func perform() async throws -> some IntentResult & ProvidesDialog {
-        let raw: String
-        if let provided = content?.trimmingCharacters(in: .whitespacesAndNewlines), !provided.isEmpty {
-            raw = provided
-        } else {
-            raw = try await $content.requestValue("What would you like to save to LaterBox?")
+        var rawContent = content?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if rawContent.isEmpty {
+            rawContent = try await $content.requestValue("What would you like to save to LaterBox?")
         }
 
-        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmed = rawContent.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else {
             return .result(dialog: "Nothing was entered to save.")
         }
@@ -80,24 +86,48 @@ public struct QuickSaveIntent: AppIntent {
         capture.content = trimmed
 
         // Extract URL if present
+        var detectedUrl: String?
         if let detector = try? NSDataDetector(types: NSTextCheckingResult.CheckingType.link.rawValue),
            let match = detector.firstMatch(in: trimmed, range: NSRange(trimmed.startIndex..., in: trimmed)),
            let matchUrl = match.url {
+            detectedUrl = matchUrl.absoluteString
+        }
+
+        // Title resolution
+        let customTitle = title?.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let customTitle, !customTitle.isEmpty {
+            capture.title = customTitle
+        } else if let firstLine = trimmed.components(separatedBy: .newlines).first, !firstLine.isEmpty {
+            capture.title = String(firstLine.prefix(80))
+        } else {
+            capture.title = "Quick Note"
+        }
+
+        // Return schedule
+        if let returnPreset {
+            capture.returnAt = returnPreset.targetDate
+        }
+
+        // Category & tags
+        if detectedUrl != nil {
             capture.category = "Reading"
             capture.tags = ["link", "quick-save"]
-            capture.title = String(trimmed.prefix(80))
         } else {
             capture.category = "Inbox"
             capture.tags = ["note", "quick-save"]
-            if let firstLine = trimmed.components(separatedBy: .newlines).first, !firstLine.isEmpty {
-                capture.title = String(firstLine.prefix(80))
-            } else {
-                capture.title = "Quick Note"
-            }
         }
 
         do {
             try SharedCaptureStore.save(capture)
+            if let returnAt = capture.returnAt {
+                _ = try? await ReturnNotification.update(
+                    id: capture.id,
+                    title: capture.title,
+                    description: capture.content,
+                    date: returnAt
+                )
+            }
+
             return .result(dialog: "Saved to LaterBox.")
         } catch {
             return .result(dialog: "Failed to save: \(error.localizedDescription)")
