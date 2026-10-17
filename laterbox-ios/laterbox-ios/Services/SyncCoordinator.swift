@@ -58,6 +58,11 @@ public final class SyncCoordinator: ObservableObject {
     @Published public var showingAuthSheet: Bool = false
     @Published public var showingPlansSheet: Bool = false
     @Published public var catalogUpdateTrigger: UUID = UUID()
+    @Published public var pendingPullCount: Int = 0
+    @Published public var pendingPushCount: Int = 0
+    @Published public var isPulling: Bool = false
+    @Published public var isPushing: Bool = false
+    @Published public var isCheckingRemoteChanges: Bool = false
 
     public var isAuthenticated: Bool {
         currentUserEmail != nil && !(currentUserEmail?.isEmpty ?? true)
@@ -518,7 +523,111 @@ public final class SyncCoordinator: ObservableObject {
         LBHaptic.medium()
     }
 
-    // MARK: - Full Bidirectional Sync
+    // MARK: - Local Push Count
+    @discardableResult
+    public func updateLocalPendingPushCount(context: ModelContext) -> Int {
+        do {
+            let uid = currentUserId
+            let pending = try context.fetch(FetchDescriptor<LBItem>())
+                .filter { $0.isSyncPending && ($0.userId == nil || $0.userId == uid) }
+                .count
+            let total = pending + cloudDeletionQueue.count
+            self.pendingPushCount = total
+            return total
+        } catch {
+            return self.pendingPushCount
+        }
+    }
+
+    // MARK: - Check Remote Changes
+    @discardableResult
+    public func checkRemoteChanges(context: ModelContext, transport: (any IOSCloudTransport)? = nil) async -> Int {
+        guard hasCloudPro, isAuthenticated, let uid = currentUserId, let token = authToken else {
+            self.pendingPullCount = 0
+            return 0
+        }
+        guard !isCheckingRemoteChanges else { return self.pendingPullCount }
+        self.isCheckingRemoteChanges = true
+        defer { self.isCheckingRemoteChanges = false }
+
+        let api: any IOSCloudTransport = transport ?? LaterBoxAPIService.shared
+        do {
+            let data = try await api.cloudRequest("items?user_id=eq.\(uid)&select=id,updated_at,deleted_at", token: token, method: "GET", body: nil)
+            let remoteList = (try? JSONDecoder().decode([CloudItemSnapshot].self, from: data)) ?? []
+            let local = (try? context.fetch(FetchDescriptor<LBItem>())) ?? []
+            let byID = Dictionary(uniqueKeysWithValues: local.map { ($0.id, $0) })
+            var count = 0
+            for r in remoteList {
+                let rDate = r.updated_at.flatMap(Self.cloudDate) ?? .distantPast
+                if let loc = byID[r.id] {
+                    if rDate > loc.updatedAt {
+                        count += 1
+                    } else if r.deleted_at != nil && loc.status != "deleted" && rDate >= loc.updatedAt {
+                        count += 1
+                    }
+                } else if r.deleted_at == nil && !cloudDeletionQueue.contains(r.id) {
+                    count += 1
+                }
+            }
+            self.pendingPullCount = count
+            _ = self.updateLocalPendingPushCount(context: context)
+            return count
+        } catch {
+            return self.pendingPullCount
+        }
+    }
+
+    public func refreshPendingCounts(context: ModelContext) {
+        _ = updateLocalPendingPushCount(context: context)
+        Task {
+            await checkRemoteChanges(context: context)
+        }
+    }
+
+    // MARK: - Separate Pull Changes
+    public func pullChanges(context: ModelContext, transport: (any IOSCloudTransport)? = nil) async {
+        guard hasCloudPro else { return }
+        guard !isPulling && syncState != .syncing else { return }
+        isPulling = true
+        syncState = .syncing
+        defer { isPulling = false }
+
+        do {
+            _ = try await performCloudPull(context: context, transport: transport)
+            self.syncState = .synced
+            self.lastSyncedAt = Date()
+            self.lastSyncErrorMessage = nil
+            self.pendingPullCount = 0
+            _ = self.updateLocalPendingPushCount(context: context)
+        } catch {
+            self.handleSyncError(error)
+        }
+    }
+
+    // MARK: - Separate Push Changes
+    public func pushChanges(context: ModelContext, transport: (any IOSCloudTransport)? = nil) async {
+        guard hasCloudPro else { return }
+        guard !isPushing && syncState != .syncing else { return }
+        isPushing = true
+        syncState = .syncing
+        defer { isPushing = false }
+
+        do {
+            _ = try await performCloudPush(context: context, transport: transport)
+            self.syncState = .synced
+            self.lastSyncedAt = Date()
+            self.lastSyncErrorMessage = nil
+            _ = self.updateLocalPendingPushCount(context: context)
+        } catch {
+            self.handleSyncError(error)
+        }
+    }
+
+    // MARK: - Full Bidirectional Sync (Pull then Push)
+    public func pullAndPushChanges(context: ModelContext, transport: (any IOSCloudTransport)? = nil) async {
+        await syncPendingItems(context: context, transport: transport)
+    }
+
     public func syncPendingItems(context: ModelContext) async {
         await syncPendingItems(context: context, transport: nil)
     }
@@ -529,7 +638,7 @@ public final class SyncCoordinator: ObservableObject {
             self.lastSyncErrorMessage = nil
             return
         }
-        guard syncState != .syncing else { return }
+        guard syncState != .syncing && !isPulling && !isPushing else { return }
         syncState = .syncing
 
         do {
@@ -539,22 +648,28 @@ public final class SyncCoordinator: ObservableObject {
             self.syncState = .synced
             self.lastSyncedAt = Date()
             self.lastSyncErrorMessage = nil
+            self.pendingPullCount = 0
+            _ = self.updateLocalPendingPushCount(context: context)
         } catch {
-            self.syncState = .error
-            if let syncErr = error as? CloudSyncError {
-                self.lastSyncErrorMessage = syncErr.localizedDescription
-            } else if let urlErr = error as? URLError {
-                switch urlErr.code {
-                case .notConnectedToInternet, .networkConnectionLost, .dnsLookupFailed:
-                    self.lastSyncErrorMessage = "No internet connection. Changes will sync once back online."
-                case .timedOut:
-                    self.lastSyncErrorMessage = "Request timed out connecting to cloud server."
-                default:
-                    self.lastSyncErrorMessage = urlErr.localizedDescription
-                }
-            } else {
-                self.lastSyncErrorMessage = error.localizedDescription
+            self.handleSyncError(error)
+        }
+    }
+
+    private func handleSyncError(_ error: Error) {
+        self.syncState = .error
+        if let syncErr = error as? CloudSyncError {
+            self.lastSyncErrorMessage = syncErr.localizedDescription
+        } else if let urlErr = error as? URLError {
+            switch urlErr.code {
+            case .notConnectedToInternet, .networkConnectionLost, .dnsLookupFailed:
+                self.lastSyncErrorMessage = "No internet connection. Changes will sync once back online."
+            case .timedOut:
+                self.lastSyncErrorMessage = "Request timed out connecting to cloud server."
+            default:
+                self.lastSyncErrorMessage = urlErr.localizedDescription
             }
+        } else {
+            self.lastSyncErrorMessage = error.localizedDescription
         }
     }
 }
