@@ -20,6 +20,8 @@ All notable user-facing changes to LaterBox will be documented in this file.
 
 ## [Unreleased]
 
+- **[iOS / Cloud attachments] Match signed upload UUID headers to server normalization and show storage error details when uploads fail.**
+
 - **[iOS / Attachment sync] Upload and verify every asset before publishing its item and attachment records together; preserve pending attachments during cloud pulls.**
 
 - **[iOS Share / Attachments] Preserve shared image bytes as attachments so they upload and render across devices.**
