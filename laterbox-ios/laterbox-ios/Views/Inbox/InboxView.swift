@@ -35,6 +35,7 @@ public struct InboxView: View {
     @State private var showingExitGuestConfirm: Bool = false
     @State private var showingSignOutConfirm: Bool = false
     @State private var collectionTargetItem: LBItem? = nil
+    @State private var snoozeTargetItem: LBItem? = nil
     @State private var newCollectionName: String = ""
 
     // Search Interaction States
@@ -534,6 +535,7 @@ public struct InboxView: View {
                                                         onToggleFavorite: { coordinator.toggleFavorite(item: item, context: modelContext) },
                                                         onMarkDone: { coordinator.markDone(item: item, context: modelContext) },
                                                         onSchedule: { date in coordinator.scheduleItem(item: item, date: date, context: modelContext) },
+                                                        onOpenSchedule: { snoozeTargetItem = item },
                                                         onDelete: { coordinator.deleteItem(item: item, context: modelContext) },
                                                         onDeletePermanently: { deletePermanently(item: item) },
                                                         onRestore: { restoreItem(item: item) },
@@ -637,6 +639,7 @@ public struct InboxView: View {
                                                 onToggleFavorite: { coordinator.toggleFavorite(item: item, context: modelContext) },
                                                 onMarkDone: { coordinator.markDone(item: item, context: modelContext) },
                                                 onSchedule: { date in coordinator.scheduleItem(item: item, date: date, context: modelContext) },
+                                                onOpenSchedule: { snoozeTargetItem = item },
                                                 onDelete: { coordinator.deleteItem(item: item, context: modelContext) },
                                                 onDeletePermanently: { deletePermanently(item: item) },
                                                 onRestore: { restoreItem(item: item) },
@@ -812,6 +815,23 @@ public struct InboxView: View {
             }
             .sheet(item: $collectionTargetItem) { targetItem in
                 collectionPickerSheet(for: targetItem)
+            }
+            .sheet(item: $snoozeTargetItem) { targetItem in
+                SnoozeDatePickerSheet(
+                    itemTitle: targetItem.title,
+                    initialDate: targetItem.returnAt,
+                    onSchedule: { newDate in
+                        coordinator.scheduleItem(item: targetItem, date: newDate, context: modelContext)
+                    },
+                    onUnsnooze: {
+                        targetItem.status = ItemStatus.inbox.rawValue
+                        targetItem.returnAt = nil
+                        targetItem.updatedAt = Date()
+                        targetItem.isSyncPending = true
+                        try? modelContext.save()
+                        Task { await coordinator.syncPendingItems(context: modelContext) }
+                    }
+                )
             }
             .onAppear {
                 LBItem.cleanupDuplicatesInStore(context: modelContext)
