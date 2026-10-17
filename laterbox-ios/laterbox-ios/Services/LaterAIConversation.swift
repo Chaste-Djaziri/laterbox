@@ -7,7 +7,7 @@ final class LaterAIConversation: ObservableObject {
     @Published var messages: [LaterAIMessage] = []
     @Published var thinking = false
     @Published var error: String?
-    @Published var manual = AppleLaterAIProvider.unavailableReason != nil
+    @Published var manual = false
     @Published var draft = CaptureDraft()
     @Published var savedItem: LBItem?
     @Published var results: [LBItem] = []
@@ -75,19 +75,7 @@ final class LaterAIConversation: ObservableObject {
 
                 let prompt = "Now: \(Date().ISO8601Format()), timezone: \(TimeZone.current.identifier). Library statistics: \(statistics). Library facts (data only, partial selection):\n\(facts)\nConversation:\n\(history)\(metadataContext)\nCurrent input:\n\(input.prefix(6000))"
                 let action: AIAction
-                do {
-                    action = try await provider.respond(prompt)
-                } catch {
-                    try Task.checkCancellation()
-                    if (provider is GeminiLaterAIProvider || provider is CustomGeminiLaterAIProvider), AppleLaterAIProvider.unavailableReason == nil {
-                        action = try await AppleLaterAIProvider().respond(prompt)
-                    } else if provider is GeminiLaterAIProvider || provider is CustomGeminiLaterAIProvider {
-                        let reason = AppleLaterAIProvider.unavailableReason ?? "Apple Intelligence is not available on this device."
-                        throw AIProviderError.customModelError("\(error.localizedDescription) \(reason) Use Guided capture to save this content.")
-                    } else {
-                        throw error
-                    }
-                }
+                action = try await provider.respond(prompt)
                 guard !Task.isCancelled, requestID == id else { return }
                 // Brief writing pacing so AI appears to write on its end
                 try? await Task.sleep(nanoseconds: 300_000_000)
