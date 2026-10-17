@@ -1225,6 +1225,46 @@ extension LaterAITests {
     }
 
     @Test
+    func checkRemoteChangesIgnoresAlreadySyncedAndDuplicateRemoteRows() async throws {
+        let coordinator = SyncCoordinator.shared
+        let previous = (coordinator.currentUserId, coordinator.currentUserEmail, coordinator.authToken, coordinator.isProUser, coordinator.isGuestMode)
+        let uid = "00000000-0000-4000-8000-000000000089"
+        coordinator.currentUserId = uid
+        coordinator.currentUserEmail = "user89@test.com"
+        coordinator.authToken = "tok89"
+        coordinator.isGuestMode = false
+        coordinator.setProForTesting(true)
+        defer {
+            coordinator.currentUserId = previous.0
+            coordinator.currentUserEmail = previous.1
+            coordinator.authToken = previous.2
+            coordinator.setProForTesting(previous.3)
+            coordinator.isGuestMode = previous.4
+        }
+
+        let timestamp = Date(timeIntervalSince1970: 2000)
+        let container = try ModelContainer(for: LBItem.self, LBCollection.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+        let context = container.mainContext
+        let existing = LBItem(id: "item-synced", title: "Already synced", url: "https://example.com/story", updatedAt: timestamp)
+        existing.userId = uid
+        context.insert(existing)
+        try context.save()
+
+        let manifestJSON = """
+        [
+            {"id": "item-synced", "url": "https://example.com/story", "updated_at": "\(timestamp.ISO8601Format())", "deleted_at": null},
+            {"id": "remote-duplicate", "url": "https://example.com/story", "updated_at": "\(timestamp.ISO8601Format())", "deleted_at": null}
+        ]
+        """.data(using: .utf8)!
+        let transport = MockCloudTransport()
+        transport.manifestData = manifestJSON
+
+        let available = await coordinator.checkRemoteChanges(context: context, transport: transport)
+        #expect(available == 0)
+        #expect(coordinator.pendingPullCount == 0)
+    }
+
+    @Test
     func cloudSyncErrorFormattingForJWTExpired() {
         let err1 = CloudSyncError.unauthorized(message: "JWT expired")
         #expect(err1.localizedDescription == "Session expired (JWT expired). Please sign in again to continue syncing.")
