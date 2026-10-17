@@ -20,6 +20,8 @@ All notable user-facing changes to LaterBox will be documented in this file.
 
 ## [Unreleased]
 
+- **[iOS & Web / Recently Deleted] Permanently delete item records and Cloudflare attachments together, retaining deletion requests for retry if file cleanup fails.**
+
 - **[Web / Sidebar] Collapse Collections to its heading, rename collections inline, and remove collections with a red minus control while keeping their items in the library.**
 
 - **[Web / Cloud Sync] Clear phantom incoming-update badges by respecting pending local actions, ignoring unknown deleted items, and pulling all remote item pages.**
