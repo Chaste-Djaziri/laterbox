@@ -369,10 +369,10 @@ export default function HelpPage() {
   };
 
   return (
-    <div className="flex-1 w-full min-w-0 bg-[#fbfaf7] min-h-[calc(100vh-65px)] flex flex-col p-4 md:p-6 lg:p-8 space-y-6 overflow-y-auto">
+    <div className="flex-1 w-full min-w-0 min-h-[calc(100vh-65px)] flex flex-col p-4 md:p-6 lg:p-8 space-y-6 overflow-y-auto">
       {/* Main Navigation Tabs */}
-      <div className="w-full overflow-x-auto overflow-y-visible border-b border-[#e4e0d5] pb-3">
-        <div className="flex min-w-max items-center gap-2 px-0.5 py-1 md:min-w-0 md:flex-wrap">
+      <div className="w-full min-h-[3.75rem] overflow-x-auto overflow-y-hidden border-b border-[#e4e0d5] px-0.5 pt-2 pb-3">
+        <div className="flex min-w-max items-center gap-2 py-1 md:min-w-0 md:flex-wrap">
         <button
           type="button"
           onClick={() => setActiveTab('faq')}
