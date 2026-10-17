@@ -9,6 +9,7 @@ alter table public.item_deletion_receipts enable row level security;
 create policy "Read own permanent deletion receipts" on public.item_deletion_receipts
   for select to authenticated using (user_id = (select auth.uid()));
 grant select on public.item_deletion_receipts to authenticated;
+grant all on public.item_deletion_receipts to service_role;
 revoke insert, update, delete on public.item_deletion_receipts from anon, authenticated;
 
 create or replace function public.finish_permanent_item_deletion(target_item_id uuid, owner_id uuid)
