@@ -248,14 +248,7 @@ extension SyncCoordinator {
             let existingMatch = byID[snapshot.id] ?? (normSnapUrl.flatMap { byURL[$0] })
 
             if let existing = existingMatch {
-                if existing.id != snapshot.id {
-                    if let direct = byID[snapshot.id], direct !== existing {
-                        context.delete(direct)
-                    }
-                    existing.id = snapshot.id
-                }
-                byID[snapshot.id] = existing
-                if let norm = normSnapUrl { byURL[norm] = existing }
+                let isIdChange = (existing.id != snapshot.id)
 
                 // Conflict resolution taking the recent action based on timestamps:
                 if existing.updatedAt > remoteDate {
@@ -275,7 +268,27 @@ extension SyncCoordinator {
                     }
                     // Remote is deleted while local is active: remote delete wins
                 }
-                item = existing
+
+                if isIdChange {
+                    let noteToKeep = existing.noteContent
+                    let tagsToKeep = existing.tags
+                    let collIdToKeep = existing.collectionId
+                    let collNameToKeep = existing.collectionName
+                    context.delete(existing)
+                    if let direct = byID[snapshot.id] {
+                        context.delete(direct)
+                    }
+                    item = LBItem(id: snapshot.id, title: snapshot.title ?? snapshot.url ?? "Untitled")
+                    item.noteContent = noteToKeep
+                    item.tags = tagsToKeep
+                    item.collectionId = collIdToKeep
+                    item.collectionName = collNameToKeep
+                    context.insert(item)
+                } else {
+                    item = existing
+                }
+                byID[snapshot.id] = item
+                if let norm = normSnapUrl { byURL[norm] = item }
             } else {
                 if snapshot.deleted_at != nil || cloudDeletionQueue.contains(snapshot.id) {
                     continue
@@ -455,14 +468,7 @@ extension SyncCoordinator {
                 let existingMatch = byID[snapshot.id] ?? (normSnapUrl.flatMap { byURL[$0] })
 
                 if let existing = existingMatch {
-                    if existing.id != snapshot.id {
-                        if let direct = byID[snapshot.id], direct !== existing {
-                            context.delete(direct)
-                        }
-                        existing.id = snapshot.id
-                    }
-                    byID[snapshot.id] = existing
-                    if let norm = normSnapUrl { byURL[norm] = existing }
+                    let isIdChange = (existing.id != snapshot.id)
 
                     if existing.updatedAt > date { continue }
                     if existing.updatedAt == date {
@@ -472,7 +478,27 @@ extension SyncCoordinator {
                             continue
                         }
                     }
-                    item = existing
+
+                    if isIdChange {
+                        let noteToKeep = existing.noteContent
+                        let tagsToKeep = existing.tags
+                        let collIdToKeep = existing.collectionId
+                        let collNameToKeep = existing.collectionName
+                        context.delete(existing)
+                        if let direct = byID[snapshot.id] {
+                            context.delete(direct)
+                        }
+                        item = LBItem(id: snapshot.id, title: snapshot.title ?? snapshot.url ?? "Untitled")
+                        item.noteContent = noteToKeep
+                        item.tags = tagsToKeep
+                        item.collectionId = collIdToKeep
+                        item.collectionName = collNameToKeep
+                        context.insert(item)
+                    } else {
+                        item = existing
+                    }
+                    byID[snapshot.id] = item
+                    if let norm = normSnapUrl { byURL[norm] = item }
                 } else {
                     if snapshot.deleted_at != nil || cloudDeletionQueue.contains(snapshot.id) {
                         continue

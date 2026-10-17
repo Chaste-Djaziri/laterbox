@@ -168,11 +168,41 @@ public final class LBItem {
     }
 
     public static func normalizeURL(_ url: String?) -> String? {
-        guard let raw = url?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased(),
+        guard var raw = url?.trimmingCharacters(in: .whitespacesAndNewlines),
               !raw.isEmpty, raw != "http://", raw != "https://" else {
             return nil
         }
-        return raw.hasSuffix("/") ? String(raw.dropLast()) : raw
+        if !raw.contains("://") {
+            raw = "https://" + raw
+        }
+        guard let components = URLComponents(string: raw) else {
+            let lower = raw.lowercased()
+            return lower.hasSuffix("/") ? String(lower.dropLast()) : lower
+        }
+        var host = (components.host ?? "").lowercased()
+        if host.hasPrefix("www.") {
+            host = String(host.dropFirst(4))
+        }
+        var path = components.path
+        while path.hasSuffix("/") && path.count > 1 {
+            path = String(path.dropLast())
+        }
+        if path == "/" { path = "" }
+
+        let ignoredParams: Set<String> = ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content", "ref", "fbclid", "gclid"]
+        let filteredQueries = components.queryItems?.filter { item in
+            !ignoredParams.contains(item.name.lowercased())
+        } ?? []
+
+        var result = host + path
+        if !filteredQueries.isEmpty {
+            let queryStr = filteredQueries.sorted(by: { $0.name < $1.name }).compactMap { item -> String? in
+                if let val = item.value { return "\(item.name)=\(val)" }
+                return item.name
+            }.joined(separator: "&")
+            result += "?" + queryStr
+        }
+        return result.isEmpty ? nil : result
     }
 
     /// Reconciles and deletes redundant duplicate item records from the SwiftData store,
@@ -207,10 +237,10 @@ public final class LBItem {
                     if (primary.noteContent == nil || primary.noteContent?.isEmpty == true) && item.noteContent?.isEmpty == false {
                         primary.noteContent = item.noteContent
                     }
-                    if primary.tags.isEmpty && !item.tags.isEmpty {
-                        primary.tags = item.tags
+                    for tag in item.tags where !primary.tags.contains(tag) {
+                        primary.tags.append(tag)
                     }
-                    if primary.collectionName == nil && item.collectionName != nil {
+                    if (primary.collectionName == nil || primary.collectionName?.isEmpty == true) && item.collectionName?.isEmpty == false {
                         primary.collectionName = item.collectionName
                         primary.collectionId = item.collectionId
                     }
