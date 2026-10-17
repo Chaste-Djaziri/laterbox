@@ -1596,6 +1596,51 @@ extension LaterAITests {
         let nextWeek = try #require(LaterBoxReturnPreset.nextWeek.targetDate)
         #expect(nextWeek.timeIntervalSince(now) >= 86400 * 6.5)
     }
+
+    @Test func quickSaveIntentWithoutContentTriggersModalAndPendingFlag() async throws {
+        var notificationReceived = false
+        let observer = NotificationCenter.default.addObserver(
+            forName: NSNotification.Name("OpenQuickSaveModal"),
+            object: nil,
+            queue: .main
+        ) { _ in
+            notificationReceived = true
+        }
+        defer { NotificationCenter.default.removeObserver(observer) }
+
+        UserDefaults(suiteName: "group.pro.micorp.laterbox")?.removeObject(forKey: "pendingOpenQuickSaveModal")
+
+        let intent = QuickSaveIntent()
+        _ = try await intent.perform()
+
+        #expect(notificationReceived == true)
+        #expect(UserDefaults(suiteName: "group.pro.micorp.laterbox")?.bool(forKey: "pendingOpenQuickSaveModal") == true)
+        UserDefaults(suiteName: "group.pro.micorp.laterbox")?.removeObject(forKey: "pendingOpenQuickSaveModal")
+    }
+
+    @Test func quickSaveControlIntentOpensUrlAndSetsPendingFlag() async throws {
+        if #available(iOS 18.0, *) {
+            var notificationReceived = false
+            let observer = NotificationCenter.default.addObserver(
+                forName: NSNotification.Name("OpenQuickSaveModal"),
+                object: nil,
+                queue: .main
+            ) { _ in
+                notificationReceived = true
+            }
+            defer { NotificationCenter.default.removeObserver(observer) }
+
+            UserDefaults(suiteName: "group.pro.micorp.laterbox")?.removeObject(forKey: "pendingOpenQuickSaveModal")
+
+            let controlIntent = QuickSaveControlIntent()
+            let result = try await controlIntent.perform()
+
+            #expect(notificationReceived == true)
+            #expect(UserDefaults(suiteName: "group.pro.micorp.laterbox")?.bool(forKey: "pendingOpenQuickSaveModal") == true)
+            #expect(QuickSaveControlIntent.openAppWhenRun == true)
+            UserDefaults(suiteName: "group.pro.micorp.laterbox")?.removeObject(forKey: "pendingOpenQuickSaveModal")
+        }
+    }
 }
 @MainActor
 private final class MockCloudTransport: IOSCloudTransport {
