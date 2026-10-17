@@ -199,6 +199,25 @@ public final class SyncCoordinator: ObservableObject {
         LBHaptic.light()
     }
 
+    /// Exits guest mode and permanently clears all local guest/unassigned items and collections.
+    public func exitGuest(context: ModelContext) {
+        let localItems = (try? context.fetch(FetchDescriptor<LBItem>())) ?? []
+        let guestItems = localItems.filter { $0.userId == nil }
+        for item in guestItems {
+            UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [item.id])
+            context.delete(item)
+        }
+
+        let localCollections = (try? context.fetch(FetchDescriptor<LBCollection>())) ?? []
+        for coll in localCollections where coll.userId == nil {
+            context.delete(coll)
+        }
+        try? context.save()
+        defaults.removeObject(forKey: "lb_cloud_deletions_guest")
+
+        signOut()
+    }
+
     // MARK: - Save Local Item
     public func saveItem(
         title: String,
