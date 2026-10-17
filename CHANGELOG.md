@@ -523,5 +523,6 @@ All notable user-facing changes to LaterBox will be documented in this file.
 - **Download Page**: Download page now only shows iOS and Android downloads. macOS, Windows, Linux, and browser extension downloads are hidden for now.
 ## Unreleased
 
+- **[iOS] Sync Pro attachments through Cloudflare R2**: Upload captured images, documents, and files to the existing attachment bucket and download them on other signed-in Pro devices.
 - **[iOS] Lower minimum OS to iOS 17 and defer AI providers**: Removed Apple Intelligence and unfinished cloud/custom AI runtime paths, preserved the assistant-style capture UI with deterministic local responses, and marked provider switching as coming soon.
 
