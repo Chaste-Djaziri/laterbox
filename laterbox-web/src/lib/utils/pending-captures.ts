@@ -613,8 +613,20 @@ export async function pushCloudChanges(userId: string): Promise<{ pushedCount: n
           pushedCount++;
         } else {
           // Active item upsert
+          const assets: Attachment[] = [];
+          for (const attachment of item.attachments || []) {
+            if (attachment.r2_object_key) {
+              assets.push(attachment);
+              continue;
+            }
+            const file = await readLocalAttachment(attachment.id, userId);
+            if (!file) throw new Error(`Attachment ${attachment.original_file_name} is missing; item remains pending.`);
+            assets.push(await uploadAttachmentFile(file, item.id, userId, attachment.id, false));
+          }
           await uploadWithNotificationHandoff(item.id, item.return_at, async () => {
-            const { error } = await client.from('items').upsert(itemRow(item));
+            const { error } = assets.length
+              ? await client.rpc('publish_item_attachments', { item: itemRow(item), assets: assets.map(({ local_path: _local, ...asset }) => asset) })
+              : await client.from('items').upsert(itemRow(item));
             if (error) throw error;
 
             if (item.metadata) {
@@ -638,13 +650,6 @@ export async function pushCloudChanges(userId: string): Promise<{ pushedCount: n
               if (noteErr) console.warn('[pending-captures] error upserting item_notes:', noteErr);
             }
           });
-
-          // Upload any pending local attachments
-          for (const attachment of item.attachments || []) {
-            if (attachment.r2_object_key) continue;
-            const file = await readLocalAttachment(attachment.id, userId);
-            if (file) await uploadAttachmentFile(file, item.id, userId, attachment.id);
-          }
 
           clearPendingItem(userId, item.id, item.updated_at);
           pushedCount++;
