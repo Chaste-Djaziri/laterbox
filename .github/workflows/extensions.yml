@@ -104,6 +104,8 @@ jobs:
             laterbox-extension/dist/laterbox-chrome-extension.zip \
             laterbox-extension/dist/laterbox-firefox-extension.zip \
             laterbox-extension/dist/laterbox-safari-extension.zip
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Attach Extension Zips to GitHub Release
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
