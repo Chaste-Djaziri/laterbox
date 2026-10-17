@@ -48,6 +48,7 @@ import { ItemSideDetailPanel } from '@/components/inbox/ItemSideDetailPanel';
 import { AddToCollectionModal } from '@/components/collections/AddToCollectionModal';
 import { fetchAttachmentDownloadUrl } from '@/lib/utils/attachment';
 import { PortalMenu } from '@/components/ui/PortalMenu';
+import { ExactScheduleModal } from '@/components/scheduling/ExactScheduleModal';
 
 function InboxImageBackground({ item }: { item: LaterBoxItem }) {
   const asset = item.attachments?.find(a => a.mime_type?.startsWith('image/') ||
@@ -147,6 +148,7 @@ export function EmailInboxTable({
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
   const [snoozeMenuForId, setSnoozeMenuForId] = useState<string | null>(null);
   const [bulkSnoozeOpen, setBulkSnoozeOpen] = useState(false);
+  const [exactSchedule, setExactSchedule] = useState<{ ids: string[]; initialValue?: string | null } | null>(null);
   const [filterMenuOpen, setFilterMenuOpen] = useState<'format' | 'date' | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [collectionModalItem, setCollectionModalItem] = useState<LaterBoxItem | null>(null);
@@ -820,22 +822,12 @@ export function EmailInboxTable({
                       <div className="text-[10px] font-bold text-[#9e9b92] uppercase tracking-wider mb-1">
                         Exact date & time
                       </div>
-                      <input
-                        type="datetime-local"
-                        min={new Date().toISOString().slice(0, 16)}
-                        onChange={async (e) => {
-                          if (e.target.value) {
-                            const iso = new Date(e.target.value).toISOString();
-                            const ids = Array.from(selectedIds);
-                            for (const id of ids) {
-                              await reschedule(id, iso);
-                            }
-                            setBulkSnoozeOpen(false);
-                            setSelectedIds(new Set());
-                          }
-                        }}
-                        className="w-full text-xs bg-[#f7f5ee] border border-[#e4e0d5] rounded-lg px-2 py-1 text-[#171711] focus:outline-none focus:border-[#171711]"
-                      />
+                      <button type="button" onClick={() => {
+                        setExactSchedule({ ids: Array.from(selectedIds) });
+                        setBulkSnoozeOpen(false);
+                      }} className="w-full rounded-lg bg-[#f7f5ee] px-3 py-2 text-left text-xs font-semibold hover:bg-[#ebe7dc]">
+                        Choose date & time…
+                      </button>
                     </div>
                   </PortalMenu>
                 )}
@@ -1531,18 +1523,12 @@ export function EmailInboxTable({
                             <div className="text-[10px] font-bold text-[#9e9b92] uppercase tracking-wider mb-1">
                               Exact date & time
                             </div>
-                            <input
-                              type="datetime-local"
-                              min={new Date().toISOString().slice(0, 16)}
-                              onChange={async (e) => {
-                                if (e.target.value) {
-                                  const iso = new Date(e.target.value).toISOString();
-                                  await reschedule(item.id, iso);
-                                  setSnoozeMenuForId(null);
-                                }
-                              }}
-                              className="w-full text-xs bg-[#f7f5ee] border border-[#e4e0d5] rounded-lg px-2 py-1 text-[#171711] focus:outline-none focus:border-[#171711]"
-                            />
+                            <button type="button" onClick={() => {
+                              setExactSchedule({ ids: [item.id], initialValue: item.return_at });
+                              setSnoozeMenuForId(null);
+                            }} className="w-full rounded-lg bg-[#f7f5ee] px-3 py-2 text-left text-xs font-semibold hover:bg-[#ebe7dc]">
+                              Choose date & time…
+                            </button>
                           </div>
                         </PortalMenu>
                       )}
@@ -1575,6 +1561,14 @@ export function EmailInboxTable({
       )}
 
       {/* Add To Collection Modal */}
+      {exactSchedule && (
+        <ExactScheduleModal count={exactSchedule.ids.length} initialValue={exactSchedule.initialValue}
+          onClose={() => setExactSchedule(null)} onConfirm={async iso => {
+            for (const id of exactSchedule.ids) await reschedule(id, iso);
+            setExactSchedule(null);
+            setSelectedIds(new Set());
+          }} />
+      )}
       {collectionModalItem && (
         <AddToCollectionModal
           item={collectionModalItem}
