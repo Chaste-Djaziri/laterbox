@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import SwiftData
 
 public struct SecuritySettingsView: View {
     @Environment(\.modelContext) private var modelContext
