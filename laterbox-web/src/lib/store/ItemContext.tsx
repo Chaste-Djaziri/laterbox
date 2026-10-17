@@ -9,7 +9,17 @@ import { useAuth } from './AuthContext';
 import { useBilling } from './BillingContext';
 import { normalizeUrl, isUrl, extractDomain } from '../utils/url';
 import { storeLocalAttachment } from '../utils/local-attachments';
-import { itemRow, queueCapture, queueHardDelete, syncPendingCaptures, syncCloudQueue, isAuthError } from '../utils/pending-captures';
+import {
+  itemRow,
+  queueCapture,
+  queueHardDelete,
+  syncPendingCaptures,
+  syncCloudQueue,
+  pullCloudChanges,
+  pushCloudChanges,
+  checkRemoteChangesWeb,
+  isAuthError,
+} from '../utils/pending-captures';
 import { uploadWithNotificationHandoff } from '../notifications/client';
 import { isActive, isDue, migrateSchedule } from '../utils/schedule';
 import { createQueryRecovery } from '../utils/query-recovery';
@@ -33,6 +43,10 @@ interface ItemContextType {
   setActiveFilter: (filter: InboxFilterType) => void;
   loading: boolean;
   syncStatus: SyncState;
+  pendingPullCount: number;
+  pendingPushCount: number;
+  isPulling: boolean;
+  isPushing: boolean;
   saveItem: (value: string, options?: { id?: string; textSelector?: string; files?: File[]; returnAt?: string | null; type?: string }) => Promise<LaterBoxItem>;
   now: Date;
   reschedule: (id: string, returnAt: string | null) => Promise<void>;
@@ -53,6 +67,10 @@ interface ItemContextType {
   addItemToCollection: (collectionId: string, itemId: string, colOverride?: Collection) => Promise<void>;
   removeItemFromCollection: (collectionId: string, itemId: string) => Promise<void>;
   syncNow: () => Promise<void>;
+  pullChanges: () => Promise<void>;
+  pushChanges: () => Promise<void>;
+  pullAndPushChanges: () => Promise<void>;
+  checkRemoteChanges: () => Promise<void>;
   getItemById: (id: string) => LaterBoxItem | undefined;
   hasDemoItems: boolean;
   clearDemoItems: () => void;
@@ -73,6 +91,10 @@ export function ItemProvider({ children }: { children: ReactNode }) {
   const [activeFilter, setActiveFilter] = useState<InboxFilterType>('all');
   const [loading, setLoading] = useState(true);
   const [syncStatus, setSyncStatus] = useState<SyncState>('synced');
+  const [pendingPullCount, setPendingPullCount] = useState(0);
+  const [pendingPushCount, setPendingPushCount] = useState(0);
+  const [isPulling, setIsPulling] = useState(false);
+  const [isPushing, setIsPushing] = useState(false);
   const isFetchingRef = React.useRef(false);
 
   // Load from local storage
@@ -209,6 +231,85 @@ export function ItemProvider({ children }: { children: ReactNode }) {
     }
   }, [isPro]);
 
+  const checkRemoteChanges = useCallback(async () => {
+    if (!user || !user.id || !isPro) {
+      setPendingPullCount(0);
+      setPendingPushCount(0);
+      return;
+    }
+    try {
+      const counts = await checkRemoteChangesWeb(user.id);
+      setPendingPullCount(counts.pendingPullCount);
+      setPendingPushCount(counts.pendingPushCount);
+    } catch {
+      // ignore
+    }
+  }, [user?.id, isPro]);
+
+  const pullChanges = useCallback(async () => {
+    if (!user || !user.id || !isPro) return;
+    setIsPulling(true);
+    setSyncStatus('syncing');
+    try {
+      const result = await pullCloudChanges(user.id);
+      if (result) {
+        setItems(result.items);
+        setDeletedItems(result.deletedItems);
+        setCollections(result.collections);
+        setSyncStatus('synced');
+      } else {
+        handleAuthFailure();
+      }
+    } catch (err) {
+      console.warn('[ItemContext] pullChanges error:', err);
+      handleAuthFailure();
+    } finally {
+      setIsPulling(false);
+      void checkRemoteChanges();
+    }
+  }, [user?.id, isPro, handleAuthFailure, checkRemoteChanges]);
+
+  const pushChanges = useCallback(async () => {
+    if (!user || !user.id || !isPro) return;
+    setIsPushing(true);
+    setSyncStatus('syncing');
+    try {
+      await pushCloudChanges(user.id);
+      setSyncStatus('synced');
+    } catch (err) {
+      console.warn('[ItemContext] pushChanges error:', err);
+      handleAuthFailure();
+    } finally {
+      setIsPushing(false);
+      void checkRemoteChanges();
+    }
+  }, [user?.id, isPro, handleAuthFailure, checkRemoteChanges]);
+
+  const pullAndPushChanges = useCallback(async () => {
+    if (!user || !user.id || !isPro) return;
+    setIsPulling(true);
+    setIsPushing(true);
+    setSyncStatus('syncing');
+    try {
+      const result = await syncCloudQueue(user.id);
+      if (result) {
+        setItems(result.items);
+        setDeletedItems(result.deletedItems);
+        setCollections(result.collections);
+        setSyncStatus('synced');
+      } else {
+        handleAuthFailure();
+      }
+    } catch (err) {
+      console.warn('[ItemContext] pullAndPushChanges error:', err);
+      handleAuthFailure();
+    } finally {
+      setIsPulling(false);
+      setIsPushing(false);
+      void checkRemoteChanges();
+    }
+  }, [user?.id, isPro, handleAuthFailure, checkRemoteChanges]);
+
   // Fetch from Supabase
   const fetchData = useCallback(async () => {
     if (!user || !user.id) {
@@ -266,12 +367,29 @@ export function ItemProvider({ children }: { children: ReactNode }) {
     } finally {
       isFetchingRef.current = false;
       setLoading(false);
+      void checkRemoteChanges();
     }
-  }, [user?.id, isPro, loadLocalData, handleAuthFailure, migrateGuestItems]);
+  }, [user?.id, isPro, loadLocalData, handleAuthFailure, migrateGuestItems, checkRemoteChanges]);
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  useEffect(() => {
+    if (!user || !user.id || !isPro) return;
+    void checkRemoteChanges();
+    const interval = setInterval(() => {
+      void checkRemoteChanges();
+    }, 15000);
+    const onFocus = () => void checkRemoteChanges();
+    window.addEventListener('focus', onFocus);
+    window.addEventListener('online', onFocus);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', onFocus);
+      window.removeEventListener('online', onFocus);
+    };
+  }, [user?.id, isPro, checkRemoteChanges]);
 
   // Save Item (URL, text, or file attachments)
   const saveItem = async (
@@ -541,6 +659,8 @@ export function ItemProvider({ children }: { children: ReactNode }) {
     } catch (err: any) {
       console.warn('[ItemContext] safeSyncPending warning:', err);
       setSyncStatus('error');
+    } finally {
+      void checkRemoteChanges();
     }
   };
 
@@ -967,7 +1087,15 @@ export function ItemProvider({ children }: { children: ReactNode }) {
         deleteCollection,
         addItemToCollection,
         removeItemFromCollection,
-        syncNow: fetchData,
+        syncNow: pullAndPushChanges,
+        pullChanges,
+        pushChanges,
+        pullAndPushChanges,
+        checkRemoteChanges,
+        pendingPullCount,
+        pendingPushCount,
+        isPulling,
+        isPushing,
         getItemById,
         hasDemoItems,
         clearDemoItems,
