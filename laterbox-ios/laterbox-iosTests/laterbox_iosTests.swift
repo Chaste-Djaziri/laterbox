@@ -993,11 +993,108 @@ extension LaterAITests {
         coordinator.markItemSeen(item: savedItem, context: context)
         #expect(savedItem.seen == false)
     }
+
+    @Test func syncFetchPullFiltersOutDeletedMembershipsAndHydratesActiveCollection() async throws {
+        try await Task.sleep(for: .milliseconds(50))
+        let coordinator = SyncCoordinator.shared
+        let prev = (coordinator.currentUserId, coordinator.currentUserEmail, coordinator.authToken, coordinator.isProUser, coordinator.isGuestMode)
+        let uid = "00000000-0000-4000-8000-000000000055"
+        coordinator.currentUserId = uid; coordinator.currentUserEmail = "user@test.com"; coordinator.authToken = "tok"
+        coordinator.isGuestMode = false
+        coordinator.setProForTesting(true)
+        defer {
+            coordinator.currentUserId = prev.0; coordinator.currentUserEmail = prev.1; coordinator.authToken = prev.2
+            coordinator.setProForTesting(prev.3)
+            coordinator.isGuestMode = prev.4
+        }
+
+        let container = try ModelContainer(for: LBItem.self, LBCollection.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+        let context = container.mainContext
+
+        let transport = MockCloudTransport()
+        let activeItemId = UUID().uuidString
+        let deletedItemId = UUID().uuidString
+
+        transport.snapshots = [
+            CloudItemSnapshot(
+                id: activeItemId,
+                user_id: uid,
+                title: "Active Collection Item",
+                status: "inbox",
+                created_at: "2026-10-17T00:00:00Z",
+                updated_at: "2026-10-17T00:00:00Z",
+                collection_items: [
+                    CloudMembership(collection_id: "c-old", deleted_at: "2026-10-16T00:00:00Z", collections: CloudCollection(id: "c-old", name: "Old Trash")),
+                    CloudMembership(collection_id: "c-new", deleted_at: nil, collections: CloudCollection(id: "c-new", name: "Reading List"))
+                ]
+            ),
+            CloudItemSnapshot(
+                id: deletedItemId,
+                user_id: uid,
+                title: "Removed Collection Item",
+                status: "inbox",
+                created_at: "2026-10-17T00:00:00Z",
+                updated_at: "2026-10-17T00:00:00Z",
+                collection_items: [
+                    CloudMembership(collection_id: "c-deleted", deleted_at: "2026-10-16T12:00:00Z", collections: CloudCollection(id: "c-deleted", name: "Archived Group"))
+                ]
+            )
+        ]
+
+        try await coordinator.performCloudSync(context: context, transport: transport)
+
+        let items = try context.fetch(FetchDescriptor<LBItem>())
+        let active = try #require(items.first { $0.id == activeItemId })
+        #expect(active.collectionId == "c-new")
+        #expect(active.collectionName == "Reading List")
+
+        let removed = try #require(items.first { $0.id == deletedItemId })
+        #expect(removed.collectionId == nil)
+        #expect(removed.collectionName == nil)
+
+        let collections = try context.fetch(FetchDescriptor<LBCollection>())
+        #expect(collections.contains { $0.name == "Reading List" })
+        #expect(!collections.contains { $0.name == "Archived Group" })
+    }
+
+    @Test func syncUploadPopulatesUserIdForCollection() async throws {
+        try await Task.sleep(for: .milliseconds(50))
+        let coordinator = SyncCoordinator.shared
+        let prev = (coordinator.currentUserId, coordinator.currentUserEmail, coordinator.authToken, coordinator.isProUser, coordinator.isGuestMode)
+        let uid = "00000000-0000-4000-8000-000000000066"
+        coordinator.currentUserId = uid; coordinator.currentUserEmail = "user66@test.com"; coordinator.authToken = "tok66"
+        coordinator.isGuestMode = false
+        coordinator.setProForTesting(true)
+        defer {
+            coordinator.currentUserId = prev.0; coordinator.currentUserEmail = prev.1; coordinator.authToken = prev.2
+            coordinator.setProForTesting(prev.3)
+            coordinator.isGuestMode = prev.4
+        }
+
+        let container = try ModelContainer(for: LBItem.self, LBCollection.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+        let context = container.mainContext
+
+        let item = LBItem(title: "Item In Collection", status: .inbox)
+        item.collectionName = "Productivity"
+        item.userId = uid
+        context.insert(item)
+        try context.save()
+
+        let transport = MockCloudTransport()
+        try await coordinator.performCloudSync(context: context, transport: transport)
+
+        #expect(transport.uploadedCollections.count == 1)
+        let coll = try #require(transport.uploadedCollections.first)
+        #expect(coll["user_id"] as? String == uid)
+        #expect(coll["name"] as? String == "Productivity")
+        #expect(coll["id"] as? String != nil)
+    }
 }
 @MainActor
 private final class MockCloudTransport: IOSCloudTransport {
     var downloads = 0
     var uploads: [[String: Any]] = []
+    var uploadedCollections: [[String: Any]] = []
     var snapshots: [CloudItemSnapshot] = []
     var failUpload = false
     var errorToThrow: Error? = nil
@@ -1014,5 +1111,6 @@ private final class MockCloudTransport: IOSCloudTransport {
         if let err = errorToThrow { throw err }
         if failUpload { throw URLError(.notConnectedToInternet) }
         uploads.append(body)
+        if let collection { uploadedCollections.append(collection) }
     }
 }
