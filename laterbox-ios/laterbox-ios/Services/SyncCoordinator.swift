@@ -51,6 +51,7 @@ public final class SyncCoordinator: ObservableObject {
     private var accountPro = false
     @Published public private(set) var billingEntitlement: AccountBillingEntitlement?
     @Published public private(set) var billingError: String?
+    @Published public private(set) var isCheckingEntitlement: Bool = false
     @Published public var systemStatusText: String = "Operational"
     @Published public var isSystemOperational: Bool = true
     @Published public var activeFilter: ItemContentType? = nil
@@ -110,6 +111,9 @@ public final class SyncCoordinator: ObservableObject {
             isPro = storeKitPro
             return false
         }
+        isCheckingEntitlement = true
+        defer { isCheckingEntitlement = false }
+
         do {
             let entitlement = try await api.fetchBillingEntitlement(token: token)
             guard uid == currentUserId, token == authToken else { return false }
@@ -119,21 +123,38 @@ public final class SyncCoordinator: ObservableObject {
             isPro = accountPro || storeKitPro
             return true
         } catch {
+            var refreshedSuccessfully = false
             if let syncErr = error as? CloudSyncError, case .unauthorized = syncErr {
-                if await refreshAuthSession(), let refreshedToken = authToken {
-                    token = refreshedToken
-                    if let entitlement = try? await api.fetchBillingEntitlement(token: token) {
-                        billingEntitlement = entitlement
-                        billingError = nil
-                        accountPro = entitlement.hasAccess
-                        isPro = accountPro || storeKitPro
-                        return true
-                    }
-                }
-                self.sessionExpired = true
+                refreshedSuccessfully = await refreshAuthSession()
+            } else if let urlErr = error as? URLError, urlErr.code == .userAuthenticationRequired {
+                refreshedSuccessfully = await refreshAuthSession()
             }
+            if refreshedSuccessfully, let refreshedToken = authToken {
+                token = refreshedToken
+                if let entitlement = try? await api.fetchBillingEntitlement(token: token) {
+                    billingEntitlement = entitlement
+                    billingError = nil
+                    accountPro = entitlement.hasAccess
+                    isPro = accountPro || storeKitPro
+                    return true
+                }
+            }
+
+            // Fallback: If network allows direct Supabase RPC check, try has_pro_entitlement
+            if await api.checkProEntitlement(userId: uid, token: authToken) {
+                accountPro = true
+                isPro = true
+                billingError = nil
+                return true
+            }
+
             guard uid == currentUserId, token == authToken else { return false }
-            billingError = "Unable to check your account subscription. Reconnect or sign in again, then retry."
+            if let syncErr = error as? CloudSyncError, case .unauthorized = syncErr {
+                self.sessionExpired = true
+                billingError = "Session expired (JWT expired). Reconnect or sign in again, then retry."
+            } else {
+                billingError = "Unable to check your account subscription. Reconnect or sign in again, then retry."
+            }
             accountPro = billingEntitlement?.hasAccess ?? false
             isPro = accountPro || storeKitPro
             return false
