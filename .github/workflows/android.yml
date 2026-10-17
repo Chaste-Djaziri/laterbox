@@ -152,12 +152,31 @@ jobs:
           path: laterbox-android/app/build/outputs/apk/debug/*.apk
           if-no-files-found: warn
 
+      - name: Upload changelog artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: laterbox-android-changelog-${{ github.run_id }}
+          path: CHANGELOG.md
+          if-no-files-found: error
+
       - name: Resolve release version tag
         id: release_version
         run: |
           VERSION=$(node -e "try { console.log(require('../version.json').version); } catch { console.log('1.0.174'); }")
           echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
           echo "title=LaterBox v$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Prepare complete release assets
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        working-directory: ${{ github.workspace }}
+        run: |
+          scripts/prepare_release_assets.sh \
+            "${{ steps.release_version.outputs.tag }}" \
+            "$RUNNER_TEMP/release-assets" \
+            laterbox-android/app/build/outputs/apk/release/laterbox.apk \
+            laterbox-android/app/build/outputs/apk/release/laterbox-android.apk \
+            laterbox-android/app/build/outputs/apk/release/laterbox-android-release.apk \
+            laterbox-android/app/build/outputs/bundle/release/laterbox-android-release.aab
 
       - name: Attach APK and App Bundle to GitHub Release
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
@@ -168,10 +187,7 @@ jobs:
           draft: false
           prerelease: false
           files: |
-            laterbox-android/app/build/outputs/apk/release/laterbox.apk
-            laterbox-android/app/build/outputs/apk/release/laterbox-android.apk
-            laterbox-android/app/build/outputs/apk/release/laterbox-android-release.apk
-            laterbox-android/app/build/outputs/bundle/release/laterbox-android-release.aab
+            ${{ runner.temp }}/release-assets/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
