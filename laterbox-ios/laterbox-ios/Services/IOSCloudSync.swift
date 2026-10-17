@@ -225,13 +225,38 @@ extension SyncCoordinator {
         }
         guard currentUserId == uid, authToken == token else { return 0 }
         let local = try context.fetch(FetchDescriptor<LBItem>())
-        let byID = Dictionary(uniqueKeysWithValues: local.map { ($0.id, $0) })
+        var byID: [String: LBItem] = [:]
+        var byURL: [String: LBItem] = [:]
+        for loc in local {
+            byID[loc.id] = loc
+            if let norm = LBItem.normalizeURL(loc.url) {
+                if let existing = byURL[norm] {
+                    if !loc.isSyncPending && existing.isSyncPending {
+                        byURL[norm] = loc
+                    }
+                } else {
+                    byURL[norm] = loc
+                }
+            }
+        }
         var appliedCount = 0
 
         for snapshot in remote {
             let remoteDate = snapshot.updated_at.flatMap(Self.cloudDate) ?? .distantPast
             let item: LBItem
-            if let existing = byID[snapshot.id] {
+            let normSnapUrl = LBItem.normalizeURL(snapshot.url)
+            let existingMatch = byID[snapshot.id] ?? (normSnapUrl.flatMap { byURL[$0] })
+
+            if let existing = existingMatch {
+                if existing.id != snapshot.id {
+                    if let direct = byID[snapshot.id], direct !== existing {
+                        context.delete(direct)
+                    }
+                    existing.id = snapshot.id
+                }
+                byID[snapshot.id] = existing
+                if let norm = normSnapUrl { byURL[norm] = existing }
+
                 // Conflict resolution taking the recent action based on timestamps:
                 if existing.updatedAt > remoteDate {
                     // Local edit/delete is newer than remote snapshot: local action takes precedence
@@ -255,8 +280,11 @@ extension SyncCoordinator {
                 if snapshot.deleted_at != nil || cloudDeletionQueue.contains(snapshot.id) {
                     continue
                 }
+                // When no local version exists, take the cloud version and save locally for offline viewing
                 item = LBItem(id: snapshot.id, title: snapshot.title ?? snapshot.url ?? "Untitled")
                 context.insert(item)
+                byID[snapshot.id] = item
+                if let norm = normSnapUrl { byURL[norm] = item }
             }
             item.userId = uid; item.title = snapshot.title ?? snapshot.url ?? "Untitled"; item.url = snapshot.url
             item.textContent = snapshot.text_content; item.type = snapshot.type ?? "link"; item.favorite = snapshot.favorite ?? false
@@ -280,6 +308,7 @@ extension SyncCoordinator {
             item.isSyncPending = false
             appliedCount += 1
         }
+        LBItem.cleanupDuplicatesInStore(context: context)
         try context.save()
         return appliedCount
     }
@@ -404,21 +433,54 @@ extension SyncCoordinator {
         do {
             let remote = try await api.downloadSnapshots(userID: userId, token: token)
             let updatedLocal = (try? context.fetch(FetchDescriptor<LBItem>())) ?? []
-            let byID = Dictionary(uniqueKeysWithValues: updatedLocal.map { ($0.id, $0) })
+            var byID: [String: LBItem] = [:]
+            var byURL: [String: LBItem] = [:]
+            for loc in updatedLocal {
+                byID[loc.id] = loc
+                if let norm = LBItem.normalizeURL(loc.url) {
+                    if let existing = byURL[norm] {
+                        if !loc.isSyncPending && existing.isSyncPending {
+                            byURL[norm] = loc
+                        }
+                    } else {
+                        byURL[norm] = loc
+                    }
+                }
+            }
 
             for snapshot in remote {
                 let date = snapshot.updated_at.flatMap(Self.cloudDate) ?? .distantPast
                 let item: LBItem
-                if let existing = byID[snapshot.id] {
+                let normSnapUrl = LBItem.normalizeURL(snapshot.url)
+                let existingMatch = byID[snapshot.id] ?? (normSnapUrl.flatMap { byURL[$0] })
+
+                if let existing = existingMatch {
+                    if existing.id != snapshot.id {
+                        if let direct = byID[snapshot.id], direct !== existing {
+                            context.delete(direct)
+                        }
+                        existing.id = snapshot.id
+                    }
+                    byID[snapshot.id] = existing
+                    if let norm = normSnapUrl { byURL[norm] = existing }
+
                     if existing.updatedAt > date { continue }
                     if existing.updatedAt == date {
                         if existing.status == "deleted" && snapshot.deleted_at == nil { continue }
-                        if (existing.status == "deleted") == (snapshot.deleted_at != nil) { continue }
+                        if (existing.status == "deleted") == (snapshot.deleted_at != nil) {
+                            existing.isSyncPending = false
+                            continue
+                        }
                     }
                     item = existing
                 } else {
+                    if snapshot.deleted_at != nil || cloudDeletionQueue.contains(snapshot.id) {
+                        continue
+                    }
                     item = LBItem(id: snapshot.id, title: snapshot.title ?? snapshot.url ?? "Untitled")
                     context.insert(item)
+                    byID[snapshot.id] = item
+                    if let norm = normSnapUrl { byURL[norm] = item }
                 }
                 item.userId = userId
                 item.title = snapshot.title ?? snapshot.url ?? "Untitled"
@@ -463,6 +525,7 @@ extension SyncCoordinator {
                     _ = try? await ReturnNotification.update(id: item.id, title: item.title, description: item.notificationDescription, date: returnDate)
                 }
             }
+            LBItem.cleanupDuplicatesInStore(context: context)
             try context.save()
         } catch {
             // Remote fetch might fail if offline; local resolution remains saved
