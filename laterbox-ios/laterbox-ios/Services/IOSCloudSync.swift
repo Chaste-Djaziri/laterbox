@@ -353,8 +353,18 @@ extension SyncCoordinator {
                     }
                     // If both are active or both are deleted with identical timestamps, already in sync
                     if (existing.status == "deleted") == (snapshot.deleted_at != nil) {
-                        existing.isSyncPending = false
-                        continue
+                        let localAssets = existing.attachmentsData.flatMap { try? JSONDecoder().decode([SharedAttachment].self, from: $0) } ?? []
+                        let allAssetsAvailable = (snapshot.attachments ?? []).filter { $0.deleted_at == nil }.allSatisfy { remote in
+                            localAssets.contains { local in
+                                local.id == remote.id && (try? SharedCaptureStore.fileURL(local)).map {
+                                    FileManager.default.fileExists(atPath: $0.path)
+                                } == true
+                            }
+                        }
+                        if allAssetsAvailable {
+                            existing.isSyncPending = false
+                            continue
+                        }
                     }
                     // Remote is deleted while local is active: remote delete wins
                 }
@@ -414,8 +424,8 @@ extension SyncCoordinator {
                     if let existing = try? JSONDecoder().decode([SharedAttachment].self, from: item.attachmentsData ?? Data()).first(where: { $0.id == attachment.id }),
                        (try? SharedCaptureStore.fileURL(existing)).map({ FileManager.default.fileExists(atPath: $0.path) }) == true {
                         localAttachments.append(existing)
-                    } else if let downloaded = try? await attachmentAPI.downloadAttachment(attachment, token: token) {
-                        localAttachments.append(downloaded)
+                    } else {
+                        localAttachments.append(try await attachmentAPI.downloadAttachment(attachment, token: token))
                     }
                 }
                 if !localAttachments.isEmpty { item.attachmentsData = try? JSONEncoder().encode(localAttachments) }
