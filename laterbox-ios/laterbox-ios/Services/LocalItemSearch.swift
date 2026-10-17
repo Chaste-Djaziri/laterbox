@@ -68,11 +68,9 @@ final class LocalSearchController: ObservableObject {
     init() {
         let settings = LaterAIModelManager.shared
         let modelChanges = settings.$enableSearchRefine
-            .combineLatest(settings.$selectedProvider, settings.$geminiModel, settings.$openAIModel)
             .map { _ in () }.dropFirst().eraseToAnyPublisher()
-        let claudeChanges = settings.$claudeModel.map { _ in () }.dropFirst().eraseToAnyPublisher()
         let accessChanges = SyncCoordinator.shared.$isPro.map { _ in () }.dropFirst().eraseToAnyPublisher()
-        settingsObserver = Publishers.MergeMany([modelChanges, claudeChanges, accessChanges])
+        settingsObserver = Publishers.MergeMany([modelChanges, accessChanges])
             .sink { [weak self] _ in
                 Task { @MainActor [weak self] in
                     guard let self, !self.lastQuery.isEmpty else { return }
