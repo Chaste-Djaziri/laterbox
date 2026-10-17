@@ -425,3 +425,7 @@ verify_jwt = false
 
 [functions.delete-account]
 verify_jwt = false
+
+# Public service health; the Better Stack token remains in server secrets.
+[functions.system-status]
+verify_jwt = false
