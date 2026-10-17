@@ -34,6 +34,20 @@ function createMockItem(overrides: Partial<LaterBoxItem>): LaterBoxItem {
   };
 }
 
+test('pull retains a pending attachment even when the remote text-only item is newer', () => {
+  const local = createMockItem({ attachments: [{
+    id: 'photo', item_id: 'item-1', user_id: 'user-123', original_file_name: 'photo.jpg',
+    file_extension: 'jpg', mime_type: 'image/jpeg', byte_size: 10,
+    created_at: '2026-10-11T01:00:00.000Z', updated_at: '2026-10-11T01:00:00.000Z',
+  }] });
+  const remote = createMockItem({ updated_at: '2026-10-12T01:00:00.000Z' });
+  const result = reconcileItemsWithRemote({ remoteActive: [remote], remoteDeleted: [],
+    localCached: [local], localDeleted: [], pendingQueue: { [local.id]: local } });
+  assert.deepEqual(result.queueIdsToRemove, []);
+  assert.deepEqual(result.itemsToPush, [local]);
+  assert.equal(result.reconciledActive[0].attachments?.[0].id, 'photo');
+});
+
 test('SyncQueueManager executes tasks strictly in serial queue order', async () => {
   const queue = new SyncQueueManager();
   const order: number[] = [];
