@@ -47,6 +47,7 @@ import {
 import { ItemSideDetailPanel } from '@/components/inbox/ItemSideDetailPanel';
 import { AddToCollectionModal } from '@/components/collections/AddToCollectionModal';
 import { fetchAttachmentDownloadUrl } from '@/lib/utils/attachment';
+import { PortalMenu } from '@/components/ui/PortalMenu';
 
 function InboxImageBackground({ item }: { item: LaterBoxItem }) {
   const asset = item.attachments?.find(a => a.mime_type?.startsWith('image/') ||
@@ -152,7 +153,8 @@ export function EmailInboxTable({
 
   const selectMenuRef = useRef<HTMLDivElement>(null);
   const moreMenuRef = useRef<HTMLDivElement>(null);
-  const snoozeMenuRef = useRef<HTMLDivElement>(null);
+  const snoozeTriggerRef = useRef<HTMLButtonElement>(null);
+  const bulkSnoozeTriggerRef = useRef<HTMLButtonElement>(null);
   const filterMenuRef = useRef<HTMLDivElement>(null);
 
   // Close menus on outside click
@@ -164,10 +166,6 @@ export function EmailInboxTable({
       }
       if (moreMenuRef.current && !moreMenuRef.current.contains(target)) {
         setMoreMenuOpen(false);
-      }
-      if (snoozeMenuRef.current && !snoozeMenuRef.current.contains(target)) {
-        setSnoozeMenuForId(null);
-        setBulkSnoozeOpen(false);
       }
       if (filterMenuRef.current && !filterMenuRef.current.contains(target)) {
         setFilterMenuOpen(null);
@@ -762,10 +760,11 @@ export function EmailInboxTable({
                     <FolderPlus className="w-4 h-4" />
                   </button>
 
-                  <div className="relative" ref={snoozeMenuRef}>
+                  <div className="relative">
                     <button
                       type="button"
-                      onClick={() => setBulkSnoozeOpen(!bulkSnoozeOpen)}
+                      ref={bulkSnoozeTriggerRef}
+                      onClick={() => { setSnoozeMenuForId(null); setBulkSnoozeOpen(!bulkSnoozeOpen); }}
                       title="Snooze selected"
                       className="p-1.5 rounded-lg hover:bg-[#faf8f5] text-[#6c6b63] hover:text-[#171711] transition-colors cursor-pointer"
                     >
@@ -773,7 +772,7 @@ export function EmailInboxTable({
                     </button>
 
                 {bulkSnoozeOpen && (
-                  <div className="absolute left-0 top-full mt-1 w-56 bg-white border border-[#e4e0d5] rounded-xl shadow-lg py-1.5 z-40 text-xs text-[#171711]">
+                  <PortalMenu open={bulkSnoozeOpen} onClose={() => setBulkSnoozeOpen(false)} triggerRef={bulkSnoozeTriggerRef} width={224}>
                     <div className="px-3 py-1 text-[10px] font-bold text-[#9e9b92] uppercase tracking-wider">
                       Snooze until
                     </div>
@@ -838,7 +837,7 @@ export function EmailInboxTable({
                         className="w-full text-xs bg-[#f7f5ee] border border-[#e4e0d5] rounded-lg px-2 py-1 text-[#171711] focus:outline-none focus:border-[#171711]"
                       />
                     </div>
-                  </div>
+                  </PortalMenu>
                 )}
               </div>
             </>
@@ -1473,6 +1472,8 @@ export function EmailInboxTable({
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
+                          snoozeTriggerRef.current = e.currentTarget;
+                          setBulkSnoozeOpen(false);
                           setSnoozeMenuForId(snoozeMenuForId === item.id ? null : item.id);
                         }}
                         title="Snooze"
@@ -1482,10 +1483,7 @@ export function EmailInboxTable({
                       </button>
 
                       {snoozeMenuForId === item.id && (
-                        <div
-                          onClick={(e) => e.stopPropagation()}
-                          className="absolute right-0 top-full mt-1 w-56 bg-white border border-[#e4e0d5] rounded-xl shadow-lg py-1.5 z-40 text-xs text-[#171711] text-left"
-                        >
+                        <PortalMenu open={snoozeMenuForId === item.id} onClose={() => setSnoozeMenuForId(null)} triggerRef={snoozeTriggerRef} width={224}>
                           <div className="px-3 py-1 text-[10px] font-bold text-[#9e9b92] uppercase tracking-wider">
                             Snooze until
                           </div>
@@ -1546,7 +1544,7 @@ export function EmailInboxTable({
                               className="w-full text-xs bg-[#f7f5ee] border border-[#e4e0d5] rounded-lg px-2 py-1 text-[#171711] focus:outline-none focus:border-[#171711]"
                             />
                           </div>
-                        </div>
+                        </PortalMenu>
                       )}
                     </div>
 
