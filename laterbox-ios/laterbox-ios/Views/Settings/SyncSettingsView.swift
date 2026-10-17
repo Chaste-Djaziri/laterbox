@@ -149,6 +149,25 @@ public struct SyncSettingsView: View {
                                             .font(.caption)
                                             .foregroundColor(AppTheme.textSecondary)
                                             .fixedSize(horizontal: false, vertical: true)
+
+                                        if coordinator.sessionExpired || errorMsg.localizedCaseInsensitiveContains("session expired") || errorMsg.localizedCaseInsensitiveContains("jwt expired") {
+                                            Button(action: {
+                                                coordinator.showingAuthSheet = true
+                                            }) {
+                                                HStack(spacing: 6) {
+                                                    Image(systemName: "person.crop.circle.badge.exclamationmark")
+                                                    Text("Sign In to Resume Sync")
+                                                        .font(.caption.weight(.semibold))
+                                                }
+                                                .padding(.horizontal, 12)
+                                                .padding(.vertical, 6)
+                                                .background(Color.red.opacity(0.12))
+                                                .foregroundColor(.red)
+                                                .clipShape(Capsule())
+                                            }
+                                            .buttonStyle(.plain)
+                                            .padding(.top, 4)
+                                        }
                                     }
                                     Spacer()
                                 }
@@ -336,7 +355,14 @@ public struct SyncSettingsView: View {
         .navigationTitle("Cloud Sync & Diagnostics")
         .navigationBarTitleDisplayMode(.inline)
         .alert(coordinator.syncState == .error ? "Sync Failed" : "Cloud Sync", isPresented: $showingSyncCompleteAlert) {
-            Button("OK", role: .cancel) {}
+            if coordinator.syncState == .error && (coordinator.sessionExpired || (coordinator.lastSyncErrorMessage?.localizedCaseInsensitiveContains("jwt expired") ?? false) || (coordinator.lastSyncErrorMessage?.localizedCaseInsensitiveContains("session expired") ?? false)) {
+                Button("Sign In") {
+                    coordinator.showingAuthSheet = true
+                }
+                Button("Cancel", role: .cancel) {}
+            } else {
+                Button("OK", role: .cancel) {}
+            }
         } message: {
             if coordinator.syncState == .error {
                 Text(coordinator.lastSyncErrorMessage ?? "An unexpected error occurred during cloud sync.")
