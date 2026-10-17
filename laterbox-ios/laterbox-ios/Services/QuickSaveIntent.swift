@@ -43,7 +43,7 @@ public struct QuickSaveIntent: AppIntent {
     public static var title: LocalizedStringResource = "Quick Save to LaterBox"
     public static var description = IntentDescription("Save a note, idea, or link to LaterBox directly without opening the app.")
 
-    public static var openAppWhenRun: Bool = false
+    public static var openAppWhenRun: Bool = true
 
     @Parameter(title: "Note or URL", description: "What you would like to save to LaterBox")
     public var content: String?
@@ -71,14 +71,15 @@ public struct QuickSaveIntent: AppIntent {
 
     @MainActor
     public func perform() async throws -> some IntentResult & ProvidesDialog {
-        var rawContent = content?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        if rawContent.isEmpty {
-            rawContent = try await $content.requestValue("What would you like to save to LaterBox?")
-        }
-
-        let trimmed = rawContent.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else {
-            return .result(dialog: "Nothing was entered to save.")
+        let trimmed = content?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if trimmed.isEmpty {
+            UserDefaults(suiteName: "group.pro.micorp.laterbox")?.set(true, forKey: "pendingOpenQuickSaveModal")
+            NotificationCenter.default.post(name: NSNotification.Name("OpenQuickSaveModal"), object: nil)
+            Task { @MainActor in
+                try? await Task.sleep(for: .milliseconds(150))
+                NotificationCenter.default.post(name: NSNotification.Name("OpenQuickSaveModal"), object: nil)
+            }
+            return .result(dialog: "Opening Quick Save in LaterBox...")
         }
 
         var capture = SharedCapture()
@@ -138,5 +139,26 @@ public struct QuickSaveIntent: AppIntent {
         } catch {
             return .result(dialog: "Failed to save: \(error.localizedDescription)")
         }
+    }
+}
+
+@available(iOS 18.0, *)
+public struct QuickSaveControlIntent: AppIntent {
+    public static var title: LocalizedStringResource = "Quick Save to LaterBox"
+    public static var description = IntentDescription("Open the quick save input in LaterBox.")
+    public static var openAppWhenRun: Bool = true
+
+    public init() {}
+
+    @MainActor
+    public func perform() async throws -> some IntentResult & OpensIntent {
+        UserDefaults(suiteName: "group.pro.micorp.laterbox")?.set(true, forKey: "pendingOpenQuickSaveModal")
+        NotificationCenter.default.post(name: NSNotification.Name("OpenQuickSaveModal"), object: nil)
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(150))
+            NotificationCenter.default.post(name: NSNotification.Name("OpenQuickSaveModal"), object: nil)
+        }
+        let deepLink = URL(string: "laterbox://quick-save")!
+        return .result(opensIntent: OpenURLIntent(deepLink))
     }
 }
