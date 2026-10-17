@@ -795,6 +795,10 @@ public final class SyncCoordinator: ObservableObject {
     }
 
     func syncPendingItems(context: ModelContext, transport: (any IOSCloudTransport)?) async {
+        if !hasCloudPro && !cloudDeletionQueue.isEmpty {
+            do { _ = try await performCloudPush(context: context, transport: transport, deletionsOnly: true) }
+            catch { handleSyncError(error); return }
+        }
         guard hasCloudPro else {
             self.syncState = .offline
             self.lastSyncErrorMessage = nil
