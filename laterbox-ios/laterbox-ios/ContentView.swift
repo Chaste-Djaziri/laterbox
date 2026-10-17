@@ -132,6 +132,14 @@ struct ContentView: View {
         .onAppear {
             clipboardManager.checkForCopiedItem()
         }
+        .onOpenURL { url in
+            if url.scheme == "laterbox" && (url.host == "quick-save" || url.host == "capture") {
+                coordinator.showingQuickCapture = true
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("OpenQuickSaveModal"))) { _ in
+            coordinator.showingQuickCapture = true
+        }
         .onChange(of: coordinator.isProUser) { _, active in
             if active { Task { await coordinator.syncPendingItems(context: modelContext, announceFailure: false) } }
         }
