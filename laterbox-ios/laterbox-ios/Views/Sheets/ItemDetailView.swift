@@ -36,6 +36,8 @@ public struct ItemDetailView: View {
     @State private var saveError: String?
     @State private var previewDocumentURL: URL?
     @State private var showingSafariReader: Bool = false
+    @State private var showingTagsSheet: Bool = false
+    @State private var newTagInput: String = ""
     @State private var showingSchedulePicker: Bool = false
     @State private var scheduledDate: Date = Date().addingTimeInterval(86400)
 
@@ -167,6 +169,9 @@ public struct ItemDetailView: View {
         }
         .sheet(isPresented: $showingCollectionSheet) {
             collectionPickerSheet
+        }
+        .sheet(isPresented: $showingTagsSheet) {
+            tagsPopupSheet
         }
         .confirmationDialog("Are you sure you want to delete this item?", isPresented: $showingDeleteConfirm, titleVisibility: .visible) {
             Button("Delete Item", role: .destructive) {
@@ -452,107 +457,10 @@ public struct ItemDetailView: View {
     // MARK: - 3. Main Header Card
     private var mainHeaderCard: some View {
         VStack(alignment: .leading, spacing: 12) {
-            // Top sender & metadata chips
-            HStack(spacing: 8) {
-                ZStack {
-                    Circle()
-                        .fill(Color(hex: "171711"))
-                        .frame(width: 22, height: 22)
-                    Text(senderInitial)
-                        .font(.system(size: 10, weight: .black))
-                        .foregroundColor(Color(hex: "E6EDB0"))
-                }
-
-                Text(domainOrSender)
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundColor(AppTheme.textPrimary)
-
-                Text(item.parsedContentType.rawValue.capitalized)
-                    .font(.system(size: 10, weight: .bold))
-                    .padding(.horizontal, 7)
-                    .padding(.vertical, 3)
-                    .background(Color(hex: "E6EDB0"), in: Capsule())
-                    .foregroundColor(Color(hex: "171711"))
-
-                Spacer()
-
-                Text(item.createdAt, format: .dateTime.month().day().year())
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundColor(Color.secondary)
-            }
-
-            // Title (Editable on tap)
-            TextField("Title", text: $editedTitle, axis: .vertical)
-                .font(.system(size: 18, weight: .bold))
-                .foregroundColor(AppTheme.textPrimary)
-                .lineLimit(1...5)
-                .onChange(of: editedTitle) { _, newVal in
-                    item.title = newVal
-                    persistEdit()
-                }
-
-            // Description / text preview snippet
-            if let desc = item.metadataDescription, !desc.isEmpty, !LinkMetadataLoader.isGenericDescription(desc) {
-                Text(desc)
-                    .font(.system(size: 13, weight: .regular))
-                    .foregroundColor(Color(hex: "45443F"))
-                    .lineLimit(4)
-                    .lineSpacing(2)
-            }
-
-            // Collections, Tags & Reader View shortcut
-            HStack(spacing: 6) {
-                if let collName = item.collectionName ?? (item.category.isEmpty ? nil : item.category), !collName.isEmpty {
-                    Button {
-                        showingCollectionSheet = true
-                    } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: "folder.fill")
-                                .font(.system(size: 10))
-                                .foregroundColor(Color(hex: "0369A1"))
-                            Text(collName)
-                                .font(.system(size: 11, weight: .bold))
-                                .foregroundColor(Color(hex: "0369A1"))
-                        }
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(Color(hex: "E0F2FE"), in: RoundedRectangle(cornerRadius: 6))
-                    }
-                    .buttonStyle(.plain)
-                }
-
-                ForEach(item.tags, id: \.self) { tag in
-                    Text("#\(tag)")
-                        .font(.system(size: 11, weight: .semibold))
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(Color.black.opacity(0.04), in: RoundedRectangle(cornerRadius: 6))
-                        .foregroundColor(Color.secondary)
-                }
-
-                Spacer()
-
-                // In-app Reader View button (if URL is valid)
-                if let urlStr = item.url, URL(string: urlStr) != nil {
-                    Button {
-                        showingSafariReader = true
-                        LBHaptic.light()
-                    } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: "book.pages")
-                                .font(.system(size: 11, weight: .bold))
-                            Text("Reader")
-                                .font(.system(size: 11, weight: .bold))
-                        }
-                        .foregroundColor(AppTheme.textPrimary)
-                        .padding(.horizontal, 9)
-                        .padding(.vertical, 4)
-                        .background(Color(hex: "F7F5EE"), in: Capsule())
-                        .overlay(Capsule().strokeBorder(Color.black.opacity(0.08), lineWidth: 1))
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
+            headerSenderRow
+            headerTitleAndDescription
+            headerTagsPreview
+            headerActionControlsRow
         }
         .padding(16)
         .background(Color.white)
@@ -562,6 +470,152 @@ public struct ItemDetailView: View {
                 .strokeBorder(Color.black.opacity(0.06), lineWidth: 1)
         )
         .shadow(color: Color.black.opacity(0.03), radius: 6, y: 2)
+    }
+
+    private var headerSenderRow: some View {
+        HStack(spacing: 8) {
+            ZStack {
+                Circle()
+                    .fill(Color(hex: "171711"))
+                    .frame(width: 22, height: 22)
+                Text(senderInitial)
+                    .font(.system(size: 10, weight: .black))
+                    .foregroundColor(Color(hex: "E6EDB0"))
+            }
+
+            Text(domainOrSender)
+                .font(.system(size: 13, weight: .bold))
+                .foregroundColor(AppTheme.textPrimary)
+
+            Text(item.parsedContentType.rawValue.capitalized)
+                .font(.system(size: 10, weight: .bold))
+                .padding(.horizontal, 7)
+                .padding(.vertical, 3)
+                .background(Color(hex: "E6EDB0"), in: Capsule())
+                .foregroundColor(Color(hex: "171711"))
+
+            Spacer()
+
+            Text(item.createdAt, format: .dateTime.month().day().year())
+                .font(.system(size: 11, weight: .medium))
+                .foregroundColor(Color.secondary)
+        }
+    }
+
+    private var headerTitleAndDescription: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            TextField("Title", text: $editedTitle, axis: .vertical)
+                .font(.system(size: 18, weight: .bold))
+                .foregroundColor(AppTheme.textPrimary)
+                .lineLimit(1...5)
+                .onChange(of: editedTitle) { _, newVal in
+                    item.title = newVal
+                    persistEdit()
+                }
+
+            if let desc = item.metadataDescription, !desc.isEmpty, !LinkMetadataLoader.isGenericDescription(desc) {
+                Text(desc)
+                    .font(.system(size: 13, weight: .regular))
+                    .foregroundColor(Color(hex: "45443F"))
+                    .lineLimit(4)
+                    .lineSpacing(2)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var headerTagsPreview: some View {
+        if !item.tags.isEmpty {
+            let previewLimit = 3
+            let remainingCount = max(0, item.tags.count - previewLimit)
+            LBFlowLayout(spacing: 6, lineSpacing: 6) {
+                ForEach(Array(item.tags.prefix(previewLimit)), id: \.self) { tag in
+                    tagChip(tag)
+                }
+
+                if remainingCount > 0 {
+                    Button {
+                        showingTagsSheet = true
+                        LBHaptic.light()
+                    } label: {
+                        HStack(spacing: 3) {
+                            Text("+\(remainingCount) more")
+                                .font(.system(size: 11, weight: .semibold))
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 8, weight: .bold))
+                        }
+                        .foregroundColor(AppTheme.textPrimary)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4.5)
+                        .background(Color.black.opacity(0.05), in: Capsule())
+                        .overlay(Capsule().strokeBorder(Color.black.opacity(0.08), lineWidth: 1))
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.top, 2)
+        }
+    }
+
+    @ViewBuilder
+    private var headerActionControlsRow: some View {
+        let hasCollection = (item.collectionName != nil && !item.collectionName!.isEmpty) || !item.category.isEmpty
+        let hasReader = (item.url != nil && URL(string: item.url!) != nil)
+
+        if hasCollection || hasReader {
+            HStack(spacing: 8) {
+                if let collName = item.collectionName ?? (item.category.isEmpty ? nil : item.category), !collName.isEmpty {
+                    Button {
+                        showingCollectionSheet = true
+                        LBHaptic.light()
+                    } label: {
+                        HStack(spacing: 5) {
+                            Image(systemName: "folder.fill")
+                                .font(.system(size: 11, weight: .semibold))
+                            Text(collName)
+                                .font(.system(size: 12, weight: .bold))
+                                .lineLimit(1)
+                                .truncationMode(.tail)
+                        }
+                        .foregroundColor(Color(hex: "0369A1"))
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .frame(minHeight: 32)
+                        .background(Color(hex: "E0F2FE"), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                .strokeBorder(Color(hex: "BAE6FD"), lineWidth: 1)
+                        )
+                    }
+                    .buttonStyle(.plain)
+                }
+
+                Spacer(minLength: 8)
+
+                if let urlStr = item.url, URL(string: urlStr) != nil {
+                    Button {
+                        showingSafariReader = true
+                        LBHaptic.light()
+                    } label: {
+                        HStack(spacing: 5) {
+                            Image(systemName: "book.pages")
+                                .font(.system(size: 12, weight: .bold))
+                            Text("Reader")
+                                .font(.system(size: 12, weight: .bold))
+                        }
+                        .foregroundColor(AppTheme.textPrimary)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .frame(minHeight: 32)
+                        .background(Color(hex: "F7F5EE"), in: Capsule())
+                        .overlay(Capsule().strokeBorder(Color.black.opacity(0.12), lineWidth: 1))
+                    }
+                    .buttonStyle(.plain)
+                    .fixedSize()
+                }
+            }
+            .padding(.top, 2)
+        }
     }
 
     // MARK: - 4. Captured Highlight Quote Card
@@ -958,6 +1012,159 @@ public struct ItemDetailView: View {
         .presentationDetents([.medium, .large])
     }
 
+    // MARK: - Tag Chip View
+    private func tagChip(_ tag: String) -> some View {
+        Button {
+            showingTagsSheet = true
+            LBHaptic.light()
+        } label: {
+            HStack(spacing: 2) {
+                Text("#")
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundColor(Color.secondary.opacity(0.8))
+                Text(tag)
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundColor(AppTheme.textPrimary)
+            }
+            .lineLimit(1)
+            .truncationMode(.tail)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4.5)
+            .background(Color.black.opacity(0.04), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    .strokeBorder(Color.black.opacity(0.06), lineWidth: 0.5)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
+    // MARK: - Tags Popup Sheet
+    private var tagsPopupSheet: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 18) {
+                    HStack {
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text("\(item.tags.count) \(item.tags.count == 1 ? "Tag" : "Tags")")
+                                .font(.system(size: 20, weight: .bold))
+                                .foregroundColor(AppTheme.textPrimary)
+                            Text("Tags associated with this item. Tap any tag to copy.")
+                                .font(.system(size: 13))
+                                .foregroundColor(Color.secondary)
+                        }
+                        Spacer()
+                    }
+
+                    // Add new tag field
+                    HStack(spacing: 8) {
+                        Image(systemName: "number")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(Color.secondary)
+                        TextField("Add a tag...", text: $newTagInput)
+                            .font(.system(size: 14))
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                            .onSubmit {
+                                addTag()
+                            }
+
+                        if !newTagInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                            Button("Add") {
+                                addTag()
+                            }
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundColor(Color(hex: "171711"))
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 4)
+                            .background(Color(hex: "E6EDB0"), in: Capsule())
+                        }
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(Color.black.opacity(0.04), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+
+                    // All Tags in Flow Layout
+                    if item.tags.isEmpty {
+                        Text("No tags yet.")
+                            .font(.system(size: 14))
+                            .foregroundColor(.secondary)
+                            .padding(.vertical, 12)
+                    } else {
+                        LBFlowLayout(spacing: 8, lineSpacing: 8) {
+                            ForEach(item.tags, id: \.self) { tag in
+                                HStack(spacing: 6) {
+                                    Button {
+                                        UIPasteboard.general.string = "#\(tag)"
+                                        LBHaptic.light()
+                                    } label: {
+                                        HStack(spacing: 3) {
+                                            Text("#")
+                                                .font(.system(size: 12, weight: .bold))
+                                                .foregroundColor(Color.secondary)
+                                            Text(tag)
+                                                .font(.system(size: 13, weight: .medium))
+                                                .foregroundColor(AppTheme.textPrimary)
+                                        }
+                                    }
+                                    .buttonStyle(.plain)
+
+                                    Button {
+                                        removeTag(tag)
+                                    } label: {
+                                        Image(systemName: "xmark")
+                                            .font(.system(size: 9, weight: .bold))
+                                            .foregroundColor(Color.secondary.opacity(0.7))
+                                            .frame(width: 14, height: 14)
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 6)
+                                .background(Color.black.opacity(0.05), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                        .strokeBorder(Color.black.opacity(0.08), lineWidth: 0.5)
+                                )
+                            }
+                        }
+                    }
+                }
+                .padding(20)
+            }
+            .background(AppTheme.canvasBackground.ignoresSafeArea())
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Done") {
+                        showingTagsSheet = false
+                    }
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundColor(AppTheme.textPrimary)
+                }
+            }
+        }
+        .presentationDetents([.fraction(0.5), .large])
+        .presentationDragIndicator(.visible)
+    }
+
+    private func addTag() {
+        let trimmed = newTagInput.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: "#", with: "")
+        guard !trimmed.isEmpty else { return }
+        if !item.tags.contains(trimmed) {
+            item.tags.append(trimmed)
+            persistEdit()
+            LBHaptic.medium()
+        }
+        newTagInput = ""
+    }
+
+    private func removeTag(_ tag: String) {
+        item.tags.removeAll { $0 == tag }
+        persistEdit()
+        LBHaptic.light()
+    }
+
     // MARK: - Schedule Picker Sheet
     private var schedulePickerSheet: some View {
         NavigationStack {
@@ -1062,6 +1269,55 @@ public struct ItemDetailView: View {
         case "md", "txt", "rtf": return Image(systemName: "doc.plaintext.fill")
         case "json", "js", "ts", "swift", "py", "html": return Image(systemName: "chevron.left.forwardslash.chevron.right")
         default: return Image(systemName: "doc.fill")
+        }
+    }
+}
+
+// MARK: - Adaptive Flow Layout for Tags and Chips
+struct LBFlowLayout: Layout {
+    var spacing: CGFloat = 6
+    var lineSpacing: CGFloat = 6
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let maxWidth = proposal.width ?? .infinity
+        guard maxWidth > 0, !subviews.isEmpty else { return .zero }
+
+        var currentX: CGFloat = 0
+        var currentY: CGFloat = 0
+        var lineHeight: CGFloat = 0
+        var totalWidth: CGFloat = 0
+
+        for subview in subviews {
+            let size = subview.sizeThatFits(.unspecified)
+            if currentX + size.width > maxWidth && currentX > 0 {
+                currentX = 0
+                currentY += lineHeight + lineSpacing
+                lineHeight = 0
+            }
+            lineHeight = max(lineHeight, size.height)
+            currentX += size.width + spacing
+            totalWidth = max(totalWidth, currentX - spacing)
+        }
+
+        let computedWidth = (maxWidth == .infinity) ? totalWidth : min(maxWidth, totalWidth)
+        return CGSize(width: computedWidth, height: currentY + lineHeight)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        var currentX: CGFloat = bounds.minX
+        var currentY: CGFloat = bounds.minY
+        var lineHeight: CGFloat = 0
+
+        for subview in subviews {
+            let size = subview.sizeThatFits(.unspecified)
+            if currentX + size.width > bounds.maxX && currentX > bounds.minX {
+                currentX = bounds.minX
+                currentY += lineHeight + lineSpacing
+                lineHeight = 0
+            }
+            subview.place(at: CGPoint(x: currentX, y: currentY), proposal: ProposedViewSize(size))
+            lineHeight = max(lineHeight, size.height)
+            currentX += size.width + spacing
         }
     }
 }
