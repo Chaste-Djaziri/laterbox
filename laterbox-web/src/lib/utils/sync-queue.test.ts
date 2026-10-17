@@ -9,6 +9,8 @@ import {
   queueHardDelete,
   clearPendingItem,
   getPendingQueue,
+  countIncomingItemChanges,
+  collectRemoteItemPages,
 } from './pending-captures';
 import type { LaterBoxItem } from '../supabase/types';
 
@@ -33,6 +35,46 @@ function createMockItem(overrides: Partial<LaterBoxItem>): LaterBoxItem {
     metadata: overrides.metadata || null,
   };
 }
+
+test('incoming badge clears for acknowledged items and unknown historical deletions', () => {
+  const local = createMockItem({});
+  const oldDeletion = createMockItem({ id: 'old-deletion', deleted_at: '2026-10-10T01:00:00Z' });
+  assert.equal(countIncomingItemChanges([local, oldDeletion], [local], {}), 0);
+  const updated = createMockItem({ updated_at: '2026-10-12T01:00:00Z' });
+  assert.equal(countIncomingItemChanges([updated], [local], {}), 1);
+  assert.equal(countIncomingItemChanges([updated], [updated], {}), 0);
+  assert.equal(countIncomingItemChanges([{ ...updated, id: updated.id.toUpperCase() }], [updated], {}), 0);
+});
+
+test('incoming badge uses queued actions instead of stale local cache', () => {
+  const stale = createMockItem({});
+  const remote = createMockItem({ updated_at: '2026-10-12T01:00:00Z' });
+  const queued = createMockItem({ updated_at: '2026-10-13T01:00:00Z' });
+  assert.equal(countIncomingItemChanges([remote], [stale], { [queued.id]: queued }), 0);
+  const deleted = { ...remote, deleted_at: remote.updated_at };
+  assert.equal(countIncomingItemChanges([deleted], [remote], {}), 1);
+  assert.equal(countIncomingItemChanges([deleted], [deleted], {}), 0);
+});
+
+test('incoming badge does not advertise a pull that cannot replace unpublished assets', () => {
+  const local = createMockItem({ attachments: [{
+    id: 'asset', item_id: 'item-1', original_file_name: 'image.jpg', mime_type: 'image/jpeg',
+    file_extension: 'jpg', byte_size: 1, created_at: '2026-10-11T01:00:00Z', updated_at: '2026-10-11T01:00:00Z',
+  }] });
+  const remote = createMockItem({ updated_at: '2026-10-12T01:00:00Z' });
+  assert.equal(countIncomingItemChanges([remote], [local], { [local.id]: local }), 0);
+});
+
+test('cloud item pagination includes every page beyond the server row limit', async () => {
+  const rows = Array.from({ length: 2001 }, (_, id) => ({ id }));
+  const offsets: number[] = [];
+  const result = await collectRemoteItemPages(async (offset, limit) => {
+    offsets.push(offset);
+    return rows.slice(offset, offset + limit);
+  });
+  assert.deepEqual(result, rows);
+  assert.deepEqual(offsets, [0, 1000, 2000]);
+});
 
 test('pull retains a pending attachment even when the remote text-only item is newer', () => {
   const local = createMockItem({ attachments: [{
