@@ -52,6 +52,13 @@ jobs:
           test -f dist/laterbox-firefox-extension.zip || { echo "Missing Firefox extension zip"; exit 1; }
           test -f dist/laterbox-safari-extension.zip || { echo "Missing Safari extension zip"; exit 1; }
 
+      - name: Upload changelog artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: laterbox-extension-changelog-${{ github.run_id }}
+          path: CHANGELOG.md
+          if-no-files-found: error
+
       - name: Upload Chrome Extension Zip
         uses: actions/upload-artifact@v4
         with:
@@ -87,6 +94,17 @@ jobs:
           echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
           echo "title=LaterBox v$VERSION" >> "$GITHUB_OUTPUT"
 
+      - name: Prepare complete release assets
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        working-directory: ${{ github.workspace }}
+        run: |
+          scripts/prepare_release_assets.sh \
+            "${{ steps.release_version.outputs.tag }}" \
+            "$RUNNER_TEMP/release-assets" \
+            laterbox-extension/dist/laterbox-chrome-extension.zip \
+            laterbox-extension/dist/laterbox-firefox-extension.zip \
+            laterbox-extension/dist/laterbox-safari-extension.zip
+
       - name: Attach Extension Zips to GitHub Release
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
@@ -96,8 +114,6 @@ jobs:
           draft: false
           prerelease: false
           files: |
-            laterbox-extension/dist/laterbox-chrome-extension.zip
-            laterbox-extension/dist/laterbox-firefox-extension.zip
-            laterbox-extension/dist/laterbox-safari-extension.zip
+            ${{ runner.temp }}/release-assets/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
