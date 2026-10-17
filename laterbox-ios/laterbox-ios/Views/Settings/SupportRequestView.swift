@@ -1,6 +1,10 @@
 import SwiftUI
 
 struct SupportRequestView: View {
+    init(initialSubject: String = "", initialMessage: String = "") {
+        _subject = State(initialValue: initialSubject)
+        _message = State(initialValue: initialMessage)
+    }
     @State private var email = SyncCoordinator.shared.currentUserEmail ?? ""
     @State private var category = "problem"
     @State private var subject = ""
