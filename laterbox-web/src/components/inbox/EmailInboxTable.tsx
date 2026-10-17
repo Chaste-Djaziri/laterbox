@@ -46,6 +46,28 @@ import {
 } from '@/lib/utils/emailFormatters';
 import { ItemSideDetailPanel } from '@/components/inbox/ItemSideDetailPanel';
 import { AddToCollectionModal } from '@/components/collections/AddToCollectionModal';
+import { fetchAttachmentDownloadUrl } from '@/lib/utils/attachment';
+
+function InboxAttachmentThumbnail({ item }: { item: LaterBoxItem }) {
+  const asset = item.attachments?.find(a => a.mime_type?.startsWith('image/') ||
+    /^(jpg|jpeg|png|gif|webp|avif|heic|heif)$/i.test(a.file_extension?.replace(/^\./, '') || ''));
+  const [preview, setPreview] = useState<{ id: string; url: string } | null>(null);
+  useEffect(() => {
+    if (!asset) return;
+    let active = true;
+    fetchAttachmentDownloadUrl(asset.id, asset.user_id ?? item.user_id ?? null).then(url => {
+      if (active && url) setPreview({ id: asset.id, url });
+    });
+    return () => { active = false; };
+  }, [asset?.id, asset?.r2_object_key, asset?.user_id, item.user_id]);
+  if (!asset || preview?.id !== asset.id) return null;
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={preview.url} alt={asset.original_file_name} loading="lazy"
+      className="relative z-10 h-14 w-14 shrink-0 rounded-lg border border-[#e4e0d5] bg-white object-cover"
+      onError={() => setPreview(null)} />
+  );
+}
 
 interface EmailInboxTableProps {
   items: LaterBoxItem[];
@@ -1199,6 +1221,7 @@ export function EmailInboxTable({
 
                     {/* Middle line: Subject Title */}
                     <div className="mt-1 flex items-center justify-between gap-2">
+                      <InboxAttachmentThumbnail item={item} />
                       <p
                         className={`text-xs truncate ${
                           isCurrentActive
@@ -1283,6 +1306,7 @@ export function EmailInboxTable({
                 )}
 
                 {/* 1. Checkbox */}
+                <InboxAttachmentThumbnail item={item} />
                 <div
                   onClick={(e) => toggleItemSelect(item.id, e)}
                   className="p-1 -m-1 shrink-0 flex items-center relative z-10"
