@@ -1185,6 +1185,64 @@ extension LaterAITests {
         #expect(available == 2)
         #expect(coordinator.pendingPullCount == 2)
     }
+
+    @Test
+    func cloudSyncErrorFormattingForJWTExpired() {
+        let err1 = CloudSyncError.unauthorized(message: "JWT expired")
+        #expect(err1.localizedDescription == "Session expired (JWT expired). Please sign in again to continue syncing.")
+
+        let err2 = CloudSyncError.unauthorized(message: "token expired")
+        #expect(err2.localizedDescription == "Session expired (JWT expired). Please sign in again to continue syncing.")
+
+        let err3 = CloudSyncError.unauthorized(message: "Missing authorization header")
+        #expect(err3.localizedDescription == "Authentication error: Missing authorization header")
+    }
+
+    @Test
+    func sessionExpirationTrackingAndRefreshAuthSession() async throws {
+        let coordinator = SyncCoordinator.shared
+        coordinator.signOut()
+
+        #expect(coordinator.sessionExpired == false)
+        #expect(coordinator.refreshToken == nil)
+
+        // refreshAuthSession should return false when no refresh token is stored
+        let refreshed = await coordinator.refreshAuthSession()
+        #expect(refreshed == false)
+
+        coordinator.setSession(
+            email: "refresh-test@example.com",
+            userId: "uid-refresh-1",
+            token: "initial-access-token",
+            refreshToken: "initial-refresh-token"
+        )
+
+        #expect(coordinator.refreshToken == "initial-refresh-token")
+        #expect(coordinator.sessionExpired == false)
+
+        // When pull receives unauthorized with no network mock, sessionExpired becomes true
+        let container = try ModelContainer(for: LBItem.self, LBCollection.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+        let context = container.mainContext
+        coordinator.setProForTesting(true)
+
+        let transport = MockCloudTransport()
+        transport.errorToThrow = CloudSyncError.unauthorized(message: "JWT expired")
+
+        await coordinator.pullChanges(context: context, transport: transport)
+        #expect(coordinator.syncState == .error)
+        #expect(coordinator.sessionExpired == true)
+        #expect(coordinator.lastSyncErrorMessage?.contains("Session expired") == true)
+
+        // Re-authenticating resets sessionExpired
+        coordinator.setSession(
+            email: "refresh-test@example.com",
+            userId: "uid-refresh-1",
+            token: "new-access-token",
+            refreshToken: "new-refresh-token"
+        )
+        #expect(coordinator.sessionExpired == false)
+        #expect(coordinator.refreshToken == "new-refresh-token")
+    }
 }
 @MainActor
 private final class MockCloudTransport: IOSCloudTransport {
