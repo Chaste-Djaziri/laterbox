@@ -56,6 +56,18 @@ test('permanent deletion stays queued even if another device updated the item la
   assert.deepEqual(result.reconciledActive, []);
 });
 
+test('permanent deletion receipts discard stale cached items and queued edits', () => {
+  const local = createMockItem({ updated_at: '2026-10-15T01:00:00Z' });
+  const result = reconcileItemsWithRemote({ remoteActive: [], remoteDeleted: [],
+    localCached: [local], localDeleted: [], pendingQueue: { [local.id]: local }, permanentlyDeletedIds: [local.id] });
+  assert.deepEqual(result.reconciledActive, []);
+  assert.deepEqual(result.itemsToPush, []);
+  assert.deepEqual(result.queueIdsToRemove, [local.id]);
+  const receipt = { ...local, updated_at: '2026-10-14T01:00:00Z', deleted_at: '2026-10-14T01:00:00Z', permanently_deleted: true };
+  assert.equal(countIncomingItemChanges([receipt], [local], {}), 1);
+  assert.equal(countIncomingItemChanges([receipt], [], {}), 0);
+});
+
 test('incoming badge uses queued actions instead of stale local cache', () => {
   const stale = createMockItem({});
   const remote = createMockItem({ updated_at: '2026-10-12T01:00:00Z' });
