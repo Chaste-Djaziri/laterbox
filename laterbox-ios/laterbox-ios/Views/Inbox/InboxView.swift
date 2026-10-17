@@ -810,6 +810,9 @@ public struct InboxView: View {
             .sheet(item: $collectionTargetItem) { targetItem in
                 collectionPickerSheet(for: targetItem)
             }
+            .onAppear {
+                coordinator.refreshPendingCounts(context: modelContext)
+            }
         }
     }
 
@@ -1037,59 +1040,256 @@ public struct InboxView: View {
                 }
                 .buttonStyle(.plain)
             } else {
-                // Pro Member status (motivational)
-                ZStack {
-                    Circle()
-                        .fill(Color(hex: "10B981").opacity(0.14))
-                        .frame(width: 34, height: 34)
-                    Image(systemName: "crown.fill")
-                        .font(.system(size: 15, weight: .bold))
-                        .foregroundColor(Color(hex: "10B981"))
-                }
+                // Pro Member status with dynamic Pull / Push / Pull&Push actions
+                let isSyncing = coordinator.syncState == .syncing || coordinator.isPulling || coordinator.isPushing
+                let hasPull = coordinator.pendingPullCount > 0
+                let hasPush = coordinator.pendingPushCount > 0
 
-                VStack(alignment: .leading, spacing: 2) {
-                    HStack(spacing: 6) {
-                        Text("Pro Member")
-                            .font(.system(size: 12, weight: .bold))
-                            .foregroundColor(AppTheme.textPrimary)
+                if isSyncing {
+                    ZStack {
+                        Circle()
+                            .fill(Color(hex: "3B82F6").opacity(0.14))
+                            .frame(width: 34, height: 34)
+                        ProgressView()
+                            .progressViewStyle(CircularProgressViewStyle(tint: Color(hex: "2563EB")))
+                            .scaleEffect(0.85)
+                    }
 
-                        HStack(spacing: 3) {
-                            Circle()
-                                .fill(Color(hex: "10B981"))
-                                .frame(width: 5, height: 5)
-                            Text("ACTIVE")
+                    VStack(alignment: .leading, spacing: 2) {
+                        HStack(spacing: 6) {
+                            Text("Cloud Sync")
+                                .font(.system(size: 12, weight: .bold))
+                                .foregroundColor(AppTheme.textPrimary)
+
+                            Text("SYNCING")
                                 .font(.system(size: 9, weight: .heavy))
-                                .foregroundColor(Color(hex: "10B981"))
+                                .foregroundColor(Color(hex: "2563EB"))
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(Color(hex: "3B82F6").opacity(0.12), in: Capsule())
                         }
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
+
+                        Text(coordinator.isPulling ? "Pulling latest changes from cloud…" : (coordinator.isPushing ? "Pushing local edits to cloud…" : "Resolving conflicts & syncing…"))
+                            .font(.system(size: 11, weight: .regular))
+                            .foregroundColor(AppTheme.textSecondary)
+                            .lineLimit(1)
+                    }
+
+                    Spacer(minLength: 8)
+                } else if hasPull && hasPush {
+                    // Both available: Pull first, then push
+                    ZStack {
+                        Circle()
+                            .fill(Color(hex: "8B5CF6").opacity(0.14))
+                            .frame(width: 34, height: 34)
+                        Image(systemName: "arrow.triangle.2.circlepath")
+                            .font(.system(size: 15, weight: .bold))
+                            .foregroundColor(Color(hex: "8B5CF6"))
+                    }
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        HStack(spacing: 6) {
+                            Text("Sync Needed")
+                                .font(.system(size: 12, weight: .bold))
+                                .foregroundColor(AppTheme.textPrimary)
+
+                            HStack(spacing: 2) {
+                                Text("\(coordinator.pendingPullCount)↓")
+                                Text("•")
+                                Text("\(coordinator.pendingPushCount)↑")
+                            }
+                            .font(.system(size: 9, weight: .heavy))
+                            .foregroundColor(Color(hex: "8B5CF6"))
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Color(hex: "8B5CF6").opacity(0.12), in: Capsule())
+                        }
+
+                        Text("Pull remote changes first, then push local edits")
+                            .font(.system(size: 11, weight: .regular))
+                            .foregroundColor(AppTheme.textSecondary)
+                            .lineLimit(1)
+                    }
+
+                    Spacer(minLength: 8)
+
+                    Button {
+                        LBHaptic.medium()
+                        Task {
+                            await coordinator.pullAndPushChanges(context: modelContext)
+                        }
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "arrow.triangle.2.circlepath")
+                                .font(.system(size: 10, weight: .bold))
+                            Text("Pull & Push")
+                                .font(.system(size: 11, weight: .bold))
+                        }
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 11)
+                        .padding(.vertical, 6)
+                        .background(Color(hex: "8B5CF6"), in: Capsule())
+                    }
+                    .buttonStyle(.plain)
+                } else if hasPull {
+                    // Pull available
+                    ZStack {
+                        Circle()
+                            .fill(Color(hex: "3B82F6").opacity(0.14))
+                            .frame(width: 34, height: 34)
+                        Image(systemName: "arrow.down.circle.fill")
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundColor(Color(hex: "2563EB"))
+                    }
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        HStack(spacing: 6) {
+                            Text("Cloud Updates")
+                                .font(.system(size: 12, weight: .bold))
+                                .foregroundColor(AppTheme.textPrimary)
+
+                            Text("\(coordinator.pendingPullCount) NEW")
+                                .font(.system(size: 9, weight: .heavy))
+                                .foregroundColor(Color(hex: "2563EB"))
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(Color(hex: "3B82F6").opacity(0.12), in: Capsule())
+                        }
+
+                        Text("\(coordinator.pendingPullCount) change\(coordinator.pendingPullCount == 1 ? "" : "s") available to pull")
+                            .font(.system(size: 11, weight: .regular))
+                            .foregroundColor(AppTheme.textSecondary)
+                            .lineLimit(1)
+                    }
+
+                    Spacer(minLength: 8)
+
+                    Button {
+                        LBHaptic.medium()
+                        Task {
+                            await coordinator.pullChanges(context: modelContext)
+                        }
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "arrow.down")
+                                .font(.system(size: 10, weight: .bold))
+                            Text("Pull Changes")
+                                .font(.system(size: 11, weight: .bold))
+                        }
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 11)
+                        .padding(.vertical, 6)
+                        .background(Color(hex: "2563EB"), in: Capsule())
+                    }
+                    .buttonStyle(.plain)
+                } else if hasPush {
+                    // Push available
+                    ZStack {
+                        Circle()
+                            .fill(Color(hex: "F59E0B").opacity(0.14))
+                            .frame(width: 34, height: 34)
+                        Image(systemName: "arrow.up.circle.fill")
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundColor(Color(hex: "D97706"))
+                    }
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        HStack(spacing: 6) {
+                            Text("Unsynced Edits")
+                                .font(.system(size: 12, weight: .bold))
+                                .foregroundColor(AppTheme.textPrimary)
+
+                            Text("\(coordinator.pendingPushCount) LOCAL")
+                                .font(.system(size: 9, weight: .heavy))
+                                .foregroundColor(Color(hex: "D97706"))
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(Color(hex: "F59E0B").opacity(0.12), in: Capsule())
+                        }
+
+                        Text("\(coordinator.pendingPushCount) edit\(coordinator.pendingPushCount == 1 ? "" : "s") pending push")
+                            .font(.system(size: 11, weight: .regular))
+                            .foregroundColor(AppTheme.textSecondary)
+                            .lineLimit(1)
+                    }
+
+                    Spacer(minLength: 8)
+
+                    Button {
+                        LBHaptic.medium()
+                        Task {
+                            await coordinator.pushChanges(context: modelContext)
+                        }
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "arrow.up")
+                                .font(.system(size: 10, weight: .bold))
+                            Text("Push Changes")
+                                .font(.system(size: 11, weight: .bold))
+                        }
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 11)
+                        .padding(.vertical, 6)
+                        .background(Color(hex: "D97706"), in: Capsule())
+                    }
+                    .buttonStyle(.plain)
+                } else {
+                    // Up to date
+                    ZStack {
+                        Circle()
+                            .fill(Color(hex: "10B981").opacity(0.14))
+                            .frame(width: 34, height: 34)
+                        Image(systemName: "crown.fill")
+                            .font(.system(size: 15, weight: .bold))
+                            .foregroundColor(Color(hex: "10B981"))
+                    }
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        HStack(spacing: 6) {
+                            Text("Pro Member")
+                                .font(.system(size: 12, weight: .bold))
+                                .foregroundColor(AppTheme.textPrimary)
+
+                            HStack(spacing: 3) {
+                                Circle()
+                                    .fill(Color(hex: "10B981"))
+                                    .frame(width: 5, height: 5)
+                                Text("ACTIVE")
+                                    .font(.system(size: 9, weight: .heavy))
+                                    .foregroundColor(Color(hex: "10B981"))
+                            }
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Color(hex: "10B981").opacity(0.12), in: Capsule())
+                        }
+
+                        Text("Cloud sync active • All changes up to date")
+                            .font(.system(size: 11, weight: .regular))
+                            .foregroundColor(AppTheme.textSecondary)
+                            .lineLimit(1)
+                    }
+
+                    Spacer(minLength: 8)
+
+                    Button {
+                        LBHaptic.light()
+                        Task {
+                            await coordinator.checkRemoteChanges(context: modelContext)
+                        }
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "arrow.triangle.2.circlepath")
+                                .font(.system(size: 10))
+                            Text("Check Sync")
+                                .font(.system(size: 11, weight: .bold))
+                        }
+                        .foregroundColor(Color(hex: "10B981"))
+                        .padding(.horizontal, 11)
+                        .padding(.vertical, 6)
                         .background(Color(hex: "10B981").opacity(0.12), in: Capsule())
                     }
-
-                    Text("Cloud sync active • Unlimited AI unlocked. Keep conquering!")
-                        .font(.system(size: 11, weight: .regular))
-                        .foregroundColor(AppTheme.textSecondary)
-                        .lineLimit(1)
+                    .buttonStyle(.plain)
                 }
-
-                Spacer(minLength: 8)
-
-                Button {
-                    showingPlans = true
-                    LBHaptic.light()
-                } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: "sparkles")
-                            .font(.system(size: 10))
-                        Text("Active")
-                            .font(.system(size: 11, weight: .bold))
-                    }
-                    .foregroundColor(Color(hex: "10B981"))
-                    .padding(.horizontal, 11)
-                    .padding(.vertical, 6)
-                    .background(Color(hex: "10B981").opacity(0.12), in: Capsule())
-                }
-                .buttonStyle(.plain)
             }
         }
         .padding(.horizontal, 16)
