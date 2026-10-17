@@ -55,26 +55,28 @@ public struct InboxView: View {
                  $0.collectionName?.localizedCaseInsensitiveCompare(col) == .orderedSame)
             }
         }
+        let now = Date()
+        let cal = Calendar.current
+        let endOfToday = cal.date(byAdding: .day, value: 1, to: cal.startOfDay(for: now)) ?? now
+
         switch selectedMailbox {
         case .inbox:
-            return allItems.filter { $0.status == ItemStatus.inbox.rawValue }
-        case .today:
-            let cal = Calendar.current
-            let endOfToday = cal.date(byAdding: .day, value: 1, to: cal.startOfDay(for: Date())) ?? Date()
             return allItems.filter {
-                $0.status != ItemStatus.deleted.rawValue &&
-                $0.status != ItemStatus.archived.rawValue &&
+                $0.status == ItemStatus.inbox.rawValue ||
+                ($0.status == ItemStatus.deferred.rawValue && $0.returnAt != nil && $0.returnAt! <= now)
+            }
+        case .today:
+            return allItems.filter {
+                $0.status == ItemStatus.deferred.rawValue &&
                 $0.returnAt != nil &&
-                ($0.returnAt! <= endOfToday)
+                $0.returnAt! > now &&
+                $0.returnAt! <= endOfToday
             }
         case .scheduled:
-            let cal = Calendar.current
-            let endOfToday = cal.date(byAdding: .day, value: 1, to: cal.startOfDay(for: Date())) ?? Date()
             return allItems.filter {
-                $0.status != ItemStatus.deleted.rawValue &&
-                $0.status != ItemStatus.archived.rawValue &&
+                $0.status == ItemStatus.deferred.rawValue &&
                 $0.returnAt != nil &&
-                ($0.returnAt! > endOfToday)
+                $0.returnAt! > endOfToday
             }
         case .someday:
             return allItems.filter {
