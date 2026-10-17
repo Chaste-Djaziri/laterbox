@@ -41,124 +41,66 @@ public enum LaterBoxReturnPreset: String, AppEnum {
 
 public struct QuickSaveIntent: AppIntent {
     public static var title: LocalizedStringResource = "Quick Save to LaterBox"
-    public static var description = IntentDescription("Save a note, idea, or link to LaterBox directly without opening the app.")
+    public static var description = IntentDescription("Save a note, idea, or link to LaterBox without opening the app.")
 
-    public static var openAppWhenRun: Bool = true
+    public static var openAppWhenRun: Bool = false
 
-    @Parameter(title: "Note or URL", description: "What you would like to save to LaterBox")
+    @Parameter(
+        title: "Note or URL",
+        description: "What you would like to save to LaterBox",
+        requestValueDialog: IntentDialog("What would you like to save to LaterBox?")
+    )
     public var content: String?
-
-    @Parameter(title: "Title", description: "Optional title for the item")
-    public var title: String?
-
-    @Parameter(title: "When to Return", description: "When to see this item back in your inbox")
-    public var returnPreset: LaterBoxReturnPreset?
 
     public init() {}
 
-    public init(content: String, title: String? = nil, returnPreset: LaterBoxReturnPreset? = nil) {
+    public init(content: String? = nil, title: String? = nil, returnPreset: LaterBoxReturnPreset? = nil) {
         self.content = content
-        self.title = title
-        self.returnPreset = returnPreset
     }
 
     public static var parameterSummary: some ParameterSummary {
-        Summary("Save \(\.$content) to LaterBox") {
-            \.$title
-            \.$returnPreset
-        }
+        Summary("Save \(\.$content) to LaterBox")
     }
 
     @MainActor
     public func perform() async throws -> some IntentResult & ProvidesDialog {
-        let trimmed = content?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        if trimmed.isEmpty {
-            UserDefaults(suiteName: "group.pro.micorp.laterbox")?.set(true, forKey: "pendingOpenQuickSaveModal")
-            NotificationCenter.default.post(name: NSNotification.Name("OpenQuickSaveModal"), object: nil)
-            Task { @MainActor in
-                try? await Task.sleep(for: .milliseconds(150))
-                NotificationCenter.default.post(name: NSNotification.Name("OpenQuickSaveModal"), object: nil)
-            }
-            return .result(dialog: "Opening Quick Save in LaterBox...")
+        let raw: String
+        if let provided = content?.trimmingCharacters(in: .whitespacesAndNewlines), !provided.isEmpty {
+            raw = provided
+        } else {
+            raw = try await $content.requestValue("What would you like to save to LaterBox?")
+        }
+
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            return .result(dialog: "Nothing was entered to save.")
         }
 
         var capture = SharedCapture()
         capture.content = trimmed
 
         // Extract URL if present
-        var detectedUrl: String?
         if let detector = try? NSDataDetector(types: NSTextCheckingResult.CheckingType.link.rawValue),
            let match = detector.firstMatch(in: trimmed, range: NSRange(trimmed.startIndex..., in: trimmed)),
            let matchUrl = match.url {
-            detectedUrl = matchUrl.absoluteString
-        }
-
-        // Title resolution
-        let customTitle = title?.trimmingCharacters(in: .whitespacesAndNewlines)
-        if let customTitle, !customTitle.isEmpty {
-            capture.title = customTitle
-        } else if let firstLine = trimmed.components(separatedBy: .newlines).first, !firstLine.isEmpty {
-            capture.title = String(firstLine.prefix(80))
-        } else {
-            capture.title = "Quick Note"
-        }
-
-        // Return schedule
-        if let returnPreset {
-            capture.returnAt = returnPreset.targetDate
-        }
-
-        // Category & tags
-        if detectedUrl != nil {
             capture.category = "Reading"
             capture.tags = ["link", "quick-save"]
+            capture.title = String(trimmed.prefix(80))
         } else {
             capture.category = "Inbox"
             capture.tags = ["note", "quick-save"]
+            if let firstLine = trimmed.components(separatedBy: .newlines).first, !firstLine.isEmpty {
+                capture.title = String(firstLine.prefix(80))
+            } else {
+                capture.title = "Quick Note"
+            }
         }
 
         do {
             try SharedCaptureStore.save(capture)
-            if let returnAt = capture.returnAt {
-                _ = try? await ReturnNotification.update(
-                    id: capture.id,
-                    title: capture.title,
-                    description: capture.content,
-                    date: returnAt
-                )
-            }
-
-            let reminderText: String
-            if let returnAt = capture.returnAt {
-                reminderText = " (scheduled for \(returnAt.formatted(date: .abbreviated, time: .shortened)))"
-            } else {
-                reminderText = " to your Inbox"
-            }
-
-            return .result(dialog: "Saved ‘\(capture.title)’\(reminderText).")
+            return .result(dialog: "Saved to LaterBox.")
         } catch {
             return .result(dialog: "Failed to save: \(error.localizedDescription)")
         }
-    }
-}
-
-@available(iOS 18.0, *)
-public struct QuickSaveControlIntent: AppIntent {
-    public static var title: LocalizedStringResource = "Quick Save to LaterBox"
-    public static var description = IntentDescription("Open the quick save input in LaterBox.")
-    public static var openAppWhenRun: Bool = true
-
-    public init() {}
-
-    @MainActor
-    public func perform() async throws -> some IntentResult & OpensIntent {
-        UserDefaults(suiteName: "group.pro.micorp.laterbox")?.set(true, forKey: "pendingOpenQuickSaveModal")
-        NotificationCenter.default.post(name: NSNotification.Name("OpenQuickSaveModal"), object: nil)
-        Task { @MainActor in
-            try? await Task.sleep(for: .milliseconds(150))
-            NotificationCenter.default.post(name: NSNotification.Name("OpenQuickSaveModal"), object: nil)
-        }
-        let deepLink = URL(string: "laterbox://quick-save")!
-        return .result(opensIntent: OpenURLIntent(deepLink))
     }
 }

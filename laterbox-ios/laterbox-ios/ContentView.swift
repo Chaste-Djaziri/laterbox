@@ -131,7 +131,6 @@ struct ContentView: View {
         }
         .onAppear {
             clipboardManager.checkForCopiedItem()
-            checkPendingQuickSave()
         }
         .onOpenURL { url in
             if url.scheme == "laterbox" && (url.host == "quick-save" || url.host == "capture") {
@@ -146,7 +145,6 @@ struct ContentView: View {
         }
         .onChange(of: scenePhase) { _, newPhase in
             if newPhase == .active {
-                checkPendingQuickSave()
                 try? SharedCaptureImporter.refresh(context: modelContext)
                 Task {
                     await StoreKitManager.shared.updatePurchasedProducts()
@@ -158,13 +156,6 @@ struct ContentView: View {
             if newPhase == .background {
                 lockManager.lockAppIfNeeded()
             }
-        }
-    }
-
-    private func checkPendingQuickSave() {
-        if UserDefaults(suiteName: "group.pro.micorp.laterbox")?.bool(forKey: "pendingOpenQuickSaveModal") == true {
-            UserDefaults(suiteName: "group.pro.micorp.laterbox")?.removeObject(forKey: "pendingOpenQuickSaveModal")
-            coordinator.showingQuickCapture = true
         }
     }
 }

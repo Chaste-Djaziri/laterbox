@@ -17,11 +17,11 @@ struct LaterBoxQuickSaveControl: ControlWidget {
 
     var body: some ControlWidgetConfiguration {
         StaticControlConfiguration(kind: Self.kind) {
-            ControlWidgetButton(action: QuickSaveControlIntent()) {
+            ControlWidgetButton(action: QuickSaveIntent()) {
                 Label("Quick Save to LaterBox", systemImage: "plus.square.fill.on.square.fill")
             }
         }
         .displayName("Quick Save to LaterBox")
-        .description("Close controls and open the quick save input in LaterBox.")
+        .description("Prompt to save a note or link to LaterBox without opening the app.")
     }
 }
