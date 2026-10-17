@@ -746,33 +746,41 @@ export function EmailInboxTable({
                     </button>
 
                 {bulkSnoozeOpen && (
-                  <div className="absolute left-0 top-full mt-1 w-48 bg-white border border-[#e4e0d5] rounded-xl shadow-lg py-1.5 z-40 text-xs text-[#171711]">
+                  <div className="absolute left-0 top-full mt-1 w-56 bg-white border border-[#e4e0d5] rounded-xl shadow-lg py-1.5 z-40 text-xs text-[#171711]">
                     <div className="px-3 py-1 text-[10px] font-bold text-[#9e9b92] uppercase tracking-wider">
                       Snooze until
                     </div>
                     <button
                       type="button"
-                      onClick={() => handleBulkPreset('laterToday')}
+                      onClick={() => handleBulkPreset('oneHour')}
                       className="w-full text-left px-3 py-1.5 hover:bg-[#faf8f5] cursor-pointer flex justify-between"
                     >
-                      <span>Later today</span>
-                      <span className="text-[#9e9b92]">+3 hrs</span>
+                      <span>In 1 hour</span>
+                      <span className="text-[#9e9b92]">+1 hr</span>
                     </button>
                     <button
                       type="button"
                       onClick={() => handleBulkPreset('tomorrow')}
                       className="w-full text-left px-3 py-1.5 hover:bg-[#faf8f5] cursor-pointer flex justify-between"
                     >
-                      <span>Tomorrow</span>
-                      <span className="text-[#9e9b92]">9:00 AM</span>
+                      <span>After 1 day</span>
+                      <span className="text-[#9e9b92]">Tomorrow</span>
                     </button>
                     <button
                       type="button"
-                      onClick={() => handleBulkPreset('weekend')}
+                      onClick={() => handleBulkPreset('oneWeek')}
                       className="w-full text-left px-3 py-1.5 hover:bg-[#faf8f5] cursor-pointer flex justify-between"
                     >
-                      <span>This weekend</span>
-                      <span className="text-[#9e9b92]">Sat 9 AM</span>
+                      <span>A week</span>
+                      <span className="text-[#9e9b92]">+7 days</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleBulkPreset('oneMonth')}
+                      className="w-full text-left px-3 py-1.5 hover:bg-[#faf8f5] cursor-pointer flex justify-between"
+                    >
+                      <span>A month</span>
+                      <span className="text-[#9e9b92]">+1 mo</span>
                     </button>
                     <button
                       type="button"
@@ -782,6 +790,27 @@ export function EmailInboxTable({
                       <span>Someday</span>
                       <span className="text-[#9e9b92]">Vault</span>
                     </button>
+                    <div className="px-3 pt-2 pb-1 border-t border-[#e4e0d5] mt-1">
+                      <div className="text-[10px] font-bold text-[#9e9b92] uppercase tracking-wider mb-1">
+                        Exact date & time
+                      </div>
+                      <input
+                        type="datetime-local"
+                        min={new Date().toISOString().slice(0, 16)}
+                        onChange={async (e) => {
+                          if (e.target.value) {
+                            const iso = new Date(e.target.value).toISOString();
+                            const ids = Array.from(selectedIds);
+                            for (const id of ids) {
+                              await reschedule(id, iso);
+                            }
+                            setBulkSnoozeOpen(false);
+                            setSelectedIds(new Set());
+                          }
+                        }}
+                        className="w-full text-xs bg-[#f7f5ee] border border-[#e4e0d5] rounded-lg px-2 py-1 text-[#171711] focus:outline-none focus:border-[#171711]"
+                      />
+                    </div>
                   </div>
                 )}
               </div>
@@ -1445,34 +1474,42 @@ export function EmailInboxTable({
                       {snoozeMenuForId === item.id && (
                         <div
                           onClick={(e) => e.stopPropagation()}
-                          className="absolute right-0 top-full mt-1 w-44 bg-white border border-[#e4e0d5] rounded-xl shadow-lg py-1.5 z-40 text-xs text-[#171711] text-left"
+                          className="absolute right-0 top-full mt-1 w-56 bg-white border border-[#e4e0d5] rounded-xl shadow-lg py-1.5 z-40 text-xs text-[#171711] text-left"
                         >
                           <div className="px-3 py-1 text-[10px] font-bold text-[#9e9b92] uppercase tracking-wider">
                             Snooze until
                           </div>
                           <button
                             type="button"
-                            onClick={() => handleApplyPreset(item.id, 'laterToday')}
+                            onClick={() => handleApplyPreset(item.id, 'oneHour')}
                             className="w-full text-left px-3 py-1.5 hover:bg-[#faf8f5] cursor-pointer flex justify-between"
                           >
-                            <span>Later today</span>
-                            <span className="text-[#9e9b92]">+3 hrs</span>
+                            <span>In 1 hour</span>
+                            <span className="text-[#9e9b92]">+1 hr</span>
                           </button>
                           <button
                             type="button"
                             onClick={() => handleApplyPreset(item.id, 'tomorrow')}
                             className="w-full text-left px-3 py-1.5 hover:bg-[#faf8f5] cursor-pointer flex justify-between"
                           >
-                            <span>Tomorrow</span>
-                            <span className="text-[#9e9b92]">9:00 AM</span>
+                            <span>After 1 day</span>
+                            <span className="text-[#9e9b92]">Tomorrow</span>
                           </button>
                           <button
                             type="button"
-                            onClick={() => handleApplyPreset(item.id, 'weekend')}
+                            onClick={() => handleApplyPreset(item.id, 'oneWeek')}
                             className="w-full text-left px-3 py-1.5 hover:bg-[#faf8f5] cursor-pointer flex justify-between"
                           >
-                            <span>This weekend</span>
-                            <span className="text-[#9e9b92]">Sat 9 AM</span>
+                            <span>A week</span>
+                            <span className="text-[#9e9b92]">+7 days</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleApplyPreset(item.id, 'oneMonth')}
+                            className="w-full text-left px-3 py-1.5 hover:bg-[#faf8f5] cursor-pointer flex justify-between"
+                          >
+                            <span>A month</span>
+                            <span className="text-[#9e9b92]">+1 mo</span>
                           </button>
                           <button
                             type="button"
@@ -1482,6 +1519,23 @@ export function EmailInboxTable({
                             <span>Someday</span>
                             <span className="text-[#9e9b92]">Vault</span>
                           </button>
+                          <div className="px-3 pt-2 pb-1 border-t border-[#e4e0d5] mt-1">
+                            <div className="text-[10px] font-bold text-[#9e9b92] uppercase tracking-wider mb-1">
+                              Exact date & time
+                            </div>
+                            <input
+                              type="datetime-local"
+                              min={new Date().toISOString().slice(0, 16)}
+                              onChange={async (e) => {
+                                if (e.target.value) {
+                                  const iso = new Date(e.target.value).toISOString();
+                                  await reschedule(item.id, iso);
+                                  setSnoozeMenuForId(null);
+                                }
+                              }}
+                              className="w-full text-xs bg-[#f7f5ee] border border-[#e4e0d5] rounded-lg px-2 py-1 text-[#171711] focus:outline-none focus:border-[#171711]"
+                            />
+                          </div>
                         </div>
                       )}
                     </div>
