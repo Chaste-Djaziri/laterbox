@@ -1243,6 +1243,39 @@ extension LaterAITests {
         #expect(coordinator.sessionExpired == false)
         #expect(coordinator.refreshToken == "new-refresh-token")
     }
+
+    @Test
+    func entitlementRefreshAndRetryTracking() async throws {
+        let coordinator = SyncCoordinator.shared
+        coordinator.signOut()
+
+        // Unauthenticated coordinator returns false
+        let unauthResult = await coordinator.refreshEntitlement()
+        #expect(unauthResult == false)
+        #expect(coordinator.billingError == nil)
+
+        // Set session
+        coordinator.setSession(
+            email: "entitlement-test@example.com",
+            userId: "uid-entitle-1",
+            token: "mock-expired-token",
+            refreshToken: "mock-expired-refresh"
+        )
+
+        // Allow any initial background tasks from setSession to settle
+        try? await Task.sleep(nanoseconds: 300_000_000)
+
+        let result = await coordinator.refreshEntitlement()
+        #expect(coordinator.isCheckingEntitlement == false)
+        #expect(result == false)
+        #expect(coordinator.billingError != nil)
+        #expect(coordinator.sessionExpired == true)
+
+        // Sign out resets billingError
+        coordinator.signOut()
+        #expect(coordinator.billingError == nil)
+        #expect(coordinator.sessionExpired == false)
+    }
 }
 @MainActor
 private final class MockCloudTransport: IOSCloudTransport {
