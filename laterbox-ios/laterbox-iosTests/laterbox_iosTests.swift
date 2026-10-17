@@ -1289,10 +1289,10 @@ extension LaterAITests {
         let t2 = Date(timeIntervalSince1970: 2000)
 
         // Local item with pending sync vs up to date synced cloud copy
-        let localItem = LBItem(id: "local-1", title: "Local Draft", url: "https://example.com/post", createdAt: t1, updatedAt: t1)
+        let localItem = LBItem(id: "local-1", url: "https://example.com/post", title: "Local Draft", createdAt: t1, updatedAt: t1)
         localItem.isSyncPending = true
 
-        let syncedItem = LBItem(id: "cloud-1", title: "Synced Version", url: "https://www.example.com/post/", createdAt: t1, updatedAt: t2)
+        let syncedItem = LBItem(id: "cloud-1", url: "https://www.example.com/post/", title: "Synced Version", createdAt: t1, updatedAt: t2)
         syncedItem.isSyncPending = false
 
         let items = [localItem, syncedItem]
@@ -1325,7 +1325,7 @@ extension LaterAITests {
         let tNew = Date(timeIntervalSince1970: 2000)
 
         // Item captured locally before syncing to cloud (has local UUID)
-        let localPreSync = LBItem(id: "local-orig-uuid", title: "Local Title", url: "https://laterbox.app/guide", createdAt: tOld, updatedAt: tOld)
+        let localPreSync = LBItem(id: "local-orig-uuid", url: "https://laterbox.app/guide", title: "Local Title", createdAt: tOld, updatedAt: tOld)
         localPreSync.userId = uid
         localPreSync.isSyncPending = true
         context.insert(localPreSync)
@@ -1435,13 +1435,13 @@ extension LaterAITests {
         let t2 = Date(timeIntervalSince1970: 2000)
 
         // Local copy created offline with custom note
-        let local1 = LBItem(id: "item-dup-1", title: "Swift Guide (Draft)", url: "https://developer.apple.com/swift/", createdAt: t1, updatedAt: t1)
+        let local1 = LBItem(id: "item-dup-1", url: "https://developer.apple.com/swift/", title: "Swift Guide (Draft)", createdAt: t1, updatedAt: t1)
         local1.noteContent = "Important note to keep"
         local1.tags = ["local-tag"]
         local1.isSyncPending = true
 
         // Synced cloud copy pulled down
-        let local2 = LBItem(id: "item-dup-2", title: "Swift Guide (Official)", url: "https://developer.apple.com/swift", createdAt: t1, updatedAt: t2)
+        let local2 = LBItem(id: "item-dup-2", url: "https://developer.apple.com/swift", title: "Swift Guide (Official)", createdAt: t1, updatedAt: t2)
         local2.tags = ["official"]
         local2.isSyncPending = false
 
