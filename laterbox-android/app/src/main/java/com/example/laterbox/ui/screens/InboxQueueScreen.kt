@@ -389,11 +389,19 @@ fun InboxQueueScreen(
                                         onClick = {}
                                     )
                                     DropdownMenuItem(
-                                        text = { Text("Sign In / Exit Guest", color = Color(0xFF1A73E8), fontWeight = FontWeight.SemiBold) },
+                                        text = { Text("Sign In", color = Color(0xFF1A73E8), fontWeight = FontWeight.SemiBold) },
                                         leadingIcon = { Icon(Icons.AutoMirrored.Filled.Login, contentDescription = null, tint = Color(0xFF1A73E8), modifier = Modifier.size(18.dp)) },
                                         onClick = {
                                             profileExpanded = false
                                             onAuth()
+                                        }
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text("Exit Guest & Clear Data", color = Color(0xFFE53935), fontWeight = FontWeight.SemiBold) },
+                                        leadingIcon = { Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = null, tint = Color(0xFFE53935), modifier = Modifier.size(18.dp)) },
+                                        onClick = {
+                                            profileExpanded = false
+                                            onSignOut()
                                         }
                                     )
                                 }
