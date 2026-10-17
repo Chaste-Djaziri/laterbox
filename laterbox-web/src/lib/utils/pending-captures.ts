@@ -375,6 +375,39 @@ export interface SyncCloudResult {
   collections: Collection[];
 }
 
+type RemoteItemVersion = Pick<LaterBoxItem, 'id' | 'updated_at' | 'created_at' | 'deleted_at'> & {
+  attachments?: Pick<Attachment, 'id' | 'r2_object_key'>[];
+};
+
+export function countIncomingItemChanges(remote: RemoteItemVersion[], localItems: LaterBoxItem[], pending: Record<string, LaterBoxItem>): number {
+  const localMap = new Map(localItems.map(item => [item.id.toLowerCase(), item]));
+  const pendingMap = new Map(Object.values(pending).map(item => [item.id.toLowerCase(), item]));
+  return remote.filter(row => {
+    const queued = pendingMap.get(row.id.toLowerCase());
+    const local = queued || localMap.get(row.id.toLowerCase());
+    // Old tombstones for items absent from this device have nothing left to apply.
+    if (!local) return !row.deleted_at;
+    if (queued && (queued as LaterBoxItem & { _action?: string })._action === 'hard_delete') return false;
+    // Pull cannot replace a local capture while its assets still need publishing.
+    if (queued && !queued.deleted_at && queued.attachments?.some(asset =>
+      !row.attachments?.some(other => other.id.toLowerCase() === asset.id.toLowerCase() && other.r2_object_key)
+    )) return false;
+    const remoteTime = getItemActionTimestamp(row);
+    const localTime = getItemActionTimestamp(local);
+    return remoteTime > localTime || (remoteTime === localTime && Boolean(row.deleted_at) && !local.deleted_at);
+  }).length;
+}
+
+export async function collectRemoteItemPages<T>(fetchPage: (offset: number, limit: number) => Promise<T[]>): Promise<T[]> {
+  const result: T[] = [];
+  const pageSize = 1000;
+  for (let offset = 0; ; offset += pageSize) {
+    const page = await fetchPage(offset, pageSize);
+    result.push(...page);
+    if (page.length < pageSize) return result;
+  }
+}
+
 export async function checkRemoteChangesWeb(userId: string): Promise<{ pendingPullCount: number; pendingPushCount: number }> {
   if (!userId || typeof localStorage === 'undefined') {
     return { pendingPullCount: 0, pendingPushCount: 0 };
@@ -390,34 +423,17 @@ export async function checkRemoteChangesWeb(userId: string): Promise<{ pendingPu
     }
 
     const client = getSupabaseClient();
-    const { data: remoteRows, error } = await client
-      .from('items')
-      .select('id, updated_at, deleted_at, created_at')
-      .eq('user_id', userId);
-
-    if (error || !remoteRows) {
-      return { pendingPullCount: 0, pendingPushCount };
-    }
+    const remoteRows = await collectRemoteItemPages<RemoteItemVersion>(async (offset, limit) => {
+      const { data, error } = await client.from('items')
+        .select('id, updated_at, deleted_at, created_at, attachments(id,r2_object_key)')
+        .eq('user_id', userId).order('id').range(offset, offset + limit - 1);
+      if (error) throw error;
+      return data || [];
+    });
 
     const localCached = JSON.parse(localStorage.getItem(`laterbox_local_items_${userId}`) || '[]') as LaterBoxItem[];
     const localDeleted = JSON.parse(localStorage.getItem(`laterbox_local_deleted_items_${userId}`) || '[]') as LaterBoxItem[];
-    const localMap = new Map<string, LaterBoxItem>();
-    for (const item of localCached) localMap.set(item.id, item);
-    for (const item of localDeleted) localMap.set(item.id, item);
-
-    let pendingPullCount = 0;
-    for (const row of remoteRows) {
-      const local = localMap.get(row.id);
-      if (!local) {
-        pendingPullCount++;
-      } else {
-        const remoteTime = getItemActionTimestamp(row);
-        const localTime = getItemActionTimestamp(local);
-        if (remoteTime > localTime) {
-          pendingPullCount++;
-        }
-      }
-    }
+    const pendingPullCount = countIncomingItemChanges(remoteRows, [...localCached, ...localDeleted], pendingQueue);
 
     return { pendingPullCount, pendingPushCount };
   } catch (err) {
@@ -442,24 +458,13 @@ export async function pullCloudChanges(userId: string): Promise<SyncCloudResult 
     };
 
     // Step 1: PULL remote state first
-    const { data: itemRows } = await fetchWithRetry(() =>
-      client
-        .from('items')
-        .select('*')
-        .eq('user_id', userId)
-        .is('deleted_at', null)
-        .order('created_at', { ascending: false })
-    );
-
-    const { data: deletedRows } = await fetchWithRetry(() =>
-      client
-        .from('items')
-        .select('*')
-        .eq('user_id', userId)
-        .not('deleted_at', 'is', null)
-        .order('deleted_at', { ascending: false })
-        .limit(100)
-    );
+    const allItemRows = await collectRemoteItemPages<LaterBoxItem>(async (offset, limit) => {
+      const { data } = await fetchWithRetry(() => client.from('items').select('*')
+        .eq('user_id', userId).order('id').range(offset, offset + limit - 1));
+      return (data || []) as LaterBoxItem[];
+    });
+    const itemRows = allItemRows.filter(row => !row.deleted_at);
+    const deletedRows = allItemRows.filter(row => row.deleted_at);
 
     const { data: metaRows } = await fetchWithRetry(() =>
       client.from('item_metadata').select('*').eq('user_id', userId)
