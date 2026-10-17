@@ -1542,6 +1542,76 @@ extension LaterAITests {
         #expect(surviving.tags.contains("local-tag"))
         #expect(surviving.tags.contains("official"))
     }
+
+    @Test func quickSaveIntentSavesDirectlyToSharedStoreWithoutAppOpen() async throws {
+        let uniqueID = "test-intent-\(UUID().uuidString)"
+        let intent = QuickSaveIntent(
+            content: "Check out https://laterbox.dev for offline capture\nAdditional notes here.",
+            title: "LaterBox Dev Link",
+            returnPreset: .in10Minutes
+        )
+
+        _ = try await intent.perform()
+
+        // Verify it was stored in SharedCaptureStore
+        let pending = try SharedCaptureStore.pending()
+        let matching = pending.first(where: { $0.1.title == "LaterBox Dev Link" })
+        #expect(matching != nil)
+
+        if let (file, capture) = matching {
+            #expect(capture.content.contains("https://laterbox.dev"))
+            #expect(capture.category == "Reading")
+            #expect(capture.returnAt != nil)
+
+            // Verify SharedCaptureImporter ingests it into SwiftData
+            let ctx = try context()
+            try SharedCaptureImporter.refresh(context: ctx)
+            let items = try ctx.fetch(FetchDescriptor<LBItem>())
+            let imported = items.first(where: { $0.title == "LaterBox Dev Link" })
+            #expect(imported != nil)
+            #expect(imported?.url == "https://laterbox.dev")
+            #expect(imported?.status == "deferred")
+
+            // Clean up test file
+            try? FileManager.default.removeItem(at: file)
+        }
+    }
+
+    @Test func laterBoxReturnPresetComputesCorrectFutureDates() throws {
+        let now = Date()
+        #expect(LaterBoxReturnPreset.none.targetDate == nil)
+
+        let in10 = try #require(LaterBoxReturnPreset.in10Minutes.targetDate)
+        #expect(in10.timeIntervalSince(now) >= 590 && in10.timeIntervalSince(now) <= 610)
+
+        let in1h = try #require(LaterBoxReturnPreset.in1Hour.targetDate)
+        #expect(in1h.timeIntervalSince(now) >= 3590 && in1h.timeIntervalSince(now) <= 3610)
+
+        let tomorrow = try #require(LaterBoxReturnPreset.tomorrow.targetDate)
+        #expect(tomorrow > now)
+
+        let weekend = try #require(LaterBoxReturnPreset.thisWeekend.targetDate)
+        #expect(weekend > now)
+
+        let nextWeek = try #require(LaterBoxReturnPreset.nextWeek.targetDate)
+        #expect(nextWeek.timeIntervalSince(now) >= 86400 * 6.5)
+    }
+
+    @Test func openQuickSaveModalIntentPostsNotification() async throws {
+        var notificationReceived = false
+        let observer = NotificationCenter.default.addObserver(
+            forName: NSNotification.Name("OpenQuickSaveModal"),
+            object: nil,
+            queue: .main
+        ) { _ in
+            notificationReceived = true
+        }
+        defer { NotificationCenter.default.removeObserver(observer) }
+
+        let intent = OpenQuickSaveModalIntent()
+        _ = try await intent.perform()
+        #expect(notificationReceived == true)
+    }
 }
 @MainActor
 private final class MockCloudTransport: IOSCloudTransport {
