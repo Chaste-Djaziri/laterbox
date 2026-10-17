@@ -592,7 +592,7 @@ export async function pullCloudChanges(userId: string): Promise<SyncCloudResult 
   });
 }
 
-export async function pushCloudChanges(userId: string): Promise<{ pushedCount: number } | null> {
+export async function pushCloudChanges(userId: string, deletionsOnly = false): Promise<{ pushedCount: number } | null> {
   if (!userId) return null;
 
   return syncQueue.enqueue(userId, async () => {
@@ -607,10 +607,12 @@ export async function pushCloudChanges(userId: string): Promise<{ pushedCount: n
     }
 
     let pushedCount = 0;
+    let deletionFailed = false;
 
     for (const id of itemIds) {
       const item = pendingQueue[id];
       if (!item) continue;
+      if (deletionsOnly && (item as any)._action !== 'hard_delete') continue;
 
       try {
         if ((item as any)._action === 'hard_delete') {
@@ -674,10 +676,12 @@ export async function pushCloudChanges(userId: string): Promise<{ pushedCount: n
           pushedCount++;
         }
       } catch (pushErr) {
+        if ((item as any)._action === 'hard_delete') deletionFailed = true;
         console.warn('[pending-captures] error pushing item:', id, pushErr);
       }
     }
 
+    if (deletionFailed) throw new Error('Some cloud files could not be permanently deleted. Cleanup remains pending and will be retried.');
     return { pushedCount };
   });
 }
@@ -685,6 +689,8 @@ export async function pushCloudChanges(userId: string): Promise<{ pushedCount: n
 export async function syncCloudQueue(userId: string): Promise<SyncCloudResult | null> {
   if (!userId) return null;
 
+  // Do not let a pull restore an item queued for permanent removal.
+  await pushCloudChanges(userId, true);
   // Pull first to reconcile with latest remote state
   const pullResult = await pullCloudChanges(userId);
   if (!pullResult) return null;
