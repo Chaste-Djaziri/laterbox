@@ -20,6 +20,8 @@ All notable user-facing changes to LaterBox will be documented in this file.
 
 ## [Unreleased]
 
+- **[Web / Help & FAQs] Remove the duplicate page intro, keep support tabs visible, and expand FAQ and contact layouts to the available width.**
+
 - **[iOS / Cloud Sync] Fix repeated remote update counts and prevent transient automatic sync failures from interrupting app reload.**
 
 - **[Build / Releases] Publish the changelog with every platform artifact and preserve prior platform assets when only one platform changes.**
