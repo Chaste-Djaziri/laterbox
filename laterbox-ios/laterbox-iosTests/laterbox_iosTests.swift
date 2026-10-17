@@ -88,20 +88,15 @@ struct LaterAITests {
         #expect(calendar.component(.day, from: saturday) == 10)
         #expect(SyncCoordinator.cloudDate("2026-10-05T12:00:00.123Z") != nil)
     }
-    @Test func geminiServiceErrorsExplainDisabledAndAccessFailures() {
-        let disabled = GeminiLaterAIProvider.failure(statusCode: 503, data: Data(#"{"error":"Gemini fallback is disabled."}"#.utf8))
-        #expect(disabled.errorDescription?.contains("disabled on the server") == true)
-        let unauthorized = GeminiLaterAIProvider.failure(statusCode: 401, data: Data())
-        #expect(unauthorized.errorDescription?.contains("Sign in") == true)
-        let forbidden = GeminiLaterAIProvider.failure(statusCode: 403, data: Data())
-        #expect(forbidden.errorDescription?.contains("verified Pro access") == true)
-    }
-
-    @Test func remoteFallbackDisabledWithoutNetwork() async {
-        #expect(GeminiLaterAIProvider.enabled == true)
-        GeminiLaterAIProvider.enabled = false
-        await #expect(throws: AIProviderError.self) { try await GeminiLaterAIProvider().respond("Hello") }
-        GeminiLaterAIProvider.enabled = true
+    @Test func deterministicAssistantRecognizesCaptureAndSearch() async throws {
+        let provider = DeterministicLaterAIProvider()
+        let capture = try await provider.respond("Current input:\n#work https://example.com/article")
+        #expect(capture.intent == "capture")
+        #expect(capture.content == "#work https://example.com/article")
+        #expect(capture.tags == ["work"])
+        let search = try await provider.respond("Current input:\nsearch tax returns")
+        #expect(search.intent == "search")
+        #expect(search.query == "tax returns")
     }
     @Test func linkMetadataIdentifiesGenericTitles() {
         #expect(LinkMetadataLoader.isGenericTitle(nil))
@@ -295,62 +290,6 @@ extension LaterAITests {
     @Test func notificationStatusAndPermissionsAPIAvailable() async {
         let status = await ReturnNotification.currentAuthorizationStatus()
         #expect([UNAuthorizationStatus.notDetermined, .denied, .authorized, .provisional, .ephemeral].contains(status))
-    }
-    @Test func modelManagerProviderSwitchingAndPresets() {
-        let manager = LaterAIModelManager.shared
-        let original = (manager.selectedProvider, manager.openAIApiKey, manager.openAIModel)
-        defer {
-            manager.selectedProvider = original.0
-            manager.openAIApiKey = original.1
-            manager.openAIModel = original.2
-        }
-
-        #expect(AIModelPresets.geminiModels.contains("gemini-2.5-flash"))
-        #expect(AIModelPresets.openAIModels.contains("gpt-4o-mini"))
-        #expect(AIModelPresets.claudeModels.contains("claude-3-5-haiku-latest"))
-
-        manager.selectedProvider = .customOpenAI
-        manager.openAIApiKey = "test-key"
-        manager.openAIModel = "gpt-4o"
-        #expect(manager.activeModelName == "gpt-4o")
-        #expect(manager.selectedProvider.isCustomKey == true)
-
-        manager.selectedProvider = .onDevice
-        #expect(manager.selectedProvider.isCustomKey == false)
-        #expect(manager.activeModelName == "Apple Intelligence")
-    }
-    @Test func laterAIJSONParserHandlesFencedAndRawResponses() throws {
-        let fencedJSON = """
-        ```json
-        {
-          "intent": "capture",
-          "reply": "Saved your note!",
-          "content": "Meeting with Sarah",
-          "title": "Meeting with Sarah",
-          "category": "Work",
-          "contentType": "note",
-          "tags": ["work", "meetings"],
-          "summary": "Meeting notes",
-          "formattedContent": "Meeting with Sarah",
-          "query": "",
-          "returnDate": "2026-10-10T09:00:00Z"
-        }
-        ```
-        """
-        let action = try LaterAIJSONParser.parseAIAction(from: fencedJSON)
-        #expect(action.intent == "capture")
-        #expect(action.title == "Meeting with Sarah")
-        #expect(action.category == "Work")
-        #expect(action.tags == ["work", "meetings"])
-        #expect(action.returnDate == "2026-10-10T09:00:00Z")
-
-        let searchJSON = """
-        {"terms": "tax returns", "contentType": "document", "returnWindow": "thisWeek"}
-        """
-        let interpretation = LaterAIJSONParser.parseSearchInterpretation(from: searchJSON, fallbackQuery: "find my taxes")
-        #expect(interpretation.terms == "tax returns")
-        #expect(interpretation.contentType == "document")
-        #expect(interpretation.returnWindow == "thisWeek")
     }
     @Test func clipboardPayloadParserDetectsURLsAndNoteTypes() {
         let youtubePayload = ClipboardDetectionManager.parsePayload(from: "https://www.youtube.com/watch?v=dQw4w9WgXcQ")
@@ -827,46 +766,14 @@ extension LaterAITests {
         coordinator.setProForTesting(false)
     }
 
-    @Test func aiModelConfigurationRestrictedToProPlan() async {
-        let coordinator = SyncCoordinator.shared
+    @Test func aiModelManagerUsesLocalMode() async throws {
         let modelManager = LaterAIModelManager.shared
-
-        let prevPro = coordinator.isProUser
-        defer {
-            coordinator.setProForTesting(prevPro)
-            modelManager.selectedProvider = .cloudGemini
-        }
-
-        // Test non-Pro user
-        coordinator.setProForTesting(false)
-        #expect(coordinator.isProUser == false)
-
-        modelManager.selectedProvider = .customOpenAI
-        modelManager.openAIApiKey = "test-key"
-
-        // Active provider falls back to default GeminiLaterAIProvider for free users
-        let provider = modelManager.activeProvider()
-        #expect(provider is GeminiLaterAIProvider)
-
-        // Connection test throws Pro required error
-        await #expect(throws: AIProviderError.self) {
-            try await modelManager.testConnection(for: .customOpenAI)
-        }
-
-        // Search refinement returns unrefined query for free users
+        #expect(modelManager.selectedProvider == .local)
+        #expect(modelManager.activeModelName == "Local assistant")
+        #expect(modelManager.activeProvider() is DeterministicLaterAIProvider)
         let refined = try? await modelManager.interpretSearch("recipes for lentil soup")
         #expect(refined?.terms == "recipes for lentil soup")
         #expect(refined?.contentType.isEmpty == true)
-
-        // Test Pro user restores custom provider access
-        coordinator.setProForTesting(true)
-        #expect(coordinator.isProUser == true)
-        let proProvider = modelManager.activeProvider()
-        #expect(proProvider is OpenAILaterAIProvider)
-
-        // Clean up
-        coordinator.setProForTesting(false)
-        modelManager.selectedProvider = .cloudGemini
     }
 
     @Test
