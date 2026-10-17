@@ -18,7 +18,17 @@ struct CloudItemSnapshot: Codable {
     var item_notes: CloudNote?
     var collection_items: [CloudMembership]?
 }
-struct CloudMembership: Codable { var collection_id: String; var collections: CloudCollection? }
+struct CloudMembership: Codable {
+    var collection_id: String
+    var deleted_at: String?
+    var collections: CloudCollection?
+
+    init(collection_id: String, deleted_at: String? = nil, collections: CloudCollection? = nil) {
+        self.collection_id = collection_id
+        self.deleted_at = deleted_at
+        self.collections = collections
+    }
+}
 struct CloudCollection: Codable { var id: String; var name: String }
 struct CloudNote: Codable { var content: String; var deleted_at: String? }
 struct CloudMetadata: Codable {
@@ -134,7 +144,7 @@ extension LaterBoxAPIService: IOSCloudTransport {
         var result: [CloudItemSnapshot] = []
         var offset = 0
         while true {
-            let data = try await cloudRequest("items?user_id=eq.\(userID)&select=*,item_metadata(*),item_notes(*),collection_items(collection_id,collections(id,name))&order=id.asc&limit=100&offset=\(offset)", token: token)
+            let data = try await cloudRequest("items?user_id=eq.\(userID)&select=*,item_metadata(*),item_notes(*),collection_items(collection_id,deleted_at,collections(id,name))&order=id.asc&limit=100&offset=\(offset)", token: token)
             do {
                 let page = try JSONDecoder().decode([CloudItemSnapshot].self, from: data)
                 result += page
@@ -162,7 +172,29 @@ extension LaterBoxAPIService: IOSCloudTransport {
         _ = try await cloudRequest("item_notes?on_conflict=item_id", token: token, method: "POST", body: note)
         if let collection {
             _ = try await cloudRequest("collections?on_conflict=id", token: token, method: "POST", body: collection)
-            _ = try await cloudRequest("collection_items?on_conflict=collection_id,item_id", token: token, method: "POST", body: ["collection_id": collection["id"]!, "item_id": body["id"]!, "created_at": body["created_at"]!])
+            let userId = (collection["user_id"] as? String) ?? (body["user_id"] as? String) ?? ""
+            let stamp = (collection["updated_at"] as? String) ?? (body["updated_at"] as? String) ?? ISO8601DateFormatter().string(from: Date())
+            let createdAt = (collection["created_at"] as? String) ?? (body["created_at"] as? String) ?? stamp
+            let membershipBody: [String: Any] = [
+                "collection_id": collection["id"]!,
+                "item_id": body["id"]!,
+                "user_id": userId,
+                "created_at": createdAt,
+                "updated_at": stamp,
+                "deleted_at": NSNull()
+            ]
+            _ = try await cloudRequest("collection_items?on_conflict=collection_id,item_id", token: token, method: "POST", body: membershipBody)
+            if let itemID = body["id"] as? String, let collId = collection["id"] as? String, !userId.isEmpty {
+                _ = try? await cloudRequest("collection_items?item_id=eq.\(itemID)&user_id=eq.\(userId)&collection_id=neq.\(collId)&deleted_at=is.null", token: token, method: "PATCH", body: ["deleted_at": stamp, "updated_at": stamp])
+            }
+        } else if let itemID = body["id"] as? String, let userId = body["user_id"] as? String {
+            let stamp = (body["updated_at"] as? String) ?? ISO8601DateFormatter().string(from: Date())
+            _ = try? await cloudRequest("collection_items?item_id=eq.\(itemID)&user_id=eq.\(userId)&deleted_at=is.null", token: token, method: "PATCH", body: ["deleted_at": stamp, "updated_at": stamp])
+        }
+        if let itemID = body["id"] as? String, let userId = body["user_id"] as? String,
+           body["deleted_at"] != nil, !(body["deleted_at"] is NSNull) {
+            let stamp = (body["deleted_at"] as? String) ?? (body["updated_at"] as? String) ?? ISO8601DateFormatter().string(from: Date())
+            _ = try? await cloudRequest("collection_items?item_id=eq.\(itemID)&user_id=eq.\(userId)&deleted_at=is.null", token: token, method: "PATCH", body: ["deleted_at": stamp, "updated_at": stamp])
         }
     }
 }
@@ -219,8 +251,12 @@ extension SyncCoordinator {
                 if let seenVal = metadata.structured_data?.seen { item.seen = seenVal }
             }
             item.noteContent = snapshot.item_notes?.deleted_at == nil ? snapshot.item_notes?.content : nil
-            item.collectionId = snapshot.collection_items?.first?.collection_id
-            item.collectionName = snapshot.collection_items?.first?.collections?.name
+            let activeMembership = snapshot.collection_items?.first { $0.deleted_at == nil }
+            item.collectionId = activeMembership?.collection_id
+            item.collectionName = activeMembership?.collections?.name
+            if let collName = item.collectionName, !collName.isEmpty {
+                _ = ensureCollectionExists(named: collName, context: context)
+            }
             item.isSyncPending = false
         }
         try context.save()
@@ -241,7 +277,14 @@ extension SyncCoordinator {
             let note: [String: Any] = ["item_id": item.id, "user_id": uid, "content": item.noteContent ?? "", "updated_at": stamp, "deleted_at": item.noteContent == nil ? stamp as Any : null]
             var collection: [String: Any]?
             if let name = item.collectionName, !name.isEmpty {
-                if item.collectionId == nil { item.collectionId = UUID().uuidString }
+                if item.collectionId == nil {
+                    let existingColls = (try? context.fetch(FetchDescriptor<LBCollection>())) ?? []
+                    if let found = existingColls.first(where: { $0.name.localizedCaseInsensitiveCompare(name) == .orderedSame }) {
+                        item.collectionId = found.id
+                    } else {
+                        item.collectionId = UUID().uuidString
+                    }
+                }
                 collection = ["id": item.collectionId!, "user_id": uid, "name": name, "created_at": item.createdAt.ISO8601Format(), "updated_at": stamp]
             }
             try await api.uploadSnapshot(body, metadata: metadata, note: note, collection: collection, token: token)
@@ -337,7 +380,8 @@ extension SyncCoordinator {
                 item.noteContent = snapshot.item_notes?.deleted_at == nil ? snapshot.item_notes?.content : nil
 
                 // Auto-create and refresh collection catalog
-                let rawCollName = snapshot.collection_items?.first?.collections?.name ?? (item.category.isEmpty ? nil : item.category)
+                let activeMembership = snapshot.collection_items?.first { $0.deleted_at == nil }
+                let rawCollName = activeMembership?.collections?.name ?? (item.category.isEmpty ? nil : item.category)
                 if let name = rawCollName, !name.isEmpty {
                     if let coll = ensureCollectionExists(named: name, context: context) {
                         item.collectionId = coll.id
