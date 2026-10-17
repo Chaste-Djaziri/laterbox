@@ -650,7 +650,11 @@ export function ItemProvider({ children }: { children: ReactNode }) {
   };
 
   const safeSyncPending = async (userId: string) => {
-    if (!isPro) return;
+    if (!isPro) {
+      try { await pushCloudChanges(userId, true); }
+      catch { setSyncStatus('error'); }
+      return;
+    }
     try {
       setSyncStatus('syncing');
       const result = await syncCloudQueue(userId);
