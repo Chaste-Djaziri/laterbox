@@ -126,6 +126,7 @@ export function resolveActionConflict<T extends LaterBoxItem>(
 }
 
 export interface ReconcileParams {
+  permanentlyDeletedIds?: string[];
   remoteActive: LaterBoxItem[];
   remoteDeleted: LaterBoxItem[];
   localCached: LaterBoxItem[];
@@ -143,6 +144,7 @@ export interface ReconcileResult {
 
 export function reconcileItemsWithRemote(params: ReconcileParams): ReconcileResult {
   const { remoteActive, remoteDeleted, localCached, localDeleted, pendingQueue } = params;
+  const permanentlyDeleted = new Set((params.permanentlyDeletedIds || []).map(id => id.toLowerCase()));
 
   const remoteActiveMap = new Map(remoteActive.map(i => [i.id, i]));
   const remoteDeletedMap = new Map(remoteDeleted.map(i => [i.id, i]));
@@ -164,6 +166,10 @@ export function reconcileItemsWithRemote(params: ReconcileParams): ReconcileResu
   const queueIdsToRemove: string[] = [];
 
   for (const id of allIds) {
+    if (permanentlyDeleted.has(id.toLowerCase())) {
+      if (pendingQueue[id]) queueIdsToRemove.push(id);
+      continue;
+    }
     const remote = remoteDeletedMap.get(id) || remoteActiveMap.get(id);
     const local = pendingQueue[id] || localDeletedMap.get(id) || localCachedMap.get(id);
 
@@ -382,6 +388,7 @@ export interface SyncCloudResult {
 
 type RemoteItemVersion = Pick<LaterBoxItem, 'id' | 'updated_at' | 'created_at' | 'deleted_at'> & {
   attachments?: Pick<Attachment, 'id' | 'r2_object_key'>[];
+  permanently_deleted?: boolean;
 };
 
 export function countIncomingItemChanges(remote: RemoteItemVersion[], localItems: LaterBoxItem[], pending: Record<string, LaterBoxItem>): number {
@@ -390,6 +397,7 @@ export function countIncomingItemChanges(remote: RemoteItemVersion[], localItems
   return remote.filter(row => {
     const queued = pendingMap.get(row.id.toLowerCase());
     const local = queued || localMap.get(row.id.toLowerCase());
+    if (row.permanently_deleted) return Boolean(local);
     // Old tombstones for items absent from this device have nothing left to apply.
     if (!local) return !row.deleted_at;
     if (queued && (queued as LaterBoxItem & { _action?: string })._action === 'hard_delete') return false;
@@ -411,6 +419,17 @@ export async function collectRemoteItemPages<T>(fetchPage: (offset: number, limi
     result.push(...page);
     if (page.length < pageSize) return result;
   }
+}
+
+async function readPermanentDeletionReceipts(userId: string): Promise<{ item_id: string; deleted_at: string }[]> {
+  const client = getSupabaseClient();
+  const recover = createQueryRecovery(refreshAccessToken);
+  return collectRemoteItemPages(async (offset, limit) => {
+    const { data, error } = await recover(() => client.from('item_deletion_receipts').select('item_id,deleted_at')
+      .eq('user_id', userId).order('item_id').range(offset, offset + limit - 1));
+    if (error) throw error;
+    return data || [];
+  });
 }
 
 export async function checkRemoteChangesWeb(userId: string): Promise<{ pendingPullCount: number; pendingPushCount: number }> {
@@ -439,7 +458,12 @@ export async function checkRemoteChangesWeb(userId: string): Promise<{ pendingPu
 
     const localCached = JSON.parse(localStorage.getItem(`laterbox_local_items_${userId}`) || '[]') as LaterBoxItem[];
     const localDeleted = JSON.parse(localStorage.getItem(`laterbox_local_deleted_items_${userId}`) || '[]') as LaterBoxItem[];
-    const pendingPullCount = countIncomingItemChanges(remoteRows, [...localCached, ...localDeleted], pendingQueue);
+    const receipts = await readPermanentDeletionReceipts(userId);
+    const removedIDs = new Set(receipts.map(receipt => receipt.item_id.toLowerCase()));
+    const versions = remoteRows.filter(row => !removedIDs.has(row.id.toLowerCase()));
+    versions.push(...receipts.map(receipt => ({ id: receipt.item_id, created_at: receipt.deleted_at,
+      updated_at: receipt.deleted_at, deleted_at: receipt.deleted_at, permanently_deleted: true })));
+    const pendingPullCount = countIncomingItemChanges(versions, [...localCached, ...localDeleted], pendingQueue);
 
     return { pendingPullCount, pendingPushCount };
   } catch (err) {
@@ -465,6 +489,7 @@ export async function pullCloudChanges(userId: string): Promise<SyncCloudResult 
     };
 
     // Step 1: PULL remote state first
+    const receipts = await readPermanentDeletionReceipts(userId);
     const allItemRows = await collectRemoteItemPages<LaterBoxItem>(async (offset, limit) => {
       const { data } = await fetchWithRetry(() => client.from('items').select('*')
         .eq('user_id', userId).order('id').range(offset, offset + limit - 1));
@@ -551,6 +576,7 @@ export async function pullCloudChanges(userId: string): Promise<SyncCloudResult 
       hardDeletesToPush,
       queueIdsToRemove,
     } = reconcileItemsWithRemote({
+      permanentlyDeletedIds: receipts.map(receipt => receipt.item_id),
       remoteActive,
       remoteDeleted,
       localCached,
@@ -608,10 +634,15 @@ export async function pushCloudChanges(userId: string, deletionsOnly = false): P
 
     let pushedCount = 0;
     let deletionFailed = false;
+    const removedIDs = new Set(deletionsOnly ? [] : (await readPermanentDeletionReceipts(userId)).map(receipt => receipt.item_id.toLowerCase()));
 
     for (const id of itemIds) {
       const item = pendingQueue[id];
       if (!item) continue;
+      if (removedIDs.has(id.toLowerCase()) && (item as any)._action !== 'hard_delete') {
+        clearPendingItem(userId, id);
+        continue;
+      }
       if (deletionsOnly && (item as any)._action !== 'hard_delete') continue;
 
       try {
