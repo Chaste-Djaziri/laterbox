@@ -102,6 +102,38 @@ public struct SyncSettingsView: View {
                                     .foregroundColor(AppTheme.textSecondary)
                             }
 
+                            Divider().background(AppTheme.cardBorder)
+
+                            HStack {
+                                HStack(spacing: 8) {
+                                    Image(systemName: "arrow.down.circle")
+                                        .foregroundColor(coordinator.pendingPullCount > 0 ? Color.blue : AppTheme.textSecondary)
+                                    Text("Incoming from Cloud")
+                                        .font(.subheadline)
+                                        .foregroundColor(AppTheme.textPrimary)
+                                }
+                                Spacer()
+                                Text(coordinator.pendingPullCount > 0 ? "\(coordinator.pendingPullCount) available to pull" : "Up to date")
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundColor(coordinator.pendingPullCount > 0 ? Color.blue : AppTheme.textSecondary)
+                            }
+
+                            Divider().background(AppTheme.cardBorder)
+
+                            HStack {
+                                HStack(spacing: 8) {
+                                    Image(systemName: "arrow.up.circle")
+                                        .foregroundColor(coordinator.pendingPushCount > 0 ? Color.orange : AppTheme.textSecondary)
+                                    Text("Unpushed Local Changes")
+                                        .font(.subheadline)
+                                        .foregroundColor(AppTheme.textPrimary)
+                                }
+                                Spacer()
+                                Text(coordinator.pendingPushCount > 0 ? "\(coordinator.pendingPushCount) pending push" : "All pushed")
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundColor(coordinator.pendingPushCount > 0 ? Color.orange : AppTheme.textSecondary)
+                            }
+
                             if coordinator.hasCloudPro, coordinator.syncState == .error, let errorMsg = coordinator.lastSyncErrorMessage, !errorMsg.isEmpty {
                                 Divider().background(AppTheme.cardBorder)
 
@@ -142,6 +174,75 @@ public struct SyncSettingsView: View {
                             .textCase(.uppercase)
 
                         if coordinator.hasCloudPro {
+                            // 1. Separate Pull Changes
+                            Button(action: {
+                                LBHaptic.medium()
+                                Task {
+                                    await coordinator.pullChanges(context: modelContext)
+                                    await MainActor.run {
+                                        showingSyncCompleteAlert = true
+                                    }
+                                }
+                            }) {
+                                HStack(spacing: 8) {
+                                    if coordinator.isPulling {
+                                        ProgressView()
+                                            .tint(AppTheme.textPrimary)
+                                    } else {
+                                        Image(systemName: "arrow.down.circle.fill")
+                                            .foregroundColor(coordinator.pendingPullCount > 0 ? Color.blue : AppTheme.textPrimary)
+                                    }
+                                    Text(coordinator.isPulling ? "Pulling from Cloud…" : (coordinator.pendingPullCount > 0 ? "Pull Changes (\(coordinator.pendingPullCount) Available)" : "Pull Changes from Cloud"))
+                                        .font(.subheadline.weight(.semibold))
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 14)
+                                .background(AppTheme.cardBackground)
+                                .foregroundColor(AppTheme.textPrimary)
+                                .clipShape(RoundedRectangle(cornerRadius: 14))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 14)
+                                        .strokeBorder(coordinator.pendingPullCount > 0 ? Color.blue.opacity(0.4) : AppTheme.cardBorder, lineWidth: 1)
+                                )
+                            }
+                            .buttonStyle(.plain)
+                            .disabled(coordinator.isPulling || isSyncing)
+
+                            // 2. Separate Push Changes
+                            Button(action: {
+                                LBHaptic.medium()
+                                Task {
+                                    await coordinator.pushChanges(context: modelContext)
+                                    await MainActor.run {
+                                        showingSyncCompleteAlert = true
+                                    }
+                                }
+                            }) {
+                                HStack(spacing: 8) {
+                                    if coordinator.isPushing {
+                                        ProgressView()
+                                            .tint(AppTheme.textPrimary)
+                                    } else {
+                                        Image(systemName: "arrow.up.circle.fill")
+                                            .foregroundColor(coordinator.pendingPushCount > 0 ? Color.orange : AppTheme.textPrimary)
+                                    }
+                                    Text(coordinator.isPushing ? "Pushing to Cloud…" : (coordinator.pendingPushCount > 0 ? "Push Changes (\(coordinator.pendingPushCount) Unpushed)" : "Push Changes to Cloud"))
+                                        .font(.subheadline.weight(.semibold))
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 14)
+                                .background(AppTheme.cardBackground)
+                                .foregroundColor(AppTheme.textPrimary)
+                                .clipShape(RoundedRectangle(cornerRadius: 14))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 14)
+                                        .strokeBorder(coordinator.pendingPushCount > 0 ? Color.orange.opacity(0.4) : AppTheme.cardBorder, lineWidth: 1)
+                                )
+                            }
+                            .buttonStyle(.plain)
+                            .disabled(coordinator.isPushing || isSyncing)
+
+                            // 3. Full Sync (Pull then Push)
                             Button(action: {
                                 LBHaptic.medium()
                                 isSyncing = true
@@ -160,7 +261,7 @@ public struct SyncSettingsView: View {
                                     } else {
                                         Image(systemName: "arrow.triangle.2.circlepath")
                                     }
-                                    Text(isSyncing ? "Syncing with Cloud…" : "Force Sync Now")
+                                    Text(isSyncing ? "Syncing with Cloud…" : "Full Sync (Pull then Push)")
                                         .font(.subheadline.weight(.semibold))
                                 }
                                 .frame(maxWidth: .infinity)
@@ -170,7 +271,7 @@ public struct SyncSettingsView: View {
                                 .clipShape(RoundedRectangle(cornerRadius: 14))
                             }
                             .buttonStyle(.plain)
-                            .disabled(isSyncing)
+                            .disabled(isSyncing || coordinator.isPulling || coordinator.isPushing)
                         } else {
                             Button(action: {
                                 LBHaptic.light()
@@ -242,6 +343,9 @@ public struct SyncSettingsView: View {
             } else {
                 Text("Cloud sync completed successfully.")
             }
+        }
+        .onAppear {
+            coordinator.refreshPendingCounts(context: modelContext)
         }
     }
 }
