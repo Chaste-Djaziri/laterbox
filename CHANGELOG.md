@@ -20,6 +20,8 @@ All notable user-facing changes to LaterBox will be documented in this file.
 
 ## [Unreleased]
 
+- **[iOS / Settings] Add a dedicated Status page showing every Better Stack monitor, live service health, last-check times, and pull-to-refresh through a backend-only API token.**
+
 - **[iOS & Web / Sync] Prevent permanently deleted items from being recreated by stale copies on another device.**
 
 - **[iOS & Web / Recently Deleted] Permanently delete item records and Cloudflare attachments together, retaining deletion requests for retry if file cleanup fails.**
