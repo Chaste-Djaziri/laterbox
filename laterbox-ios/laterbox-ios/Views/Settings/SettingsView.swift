@@ -177,6 +177,17 @@ public struct SettingsView: View {
                             )
                         }
                         .buttonStyle(.plain)
+
+                        rowDivider
+
+                        NavigationLink(destination: ShortcutsSettingsView()) {
+                            groupedRow(
+                                icon: "plus.square.fill.on.square.fill",
+                                title: "Control Center & Quick Save",
+                                badge: "Active"
+                            )
+                        }
+                        .buttonStyle(.plain)
                     }
                     .liquidGlassCard(cornerRadius: 18)
 
