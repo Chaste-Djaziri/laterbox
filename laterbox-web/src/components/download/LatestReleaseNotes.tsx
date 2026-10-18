@@ -10,8 +10,8 @@ export function LatestReleaseNotes() {
   useEffect(() => {
     const controller = new AbortController();
     fetch('/api/releases', { signal: controller.signal })
-      .then((response) => response.ok ? response.json() : [])
-      .then((releases: Release[]) => setRelease(releases[0] ?? null))
+      .then(async (response): Promise<Release[]> => response.ok ? response.json() : [])
+      .then((releases) => setRelease(releases[0] ?? null))
       .catch(() => {});
     return () => controller.abort();
   }, []);
