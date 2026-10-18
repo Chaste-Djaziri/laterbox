@@ -18,6 +18,8 @@
 
 - **[Android / Inbox]** Remove swipe action button animations for a simpler iOS-style interaction.
 
+- **[Android / Inbox]** Match iOS swipe controls with circular icons and labels below the buttons.
+
 - **[iOS / Onboarding] Optional accounts**: Make account-free entry the primary welcome action and expose Pro plans, purchases, and restore directly before sign-in.
 
 - **[App Store] Subscription review metadata**: Add the Apple standard EULA to localized descriptions and provide review instructions for guest purchases and optional account connection.
