@@ -4,6 +4,8 @@
 
 - **[iOS / Sync]** Ignore cancelled refresh requests so inbox reloads do not show a false sync failure.
 
+- **[iOS / Sync]** Preserve URL request cancellation during cloud transport so it cannot be reported as a network outage.
+
 - **[iOS / Onboarding] Optional accounts**: Make account-free entry the primary welcome action and expose Pro plans, purchases, and restore directly before sign-in.
 
 - **[App Store] Subscription review metadata**: Add the Apple standard EULA to localized descriptions and provide review instructions for guest purchases and optional account connection.
