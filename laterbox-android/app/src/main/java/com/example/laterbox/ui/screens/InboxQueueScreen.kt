@@ -778,6 +778,7 @@ fun InboxQueueScreen(
                                 onClick = { onItem(item) },
                                 onToggleFavorite = { action { repository.toggleFavorite(item.id, item.favorite) } },
                                 onDelete = { action { repository.deleteItem(item.id) } },
+                                onKeep = { action { repository.updateItemStatus(item.id, "saved") } },
                                 onSnooze = { schedulingItem = item },
                                 onAddToCollection = { collectingItem = item }
                             )
@@ -925,6 +926,7 @@ fun InboxQueueScreen(
                         onClick = { onItem(item) },
                         onToggleFavorite = { action { repository.toggleFavorite(item.id, item.favorite) } },
                         onDelete = { action { repository.deleteItem(item.id) } },
+                        onKeep = { action { repository.updateItemStatus(item.id, "saved") } },
                         onSnooze = { schedulingItem = item },
                         onAddToCollection = { collectingItem = item }
                     )
@@ -1311,6 +1313,7 @@ internal fun SwipeableEmailInboxRow(
     onClick: () -> Unit,
     onToggleFavorite: () -> Unit,
     onDelete: () -> Unit,
+    onKeep: () -> Unit,
     onSnooze: () -> Unit,
     onAddToCollection: () -> Unit
 ) {
@@ -1472,15 +1475,15 @@ internal fun SwipeableEmailInboxRow(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             SwipeActionButton(
-                                icon = Icons.Default.Schedule,
-                                label = "Snooze",
-                                backgroundColor = Color(0xFFEA580C),
+                                icon = Icons.Default.CheckCircle,
+                                label = "Keep",
+                                backgroundColor = Color(0xFF16A34A),
                                 width = snoozeWidth,
                                 contentScale = snoozeScale,
                                 contentAlpha = snoozeAlpha,
                                 onClick = {
                                     coroutineScope.launch { offsetX.animateTo(0f, spring(stiffness = Spring.StiffnessMediumLow)) }
-                                    onSnooze()
+                                    onKeep()
                                 }
                             )
 
