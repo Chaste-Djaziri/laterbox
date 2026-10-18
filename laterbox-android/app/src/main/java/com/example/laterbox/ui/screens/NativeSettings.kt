@@ -1635,13 +1635,13 @@ private fun SettingsLinkRow(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 14.dp),
+            .padding(horizontal = 16.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         Box(
             modifier = Modifier
-                .size(36.dp)
+                .size(30.dp)
                 .background(LaterboxAccent, CircleShape),
             contentAlignment = Alignment.Center
         ) {
@@ -1649,27 +1649,20 @@ private fun SettingsLinkRow(
                 imageVector = icon,
                 contentDescription = null,
                 tint = LaterboxTextPrimary,
-                modifier = Modifier.size(18.dp)
+                modifier = Modifier.size(16.dp)
             )
         }
 
         Column(
             modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(2.dp)
+            verticalArrangement = Arrangement.Center
         ) {
             Text(
                 text = title,
-                fontSize = 15.sp,
+                fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = LaterboxTextPrimary
             )
-            subtitle?.let {
-                Text(
-                    text = it,
-                    fontSize = 12.sp,
-                    color = LaterboxTextSecondary
-                )
-            }
         }
 
         badge?.let {
