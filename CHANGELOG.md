@@ -20,6 +20,8 @@ All notable user-facing changes to LaterBox will be documented in this file.
 
 ## [Unreleased]
 
+- **[Android / Email Table & Details] Sanitize null/undefined strings across sync and database, ensure all metadata and collections are fetched, and gracefully hide unavailable components matching iOS.**
+
 - **[Android / Item Details] Fix image preview error by prioritizing local attachments, gracefully handling media failures, and aligning detail page components with iOS layout.**
 
 - **[Android / Cloudflare Attachments] Fetch and restore Cloudflare attachments during cloud sync, detecting missing remote files and attaching them to local items.**
