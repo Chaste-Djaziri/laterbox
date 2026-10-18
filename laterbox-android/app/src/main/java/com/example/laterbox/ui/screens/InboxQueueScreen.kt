@@ -1388,6 +1388,7 @@ internal fun SwipeableEmailInboxRow(
                                 width = starWidth,
                                 contentScale = starScale,
                                 contentAlpha = baseAlpha,
+                                expands = true,
                                 onClick = {
                                     coroutineScope.launch { offsetX.animateTo(0f, spring(stiffness = Spring.StiffnessMediumLow)) }
                                     onToggleFavorite()
