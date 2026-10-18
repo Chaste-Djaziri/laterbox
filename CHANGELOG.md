@@ -20,6 +20,8 @@ All notable user-facing changes to LaterBox will be documented in this file.
 
 ## [Unreleased]
 
+- **[Android / Settings] Compact settings navigation links to show only small titles and status badges without descriptions.**
+
 - **[Web / Authentication] Add the Google logo to the login and signup actions.**
 
 - **[Web / Authentication] Add separate login and signup states with Google OAuth login and Google-only signup while preserving email OTP login for existing users.**
