@@ -20,6 +20,8 @@
 
 - **[Android / Inbox]** Match iOS swipe controls with circular icons and labels below the buttons.
 
+- **[Android / Inbox]** Keep the full right-side Keep, Snooze, and Delete action group visible while swiping.
+
 - **[iOS / Onboarding] Optional accounts**: Make account-free entry the primary welcome action and expose Pro plans, purchases, and restore directly before sign-in.
 
 - **[App Store] Subscription review metadata**: Add the Apple standard EULA to localized descriptions and provide review instructions for guest purchases and optional account connection.
