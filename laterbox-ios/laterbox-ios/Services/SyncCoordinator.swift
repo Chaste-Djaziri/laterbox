@@ -848,6 +848,16 @@ public final class SyncCoordinator: ObservableObject {
     }
 
     private func handleSyncError(_ error: Error, announce: Bool = true) {
+        // SwiftUI cancels refresh tasks when the refresh control finishes or the
+        // view disappears. URLSession surfaces that cancellation as a network
+        // error, but it is not a failed sync and should never show an alert.
+        if error is CancellationError || (error as? URLError)?.code == .cancelled {
+            if syncState == .syncing {
+                syncState = .synced
+            }
+            lastSyncErrorMessage = nil
+            return
+        }
         self.syncState = .error
         if let syncErr = error as? CloudSyncError {
             if case .unauthorized = syncErr {
