@@ -20,6 +20,8 @@ All notable user-facing changes to LaterBox will be documented in this file.
 
 ## [Unreleased]
 
+- **[Web / Authentication] Add the Google logo to the login and signup actions.**
+
 - **[Web / Authentication] Add separate login and signup states with Google OAuth login and Google-only signup while preserving email OTP login for existing users.**
 
 - **[Android / Authentication] Split login and signup, add native Google sign-in with Supabase, keep email OTP for existing users, and add Google account connection guidance in Settings.**
