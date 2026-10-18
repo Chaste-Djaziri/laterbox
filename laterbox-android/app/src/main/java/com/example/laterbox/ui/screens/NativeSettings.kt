@@ -555,12 +555,8 @@ fun NativeSettings(
                         when (activeSubpage) {
                         SettingsSubpage.ACCOUNT -> {
                             item {
-                                Surface(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    shape = RoundedCornerShape(18.dp),
-                                    color = LaterboxCard,
-                                    border = BorderStroke(1.dp, LaterboxBorder)
-                                ) {
+                                Column(
+                                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
                                     Column(
                                         modifier = Modifier.padding(20.dp),
                                         horizontalAlignment = Alignment.CenterHorizontally,
@@ -595,19 +591,18 @@ fun NativeSettings(
                                             color = LaterboxTextSecondary,
                                             textAlign = TextAlign.Center
                                         )
-                                        if (account.userId == null) {
-                                            Button(onClick = onAuth, modifier = Modifier.padding(top = 8.dp)) {
-                                                Text("Sign In")
-                                            }
-                                        } else {
-                                            OutlinedButton(
-                                                onClick = { signOut = true },
-                                                modifier = Modifier.padding(top = 8.dp)
-                                            ) {
-                                                Text("Sign Out", color = Color(0xFFEF4444))
-                                            }
-                                        }
+                                        if (account.userId == null) Button(onClick = onAuth, modifier = Modifier.padding(top = 8.dp)) { Text("Sign In") }
                                     }
+                                }
+                            }
+                            item {
+                                if (account.userId != null) {
+                                    OutlinedButton(
+                                        onClick = { signOut = true },
+                                        modifier = Modifier.fillMaxWidth().height(48.dp),
+                                        shape = RoundedCornerShape(14.dp),
+                                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFEF4444))
+                                    ) { Text("Sign Out", fontWeight = FontWeight.SemiBold) }
                                 }
                             }
                             item {
