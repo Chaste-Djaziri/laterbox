@@ -37,6 +37,7 @@ import androidx.core.content.FileProvider
 import com.example.laterbox.BuildConfig
 import com.example.laterbox.R
 import com.example.laterbox.data.DataRepository
+import com.example.laterbox.data.sync.CloudSyncState
 import com.example.laterbox.services.*
 import com.example.laterbox.theme.*
 import kotlinx.coroutines.Dispatchers
@@ -85,7 +86,21 @@ fun NativeSettings(
     var busy by remember { mutableStateOf(false) }
     var bytes by remember { mutableLongStateOf(0) }
     var storageRefresh by remember { mutableIntStateOf(0) }
+    val syncState by repository.syncState.collectAsState()
+    val isPulling by repository.isPulling.collectAsState()
+    val isPushing by repository.isPushing.collectAsState()
+    val isSyncingState by repository.isSyncing.collectAsState()
+    val pendingPullCount by repository.pendingPullCount.collectAsState()
+    val pendingPushCount by repository.pendingPushCount.collectAsState()
+    val lastSyncedAtState by repository.lastSyncedAt.collectAsState()
+
     var activeSubpage by rememberSaveable { mutableStateOf<SettingsSubpage?>(null) }
+
+    LaunchedEffect(activeSubpage) {
+        if (activeSubpage == SettingsSubpage.SYNC) {
+            repository.refreshPendingCounts()
+        }
+    }
 
     LaunchedEffect(items.size, trash.size, storageRefresh) {
         bytes = withContext(Dispatchers.IO) {
@@ -126,6 +141,9 @@ fun NativeSettings(
 
     val sync = when {
         !account.pro -> "Local only"
+        syncState == CloudSyncState.SYNCING || isPulling || isPushing || isSyncingState -> "Syncing"
+        syncState == CloudSyncState.ERROR -> "Needs attention"
+        pendingPullCount > 0 || pendingPushCount > 0 -> "Sync needed"
         items.any { it.syncStatus == "failed" } -> "Needs attention"
         items.any { it.syncStatus == "pending" } -> "Pending sync"
         else -> "Synced"
@@ -681,7 +699,21 @@ fun NativeSettings(
                                 SettingsGroupCard(title = "CLOUD SYNC STATUS") {
                                     SubpageValueRow("Sync State", sync)
                                     HorizontalDivider(color = LaterboxBorder, thickness = 0.5.dp)
-                                    val lastSyncStamp = items.mapNotNull { it.lastSyncedAt }.maxOrNull()?.let { stamp ->
+                                    SubpageValueRow(
+                                        "Pending Cloud Pull",
+                                        if (pendingPullCount > 0) "$pendingPullCount available to pull" else "Up to date"
+                                    )
+                                    HorizontalDivider(color = LaterboxBorder, thickness = 0.5.dp)
+                                    SubpageValueRow(
+                                        "Pending Local Push",
+                                        if (pendingPushCount > 0) "$pendingPushCount unpushed edits" else "Up to date"
+                                    )
+                                    HorizontalDivider(color = LaterboxBorder, thickness = 0.5.dp)
+                                    val lastSyncStamp = lastSyncedAtState?.let { instant ->
+                                        runCatching {
+                                            instant.atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("MMM d · HH:mm"))
+                                        }.getOrNull()
+                                    } ?: items.mapNotNull { it.lastSyncedAt }.maxOrNull()?.let { stamp ->
                                         runCatching {
                                             Instant.parse(stamp).atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("MMM d · HH:mm"))
                                         }.getOrDefault(stamp)
@@ -708,19 +740,174 @@ fun NativeSettings(
                                             fontWeight = FontWeight.Bold,
                                             color = LaterboxTextPrimary
                                         )
-                                        Button(
-                                            onClick = {
-                                                if (account.pro) {
-                                                    repository.syncNow()
-                                                    message = "Sync initiated"
-                                                } else {
-                                                    plans = true
+
+                                        if (account.pro) {
+                                            val isBusySyncing = isPulling || isPushing || isSyncingState || syncState == CloudSyncState.SYNCING
+
+                                            // 1. Separate Pull Changes
+                                            Surface(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .clip(RoundedCornerShape(14.dp))
+                                                    .clickable(enabled = !isBusySyncing) {
+                                                        scope.launch {
+                                                            repository.pullChanges()
+                                                            message = "Pull completed"
+                                                        }
+                                                    },
+                                                shape = RoundedCornerShape(14.dp),
+                                                color = LaterboxCard,
+                                                border = BorderStroke(
+                                                    1.dp,
+                                                    if (pendingPullCount > 0) Color(0xFF2563EB).copy(alpha = 0.4f) else LaterboxBorder
+                                                )
+                                            ) {
+                                                Row(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .padding(vertical = 14.dp, horizontal = 16.dp),
+                                                    horizontalArrangement = Arrangement.Center,
+                                                    verticalAlignment = Alignment.CenterVertically
+                                                ) {
+                                                    if (isPulling) {
+                                                        CircularProgressIndicator(
+                                                            modifier = Modifier.size(16.dp),
+                                                            strokeWidth = 2.dp,
+                                                            color = LaterboxTextPrimary
+                                                        )
+                                                        Spacer(Modifier.width(8.dp))
+                                                    } else {
+                                                        Icon(
+                                                            imageVector = Icons.Default.ArrowDownward,
+                                                            contentDescription = null,
+                                                            tint = if (pendingPullCount > 0) Color(0xFF2563EB) else LaterboxTextPrimary,
+                                                            modifier = Modifier.size(16.dp)
+                                                        )
+                                                        Spacer(Modifier.width(8.dp))
+                                                    }
+                                                    Text(
+                                                        text = if (isPulling) "Pulling from Cloud…" else if (pendingPullCount > 0) "Pull Changes ($pendingPullCount Available)" else "Pull Changes from Cloud",
+                                                        fontSize = 14.sp,
+                                                        fontWeight = FontWeight.SemiBold,
+                                                        color = LaterboxTextPrimary
+                                                    )
                                                 }
-                                            },
-                                            modifier = Modifier.fillMaxWidth()
-                                        ) {
-                                            Text(if (account.pro) "Trigger Sync Now" else "Upgrade to Enable Cloud Sync")
+                                            }
+
+                                            // 2. Separate Push Changes
+                                            Surface(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .clip(RoundedCornerShape(14.dp))
+                                                    .clickable(enabled = !isBusySyncing) {
+                                                        scope.launch {
+                                                            repository.pushChanges()
+                                                            message = "Push completed"
+                                                        }
+                                                    },
+                                                shape = RoundedCornerShape(14.dp),
+                                                color = LaterboxCard,
+                                                border = BorderStroke(
+                                                    1.dp,
+                                                    if (pendingPushCount > 0) Color(0xFFD97706).copy(alpha = 0.4f) else LaterboxBorder
+                                                )
+                                            ) {
+                                                Row(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .padding(vertical = 14.dp, horizontal = 16.dp),
+                                                    horizontalArrangement = Arrangement.Center,
+                                                    verticalAlignment = Alignment.CenterVertically
+                                                ) {
+                                                    if (isPushing) {
+                                                        CircularProgressIndicator(
+                                                            modifier = Modifier.size(16.dp),
+                                                            strokeWidth = 2.dp,
+                                                            color = LaterboxTextPrimary
+                                                        )
+                                                        Spacer(Modifier.width(8.dp))
+                                                    } else {
+                                                        Icon(
+                                                            imageVector = Icons.Default.ArrowUpward,
+                                                            contentDescription = null,
+                                                            tint = if (pendingPushCount > 0) Color(0xFFD97706) else LaterboxTextPrimary,
+                                                            modifier = Modifier.size(16.dp)
+                                                        )
+                                                        Spacer(Modifier.width(8.dp))
+                                                    }
+                                                    Text(
+                                                        text = if (isPushing) "Pushing to Cloud…" else if (pendingPushCount > 0) "Push Changes ($pendingPushCount Unpushed)" else "Push Changes to Cloud",
+                                                        fontSize = 14.sp,
+                                                        fontWeight = FontWeight.SemiBold,
+                                                        color = LaterboxTextPrimary
+                                                    )
+                                                }
+                                            }
+
+                                            // 3. Full Sync (Pull then Push)
+                                            Button(
+                                                onClick = {
+                                                    scope.launch {
+                                                        repository.syncNow()
+                                                        message = "Full sync initiated"
+                                                    }
+                                                },
+                                                enabled = !isBusySyncing,
+                                                modifier = Modifier.fillMaxWidth(),
+                                                shape = RoundedCornerShape(14.dp),
+                                                colors = ButtonDefaults.buttonColors(
+                                                    containerColor = Color(0xFF8B5CF6),
+                                                    contentColor = Color.White
+                                                )
+                                            ) {
+                                                if (isSyncingState) {
+                                                    CircularProgressIndicator(
+                                                        modifier = Modifier.size(16.dp),
+                                                        strokeWidth = 2.dp,
+                                                        color = Color.White
+                                                    )
+                                                    Spacer(Modifier.width(8.dp))
+                                                } else {
+                                                    Icon(
+                                                        imageVector = Icons.Default.Sync,
+                                                        contentDescription = null,
+                                                        tint = Color.White,
+                                                        modifier = Modifier.size(16.dp)
+                                                    )
+                                                    Spacer(Modifier.width(8.dp))
+                                                }
+                                                Text(if (isSyncingState) "Syncing with Cloud…" else "Full Sync (Pull then Push)", fontWeight = FontWeight.SemiBold)
+                                            }
+
+                                            // 4. Check for Remote Changes
+                                            OutlinedButton(
+                                                onClick = {
+                                                    scope.launch {
+                                                        val available = repository.checkRemoteChanges()
+                                                        message = if (available > 0) "$available change(s) available to pull" else "All changes up to date"
+                                                    }
+                                                },
+                                                enabled = !isBusySyncing,
+                                                modifier = Modifier.fillMaxWidth(),
+                                                shape = RoundedCornerShape(14.dp)
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Sync,
+                                                    contentDescription = null,
+                                                    modifier = Modifier.size(15.dp)
+                                                )
+                                                Spacer(Modifier.width(6.dp))
+                                                Text("Check Remote Changes")
+                                            }
+                                        } else {
+                                            Button(
+                                                onClick = { plans = true },
+                                                modifier = Modifier.fillMaxWidth()
+                                            ) {
+                                                Text("Upgrade to Enable Cloud Sync")
+                                            }
                                         }
+
                                         OutlinedButton(
                                             onClick = {
                                                 repository.refreshWebStatus()
