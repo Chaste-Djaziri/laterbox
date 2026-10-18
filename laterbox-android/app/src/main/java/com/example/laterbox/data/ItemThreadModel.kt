@@ -75,16 +75,22 @@ object ItemThreadParser {
                             userReactionsList.add(uArr.optString(j))
                         }
                     }
+                    fun JSONObject.cleanOptString(key: String): String? {
+                        if (isNull(key)) return null
+                        val s = optString(key).trim()
+                        return if (s.isEmpty() || s.equals("null", ignoreCase = true) || s.equals("undefined", ignoreCase = true)) null else s
+                    }
+                    val content = obj.cleanOptString("content") ?: ""
                     entriesList.add(
                         ItemThreadEntry(
-                            id = obj.optString("id").ifBlank { "entry-${System.currentTimeMillis()}-$i" },
-                            type = obj.optString("type", "message"),
-                            authorName = obj.optString("authorName").takeIf { it.isNotBlank() } ?: "Me",
-                            content = obj.optString("content"),
-                            createdAt = obj.optString("createdAt").ifBlank { Instant.now().toString() },
-                            updatedAt = obj.optString("updatedAt").takeIf { it.isNotBlank() },
-                            attachedToId = obj.optString("attachedToId").takeIf { it.isNotBlank() },
-                            attachedSnippet = obj.optString("attachedSnippet").takeIf { it.isNotBlank() },
+                            id = obj.cleanOptString("id") ?: "entry-${System.currentTimeMillis()}-$i",
+                            type = obj.cleanOptString("type") ?: "message",
+                            authorName = obj.cleanOptString("authorName") ?: "Me",
+                            content = content,
+                            createdAt = obj.cleanOptString("createdAt") ?: Instant.now().toString(),
+                            updatedAt = obj.cleanOptString("updatedAt"),
+                            attachedToId = obj.cleanOptString("attachedToId"),
+                            attachedSnippet = obj.cleanOptString("attachedSnippet"),
                             reactions = reactionsMap,
                             userReactions = userReactionsList
                         )
