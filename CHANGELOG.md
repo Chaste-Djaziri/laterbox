@@ -26,6 +26,8 @@
 
 - **[Android / Inbox]** Add a focused extension animation to the full-swipe action while keeping secondary controls stable.
 
+- **[Android / Inbox]** Correct left-swipe reveal distance and keep Delete compact until its full-swipe extension begins.
+
 - **[iOS / Onboarding] Optional accounts**: Make account-free entry the primary welcome action and expose Pro plans, purchases, and restore directly before sign-in.
 
 - **[App Store] Subscription review metadata**: Add the Apple standard EULA to localized descriptions and provide review instructions for guest purchases and optional account connection.
