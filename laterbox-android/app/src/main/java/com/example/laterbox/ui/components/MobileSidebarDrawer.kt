@@ -72,6 +72,8 @@ fun MobileSidebarDrawer(
     onSelectMailbox: (MailboxViewType) -> Unit = {},
     onSelectCollection: (String) -> Unit = {},
     onCreateCollection: (String) -> Unit = {},
+    onEditCollection: (String, String) -> Unit = { _, _ -> },
+    onDeleteCollection: (String) -> Unit = {},
     onOpenSaveItem: () -> Unit = {},
     onOpenPlans: () -> Unit = {},
     onOpenSettings: () -> Unit = {}
@@ -131,6 +133,10 @@ fun MobileSidebarDrawer(
     var isCollectionsExpanded by remember { mutableStateOf(true) }
     var isCreatingCollection by remember { mutableStateOf(false) }
     var newCollectionName by remember { mutableStateOf("") }
+    var collectionForActions by remember { mutableStateOf<CollectionEntity?>(null) }
+    var collectionToRename by remember { mutableStateOf<CollectionEntity?>(null) }
+    var renameText by remember { mutableStateOf("") }
+    var collectionToDelete by remember { mutableStateOf<CollectionEntity?>(null) }
 
     LaunchedEffect(activeCollection) {
         if (activeCollection != null) {
@@ -487,6 +493,9 @@ fun MobileSidebarDrawer(
                                             icon = Icons.AutoMirrored.Filled.Label,
                                             badgeCount = count,
                                             isActive = isColActive,
+                                            onLongClick = {
+                                                collectionForActions = col
+                                            },
                                             onClick = {
                                                 onDismiss()
                                                 onSelectCollection(col.name)
@@ -654,9 +663,148 @@ fun MobileSidebarDrawer(
             }
         }
     }
+
+    // Collection Options Dialog (Edit or Delete)
+    if (collectionForActions != null) {
+        val col = collectionForActions!!
+        AlertDialog(
+            onDismissRequest = { collectionForActions = null },
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Icon(Icons.AutoMirrored.Filled.Label, contentDescription = null, tint = Color(0xFF0369A1), modifier = Modifier.size(20.dp))
+                    Text(col.name, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable {
+                                val target = col
+                                collectionForActions = null
+                                collectionToRename = target
+                                renameText = target.name
+                            }
+                            .padding(vertical = 12.dp, horizontal = 8.dp),
+                        color = Color.Transparent
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Icon(Icons.Default.Edit, contentDescription = null, tint = LaterboxTextPrimary, modifier = Modifier.size(18.dp))
+                            Text("Edit Collection", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = LaterboxTextPrimary)
+                        }
+                    }
+                    HorizontalDivider(color = Color.Black.copy(alpha = 0.06f))
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable {
+                                val target = col
+                                collectionForActions = null
+                                collectionToDelete = target
+                            }
+                            .padding(vertical = 12.dp, horizontal = 8.dp),
+                        color = Color.Transparent
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Icon(Icons.Default.Delete, contentDescription = null, tint = Color(0xFFEF4444), modifier = Modifier.size(18.dp))
+                            Text("Delete Collection", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFFEF4444))
+                        }
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { collectionForActions = null }) {
+                    Text("Cancel", color = LaterboxTextSecondary)
+                }
+            }
+        )
+    }
+
+    // Rename Collection Dialog
+    if (collectionToRename != null) {
+        val col = collectionToRename!!
+        AlertDialog(
+            onDismissRequest = { collectionToRename = null },
+            title = { Text("Edit Collection", fontWeight = FontWeight.Bold) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text("Enter a new name for this collection.", fontSize = 13.sp, color = LaterboxTextSecondary)
+                    BasicTextField(
+                        value = renameText,
+                        onValueChange = { renameText = it },
+                        singleLine = true,
+                        textStyle = TextStyle(fontSize = 14.sp, color = LaterboxTextPrimary, fontWeight = FontWeight.Medium),
+                        cursorBrush = SolidColor(LaterboxTextPrimary),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(Color(0xFFFAFAF8))
+                            .border(BorderStroke(1.dp, Color.Black.copy(alpha = 0.15f)), RoundedCornerShape(8.dp))
+                            .padding(10.dp)
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val trimmed = renameText.trim()
+                        if (trimmed.isNotBlank()) {
+                            onEditCollection(col.id, trimmed)
+                            collectionToRename = null
+                        }
+                    },
+                    enabled = renameText.trim().isNotBlank(),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF171711), contentColor = Color(0xFFE6EDB0))
+                ) {
+                    Text("Save")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { collectionToRename = null }) {
+                    Text("Cancel", color = LaterboxTextSecondary)
+                }
+            }
+        )
+    }
+
+    // Delete Collection Confirmation Dialog
+    if (collectionToDelete != null) {
+        val col = collectionToDelete!!
+        AlertDialog(
+            onDismissRequest = { collectionToDelete = null },
+            title = { Text("Delete Collection?", fontWeight = FontWeight.Bold) },
+            text = {
+                Text(
+                    "Items inside this collection will not be deleted; they will simply be unassigned from this collection.",
+                    fontSize = 13.sp,
+                    color = Color(0xFF45443F)
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        onDeleteCollection(col.id)
+                        collectionToDelete = null
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF4444), contentColor = Color.White)
+                ) {
+                    Text("Delete")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { collectionToDelete = null }) {
+                    Text("Cancel", color = LaterboxTextSecondary)
+                }
+            }
+        )
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun SidebarNavLinkRow(
     title: String,
@@ -664,13 +812,23 @@ private fun SidebarNavLinkRow(
     badgeCount: Int,
     isActive: Boolean,
     iconColor: Color? = null,
+    onLongClick: (() -> Unit)? = null,
     onClick: () -> Unit
 ) {
     Surface(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
-            .clickable(onClick = onClick),
+            .then(
+                if (onLongClick != null) {
+                    Modifier.combinedClickable(
+                        onClick = onClick,
+                        onLongClick = onLongClick
+                    )
+                } else {
+                    Modifier.clickable(onClick = onClick)
+                }
+            ),
         shape = RoundedCornerShape(12.dp),
         color = if (isActive) Color(0xFFE6EDB0) else Color.Transparent
     ) {
