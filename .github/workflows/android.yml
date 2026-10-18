@@ -74,8 +74,20 @@ jobs:
           fi
 
           if [ "$KEYSTORE_VALID" != "true" ]; then
-            echo "::error::A valid persistent Android signing keystore is required for public APK releases."
-            exit 1
+            if [ "$GITHUB_EVENT_NAME" != "pull_request" ]; then
+              echo "::error::A valid persistent Android signing keystore is required for public APK releases."
+              exit 1
+            fi
+            echo "Using a temporary signing key for pull-request validation only."
+            rm -f app/release.keystore
+            keytool -genkeypair -keystore app/release.keystore -alias upload \
+              -keyalg RSA -keysize 2048 -validity 1 \
+              -storepass laterbox_release_key -keypass laterbox_release_key \
+              -dname "CN=LaterBox CI, OU=Validation, O=LaterBox, L=Berlin, ST=Berlin, C=DE"
+            echo "ANDROID_KEYSTORE_PATH=$GITHUB_WORKSPACE/laterbox-android/app/release.keystore" >> "$GITHUB_ENV"
+            echo "ANDROID_KEYSTORE_PASSWORD=laterbox_release_key" >> "$GITHUB_ENV"
+            echo "ANDROID_KEY_ALIAS=upload" >> "$GITHUB_ENV"
+            echo "ANDROID_KEY_PASSWORD=laterbox_release_key" >> "$GITHUB_ENV"
           fi
 
       - name: Assign unique build version code
