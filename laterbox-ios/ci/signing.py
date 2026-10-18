@@ -7,7 +7,70 @@ import subprocess
 
 TEAM = "LS42X27YFY"
 GROUP = "group.pro.micorp.laterbox"
-TARGETS = {"main": "pro.micorp.laterbox", "share": "pro.micorp.laterbox.ShareExtension"}
+TARGETS = {
+    "main": "pro.micorp.laterbox",
+    "share": "pro.micorp.laterbox.ShareExtension",
+    "widgets": "pro.micorp.laterbox.widgets"
+}
+
+def resolve_widgets_profile(root):
+    widgets_path = root / "widgets.mobileprovision"
+    if widgets_path.exists():
+        return
+    print("Attempting to resolve widgets provisioning profile via App Store Connect API...", flush=True)
+    try:
+        import app_store
+        import base64
+        resp = app_store.request("/v1/profiles?filter[profileType]=IOS_APP_STORE&include=bundleId")
+        data = resp.get("data", [])
+        included = {item["id"]: item for item in resp.get("included", []) if item["type"] == "bundleIds"}
+        for item in data:
+            b_rel = item.get("relationships", {}).get("bundleId", {}).get("data", {})
+            b_id = b_rel.get("id")
+            if b_id and included.get(b_id, {}).get("attributes", {}).get("identifier") == TARGETS["widgets"]:
+                content = item["attributes"]["profileContent"]
+                widgets_path.write_bytes(base64.b64decode(content))
+                print(f"Downloaded active widgets profile from App Store Connect: {item['attributes'].get('name')}", flush=True)
+                return
+
+        print(f"No existing distribution profile found for {TARGETS['widgets']}. Attempting creation...", flush=True)
+        bundle_resp = app_store.request(f"/v1/bundleIds?filter[identifier]={TARGETS['widgets']}")
+        bundles = bundle_resp.get("data", [])
+        if not bundles:
+            raise RuntimeError(f"Bundle ID {TARGETS['widgets']} not found in App Store Connect")
+        bundle_resource_id = bundles[0]["id"]
+
+        certs_resp = app_store.request("/v1/certificates?filter[certificateType]=DISTRIBUTION")
+        certs = certs_resp.get("data", [])
+        if not certs:
+            raise RuntimeError("No active DISTRIBUTION certificate found in App Store Connect")
+        cert_resource_id = certs[0]["id"]
+
+        payload = {
+            "data": {
+                "type": "profiles",
+                "attributes": {
+                    "name": "LaterBox Widgets AppStore",
+                    "profileType": "IOS_APP_STORE"
+                },
+                "relationships": {
+                    "bundleId": {"data": {"type": "bundleIds", "id": bundle_resource_id}},
+                    "certificates": {"data": [{"type": "certificates", "id": cert_resource_id}]}
+                }
+            }
+        }
+        create_resp = app_store.request("/v1/profiles", method="POST", data=payload)
+        content = create_resp["data"]["attributes"]["profileContent"]
+        widgets_path.write_bytes(base64.b64decode(content))
+        print("Created and saved widgets provisioning profile from App Store Connect", flush=True)
+        return
+    except Exception as err:
+        print(f"::warning::Could not resolve widgets profile from App Store Connect API: {err}", flush=True)
+        raise RuntimeError(
+            "Missing provisioning profile for 'pro.micorp.laterbox.widgets'. "
+            "Please provide APPLE_WIDGETS_PROVISIONING_PROFILE_BASE64 in GitHub repository secrets "
+            "or ensure the App Store Connect API key has Admin access to Certificates, Identifiers & Profiles."
+        ) from err
 
 def validate(profile, bundle, now=None):
     now = now or datetime.datetime.now(datetime.timezone.utc)
@@ -24,6 +87,7 @@ def validate(profile, bundle, now=None):
 def main():
     if os.environ["APPLE_TEAM_ID"] != TEAM: raise ValueError("APPLE_TEAM_ID does not match the existing app")
     root = Path(os.environ["RUNNER_TEMP"])
+    resolve_widgets_profile(root)
     profiles = {}
     for name, bundle in TARGETS.items():
         raw = subprocess.check_output(["security", "cms", "-D", "-i", str(root / (name + ".mobileprovision"))])
