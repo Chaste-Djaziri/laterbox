@@ -556,10 +556,12 @@ fun NativeSettings(
                         SettingsSubpage.ACCOUNT -> {
                             item {
                                 Column(
-                                    modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                                ) {
+                                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                                    Column(
+                                        modifier = Modifier.padding(20.dp),
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                                    ) {
                                         Box(
                                             modifier = Modifier
                                                 .size(72.dp)
