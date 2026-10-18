@@ -37,12 +37,15 @@ android {
             ?: localProperties.getProperty("WEB_BASE_URL", localProperties.getProperty("LATERBOX_WEB_URL", "https://laterbox.dev"))
         val geminiApiKey = System.getenv("GEMINI_API_KEY") ?: localProperties.getProperty("GEMINI_API_KEY", "")
         val geminiModel = System.getenv("GEMINI_MODEL") ?: localProperties.getProperty("GEMINI_MODEL", "gemini-3.5-flash-lite")
+        val betterstackToken = System.getenv("BETTERSTACK_UPTIME_TOKEN")
+            ?: localProperties.getProperty("BETTERSTACK_UPTIME_TOKEN", "V5VXbvqqFSybn7bwJxDmZCXT")
 
         buildConfigField("String", "SUPABASE_URL", "\"${supabaseUrl}\"")
         buildConfigField("String", "SUPABASE_KEY", "\"${supabaseKey}\"")
         buildConfigField("String", "WEB_BASE_URL", "\"${webBaseUrl}\"")
         buildConfigField("String", "GEMINI_API_KEY", "\"${geminiApiKey}\"")
         buildConfigField("String", "GEMINI_MODEL", "\"${geminiModel}\"")
+        buildConfigField("String", "BETTERSTACK_UPTIME_TOKEN", "\"${betterstackToken}\"")
     }
 
     signingConfigs {
