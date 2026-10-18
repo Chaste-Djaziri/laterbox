@@ -45,8 +45,6 @@ import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material3.*
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
-import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
@@ -123,26 +121,7 @@ fun InboxQueueScreen(
     var selectedMailbox by rememberSaveable(initialMailbox) { mutableStateOf(initialMailbox) }
     var selectedCollection by rememberSaveable(initialCollection) { mutableStateOf(initialCollection) }
     var actionError by remember { mutableStateOf<String?>(null) }
-    var isRefreshingInbox by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
-    val pullToRefreshState = rememberPullToRefreshState()
-
-    fun refreshInbox() {
-        if (isRefreshingInbox) return
-        scope.launch {
-            isRefreshingInbox = true
-            try {
-                repository.promoteDueItems()
-                repository.pullChanges()
-                repository.checkRemoteChanges()
-                repository.refreshPendingCounts()
-            } catch (_: Exception) {
-                actionError = "Unable to refresh the inbox. Please try again."
-            } finally {
-                isRefreshingInbox = false
-            }
-        }
-    }
 
     val rawItems = remember(allItems, collections, selectedMailbox, selectedCollection) {
         if (selectedCollection != null) {
@@ -280,17 +259,13 @@ fun InboxQueueScreen(
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize().background(LaterboxBg)) {
-            PullToRefreshBox(
-                isRefreshing = isRefreshingInbox,
-                onRefresh = ::refreshInbox,
-                state = pullToRefreshState,
-                modifier = Modifier.weight(1f).fillMaxWidth()
+            LazyColumn(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
+                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(2.5.dp)
             ) {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(2.5.dp)
-                ) {
             // Top Bar: Inactive 3-Component Bar vs Active Expanded Search Bar
             item {
                 if (!isSearchActive) {
@@ -637,7 +612,6 @@ fun InboxQueueScreen(
                             }
                         }
                     }
-                }
                 }
             }
             if (isSearchActive) {
