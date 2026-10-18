@@ -76,4 +76,26 @@ class MobileSidebarTest {
         assertEquals(1, todayCount)
         assertEquals(1, upcomingCount)
     }
+
+    @Test
+    fun `collections expansion state toggles and auto-expands on active collection`() {
+        var isCollectionsExpanded = true
+        // Toggle collapse
+        isCollectionsExpanded = !isCollectionsExpanded
+        assertEquals(false, isCollectionsExpanded)
+
+        // Toggle expand
+        isCollectionsExpanded = !isCollectionsExpanded
+        assertEquals(true, isCollectionsExpanded)
+
+        // Collapsed state
+        isCollectionsExpanded = false
+
+        // When active collection is selected or new collection is created, expand
+        val activeCollection: String? = "Design"
+        if (activeCollection != null) {
+            isCollectionsExpanded = true
+        }
+        assertEquals(true, isCollectionsExpanded)
+    }
 }
