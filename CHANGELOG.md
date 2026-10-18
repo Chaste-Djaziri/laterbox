@@ -20,6 +20,8 @@ All notable user-facing changes to LaterBox will be documented in this file.
 
 ## [Unreleased]
 
+- **[Android / Sidebar] Collapsible collections in the sidebar drawer under the Collections title, matching iOS and web.**
+
 - **[Android / Email Table & Details] Sanitize null/undefined strings across sync and database, ensure all metadata and collections are fetched, and gracefully hide unavailable components matching iOS.**
 
 - **[Android / Item Details] Fix image preview error by prioritizing local attachments, gracefully handling media failures, and aligning detail page components with iOS layout.**
