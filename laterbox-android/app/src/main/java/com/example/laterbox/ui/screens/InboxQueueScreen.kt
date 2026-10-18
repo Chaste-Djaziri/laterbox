@@ -893,6 +893,32 @@ fun InboxQueueScreen(
                 }
             }
         },
+        onEditCollection = { id, newName ->
+            scope.launch {
+                try {
+                    val oldCol = collections.find { it.id == id }
+                    repository.updateCollection(id, newName)
+                    if (oldCol != null && selectedCollection.equals(oldCol.name, true)) {
+                        selectedCollection = newName
+                    }
+                } catch (e: Exception) {
+                    actionError = e.message ?: "Unable to update collection"
+                }
+            }
+        },
+        onDeleteCollection = { id ->
+            scope.launch {
+                try {
+                    val colToDelete = collections.find { it.id == id }
+                    repository.deleteCollection(id)
+                    if (colToDelete != null && selectedCollection.equals(colToDelete.name, true)) {
+                        selectedCollection = null
+                    }
+                } catch (e: Exception) {
+                    actionError = e.message ?: "Unable to delete collection"
+                }
+            }
+        },
         onOpenSaveItem = onCapture,
         onOpenPlans = { showingPlans = true },
         onOpenSettings = onOpenSettings
