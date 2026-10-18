@@ -32,6 +32,7 @@ public struct InboxView: View {
     @State private var navigateToCapture: Bool = false
     @State private var showingQuickCapture: Bool = false
     @State private var showingEmptyTrashConfirm: Bool = false
+    @State private var isRefreshingInbox: Bool = false
     @State private var showingExitGuestConfirm: Bool = false
     @State private var showingSignOutConfirm: Bool = false
     @State private var collectionTargetItem: LBItem? = nil
@@ -657,7 +658,24 @@ public struct InboxView: View {
                 }
                 .refreshable {
                     LBHaptic.medium()
+                    await MainActor.run { isRefreshingInbox = true }
+                    defer { Task { @MainActor in isRefreshingInbox = false } }
                     await coordinator.syncPendingItems(context: modelContext)
+                }
+
+                if isRefreshingInbox {
+                    HStack(spacing: 8) {
+                        ProgressView()
+                            .progressViewStyle(.circular)
+                            .tint(Color(hex: "2563EB"))
+                        Text("Syncing…")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(AppTheme.textPrimary)
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(.regularMaterial, in: Capsule())
+                    .transition(.move(edge: .top).combined(with: .opacity))
                 }
 
                 bottomStatusBar
