@@ -3,6 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { AppStoreButton, APP_STORE_URL } from '@/components/download/AppStoreButton';
+import { LatestReleaseNotes } from '@/components/download/LatestReleaseNotes';
 import {
   Apple,
   Laptop,
@@ -39,6 +40,8 @@ export default function DownloadPage() {
           LaterBox is available on iOS through the App Store and on Android as a direct APK download. Browser extensions are available below.
         </p>
       </div>
+
+      <LatestReleaseNotes />
 
       {/* Primary Featured Download: iOS App Store Hero */}
       <section className="relative overflow-hidden rounded-3xl bg-white border border-[#e4e0d5] p-6 sm:p-8 md:p-10 shadow-xs">

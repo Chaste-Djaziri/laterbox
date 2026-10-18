@@ -3,6 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { AppStoreButton, APP_STORE_URL } from '@/components/download/AppStoreButton';
+import { LatestReleaseNotes } from '@/components/download/LatestReleaseNotes';
 import {
   Apple,
   Laptop,
@@ -56,6 +57,8 @@ export default function InAppDownloadsPage() {
           </a>
         </div>
       </div>
+
+      <LatestReleaseNotes />
 
       {/* Featured iOS App Section */}
       <section className="relative overflow-hidden rounded-3xl bg-white border border-[#e4e0d5] p-6 sm:p-8 md:p-10 shadow-xs">
