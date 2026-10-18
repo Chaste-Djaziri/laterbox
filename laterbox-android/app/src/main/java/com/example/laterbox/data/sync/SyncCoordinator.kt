@@ -16,6 +16,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import org.json.JSONArray
 import org.json.JSONObject
+import java.io.File
 import java.net.URI
 import java.time.Instant
 
@@ -128,7 +129,7 @@ object SyncCoordinator {
         try {
             val uid = account.userId
             val base = LaterBoxApiService.supabaseUrl + "/rest/v1/"
-            val jsonText = NativeApi.call(base + "items?user_id=eq.$uid&select=id,url,updated_at,deleted_at")
+            val jsonText = NativeApi.call(base + "items?user_id=eq.$uid&select=id,url,updated_at,deleted_at,attachments(id,byte_size,sha256,deleted_at)")
             val remoteList = JSONArray(jsonText)
             val database = AppDatabase.getDatabase(context)
             val localItems = database.itemDao().getAllItems()
@@ -158,10 +159,36 @@ object SyncCoordinator {
                 val remoteDateStr = remote.optString("updated_at")
                 val remoteDate = runCatching { Instant.parse(remoteDateStr) }.getOrDefault(Instant.MIN)
                 val localDate = runCatching { Instant.parse(localMatch.updatedAt) }.getOrDefault(Instant.MIN)
-                if (remoteDate.isAfter(localDate)) {
+                val localDeleted = localMatch.status == "deleted" || localMatch.deletedAt != null
+
+                val remoteAttachments = remote.optJSONArray("attachments")
+                val hasMissingAttachments = if (!remoteDeleted && !localDeleted && remoteAttachments != null && remoteAttachments.length() > 0) {
+                    val localFiles = runCatching { JSONArray(localMatch.attachments) }.getOrDefault(JSONArray())
+                    val localList = (0 until localFiles.length()).map { localFiles.getJSONObject(it) }
+                    var missing = false
+                    for (aIdx in 0 until remoteAttachments.length()) {
+                        val att = remoteAttachments.getJSONObject(aIdx)
+                        if (!att.isNull("deleted_at") && att.optString("deleted_at").isNotBlank()) continue
+                        val attId = att.optString("id")
+                        val sha = att.optString("sha256")
+                        val byteSize = att.optLong("byte_size", 0L)
+                        val match = localList.firstOrNull {
+                            it.optString("id").equals(attId, ignoreCase = true) ||
+                                (sha.isNotBlank() && it.optString("path").isNotBlank() && File(it.optString("path")).isFile && CloudFileService.hash(File(it.optString("path"))).equals(sha, ignoreCase = true))
+                        }
+                        val path = match?.optString("path")
+                        val file = if (!path.isNullOrBlank()) File(path) else null
+                        if (file == null || !file.isFile || (byteSize > 0 && file.length() != byteSize)) {
+                            missing = true
+                            break
+                        }
+                    }
+                    missing
+                } else false
+
+                if (remoteDate.isAfter(localDate) || hasMissingAttachments) {
                     count++
                 } else if (remoteDate == localDate) {
-                    val localDeleted = localMatch.status == "deleted" || localMatch.deletedAt != null
                     if (remoteDeleted && !localDeleted) {
                         count++
                     }
@@ -297,70 +324,92 @@ object SyncCoordinator {
             collectionOffset += rows.length()
         }
 
-        // 2. Pull Items
+        // 2. Pull Items with Cloudflare attachments
         var offset = 0
         while (true) {
             val rows = JSONArray(
                 NativeApi.call(
-                    base + "items?user_id=eq.$uid&select=*,item_metadata(*),item_notes(*),collection_items(collection_id,deleted_at)&order=id.asc&limit=100&offset=$offset"
+                    base + "items?user_id=eq.$uid&select=*,item_metadata(*),item_notes(*),collection_items(collection_id,deleted_at),attachments(id,item_id,original_file_name,file_extension,mime_type,byte_size,sha256,r2_object_key,deleted_at)&order=id.asc&limit=100&offset=$offset"
                 )
             )
-            database.withTransaction {
-                for (index in 0 until rows.length()) {
-                    val row = rows.getJSONObject(index)
-                    val id = row.getString("id")
-                    val local = dao.getItemById(id)
-                    val updated = row.getString("updated_at")
+            for (index in 0 until rows.length()) {
+                val row = rows.getJSONObject(index)
+                val id = row.getString("id")
+                val local = dao.getItemById(id)
+                val updated = row.getString("updated_at")
 
-                    val remoteDate = runCatching { Instant.parse(updated) }.getOrDefault(Instant.MIN)
-                    val localDate = local?.let { runCatching { Instant.parse(it.updatedAt) }.getOrDefault(Instant.MIN) }
-                    if (local != null && localDate != null) {
-                        val remoteDeleted = !row.isNull("deleted_at")
-                        val localDeleted = local.status == "deleted" || local.deletedAt != null
-                        if (remoteDate.isBefore(localDate)) {
-                            continue
+                val remoteDate = runCatching { Instant.parse(updated) }.getOrDefault(Instant.MIN)
+                val localDate = local?.let { runCatching { Instant.parse(it.updatedAt) }.getOrDefault(Instant.MIN) }
+                val remoteAttachments = row.optJSONArray("attachments") ?: JSONArray()
+                val remoteDeleted = !row.isNull("deleted_at")
+
+                if (local != null && localDate != null) {
+                    val localDeleted = local.status == "deleted" || local.deletedAt != null
+                    if (remoteDate.isBefore(localDate) || (remoteDate == localDate && !(remoteDeleted && !localDeleted))) {
+                        // Restore attachments independently of local item edits/timestamps
+                        if (remoteAttachments.length() > 0 && !localDeleted) {
+                            val restored = CloudFileService.downloadAttachmentsForRows(
+                                context = context,
+                                currentAttachmentsJson = local.attachments,
+                                rows = remoteAttachments,
+                                uid = uid
+                            )
+                            if (restored != local.attachments) {
+                                dao.replaceAttachmentsIfUnchanged(local.id, local.updatedAt, restored)
+                            }
                         }
-                        if (remoteDate == localDate && !(remoteDeleted && !localDeleted)) {
-                            continue
-                        }
+                        continue
                     }
+                }
 
-                    fun objectValue(key: String): JSONObject? = row.optJSONObject(key) ?: row.optJSONArray(key)?.optJSONObject(0)
-                    val metadata = objectValue("item_metadata")
-                    val classification = metadata?.optJSONObject("structured_data")
-                        ?: metadata?.optString("structured_data")?.let { runCatching { JSONObject(it) }.getOrNull() }
-                    fun nullable(key: String) = if (row.isNull(key)) null else row.optString(key).ifBlank { null }
-
-                    val item = ItemEntity(
-                        id = id,
-                        userId = uid,
-                        url = nullable("url"),
-                        title = nullable("title"),
-                        textContent = nullable("text_content"),
-                        type = row.optString("type", "note"),
-                        favorite = row.optBoolean("favorite"),
-                        status = row.optString("status", "inbox"),
-                        returnAt = nullable("return_at"),
-                        createdAt = row.getString("created_at"),
-                        updatedAt = updated,
-                        syncStatus = "synced",
-                        deletedAt = nullable("deleted_at"),
-                        tags = classification?.optJSONArray("tags")?.let { tags ->
-                            (0 until tags.length()).joinToString(", ") { tags.getString(it) }
-                        }.orEmpty(),
-                        category = classification?.optString("category").orEmpty(),
-                        summary = classification?.optString("summary").orEmpty(),
-                        formattedContent = classification?.optString("formattedContent").orEmpty(),
-                        notes = objectValue("item_notes")?.takeIf { it.isNull("deleted_at") }?.optString("content").orEmpty(),
-                        collectionId = row.optJSONArray("collection_items")?.let { memberships ->
-                            (0 until memberships.length())
-                                .map { memberships.getJSONObject(it) }
-                                .firstOrNull { it.isNull("deleted_at") }
-                                ?.optString("collection_id")
-                        },
-                        attachments = local?.attachments ?: "[]"
+                val downloadedAttachments = if (remoteAttachments.length() > 0 && !remoteDeleted) {
+                    CloudFileService.downloadAttachmentsForRows(
+                        context = context,
+                        currentAttachmentsJson = local?.attachments ?: "[]",
+                        rows = remoteAttachments,
+                        uid = uid
                     )
+                } else {
+                    local?.attachments ?: "[]"
+                }
 
+                fun objectValue(key: String): JSONObject? = row.optJSONObject(key) ?: row.optJSONArray(key)?.optJSONObject(0)
+                val metadata = objectValue("item_metadata")
+                val classification = metadata?.optJSONObject("structured_data")
+                    ?: metadata?.optString("structured_data")?.let { runCatching { JSONObject(it) }.getOrNull() }
+                fun nullable(key: String) = if (row.isNull(key)) null else row.optString(key).ifBlank { null }
+
+                val item = ItemEntity(
+                    id = id,
+                    userId = uid,
+                    url = nullable("url"),
+                    title = nullable("title"),
+                    textContent = nullable("text_content"),
+                    type = row.optString("type", "note"),
+                    favorite = row.optBoolean("favorite"),
+                    status = row.optString("status", "inbox"),
+                    returnAt = nullable("return_at"),
+                    createdAt = row.getString("created_at"),
+                    updatedAt = updated,
+                    syncStatus = "synced",
+                    deletedAt = nullable("deleted_at"),
+                    tags = classification?.optJSONArray("tags")?.let { tags ->
+                        (0 until tags.length()).joinToString(", ") { tags.getString(it) }
+                    }.orEmpty(),
+                    category = classification?.optString("category").orEmpty(),
+                    summary = classification?.optString("summary").orEmpty(),
+                    formattedContent = classification?.optString("formattedContent").orEmpty(),
+                    notes = objectValue("item_notes")?.takeIf { it.isNull("deleted_at") }?.optString("content").orEmpty(),
+                    collectionId = row.optJSONArray("collection_items")?.let { memberships ->
+                        (0 until memberships.length())
+                            .map { memberships.getJSONObject(it) }
+                            .firstOrNull { it.isNull("deleted_at") }
+                            ?.optString("collection_id")
+                    },
+                    attachments = downloadedAttachments
+                )
+
+                database.withTransaction {
                     metadata?.let {
                         database.itemMetadataDao().insertMetadata(
                             ItemMetadataEntity(
@@ -381,18 +430,15 @@ object SyncCoordinator {
                     }
 
                     dao.insertItem(item)
-                    ReturnsService.schedule(context, item)
                 }
+                ReturnsService.schedule(context, item)
             }
             if (rows.length() < 100) break
             offset += rows.length()
         }
 
-        // 3. Download synced attachments
-        for (item in dao.getAllItems().filter { it.userId == uid && it.deletedAt == null && it.syncStatus == "synced" }) {
-            val files = CloudFileService.download(context, item, uid)
-            dao.replaceAttachmentsIfUnchanged(item.id, item.updatedAt, files)
-        }
+        // 3. Ensure any missing attachments across existing items are restored
+        CloudFileService.restoreAllMissingAttachments(context, uid)
     }
 
     private suspend fun performPush(context: Context, uid: String) {
