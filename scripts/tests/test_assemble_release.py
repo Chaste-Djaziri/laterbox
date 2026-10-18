@@ -45,6 +45,7 @@ class AssembleReleaseTests(unittest.TestCase):
         self.assertEqual(manifest["assets"]["LaterBox.ipa"]["source_commit"], "first")
 
     def test_missing_baseline_asset_fails(self):
+        (self.previous / "laterbox.apk").write_bytes(b"legacy build")
         with self.assertRaisesRegex(RuntimeError, "Missing required release asset"):
             assemble(self.current, self.previous, self.output, "first", self.changelog)
 
