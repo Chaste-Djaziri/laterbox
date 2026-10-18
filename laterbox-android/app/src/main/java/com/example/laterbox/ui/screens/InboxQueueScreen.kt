@@ -1079,12 +1079,6 @@ private fun resolveAvatarColor(sender: String): Color {
     return emailAvatarColors[hash % emailAvatarColors.size]
 }
 
-internal fun cleanText(s: String?): String? {
-    if (s == null) return null
-    val trimmed = s.trim()
-    return if (trimmed.isEmpty() || trimmed.equals("null", ignoreCase = true) || trimmed.equals("undefined", ignoreCase = true)) null else trimmed
-}
-
 private fun resolveSenderText(item: ItemEntity, metadata: ItemMetadataEntity?): String {
     val site = cleanText(metadata?.siteName)
     if (site != null) return site
