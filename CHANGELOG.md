@@ -38,6 +38,8 @@
 
 - **[Android / Inbox]** Simplify the Pro Member footer by removing the active badge and description.
 
+- **[Android / Inbox]** Add time selection after choosing a custom Snooze date.
+
 - **[iOS / Onboarding] Optional accounts**: Make account-free entry the primary welcome action and expose Pro plans, purchases, and restore directly before sign-in.
 
 - **[App Store] Subscription review metadata**: Add the Apple standard EULA to localized descriptions and provide review instructions for guest purchases and optional account connection.
