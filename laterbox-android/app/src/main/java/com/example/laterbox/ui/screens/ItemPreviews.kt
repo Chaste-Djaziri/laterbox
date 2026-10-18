@@ -22,7 +22,11 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -31,10 +35,74 @@ import java.net.URI
 import java.net.URL
 
 @Composable
-internal fun ItemImagePreview(source: Any, label: String) {
-    var failed by remember(source) { mutableStateOf(false) }
-    AsyncImage(source, label, Modifier.fillMaxWidth().heightIn(min = 120.dp, max = 360.dp), contentScale = ContentScale.Fit, onError = { failed = true })
-    if (failed) Text("Image preview unavailable. Open the original to view it.")
+internal fun ItemImagePreview(
+    source: Any,
+    label: String,
+    modifier: Modifier = Modifier,
+    fallbackSource: Any? = null,
+    onClick: (() -> Unit)? = null
+) {
+    val context = LocalContext.current
+    var currentSource by remember(source) { mutableStateOf(source) }
+    var failed by remember(currentSource) { mutableStateOf(false) }
+
+    fun normalizeModel(raw: Any): Any {
+        return when (raw) {
+            is File -> raw
+            is android.net.Uri -> raw
+            is String -> {
+                val trimmed = raw.trim()
+                when {
+                    trimmed.startsWith("file://") -> File(trimmed.removePrefix("file://"))
+                    trimmed.startsWith("/") -> {
+                        val file = File(trimmed)
+                        if (file.isFile) file
+                        else {
+                            val candidate = File(File(context.filesDir, "captures"), file.name)
+                            if (candidate.isFile) candidate else file
+                        }
+                    }
+                    trimmed.startsWith("content://") -> android.net.Uri.parse(trimmed)
+                    trimmed.startsWith("http://") || trimmed.startsWith("https://") -> trimmed
+                    else -> {
+                        val candidate = File(File(context.filesDir, "captures"), trimmed.substringAfterLast('/'))
+                        if (candidate.isFile) candidate else trimmed
+                    }
+                }
+            }
+            else -> raw
+        }
+    }
+
+    val model = remember(currentSource) { normalizeModel(currentSource) }
+
+    if (!failed) {
+        Box(
+            modifier = modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .then(if (onClick != null) Modifier.clickable { onClick() } else Modifier)
+        ) {
+            AsyncImage(
+                model = ImageRequest.Builder(context)
+                    .data(model)
+                    .crossfade(true)
+                    .build(),
+                contentDescription = label,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 120.dp, max = 360.dp),
+                contentScale = ContentScale.Crop,
+                onError = {
+                    if (fallbackSource != null && currentSource != fallbackSource) {
+                        currentSource = fallbackSource
+                    } else {
+                        failed = true
+                    }
+                }
+            )
+        }
+    }
 }
 
 @Composable
