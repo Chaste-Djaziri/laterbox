@@ -1260,20 +1260,27 @@ private fun SwipeActionButton(
     width: androidx.compose.ui.unit.Dp,
     contentScale: Float = 1f,
     contentAlpha: Float = 1f,
+    expands: Boolean = false,
     onClick: () -> Unit
 ) {
     if (width <= 4.dp || contentAlpha <= 0.02f) return
     val buttonShape = CircleShape
+    val controlWidth = if (expands) width.coerceAtLeast(76.dp) else 76.dp
+    val controlShape = RoundedCornerShape(32.dp)
     Column(
-        modifier = Modifier.width(76.dp).graphicsLayer { alpha = contentAlpha }.clickable(onClick = onClick),
+        modifier = Modifier.width(controlWidth).graphicsLayer { alpha = contentAlpha }.clickable(onClick = onClick),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Surface(modifier = Modifier.size(64.dp).clip(buttonShape), shape = buttonShape, color = backgroundColor) {
-            Box(contentAlignment = Alignment.Center) {
+        Surface(modifier = Modifier.height(64.dp).fillMaxWidth().clip(controlShape), shape = controlShape, color = backgroundColor) {
+            Row(horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
                 Icon(imageVector = icon, contentDescription = label, tint = Color.White, modifier = Modifier.size(24.dp))
+                if (expands && controlWidth >= 92.dp) {
+                    Spacer(Modifier.width(8.dp))
+                    Text(label, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                }
             }
         }
-        Text(text = label, fontSize = 12.sp, color = LaterboxTextSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 4.dp))
+        if (!expands) Text(text = label, fontSize = 12.sp, color = LaterboxTextSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 4.dp))
     }
 }
 
@@ -1492,6 +1499,7 @@ internal fun SwipeableEmailInboxRow(
                                 width = deleteWidth,
                                 contentScale = deleteScale,
                                 contentAlpha = baseAlpha,
+                                expands = true,
                                 onClick = {
                                     coroutineScope.launch { offsetX.animateTo(0f, spring(stiffness = Spring.StiffnessMediumLow)) }
                                     onDelete()
