@@ -28,7 +28,7 @@ export interface AuthContextType {
   resendSignupOtp: (email: string) => Promise<{ error: AuthError | null }>;
   signInWithPassword: (email: string, password: string) => Promise<{ error: AuthError | null }>;
   signUpWithPassword: (email: string, password: string) => Promise<{ error: AuthError | null; requiresConfirmation: boolean }>;
-  signInWithOAuth: (provider: 'google' | 'github') => Promise<{ error: AuthError | null }>;
+  signInWithOAuth: (provider: 'google' | 'apple' | 'github') => Promise<{ error: AuthError | null }>;
   signOut: () => Promise<void>;
   updatePassword: (password: string) => Promise<{ error: AuthError | null }>;
   deleteAccount: () => Promise<{ error: Error | null }>;
@@ -226,7 +226,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error, requiresConfirmation: !error && data.session === null };
   };
 
-  const signInWithOAuth = async (provider: 'google' | 'github') => {
+  const signInWithOAuth = async (provider: 'google' | 'apple' | 'github') => {
     const supabase = getSupabaseClient();
     const redirectTo = typeof window !== 'undefined' ? `${window.location.origin}/inbox` : undefined;
     const { error } = await supabase.auth.signInWithOAuth({
