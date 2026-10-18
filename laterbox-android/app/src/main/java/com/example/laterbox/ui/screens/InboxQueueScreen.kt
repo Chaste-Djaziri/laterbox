@@ -1300,7 +1300,8 @@ internal fun SwipeableEmailInboxRow(
 
     // Three 76dp action controls plus their gaps and edge padding.
     // The card settles exactly beside the visible action group.
-    val leadingRevealWidth = 164.dp
+    // Two 76dp controls plus the gap and edge padding.
+    val leadingRevealWidth = 184.dp
     val trailingRevealWidth = 260.dp
     val leadingRevealWidthPx = with(density) { leadingRevealWidth.toPx() }
     val trailingRevealWidthPx = with(density) { trailingRevealWidth.toPx() }
