@@ -671,6 +671,32 @@ fun NativeSettings(
                                         modifier = Modifier.padding(20.dp),
                                         verticalArrangement = Arrangement.spacedBy(14.dp)
                                     ) {
+                                        Box(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Box(
+                                                modifier = Modifier.size(68.dp).background(LaterboxAccent, CircleShape),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Icon(Icons.Default.Star, contentDescription = null, tint = LaterboxTextPrimary, modifier = Modifier.size(32.dp))
+                                            }
+                                        }
+                                        Text(
+                                            text = "LaterBox Pro",
+                                            modifier = Modifier.fillMaxWidth(),
+                                            textAlign = TextAlign.Center,
+                                            fontSize = 28.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = LaterboxTextPrimary
+                                        )
+                                        Text(
+                                            text = "Pro app icons and AI providers on this device. Connect an optional account for cloud sync, backup, and web access.",
+                                            modifier = Modifier.fillMaxWidth(),
+                                            textAlign = TextAlign.Center,
+                                            fontSize = 13.sp,
+                                            color = LaterboxTextSecondary
+                                        )
                                         Row(
                                             modifier = Modifier.fillMaxWidth(),
                                             verticalAlignment = Alignment.CenterVertically
@@ -782,6 +808,26 @@ fun NativeSettings(
                                             modifier = Modifier.fillMaxWidth()
                                         ) {
                                             Text("Refresh Subscription Status")
+                                        }
+                                        Text(
+                                            text = "WHAT'S INCLUDED WITH PRO",
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = LaterboxTextSecondary,
+                                            modifier = Modifier.padding(top = 8.dp)
+                                        )
+                                        Surface(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            shape = RoundedCornerShape(18.dp),
+                                            color = LaterboxCard,
+                                            border = BorderStroke(1.dp, LaterboxBorder)
+                                        ) {
+                                            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                                SettingsPlanFeature(Icons.Default.Cloud, "Multi-Device Cloud Sync", "Sync across your devices.")
+                                                SettingsPlanFeature(Icons.Default.SmartToy, "AI Inbox Organizer", "Use on-device AI or your own provider.")
+                                                SettingsPlanFeature(Icons.Default.Devices, "Browser & Desktop Extensions", "Capture remains free everywhere.")
+                                                SettingsPlanFeature(Icons.Default.Lock, "Encrypted Cloud Backup", "Back up and restore your catalog.")
+                                            }
                                         }
                                     }
                                 }
@@ -1692,6 +1738,22 @@ private fun SettingsLinkRow(
             tint = LaterboxTextSecondary.copy(alpha = 0.5f),
             modifier = Modifier.size(16.dp)
         )
+    }
+}
+
+@Composable
+private fun SettingsPlanFeature(icon: ImageVector, title: String, subtitle: String) {
+    Row(verticalAlignment = Alignment.Top) {
+        Box(
+            modifier = Modifier.size(32.dp).background(LaterboxAccent.copy(alpha = 0.65f), CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(icon, contentDescription = null, tint = LaterboxTextPrimary, modifier = Modifier.size(17.dp))
+        }
+        Column(Modifier.padding(start = 12.dp)) {
+            Text(title, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = LaterboxTextPrimary)
+            Text(subtitle, fontSize = 12.sp, color = LaterboxTextSecondary)
+        }
     }
 }
 
