@@ -12,7 +12,7 @@ BASE = "https://api.appstoreconnect.apple.com"
 BUNDLE = "pro.micorp.laterbox"
 APP_ID = "6804139119"
 
-def request(path):
+def request(path, method="GET", data=None):
     now = int(time.time())
     token = jwt.encode({"iss": os.environ["APP_STORE_CONNECT_ISSUER_ID"], "iat": now,
                         "exp": now + 600, "aud": "appstoreconnect-v1"},
@@ -20,7 +20,12 @@ def request(path):
                        headers={"kid": os.environ["APP_STORE_CONNECT_KEY_ID"]})
     url = path if path.startswith(BASE + "/") else BASE + path
     if not url.startswith(BASE + "/"): raise ValueError("Unexpected pagination URL")
-    req = urllib.request.Request(url, headers={"Authorization": "Bearer " + token})
+    headers = {"Authorization": "Bearer " + token}
+    body = None
+    if data is not None:
+        headers["Content-Type"] = "application/json"
+        body = json.dumps(data).encode("utf-8")
+    req = urllib.request.Request(url, data=body, headers=headers, method=method)
     with urllib.request.urlopen(req, timeout=60) as response: return json.load(response)
 
 def records(path):
