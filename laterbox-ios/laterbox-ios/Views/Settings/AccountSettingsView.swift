@@ -7,6 +7,7 @@
 
 import SwiftUI
 import SwiftData
+import AuthenticationServices
 
 public struct AccountSettingsView: View {
     @Environment(\.dismiss) private var dismiss
@@ -15,6 +16,7 @@ public struct AccountSettingsView: View {
     @State private var showingAuthSheet = false
     @State private var showingSignOutAlert = false
     @State private var showingExitGuestAlert = false
+    @State private var appleLinkMessage: String?
 
     public init() {}
 
@@ -186,6 +188,24 @@ public struct AccountSettingsView: View {
                         }
                     } else {
                         VStack(alignment: .leading, spacing: 10) {
+                            Text("Connected Accounts")
+                                .font(.caption.weight(.bold))
+                                .foregroundColor(.secondary)
+                                .textCase(.uppercase)
+
+                            SignInWithAppleButton(.continue, onRequest: { request in
+                                request.requestedScopes = [.email, .fullName]
+                            }, onCompletion: handleAppleLinkResult)
+                            .signInWithAppleButtonStyle(.black)
+                            .frame(height: 48)
+                            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+
+                            if let appleLinkMessage {
+                                Text(appleLinkMessage)
+                                    .font(.caption)
+                                    .foregroundColor(appleLinkMessage.hasPrefix("Connected") ? .green : .red)
+                            }
+
                             Text("Session")
                                 .font(.caption.weight(.bold))
                                 .foregroundColor(.secondary)
@@ -243,6 +263,37 @@ public struct AccountSettingsView: View {
             Button("Cancel", role: .cancel) {}
         } message: {
             Text("Exiting guest mode will clear all items saved on this device during this guest session.")
+        }
+    }
+
+    private func handleAppleLinkResult(_ result: Result<ASAuthorization, Error>) {
+        switch result {
+        case .failure(let error):
+            guard (error as NSError).code != ASAuthorizationError.canceled.rawValue else { return }
+            appleLinkMessage = "Apple connection failed. Please try again."
+        case .success(let authorization):
+            guard let credential = authorization.credential as? ASAuthorizationAppleIDCredential,
+                  let tokenData = credential.identityToken,
+                  let identityToken = String(data: tokenData, encoding: .utf8),
+                  let sessionToken = coordinator.authToken else {
+                appleLinkMessage = "Apple did not return a valid sign-in token."
+                return
+            }
+            Task {
+                do {
+                    let result = try await LaterBoxAPIService.shared.signInWithApple(
+                        identityToken: identityToken,
+                        sessionToken: sessionToken
+                    )
+                    guard result.userId == coordinator.currentUserId else {
+                        await MainActor.run { appleLinkMessage = "This Apple account belongs to another LaterBox account." }
+                        return
+                    }
+                    await MainActor.run { appleLinkMessage = "Connected to Apple successfully." }
+                } catch {
+                    await MainActor.run { appleLinkMessage = "Could not connect Apple. Please try again." }
+                }
+            }
         }
     }
 }
