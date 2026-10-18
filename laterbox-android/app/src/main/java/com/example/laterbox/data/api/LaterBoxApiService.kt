@@ -93,17 +93,23 @@ object LaterBoxApiService {
                 reader.close()
                 val json = JSONObject(responseText)
 
-                val domain = json.optString("domain", "").ifEmpty { null }
-                val siteName = json.optString("siteName", "").ifEmpty { json.optString("site_name", "").ifEmpty { null } }
-                val title = json.optString("title", "").ifEmpty { null }
-                val description = json.optString("description", "").ifEmpty { null }
-                val faviconUrl = json.optString("faviconUrl", "").ifEmpty { json.optString("favicon_url", "").ifEmpty { null } }
-                val previewImageUrl = json.optString("previewImageUrl", "").ifEmpty { json.optString("preview_image_url", "").ifEmpty { null } }
+                fun JSONObject.cleanString(key: String): String? {
+                    if (isNull(key)) return null
+                    val s = optString(key).trim()
+                    return if (s.isEmpty() || s.equals("null", ignoreCase = true) || s.equals("undefined", ignoreCase = true)) null else s
+                }
+
+                val domain = json.cleanString("domain")
+                val siteName = json.cleanString("siteName") ?: json.cleanString("site_name")
+                val title = json.cleanString("title")
+                val description = json.cleanString("description")
+                val faviconUrl = json.cleanString("faviconUrl") ?: json.cleanString("favicon_url")
+                val previewImageUrl = json.cleanString("previewImageUrl") ?: json.cleanString("preview_image_url")
 
                 var contentType = "link"
                 val classification = json.optJSONObject("classification")
                 if (classification != null) {
-                    contentType = classification.optString("contentType", "link")
+                    contentType = classification.cleanString("contentType") ?: "link"
                 }
 
                 EnrichmentResponse(
