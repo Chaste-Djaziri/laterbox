@@ -20,6 +20,8 @@ All notable user-facing changes to LaterBox will be documented in this file.
 
 ## [Unreleased]
 
+- **[Android / Settings] Add native Service Status page in Settings matching iOS, displaying live BetterStack monitor health, uptime history charts, and SLA metrics using BetterStack API.**
+
 - **[iOS / Android / Sidebar] Add edit and delete collection options on long-press in the sidebar drawer, safely unassigning items without deleting them.**
 
 - **[Android / Sidebar] Collapsible collections in the sidebar drawer under the Collections title, matching iOS and web.**
