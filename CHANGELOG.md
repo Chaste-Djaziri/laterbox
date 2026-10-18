@@ -20,6 +20,8 @@ All notable user-facing changes to LaterBox will be documented in this file.
 
 ## [Unreleased]
 
+- **[Android / Item Details] Fix image preview error by prioritizing local attachments, gracefully handling media failures, and aligning detail page components with iOS layout.**
+
 - **[Android / Cloudflare Attachments] Fetch and restore Cloudflare attachments during cloud sync, detecting missing remote files and attaching them to local items.**
 
 - **[Android / Cloud Sync] Add separate Push and Pull changes in Settings and Inbox bottom bar matching iOS, and automatically fetch and sync changes to cloud when Pro is active.**
