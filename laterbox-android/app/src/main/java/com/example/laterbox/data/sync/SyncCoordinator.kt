@@ -332,6 +332,9 @@ object SyncCoordinator {
                     base + "items?user_id=eq.$uid&select=*,item_metadata(*),item_notes(*),collection_items(collection_id,deleted_at),attachments(id,item_id,original_file_name,file_extension,mime_type,byte_size,sha256,r2_object_key,deleted_at)&order=id.asc&limit=100&offset=$offset"
                 )
             )
+            val itemsToUpsert = mutableListOf<Pair<ItemEntity, ItemMetadataEntity?>>()
+            val itemsToSchedule = mutableListOf<ItemEntity>()
+
             for (index in 0 until rows.length()) {
                 val row = rows.getJSONObject(index)
                 val id = row.getString("id")
@@ -439,28 +442,36 @@ object SyncCoordinator {
                     attachments = downloadedAttachments
                 )
 
-                database.withTransaction {
-                    metadata?.let {
-                        database.itemMetadataDao().insertMetadata(
-                            ItemMetadataEntity(
-                                itemId = id,
-                                userId = uid,
-                                domain = it.cleanString("domain"),
-                                siteName = it.cleanString("site_name"),
-                                title = it.cleanString("title"),
-                                description = it.cleanString("description"),
-                                faviconUrl = it.cleanString("favicon_url"),
-                                previewImageUrl = it.cleanString("preview_image_url"),
-                                status = it.cleanString("status") ?: "enriched",
-                                structuredData = classification?.toString()?.takeIf { it != "{}" && it != "null" },
-                                createdAt = item.createdAt,
-                                updatedAt = updated
-                            )
-                        )
-                    }
-
-                    dao.insertItem(item)
+                val metaEntity = metadata?.let {
+                    ItemMetadataEntity(
+                        itemId = id,
+                        userId = uid,
+                        domain = it.cleanString("domain"),
+                        siteName = it.cleanString("site_name"),
+                        title = it.cleanString("title"),
+                        description = it.cleanString("description"),
+                        faviconUrl = it.cleanString("favicon_url"),
+                        previewImageUrl = it.cleanString("preview_image_url"),
+                        status = it.cleanString("status") ?: "enriched",
+                        structuredData = classification?.toString()?.takeIf { s -> s != "{}" && s != "null" },
+                        createdAt = item.createdAt,
+                        updatedAt = updated
+                    )
                 }
+
+                itemsToUpsert.add(Pair(item, metaEntity))
+                itemsToSchedule.add(item)
+            }
+
+            if (itemsToUpsert.isNotEmpty()) {
+                database.withTransaction {
+                    for ((item, meta) in itemsToUpsert) {
+                        meta?.let { database.itemMetadataDao().insertMetadata(it) }
+                        dao.insertItem(item)
+                    }
+                }
+            }
+            for (item in itemsToSchedule) {
                 ReturnsService.schedule(context, item)
             }
             if (rows.length() < 100) break
