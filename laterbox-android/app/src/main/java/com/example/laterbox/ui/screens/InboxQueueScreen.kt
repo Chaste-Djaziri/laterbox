@@ -19,7 +19,6 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
-import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -29,6 +28,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
@@ -124,6 +126,24 @@ fun InboxQueueScreen(
     var actionError by remember { mutableStateOf<String?>(null) }
     var isRefreshingInbox by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
+    val inboxListState = rememberLazyListState()
+    var pullDistance by remember { mutableFloatStateOf(0f) }
+    val refreshNestedScroll = remember(isRefreshingInbox) {
+        object : NestedScrollConnection {
+            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                if (!isRefreshingInbox && inboxListState.firstVisibleItemIndex == 0 && inboxListState.firstVisibleItemScrollOffset == 0 && available.y > 0f) {
+                    pullDistance += available.y
+                    if (pullDistance >= 96f) refreshInbox()
+                }
+                return Offset.Zero
+            }
+
+            override suspend fun onPreFling(available: Velocity): Velocity {
+                pullDistance = 0f
+                return Velocity.Zero
+            }
+        }
+    }
 
     fun refreshInbox() {
         if (isRefreshingInbox) return
@@ -282,19 +302,8 @@ fun InboxQueueScreen(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
-                    .pointerInput(isRefreshingInbox) {
-                        var pullDistance = 0f
-                        detectVerticalDragGestures(
-                            onVerticalDrag = { _, dragAmount ->
-                                if (dragAmount > 0f) pullDistance += dragAmount
-                            },
-                            onDragEnd = {
-                                if (pullDistance > 96f) refreshInbox()
-                                pullDistance = 0f
-                            },
-                            onDragCancel = { pullDistance = 0f }
-                        )
-                    },
+                    .nestedScroll(refreshNestedScroll),
+                state = inboxListState,
                 contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(2.5.dp)
             ) {
