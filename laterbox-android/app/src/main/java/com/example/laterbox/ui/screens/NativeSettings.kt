@@ -619,29 +619,39 @@ fun NativeSettings(
                                     SubpageValueRow("User ID", account.userId?.take(12)?.plus("…") ?: "Not registered")
                                     if (account.userId != null && !account.googleLinked) {
                                         HorizontalDivider(color = LaterboxBorder, thickness = 0.5.dp)
-                                        Text(
-                                            "Connect Google before email login is retired. Your existing LaterBox account stays unchanged.",
-                                            modifier = Modifier.padding(top = 12.dp),
-                                            fontSize = 12.sp,
-                                            color = LaterboxTextSecondary
-                                        )
-                                        OutlinedButton(
-                                            onClick = {
-                                                val activity = context as? android.app.Activity ?: return@OutlinedButton
-                                                scope.launch {
-                                                    busy = true
-                                                    try {
-                                                        GoogleAuthService.link(activity)
-                                                        AccountService.refresh()
-                                                        message = "Google account connected."
-                                                    } catch (error: Exception) {
-                                                        message = error.message ?: "Unable to connect Google right now."
-                                                    } finally { busy = false }
+                                        Column(
+                                            modifier = Modifier.padding(14.dp),
+                                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                                        ) {
+                                            Text("Connect Google", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = LaterboxTextPrimary)
+                                            Text("Keep using this account when email login is retired.", fontSize = 12.sp, color = LaterboxTextSecondary)
+                                            Button(
+                                                onClick = {
+                                                    val activity = context as? android.app.Activity ?: return@Button
+                                                    scope.launch {
+                                                        busy = true
+                                                        try {
+                                                            GoogleAuthService.link(activity)
+                                                            AccountService.refresh()
+                                                            message = "Google account connected."
+                                                        } catch (error: Exception) {
+                                                            message = error.message ?: "Unable to connect Google right now."
+                                                        } finally { busy = false }
+                                                    }
+                                                },
+                                                enabled = !busy,
+                                                modifier = Modifier.fillMaxWidth().height(48.dp),
+                                                shape = RoundedCornerShape(12.dp),
+                                                colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = LaterboxTextPrimary)
+                                            ) {
+                                                if (busy) CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                                                else {
+                                                    Image(painter = painterResource(R.drawable.ic_google_g), contentDescription = null, modifier = Modifier.size(20.dp))
+                                                    Spacer(Modifier.width(8.dp))
+                                                    Text("Connect with Google", fontWeight = FontWeight.Bold)
                                                 }
-                                            },
-                                            enabled = !busy,
-                                            modifier = Modifier.padding(top = 10.dp)
-                                        ) { Text(if (busy) "Connecting…" else "Connect Google") }
+                                            }
+                                        }
                                     }
                                 }
                             }
