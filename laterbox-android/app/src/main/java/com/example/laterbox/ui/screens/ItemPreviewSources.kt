@@ -84,9 +84,15 @@ internal fun extractYouTubeIdFromUrl(url: String?): String? {
     return null
 }
 
+internal fun cleanText(s: String?): String? {
+    if (s == null) return null
+    val trimmed = s.trim()
+    return if (trimmed.isEmpty() || trimmed.equals("null", ignoreCase = true) || trimmed.equals("undefined", ignoreCase = true)) null else trimmed
+}
+
 internal fun sanitizePreviewImageUrl(rawUrl: String?): String? {
-    if (rawUrl.isNullOrBlank()) return null
-    var trimmed = rawUrl.trim()
+    val clean = cleanText(rawUrl) ?: return null
+    var trimmed = clean
     if (trimmed.startsWith("//")) {
         trimmed = "https:$trimmed"
     }
