@@ -47,27 +47,80 @@ object CloudFileService {
             }
         } finally { connection.disconnect() }
     }
-    suspend fun upload(context: Context, item: ItemEntity, uid: String) = withContext(Dispatchers.IO) {
+    suspend fun uploadAttachments(context: Context, item: ItemEntity, uid: String): JSONArray = withContext(Dispatchers.IO) {
         check(AccountService.state.value.pro && AccountService.state.value.userId == uid)
-        if (item.deletedAt != null) return@withContext
-        val files = JSONArray(item.attachments)
+        val files = runCatching { JSONArray(item.attachments) }.getOrDefault(JSONArray())
+        if (item.deletedAt != null || files.length() == 0) return@withContext files
+
+        var modified = false
+        val db = com.example.laterbox.data.local.AppDatabase.getDatabase(context)
+
         for (index in 0 until files.length()) {
-            val attachment = files.getJSONObject(index); val file = File(attachment.getString("path"))
+            val attachment = files.getJSONObject(index)
+            val path = attachment.optString("path", "")
+            if (path.isBlank()) continue
+            val file = File(path)
             require(file.isFile && file.canonicalPath.startsWith(File(context.filesDir, "captures").canonicalPath + File.separator)) { "Local file is missing; restore it before syncing" }
+
             val id = attachment.optString("id").takeIf { runCatching { UUID.fromString(it) }.isSuccess }
                 ?: UUID.nameUUIDFromBytes("${item.id}:${file.name}".toByteArray()).toString()
-            if (JSONArray(NativeApi.call("$rest?id=eq.$id&user_id=eq.$uid&select=id")).length() > 0) continue
             val name = attachment.optString("name", file.name)
             val extension = name.substringAfterLast('.', "bin").lowercase().filter { it.isLetterOrDigit() }.take(20).ifBlank { "bin" }
-            val mime = attachment.optString("mime", "application/octet-stream"); val sha = hash(file)
-            val body = JSONObject().put("attachmentId", id).put("itemId", item.id).put("originalFileName", name).put("extension", extension).put("mimeType", mime).put("byteSize", file.length()).put("sha256", sha)
-            val prepared = JSONObject(NativeApi.call(edge, "POST", JSONObject(body.toString()).put("action", "prepare-upload")))
-            transfer(prepared.getString("uploadUrl"), "PUT", mapOf("Content-Type" to mime, "x-amz-meta-sha256" to sha, "x-amz-meta-attachment-id" to id, "x-amz-meta-user-id" to uid), file)
-            val completed = JSONObject(NativeApi.call(edge, "POST", JSONObject(body.toString()).put("action", "complete-upload")))
-            check(completed.optBoolean("verified")) { "Cloud file verification failed" }
-            check(AccountService.state.value.pro && AccountService.state.value.userId == uid)
-            NativeApi.call("$rest?on_conflict=id", "POST", JSONObject().put("id", id).put("item_id", item.id).put("user_id", uid).put("original_file_name", name).put("file_extension", extension).put("mime_type", mime).put("byte_size", file.length()).put("sha256", sha).put("r2_object_key", completed.getString("objectKey")).put("created_at", item.createdAt).put("updated_at", item.updatedAt))
+            val mime = attachment.optString("mime", "application/octet-stream")
+            val sha = hash(file)
+
+            var objectKey = attachment.optString("r2_object_key", "").takeIf { it.isNotBlank() }
+
+            // If not yet uploaded to Cloudflare R2, perform the upload
+            if (objectKey == null) {
+                val body = JSONObject()
+                    .put("attachmentId", id)
+                    .put("itemId", item.id)
+                    .put("originalFileName", name)
+                    .put("extension", extension)
+                    .put("mimeType", mime)
+                    .put("byteSize", file.length())
+                    .put("sha256", sha)
+
+                val prepared = JSONObject(NativeApi.call(edge, "POST", JSONObject(body.toString()).put("action", "prepare-upload")))
+                transfer(
+                    prepared.getString("uploadUrl"),
+                    "PUT",
+                    mapOf(
+                        "Content-Type" to mime,
+                        "x-amz-meta-sha256" to sha,
+                        "x-amz-meta-attachment-id" to id.lowercase(),
+                        "x-amz-meta-user-id" to uid
+                    ),
+                    file
+                )
+                val completed = JSONObject(NativeApi.call(edge, "POST", JSONObject(body.toString()).put("action", "complete-upload")))
+                check(completed.optBoolean("verified")) { "Cloud file verification failed" }
+                objectKey = completed.getString("objectKey")
+
+                attachment.put("id", id)
+                attachment.put("name", name)
+                attachment.put("original_file_name", name)
+                attachment.put("extension", extension)
+                attachment.put("file_extension", extension)
+                attachment.put("mime", mime)
+                attachment.put("mime_type", mime)
+                attachment.put("byte_size", file.length())
+                attachment.put("sha256", sha)
+                attachment.put("r2_object_key", objectKey)
+                modified = true
+            }
         }
+
+        if (modified) {
+            db.itemDao().replaceAttachmentsIfUnchanged(item.id, item.updatedAt, files.toString())
+        }
+
+        files
+    }
+
+    suspend fun upload(context: Context, item: ItemEntity, uid: String) = withContext(Dispatchers.IO) {
+        uploadAttachments(context, item, uid)
     }
     suspend fun downloadAttachmentsForRows(
         context: Context,
