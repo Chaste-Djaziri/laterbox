@@ -18,11 +18,14 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.CloudSync
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.WorkspacePremium
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -68,6 +71,7 @@ fun SettingsScreen(
 ) {
     val webStatus by repository.webStatus.collectAsState()
     var isSyncing by remember { mutableStateOf(false) }
+    var showStatusSheet by remember { mutableStateOf(false) }
 
     LazyColumn(
         modifier = modifier
@@ -295,8 +299,13 @@ fun SettingsScreen(
                                 }
                             }
 
-                            IconButton(onClick = { repository.refreshWebStatus() }) {
-                                Icon(Icons.Default.Refresh, contentDescription = "Refresh", modifier = Modifier.size(18.dp), tint = LaterboxTextSecondary)
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                IconButton(onClick = { repository.refreshWebStatus() }) {
+                                    Icon(Icons.Default.Refresh, contentDescription = "Refresh", modifier = Modifier.size(18.dp), tint = LaterboxTextSecondary)
+                                }
+                                IconButton(onClick = { showStatusSheet = true }) {
+                                    Icon(Icons.Default.ChevronRight, contentDescription = "View Service Status", modifier = Modifier.size(18.dp), tint = LaterboxTextSecondary)
+                                }
                             }
                         }
 
@@ -382,6 +391,15 @@ fun SettingsScreen(
                     color = LaterboxTextSecondary
                 )
             }
+        }
+    }
+
+    if (showStatusSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showStatusSheet = false },
+            containerColor = LaterboxBg
+        ) {
+            ServiceStatusView(modifier = Modifier.fillMaxWidth().height(620.dp))
         }
     }
 }
