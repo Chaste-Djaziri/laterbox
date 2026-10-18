@@ -56,6 +56,7 @@ enum class SettingsSubpage(val title: String) {
     SECURITY("Security & Privacy"),
     STORAGE("Local Storage & Vault"),
     AI_MODELS("Later AI Models"),
+    SERVICE_STATUS("Service Status"),
     UPDATES("Check for Updates")
 }
 
@@ -392,6 +393,14 @@ fun NativeSettings(
                 item {
                     SettingsGroupCard(title = "SUPPORT & UPDATES") {
                         SettingsLinkRow(
+                            icon = Icons.Default.ShowChart,
+                            title = "Service Status",
+                            subtitle = "Live BetterStack monitor health & uptime",
+                            badge = if (status.isOperational) "Operational" else "Issues",
+                            onClick = { activeSubpage = SettingsSubpage.SERVICE_STATUS }
+                        )
+                        HorizontalDivider(color = LaterboxBorder, thickness = 0.5.dp)
+                        SettingsLinkRow(
                             icon = Icons.Default.Update,
                             title = "Check for Updates",
                             subtitle = "Release notes & update channel",
@@ -540,12 +549,15 @@ fun NativeSettings(
                     Spacer(Modifier.size(38.dp))
                 }
 
-                LazyColumn(
-                    modifier = Modifier.weight(1f),
-                    contentPadding = PaddingValues(horizontal = 20.dp, vertical = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    when (activeSubpage) {
+                if (activeSubpage == SettingsSubpage.SERVICE_STATUS) {
+                    ServiceStatusView(modifier = Modifier.weight(1f))
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.weight(1f),
+                        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        when (activeSubpage) {
                         SettingsSubpage.ACCOUNT -> {
                             item {
                                 Surface(
@@ -1210,8 +1222,10 @@ fun NativeSettings(
                                 }
                             }
                         }
+                        SettingsSubpage.SERVICE_STATUS -> {}
                         null -> {}
                     }
+                }
                 }
             }
         }
