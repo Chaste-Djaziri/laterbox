@@ -12,6 +12,17 @@ import { Loader2, AlertCircle, CheckCircle2, Eye, EyeOff } from 'lucide-react';
 
 export type EmailStartResult = { error: AuthError | null; nextStep?: 'email' | 'signup' | 'password' };
 
+function GoogleLogo() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" className="size-5 shrink-0">
+      <path fill="#4285F4" d="M21.35 12.23c0-.72-.06-1.42-.18-2.09H12v3.96h5.24a4.48 4.48 0 0 1-1.94 2.94v2.45h3.14c1.84-1.69 2.91-4.18 2.91-7.26Z" />
+      <path fill="#34A853" d="M12 21.5c2.63 0 4.84-.87 6.45-2.36l-3.14-2.45c-.87.58-1.98.92-3.31.92-2.54 0-4.7-1.72-5.47-4.03H3.29v2.53A9.74 9.74 0 0 0 12 21.5Z" />
+      <path fill="#FBBC05" d="M6.53 13.58A5.85 5.85 0 0 1 6.22 12c0-.55.1-1.08.31-1.58V7.89H3.29A9.5 9.5 0 0 0 2.25 12c0 1.48.36 2.88 1.04 4.11l3.24-2.53Z" />
+      <path fill="#EA4335" d="M12 6.39c1.43 0 2.71.49 3.72 1.46l2.79-2.79C16.84 3.49 14.63 2.5 12 2.5a9.74 9.74 0 0 0-8.71 5.39l3.24 2.53c.77-2.31 2.93-4.03 5.47-4.03Z" />
+    </svg>
+  );
+}
+
 export function CustomLoginContent({ actions, extra, initialMode = 'login' }: { actions?: Partial<AuthContextType> & { signInWithOtp?: (email: string) => Promise<EmailStartResult> }; extra?: React.ReactNode; initialMode?: 'login' | 'signup' }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -426,7 +437,7 @@ export function CustomLoginContent({ actions, extra, initialMode = 'login' }: { 
           </>}
 
           <button type="button" disabled={loading || authLoading || Boolean(isAuthenticated)} onClick={() => void handleGoogle()} className="w-full h-14 rounded-[18px] border border-[#e5e1d7] bg-white text-[15px] font-bold disabled:opacity-60">
-            {authMode === 'signup' ? 'Create account with Google' : 'Continue with Google'}
+            <span className="inline-flex items-center justify-center gap-3"><GoogleLogo />{authMode === 'signup' ? 'Create account with Google' : 'Continue with Google'}</span>
           </button>
 
           {/* Continue without account */}
