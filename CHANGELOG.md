@@ -20,6 +20,8 @@ All notable user-facing changes to LaterBox will be documented in this file.
 
 ## [Unreleased]
 
+- **[iOS / Inbox] Show the cloud syncing loader while pull-to-refresh is running instead of leaving the default refresh spinner as the only feedback.**
+
 - **[Android / Inbox] Fix pull-to-refresh so downward drags at the top of the inbox reliably trigger a reload.**
 
 - **[Android / Inbox] Extend the Pro member status footer to the bottom edge of the inbox.**
