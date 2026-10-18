@@ -2,6 +2,8 @@
 
 - **[Web / Account]** Connect Apple and Google sign-in identities from Settings while keeping the existing LaterBox account.
 
+- **[Web / Authentication]** Add Sign in with Apple to Login and Signup alongside existing Google options.
+
 - **[Downloads]** Offer the public Android APK, current release notes, and direct navigation to all marketing pages.
 
 - **[Releases]** Build a fresh complete release baseline, then carry forward unchanged platform artifacts on every main push.
