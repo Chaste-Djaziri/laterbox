@@ -20,7 +20,10 @@ copy_assets() {
   [ -d "$source_dir" ] || return 0
   find "$source_dir" -maxdepth 1 -type f -print0 |
     while IFS= read -r -d '' file; do
-      cp -n "$file" "$staging_dir/$(basename "$file")"
+      local dest="$staging_dir/$(basename "$file")"
+      if [ ! -e "$dest" ]; then
+        cp "$file" "$dest"
+      fi
     done
 }
 
