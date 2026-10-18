@@ -659,9 +659,10 @@ public struct InboxView: View {
                 .refreshable {
                     LBHaptic.medium()
                     await MainActor.run { isRefreshingInbox = true }
-                    defer { Task { @MainActor in isRefreshingInbox = false } }
-                    await coordinator.syncPendingItems(context: modelContext)
+                    await coordinator.syncPendingItems(context: modelContext, announceFailure: false)
+                    await MainActor.run { isRefreshingInbox = false }
                 }
+                .tint(.clear)
 
                 if isRefreshingInbox {
                     HStack(spacing: 8) {
