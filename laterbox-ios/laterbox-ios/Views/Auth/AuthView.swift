@@ -7,6 +7,7 @@
 
 import SwiftUI
 import SwiftData
+import AuthenticationServices
 
 struct AuthView: View {
     @Environment(\.dismiss) private var dismiss
@@ -268,6 +269,23 @@ struct AuthView: View {
                         .padding(.top, 18)
                     }
 
+                    if step == .enterEmail {
+                        HStack(spacing: 12) {
+                            Rectangle().fill(Color.black.opacity(0.12)).frame(height: 1)
+                            Text("OR").font(.caption.weight(.semibold)).foregroundColor(.secondary)
+                            Rectangle().fill(Color.black.opacity(0.12)).frame(height: 1)
+                        }
+                        .padding(.top, 10)
+
+                        SignInWithAppleButton(.signIn, onRequest: { request in
+                            request.requestedScopes = [.fullName, .email]
+                        }, onCompletion: handleAppleResult)
+                        .signInWithAppleButtonStyle(.black)
+                        .frame(height: 54)
+                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                        .disabled(isLoading)
+                    }
+
                     // Secondary Action: "Continue without account" or "Resend code"
                     if step == .enterEmail {
                         Button(action: {
@@ -359,6 +377,56 @@ struct AuthView: View {
                 await MainActor.run {
                     isLoading = false
                     errorMessage = "Failed to send code: \(error.localizedDescription)"
+                    LBHaptic.error()
+                }
+            }
+        }
+    }
+
+    private func handleAppleResult(_ result: Result<ASAuthorization, Error>) {
+        switch result {
+        case .failure(let error):
+            guard (error as NSError).code != ASAuthorizationError.canceled.rawValue else { return }
+            errorMessage = "Apple sign-in failed. Please try again."
+            LBHaptic.error()
+        case .success(let authorization):
+            guard let credential = authorization.credential as? ASAuthorizationAppleIDCredential,
+                  let tokenData = credential.identityToken,
+                  let identityToken = String(data: tokenData, encoding: .utf8) else {
+                errorMessage = "Apple did not return a valid sign-in token."
+                LBHaptic.error()
+                return
+            }
+            signInWithApple(identityToken: identityToken, email: credential.email)
+        }
+    }
+
+    private func signInWithApple(identityToken: String, email: String?) {
+        isLoading = true
+        errorMessage = nil
+        infoMessage = nil
+        LBHaptic.medium()
+        Task {
+            do {
+                let result = try await LaterBoxAPIService.shared.signInWithApple(identityToken: identityToken)
+                let accountEmail = email ?? result.email ?? "Apple account"
+                try await coordinator.resolveLoginData(
+                    merge: true,
+                    email: accountEmail,
+                    userId: result.userId,
+                    token: result.accessToken,
+                    refreshToken: result.refreshToken,
+                    context: modelContext
+                )
+                await MainActor.run {
+                    isLoading = false
+                    LBHaptic.success()
+                    dismiss()
+                }
+            } catch {
+                await MainActor.run {
+                    isLoading = false
+                    errorMessage = "Could not sign in with Apple. Please try again."
                     LBHaptic.error()
                 }
             }
