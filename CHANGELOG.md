@@ -1,5 +1,7 @@
 # Free extension and local library
 
+- **[iOS / Authentication]** Add native Sign in with Apple to login, signup, and account settings linking.
+
 - **[iOS / Onboarding] Optional accounts**: Make account-free entry the primary welcome action and expose Pro plans, purchases, and restore directly before sign-in.
 
 - **[App Store] Subscription review metadata**: Add the Apple standard EULA to localized descriptions and provide review instructions for guest purchases and optional account connection.
