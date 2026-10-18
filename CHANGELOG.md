@@ -28,6 +28,8 @@
 
 - **[Android / Inbox]** Correct left-swipe reveal distance and keep Delete compact until its full-swipe extension begins.
 
+- **[Android / Inbox]** Extend the left-swipe resting distance so the Collection action is fully visible.
+
 - **[iOS / Onboarding] Optional accounts**: Make account-free entry the primary welcome action and expose Pro plans, purchases, and restore directly before sign-in.
 
 - **[App Store] Subscription review metadata**: Add the Apple standard EULA to localized descriptions and provide review instructions for guest purchases and optional account connection.
