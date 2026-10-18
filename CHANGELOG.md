@@ -20,6 +20,8 @@ All notable user-facing changes to LaterBox will be documented in this file.
 
 ## [Unreleased]
 
+- **[Android / Inbox] Add pull-to-refresh to reload local inbox data and pull the latest cloud changes when available.**
+
 - **[Android / Sync] Preserve the confirmed account plan during sync and temporary entitlement failures so Pro buttons and the inbox bottom sync bar stop flickering between local, free, and Pro modes.**
 
 - **[Android / Cloudflare Attachments & Sync] Upload attachments to Cloudflare storage before syncing items, attaching verified Cloudflare storage references to the item and publishing atomically via publish_item_attachments.**
