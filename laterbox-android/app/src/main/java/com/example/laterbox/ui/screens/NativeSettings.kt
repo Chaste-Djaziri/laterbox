@@ -51,14 +51,14 @@ import java.time.format.DateTimeFormatter
 
 enum class SettingsSubpage(val title: String) {
     ACCOUNT("Account Details"),
-    SUBSCRIPTION("Subscription & Plans"),
-    SYNC("Cloud Sync & Diagnostics"),
-    NOTIFICATIONS("Notifications & Alerts"),
-    SECURITY("Security & Privacy"),
-    STORAGE("Local Storage & Vault"),
-    AI_MODELS("Later AI Models"),
+    SUBSCRIPTION("Plans"),
+    SYNC("Sync"),
+    NOTIFICATIONS("Notifications"),
+    SECURITY("Security"),
+    STORAGE("Storage"),
+    AI_MODELS("AI Assistant"),
     SERVICE_STATUS("Service Status"),
-    UPDATES("Check for Updates")
+    UPDATES("Updates")
 }
 
 @Composable
@@ -326,7 +326,7 @@ fun NativeSettings(
                     SettingsGroupCard(title = "MEMBERSHIP & CLOUD") {
                         SettingsLinkRow(
                             icon = Icons.Default.WorkspacePremium,
-                            title = "Subscription & Plans",
+                            title = "Plans",
                             subtitle = "Cloud sync, AI models & storage tiers",
                             badge = if (account.pro) "Pro" else "Free",
                             onClick = { activeSubpage = SettingsSubpage.SUBSCRIPTION }
@@ -334,7 +334,7 @@ fun NativeSettings(
                         HorizontalDivider(color = LaterboxBorder, thickness = 0.5.dp)
                         SettingsLinkRow(
                             icon = Icons.Default.CloudSync,
-                            title = "Cloud Sync & Diagnostics",
+                            title = "Sync",
                             subtitle = "Real-time sync status & platform health",
                             badge = sync,
                             onClick = { activeSubpage = SettingsSubpage.SYNC }
@@ -347,7 +347,7 @@ fun NativeSettings(
                     SettingsGroupCard(title = "PREFERENCES & SYSTEM") {
                         SettingsLinkRow(
                             icon = Icons.Default.Notifications,
-                            title = "Notifications & Alerts",
+                            title = "Notifications",
                             subtitle = "Daily delivery schedule & system channel",
                             badge = if (notificationsEnabled) "On" else "Off",
                             onClick = { activeSubpage = SettingsSubpage.NOTIFICATIONS }
@@ -355,7 +355,7 @@ fun NativeSettings(
                         HorizontalDivider(color = LaterboxBorder, thickness = 0.5.dp)
                         SettingsLinkRow(
                             icon = Icons.Default.Lock,
-                            title = "Security & Privacy",
+                            title = "Security",
                             subtitle = "App Lock biometrics & screen protection",
                             badge = if (lock) "On" else "Off",
                             onClick = { activeSubpage = SettingsSubpage.SECURITY }
@@ -368,7 +368,7 @@ fun NativeSettings(
                     SettingsGroupCard(title = "DATA & INTELLIGENCE") {
                         SettingsLinkRow(
                             icon = Icons.Default.Storage,
-                            title = "Local Storage & Vault",
+                            title = "Storage",
                             subtitle = "Backups, export & trash management",
                             badge = android.text.format.Formatter.formatFileSize(context, bytes),
                             onClick = { activeSubpage = SettingsSubpage.STORAGE }
@@ -376,7 +376,7 @@ fun NativeSettings(
                         HorizontalDivider(color = LaterboxBorder, thickness = 0.5.dp)
                         SettingsLinkRow(
                             icon = Icons.Default.AutoAwesome,
-                            title = "Later AI Models",
+                            title = "AI Assistant",
                             subtitle = "Local responses · Offline assistant",
                             badge = if (account.pro) "Configured" else "Pro",
                             onClick = { activeSubpage = SettingsSubpage.AI_MODELS }
@@ -397,7 +397,7 @@ fun NativeSettings(
                         HorizontalDivider(color = LaterboxBorder, thickness = 0.5.dp)
                         SettingsLinkRow(
                             icon = Icons.Default.Update,
-                            title = "Check for Updates",
+                            title = "Updates",
                             subtitle = "Release notes & update channel",
                             badge = "v${BuildConfig.VERSION_NAME}",
                             onClick = { activeSubpage = SettingsSubpage.UPDATES }
@@ -405,7 +405,7 @@ fun NativeSettings(
                         HorizontalDivider(color = LaterboxBorder, thickness = 0.5.dp)
                         SettingsLinkRow(
                             icon = Icons.Default.QuestionAnswer,
-                            title = "Help & Report a Problem",
+                            title = "Help",
                             subtitle = "Send diagnostics, suggestions or bug reports",
                             badge = null,
                             onClick = { supportSheet = true }
