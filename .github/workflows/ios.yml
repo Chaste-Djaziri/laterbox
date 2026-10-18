@@ -90,6 +90,7 @@ jobs:
           printf '%s' "$APP_STORE_CONNECT_API_KEY_BASE64" | base64 --decode > "$ASC_KEY_PATH"
           chmod 600 "$ASC_KEY_PATH"
           echo "ASC_KEY_PATH=$ASC_KEY_PATH" >> "$GITHUB_ENV"
+          export ASC_KEY_PATH
           python laterbox-ios/ci/signing.py
       - name: Keep marketing version and increment TestFlight build
         run: python laterbox-ios/ci/app_store.py prepare
