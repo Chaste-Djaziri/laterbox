@@ -20,6 +20,8 @@ All notable user-facing changes to LaterBox will be documented in this file.
 
 ## [Unreleased]
 
+- **[Android / Security & Privacy] Add Delete Account in Security & Privacy to permanently delete user account, cloud data, and Cloudflare attachments matching iOS.**
+
 - **[Android / Billing] Direct Paddle subscription management: configure Manage Subscription to open the Paddle customer portal page directly rather than redirecting to the generic web login page.**
 
 - **[Android / Sync] Stabilize sync controls to prevent layout glitching and flashing during cloud sync, batch database transactions, and add dedicated loading indicators and skeleton states for syncing items.**
