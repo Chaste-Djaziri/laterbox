@@ -19,6 +19,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -121,7 +122,25 @@ fun InboxQueueScreen(
     var selectedMailbox by rememberSaveable(initialMailbox) { mutableStateOf(initialMailbox) }
     var selectedCollection by rememberSaveable(initialCollection) { mutableStateOf(initialCollection) }
     var actionError by remember { mutableStateOf<String?>(null) }
+    var isRefreshingInbox by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
+
+    fun refreshInbox() {
+        if (isRefreshingInbox) return
+        scope.launch {
+            isRefreshingInbox = true
+            try {
+                repository.promoteDueItems()
+                repository.pullChanges()
+                repository.checkRemoteChanges()
+                repository.refreshPendingCounts()
+            } catch (_: Exception) {
+                actionError = "Unable to refresh the inbox. Please try again."
+            } finally {
+                isRefreshingInbox = false
+            }
+        }
+    }
 
     val rawItems = remember(allItems, collections, selectedMailbox, selectedCollection) {
         if (selectedCollection != null) {
@@ -262,7 +281,20 @@ fun InboxQueueScreen(
             LazyColumn(
                 modifier = Modifier
                     .weight(1f)
-                    .fillMaxWidth(),
+                    .fillMaxWidth()
+                    .pointerInput(isRefreshingInbox) {
+                        var pullDistance = 0f
+                        detectVerticalDragGestures(
+                            onVerticalDrag = { _, dragAmount ->
+                                if (dragAmount > 0f) pullDistance += dragAmount
+                            },
+                            onDragEnd = {
+                                if (pullDistance > 96f) refreshInbox()
+                                pullDistance = 0f
+                            },
+                            onDragCancel = { pullDistance = 0f }
+                        )
+                    },
                 contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(2.5.dp)
             ) {
