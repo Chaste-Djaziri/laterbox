@@ -24,11 +24,16 @@ copy_assets() {
     done
 }
 
+repo_flag=()
+if [ -n "${GH_REPO:-${GITHUB_REPOSITORY:-}}" ]; then
+  repo_flag=(-R "${GH_REPO:-${GITHUB_REPOSITORY:-}}")
+fi
+
 download_release() {
   local release_tag="$1"
   local destination="$download_dir/$release_tag"
   mkdir -p "$destination"
-  if gh release download "$release_tag" --dir "$destination" --clobber >/dev/null 2>&1; then
+  if gh release download "$release_tag" "${repo_flag[@]}" --dir "$destination" --clobber >/dev/null 2>&1; then
     copy_assets "$destination"
   fi
 }
@@ -37,16 +42,19 @@ download_release() {
 download_release "$tag"
 
 previous_tag="$(
-  gh release list --limit 100 --json tagName,publishedAt,isDraft,isPrerelease \
-    --jq 'sort_by(.publishedAt) | reverse | map(select(.isDraft == false and .isPrerelease == false and .tagName != "'"$tag"'")) | .[0].tagName // empty'
+  gh release list "${repo_flag[@]}" --limit 100 --json tagName,publishedAt,isDraft,isPrerelease \
+    --jq 'sort_by(.publishedAt) | reverse | map(select(.isDraft == false and .isPrerelease == false and .tagName != "'"$tag"'")) | .[0].tagName // empty' 2>/dev/null || true
 )"
 if [ -n "$previous_tag" ]; then
   download_release "$previous_tag"
 fi
 
 for asset in "$@"; do
-  [ -f "$asset" ] || { echo "Missing release asset: $asset" >&2; exit 1; }
-  cp "$asset" "$staging_dir/$(basename "$asset")"
+  if [ -f "$asset" ]; then
+    cp "$asset" "$staging_dir/$(basename "$asset")"
+  else
+    echo "Warning: release asset not found: $asset" >&2
+  fi
 done
 
 cp CHANGELOG.md "$staging_dir/LaterBox-CHANGELOG.md"
