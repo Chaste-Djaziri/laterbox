@@ -15,7 +15,7 @@ import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
 
-data class AccountState(val userId: String? = null, val email: String? = null, val displayName: String? = null, val pro: Boolean = false)
+data class AccountState(val userId: String? = null, val email: String? = null, val displayName: String? = null, val pro: Boolean = false, val googleLinked: Boolean = false)
 // Keep the last confirmed plan for this account while checking the server. A failed
 // request is not a confirmed downgrade, and another account must never inherit Pro.
 internal suspend fun refreshAccountState(
@@ -52,8 +52,8 @@ object AccountService {
         }?.takeIf { it.isNotBlank() }
 
         refreshAccountState(
-            state = state,
-            account = AccountState(user?.id, user?.email, metaName),
+        state = state,
+        account = AccountState(user?.id, user?.email, metaName, googleLinked = user?.identities?.any { it.provider == "google" } == true),
             currentUserId = { SupabaseClient.client.auth.currentUserOrNull()?.id }
         ) {
             val response = NativeApi.call(
