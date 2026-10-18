@@ -539,6 +539,9 @@ object SyncCoordinator {
                         verifiedAssets.put(assetObj)
                     }
                 }
+                check(verifiedAssets.length() == attachmentsArray.length()) {
+                    "An attachment has not finished uploading to cloud storage"
+                }
             }
 
             val body = JSONObject()
