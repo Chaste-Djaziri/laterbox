@@ -20,6 +20,8 @@ All notable user-facing changes to LaterBox will be documented in this file.
 
 ## [Unreleased]
 
+- **[Android / Account] Match the iOS Account Details layout with an unboxed profile header and a bottom sign-out action.**
+
 - **[iOS / Inbox] Use the blue syncing loader during pull-to-refresh and keep transient reload failures from showing the generic sync alert.**
 
 - **[Android / Account] Improve Account Details layout and add a clear Google-branded connection button for existing email users.**
