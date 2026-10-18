@@ -663,6 +663,7 @@ fun MobileSidebarDrawer(
             }
         }
     }
+    }
 
     // Collection Options Dialog (Edit or Delete)
     if (collectionForActions != null) {
