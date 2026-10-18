@@ -35,4 +35,7 @@ interface CollectionDao {
 
     @Query("UPDATE collections SET sync_status = 'synced', user_id = :userId WHERE id = :id AND updated_at = :version")
     suspend fun markSynced(id: String, version: String, userId: String)
+
+    @Query("DELETE FROM collections WHERE user_id = :userId")
+    suspend fun deletePermanentlyByUserId(userId: String)
 }
