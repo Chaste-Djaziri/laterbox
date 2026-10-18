@@ -1276,11 +1276,7 @@ private fun SwipeActionButton(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .graphicsLayer {
-                    scaleX = contentScale
-                    scaleY = contentScale
-                    alpha = contentAlpha
-                },
+            .graphicsLayer { alpha = contentAlpha },
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
