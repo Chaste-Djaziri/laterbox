@@ -116,10 +116,10 @@ export default function DownloadPage() {
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <h2 className="text-xl sm:text-2xl font-bold text-[#171711]">
-              Other Platforms
+              Android & Desktop
             </h2>
             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#ebe7dc] text-[#6c6b63]">
-              Roadmap
+              Downloads
             </span>
           </div>
           <p className="text-xs sm:text-sm text-[#6c6b63]">

@@ -34,7 +34,7 @@ export default function InAppDownloadsPage() {
             Apps & Downloads
           </h1>
           <p className="text-sm sm:text-base text-[#6c6b63] mt-1 max-w-xl">
-            Download the official LaterBox iOS app directly from the Apple App Store, pair browser extensions, or track upcoming platforms.
+            Get LaterBox for iOS or Android, pair browser extensions, or track upcoming desktop apps.
           </p>
         </div>
 
@@ -133,10 +133,10 @@ export default function InAppDownloadsPage() {
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <h2 className="text-xl sm:text-2xl font-bold text-[#171711]">
-              Other Platforms
+              Android & Desktop
             </h2>
             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#ebe7dc] text-[#6c6b63]">
-              Roadmap
+              Downloads
             </span>
           </div>
           <p className="text-xs sm:text-sm text-[#6c6b63]">
