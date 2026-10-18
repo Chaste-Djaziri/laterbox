@@ -33,7 +33,7 @@ fun PlansSheet(onDismiss: () -> Unit) {
     var selectedPlan by remember { mutableStateOf("Annual") }
     var message by remember { mutableStateOf<String?>(null) }
     var busy by remember { mutableStateOf(false) }
-    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = LaterboxBackground) {
+    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = LaterboxBg) {
         Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             Box(Modifier.padding(top = 4.dp).size(68.dp).background(LaterboxAccent, CircleShape), contentAlignment = Alignment.Center) { Icon(Icons.Default.Star, null, tint = LaterboxTextPrimary, modifier = Modifier.size(34.dp)) }
             Text("LaterBox Pro", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = LaterboxTextPrimary, modifier = Modifier.padding(top = 12.dp))
