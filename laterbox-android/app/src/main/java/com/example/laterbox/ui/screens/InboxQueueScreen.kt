@@ -1266,7 +1266,7 @@ private fun SwipeActionButton(
     val buttonShape = CircleShape
     Surface(
         modifier = Modifier
-            .fillMaxHeight()
+            .height(width)
             .width(width)
             .clip(buttonShape)
             .clickable(onClick = onClick),
@@ -1451,15 +1451,13 @@ internal fun SwipeableEmailInboxRow(
                         keepAlpha = baseAlpha
                         snoozeAlpha = baseAlpha
                     } else {
-                        keepAlpha = (1f - extendProgress) * baseAlpha
+                        keepAlpha = 0.42f
                         keepScale = (1f - 0.2f * extendProgress) * baseScale
-                        val keepWidthDp = 64.dp * (1f - extendProgress)
-                        keepWidth = if (keepWidthDp > 4.dp) keepWidthDp else 0.dp
+                        keepWidth = 64.dp
                         val usedKeepPx = if (keepWidth > 0.dp) with(density) { keepWidth.toPx() } + gap8Px else 0f
-                        snoozeAlpha = (1f - extendProgress) * baseAlpha
+                        snoozeAlpha = 0.42f
                         snoozeScale = (1f - 0.2f * extendProgress) * baseScale
-                        val snzWidthDp = 72.dp * (1f - extendProgress)
-                        snoozeWidth = if (snzWidthDp > 4.dp) snzWidthDp else 0.dp
+                        snoozeWidth = 72.dp
                         val usedSnzPx = if (snoozeWidth > 0.dp) with(density) { snoozeWidth.toPx() } + gap8Px else 0f
                         deleteWidth = with(density) {
                             (absOffset - padding12Px - usedKeepPx - usedSnzPx).coerceAtLeast(baseBtnWidthPx).toDp()
