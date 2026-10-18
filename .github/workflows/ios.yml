@@ -130,9 +130,10 @@ jobs:
           scripts/prepare_release_assets.sh \
             "${{ steps.release_version.outputs.tag }}" \
             "$RUNNER_TEMP/release-assets" \
-            "$RUNNER_TEMP/IPA"/*.ipa
+            $(find "$RUNNER_TEMP/IPA" -name '*.ipa' -type f)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
       - name: Attach iOS IPA to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
