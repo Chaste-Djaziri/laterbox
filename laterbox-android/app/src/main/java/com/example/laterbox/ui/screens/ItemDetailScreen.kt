@@ -146,12 +146,12 @@ fun ItemDetailScreen(
     }
 
     fun share() {
-        val shareText = item.url ?: item.textContent ?: item.title.orEmpty()
+        val shareText = cleanText(item.url) ?: cleanText(item.textContent) ?: cleanText(item.title).orEmpty()
         open(Intent.createChooser(Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, shareText), "Share item"))
     }
 
     fun copyLinkOrText() {
-        val text = item.url ?: item.title.orEmpty()
+        val text = cleanText(item.url) ?: cleanText(item.title).orEmpty()
         val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         clipboard.setPrimaryClip(ClipData.newPlainText("LaterBox item", text))
     }
@@ -159,14 +159,24 @@ fun ItemDetailScreen(
     BackHandler { onBack() }
 
     // Domain & sender computations
-    val domainOrSender = remember(metadata, item.url, item.type) {
-        metadata?.siteName?.takeIf { it.isNotBlank() }
-            ?: metadata?.domain?.takeIf { it.isNotBlank() }
-            ?: item.url?.let { runCatching { java.net.URI(it).host?.removePrefix("www.") }.getOrNull() }?.takeIf { it.isNotBlank() }
-            ?: item.type.replaceFirstChar { it.uppercase() }
+    val domainOrSender = remember(metadata, item.url, item.type, item.attachments) {
+        val site = cleanText(metadata?.siteName)
+        if (site != null) return@remember site
+        val domain = cleanText(metadata?.domain) ?: cleanText(item.url)?.let {
+            runCatching { java.net.URI(it).host?.removePrefix("www.") }.getOrNull()
+        }
+        val cleanDomain = cleanText(domain)
+        if (cleanDomain != null) return@remember cleanDomain
+        val hasFiles = item.attachments.isNotBlank() && item.attachments != "[]"
+        if (hasFiles) return@remember "File"
+        val cleanType = cleanText(item.type)
+        if (cleanType == "note") return@remember "Note"
+        if (cleanType == "file") return@remember "File"
+        if (cleanType == "image") return@remember "Photo"
+        cleanType?.replaceFirstChar { it.uppercase() } ?: "LaterBox"
     }
     val senderInitial = remember(domainOrSender) {
-        domainOrSender.firstOrNull { it.isLetter() }?.uppercaseChar()?.toString() ?: "L"
+        domainOrSender.firstOrNull { it.isLetterOrDigit() }?.uppercaseChar()?.toString() ?: "L"
     }
 
     Box(
@@ -275,7 +285,7 @@ fun ItemDetailScreen(
                     }
 
                     // 3. Collection Button
-                    val hasCollection = !item.collectionId.isNullOrBlank() || item.category.isNotBlank()
+                    val hasCollection = cleanText(item.collectionId) != null || cleanText(item.category) != null
                     Box(
                         Modifier
                             .size(34.dp)
@@ -311,8 +321,8 @@ fun ItemDetailScreen(
                         )
                     }
 
-                    // 5. External Link Button (if item.url exists)
-                    item.url?.takeIf { it.isNotBlank() }?.let { url ->
+                    // 5. External Link Button (if item.url exists and is a valid web link)
+                    cleanText(item.url)?.takeIf { it.startsWith("http://", ignoreCase = true) || it.startsWith("https://", ignoreCase = true) }?.let { url ->
                         Box(
                             Modifier
                                 .size(34.dp)
@@ -433,7 +443,12 @@ fun ItemDetailScreen(
                 }
 
                 // Attachments & Files Card (Component 2: right after Return Schedule Banner, matching iOS)
-                val attachments = remember(item.attachments) { runCatching { JSONArray(item.attachments) }.getOrNull() }
+                val rawAttachments = cleanText(item.attachments)
+                val attachments = remember(rawAttachments) {
+                    if (rawAttachments != null && rawAttachments != "[]") {
+                        runCatching { JSONArray(rawAttachments) }.getOrNull()
+                    } else null
+                }
                 attachments?.takeIf { it.length() > 0 }?.let { files ->
                     Surface(
                         color = Color.White,
@@ -449,9 +464,10 @@ fun ItemDetailScreen(
                             }
                             for (index in 0 until files.length()) {
                                 val attachment = files.optJSONObject(index) ?: continue
-                                val name = attachment.optString("name").ifBlank { "Attachment ${index + 1}" }
-                                val mime = attachment.optString("mime", "application/octet-stream")
-                                val file = trustedAttachment(attachment.optString("path"), File(context.filesDir, "captures"))
+                                val name = cleanText(attachment.optString("name")) ?: "Attachment ${index + 1}"
+                                val mime = cleanText(attachment.optString("mime")) ?: "application/octet-stream"
+                                val rawPath = cleanText(attachment.optString("path")).orEmpty()
+                                val file = trustedAttachment(rawPath, File(context.filesDir, "captures"))
                                 Row(
                                     Modifier
                                         .fillMaxWidth()
@@ -468,14 +484,14 @@ fun ItemDetailScreen(
                                     }
                                     if (file != null) {
                                         TextButton(onClick = {
-                                            runCatching {
-                                                FileProvider.getUriForFile(context, context.packageName + ".files", file)
-                                            }.onSuccess { uri ->
-                                                open(Intent(Intent.ACTION_VIEW).setDataAndType(uri, mime).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION))
-                                            }.onFailure { error = "Unable to open attachment." }
-                                        }) {
-                                            Text("Open", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                                        }
+                                             runCatching {
+                                                 FileProvider.getUriForFile(context, context.packageName + ".files", file)
+                                             }.onSuccess { uri ->
+                                                 open(Intent(Intent.ACTION_VIEW).setDataAndType(uri, mime).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION))
+                                             }.onFailure { error = "Unable to open attachment." }
+                                         }) {
+                                             Text("Open", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                         }
                                     }
                                 }
                             }
@@ -484,7 +500,7 @@ fun ItemDetailScreen(
                 }
 
                 // Media Preview / Hero Image Card (Component 3: matching iOS)
-                val source = item.url
+                val source = cleanText(item.url)
                 val kind = directMediaKind(source)
                 val embed = hostedMediaPreview(source)
 
@@ -495,11 +511,11 @@ fun ItemDetailScreen(
                         var found: File? = null
                         for (idx in 0 until arr.length()) {
                             val att = arr.optJSONObject(idx) ?: continue
-                            val mime = att.optString("mime", "").lowercase()
-                            val name = att.optString("name", "").lowercase()
+                            val mime = cleanText(att.optString("mime", "")).orEmpty().lowercase()
+                            val name = cleanText(att.optString("name", "")).orEmpty().lowercase()
                             val isImg = mime.startsWith("image/") || name.endsWith(".jpg") || name.endsWith(".jpeg") || name.endsWith(".png") || name.endsWith(".webp") || name.endsWith(".gif")
                             if (isImg) {
-                                val p = att.optString("path")
+                                val p = cleanText(att.optString("path")).orEmpty()
                                 val f = File(p)
                                 if (f.isFile) {
                                     found = f
@@ -516,7 +532,7 @@ fun ItemDetailScreen(
                     } else null
                 }
 
-                val remotePreviewImg = metadata?.previewImageUrl?.takeIf { it.isNotBlank() }
+                val remotePreviewImg = sanitizePreviewImageUrl(metadata?.previewImageUrl)
                 val effectivePreview = localImageFile ?: remotePreviewImg
 
                 if (source != null && (kind != null || embed != null)) {
@@ -532,7 +548,7 @@ fun ItemDetailScreen(
                                 embed != null -> HostedItemPreview(embed)
                                 kind == "image" -> ItemImagePreview(
                                     source = localImageFile ?: source,
-                                    label = item.title.orEmpty(),
+                                    label = cleanText(item.title).orEmpty(),
                                     fallbackSource = if (localImageFile != null) source else remotePreviewImg,
                                     onClick = {
                                         if (localImageFile != null) {
@@ -562,7 +578,7 @@ fun ItemDetailScreen(
                     ) {
                         ItemImagePreview(
                             source = effectivePreview,
-                            label = item.title.orEmpty(),
+                            label = cleanText(item.title).orEmpty(),
                             fallbackSource = if (effectivePreview == localImageFile) remotePreviewImg else localImageFile,
                             onClick = {
                                 if (localImageFile != null) {
@@ -610,29 +626,36 @@ fun ItemDetailScreen(
                                 fontWeight = FontWeight.Bold,
                                 color = LaterboxTextPrimary
                             )
-                            Box(
-                                Modifier
-                                    .clip(RoundedCornerShape(10.dp))
-                                    .background(Color(0xFFE6EDB0))
-                                    .padding(horizontal = 7.dp, vertical = 3.dp)
-                            ) {
-                                Text(
-                                    item.type.replaceFirstChar { it.uppercase() },
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF171711)
-                                )
+                            val cleanItemType = cleanText(item.type)
+                            if (cleanItemType != null) {
+                                Box(
+                                    Modifier
+                                        .clip(RoundedCornerShape(10.dp))
+                                        .background(Color(0xFFE6EDB0))
+                                        .padding(horizontal = 7.dp, vertical = 3.dp)
+                                ) {
+                                    Text(
+                                        cleanItemType.replaceFirstChar { it.uppercase() },
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFF171711)
+                                    )
+                                }
                             }
                             Spacer(Modifier.weight(1f))
-                            Text(
-                                detailDateShort(item.createdAt),
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = LaterboxTextSecondary
-                            )
+                            val cleanCreated = cleanText(item.createdAt)
+                            if (cleanCreated != null) {
+                                Text(
+                                    detailDateShort(cleanCreated),
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = LaterboxTextSecondary
+                                )
+                            }
                         }
 
                         // Title (Editable or Bold Header)
+                        val cleanTitle = cleanText(item.title) ?: cleanText(metadata?.title) ?: "Untitled item"
                         if (editingTitle) {
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 BasicTextField(
@@ -659,7 +682,7 @@ fun ItemDetailScreen(
                             Row(verticalAlignment = Alignment.Top) {
                                 SelectionContainer(Modifier.weight(1f)) {
                                     Text(
-                                        item.title?.takeIf { it.isNotBlank() } ?: metadata?.title ?: "Untitled item",
+                                        cleanTitle,
                                         fontSize = 18.sp,
                                         lineHeight = 24.sp,
                                         fontWeight = FontWeight.Bold,
@@ -673,9 +696,10 @@ fun ItemDetailScreen(
                         }
 
                         // Description snippet
-                        metadata?.description?.takeIf { it.isNotBlank() && it != item.summary }?.let { desc ->
+                        val cleanDesc = cleanText(metadata?.description)
+                        if (cleanDesc != null && cleanDesc != cleanText(item.summary)) {
                             Text(
-                                desc,
+                                cleanDesc,
                                 fontSize = 13.sp,
                                 lineHeight = 18.sp,
                                 color = Color(0xFF45443F),
@@ -685,56 +709,63 @@ fun ItemDetailScreen(
                         }
 
                         // Collections, Tags & Reader View
-                        Row(
-                            Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            val collectionName = collections.find { it.id == item.collectionId }?.name
-                                ?: item.category.takeIf { it.isNotBlank() }
-                            collectionName?.let { coll ->
-                                Row(
-                                    Modifier
-                                        .clip(RoundedCornerShape(6.dp))
-                                        .background(Color(0xFFE0F2FE))
-                                        .clickable { showingCollectionSheet = true }
-                                        .padding(horizontal = 8.dp, vertical = 4.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                ) {
-                                    Icon(Icons.Default.Folder, contentDescription = null, tint = Color(0xFF0369A1), modifier = Modifier.size(11.dp))
-                                    Text(coll, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0369A1))
-                                }
-                            }
+                        val collectionName = cleanText(collections.find { it.id == item.collectionId }?.name ?: item.category)
+                        val validTags = cleanText(item.tags)?.split(",")
+                            ?.mapNotNull { cleanText(it) }
+                            ?.filter { !it.equals("null", ignoreCase = true) && !it.equals("undefined", ignoreCase = true) }
+                            ?: emptyList()
+                        val validUrl = cleanText(item.url)?.takeIf { it.startsWith("http://", ignoreCase = true) || it.startsWith("https://", ignoreCase = true) }
 
-                            if (item.tags.isNotBlank()) {
-                                item.tags.split(",").map { it.trim() }.filter { it.isNotBlank() }.take(3).forEach { tag ->
-                                    Box(
+                        if (collectionName != null || validTags.isNotEmpty() || validUrl != null) {
+                            Row(
+                                Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                collectionName?.let { coll ->
+                                    Row(
                                         Modifier
                                             .clip(RoundedCornerShape(6.dp))
-                                            .background(Color.Black.copy(alpha = 0.04f))
-                                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                                            .background(Color(0xFFE0F2FE))
+                                            .clickable { showingCollectionSheet = true }
+                                            .padding(horizontal = 8.dp, vertical = 4.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
                                     ) {
-                                        Text("#$tag", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = LaterboxTextSecondary)
+                                        Icon(Icons.Default.Folder, contentDescription = null, tint = Color(0xFF0369A1), modifier = Modifier.size(11.dp))
+                                        Text(coll, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0369A1))
                                     }
                                 }
-                            }
 
-                            Spacer(Modifier.weight(1f))
+                                if (validTags.isNotEmpty()) {
+                                    validTags.take(3).forEach { tag ->
+                                        Box(
+                                            Modifier
+                                                .clip(RoundedCornerShape(6.dp))
+                                                .background(Color.Black.copy(alpha = 0.04f))
+                                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                                        ) {
+                                            Text("#$tag", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = LaterboxTextSecondary)
+                                        }
+                                    }
+                                }
 
-                            item.url?.takeIf { it.isNotBlank() }?.let { url ->
-                                Row(
-                                    Modifier
-                                        .clip(RoundedCornerShape(14.dp))
-                                        .background(Color(0xFFF7F5EE))
-                                        .border(BorderStroke(1.dp, Color.Black.copy(alpha = 0.08f)), RoundedCornerShape(14.dp))
-                                        .clickable { open(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
-                                        .padding(horizontal = 9.dp, vertical = 4.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                ) {
-                                    Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = null, tint = LaterboxTextPrimary, modifier = Modifier.size(11.dp))
-                                    Text("Reader", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = LaterboxTextPrimary)
+                                Spacer(Modifier.weight(1f))
+
+                                validUrl?.let { url ->
+                                    Row(
+                                        Modifier
+                                            .clip(RoundedCornerShape(14.dp))
+                                            .background(Color(0xFFF7F5EE))
+                                            .border(BorderStroke(1.dp, Color.Black.copy(alpha = 0.08f)), RoundedCornerShape(14.dp))
+                                            .clickable { open(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
+                                            .padding(horizontal = 9.dp, vertical = 4.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = null, tint = LaterboxTextPrimary, modifier = Modifier.size(11.dp))
+                                        Text("Reader", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = LaterboxTextPrimary)
+                                    }
                                 }
                             }
                         }
@@ -827,8 +858,10 @@ fun ItemDetailScreen(
                 }
 
                 // Captured Highlight Quote Card (if saved via extension text highlight)
-                item.textSelector?.takeIf { it.isNotBlank() }?.let {
-                    val highlightText = item.textContent?.takeIf { it.isNotBlank() } ?: it
+                val cleanTextSelector = cleanText(item.textSelector)
+                val cleanTextContent = cleanText(item.textContent)
+                if (cleanTextSelector != null) {
+                    val highlightText = cleanTextContent ?: cleanTextSelector
                     Surface(
                         color = Color(0xFFFEF3C7).copy(alpha = 0.7f),
                         shape = RoundedCornerShape(14.dp),
@@ -854,9 +887,9 @@ fun ItemDetailScreen(
                     }
                 }
 
-
                 // AI Summary Card (if present)
-                if (item.summary.isNotBlank()) {
+                val cleanSummary = cleanText(item.summary)
+                if (cleanSummary != null) {
                     Surface(
                         color = Color.White,
                         shape = RoundedCornerShape(16.dp),
@@ -869,14 +902,15 @@ fun ItemDetailScreen(
                                 Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = Color(0xFF1A73E8), modifier = Modifier.size(15.dp))
                                 Text("AI Summary", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = LaterboxTextPrimary)
                             }
-                            Text(item.summary, fontSize = 13.sp, lineHeight = 20.sp, color = Color(0xFF45443F))
+                            Text(cleanSummary, fontSize = 13.sp, lineHeight = 20.sp, color = Color(0xFF45443F))
                         }
                     }
                 }
 
                 // Captured Content / Full Article Text Viewer
-                val captured = item.formattedContent.ifBlank { item.textContent.orEmpty() }.trim()
-                if (captured.isNotBlank() && item.textSelector.isNullOrBlank()) {
+                val cleanFormatted = cleanText(item.formattedContent)
+                val cleanBody = cleanFormatted ?: (if (cleanTextSelector == null) cleanTextContent else null)
+                if (cleanBody != null) {
                     Surface(
                         color = Color.White,
                         shape = RoundedCornerShape(16.dp),
@@ -886,7 +920,7 @@ fun ItemDetailScreen(
                     ) {
                         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                             Text("CAPTURED CONTENT", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = LaterboxTextSecondary, letterSpacing = 0.6.sp)
-                            DetailContent(captured)
+                            DetailContent(cleanBody)
                         }
                     }
                 }
@@ -1044,7 +1078,7 @@ fun ItemDetailScreen(
     // Collection Picker Dialog
     if (showingCollectionSheet) {
         CollectionPickerDialog(
-            currentCollectionName = collections.find { it.id == item.collectionId }?.name ?: item.category.takeIf { it.isNotBlank() },
+            currentCollectionName = cleanText(collections.find { it.id == item.collectionId }?.name ?: item.category),
             collections = collections,
             onDismiss = { showingCollectionSheet = false },
             onSelect = { coll ->
@@ -1261,7 +1295,8 @@ internal fun CollectionPickerDialog(
                 }
 
                 // Current Collection
-                if (!currentCollectionName.isNullOrBlank()) {
+                val validCurrent = cleanText(currentCollectionName)
+                if (validCurrent != null) {
                     Row(
                         Modifier
                             .fillMaxWidth()
@@ -1272,7 +1307,7 @@ internal fun CollectionPickerDialog(
                     ) {
                         Icon(Icons.Default.Folder, contentDescription = null, tint = Color(0xFF0369A1), modifier = Modifier.size(16.dp))
                         Spacer(Modifier.width(8.dp))
-                        Text(currentCollectionName, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = Color(0xFF0369A1))
+                        Text(validCurrent, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = Color(0xFF0369A1))
                         Spacer(Modifier.weight(1f))
                         TextButton(onClick = onRemove) {
                             Text("Remove", color = Color(0xFFEF4444), fontSize = 12.sp, fontWeight = FontWeight.Bold)
@@ -1296,7 +1331,7 @@ internal fun CollectionPickerDialog(
                             Spacer(Modifier.width(8.dp))
                             Text(coll.name, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = LaterboxTextPrimary)
                             Spacer(Modifier.weight(1f))
-                            if (currentCollectionName.equals(coll.name, true)) {
+                            if (validCurrent?.equals(coll.name, true) == true) {
                                 Icon(Icons.Default.Check, contentDescription = "Selected", tint = Color(0xFF0369A1), modifier = Modifier.size(16.dp))
                             }
                         }
