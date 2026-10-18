@@ -1,4 +1,3 @@
-import Link from 'next/link';
 import { SITE_URL } from '@/lib/seo';
 
 export function PublicInfoPage({ title, intro, path, sections }: {
@@ -17,10 +16,5 @@ export function PublicInfoPage({ title, intro, path, sections }: {
       <h2 className="text-2xl font-bold">{section.title}</h2>
       <p className="mt-3 leading-relaxed text-[#6c6b63]">{section.text}</p>
     </section>)}</div>
-    <nav aria-label="Explore LaterBox" className="mt-12 flex flex-wrap gap-5 font-bold underline">
-      <Link href="/features">Features</Link><Link href="/about">About LaterBox</Link>
-      <Link href="/browser-extension">Browser extension</Link><Link href="/download">Downloads</Link>
-      <Link href="/pricing">Pricing</Link><Link href="/guide">Getting started</Link>
-    </nav>
   </article>;
 }

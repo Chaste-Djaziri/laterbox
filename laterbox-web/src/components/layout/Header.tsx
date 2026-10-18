@@ -20,16 +20,17 @@ export function Header() {
 
   const navLinks = [
     { href: '/features', label: 'Features' },
-    { href: '/pricing', label: 'Plans' },
+    { href: '/about', label: 'About LaterBox' },
+    { href: '/browser-extension', label: 'Browser extension' },
     { href: '/download', label: 'Downloads' },
-    { href: '/docs', label: 'Docs' },
-    { href: '/guide', label: 'Guide' },
+    { href: '/pricing', label: 'Pricing' },
+    { href: '/guide', label: 'Getting started' },
   ];
 
   return (
     <header className="sticky top-0 z-50 w-full bg-[#f7f5ee]/90 backdrop-blur-md border-b border-[#e4e0d5]/60">
       <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="w-full flex items-center justify-between md:grid md:grid-cols-[1fr_auto_1fr] py-3.5 sm:py-4">
+        <div className="w-full flex items-center justify-between xl:grid xl:grid-cols-[1fr_auto_1fr] py-3.5 sm:py-4">
           {/* Brand Logo */}
           <Link href="/" className="flex items-center gap-2 sm:gap-3 shrink-0 md:justify-self-start">
             <div className="w-[34px] h-[34px] sm:w-[42px] sm:h-[42px] relative rounded-xl overflow-hidden shadow-xs bg-[#e6edb0] p-1 sm:p-1.5 shrink-0">
@@ -48,7 +49,7 @@ export function Header() {
           </Link>
 
           {/* Nav Links (Pages Only) */}
-          <nav className="hidden md:flex items-center gap-7 text-[14px] font-semibold text-[#6c6b63] justify-self-center">
+          <nav className="hidden xl:flex items-center gap-4 2xl:gap-6 text-xs 2xl:text-sm font-semibold text-[#6c6b63] justify-self-center whitespace-nowrap">
             {navLinks.map((link) => {
               const isActive = pathname === link.href || (link.href === '/pricing' && pathname === '/plans');
               return (
@@ -104,7 +105,7 @@ export function Header() {
             <button
               type="button"
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="md:hidden p-1.5 sm:p-2 rounded-xl text-[#171711] hover:bg-[#ebe7dc]/70 active:bg-[#ebe7dc] shrink-0"
+              className="xl:hidden p-1.5 sm:p-2 rounded-xl text-[#171711] hover:bg-[#ebe7dc]/70 active:bg-[#ebe7dc] shrink-0"
               aria-label="Toggle navigation menu"
             >
               {isMobileMenuOpen ? (
@@ -118,7 +119,7 @@ export function Header() {
 
         {/* Mobile Navigation Drawer */}
         {isMobileMenuOpen && (
-          <div className="md:hidden pb-4 pt-1">
+          <div className="xl:hidden pb-4 pt-1">
             <div className="p-3.5 sm:p-4 rounded-2xl bg-white border border-[#e4e0d5] shadow-xl shadow-black/[0.04]">
               <div className="space-y-1">
                 {navLinks.map((link) => {
