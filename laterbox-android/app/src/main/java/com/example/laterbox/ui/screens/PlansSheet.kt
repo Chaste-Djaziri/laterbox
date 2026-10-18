@@ -23,15 +23,38 @@ fun PlansSheet(onDismiss: () -> Unit) {
         Column(Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text("LaterBox Pro", style = MaterialTheme.typography.headlineLarge)
             Text("Cloud sync and AI Inbox Organizer. Local capture, local search, and on-device Later AI are free.")
-            Text(if (account.pro) "Manage or cancel your subscription on LaterBox Web." else "Subscribe on LaterBox Web to enable cloud sync on Android.")
+            Text(if (account.pro) "Manage or cancel your subscription directly with Paddle." else "Subscribe on LaterBox Web to enable cloud sync on Android.")
             Text(account.email?.let { "Sign in on the web with $it, the same account you use here." }
                 ?: "Sign in on the web, then sign in to the same account on Android to access Pro.")
-            Button(onClick = {
-                runCatching {
-                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://app.laterbox.dev/login?next=%2Fplans")))
-                }.onFailure { message = "Could not open your browser. Visit app.laterbox.dev/plans to subscribe or manage your plan." }
-            }, modifier = Modifier.fillMaxWidth()) {
-                Text(if (account.pro) "Manage subscription on web" else "Get Pro on web")
+            Button(
+                onClick = {
+                    if (account.pro) {
+                        scope.launch {
+                            busy = true
+                            message = null
+                            try {
+                                val paddleUrl = com.example.laterbox.data.api.LaterBoxApiService.getPaddleManagementUrl()
+                                if (!paddleUrl.isNullOrBlank()) {
+                                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(paddleUrl)))
+                                } else {
+                                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://app.laterbox.dev/login?next=%2Fplans")))
+                                }
+                            } catch (_: Exception) {
+                                message = "Could not open Paddle subscription management. Please try again."
+                            } finally {
+                                busy = false
+                            }
+                        }
+                    } else {
+                        runCatching {
+                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://app.laterbox.dev/login?next=%2Fplans")))
+                        }.onFailure { message = "Could not open your browser. Visit app.laterbox.dev/plans to subscribe." }
+                    }
+                },
+                enabled = !busy,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(if (account.pro) "Manage Subscription with Paddle" else "Get Pro on web")
             }
             OutlinedButton(onClick = {
                 scope.launch {
