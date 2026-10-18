@@ -1447,7 +1447,7 @@ internal fun SwipeableEmailInboxRow(
                     Box(
                         modifier = Modifier
                             .fillMaxHeight()
-                            .weight(1f),
+                            .fillMaxWidth(),
                         contentAlignment = Alignment.CenterEnd
                     ) {
                         Row(
