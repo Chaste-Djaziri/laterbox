@@ -617,6 +617,32 @@ fun NativeSettings(
                                     SubpageValueRow("Account Type", if (account.pro) "Pro" else if (account.userId != null) "Free" else "Guest")
                                     HorizontalDivider(color = LaterboxBorder, thickness = 0.5.dp)
                                     SubpageValueRow("User ID", account.userId?.take(12)?.plus("…") ?: "Not registered")
+                                    if (account.userId != null && !account.googleLinked) {
+                                        HorizontalDivider(color = LaterboxBorder, thickness = 0.5.dp)
+                                        Text(
+                                            "Connect Google before email login is retired. Your existing LaterBox account stays unchanged.",
+                                            modifier = Modifier.padding(top = 12.dp),
+                                            fontSize = 12.sp,
+                                            color = LaterboxTextSecondary
+                                        )
+                                        OutlinedButton(
+                                            onClick = {
+                                                val activity = context as? android.app.Activity ?: return@OutlinedButton
+                                                scope.launch {
+                                                    busy = true
+                                                    try {
+                                                        GoogleAuthService.link(activity)
+                                                        AccountService.refresh()
+                                                        message = "Google account connected."
+                                                    } catch (error: Exception) {
+                                                        message = error.message ?: "Unable to connect Google right now."
+                                                    } finally { busy = false }
+                                                }
+                                            },
+                                            enabled = !busy,
+                                            modifier = Modifier.padding(top = 10.dp)
+                                        ) { Text(if (busy) "Connecting…" else "Connect Google") }
+                                    }
                                 }
                             }
                         }
