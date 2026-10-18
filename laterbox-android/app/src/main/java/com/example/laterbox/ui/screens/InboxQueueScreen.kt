@@ -131,23 +131,6 @@ fun InboxQueueScreen(
     val scope = rememberCoroutineScope()
     val inboxListState = rememberLazyListState()
     var pullDistance by remember { mutableFloatStateOf(0f) }
-    val refreshNestedScroll = remember(isRefreshingInbox) {
-        object : NestedScrollConnection {
-            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
-                if (!isRefreshingInbox && inboxListState.firstVisibleItemIndex == 0 && inboxListState.firstVisibleItemScrollOffset == 0 && available.y > 0f) {
-                    pullDistance += available.y
-                    if (pullDistance >= 96f) refreshInbox()
-                }
-                return Offset.Zero
-            }
-
-            override suspend fun onPreFling(available: Velocity): Velocity {
-                pullDistance = 0f
-                return Velocity.Zero
-            }
-        }
-    }
-
     fun refreshInbox() {
         if (isRefreshingInbox) return
         scope.launch {
@@ -161,6 +144,23 @@ fun InboxQueueScreen(
                 actionError = "Unable to refresh the inbox. Please try again."
             } finally {
                 isRefreshingInbox = false
+            }
+        }
+    }
+
+    val refreshNestedScroll = remember(isRefreshingInbox) {
+        object : NestedScrollConnection {
+            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                if (!isRefreshingInbox && inboxListState.firstVisibleItemIndex == 0 && inboxListState.firstVisibleItemScrollOffset == 0 && available.y > 0f) {
+                    pullDistance += available.y
+                    if (pullDistance >= 96f) refreshInbox()
+                }
+                return Offset.Zero
+            }
+
+            override suspend fun onPreFling(available: Velocity): Velocity {
+                pullDistance = 0f
+                return Velocity.Zero
             }
         }
     }
