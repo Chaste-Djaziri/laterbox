@@ -897,7 +897,7 @@ fun InboxQueueScreen(
             scope.launch {
                 try {
                     val oldCol = collections.find { it.id == id }
-                    repository.updateCollection(id, newName)
+                    repository.renameCollection(id, newName)
                     if (oldCol != null && selectedCollection.equals(oldCol.name, true)) {
                         selectedCollection = newName
                     }
