@@ -21,25 +21,46 @@ def resolve_widgets_profile(root):
     try:
         import app_store
         import base64
-        resp = app_store.request("/v1/profiles?filter[profileType]=IOS_APP_STORE&include=bundleId")
-        data = resp.get("data", [])
-        included = {item["id"]: item for item in resp.get("included", []) if item["type"] == "bundleIds"}
-        for item in data:
-            b_rel = item.get("relationships", {}).get("bundleId", {}).get("data", {})
-            b_id = b_rel.get("id")
-            if b_id and included.get(b_id, {}).get("attributes", {}).get("identifier") == TARGETS["widgets"]:
-                content = item["attributes"]["profileContent"]
+        # First check bundle ID and its associated profiles directly
+        bundle_resp = app_store.request(f"/v1/bundleIds?filter[identifier]={TARGETS['widgets']}&include=profiles")
+        bundles = bundle_resp.get("data", [])
+        if bundles:
+            bundle_resource_id = bundles[0]["id"]
+            profiles = [p for p in bundle_resp.get("included", []) if p.get("type") == "profiles" and p.get("attributes", {}).get("profileType") == "IOS_APP_STORE"]
+            if profiles:
+                content = profiles[0]["attributes"]["profileContent"]
                 widgets_path.write_bytes(base64.b64decode(content))
-                print(f"Downloaded active widgets profile from App Store Connect: {item['attributes'].get('name')}", flush=True)
+                print(f"Downloaded active widgets profile from App Store Connect: {profiles[0]['attributes'].get('name')}", flush=True)
                 return
+        else:
+            print(f"Registering Bundle ID {TARGETS['widgets']}...", flush=True)
+            new_bundle = app_store.request("/v1/bundleIds", method="POST", data={
+                "data": {
+                    "type": "bundleIds",
+                    "attributes": {
+                        "identifier": TARGETS["widgets"],
+                        "name": "LaterBox Widgets",
+                        "platform": "UNIVERSAL"
+                    }
+                }
+            })
+            bundle_resource_id = new_bundle["data"]["id"]
+            try:
+                app_store.request("/v1/bundleIdCapabilities", method="POST", data={
+                    "data": {
+                        "type": "bundleIdCapabilities",
+                        "attributes": {
+                            "capabilityType": "APP_GROUPS"
+                        },
+                        "relationships": {
+                            "bundleId": {"data": {"type": "bundleIds", "id": bundle_resource_id}}
+                        }
+                    }
+                })
+            except Exception as cap_err:
+                print(f"::warning::Could not register App Groups capability: {cap_err}", flush=True)
 
         print(f"No existing distribution profile found for {TARGETS['widgets']}. Attempting creation...", flush=True)
-        bundle_resp = app_store.request(f"/v1/bundleIds?filter[identifier]={TARGETS['widgets']}")
-        bundles = bundle_resp.get("data", [])
-        if not bundles:
-            raise RuntimeError(f"Bundle ID {TARGETS['widgets']} not found in App Store Connect")
-        bundle_resource_id = bundles[0]["id"]
-
         certs_resp = app_store.request("/v1/certificates?filter[certificateType]=DISTRIBUTION")
         certs = certs_resp.get("data", [])
         if not certs:
@@ -65,6 +86,8 @@ def resolve_widgets_profile(root):
         print("Created and saved widgets provisioning profile from App Store Connect", flush=True)
         return
     except Exception as err:
+        import traceback
+        traceback.print_exc()
         print(f"::warning::Could not resolve widgets profile from App Store Connect API: {err}", flush=True)
         raise RuntimeError(
             "Missing provisioning profile for 'pro.micorp.laterbox.widgets'. "
