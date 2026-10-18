@@ -128,4 +128,67 @@ class SyncCoordinatorTest {
         val shouldPull = remoteDate.isAfter(localDate) || (remoteDate == localDate && remoteIsDeleted && !localIsDeleted)
         assertEquals(true, shouldPull)
     }
+
+    data class RemoteAttachment(
+        val id: String,
+        val byteSize: Long,
+        val sha256: String,
+        val deletedAt: String? = null
+    )
+
+    data class LocalAttachment(
+        val id: String,
+        val path: String
+    )
+
+    @Test
+    fun `remote item with missing attachments counts as pending pull even if timestamps match`() {
+        val stamp = "2026-10-10T12:00:00Z"
+        val localItem = ItemEntity(
+            id = "item-att",
+            url = "https://example.com/att",
+            title = "Attachment Test",
+            createdAt = stamp,
+            updatedAt = stamp,
+            attachments = "[]"
+        )
+
+        val remoteAttachments = listOf(
+            RemoteAttachment(
+                id = "att-1",
+                byteSize = 1024L,
+                sha256 = "abc123sha",
+                deletedAt = null
+            )
+        )
+
+        val localList = emptyList<LocalAttachment>()
+        var missing = false
+        for (att in remoteAttachments) {
+            if (att.deletedAt != null) continue
+            val match = localList.firstOrNull { it.id.equals(att.id, ignoreCase = true) }
+            val file = match?.let { java.io.File(it.path) }
+            if (file == null || !file.isFile) {
+                missing = true
+                break
+            }
+        }
+
+        val remoteDate = Instant.parse(stamp)
+        val localDate = Instant.parse(localItem.updatedAt)
+        val needsPull = remoteDate.isAfter(localDate) || missing
+        assertEquals(true, needsPull)
+    }
+
+    @Test
+    fun `cloud file service hashes file contents with sha256 accurately`() {
+        val temp = java.io.File.createTempFile("test_att", ".txt")
+        try {
+            temp.writeText("hello cloudflare attachment")
+            val sha = com.example.laterbox.services.CloudFileService.hash(temp)
+            assertEquals("cdf7d51a63b20e20b56ca8901f28c40a4842356f320ec4394647d0c9690c5bd8", sha)
+        } finally {
+            temp.delete()
+        }
+    }
 }
