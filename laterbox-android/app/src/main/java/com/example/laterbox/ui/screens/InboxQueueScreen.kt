@@ -912,10 +912,9 @@ fun InboxQueueScreen(
                     )
                 }
             }
-                }
-            }
+        }
 
-            // Bottom Status & Motivational Bar matching iOS
+        // Bottom Status & Motivational Bar matching iOS
         InboxBottomStatusBar(
             isGuest = account.userId == null,
             isPro = account.pro,
