@@ -2386,38 +2386,7 @@ fun InboxBottomStatusBar(
                                     fontWeight = FontWeight.Bold,
                                     color = LaterboxTextPrimary
                                 )
-
-                                Row(
-                                    modifier = Modifier
-                                        .clip(RoundedCornerShape(10.dp))
-                                        .background(Color(0xFF10B981).copy(alpha = 0.12f))
-                                        .padding(horizontal = 6.dp, vertical = 2.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(3.dp)
-                                ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(5.dp)
-                                            .clip(CircleShape)
-                                            .background(Color(0xFF10B981))
-                                    )
-                                    Text(
-                                        text = "ACTIVE",
-                                        fontSize = 9.sp,
-                                        fontWeight = FontWeight.ExtraBold,
-                                        color = Color(0xFF10B981)
-                                    )
-                                }
                             }
-
-                            Text(
-                                text = "Cloud sync active • All changes up to date",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Normal,
-                                color = LaterboxTextSecondary,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
                         }
 
                         Surface(
