@@ -58,7 +58,7 @@ def release_numbers(metadata, builds, store_versions):
     approved = [version(sv["attributes"]["versionString"]) for sv in store_versions if sv.get("attributes", {}).get("versionString")]
     if approved:
         highest_approved = max(approved)
-        if selected < highest_approved:
+        if selected <= highest_approved:
             selected = (highest_approved[0], highest_approved[1], highest_approved[2] + 1)
     # Marketing versions change only when explicitly edited in version.json (or required by App Store history).
     # TestFlight uploads advance CFBundleVersion independently.
