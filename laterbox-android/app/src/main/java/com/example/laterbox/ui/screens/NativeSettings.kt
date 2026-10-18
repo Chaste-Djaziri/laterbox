@@ -37,6 +37,7 @@ import androidx.core.content.FileProvider
 import com.example.laterbox.BuildConfig
 import com.example.laterbox.R
 import com.example.laterbox.data.DataRepository
+import com.example.laterbox.data.api.LaterBoxApiService
 import com.example.laterbox.data.sync.CloudSyncState
 import com.example.laterbox.services.*
 import com.example.laterbox.theme.*
@@ -670,11 +671,60 @@ fun NativeSettings(
                                             lineHeight = 18.sp
                                         )
 
-                                        Button(
-                                            onClick = { plans = true },
-                                            modifier = Modifier.fillMaxWidth()
-                                        ) {
-                                            Text(if (account.pro) "View Plans & Inclusions" else "Explore Plans ($3.99/mo)")
+                                        if (account.pro) {
+                                            var openingPaddle by remember { mutableStateOf(false) }
+                                            Button(
+                                                onClick = {
+                                                    scope.launch {
+                                                        openingPaddle = true
+                                                        try {
+                                                            val paddleUrl = LaterBoxApiService.getPaddleManagementUrl()
+                                                            if (!paddleUrl.isNullOrBlank()) {
+                                                                open(Intent(Intent.ACTION_VIEW, Uri.parse(paddleUrl)))
+                                                            } else {
+                                                                open(Intent(Intent.ACTION_VIEW, Uri.parse("https://app.laterbox.dev/login?next=%2Fplans")))
+                                                            }
+                                                        } catch (_: Exception) {
+                                                            message = "Could not open Paddle subscription management."
+                                                        } finally {
+                                                            openingPaddle = false
+                                                        }
+                                                    }
+                                                },
+                                                enabled = !openingPaddle,
+                                                modifier = Modifier.fillMaxWidth()
+                                            ) {
+                                                if (openingPaddle) {
+                                                    CircularProgressIndicator(
+                                                        modifier = Modifier.size(16.dp),
+                                                        strokeWidth = 2.dp,
+                                                        color = Color.White
+                                                    )
+                                                    Spacer(Modifier.width(8.dp))
+                                                } else {
+                                                    Icon(
+                                                        imageVector = Icons.Default.CreditCard,
+                                                        contentDescription = null,
+                                                        modifier = Modifier.size(16.dp)
+                                                    )
+                                                    Spacer(Modifier.width(8.dp))
+                                                }
+                                                Text("Manage Subscription with Paddle")
+                                            }
+
+                                            OutlinedButton(
+                                                onClick = { plans = true },
+                                                modifier = Modifier.fillMaxWidth()
+                                            ) {
+                                                Text("View Plans & Inclusions")
+                                            }
+                                        } else {
+                                            Button(
+                                                onClick = { plans = true },
+                                                modifier = Modifier.fillMaxWidth()
+                                            ) {
+                                                Text("Explore Plans ($3.99/mo)")
+                                            }
                                         }
 
                                         OutlinedButton(
