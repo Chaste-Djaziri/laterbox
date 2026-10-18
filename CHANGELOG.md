@@ -2,6 +2,8 @@
 
 - **[iOS / Authentication]** Add native Sign in with Apple to login, signup, and account settings linking.
 
+- **[iOS / Sync]** Ignore cancelled refresh requests so inbox reloads do not show a false sync failure.
+
 - **[iOS / Onboarding] Optional accounts**: Make account-free entry the primary welcome action and expose Pro plans, purchases, and restore directly before sign-in.
 
 - **[App Store] Subscription review metadata**: Add the Apple standard EULA to localized descriptions and provide review instructions for guest purchases and optional account connection.
