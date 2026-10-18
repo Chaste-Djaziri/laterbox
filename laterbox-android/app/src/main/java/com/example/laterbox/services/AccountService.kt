@@ -33,6 +33,30 @@ object AccountService {
         if (SupabaseClient.client.auth.currentUserOrNull()?.id == user.id) state.value = AccountState(user.id, user.email, metaName, pro)
     }
     suspend fun signOut() { SupabaseClient.client.auth.signOut(); state.value = AccountState() }
+    suspend fun deleteAccount(context: android.content.Context) {
+        val user = SupabaseClient.client.auth.currentUserOrNull() ?: throw IllegalStateException("Not authenticated")
+        val uid = user.id
+        val token = SupabaseClient.client.auth.currentSessionOrNull()?.accessToken ?: throw IllegalStateException("Not authenticated")
+
+        val serverDeleted = LaterBoxApiService.deleteAccount(token)
+        if (!serverDeleted) {
+            throw IllegalStateException("Account deletion could not finish on cloud. Please try again.")
+        }
+
+        withContext(Dispatchers.IO) {
+            val db = com.example.laterbox.data.local.AppDatabase.getDatabase(context)
+            db.itemMetadataDao().deleteByUserId(uid)
+            db.itemDao().deleteByUserId(uid)
+            db.collectionDao().deletePermanentlyByUserId(uid)
+
+            val capturesDir = java.io.File(context.filesDir, "captures")
+            if (capturesDir.exists()) {
+                capturesDir.deleteRecursively()
+            }
+        }
+
+        signOut()
+    }
 }
 object NativeApi {
     suspend fun call(url: String, method: String = "GET", body: JSONObject? = null): String = withContext(Dispatchers.IO) {
