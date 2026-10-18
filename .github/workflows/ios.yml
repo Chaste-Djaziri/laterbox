@@ -50,6 +50,7 @@ jobs:
       APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
       APPLE_PROVISIONING_PROFILE_BASE64: ${{ secrets.APPLE_PROVISIONING_PROFILE_BASE64 }}
       APPLE_SHARE_EXTENSION_PROVISIONING_PROFILE_BASE64: ${{ secrets.APPLE_SHARE_EXTENSION_PROVISIONING_PROFILE_BASE64 }}
+      APPLE_WIDGETS_PROVISIONING_PROFILE_BASE64: ${{ secrets.APPLE_WIDGETS_PROVISIONING_PROFILE_BASE64 }}
       APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
       APP_STORE_CONNECT_API_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_API_KEY_BASE64 }}
       APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
@@ -81,6 +82,9 @@ jobs:
           security find-identity -v -p codesigning "$KEYCHAIN_PATH" | grep -q 'Apple Distribution'
           printf '%s' "$APPLE_PROVISIONING_PROFILE_BASE64" | base64 --decode > "$RUNNER_TEMP/main.mobileprovision"
           printf '%s' "$APPLE_SHARE_EXTENSION_PROVISIONING_PROFILE_BASE64" | base64 --decode > "$RUNNER_TEMP/share.mobileprovision"
+          if [ -n "${APPLE_WIDGETS_PROVISIONING_PROFILE_BASE64:-}" ]; then
+            printf '%s' "$APPLE_WIDGETS_PROVISIONING_PROFILE_BASE64" | base64 --decode > "$RUNNER_TEMP/widgets.mobileprovision"
+          fi
           mkdir -p "$HOME/.appstoreconnect/private_keys"
           ASC_KEY_PATH="$HOME/.appstoreconnect/private_keys/AuthKey_${APP_STORE_CONNECT_KEY_ID}.p8"
           printf '%s' "$APP_STORE_CONNECT_API_KEY_BASE64" | base64 --decode > "$ASC_KEY_PATH"
