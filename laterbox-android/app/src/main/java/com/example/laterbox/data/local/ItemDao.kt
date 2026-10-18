@@ -74,4 +74,7 @@ interface ItemDao {
 
     @Query("UPDATE items SET sync_status = 'failed' WHERE id = :id")
     suspend fun markFailed(id: String)
+
+    @Query("DELETE FROM items WHERE user_id = :userId")
+    suspend fun deleteByUserId(userId: String)
 }
