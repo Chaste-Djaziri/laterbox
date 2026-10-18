@@ -20,6 +20,8 @@ All notable user-facing changes to LaterBox will be documented in this file.
 
 ## [Unreleased]
 
+- **[Android / Inbox] Extend the Pro member status footer to the bottom edge of the inbox.**
+
 - **[Android / Inbox] Add pull-to-refresh to reload local inbox data and pull the latest cloud changes when available.**
 
 - **[Android / Sync] Preserve the confirmed account plan during sync and temporary entitlement failures so Pro buttons and the inbox bottom sync bar stop flickering between local, free, and Pro modes.**
