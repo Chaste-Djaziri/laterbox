@@ -1,8 +1,6 @@
 name: Native iOS Build & TestFlight
 on:
-  push:
-    branches: [main]
-    paths: ['laterbox-ios/**', '.github/workflows/ios.yml', 'scripts/prepare_release_assets.sh']
+  workflow_call:
   pull_request:
     branches: [main]
     paths: ['laterbox-ios/**', '.github/workflows/ios.yml', 'scripts/prepare_release_assets.sh']
@@ -118,33 +116,6 @@ jobs:
           name: laterbox-ios-changelog-${{ github.run_id }}
           path: CHANGELOG.md
           if-no-files-found: error
-      - name: Resolve release version tag
-        id: release_version
-        run: |
-          VERSION=$(python -c 'import json; print(json.load(open("version.json"))["version"])')
-          echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
-          echo "title=LaterBox v$VERSION" >> "$GITHUB_OUTPUT"
-      - name: Prepare complete release assets
-        working-directory: ${{ github.workspace }}
-        run: |
-          scripts/prepare_release_assets.sh \
-            "${{ steps.release_version.outputs.tag }}" \
-            "$RUNNER_TEMP/release-assets" \
-            $(find "$RUNNER_TEMP/IPA" -name '*.ipa' -type f)
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GH_REPO: ${{ github.repository }}
-      - name: Attach iOS IPA to GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ steps.release_version.outputs.tag }}
-          name: ${{ steps.release_version.outputs.title }}
-          draft: false
-          prerelease: false
-          files: |
-            ${{ runner.temp }}/release-assets/*
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Upload to existing TestFlight app
         run: |
           IPA_PATH=$(find "$RUNNER_TEMP/IPA" -name '*.ipa' -type f -print -quit)
