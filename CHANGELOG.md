@@ -40,6 +40,8 @@
 
 - **[Android / Inbox]** Add time selection after choosing a custom Snooze date.
 
+- **[Android / Item Details]** Replace the Due Today label with the date the item entered the inbox.
+
 - **[Android / Inbox]** Remove the syncing status description from the Pro footer.
 
 - **[iOS / Onboarding] Optional accounts**: Make account-free entry the primary welcome action and expose Pro plans, purchases, and restore directly before sign-in.
