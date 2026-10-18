@@ -6,6 +6,8 @@
 
 - **[iOS / Sync]** Preserve URL request cancellation during cloud transport so it cannot be reported as a network outage.
 
+- **[Android / Plans]** Refresh the plans sheet to match the iOS Pro layout with plan cards, feature breakdown, and subscription status.
+
 - **[iOS / Onboarding] Optional accounts**: Make account-free entry the primary welcome action and expose Pro plans, purchases, and restore directly before sign-in.
 
 - **[App Store] Subscription review metadata**: Add the Apple standard EULA to localized descriptions and provide review instructions for guest purchases and optional account connection.
