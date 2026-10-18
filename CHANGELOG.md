@@ -20,6 +20,8 @@ All notable user-facing changes to LaterBox will be documented in this file.
 
 ## [Unreleased]
 
+- **[Android / Sync] Preserve the confirmed account plan during sync and temporary entitlement failures so Pro buttons and the inbox bottom sync bar stop flickering between local, free, and Pro modes.**
+
 - **[Android / Cloudflare Attachments & Sync] Upload attachments to Cloudflare storage before syncing items, attaching verified Cloudflare storage references to the item and publishing atomically via publish_item_attachments.**
 
 - **[Android / Security & Privacy] Add Delete Account in Security & Privacy to permanently delete user account, cloud data, and Cloudflare attachments matching iOS.**
