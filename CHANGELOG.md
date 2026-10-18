@@ -20,6 +20,8 @@ All notable user-facing changes to LaterBox will be documented in this file.
 
 ## [Unreleased]
 
+- **[Android / Billing] Direct Paddle subscription management: configure Manage Subscription to open the Paddle customer portal page directly rather than redirecting to the generic web login page.**
+
 - **[Android / Sync] Stabilize sync controls to prevent layout glitching and flashing during cloud sync, batch database transactions, and add dedicated loading indicators and skeleton states for syncing items.**
 
 - **[Android / Settings] Disable Later AI model configuration matching iOS, setting local responses as the active offline engine and disabling custom provider/API-key setup until implemented.**
