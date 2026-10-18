@@ -1295,7 +1295,9 @@ internal fun SwipeableEmailInboxRow(
     val coroutineScope = rememberCoroutineScope()
     val offsetX = remember(item.id) { Animatable(0f) }
 
-    val revealWidth = 236.dp
+    // Three 76dp action controls plus their gaps and edge padding.
+    // The card settles exactly beside the visible action group.
+    val revealWidth = 260.dp
     val revealWidthPx = with(density) { revealWidth.toPx() }
     val fullSwipeThresholdPx = with(density) { 226.dp.toPx() }
     val extendRangePx = with(density) { 60.dp.toPx() }
