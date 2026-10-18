@@ -1,6 +1,7 @@
 package com.example.laterbox.ui.screens
 
 import android.app.DatePickerDialog
+import android.app.TimePickerDialog
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
@@ -1429,7 +1430,15 @@ internal fun SchedulePickerDialog(
                                 context,
                                 { _, year, month, day ->
                                     val selected = Calendar.getInstance().apply { set(year, month, day, 9, 0, 0); set(Calendar.MILLISECOND, 0) }
-                                    onSetDate(Instant.ofEpochMilli(selected.timeInMillis).toString())
+                                    TimePickerDialog(
+                                        context,
+                                        { _, hour, minute ->
+                                            selected.set(Calendar.HOUR_OF_DAY, hour)
+                                            selected.set(Calendar.MINUTE, minute)
+                                            onSetDate(Instant.ofEpochMilli(selected.timeInMillis).toString())
+                                        },
+                                        selected.get(Calendar.HOUR_OF_DAY), selected.get(Calendar.MINUTE), false
+                                    ).show()
                                 },
                                 calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), calendar.get(Calendar.DAY_OF_MONTH)
                             ).apply { datePicker.minDate = calendar.timeInMillis }.show()
