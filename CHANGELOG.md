@@ -20,6 +20,8 @@ All notable user-facing changes to LaterBox will be documented in this file.
 
 ## [Unreleased]
 
+- **[Android / Authentication] Split login and signup, add native Google sign-in with Supabase, keep email OTP for existing users, and add Google account connection guidance in Settings.**
+
 - **[Android / Auth] Document the local Android debug signing fingerprints used for Google OAuth setup.**
 
 - **[Web / Welcome] Show the live guest inbox in the home page preview so the welcome experience reflects the current mail design.**
