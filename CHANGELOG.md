@@ -20,6 +20,8 @@ All notable user-facing changes to LaterBox will be documented in this file.
 
 ## [Unreleased]
 
+- **[iOS / Android / Sidebar] Add edit and delete collection options on long-press in the sidebar drawer, safely unassigning items without deleting them.**
+
 - **[Android / Sidebar] Collapsible collections in the sidebar drawer under the Collections title, matching iOS and web.**
 
 - **[Android / Email Table & Details] Sanitize null/undefined strings across sync and database, ensure all metadata and collections are fetched, and gracefully hide unavailable components matching iOS.**
