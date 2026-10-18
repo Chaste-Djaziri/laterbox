@@ -508,77 +508,118 @@ object SyncCoordinator {
 
         // 2. Push Items
         for (item in dao.getItemsNeedingSync().filter { it.userId == null || it.userId == uid }) {
-            val body = JSONObject()
-                .put("id", item.id)
-                .put("user_id", uid)
-                .put("title", item.title)
-                .put("url", item.url ?: JSONObject.NULL)
-                .put("text_content", item.textContent ?: JSONObject.NULL)
-                .put("type", item.type)
-                .put("favorite", item.favorite)
-                .put("status", item.status)
-                .put("return_at", item.returnAt ?: JSONObject.NULL)
-                .put("created_at", item.createdAt)
-                .put("updated_at", item.updatedAt)
-                .put("deleted_at", item.deletedAt ?: JSONObject.NULL)
-            post("items?on_conflict=id", body)
+            val itemAttachmentsJson = item.attachments
+            val attachmentsArray = runCatching { JSONArray(itemAttachmentsJson) }.getOrDefault(JSONArray())
+            val hasAttachments = attachmentsArray.length() > 0
 
-            val oldMetadata = JSONArray(NativeApi.call(base + "item_metadata?item_id=eq.${item.id}&select=structured_data")).optJSONObject(0)
+            var currentItem = item
+            val verifiedAssets = JSONArray()
+
+            if (hasAttachments && AccountService.state.value.pro) {
+                // 1. Upload attachments to Cloudflare storage BEFORE allowing the item to sync
+                val uploadedAttachments = CloudFileService.uploadAttachments(context, item, uid)
+                currentItem = currentItem.copy(attachments = uploadedAttachments.toString())
+
+                for (i in 0 until uploadedAttachments.length()) {
+                    val att = uploadedAttachments.getJSONObject(i)
+                    val r2Key = att.optString("r2_object_key", "").takeIf { it.isNotBlank() }
+                    if (r2Key != null) {
+                        val assetObj = JSONObject()
+                            .put("id", att.optString("id"))
+                            .put("item_id", currentItem.id)
+                            .put("user_id", uid)
+                            .put("original_file_name", att.optString("original_file_name", att.optString("name", "attachment")))
+                            .put("file_extension", att.optString("file_extension", att.optString("extension", "bin")))
+                            .put("mime_type", att.optString("mime_type", att.optString("mime", "application/octet-stream")))
+                            .put("byte_size", att.optLong("byte_size", 0L))
+                            .put("sha256", att.optString("sha256"))
+                            .put("r2_object_key", r2Key)
+                            .put("created_at", currentItem.createdAt)
+                            .put("updated_at", currentItem.updatedAt)
+                        verifiedAssets.put(assetObj)
+                    }
+                }
+            }
+
+            val body = JSONObject()
+                .put("id", currentItem.id)
+                .put("user_id", uid)
+                .put("title", currentItem.title)
+                .put("url", currentItem.url ?: JSONObject.NULL)
+                .put("text_content", currentItem.textContent ?: JSONObject.NULL)
+                .put("type", currentItem.type)
+                .put("favorite", currentItem.favorite)
+                .put("status", currentItem.status)
+                .put("return_at", currentItem.returnAt ?: JSONObject.NULL)
+                .put("created_at", currentItem.createdAt)
+                .put("updated_at", currentItem.updatedAt)
+                .put("deleted_at", currentItem.deletedAt ?: JSONObject.NULL)
+
+            // 2. Sync the item after its attachments are attached
+            if (verifiedAssets.length() > 0) {
+                val rpcPayload = JSONObject()
+                    .put("item", body)
+                    .put("assets", verifiedAssets)
+                post("rpc/publish_item_attachments", rpcPayload)
+            } else {
+                post("items?on_conflict=id", body)
+            }
+
+            val oldMetadata = JSONArray(NativeApi.call(base + "item_metadata?item_id=eq.${currentItem.id}&select=structured_data")).optJSONObject(0)
             val previous = oldMetadata?.optJSONObject("structured_data")
                 ?: oldMetadata?.optString("structured_data")?.let { runCatching { JSONObject(it) }.getOrNull() }
                 ?: JSONObject()
-            previous.put("tags", JSONArray(item.tags.split(",").map { it.trim() }.filter { it.isNotBlank() }))
-                .put("category", item.category)
-                .put("summary", item.summary)
-                .put("formattedContent", item.formattedContent)
+            previous.put("tags", JSONArray(currentItem.tags.split(",").map { it.trim() }.filter { it.isNotBlank() }))
+                .put("category", currentItem.category)
+                .put("summary", currentItem.summary)
+                .put("formattedContent", currentItem.formattedContent)
             post(
                 "item_metadata?on_conflict=item_id",
                 JSONObject()
-                    .put("item_id", item.id)
+                    .put("item_id", currentItem.id)
                     .put("user_id", uid)
                     .put("status", "enriched")
                     .put("structured_data", previous)
-                    .put("updated_at", item.updatedAt)
+                    .put("updated_at", currentItem.updatedAt)
             )
             post(
                 "item_notes?on_conflict=item_id",
                 JSONObject()
-                    .put("item_id", item.id)
+                    .put("item_id", currentItem.id)
                     .put("user_id", uid)
-                    .put("content", item.notes)
-                    .put("updated_at", item.updatedAt)
-                    .put("deleted_at", if (item.notes.isBlank()) item.updatedAt else JSONObject.NULL)
+                    .put("content", currentItem.notes)
+                    .put("updated_at", currentItem.updatedAt)
+                    .put("deleted_at", if (currentItem.notes.isBlank()) currentItem.updatedAt else JSONObject.NULL)
             )
 
-            val memberships = JSONArray(NativeApi.call(base + "collection_items?item_id=eq.${item.id}&user_id=eq.$uid&select=collection_id"))
+            val memberships = JSONArray(NativeApi.call(base + "collection_items?item_id=eq.${currentItem.id}&user_id=eq.$uid&select=collection_id"))
             for (index in 0 until memberships.length()) {
                 val id = memberships.getJSONObject(index).getString("collection_id")
-                if (id != item.collectionId) {
+                if (id != currentItem.collectionId) {
                     NativeApi.call(
-                        base + "collection_items?collection_id=eq.$id&item_id=eq.${item.id}&user_id=eq.$uid",
+                        base + "collection_items?collection_id=eq.$id&item_id=eq.${currentItem.id}&user_id=eq.$uid",
                         "PATCH",
-                        JSONObject().put("deleted_at", item.updatedAt).put("updated_at", item.updatedAt)
+                        JSONObject().put("deleted_at", currentItem.updatedAt).put("updated_at", currentItem.updatedAt)
                     )
                 }
             }
 
-            item.collectionId?.let { id ->
+            currentItem.collectionId?.let { id ->
                 database.collectionDao().getCollectionById(id)?.takeIf { it.deletedAt == null }?.let {
                     post(
                         "collection_items?on_conflict=collection_id,item_id",
                         JSONObject()
                             .put("collection_id", id)
-                            .put("item_id", item.id)
+                            .put("item_id", currentItem.id)
                             .put("user_id", uid)
-                            .put("created_at", item.createdAt)
-                            .put("updated_at", item.updatedAt)
+                            .put("created_at", currentItem.createdAt)
+                            .put("updated_at", currentItem.updatedAt)
                             .put("deleted_at", JSONObject.NULL)
                     )
                 }
             }
 
-            CloudFileService.upload(context, item, uid)
-            dao.markSyncedIfUnchanged(item.id, item.updatedAt, Instant.now().toString(), uid)
+            dao.markSyncedIfUnchanged(currentItem.id, currentItem.updatedAt, Instant.now().toString(), uid)
         }
     }
 }
