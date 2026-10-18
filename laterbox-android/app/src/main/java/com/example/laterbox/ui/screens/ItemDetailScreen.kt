@@ -415,13 +415,13 @@ fun ItemDetailScreen(
                             }
                             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
                                 Text(
-                                    if (isTodayOrOverdue) "Due Today" else "Scheduled Return",
+                                    "In inbox since",
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = LaterboxTextPrimary
                                 )
                                 Text(
-                                    detailDate(retIso),
+                                    detailDate(item.createdAt),
                                     fontSize = 11.sp,
                                     color = LaterboxTextSecondary
                                 )
