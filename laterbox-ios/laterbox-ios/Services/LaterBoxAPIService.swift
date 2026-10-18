@@ -140,6 +140,31 @@ public actor LaterBoxAPIService {
         return (token, userId)
     }
 
+    // MARK: - Auth: Native Sign in with Apple
+    public func signInWithApple(identityToken: String, nonce: String? = nil) async throws -> (accessToken: String, refreshToken: String?, userId: String, email: String?) {
+        guard let url = URL(string: "\(supabaseUrl)/auth/v1/token?grant_type=id_token") else {
+            throw URLError(.badURL)
+        }
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        for (key, value) in headers() { request.setValue(value, forHTTPHeaderField: key) }
+        var body: [String: Any] = ["provider": "apple", "id_token": identityToken]
+        if let nonce, !nonce.isEmpty { body["nonce"] = nonce }
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+        let (data, response) = try await session.data(for: request)
+        guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
+            throw URLError(.userAuthenticationRequired)
+        }
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let accessToken = json["access_token"] as? String,
+              let user = json["user"] as? [String: Any],
+              let userId = user["id"] as? String else {
+            throw URLError(.cannotParseResponse)
+        }
+        return (accessToken, json["refresh_token"] as? String, userId, user["email"] as? String)
+    }
+
     // MARK: - Auth: Refresh Session Token
     public func refreshSession(refreshToken: String) async throws -> (accessToken: String, refreshToken: String, userId: String) {
         guard let url = URL(string: "\(supabaseUrl)/auth/v1/token?grant_type=refresh_token") else {
