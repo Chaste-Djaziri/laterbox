@@ -55,6 +55,10 @@ public struct MobileSidebarDrawer: View {
     @State private var isCreatingCollection: Bool = false
     @State private var newCollectionName: String = ""
     @State private var isCollectionsExpanded: Bool = true
+    @State private var collectionToRename: LBCollection? = nil
+    @State private var renameCollectionText: String = ""
+    @State private var collectionToDelete: LBCollection? = nil
+    @State private var showingDeleteConfirm: Bool = false
 
     public init(
         isPresented: Binding<Bool>,
@@ -169,6 +173,37 @@ public struct MobileSidebarDrawer: View {
                 .frame(width: 1),
             alignment: .trailing
         )
+        .alert("Edit Collection", isPresented: Binding(
+            get: { collectionToRename != nil },
+            set: { if !$0 { collectionToRename = nil } }
+        )) {
+            TextField("Collection name", text: $renameCollectionText)
+            Button("Save") {
+                if let col = collectionToRename {
+                    let trimmed = renameCollectionText.trimmingCharacters(in: .whitespacesAndNewlines)
+                    if !trimmed.isEmpty {
+                        renameCollection(col, to: trimmed)
+                    }
+                }
+                collectionToRename = nil
+            }
+            Button("Cancel", role: .cancel) {
+                collectionToRename = nil
+            }
+        }
+        .confirmationDialog("Delete Collection?", isPresented: $showingDeleteConfirm, titleVisibility: .visible) {
+            Button("Delete Collection", role: .destructive) {
+                if let col = collectionToDelete {
+                    deleteCollection(col)
+                }
+                collectionToDelete = nil
+            }
+            Button("Cancel", role: .cancel) {
+                collectionToDelete = nil
+            }
+        } message: {
+            Text("Items inside this collection will not be deleted; they will simply be unassigned from this collection.")
+        }
     }
 
     // MARK: - Safe Area Inset Helper
@@ -401,6 +436,21 @@ public struct MobileSidebarDrawer: View {
                             close()
                             onSelectCollection(col.name)
                         }
+                        .contextMenu {
+                            Button {
+                                collectionToRename = col
+                                renameCollectionText = col.name
+                            } label: {
+                                Label("Edit Collection", systemImage: "pencil")
+                            }
+
+                            Button(role: .destructive) {
+                                collectionToDelete = col
+                                showingDeleteConfirm = true
+                            } label: {
+                                Label("Delete Collection", systemImage: "trash")
+                            }
+                        }
                     }
 
                     if collections.isEmpty && !isCreatingCollection {
@@ -427,6 +477,53 @@ public struct MobileSidebarDrawer: View {
             }
         }
         .padding(.horizontal, 10)
+    }
+
+    private func renameCollection(_ collection: LBCollection, to newName: String) {
+        let oldName = collection.name
+        guard oldName != newName else { return }
+
+        collection.name = newName
+        collection.updatedAt = Date()
+
+        for item in allItems where item.collectionName == oldName || item.collectionId == collection.id {
+            item.collectionName = newName
+            item.collectionId = collection.id
+            item.category = newName
+            item.updatedAt = Date()
+            item.isSyncPending = true
+        }
+
+        if activeCollection == oldName {
+            onSelectCollection(newName)
+        }
+
+        try? modelContext.save()
+        Task { await coordinator.syncPendingItems(context: modelContext) }
+        LBHaptic.success()
+    }
+
+    private func deleteCollection(_ collection: LBCollection) {
+        let targetName = collection.name
+        let targetId = collection.id
+
+        modelContext.delete(collection)
+
+        for item in allItems where item.collectionName == targetName || item.collectionId == targetId {
+            item.collectionName = nil
+            item.collectionId = nil
+            item.category = ""
+            item.updatedAt = Date()
+            item.isSyncPending = true
+        }
+
+        if activeCollection == targetName {
+            onSelectMailbox(.inbox)
+        }
+
+        try? modelContext.save()
+        Task { await coordinator.syncPendingItems(context: modelContext) }
+        LBHaptic.medium()
     }
 
     // MARK: - Activity Section
