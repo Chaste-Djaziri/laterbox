@@ -1,9 +1,20 @@
 package com.example.laterbox.ui.screens
 
 import android.text.format.DateUtils
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -92,6 +103,11 @@ fun InboxQueueScreen(
     val allItems by repository.items.collectAsState(emptyList())
     val collections by repository.collections.collectAsState(emptyList())
     val account by AccountService.state.collectAsState()
+    val syncState by repository.syncState.collectAsState()
+    val isPulling by repository.isPulling.collectAsState()
+    val isPushing by repository.isPushing.collectAsState()
+    val isSyncingState by repository.isSyncing.collectAsState()
+    val isSyncing = syncState == CloudSyncState.SYNCING || isPulling || isPushing || isSyncingState
     val context = LocalContext.current
     var isSearchActive by rememberSaveable { mutableStateOf(false) }
     var searchQuery by rememberSaveable { mutableStateOf("") }
@@ -776,34 +792,74 @@ fun InboxQueueScreen(
                     }
                 }
                 actionError?.let { message -> item { Text(message, color = MaterialTheme.colorScheme.error) } }
-                if (queue.isEmpty()) item {
-                    Surface(shape = RoundedCornerShape(16.dp), color = Color.White, border = BorderStroke(1.dp, Color.Black.copy(alpha = 0.06f)), modifier = Modifier.fillMaxWidth()) {
-                        Column(Modifier.padding(48.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                            Icon(
-                                imageVector = when (selectedMailbox) {
-                                    MailboxViewType.INBOX -> Icons.Default.Inbox
-                                    MailboxViewType.TODAY -> Icons.Default.Schedule
-                                    MailboxViewType.SCHEDULED -> Icons.Default.CalendarToday
-                                    MailboxViewType.SOMEDAY -> Icons.Default.DateRange
-                                    MailboxViewType.STARRED -> Icons.Default.Star
-                                    MailboxViewType.KEPT -> Icons.Default.CheckCircle
-                                    MailboxViewType.ARCHIVED -> Icons.Default.Archive
-                                    MailboxViewType.TRASH -> Icons.Default.Delete
-                                },
-                                contentDescription = null,
-                                modifier = Modifier.size(40.dp),
-                                tint = LaterboxTextSecondary.copy(alpha = 0.35f)
-                            )
-                            Text(emptyTitle, fontSize = 17.sp, fontWeight = FontWeight.Bold, color = LaterboxTextPrimary)
-                            Text(emptySubtitle, fontSize = 12.sp, color = LaterboxTextSecondary, textAlign = TextAlign.Center)
-                            if (selectedMailbox == MailboxViewType.INBOX && selectedCollection == null) {
-                                TextButton(onClick = onCapture) { Text("Save something") }
-                            } else {
-                                TextButton(onClick = {
-                                    selectedMailbox = MailboxViewType.INBOX
-                                    selectedCollection = null
-                                }) {
-                                    Text("Back to Inbox")
+                if (queue.isNotEmpty()) {
+                    item(key = "sync_progress_banner") {
+                        AnimatedVisibility(
+                            visible = isSyncing,
+                            enter = fadeIn() + expandVertically(),
+                            exit = fadeOut() + shrinkVertically()
+                        ) {
+                            Surface(
+                                shape = RoundedCornerShape(10.dp),
+                                color = Color(0xFF3B82F6).copy(alpha = 0.08f),
+                                border = BorderStroke(0.5.dp, Color(0xFF3B82F6).copy(alpha = 0.2f)),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(bottom = 6.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(13.dp),
+                                        strokeWidth = 1.8.dp,
+                                        color = Color(0xFF2563EB)
+                                    )
+                                    Text(
+                                        text = if (isPulling) "Syncing latest items from cloud…" else if (isPushing) "Uploading pending changes…" else "Syncing items with cloud…",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        color = Color(0xFF1D4ED8)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+                if (queue.isEmpty()) item(key = "empty_or_sync_state") {
+                    if (isSyncing && account.userId != null) {
+                        SyncingItemsLoader()
+                    } else {
+                        Surface(shape = RoundedCornerShape(16.dp), color = Color.White, border = BorderStroke(1.dp, Color.Black.copy(alpha = 0.06f)), modifier = Modifier.fillMaxWidth()) {
+                            Column(Modifier.padding(48.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                                Icon(
+                                    imageVector = when (selectedMailbox) {
+                                        MailboxViewType.INBOX -> Icons.Default.Inbox
+                                        MailboxViewType.TODAY -> Icons.Default.Schedule
+                                        MailboxViewType.SCHEDULED -> Icons.Default.CalendarToday
+                                        MailboxViewType.SOMEDAY -> Icons.Default.DateRange
+                                        MailboxViewType.STARRED -> Icons.Default.Star
+                                        MailboxViewType.KEPT -> Icons.Default.CheckCircle
+                                        MailboxViewType.ARCHIVED -> Icons.Default.Archive
+                                        MailboxViewType.TRASH -> Icons.Default.Delete
+                                    },
+                                    contentDescription = null,
+                                    modifier = Modifier.size(40.dp),
+                                    tint = LaterboxTextSecondary.copy(alpha = 0.35f)
+                                )
+                                Text(emptyTitle, fontSize = 17.sp, fontWeight = FontWeight.Bold, color = LaterboxTextPrimary)
+                                Text(emptySubtitle, fontSize = 12.sp, color = LaterboxTextSecondary, textAlign = TextAlign.Center)
+                                if (selectedMailbox == MailboxViewType.INBOX && selectedCollection == null) {
+                                    TextButton(onClick = onCapture) { Text("Save something") }
+                                } else {
+                                    TextButton(onClick = {
+                                        selectedMailbox = MailboxViewType.INBOX
+                                        selectedCollection = null
+                                    }) {
+                                        Text("Back to Inbox")
+                                    }
                                 }
                             }
                         }
@@ -1754,8 +1810,9 @@ fun InboxBottomStatusBar(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .heightIn(min = 60.dp)
                     .navigationBarsPadding()
-                    .padding(horizontal = 16.dp, vertical = 10.dp),
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
@@ -1945,7 +2002,9 @@ fun InboxBottomStatusBar(
                                     text = "Cloud Sync",
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = LaterboxTextPrimary
+                                    color = LaterboxTextPrimary,
+                                    maxLines = 1,
+                                    softWrap = false
                                 )
 
                                 Box(
@@ -1969,8 +2028,33 @@ fun InboxBottomStatusBar(
                                 fontWeight = FontWeight.Normal,
                                 color = LaterboxTextSecondary,
                                 maxLines = 1,
+                                softWrap = false,
                                 overflow = TextOverflow.Ellipsis
                             )
+                        }
+
+                        Surface(
+                            modifier = Modifier.clip(CircleShape),
+                            shape = CircleShape,
+                            color = Color(0xFF3B82F6).copy(alpha = 0.12f)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 11.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(5.dp)
+                            ) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(10.dp),
+                                    strokeWidth = 1.5.dp,
+                                    color = Color(0xFF2563EB)
+                                )
+                                Text(
+                                    text = "Syncing…",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF2563EB)
+                                )
+                            }
                         }
                     } else if (hasPull && hasPush) {
                         // Both available: Pull first, then push
@@ -2314,6 +2398,116 @@ fun InboxBottomStatusBar(
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+fun SyncingItemsLoader(modifier: Modifier = Modifier) {
+    Surface(
+        shape = RoundedCornerShape(16.dp),
+        color = Color.White,
+        border = BorderStroke(1.dp, Color.Black.copy(alpha = 0.06f)),
+        modifier = modifier.fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier.padding(28.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFF3B82F6).copy(alpha = 0.12f)),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(22.dp),
+                    strokeWidth = 2.5.dp,
+                    color = Color(0xFF2563EB)
+                )
+            }
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    text = "Syncing your items…",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = LaterboxTextPrimary
+                )
+                Text(
+                    text = "Fetching your saved items and updates from cloud.",
+                    fontSize = 12.sp,
+                    color = LaterboxTextSecondary,
+                    textAlign = TextAlign.Center
+                )
+            }
+
+            // Shimmer / skeleton preview placeholders
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                repeat(3) {
+                    SyncSkeletonItemRow()
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun SyncSkeletonItemRow() {
+    val infiniteTransition = rememberInfiniteTransition(label = "skeleton")
+    val alpha by infiniteTransition.animateFloat(
+        initialValue = 0.25f,
+        targetValue = 0.65f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(800, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "alpha"
+    )
+
+    Surface(
+        shape = RoundedCornerShape(10.dp),
+        color = Color(0xFFF7F7F6),
+        border = BorderStroke(0.5.dp, Color.Black.copy(alpha = 0.04f)),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier.padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(34.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(Color(0xFFE5E7EB).copy(alpha = alpha))
+            )
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(0.55f)
+                        .height(11.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(Color(0xFFE5E7EB).copy(alpha = alpha))
+                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(0.8f)
+                        .height(9.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(Color(0xFFE5E7EB).copy(alpha = alpha * 0.7f))
+                )
             }
         }
     }
