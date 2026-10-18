@@ -1843,7 +1843,6 @@ fun InboxBottomStatusBar(
                 modifier = Modifier
                     .fillMaxWidth()
                     .heightIn(min = 60.dp)
-                    .navigationBarsPadding()
                     .padding(horizontal = 16.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
