@@ -1439,11 +1439,11 @@ internal fun SwipeableEmailInboxRow(
                         keepAlpha = baseAlpha
                         snoozeAlpha = baseAlpha
                     } else {
-                        keepAlpha = 0.42f
+                        keepAlpha = 1f - (0.58f * extendProgress)
                         keepScale = (1f - 0.2f * extendProgress) * baseScale
                         keepWidth = 64.dp
                         val usedKeepPx = if (keepWidth > 0.dp) with(density) { keepWidth.toPx() } + gap8Px else 0f
-                        snoozeAlpha = 0.42f
+                        snoozeAlpha = 1f - (0.58f * extendProgress)
                         snoozeScale = (1f - 0.2f * extendProgress) * baseScale
                         snoozeWidth = 72.dp
                         val usedSnzPx = if (snoozeWidth > 0.dp) with(density) { snoozeWidth.toPx() } + gap8Px else 0f
