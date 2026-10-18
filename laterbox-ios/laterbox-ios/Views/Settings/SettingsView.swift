@@ -126,7 +126,7 @@ public struct SettingsView: View {
                         NavigationLink(destination: SubscriptionSettingsView()) {
                             groupedRow(
                                 icon: "crown",
-                                title: "Subscription & Plans",
+                                title: "Plans",
                                 badge: coordinator.isProUser ? "Pro" : "Free"
                             )
                         }
@@ -137,7 +137,7 @@ public struct SettingsView: View {
                         NavigationLink(destination: SyncSettingsView()) {
                             groupedRow(
                                 icon: "bolt.horizontal.icloud",
-                                title: "Cloud Sync & Diagnostics",
+                                title: "Sync",
                                 badge: coordinator.isAuthenticated ? coordinator.syncState.rawValue : "Local"
                             )
                         }
@@ -150,7 +150,7 @@ public struct SettingsView: View {
                         NavigationLink(destination: NotificationsSettingsView()) {
                             groupedRow(
                                 icon: "bell",
-                                title: "Notifications & Alerts",
+                                title: "Notifications",
                                 badge: notificationStatusTitle
                             )
                         }
@@ -161,7 +161,7 @@ public struct SettingsView: View {
                         NavigationLink(destination: SecuritySettingsView()) {
                             groupedRow(
                                 icon: "lock.shield",
-                                title: "Security & Privacy",
+                                title: "Security",
                                 badge: lockManager.isAppLockEnabled ? "On" : "Off"
                             )
                         }
@@ -172,7 +172,7 @@ public struct SettingsView: View {
                         NavigationLink(destination: AppIconSelectionView()) {
                             groupedRow(
                                 icon: "paintpalette",
-                                title: "App Icon & Appearance",
+                                title: "Appearance",
                                 badge: "\(AppIconManager.availableIcons.count) Icons"
                             )
                         }
@@ -183,7 +183,7 @@ public struct SettingsView: View {
                         NavigationLink(destination: ShortcutsSettingsView()) {
                             groupedRow(
                                 icon: "plus.square.fill.on.square.fill",
-                                title: "Control Center & Quick Save",
+                                title: "Quick Save",
                                 badge: "Active"
                             )
                         }
@@ -196,7 +196,7 @@ public struct SettingsView: View {
                         NavigationLink(destination: StorageManagementView()) {
                             groupedRow(
                                 icon: "internaldrive",
-                                title: "Local Storage & Vault",
+                                title: "Storage",
                                 badge: storageManager.breakdown.formattedTotal
                             )
                         }
@@ -207,7 +207,7 @@ public struct SettingsView: View {
                         NavigationLink(destination: AIModelSettingsView()) {
                             groupedRow(
                                 icon: "sparkles",
-                                title: "Later AI Models",
+                                title: "AI Assistant",
                                 badge: coordinator.isProUser ? "Configured" : "Pro"
                             )
                         }
@@ -227,7 +227,7 @@ public struct SettingsView: View {
                         NavigationLink(destination: CheckForUpdatesView()) {
                             groupedRow(
                                 icon: "arrow.triangle.2.circlepath",
-                                title: "Check for Updates",
+                                title: "Updates",
                                 badge: AppVersion.currentVersion
                             )
                         }
@@ -238,7 +238,7 @@ public struct SettingsView: View {
                         NavigationLink(destination: SupportRequestView()) {
                             groupedRow(
                                 icon: "questionmark.circle",
-                                title: "Help & Report a Problem",
+                                title: "Help",
                                 badge: nil
                             )
                         }
