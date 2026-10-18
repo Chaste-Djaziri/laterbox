@@ -46,6 +46,7 @@ export function CustomLoginContent({ actions, extra }: { actions?: Partial<AuthC
   const [awaitingPassword, setAwaitingPassword] = useState(false);
   const [awaitingName, setAwaitingName] = useState(false);
   const [displayName, setDisplayName] = useState('');
+  const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
   const requestedNext = searchParams.get('next');
   const nextPath = safeReturnPath(requestedNext);
 
@@ -403,40 +404,30 @@ export function CustomLoginContent({ actions, extra }: { actions?: Partial<AuthC
         )}
 
         {/* Title */}
-        <h1 className="text-3xl font-black tracking-tight mb-2">Enter your email</h1>
+        <div className="mb-7 flex rounded-[18px] border border-[#e5e1d7] bg-white p-1">
+          {(['login', 'signup'] as const).map(mode => (
+            <button key={mode} type="button" onClick={() => { setAuthMode(mode); setError(null); setMessage(null); }} className={`h-11 flex-1 rounded-[14px] text-sm font-bold transition-colors ${authMode === mode ? 'bg-[#181816] text-white' : 'text-[#6b6961] hover:text-[#181816]'}`}>
+              {mode === 'login' ? 'Log in' : 'Sign up'}
+            </button>
+          ))}
+        </div>
+
+        <h1 className="text-3xl font-black tracking-tight mb-2">{authMode === 'login' ? 'Welcome back' : 'Create your account'}</h1>
         <p className="text-[15px] text-[#6b6961] font-normal tracking-normal mb-8">
-          We&apos;ll send you a code to sign in or create your account.
+          {authMode === 'login' ? 'Use email OTP or Google to sign in.' : 'Create a new LaterBox account securely with Google.'}
         </p>
 
-        {/* Email Form */}
         <form onSubmit={(e) => void handleEmailSubmit(e)} className="w-full space-y-3.5">
-          <div>
-            <input
-              type="email"
-              autoComplete="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Email"
-              className="w-full h-14 px-5 bg-white border border-[#e5e1d7] rounded-[18px] text-[15px] text-[#181816] placeholder:text-[#9e9b92] focus:outline-none focus:ring-2 focus:ring-zinc-900/10 focus:border-zinc-500 transition-all font-normal"
-            />
-          </div>
-
-          <div className="pt-1.5 space-y-3">
-            <button
-              type="submit"
-              disabled={loading || authLoading || Boolean(isAuthenticated)}
-              className="w-full h-14 bg-[#181816] hover:bg-[#282723] active:bg-[#0f0f0e] text-white font-bold text-[15px] rounded-[18px] shadow-sm transition-all duration-150 flex items-center justify-center disabled:opacity-60 cursor-pointer"
-            >
-              {loading || authLoading ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
-              ) : (
-                'Continue'
-              )}
+          {authMode === 'login' && <>
+            <input type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" className="w-full h-14 px-5 bg-white border border-[#e5e1d7] rounded-[18px] text-[15px] text-[#181816] placeholder:text-[#9e9b92] focus:outline-none focus:ring-2 focus:ring-zinc-900/10 focus:border-zinc-500 transition-all font-normal" />
+            <button type="submit" disabled={loading || authLoading || Boolean(isAuthenticated)} className="w-full h-14 bg-[#181816] hover:bg-[#282723] text-white font-bold text-[15px] rounded-[18px] shadow-sm transition-all flex items-center justify-center disabled:opacity-60 cursor-pointer">
+              {loading || authLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Continue with email'}
             </button>
-          </div>
+          </>}
 
-          {actions && <button type="button" disabled={loading || authLoading || Boolean(isAuthenticated)} onClick={() => void handleGoogle()} className="w-full h-14 rounded-[18px] border border-[#e5e1d7] bg-white text-[15px] font-bold disabled:opacity-60">Continue with Google</button>}
+          <button type="button" disabled={loading || authLoading || Boolean(isAuthenticated)} onClick={() => void handleGoogle()} className="w-full h-14 rounded-[18px] border border-[#e5e1d7] bg-white text-[15px] font-bold disabled:opacity-60">
+            {authMode === 'signup' ? 'Create account with Google' : 'Continue with Google'}
+          </button>
 
           {/* Continue without account */}
           <div className="pt-2 text-center">
