@@ -1,5 +1,9 @@
 # Free extension and local library
 
+- **[Downloads]** Offer the public Android APK, current release notes, and direct navigation to all marketing pages.
+
+- **[Releases]** Build a fresh complete release baseline, then carry forward unchanged platform artifacts on every main push.
+
 - **[iOS / Authentication]** Add native Sign in with Apple to login, signup, and account settings linking.
 
 - **[iOS / Sync]** Ignore cancelled refresh requests so inbox reloads do not show a false sync failure.
