@@ -10,6 +10,8 @@
 
 - **[Android / Inbox]** Add the iOS-style Keep action to the right-side swipe actions for email rows.
 
+- **[Android / Settings]** Align the Plans subpage with the iOS Pro subscription layout and feature presentation.
+
 - **[iOS / Onboarding] Optional accounts**: Make account-free entry the primary welcome action and expose Pro plans, purchases, and restore directly before sign-in.
 
 - **[App Store] Subscription review metadata**: Add the Apple standard EULA to localized descriptions and provide review instructions for guest purchases and optional account connection.
