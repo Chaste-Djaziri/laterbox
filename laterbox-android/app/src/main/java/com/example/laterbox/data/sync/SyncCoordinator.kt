@@ -343,6 +343,13 @@ object SyncCoordinator {
                 val remoteAttachments = row.optJSONArray("attachments") ?: JSONArray()
                 val remoteDeleted = !row.isNull("deleted_at")
 
+                fun objectValue(key: String): JSONObject? = row.optJSONObject(key) ?: row.optJSONArray(key)?.optJSONObject(0)
+                fun JSONObject.cleanString(key: String): String? {
+                    if (isNull(key)) return null
+                    val v = optString(key).trim()
+                    return if (v.isEmpty() || v.equals("null", ignoreCase = true) || v.equals("undefined", ignoreCase = true)) null else v
+                }
+
                 if (local != null && localDate != null) {
                     val localDeleted = local.status == "deleted" || local.deletedAt != null
                     if (remoteDate.isBefore(localDate) || (remoteDate == localDate && !(remoteDeleted && !localDeleted))) {
@@ -357,6 +364,28 @@ object SyncCoordinator {
                             if (restored != local.attachments) {
                                 dao.replaceAttachmentsIfUnchanged(local.id, local.updatedAt, restored)
                             }
+                        }
+                        // Ensure missing metadata is saved even if item timestamps matched
+                        val remoteMeta = objectValue("item_metadata")
+                        if (remoteMeta != null && database.itemMetadataDao().getMetadataByItemId(id) == null) {
+                            val classification = remoteMeta.optJSONObject("structured_data")
+                                ?: remoteMeta.optString("structured_data")?.let { runCatching { JSONObject(it) }.getOrNull() }
+                            database.itemMetadataDao().insertMetadata(
+                                ItemMetadataEntity(
+                                    itemId = id,
+                                    userId = uid,
+                                    domain = remoteMeta.cleanString("domain"),
+                                    siteName = remoteMeta.cleanString("site_name"),
+                                    title = remoteMeta.cleanString("title"),
+                                    description = remoteMeta.cleanString("description"),
+                                    faviconUrl = remoteMeta.cleanString("favicon_url"),
+                                    previewImageUrl = remoteMeta.cleanString("preview_image_url"),
+                                    status = remoteMeta.cleanString("status") ?: "enriched",
+                                    structuredData = classification?.toString()?.takeIf { it != "{}" && it != "null" },
+                                    createdAt = local.createdAt,
+                                    updatedAt = updated
+                                )
+                            )
                         }
                         continue
                     }
@@ -373,38 +402,39 @@ object SyncCoordinator {
                     local?.attachments ?: "[]"
                 }
 
-                fun objectValue(key: String): JSONObject? = row.optJSONObject(key) ?: row.optJSONArray(key)?.optJSONObject(0)
                 val metadata = objectValue("item_metadata")
                 val classification = metadata?.optJSONObject("structured_data")
                     ?: metadata?.optString("structured_data")?.let { runCatching { JSONObject(it) }.getOrNull() }
-                fun nullable(key: String) = if (row.isNull(key)) null else row.optString(key).ifBlank { null }
 
                 val item = ItemEntity(
                     id = id,
                     userId = uid,
-                    url = nullable("url"),
-                    title = nullable("title"),
-                    textContent = nullable("text_content"),
-                    type = row.optString("type", "note"),
+                    url = row.cleanString("url"),
+                    title = row.cleanString("title"),
+                    textContent = row.cleanString("text_content"),
+                    textSelector = row.cleanString("text_selector"),
+                    type = row.cleanString("type") ?: "note",
                     favorite = row.optBoolean("favorite"),
-                    status = row.optString("status", "inbox"),
-                    returnAt = nullable("return_at"),
+                    status = row.cleanString("status") ?: "inbox",
+                    returnAt = row.cleanString("return_at"),
                     createdAt = row.getString("created_at"),
                     updatedAt = updated,
                     syncStatus = "synced",
-                    deletedAt = nullable("deleted_at"),
+                    deletedAt = row.cleanString("deleted_at"),
                     tags = classification?.optJSONArray("tags")?.let { tags ->
-                        (0 until tags.length()).joinToString(", ") { tags.getString(it) }
+                        (0 until tags.length()).mapNotNull { idx ->
+                            tags.optString(idx).trim().takeIf { it.isNotEmpty() && !it.equals("null", ignoreCase = true) }
+                        }.joinToString(", ")
                     }.orEmpty(),
-                    category = classification?.optString("category").orEmpty(),
-                    summary = classification?.optString("summary").orEmpty(),
-                    formattedContent = classification?.optString("formattedContent").orEmpty(),
-                    notes = objectValue("item_notes")?.takeIf { it.isNull("deleted_at") }?.optString("content").orEmpty(),
+                    category = classification?.cleanString("category").orEmpty(),
+                    summary = classification?.cleanString("summary").orEmpty(),
+                    formattedContent = classification?.cleanString("formattedContent").orEmpty(),
+                    notes = objectValue("item_notes")?.takeIf { it.isNull("deleted_at") }?.cleanString("content").orEmpty(),
                     collectionId = row.optJSONArray("collection_items")?.let { memberships ->
                         (0 until memberships.length())
                             .map { memberships.getJSONObject(it) }
                             .firstOrNull { it.isNull("deleted_at") }
-                            ?.optString("collection_id")
+                            ?.cleanString("collection_id")
                     },
                     attachments = downloadedAttachments
                 )
@@ -415,14 +445,14 @@ object SyncCoordinator {
                             ItemMetadataEntity(
                                 itemId = id,
                                 userId = uid,
-                                domain = it.optString("domain"),
-                                siteName = it.optString("site_name"),
-                                title = it.optString("title"),
-                                description = it.optString("description"),
-                                faviconUrl = it.optString("favicon_url"),
-                                previewImageUrl = it.optString("preview_image_url"),
-                                status = it.optString("status", "enriched"),
-                                structuredData = classification?.toString(),
+                                domain = it.cleanString("domain"),
+                                siteName = it.cleanString("site_name"),
+                                title = it.cleanString("title"),
+                                description = it.cleanString("description"),
+                                faviconUrl = it.cleanString("favicon_url"),
+                                previewImageUrl = it.cleanString("preview_image_url"),
+                                status = it.cleanString("status") ?: "enriched",
+                                structuredData = classification?.toString()?.takeIf { it != "{}" && it != "null" },
                                 createdAt = item.createdAt,
                                 updatedAt = updated
                             )
