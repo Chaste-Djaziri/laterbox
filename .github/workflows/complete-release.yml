@@ -1,0 +1,156 @@
+name: Complete GitHub Release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: complete-release-main
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    runs-on: ubuntu-24.04
+    outputs:
+      previous_tag: ${{ steps.plan.outputs.previous_tag }}
+      tag: ${{ steps.plan.outputs.tag }}
+      version: ${{ steps.plan.outputs.version }}
+      build_android: ${{ steps.plan.outputs.build_android }}
+      build_ios: ${{ steps.plan.outputs.build_ios }}
+      build_web: ${{ steps.plan.outputs.build_web }}
+      build_extensions: ${{ steps.plan.outputs.build_extensions }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Select managed baseline and changed platforms
+        id: plan
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          previous_tag=$(gh release list --limit 100 --json tagName,publishedAt --jq '[.[] | select(.tagName | startswith("release-main-"))] | sort_by(.publishedAt) | last | .tagName // ""')
+          version=$(node -p 'require("./version.json").version')
+          echo "previous_tag=$previous_tag" >> "$GITHUB_OUTPUT"
+          echo "tag=release-main-${GITHUB_RUN_ID}" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          if [ -n "$previous_tag" ]; then
+            gh release view "$previous_tag" --json assets --jq '.assets[].name' > "$RUNNER_TEMP/previous-asset-names"
+          else
+            : > "$RUNNER_TEMP/previous-asset-names"
+          fi
+          should_build() {
+            local output_name="$1" required_asset="$2" missing=false
+            shift 2
+            IFS=, read -ra required_assets <<< "$required_asset"
+            for asset in "${required_assets[@]}"; do
+              grep -Fxq "$asset" "$RUNNER_TEMP/previous-asset-names" || missing=true
+            done
+            if [ -z "$previous_tag" ] || [ "$missing" = true ] || ! git diff --quiet "$previous_tag" HEAD -- "$@" version.json; then
+              echo "$output_name=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "$output_name=false" >> "$GITHUB_OUTPUT"
+            fi
+          }
+          should_build build_android laterbox.apk,laterbox-android-release.aab laterbox-android .github/workflows/android.yml .github/workflows/complete-release.yml scripts/assemble_release.py
+          should_build build_ios LaterBox.ipa laterbox-ios .github/workflows/ios.yml .github/workflows/complete-release.yml scripts/assemble_release.py
+          should_build build_web laterbox-web.tar.gz laterbox-web laterbox-extension supabase .github/workflows/release.yml .github/workflows/complete-release.yml scripts/assemble_release.py
+          should_build build_extensions laterbox-chrome-extension.zip,laterbox-firefox-extension.zip,laterbox-safari-extension.zip laterbox-extension .github/workflows/extensions.yml .github/workflows/complete-release.yml scripts/assemble_release.py
+
+  android:
+    needs: plan
+    if: needs.plan.outputs.build_android == 'true'
+    uses: ./.github/workflows/android.yml
+    secrets: inherit
+
+  ios:
+    needs: plan
+    if: needs.plan.outputs.build_ios == 'true'
+    uses: ./.github/workflows/ios.yml
+    secrets: inherit
+
+  web:
+    needs: plan
+    if: needs.plan.outputs.build_web == 'true'
+    uses: ./.github/workflows/release.yml
+    secrets: inherit
+
+  extensions:
+    needs: plan
+    if: needs.plan.outputs.build_extensions == 'true'
+    uses: ./.github/workflows/extensions.yml
+    secrets: inherit
+
+  publish:
+    needs: [plan, android, ios, web, extensions]
+    if: >-
+      always() && needs.plan.result == 'success' &&
+      (needs.android.result == 'success' || needs.android.result == 'skipped') &&
+      (needs.ios.result == 'success' || needs.ios.result == 'skipped') &&
+      (needs.web.result == 'success' || needs.web.result == 'skipped') &&
+      (needs.extensions.result == 'success' || needs.extensions.result == 'skipped')
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v6
+        if: needs.plan.outputs.build_android == 'true'
+        with:
+          name: laterbox-android-release-apk-${{ github.run_id }}
+          path: ${{ runner.temp }}/current/android-apk
+      - uses: actions/download-artifact@v6
+        if: needs.plan.outputs.build_android == 'true'
+        with:
+          name: laterbox-android-aab-${{ github.run_id }}
+          path: ${{ runner.temp }}/current/android-aab
+      - uses: actions/download-artifact@v6
+        if: needs.plan.outputs.build_ios == 'true'
+        with:
+          pattern: laterbox-ios-[0-9]*
+          path: ${{ runner.temp }}/current/ios
+          merge-multiple: true
+      - uses: actions/download-artifact@v6
+        if: needs.plan.outputs.build_web == 'true'
+        with:
+          name: laterbox-web-release-${{ github.run_id }}
+          path: ${{ runner.temp }}/current/web
+      - uses: actions/download-artifact@v6
+        if: needs.plan.outputs.build_extensions == 'true'
+        with:
+          name: laterbox-web-extensions-all-${{ github.run_id }}
+          path: ${{ runner.temp }}/current/extensions
+      - name: Download only a prior managed release
+        if: needs.plan.outputs.previous_tag != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release download '${{ needs.plan.outputs.previous_tag }}' --dir "$RUNNER_TEMP/previous"
+      - name: Assemble assets and release notes
+        run: |
+          python3 scripts/assemble_release.py \
+            --current "$RUNNER_TEMP/current" \
+            --previous "$RUNNER_TEMP/previous" \
+            --output "$RUNNER_TEMP/release-assets" \
+            --commit "$GITHUB_SHA" \
+            --changelog CHANGELOG.md
+      - name: Publish complete release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ needs.plan.outputs.tag }}
+          RELEASE_VERSION: ${{ needs.plan.outputs.version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" "$RUNNER_TEMP/release-assets"/* --clobber
+            gh release edit "$RELEASE_TAG" --notes-file "$RUNNER_TEMP/release-body.md" --draft=false --latest
+          else
+            gh release create "$RELEASE_TAG" "$RUNNER_TEMP/release-assets"/* \
+              --target "$GITHUB_SHA" --title "LaterBox v$RELEASE_VERSION ($GITHUB_SHA)" \
+              --notes-file "$RUNNER_TEMP/release-body.md" --draft
+            gh release edit "$RELEASE_TAG" --draft=false --latest
+          fi
