@@ -82,7 +82,7 @@ fun NativeSettings(
     var clearing by remember { mutableStateOf(false) }
     var signOut by remember { mutableStateOf(false) }
     var plans by remember { mutableStateOf(false) }
-    var aiSettings by remember { mutableStateOf(false) }
+    var searchRefine by remember { mutableStateOf(preferences.getBoolean("search_refine", true)) }
     var supportSheet by remember { mutableStateOf(false) }
     var busy by remember { mutableStateOf(false) }
     var bytes by remember { mutableLongStateOf(0) }
@@ -382,7 +382,7 @@ fun NativeSettings(
                         SettingsLinkRow(
                             icon = Icons.Default.AutoAwesome,
                             title = "Later AI Models",
-                            subtitle = "Providers, API keys & local fallbacks",
+                            subtitle = "Local responses · Offline assistant",
                             badge = if (account.pro) "Configured" else "Pro",
                             onClick = { activeSubpage = SettingsSubpage.AI_MODELS }
                         )
@@ -1115,12 +1115,91 @@ fun NativeSettings(
 
                         SettingsSubpage.AI_MODELS -> {
                             item {
-                                SettingsGroupCard(title = "ACTIVE AI CONFIGURATION") {
-                                    SubpageValueRow("Active Engine", if (!account.pro) nanoStatus else aiProvider.replaceFirstChar { it.uppercase() })
-                                    HorizontalDivider(color = LaterboxBorder, thickness = 0.5.dp)
-                                    SubpageValueRow("Selected Model", aiModel)
+                                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.AutoAwesome,
+                                            contentDescription = null,
+                                            tint = LaterboxTextPrimary,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                        Text(
+                                            text = "Intelligence Engine",
+                                            fontSize = 18.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = LaterboxTextPrimary
+                                        )
+                                    }
+                                    Text(
+                                        text = "LaterBox currently uses an offline response assistant for capture and search.",
+                                        fontSize = 13.sp,
+                                        color = LaterboxTextSecondary
+                                    )
                                 }
                             }
+
+                            item {
+                                Surface(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(18.dp),
+                                    color = LaterboxCard,
+                                    border = BorderStroke(1.dp, LaterboxBorder)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(16.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(14.dp)
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(42.dp)
+                                                .background(LaterboxAccent, CircleShape),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.AutoAwesome,
+                                                contentDescription = null,
+                                                tint = LaterboxDarkSurface,
+                                                modifier = Modifier.size(20.dp)
+                                            )
+                                        }
+
+                                        Column(
+                                            modifier = Modifier.weight(1f),
+                                            verticalArrangement = Arrangement.spacedBy(2.dp)
+                                        ) {
+                                            Text(
+                                                text = "Local responses",
+                                                fontSize = 15.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = LaterboxTextPrimary
+                                            )
+                                            Text(
+                                                text = "Available now · works offline",
+                                                fontSize = 12.sp,
+                                                color = LaterboxTextSecondary
+                                            )
+                                        }
+
+                                        Surface(
+                                            shape = CircleShape,
+                                            color = LaterboxAccent
+                                        ) {
+                                            Text(
+                                                text = "Active",
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = LaterboxDarkSurface,
+                                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+
                             item {
                                 Surface(
                                     modifier = Modifier.fillMaxWidth(),
@@ -1129,49 +1208,71 @@ fun NativeSettings(
                                     border = BorderStroke(1.dp, LaterboxBorder)
                                 ) {
                                     Column(
-                                        modifier = Modifier.padding(18.dp),
-                                        verticalArrangement = Arrangement.spacedBy(14.dp)
+                                        modifier = Modifier.padding(16.dp),
+                                        verticalArrangement = Arrangement.spacedBy(8.dp)
                                     ) {
-                                        Text(
-                                            text = "Model Settings",
-                                            fontSize = 14.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = LaterboxTextPrimary
-                                        )
-                                        Text(
-                                            text = if (account.pro)
-                                                "Configure custom Gemini, OpenAI, Claude, or local Ollama endpoints and encrypted keys."
-                                            else
-                                                "Guided capture and keyword search are available locally. Pro adds custom AI models and cloud intelligence.",
-                                            fontSize = 12.sp,
-                                            color = LaterboxTextSecondary
-                                        )
-                                        Button(
-                                            onClick = { aiSettings = true },
-                                            modifier = Modifier.fillMaxWidth()
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                                         ) {
-                                            Text("Configure AI Models & Keys")
+                                            Icon(
+                                                imageVector = Icons.Default.Schedule,
+                                                contentDescription = null,
+                                                tint = LaterboxTextSecondary,
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                            Text(
+                                                text = "AI providers",
+                                                fontSize = 15.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = LaterboxTextPrimary
+                                            )
                                         }
-                                        if (RemoteAIService.ENABLED && account.pro) {
-                                            HorizontalDivider(color = LaterboxBorder, thickness = 0.5.dp)
-                                            Row(
-                                                modifier = Modifier.fillMaxWidth(),
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                horizontalArrangement = Arrangement.SpaceBetween
-                                            ) {
-                                                Column(modifier = Modifier.weight(1f)) {
-                                                    Text("Pro Cloud Fallback", fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = LaterboxTextPrimary)
-                                                    Text("Use cloud AI after local model failures", fontSize = 11.sp, color = LaterboxTextSecondary)
-                                                }
-                                                Switch(
-                                                    checked = fallback,
-                                                    onCheckedChange = { enabled ->
-                                                        fallback = enabled
-                                                        preferences.edit().putBoolean("gemini_fallback", enabled).apply()
-                                                    }
-                                                )
+                                        Text(
+                                            text = "Cloud and custom AI providers are coming soon. Provider switching and API-key connections are disabled until they are implemented.",
+                                            fontSize = 13.sp,
+                                            color = LaterboxTextSecondary,
+                                            lineHeight = 18.sp
+                                        )
+                                    }
+                                }
+                            }
+
+                            item {
+                                Surface(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(18.dp),
+                                    color = LaterboxCard,
+                                    border = BorderStroke(1.dp, LaterboxBorder)
+                                ) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(16.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(
+                                                text = "Search refinement",
+                                                fontSize = 15.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = LaterboxTextPrimary
+                                            )
+                                            Text(
+                                                text = "Use local assistant to refine search queries",
+                                                fontSize = 12.sp,
+                                                color = LaterboxTextSecondary
+                                            )
+                                        }
+
+                                        Switch(
+                                            checked = searchRefine,
+                                            onCheckedChange = { enabled ->
+                                                searchRefine = enabled
+                                                preferences.edit().putBoolean("search_refine", enabled).apply()
                                             }
-                                        }
+                                        )
                                     }
                                 }
                             }
@@ -1283,7 +1384,6 @@ fun NativeSettings(
     }
 
     if (plans) PlansSheet { plans = false }
-    if (aiSettings) AISettingsSheet { aiSettings = false }
     if (supportSheet) SupportRequestSheet { supportSheet = false }
 }
 
