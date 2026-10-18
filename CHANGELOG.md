@@ -20,6 +20,8 @@ All notable user-facing changes to LaterBox will be documented in this file.
 
 ## [Unreleased]
 
+- **[Android / Cloudflare Attachments] Fetch and restore Cloudflare attachments during cloud sync, detecting missing remote files and attaching them to local items.**
+
 - **[Android / Cloud Sync] Add separate Push and Pull changes in Settings and Inbox bottom bar matching iOS, and automatically fetch and sync changes to cloud when Pro is active.**
 
 - **[iOS / Shortcuts & Control Center] Trigger the system top popup prompt asking what to save directly from Shortcuts and Control Center without opening the app.**
