@@ -1274,13 +1274,9 @@ private fun SwipeActionButton(
         Surface(modifier = Modifier.height(64.dp).fillMaxWidth().clip(controlShape), shape = controlShape, color = backgroundColor) {
             Row(horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
                 Icon(imageVector = icon, contentDescription = label, tint = Color.White, modifier = Modifier.size(24.dp))
-                if (expands && controlWidth >= 92.dp) {
-                    Spacer(Modifier.width(8.dp))
-                    Text(label, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
-                }
             }
         }
-        if (!expands) Text(text = label, fontSize = 12.sp, color = LaterboxTextSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 4.dp))
+        Text(text = label, fontSize = 12.sp, color = LaterboxTextSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 4.dp))
     }
 }
 
@@ -1304,8 +1300,10 @@ internal fun SwipeableEmailInboxRow(
 
     // Three 76dp action controls plus their gaps and edge padding.
     // The card settles exactly beside the visible action group.
-    val revealWidth = 260.dp
-    val revealWidthPx = with(density) { revealWidth.toPx() }
+    val leadingRevealWidth = 164.dp
+    val trailingRevealWidth = 260.dp
+    val leadingRevealWidthPx = with(density) { leadingRevealWidth.toPx() }
+    val trailingRevealWidthPx = with(density) { trailingRevealWidth.toPx() }
     val fullSwipeThresholdPx = with(density) { 226.dp.toPx() }
     val extendRangePx = with(density) { 60.dp.toPx() }
     val padding20Px = with(density) { 20.dp.toPx() }
@@ -1329,7 +1327,7 @@ internal fun SwipeableEmailInboxRow(
         val currentOffset = offsetX.value
         val absOffset = kotlin.math.abs(currentOffset)
         if (absOffset > 1f) {
-            val progress = (absOffset / revealWidthPx).coerceIn(0f, 1f)
+            val progress = (absOffset / if (currentOffset > 0f) leadingRevealWidthPx else trailingRevealWidthPx).coerceIn(0f, 1f)
             val baseScale = 0.7f + 0.3f * progress
             val baseAlpha = (progress * 1.5f).coerceIn(0f, 1f)
 
@@ -1341,14 +1339,14 @@ internal fun SwipeableEmailInboxRow(
                 // Leading side (revealed on right swipe): Star & Collection
                 // Continues to swipe right: Star extends as the default action
                 if (currentOffset > 0f) {
-                    val extendProgress = ((absOffset - revealWidthPx) / extendRangePx).coerceIn(0f, 1f)
+                    val extendProgress = ((absOffset - leadingRevealWidthPx) / extendRangePx).coerceIn(0f, 1f)
                     val starWidth: androidx.compose.ui.unit.Dp
                     val collectionWidth: androidx.compose.ui.unit.Dp
                     val starScale: Float
                     val collectionScale: Float
                     val collectionAlpha: Float
 
-                    if (absOffset < revealWidthPx) {
+                    if (absOffset < leadingRevealWidthPx) {
                         val halfAvailable = with(density) {
                             ((absOffset - padding20Px) / 2f).coerceAtLeast(0f).toDp()
                         }
@@ -1416,7 +1414,7 @@ internal fun SwipeableEmailInboxRow(
                 // Trailing side (revealed on left swipe): Snooze & Delete
                 // Continues to swipe left: Delete extends as the default action
                 if (currentOffset < 0f) {
-                    val extendProgress = ((absOffset - revealWidthPx) / extendRangePx).coerceIn(0f, 1f)
+                    val extendProgress = ((absOffset - trailingRevealWidthPx) / extendRangePx).coerceIn(0f, 1f)
                     val keepWidth: androidx.compose.ui.unit.Dp
                     val snoozeWidth: androidx.compose.ui.unit.Dp
                     val deleteWidth: androidx.compose.ui.unit.Dp
@@ -1426,7 +1424,7 @@ internal fun SwipeableEmailInboxRow(
                     val keepAlpha: Float
                     val snoozeAlpha: Float
 
-                    if (absOffset < revealWidthPx) {
+                    if (absOffset < trailingRevealWidthPx) {
                         val thirdAvailable = with(density) {
                             ((absOffset - padding20Px - gap8Px * 2f) / 3f).coerceAtLeast(0f).toDp()
                         }
@@ -1447,9 +1445,7 @@ internal fun SwipeableEmailInboxRow(
                         snoozeScale = (1f - 0.2f * extendProgress) * baseScale
                         snoozeWidth = 72.dp
                         val usedSnzPx = if (snoozeWidth > 0.dp) with(density) { snoozeWidth.toPx() } + gap8Px else 0f
-                        deleteWidth = with(density) {
-                            (absOffset - padding12Px - usedKeepPx - usedSnzPx).coerceAtLeast(baseBtnWidthPx).toDp()
-                        }
+                        deleteWidth = 76.dp + (164.dp * extendProgress)
                         deleteScale = 1f + 0.15f * extendProgress
                     }
 
@@ -1532,15 +1528,15 @@ internal fun SwipeableEmailInboxRow(
                                         offsetX.animateTo(0f, spring(stiffness = Spring.StiffnessMediumLow))
                                         onToggleFavorite()
                                     }
-                                    current > revealWidthPx * 0.4f -> {
-                                        offsetX.animateTo(revealWidthPx, spring(stiffness = Spring.StiffnessMediumLow))
+                                    current > leadingRevealWidthPx * 0.4f -> {
+                                        offsetX.animateTo(leadingRevealWidthPx, spring(stiffness = Spring.StiffnessMediumLow))
                                     }
                                     current < -fullSwipeThresholdPx -> {
                                         offsetX.animateTo(0f, spring(stiffness = Spring.StiffnessMediumLow))
                                         onDelete()
                                     }
-                                    current < -revealWidthPx * 0.4f -> {
-                                        offsetX.animateTo(-revealWidthPx, spring(stiffness = Spring.StiffnessMediumLow))
+                                    current < -trailingRevealWidthPx * 0.4f -> {
+                                        offsetX.animateTo(-trailingRevealWidthPx, spring(stiffness = Spring.StiffnessMediumLow))
                                     }
                                     else -> {
                                         offsetX.animateTo(0f, spring(stiffness = Spring.StiffnessMediumLow))
