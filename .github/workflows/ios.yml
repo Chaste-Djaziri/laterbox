@@ -2,10 +2,10 @@ name: Native iOS Build & TestFlight
 on:
   push:
     branches: [main]
-    paths: ['laterbox-ios/**', '.github/workflows/ios.yml']
+    paths: ['laterbox-ios/**', '.github/workflows/ios.yml', 'scripts/prepare_release_assets.sh']
   pull_request:
     branches: [main]
-    paths: ['laterbox-ios/**', '.github/workflows/ios.yml']
+    paths: ['laterbox-ios/**', '.github/workflows/ios.yml', 'scripts/prepare_release_assets.sh']
   workflow_dispatch:
 permissions:
   contents: write
