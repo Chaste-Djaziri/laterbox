@@ -558,8 +558,8 @@ fun NativeSettings(
                                 Surface(
                                     modifier = Modifier.fillMaxWidth(),
                                     shape = RoundedCornerShape(18.dp),
-                                    color = LaterboxCard,
-                                    border = BorderStroke(1.dp, LaterboxBorder)
+                                    color = Color.Transparent,
+                                    border = null
                                 ) {
                                     Column(
                                         modifier = Modifier.padding(20.dp),
@@ -598,13 +598,6 @@ fun NativeSettings(
                                         if (account.userId == null) {
                                             Button(onClick = onAuth, modifier = Modifier.padding(top = 8.dp)) {
                                                 Text("Sign In")
-                                            }
-                                        } else {
-                                            OutlinedButton(
-                                                onClick = { signOut = true },
-                                                modifier = Modifier.padding(top = 8.dp)
-                                            ) {
-                                                Text("Sign Out", color = Color(0xFFEF4444))
                                             }
                                         }
                                     }
@@ -652,6 +645,15 @@ fun NativeSettings(
                                                 }
                                             }
                                         }
+                                    }
+                                    if (account.userId != null) {
+                                        HorizontalDivider(color = LaterboxBorder, thickness = 0.5.dp)
+                                        OutlinedButton(
+                                            onClick = { signOut = true },
+                                            modifier = Modifier.fillMaxWidth().padding(14.dp).height(46.dp),
+                                            shape = RoundedCornerShape(12.dp),
+                                            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFEF4444))
+                                        ) { Text("Sign Out", fontWeight = FontWeight.SemiBold) }
                                     }
                                 }
                             }
