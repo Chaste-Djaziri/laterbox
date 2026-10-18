@@ -1,5 +1,6 @@
 package com.example.laterbox.ui.screens
 
+import android.app.DatePickerDialog
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
@@ -59,6 +60,7 @@ import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import java.io.File
 import java.time.Instant
+import java.util.Calendar
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
@@ -1386,6 +1388,7 @@ internal fun SchedulePickerDialog(
             modifier = Modifier.fillMaxWidth().padding(16.dp)
         ) {
             Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                val context = LocalContext.current
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("Schedule Return", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = LaterboxTextPrimary)
                     Spacer(Modifier.weight(1f))
@@ -1417,6 +1420,26 @@ internal fun SchedulePickerDialog(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text("Next Week (in 7 days)", fontWeight = FontWeight.SemiBold, color = LaterboxTextPrimary)
+                    }
+
+                    OutlinedButton(
+                        onClick = {
+                            val calendar = Calendar.getInstance()
+                            DatePickerDialog(
+                                context,
+                                { _, year, month, day ->
+                                    val selected = Calendar.getInstance().apply { set(year, month, day, 9, 0, 0); set(Calendar.MILLISECOND, 0) }
+                                    onSetDate(Instant.ofEpochMilli(selected.timeInMillis).toString())
+                                },
+                                calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), calendar.get(Calendar.DAY_OF_MONTH)
+                            ).apply { datePicker.minDate = calendar.timeInMillis }.show()
+                        },
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Default.CalendarToday, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text("Choose a date", fontWeight = FontWeight.SemiBold, color = LaterboxTextPrimary)
                     }
 
                     if (currentReturnAt != null) {
