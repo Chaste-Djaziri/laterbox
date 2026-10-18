@@ -20,6 +20,8 @@ All notable user-facing changes to LaterBox will be documented in this file.
 
 ## [Unreleased]
 
+- **[Android / iOS / Settings] Use short, friendly one-line names for settings links across mobile platforms.**
+
 - **[Android / Settings] Compact settings navigation links to show only small titles and status badges without descriptions.**
 
 - **[Web / Authentication] Add the Google logo to the login and signup actions.**
