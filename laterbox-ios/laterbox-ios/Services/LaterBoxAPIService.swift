@@ -141,13 +141,13 @@ public actor LaterBoxAPIService {
     }
 
     // MARK: - Auth: Native Sign in with Apple
-    public func signInWithApple(identityToken: String, nonce: String? = nil) async throws -> (accessToken: String, refreshToken: String?, userId: String, email: String?) {
+    public func signInWithApple(identityToken: String, nonce: String? = nil, sessionToken: String? = nil) async throws -> (accessToken: String, refreshToken: String?, userId: String, email: String?) {
         guard let url = URL(string: "\(supabaseUrl)/auth/v1/token?grant_type=id_token") else {
             throw URLError(.badURL)
         }
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
-        for (key, value) in headers() { request.setValue(value, forHTTPHeaderField: key) }
+        for (key, value) in headers(token: sessionToken) { request.setValue(value, forHTTPHeaderField: key) }
         var body: [String: Any] = ["provider": "apple", "id_token": identityToken]
         if let nonce, !nonce.isEmpty { body["nonce"] = nonce }
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
