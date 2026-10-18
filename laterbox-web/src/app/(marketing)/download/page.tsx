@@ -1,8 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import Link from 'next/link';
-import { AndroidTesterModal } from '@/components/download/AndroidTesterModal';
 import { AppStoreButton, APP_STORE_URL } from '@/components/download/AppStoreButton';
 import {
   Apple,
@@ -23,7 +22,6 @@ import {
 } from 'lucide-react';
 
 export default function DownloadPage() {
-  const [isAndroidModalOpen, setIsAndroidModalOpen] = useState(false);
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-12 w-full flex-1">
@@ -38,7 +36,7 @@ export default function DownloadPage() {
           <span className="w-1.5 h-6 rounded-full bg-gradient-to-b from-[#E7FF57] to-[#171711] inline-block animate-pulse" />
         </h1>
         <p className="text-xs sm:text-sm text-[#6c6b63] font-medium max-w-2xl">
-          LaterBox is available today on iOS via the Apple App Store, with companion browser extensions and additional platforms rolling out soon.
+          LaterBox is available on iOS through the App Store and on Android as a direct APK download. Browser extensions are available below.
         </p>
       </div>
 
@@ -122,13 +120,13 @@ export default function DownloadPage() {
             </span>
           </div>
           <p className="text-xs sm:text-sm text-[#6c6b63]">
-            Dedicated native companions for desktop and Android are in active engineering.
+            Download Android now. Desktop companions are in active engineering.
           </p>
         </div>
 
         {/* 4 Cards Grid: Android, macOS, Windows, Linux */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* 1. Android - Public Beta / Direct APK */}
+          {/* 1. Android - Direct APK */}
           <div className="p-5 rounded-2xl bg-white border border-[#e4e0d5] space-y-4 flex flex-col justify-between hover:border-[#171711]/40 transition-all shadow-2xs">
             <div className="space-y-3">
               <div className="flex items-center justify-between">
@@ -137,7 +135,7 @@ export default function DownloadPage() {
                 </div>
                 <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10.5px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-300">
                   <Sparkles className="w-3 h-3 text-emerald-600" />
-                  <span>Public Beta</span>
+                  <span>Available</span>
                 </span>
               </div>
               <div>
@@ -157,14 +155,6 @@ export default function DownloadPage() {
                 <Download className="w-3.5 h-3.5 text-[#E7FF57]" />
                 <span>Download .apk</span>
               </a>
-              <button
-                type="button"
-                onClick={() => setIsAndroidModalOpen(true)}
-                className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl text-[#6c6b63] hover:text-[#171711] hover:bg-[#ebe7dc]/50 text-[11px] font-bold transition-all cursor-pointer"
-              >
-                <span>Google Play Beta</span>
-                <ArrowRight className="w-3 h-3" />
-              </button>
             </div>
           </div>
 
@@ -399,14 +389,6 @@ export default function DownloadPage() {
         </Link>
       </section>
 
-      {/* Android Tester Modal */}
-      <AndroidTesterModal
-        isOpen={isAndroidModalOpen}
-        onClose={() => setIsAndroidModalOpen(false)}
-        onDownloadApk={() => {
-          window.location.href = '/api/download/laterbox.apk';
-        }}
-      />
     </div>
   );
 }
