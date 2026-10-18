@@ -1291,14 +1291,9 @@ private fun SwipeActionButton(
                 modifier = Modifier.size(20.dp)
             )
             Spacer(Modifier.height(3.dp))
-            Text(
-                text = label,
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.White,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
+            if (width >= 76.dp) {
+                Text(text = label, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
         }
     }
 }
@@ -1434,29 +1429,40 @@ internal fun SwipeableEmailInboxRow(
                 // Continues to swipe left: Delete extends as the default action
                 if (currentOffset < 0f) {
                     val extendProgress = ((absOffset - revealWidthPx) / extendRangePx).coerceIn(0f, 1f)
+                    val keepWidth: androidx.compose.ui.unit.Dp
                     val snoozeWidth: androidx.compose.ui.unit.Dp
                     val deleteWidth: androidx.compose.ui.unit.Dp
+                    val keepScale: Float
                     val snoozeScale: Float
                     val deleteScale: Float
+                    val keepAlpha: Float
                     val snoozeAlpha: Float
 
                     if (absOffset < revealWidthPx) {
-                        val halfAvailable = with(density) {
-                            ((absOffset - padding20Px) / 2f).coerceAtLeast(0f).toDp()
+                        val thirdAvailable = with(density) {
+                            ((absOffset - padding20Px - gap8Px * 2f) / 3f).coerceAtLeast(0f).toDp()
                         }
-                        snoozeWidth = halfAvailable
-                        deleteWidth = halfAvailable
+                        keepWidth = thirdAvailable
+                        snoozeWidth = thirdAvailable
+                        deleteWidth = thirdAvailable
+                        keepScale = baseScale
                         snoozeScale = baseScale
                         deleteScale = baseScale
+                        keepAlpha = baseAlpha
                         snoozeAlpha = baseAlpha
                     } else {
+                        keepAlpha = (1f - extendProgress) * baseAlpha
+                        keepScale = (1f - 0.2f * extendProgress) * baseScale
+                        val keepWidthDp = 64.dp * (1f - extendProgress)
+                        keepWidth = if (keepWidthDp > 4.dp) keepWidthDp else 0.dp
+                        val usedKeepPx = if (keepWidth > 0.dp) with(density) { keepWidth.toPx() } + gap8Px else 0f
                         snoozeAlpha = (1f - extendProgress) * baseAlpha
                         snoozeScale = (1f - 0.2f * extendProgress) * baseScale
                         val snzWidthDp = 72.dp * (1f - extendProgress)
                         snoozeWidth = if (snzWidthDp > 4.dp) snzWidthDp else 0.dp
                         val usedSnzPx = if (snoozeWidth > 0.dp) with(density) { snoozeWidth.toPx() } + gap8Px else 0f
                         deleteWidth = with(density) {
-                            (absOffset - padding12Px - usedSnzPx).coerceAtLeast(baseBtnWidthPx).toDp()
+                            (absOffset - padding12Px - usedKeepPx - usedSnzPx).coerceAtLeast(baseBtnWidthPx).toDp()
                         }
                         deleteScale = 1f + 0.15f * extendProgress
                     }
@@ -1478,12 +1484,25 @@ internal fun SwipeableEmailInboxRow(
                                 icon = Icons.Default.CheckCircle,
                                 label = "Keep",
                                 backgroundColor = Color(0xFF16A34A),
+                                width = keepWidth,
+                                contentScale = keepScale,
+                                contentAlpha = keepAlpha,
+                                onClick = {
+                                    coroutineScope.launch { offsetX.animateTo(0f, spring(stiffness = Spring.StiffnessMediumLow)) }
+                                    onKeep()
+                                }
+                            )
+
+                            SwipeActionButton(
+                                icon = Icons.Default.Schedule,
+                                label = "Snooze",
+                                backgroundColor = Color(0xFFEA580C),
                                 width = snoozeWidth,
                                 contentScale = snoozeScale,
                                 contentAlpha = snoozeAlpha,
                                 onClick = {
                                     coroutineScope.launch { offsetX.animateTo(0f, spring(stiffness = Spring.StiffnessMediumLow)) }
-                                    onKeep()
+                                    onSnooze()
                                 }
                             )
 
