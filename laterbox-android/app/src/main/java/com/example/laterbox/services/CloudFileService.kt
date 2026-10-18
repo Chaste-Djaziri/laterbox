@@ -17,7 +17,7 @@ import java.util.UUID
 object CloudFileService {
     private val edge get() = LaterBoxApiService.supabaseUrl + "/functions/v1/attachment-storage"
     private val rest get() = LaterBoxApiService.supabaseUrl + "/rest/v1/attachments"
-    private fun hash(file: File): String {
+    internal fun hash(file: File): String {
         val digest = MessageDigest.getInstance("SHA-256")
         file.inputStream().use { input -> val buffer = ByteArray(65536); while (true) { val count = input.read(buffer); if (count < 0) break; digest.update(buffer, 0, count) } }
         return digest.digest().joinToString("") { "%02x".format(it) }
@@ -36,8 +36,13 @@ object CloudFileService {
                 check(connection.responseCode in 200..299) { "Cloud attachment download failed" }
                 connection.inputStream.use { input -> file.outputStream().use { output ->
                     val buffer = ByteArray(65536); var total = 0L
-                    while (true) { val count = input.read(buffer); if (count < 0) break; total += count; require(total <= expectedSize && total <= 104857600) { "Invalid cloud file size" }; output.write(buffer, 0, count) }
-                    require(total == expectedSize) { "Incomplete cloud file" }
+                    while (true) {
+                        val count = input.read(buffer); if (count < 0) break; total += count
+                        if (expectedSize > 0) require(total <= expectedSize) { "Invalid cloud file size" }
+                        require(total <= 104857600) { "Invalid cloud file size" }
+                        output.write(buffer, 0, count)
+                    }
+                    if (expectedSize > 0) require(total == expectedSize) { "Incomplete cloud file" }
                 } }
             }
         } finally { connection.disconnect() }
@@ -64,24 +69,115 @@ object CloudFileService {
             NativeApi.call("$rest?on_conflict=id", "POST", JSONObject().put("id", id).put("item_id", item.id).put("user_id", uid).put("original_file_name", name).put("file_extension", extension).put("mime_type", mime).put("byte_size", file.length()).put("sha256", sha).put("r2_object_key", completed.getString("objectKey")).put("created_at", item.createdAt).put("updated_at", item.updatedAt))
         }
     }
+    suspend fun downloadAttachmentsForRows(
+        context: Context,
+        currentAttachmentsJson: String,
+        rows: JSONArray,
+        uid: String
+    ): String = withContext(Dispatchers.IO) {
+        val files = runCatching { JSONArray(currentAttachmentsJson) }.getOrDefault(JSONArray())
+        val directory = File(context.filesDir, "captures").apply { mkdirs() }
+        for (index in 0 until rows.length()) {
+            val row = rows.getJSONObject(index)
+            if (!row.isNull("deleted_at") && row.optString("deleted_at").isNotBlank()) continue
+            val rawId = row.optString("id")
+            val id = runCatching { UUID.fromString(rawId).toString() }.getOrNull() ?: continue
+            val extension = row.optString("file_extension").filter { it.isLetterOrDigit() }.ifBlank { "bin" }
+            val target = File(directory, "cloud-$id.$extension")
+            val sha = row.optString("sha256")
+            val byteSize = row.optLong("byte_size", 0L)
+            val fileName = row.optString("original_file_name", "attachment.$extension")
+            val mimeType = row.optString("mime_type", "application/octet-stream")
+
+            val fileValid = target.isFile && (byteSize <= 0 || target.length() == byteSize) && (sha.isBlank() || hash(target).equals(sha, ignoreCase = true))
+            if (!fileValid) {
+                runCatching {
+                    val prepared = JSONObject(
+                        NativeApi.call(
+                            edge,
+                            "POST",
+                            JSONObject().put("action", "prepare-download").put("attachmentId", id)
+                        )
+                    )
+                    val downloadUrl = prepared.getString("downloadUrl")
+                    val temp = File(directory, ".$id.partial")
+                    try {
+                        transfer(downloadUrl, "GET", emptyMap(), temp, byteSize)
+                        if (sha.isNotBlank()) {
+                            check(hash(temp).equals(sha, ignoreCase = true)) { "Cloud file checksum mismatch" }
+                        }
+                        if (target.exists()) target.delete()
+                        check(temp.renameTo(target)) { "Failed to move temp attachment to target" }
+                    } finally {
+                        if (temp.exists()) temp.delete()
+                    }
+                }
+            }
+
+            if (target.isFile) {
+                var matched = false
+                for (fIndex in 0 until files.length()) {
+                    val fObj = files.getJSONObject(fIndex)
+                    val fId = fObj.optString("id")
+                    val fPath = fObj.optString("path")
+                    val isMatch = (fId.isNotBlank() && fId.equals(id, ignoreCase = true)) ||
+                            (fPath.isNotBlank() && fPath == target.absolutePath) ||
+                            (sha.isNotBlank() && File(fPath).isFile && hash(File(fPath)).equals(sha, ignoreCase = true))
+
+                    if (isMatch) {
+                        fObj.put("id", id)
+                        if (fObj.optString("name").isBlank()) fObj.put("name", fileName)
+                        fObj.put("path", target.absolutePath)
+                        if (fObj.optString("mime").isBlank()) fObj.put("mime", mimeType)
+                        fObj.put("size", target.length())
+                        matched = true
+                        break
+                    }
+                }
+                if (!matched) {
+                    files.put(
+                        JSONObject()
+                            .put("id", id)
+                            .put("name", fileName)
+                            .put("path", target.absolutePath)
+                            .put("mime", mimeType)
+                            .put("size", target.length())
+                    )
+                }
+            }
+        }
+        files.toString()
+    }
     suspend fun download(context: Context, item: ItemEntity, uid: String): String = withContext(Dispatchers.IO) {
         check(AccountService.state.value.pro && AccountService.state.value.userId == uid)
         val rows = JSONArray(NativeApi.call("$rest?item_id=eq.${item.id}&user_id=eq.$uid&deleted_at=is.null&select=*"))
-        val files = JSONArray(item.attachments)
-        val directory = File(context.filesDir, "captures").apply { mkdirs() }
-        for (index in 0 until rows.length()) {
-            val row = rows.getJSONObject(index); val id = UUID.fromString(row.getString("id")).toString()
-            val target = File(directory, "cloud-$id.${row.getString("file_extension").filter { it.isLetterOrDigit() }}")
-            val sha = row.getString("sha256")
-            if (!target.isFile || hash(target) != sha) {
-                val prepared = JSONObject(NativeApi.call(edge, "POST", JSONObject().put("action", "prepare-download").put("attachmentId", id)))
-                val temp = File(directory, ".$id.partial")
-                try { transfer(prepared.getString("downloadUrl"), "GET", emptyMap(), temp, row.getLong("byte_size")); require(hash(temp) == sha) { "Cloud file checksum mismatch" }; check(temp.renameTo(target)) }
-                finally { temp.delete() }
+        downloadAttachmentsForRows(context, item.attachments, rows, uid)
+    }
+    suspend fun restoreAllMissingAttachments(context: Context, uid: String) = withContext(Dispatchers.IO) {
+        val account = AccountService.state.value
+        if (!account.pro || account.userId != uid) return@withContext
+        val rows = runCatching {
+            JSONArray(NativeApi.call("$rest?user_id=eq.$uid&deleted_at=is.null&select=*"))
+        }.getOrNull() ?: return@withContext
+
+        val rowsByItemId = mutableMapOf<String, JSONArray>()
+        for (i in 0 until rows.length()) {
+            val row = rows.getJSONObject(i)
+            val itemId = row.optString("item_id")
+            if (itemId.isNotBlank()) {
+                val list = rowsByItemId.getOrPut(itemId) { JSONArray() }
+                list.put(row)
             }
-            val existing = (0 until files.length()).map { files.getJSONObject(it) }.any { it.optString("id") == id || (File(it.optString("path")).isFile && hash(File(it.optString("path"))) == sha) }
-            if (!existing) files.put(JSONObject().put("id", id).put("name", row.getString("original_file_name")).put("path", target.absolutePath).put("mime", row.getString("mime_type")).put("size", target.length()))
         }
-        files.toString()
+
+        val database = com.example.laterbox.data.local.AppDatabase.getDatabase(context)
+        val dao = database.itemDao()
+        for ((itemId, itemRows) in rowsByItemId) {
+            val item = dao.getItemById(itemId) ?: continue
+            val updated = downloadAttachmentsForRows(context, item.attachments, itemRows, uid)
+            if (updated != item.attachments) {
+                dao.replaceAttachmentsIfUnchanged(item.id, item.updatedAt, updated)
+            }
+        }
     }
 }
