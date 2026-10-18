@@ -371,13 +371,13 @@ export default function LandingPage() {
             {/* Action Buttons */}
             <div className="flex flex-wrap items-center justify-center gap-3.5 sm:gap-4 w-full">
               <AppStoreButton size="large" theme="dark" />
-              <Link
-                href="/download"
+              <a
+                href="/api/download/laterbox.apk"
                 className="px-8 sm:px-9 py-4 rounded-2xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs sm:text-sm tracking-wider uppercase transition-all border border-white/10 hover:scale-102 flex items-center gap-2"
               >
-                <span>Other Platforms</span>
+                <span>Download for Android</span>
                 <ArrowRight className="w-4 h-4 text-[#E7FF57]" />
-              </Link>
+              </a>
             </div>
 
             {/* Subtext */}
