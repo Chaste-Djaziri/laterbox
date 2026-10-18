@@ -1264,33 +1264,16 @@ private fun SwipeActionButton(
 ) {
     if (width <= 4.dp || contentAlpha <= 0.02f) return
     val buttonShape = CircleShape
-    Surface(
-        modifier = Modifier
-            .height(width)
-            .width(width)
-            .clip(buttonShape)
-            .clickable(onClick = onClick),
-        shape = buttonShape,
-        color = backgroundColor
+    Column(
+        modifier = Modifier.width(76.dp).graphicsLayer { alpha = contentAlpha }.clickable(onClick = onClick),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-            .graphicsLayer { alpha = contentAlpha },
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = label,
-                tint = Color.White,
-                modifier = Modifier.size(20.dp)
-            )
-            Spacer(Modifier.height(3.dp))
-            if (width >= 76.dp) {
-                Text(text = label, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Surface(modifier = Modifier.size(64.dp).clip(buttonShape), shape = buttonShape, color = backgroundColor) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(imageVector = icon, contentDescription = label, tint = Color.White, modifier = Modifier.size(24.dp))
             }
         }
+        Text(text = label, fontSize = 12.sp, color = LaterboxTextSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 4.dp))
     }
 }
 
@@ -1312,7 +1295,7 @@ internal fun SwipeableEmailInboxRow(
     val coroutineScope = rememberCoroutineScope()
     val offsetX = remember(item.id) { Animatable(0f) }
 
-    val revealWidth = 164.dp
+    val revealWidth = 236.dp
     val revealWidthPx = with(density) { revealWidth.toPx() }
     val fullSwipeThresholdPx = with(density) { 226.dp.toPx() }
     val extendRangePx = with(density) { 60.dp.toPx() }
