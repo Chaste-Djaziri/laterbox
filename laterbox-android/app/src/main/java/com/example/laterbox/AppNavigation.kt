@@ -58,7 +58,11 @@ fun AppNavigation(notificationItemId: String? = null, context: android.content.C
             if (event == Lifecycle.Event.ON_RESUME) scope.launch {
                 AccountService.refresh()
                 repository.promoteDueItems()
-                repository.syncNow()
+                repository.refreshPendingCounts()
+                if (AccountService.state.value.pro && AccountService.state.value.userId != null) {
+                    repository.syncNow()
+                    repository.checkRemoteChanges()
+                }
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
@@ -67,13 +71,24 @@ fun AppNavigation(notificationItemId: String? = null, context: android.content.C
     LaunchedEffect(notificationItemId, items) {
         if (notificationItemId != null) { tab = 1; selected = items.firstOrNull { it.id == notificationItemId } }
     }
+    LaunchedEffect(account.pro, account.userId) {
+        repository.refreshPendingCounts()
+        if (account.pro && account.userId != null) {
+            repository.syncNow()
+            repository.checkRemoteChanges()
+        }
+    }
     LaunchedEffect(Unit) {
         AccountService.refresh()
-        if (account.userId != null) entered = true
+        if (AccountService.state.value.userId != null) entered = true
         repository.promoteDueItems()
         val dao = AppDatabase.getDatabase(context).itemDao()
         dao.getAllItems().filter { it.status == "deferred" && it.deletedAt == null }.forEach { ReturnsService.schedule(context, it) }
-        repository.syncNow()
+        repository.refreshPendingCounts()
+        if (AccountService.state.value.pro && AccountService.state.value.userId != null) {
+            repository.syncNow()
+            repository.checkRemoteChanges()
+        }
     }
     selected?.let { item ->
         ItemDetailScreen(initialItem = item, repository = repository, onBack = { selected = null })

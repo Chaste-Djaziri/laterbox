@@ -38,6 +38,10 @@ fun PlansSheet(onDismiss: () -> Unit) {
                     busy = true
                     try {
                         AccountService.refresh()
+                        if (AccountService.state.value.pro) {
+                            com.example.laterbox.data.sync.SyncCoordinator.pullAndPushChanges(context)
+                            com.example.laterbox.data.sync.SyncCoordinator.refreshPendingCounts(context)
+                        }
                         message = when {
                             AccountService.state.value.userId == null -> "Sign in to your subscription account on Android first."
                             AccountService.state.value.pro -> "Pro is active. Cloud sync is enabled."
