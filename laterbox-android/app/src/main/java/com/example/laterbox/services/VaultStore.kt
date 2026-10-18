@@ -22,13 +22,20 @@ class VaultStore(private val context: Context) {
             require(file.isFile && file.canonicalPath.startsWith(root)) { "The shared file is no longer available. Share it again before saving." }
         }
         require(!draft.textContent.isNullOrBlank() || !draft.url.isNullOrBlank() || JSONArray(draft.attachments).length() > 0) { "Add content or an attachment first." }
+        var capture = draft.copy(userId = AccountService.state.value.userId)
+        val uid = capture.userId
+        if (AccountService.state.value.pro && uid != null && attachments.length() > 0) {
+            runCatching {
+                val uploaded = CloudFileService.uploadAttachments(context, capture, uid)
+                capture = capture.copy(attachments = uploaded.toString())
+            }
+        }
         val item = database.withTransaction {
-            val existing = database.itemDao().getItemById(draft.id)
+            val existing = database.itemDao().getItemById(capture.id)
             if (existing != null) return@withTransaction existing
-            var capture = draft.copy(userId = AccountService.state.value.userId)
-            if (draft.category.isNotBlank() && draft.collectionId == null) {
-                val existingCollection = database.collectionDao().findByName(draft.category, capture.userId)
-                val collection = existingCollection ?: CollectionEntity(UUID.randomUUID().toString(), capture.userId, draft.category, createdAt = draft.createdAt, updatedAt = draft.updatedAt, syncStatus = "pending")
+            if (capture.category.isNotBlank() && capture.collectionId == null) {
+                val existingCollection = database.collectionDao().findByName(capture.category, capture.userId)
+                val collection = existingCollection ?: CollectionEntity(UUID.randomUUID().toString(), capture.userId, capture.category, createdAt = capture.createdAt, updatedAt = capture.updatedAt, syncStatus = "pending")
                 database.collectionDao().insertCollection(collection)
                 capture = capture.copy(collectionId = collection.id)
             }
