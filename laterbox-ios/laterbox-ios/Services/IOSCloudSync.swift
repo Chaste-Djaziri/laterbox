@@ -133,6 +133,11 @@ extension LaterBoxAPIService: IOSCloudTransport {
             (data, response) = try await URLSession.shared.data(for: request)
         } catch let urlErr as URLError {
             switch urlErr.code {
+            case .cancelled:
+                // SwiftUI refresh tasks and disappearing views can cancel an
+                // in-flight request. Preserve cancellation so the coordinator
+                // can ignore it instead of showing a false network failure.
+                throw CancellationError()
             case .notConnectedToInternet, .networkConnectionLost, .dnsLookupFailed:
                 throw CloudSyncError.networkUnavailable("No internet connection")
             case .timedOut:
