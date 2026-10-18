@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Assemble a complete release from this run and the preceding managed release."""
 
+from __future__ import annotations
+
 import argparse
 import hashlib
 import json
