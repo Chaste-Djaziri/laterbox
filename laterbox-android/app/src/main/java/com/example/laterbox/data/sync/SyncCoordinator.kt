@@ -367,7 +367,7 @@ object SyncCoordinator {
                         }
                         // Ensure missing metadata is saved even if item timestamps matched
                         val remoteMeta = objectValue("item_metadata")
-                        if (remoteMeta != null && database.itemMetadataDao().getMetadataByItemId(id) == null) {
+                        if (remoteMeta != null && database.itemMetadataDao().getMetadataById(id) == null) {
                             val classification = remoteMeta.optJSONObject("structured_data")
                                 ?: remoteMeta.optString("structured_data")?.let { runCatching { JSONObject(it) }.getOrNull() }
                             database.itemMetadataDao().insertMetadata(
