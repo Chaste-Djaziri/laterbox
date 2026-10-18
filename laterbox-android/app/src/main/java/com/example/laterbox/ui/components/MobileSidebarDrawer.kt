@@ -128,8 +128,15 @@ fun MobileSidebarDrawer(
         }
     }
 
+    var isCollectionsExpanded by remember { mutableStateOf(true) }
     var isCreatingCollection by remember { mutableStateOf(false) }
     var newCollectionName by remember { mutableStateOf("") }
+
+    LaunchedEffect(activeCollection) {
+        if (activeCollection != null) {
+            isCollectionsExpanded = true
+        }
+    }
 
     AnimatedVisibility(
         visible = isOpen,
@@ -359,16 +366,34 @@ fun MobileSidebarDrawer(
                                 .padding(horizontal = 14.dp, vertical = 2.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(
-                                text = "COLLECTIONS",
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Black,
-                                color = Color(0xFF9E9B92),
-                                letterSpacing = 1.sp
-                            )
+                            Row(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .clickable { isCollectionsExpanded = !isCollectionsExpanded }
+                                    .padding(vertical = 4.dp, horizontal = 2.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Icon(
+                                    imageVector = if (isCollectionsExpanded) Icons.Default.KeyboardArrowDown else Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                    contentDescription = if (isCollectionsExpanded) "Collapse collections" else "Expand collections",
+                                    tint = Color(0xFF9E9B92),
+                                    modifier = Modifier.size(14.dp)
+                                )
+                                Text(
+                                    text = "COLLECTIONS",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Black,
+                                    color = Color(0xFF9E9B92),
+                                    letterSpacing = 1.sp
+                                )
+                            }
                             Spacer(Modifier.weight(1f))
                             IconButton(
-                                onClick = { isCreatingCollection = !isCreatingCollection },
+                                onClick = {
+                                    if (!isCollectionsExpanded) isCollectionsExpanded = true
+                                    isCreatingCollection = !isCreatingCollection
+                                },
                                 modifier = Modifier.size(24.dp)
                             ) {
                                 Icon(
@@ -380,107 +405,118 @@ fun MobileSidebarDrawer(
                             }
                         }
 
-                        if (isCreatingCollection) {
-                            val focusRequester = remember { FocusRequester() }
-                            LaunchedEffect(Unit) {
-                                focusRequester.requestFocus()
-                            }
-
-                            val submit = {
-                                val trimmed = newCollectionName.trim()
-                                if (trimmed.isNotBlank()) {
-                                    onCreateCollection(trimmed)
-                                    newCollectionName = ""
-                                    isCreatingCollection = false
-                                }
-                            }
-
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 10.dp, vertical = 4.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        AnimatedVisibility(
+                            visible = isCollectionsExpanded,
+                            enter = expandVertically(animationSpec = tween(durationMillis = 200)) + fadeIn(animationSpec = tween(durationMillis = 200)),
+                            exit = shrinkVertically(animationSpec = tween(durationMillis = 200)) + fadeOut(animationSpec = tween(durationMillis = 150))
+                        ) {
+                            Column(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
-                                BasicTextField(
-                                    value = newCollectionName,
-                                    onValueChange = { newCollectionName = it },
-                                    singleLine = true,
-                                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                                    keyboardActions = KeyboardActions(onDone = { submit() }),
-                                    textStyle = TextStyle(fontSize = 13.sp, color = LaterboxTextPrimary),
-                                    cursorBrush = SolidColor(LaterboxTextPrimary),
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .height(36.dp)
-                                        .focusRequester(focusRequester)
-                                        .clip(RoundedCornerShape(10.dp))
-                                        .background(Color.White)
-                                        .border(BorderStroke(1.dp, Color.Black.copy(alpha = 0.1f)), RoundedCornerShape(10.dp))
-                                        .padding(horizontal = 10.dp),
-                                    decorationBox = { inner ->
-                                        Box(
-                                            contentAlignment = Alignment.CenterStart,
-                                            modifier = Modifier.fillMaxSize()
-                                        ) {
-                                            if (newCollectionName.isBlank()) {
-                                                Text("New collection name...", fontSize = 13.sp, color = LaterboxTextSecondary)
-                                            }
-                                            inner()
+                                if (isCreatingCollection) {
+                                    val focusRequester = remember { FocusRequester() }
+                                    LaunchedEffect(Unit) {
+                                        focusRequester.requestFocus()
+                                    }
+
+                                    val submit = {
+                                        val trimmed = newCollectionName.trim()
+                                        if (trimmed.isNotBlank()) {
+                                            onCreateCollection(trimmed)
+                                            newCollectionName = ""
+                                            isCreatingCollection = false
                                         }
                                     }
-                                )
 
-                                Button(
-                                    onClick = { submit() },
-                                    enabled = newCollectionName.isNotBlank(),
-                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE6EDB0), contentColor = Color(0xFF171711)),
-                                    shape = RoundedCornerShape(8.dp),
-                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
-                                    modifier = Modifier.height(36.dp)
-                                ) {
-                                    Text("Add", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                                }
-                            }
-                        }
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 10.dp, vertical = 4.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        BasicTextField(
+                                            value = newCollectionName,
+                                            onValueChange = { newCollectionName = it },
+                                            singleLine = true,
+                                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                                            keyboardActions = KeyboardActions(onDone = { submit() }),
+                                            textStyle = TextStyle(fontSize = 13.sp, color = LaterboxTextPrimary),
+                                            cursorBrush = SolidColor(LaterboxTextPrimary),
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .height(36.dp)
+                                                .focusRequester(focusRequester)
+                                                .clip(RoundedCornerShape(10.dp))
+                                                .background(Color.White)
+                                                .border(BorderStroke(1.dp, Color.Black.copy(alpha = 0.1f)), RoundedCornerShape(10.dp))
+                                                .padding(horizontal = 10.dp),
+                                            decorationBox = { inner ->
+                                                Box(
+                                                    contentAlignment = Alignment.CenterStart,
+                                                    modifier = Modifier.fillMaxSize()
+                                                ) {
+                                                    if (newCollectionName.isBlank()) {
+                                                        Text("New collection name...", fontSize = 13.sp, color = LaterboxTextSecondary)
+                                                    }
+                                                    inner()
+                                                }
+                                            }
+                                        )
 
-                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                            collections.forEach { col ->
-                                val count = collectionCount(col.name)
-                                val isColActive = activeCollection.equals(col.name, ignoreCase = true)
-                                SidebarNavLinkRow(
-                                    title = col.name,
-                                    icon = Icons.AutoMirrored.Filled.Label,
-                                    badgeCount = count,
-                                    isActive = isColActive,
-                                    onClick = {
-                                        onDismiss()
-                                        onSelectCollection(col.name)
+                                        Button(
+                                            onClick = { submit() },
+                                            enabled = newCollectionName.isNotBlank(),
+                                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE6EDB0), contentColor = Color(0xFF171711)),
+                                            shape = RoundedCornerShape(8.dp),
+                                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                                            modifier = Modifier.height(36.dp)
+                                        ) {
+                                            Text("Add", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                        }
                                     }
-                                )
-                            }
+                                }
 
-                            if (collections.isEmpty() && !isCreatingCollection) {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clip(RoundedCornerShape(10.dp))
-                                        .clickable { isCreatingCollection = true }
-                                        .padding(horizontal = 12.dp, vertical = 8.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Add,
-                                        contentDescription = null,
-                                        tint = Color(0xFF9E9B92),
-                                        modifier = Modifier.size(13.dp)
-                                    )
-                                    Text(
-                                        text = "New collection...",
-                                        fontSize = 12.sp,
-                                        color = Color(0xFF9E9B92)
-                                    )
+                                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                    collections.forEach { col ->
+                                        val count = collectionCount(col.name)
+                                        val isColActive = activeCollection.equals(col.name, ignoreCase = true)
+                                        SidebarNavLinkRow(
+                                            title = col.name,
+                                            icon = Icons.AutoMirrored.Filled.Label,
+                                            badgeCount = count,
+                                            isActive = isColActive,
+                                            onClick = {
+                                                onDismiss()
+                                                onSelectCollection(col.name)
+                                            }
+                                        )
+                                    }
+
+                                    if (collections.isEmpty() && !isCreatingCollection) {
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clip(RoundedCornerShape(10.dp))
+                                                .clickable { isCreatingCollection = true }
+                                                .padding(horizontal = 12.dp, vertical = 8.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Add,
+                                                contentDescription = null,
+                                                tint = Color(0xFF9E9B92),
+                                                modifier = Modifier.size(13.dp)
+                                            )
+                                            Text(
+                                                text = "New collection...",
+                                                fontSize = 12.sp,
+                                                color = Color(0xFF9E9B92)
+                                            )
+                                        }
+                                    }
                                 }
                             }
                         }
