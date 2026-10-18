@@ -580,3 +580,4 @@ All notable user-facing changes to LaterBox will be documented in this file.
 - **[iOS Share] Add rich previews for shared files**: Images and documents now show visual previews or type-specific cards with filename and file metadata before saving.
 - **[iOS] Sync Pro attachments through Cloudflare R2**: Upload captured images, documents, and files to the existing attachment bucket and download them on other signed-in Pro devices.
 - **[iOS] Lower minimum OS to iOS 17 and defer AI providers**: Removed Apple Intelligence and unfinished cloud/custom AI runtime paths, preserved the assistant-style capture UI with deterministic local responses, and marked provider switching as coming soon.
+- **[iOS Controls] Native Quick Save control for iOS 18 Control Center and Shortcuts**: Quickly save links and notes via a top banner dialog without opening the app.
