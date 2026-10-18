@@ -432,4 +432,34 @@ object LaterBoxApiService {
             null
         }
     }
+
+    /**
+     * Calls POST /api/account/delete with user bearer token.
+     * The backend deletes:
+     * 1. All account Cloudflare R2 attachments via /functions/v1/attachment-storage (delete-account-files)
+     * 2. All account database records via RPC delete_account_data
+     * 3. The Supabase auth user via admin.auth.admin.deleteUser
+     */
+    suspend fun deleteAccount(authToken: String? = null): Boolean = withContext(Dispatchers.IO) {
+        val token = authToken ?: runCatching {
+            SupabaseClient.client.auth.currentSessionOrNull()?.accessToken
+        }.getOrNull()
+        if (token.isNullOrBlank()) return@withContext false
+
+        try {
+            val endpoint = URL("$billingUrl/api/account/delete")
+            val conn = (endpoint.openConnection() as HttpURLConnection).apply {
+                requestMethod = "POST"
+                connectTimeout = 15000
+                readTimeout = 30000
+                setRequestProperty("Content-Type", "application/json")
+                setRequestProperty("Accept", "application/json")
+                setRequestProperty("Authorization", "Bearer $token")
+            }
+
+            conn.responseCode in 200..299
+        } catch (e: Exception) {
+            false
+        }
+    }
 }
