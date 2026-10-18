@@ -12,7 +12,7 @@ import { Loader2, AlertCircle, CheckCircle2, Eye, EyeOff } from 'lucide-react';
 
 export type EmailStartResult = { error: AuthError | null; nextStep?: 'email' | 'signup' | 'password' };
 
-export function CustomLoginContent({ actions, extra }: { actions?: Partial<AuthContextType> & { signInWithOtp?: (email: string) => Promise<EmailStartResult> }; extra?: React.ReactNode }) {
+export function CustomLoginContent({ actions, extra, initialMode = 'login' }: { actions?: Partial<AuthContextType> & { signInWithOtp?: (email: string) => Promise<EmailStartResult> }; extra?: React.ReactNode; initialMode?: 'login' | 'signup' }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const context = useAuth();
@@ -46,7 +46,7 @@ export function CustomLoginContent({ actions, extra }: { actions?: Partial<AuthC
   const [awaitingPassword, setAwaitingPassword] = useState(false);
   const [awaitingName, setAwaitingName] = useState(false);
   const [displayName, setDisplayName] = useState('');
-  const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
+  const [authMode, setAuthMode] = useState<'login' | 'signup'>(initialMode);
   const requestedNext = searchParams.get('next');
   const nextPath = safeReturnPath(requestedNext);
 
