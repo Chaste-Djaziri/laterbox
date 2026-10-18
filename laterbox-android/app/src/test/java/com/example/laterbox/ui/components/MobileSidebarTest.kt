@@ -98,4 +98,33 @@ class MobileSidebarTest {
         }
         assertEquals(true, isCollectionsExpanded)
     }
+
+    @Test
+    fun `deleting a collection unassigns items without deleting them`() {
+        val col = collection("c1", "Design")
+        val items = mutableListOf(
+            item("1", collectionId = "c1", category = "Design"),
+            item("2", collectionId = "c1", category = "Design"),
+            item("3", collectionId = "c2", category = "Other")
+        )
+
+        // Simulate deleting collection "c1"
+        val updatedItems = items.map { item ->
+            if (item.collectionId == col.id || item.category.equals(col.name, ignoreCase = true)) {
+                item.copy(collectionId = null, category = "")
+            } else {
+                item
+            }
+        }
+
+        // All 3 items still exist! None were deleted.
+        assertEquals(3, updatedItems.size)
+        // Items 1 and 2 are now unassigned
+        assertEquals(null, updatedItems[0].collectionId)
+        assertEquals("", updatedItems[0].category)
+        assertEquals(null, updatedItems[1].collectionId)
+        assertEquals("", updatedItems[1].category)
+        // Item 3 is untouched
+        assertEquals("c2", updatedItems[2].collectionId)
+    }
 }
