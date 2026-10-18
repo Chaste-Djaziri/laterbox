@@ -26,4 +26,7 @@ interface ItemMetadataDao {
 
     @Query("SELECT * FROM item_metadata")
     suspend fun getAllMetadata(): List<ItemMetadataEntity>
+
+    @Query("DELETE FROM item_metadata WHERE user_id = :userId")
+    suspend fun deleteByUserId(userId: String)
 }
