@@ -1079,13 +1079,22 @@ private fun resolveAvatarColor(sender: String): Color {
     return emailAvatarColors[hash % emailAvatarColors.size]
 }
 
-private fun resolveSenderText(item: ItemEntity, metadata: ItemMetadataEntity?): String {
-    val site = metadata?.siteName?.trim()
-    if (!site.isNullOrEmpty()) return site
+internal fun cleanText(s: String?): String? {
+    if (s == null) return null
+    val trimmed = s.trim()
+    return if (trimmed.isEmpty() || trimmed.equals("null", ignoreCase = true) || trimmed.equals("undefined", ignoreCase = true)) null else trimmed
+}
 
-    val domain = metadata?.domain?.trim() ?: runCatching { URI(item.url.orEmpty()).host }.getOrNull()?.trim()
-    if (!domain.isNullOrEmpty()) {
-        val host = domain.removePrefix("www.")
+private fun resolveSenderText(item: ItemEntity, metadata: ItemMetadataEntity?): String {
+    val site = cleanText(metadata?.siteName)
+    if (site != null) return site
+
+    val domain = cleanText(metadata?.domain) ?: cleanText(item.url)?.let {
+        runCatching { URI(it).host?.removePrefix("www.") }.getOrNull()
+    }
+    val cleanDomain = cleanText(domain)
+    if (cleanDomain != null) {
+        val host = cleanDomain.removePrefix("www.")
         val parts = host.split(".")
         if (parts.size >= 2) {
             val main = parts[0]
@@ -1094,8 +1103,12 @@ private fun resolveSenderText(item: ItemEntity, metadata: ItemMetadataEntity?): 
         return host
     }
 
-    if (item.type == "note") return "Note"
-    if (item.type == "file") return "File"
+    val hasFiles = item.attachments.isNotBlank() && item.attachments != "[]"
+    if (hasFiles) return "File"
+    val cleanType = cleanText(item.type)
+    if (cleanType == "note") return "Note"
+    if (cleanType == "file") return "File"
+    if (cleanType == "image") return "Photo"
     return "LaterBox"
 }
 
@@ -1447,16 +1460,16 @@ internal fun EmailInboxRowCard(
 ) {
     val senderText = resolveSenderText(item, metadata)
     val avatarColor = resolveAvatarColor(senderText)
-    val avatarInitial = senderText.trim().firstOrNull()?.uppercase() ?: "L"
+    val avatarInitial = senderText.trim().firstOrNull { it.isLetterOrDigit() }?.uppercase() ?: "L"
     val dateText = formatEmailDate(item.createdAt)
-    val title = item.title?.takeIf { it.isNotBlank() } ?: metadata?.title?.takeIf { it.isNotBlank() } ?: senderText
-    val snippet = item.summary.takeIf { it.isNotBlank() }
-        ?: metadata?.description?.takeIf { it.isNotBlank() }
-        ?: item.notes.takeIf { it.isNotBlank() }
-        ?: item.textContent?.takeIf { it.isNotBlank() }
-        ?: item.url
+    val title = cleanText(item.title) ?: cleanText(metadata?.title) ?: senderText
+    val snippet = cleanText(item.summary)
+        ?: cleanText(metadata?.description)
+        ?: cleanText(item.notes)
+        ?: cleanText(item.textContent)
+        ?: cleanText(item.url)
         ?: "Saved item"
-    val preview = resolveEffectivePreviewImageUrl(item, metadata)
+    val preview = cleanText(resolveEffectivePreviewImageUrl(item, metadata))
 
     val cardShape = RoundedCornerShape(
         topStart = topRadius,
@@ -1599,7 +1612,8 @@ internal fun EmailInboxRowCard(
                     }
 
                     // Optional Collection tag or file badge
-                    if (!collectionName.isNullOrBlank()) {
+                    val validCollection = cleanText(collectionName)
+                    if (validCollection != null) {
                         Surface(
                             shape = CircleShape,
                             color = Color(0xFFE8F0FE),
@@ -1617,13 +1631,13 @@ internal fun EmailInboxRowCard(
                                     modifier = Modifier.size(9.dp)
                                 )
                                 Text(
-                                    text = collectionName,
+                                    text = validCollection,
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.SemiBold
                                 )
                             }
                         }
-                    } else if (item.type == "file") {
+                    } else if (item.type == "file" || (item.attachments.isNotBlank() && item.attachments != "[]")) {
                         Surface(
                             shape = CircleShape,
                             color = Color(0xFFE8F0FE),
