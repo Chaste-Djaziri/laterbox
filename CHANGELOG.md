@@ -20,6 +20,8 @@ All notable user-facing changes to LaterBox will be documented in this file.
 
 ## [Unreleased]
 
+- **[Android / Inbox] Fix pull-to-refresh so downward drags at the top of the inbox reliably trigger a reload.**
+
 - **[Android / Inbox] Extend the Pro member status footer to the bottom edge of the inbox.**
 
 - **[Android / Inbox] Add pull-to-refresh to reload local inbox data and pull the latest cloud changes when available.**
