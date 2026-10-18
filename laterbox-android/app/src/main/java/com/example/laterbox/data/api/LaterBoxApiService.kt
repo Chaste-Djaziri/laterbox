@@ -1,6 +1,8 @@
 package com.example.laterbox.data.api
 
 import com.example.laterbox.BuildConfig
+import com.example.laterbox.SupabaseClient
+import io.github.jan.supabase.auth.auth
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
@@ -384,5 +386,50 @@ object LaterBoxApiService {
             monitors.add(MonitorUptimeHistory(id, availability, downtimeSeconds, buckets))
         }
         return ServiceUptimeHistory(from, to, timeZone, unit, monitors)
+    }
+
+    val billingUrl: String = "https://app.laterbox.dev"
+
+    /**
+     * Obtains the direct Paddle Customer Portal URL for managing subscription.
+     * Calls POST /api/billing/portal with action="manage" and user bearer token.
+     */
+    suspend fun getPaddleManagementUrl(authToken: String? = null): String? = withContext(Dispatchers.IO) {
+        val token = authToken ?: runCatching {
+            SupabaseClient.client.auth.currentSessionOrNull()?.accessToken
+        }.getOrNull()
+        if (token.isNullOrBlank()) return@withContext null
+
+        try {
+            val endpoint = URL("$billingUrl/api/billing/portal")
+            val conn = (endpoint.openConnection() as HttpURLConnection).apply {
+                requestMethod = "POST"
+                connectTimeout = 10000
+                readTimeout = 15000
+                doOutput = true
+                setRequestProperty("Content-Type", "application/json")
+                setRequestProperty("Accept", "application/json")
+                setRequestProperty("Authorization", "Bearer $token")
+            }
+
+            val payload = JSONObject().apply {
+                put("action", "manage")
+            }
+
+            OutputStreamWriter(conn.outputStream).use { writer ->
+                writer.write(payload.toString())
+                writer.flush()
+            }
+
+            if (conn.responseCode in 200..299) {
+                val responseText = conn.inputStream.bufferedReader().use { it.readText() }
+                val json = JSONObject(responseText)
+                json.optString("url", "").takeIf { it.startsWith("https://") }
+            } else {
+                null
+            }
+        } catch (e: Exception) {
+            null
+        }
     }
 }
