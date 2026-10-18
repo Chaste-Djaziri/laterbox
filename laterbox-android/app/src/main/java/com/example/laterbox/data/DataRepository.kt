@@ -10,6 +10,8 @@ import com.example.laterbox.data.local.AppDatabase
 import com.example.laterbox.data.local.CollectionEntity
 import com.example.laterbox.data.local.ItemEntity
 import com.example.laterbox.data.local.ItemMetadataEntity
+import com.example.laterbox.data.sync.CloudSyncState
+import com.example.laterbox.data.sync.SyncCoordinator
 import com.example.laterbox.data.sync.SyncWorker
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -52,6 +54,20 @@ interface DataRepository {
     suspend fun addCollection(name: String, colorHex: String = "#F59E0B", iconName: String = "folder"): CollectionEntity
     suspend fun renameCollection(id: String, name: String) { error("Collection renaming is unavailable.") }
     suspend fun deleteCollection(id: String)
+
+    val syncState: StateFlow<CloudSyncState> get() = SyncCoordinator.syncState
+    val pendingPullCount: StateFlow<Int> get() = SyncCoordinator.pendingPullCount
+    val pendingPushCount: StateFlow<Int> get() = SyncCoordinator.pendingPushCount
+    val isPulling: StateFlow<Boolean> get() = SyncCoordinator.isPulling
+    val isPushing: StateFlow<Boolean> get() = SyncCoordinator.isPushing
+    val isSyncing: StateFlow<Boolean> get() = SyncCoordinator.isSyncing
+    val lastSyncedAt: StateFlow<Instant?> get() = SyncCoordinator.lastSyncedAt
+    val lastSyncErrorMessage: StateFlow<String?> get() = SyncCoordinator.lastSyncErrorMessage
+
+    suspend fun checkRemoteChanges(): Int = 0
+    suspend fun pullChanges() { }
+    suspend fun pushChanges() { }
+    fun refreshPendingCounts() { }
 
     fun syncNow()
 }
@@ -230,8 +246,19 @@ class DefaultDataRepository(
         syncNow()
     }
 
+    override suspend fun checkRemoteChanges(): Int = SyncCoordinator.checkRemoteChanges(context)
+    override suspend fun pullChanges() { SyncCoordinator.pullChanges(context) }
+    override suspend fun pushChanges() { SyncCoordinator.pushChanges(context) }
+    override fun refreshPendingCounts() { SyncCoordinator.refreshPendingCounts(context) }
+
     override fun syncNow() {
         val account = com.example.laterbox.services.AccountService.state.value
+        scope.launch {
+            SyncCoordinator.updateLocalPendingPushCount(context)
+            if (account.userId != null && account.pro) {
+                SyncCoordinator.pullAndPushChanges(context)
+            }
+        }
         if (account.userId == null || !account.pro) return
         try {
             val syncRequest = OneTimeWorkRequestBuilder<SyncWorker>().build()
