@@ -20,6 +20,8 @@ All notable user-facing changes to LaterBox will be documented in this file.
 
 ## [Unreleased]
 
+- **[Android / Cloudflare Attachments & Sync] Upload attachments to Cloudflare storage before syncing items, attaching verified Cloudflare storage references to the item and publishing atomically via publish_item_attachments.**
+
 - **[Android / Security & Privacy] Add Delete Account in Security & Privacy to permanently delete user account, cloud data, and Cloudflare attachments matching iOS.**
 
 - **[Android / Billing] Direct Paddle subscription management: configure Manage Subscription to open the Paddle customer portal page directly rather than redirecting to the generic web login page.**
