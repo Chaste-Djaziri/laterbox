@@ -60,6 +60,7 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.laterbox.R
 import com.example.laterbox.data.DataRepository
+import com.example.laterbox.data.sync.CloudSyncState
 import com.example.laterbox.data.local.CollectionEntity
 import com.example.laterbox.data.local.ItemEntity
 import com.example.laterbox.data.local.ItemMetadataEntity
@@ -836,7 +837,8 @@ fun InboxQueueScreen(
             isGuest = account.userId == null,
             isPro = account.pro,
             onSignIn = onAuth,
-            onGetPro = { showingPlans = true }
+            onGetPro = { showingPlans = true },
+            repository = repository
         )
     }
 
@@ -1695,8 +1697,17 @@ fun InboxBottomStatusBar(
     isPro: Boolean,
     onSignIn: () -> Unit,
     onGetPro: () -> Unit,
+    repository: DataRepository,
     modifier: Modifier = Modifier
 ) {
+    val syncState by repository.syncState.collectAsState()
+    val isPulling by repository.isPulling.collectAsState()
+    val isPushing by repository.isPushing.collectAsState()
+    val isSyncingState by repository.isSyncing.collectAsState()
+    val pendingPullCount by repository.pendingPullCount.collectAsState()
+    val pendingPushCount by repository.pendingPushCount.collectAsState()
+    val scope = rememberCoroutineScope()
+
     Surface(
         modifier = modifier.fillMaxWidth(),
         color = Color.White
@@ -1868,94 +1879,404 @@ fun InboxBottomStatusBar(
                         }
                     }
                 } else {
-                    // Pro Member status (motivational)
-                    Box(
-                        modifier = Modifier
-                            .size(34.dp)
-                            .clip(CircleShape)
-                            .background(Color(0xFF10B981).copy(alpha = 0.14f)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.WorkspacePremium,
-                            contentDescription = null,
-                            tint = Color(0xFF10B981),
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
+                    // Pro Member status with dynamic Pull / Push / Pull&Push actions matching iOS
+                    val isSyncing = syncState == CloudSyncState.SYNCING || isPulling || isPushing || isSyncingState
+                    val hasPull = pendingPullCount > 0
+                    val hasPush = pendingPushCount > 0
 
-                    Column(
-                        modifier = Modifier.weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(2.dp)
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    if (isSyncing) {
+                        Box(
+                            modifier = Modifier
+                                .size(34.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFF3B82F6).copy(alpha = 0.14f)),
+                            contentAlignment = Alignment.Center
                         ) {
-                            Text(
-                                text = "Pro Member",
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = LaterboxTextPrimary
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                strokeWidth = 2.dp,
+                                color = Color(0xFF2563EB)
                             )
+                        }
 
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(2.dp)
+                        ) {
                             Row(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(10.dp))
-                                    .background(Color(0xFF10B981).copy(alpha = 0.12f))
-                                    .padding(horizontal = 6.dp, vertical = 2.dp),
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(3.dp)
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
+                                Text(
+                                    text = "Cloud Sync",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = LaterboxTextPrimary
+                                )
+
                                 Box(
                                     modifier = Modifier
-                                        .size(5.dp)
-                                        .clip(CircleShape)
-                                        .background(Color(0xFF10B981))
+                                        .clip(RoundedCornerShape(10.dp))
+                                        .background(Color(0xFF3B82F6).copy(alpha = 0.12f))
+                                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                                ) {
+                                    Text(
+                                        text = "SYNCING",
+                                        fontSize = 9.sp,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = Color(0xFF2563EB)
+                                    )
+                                }
+                            }
+
+                            Text(
+                                text = if (isPulling) "Pulling latest changes from cloud…" else if (isPushing) "Pushing local edits to cloud…" else "Resolving conflicts & syncing…",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Normal,
+                                color = LaterboxTextSecondary,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    } else if (hasPull && hasPush) {
+                        // Both available: Pull first, then push
+                        Box(
+                            modifier = Modifier
+                                .size(34.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFF8B5CF6).copy(alpha = 0.14f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Sync,
+                                contentDescription = null,
+                                tint = Color(0xFF8B5CF6),
+                                modifier = Modifier.size(17.dp)
+                            )
+                        }
+
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(2.dp)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Text(
+                                    text = "Sync Needed",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = LaterboxTextPrimary
+                                )
+
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(10.dp))
+                                        .background(Color(0xFF8B5CF6).copy(alpha = 0.12f))
+                                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                                ) {
+                                    Text(
+                                        text = "${pendingPullCount}↓ • ${pendingPushCount}↑",
+                                        fontSize = 9.sp,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = Color(0xFF8B5CF6)
+                                    )
+                                }
+                            }
+
+                            Text(
+                                text = "Pull remote changes first, then push local edits",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Normal,
+                                color = LaterboxTextSecondary,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+
+                        Surface(
+                            modifier = Modifier
+                                .clip(CircleShape)
+                                .clickable { scope.launch { repository.syncNow() } },
+                            shape = CircleShape,
+                            color = Color(0xFF8B5CF6)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 11.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Sync,
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(11.dp)
                                 )
                                 Text(
-                                    text = "ACTIVE",
-                                    fontSize = 9.sp,
-                                    fontWeight = FontWeight.ExtraBold,
-                                    color = Color(0xFF10B981)
+                                    text = "Pull & Push",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White
                                 )
                             }
                         }
-
-                        Text(
-                            text = "Cloud sync active • Unlimited AI unlocked. Keep conquering!",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Normal,
-                            color = LaterboxTextSecondary,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-
-                    Surface(
-                        modifier = Modifier
-                            .clip(CircleShape)
-                            .clickable(onClick = onGetPro),
-                        shape = CircleShape,
-                        color = Color(0xFF10B981).copy(alpha = 0.12f)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 11.dp, vertical = 6.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    } else if (hasPull) {
+                        // Pull available
+                        Box(
+                            modifier = Modifier
+                                .size(34.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFF3B82F6).copy(alpha = 0.14f)),
+                            contentAlignment = Alignment.Center
                         ) {
                             Icon(
-                                imageVector = Icons.Default.AutoAwesome,
+                                imageVector = Icons.Default.ArrowDownward,
+                                contentDescription = null,
+                                tint = Color(0xFF2563EB),
+                                modifier = Modifier.size(17.dp)
+                            )
+                        }
+
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(2.dp)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Text(
+                                    text = "Cloud Updates",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = LaterboxTextPrimary
+                                )
+
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(10.dp))
+                                        .background(Color(0xFF3B82F6).copy(alpha = 0.12f))
+                                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                                ) {
+                                    Text(
+                                        text = "$pendingPullCount NEW",
+                                        fontSize = 9.sp,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = Color(0xFF2563EB)
+                                    )
+                                }
+                            }
+
+                            Text(
+                                text = "$pendingPullCount change${if (pendingPullCount == 1) "" else "s"} available to pull",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Normal,
+                                color = LaterboxTextSecondary,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+
+                        Surface(
+                            modifier = Modifier
+                                .clip(CircleShape)
+                                .clickable { scope.launch { repository.pullChanges() } },
+                            shape = CircleShape,
+                            color = Color(0xFF2563EB)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 11.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.ArrowDownward,
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(11.dp)
+                                )
+                                Text(
+                                    text = "Pull Changes",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White
+                                )
+                            }
+                        }
+                    } else if (hasPush) {
+                        // Push available
+                        Box(
+                            modifier = Modifier
+                                .size(34.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFFF59E0B).copy(alpha = 0.14f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.ArrowUpward,
+                                contentDescription = null,
+                                tint = Color(0xFFD97706),
+                                modifier = Modifier.size(17.dp)
+                            )
+                        }
+
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(2.dp)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Text(
+                                    text = "Unsynced Edits",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = LaterboxTextPrimary
+                                )
+
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(10.dp))
+                                        .background(Color(0xFFF59E0B).copy(alpha = 0.12f))
+                                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                                ) {
+                                    Text(
+                                        text = "$pendingPushCount LOCAL",
+                                        fontSize = 9.sp,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = Color(0xFFD97706)
+                                    )
+                                }
+                            }
+
+                            Text(
+                                text = "$pendingPushCount edit${if (pendingPushCount == 1) "" else "s"} pending push",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Normal,
+                                color = LaterboxTextSecondary,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+
+                        Surface(
+                            modifier = Modifier
+                                .clip(CircleShape)
+                                .clickable { scope.launch { repository.pushChanges() } },
+                            shape = CircleShape,
+                            color = Color(0xFFD97706)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 11.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.ArrowUpward,
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(11.dp)
+                                )
+                                Text(
+                                    text = "Push Changes",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White
+                                )
+                            }
+                        }
+                    } else {
+                        // Up to date
+                        Box(
+                            modifier = Modifier
+                                .size(34.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFF10B981).copy(alpha = 0.14f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.WorkspacePremium,
                                 contentDescription = null,
                                 tint = Color(0xFF10B981),
-                                modifier = Modifier.size(11.dp)
+                                modifier = Modifier.size(17.dp)
                             )
+                        }
+
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(2.dp)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Text(
+                                    text = "Pro Member",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = LaterboxTextPrimary
+                                )
+
+                                Row(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(10.dp))
+                                        .background(Color(0xFF10B981).copy(alpha = 0.12f))
+                                        .padding(horizontal = 6.dp, vertical = 2.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(3.dp)
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(5.dp)
+                                            .clip(CircleShape)
+                                            .background(Color(0xFF10B981))
+                                    )
+                                    Text(
+                                        text = "ACTIVE",
+                                        fontSize = 9.sp,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = Color(0xFF10B981)
+                                    )
+                                }
+                            }
+
                             Text(
-                                text = "Active",
+                                text = "Cloud sync active • All changes up to date",
                                 fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color(0xFF10B981)
+                                fontWeight = FontWeight.Normal,
+                                color = LaterboxTextSecondary,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
+                        }
+
+                        Surface(
+                            modifier = Modifier
+                                .clip(CircleShape)
+                                .clickable { scope.launch { repository.checkRemoteChanges() } },
+                            shape = CircleShape,
+                            color = Color(0xFF10B981).copy(alpha = 0.12f)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 11.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Sync,
+                                    contentDescription = null,
+                                    tint = Color(0xFF10B981),
+                                    modifier = Modifier.size(11.dp)
+                                )
+                                Text(
+                                    text = "Check Sync",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF10B981)
+                                )
+                            }
                         }
                     }
                 }
