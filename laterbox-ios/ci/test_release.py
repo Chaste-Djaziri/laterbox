@@ -34,4 +34,10 @@ class ReleaseTests(unittest.TestCase):
             with self.assertRaises(ValueError): validate({**profile, 'Entitlements':{**profile['Entitlements'], **bad}}, bundle)
         with self.assertRaises(ValueError): validate({**profile, 'ExpirationDate':datetime.datetime(2020,1,1)}, bundle)
 
+    def test_profile_validates_widgets_bundle(self):
+        bundle = 'pro.micorp.laterbox.widgets'
+        profile = {'ExpirationDate':datetime.datetime(2030,1,1), 'TeamIdentifier':[TEAM], 'Name':'LaterBox Widgets AppStore',
+                   'Entitlements':{'application-identifier':TEAM+'.'+bundle,'com.apple.security.application-groups':[GROUP]}}
+        self.assertEqual(validate(profile, bundle), 'LaterBox Widgets AppStore')
+
 if __name__ == '__main__': unittest.main()
