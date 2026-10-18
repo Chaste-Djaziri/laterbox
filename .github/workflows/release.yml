@@ -1,8 +1,6 @@
 name: Web Build & Deploy
 on:
-  push:
-    branches: [main]
-    paths: ['laterbox-web/**', 'laterbox-extension/**', 'version.json', 'CHANGELOG.md', 'scripts/**', '.github/workflows/release.yml']
+  workflow_call:
   pull_request:
     branches: [main]
     paths: ['laterbox-web/**', 'laterbox-extension/**', 'supabase/**', 'version.json', 'CHANGELOG.md', 'scripts/**', '.github/workflows/release.yml']
@@ -64,27 +62,12 @@ jobs:
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "title=LaterBox v$VERSION" >> "$GITHUB_OUTPUT"
           tar -czf "$RUNNER_TEMP/laterbox-web-$VERSION.tar.gz" -C laterbox-web .open-next
-      - name: Prepare complete release assets
-        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
-        run: |
-          scripts/prepare_release_assets.sh \
-            "${{ steps.release_version.outputs.tag }}" \
-            "$RUNNER_TEMP/release-assets" \
-          "$RUNNER_TEMP/laterbox-web-${{ steps.release_version.outputs.version }}.tar.gz"
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Attach web build to GitHub Release
-        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
-        uses: softprops/action-gh-release@v2
+      - name: Upload web release archive
+        uses: actions/upload-artifact@v4
         with:
-          tag_name: ${{ steps.release_version.outputs.tag }}
-          name: ${{ steps.release_version.outputs.title }}
-          draft: false
-          prerelease: false
-          files: |
-            ${{ runner.temp }}/release-assets/*
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          name: laterbox-web-release-${{ github.run_id }}
+          path: ${{ runner.temp }}/laterbox-web-${{ steps.release_version.outputs.version }}.tar.gz
+          if-no-files-found: error
       - name: Configure Apple purchase verification
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         working-directory: laterbox-web
