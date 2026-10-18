@@ -85,6 +85,8 @@ fun NativeSettings(
     var plans by remember { mutableStateOf(false) }
     var searchRefine by remember { mutableStateOf(preferences.getBoolean("search_refine", true)) }
     var supportSheet by remember { mutableStateOf(false) }
+    var showingDeleteAccountDialog by remember { mutableStateOf(false) }
+    var isDeletingAccount by remember { mutableStateOf(false) }
     var busy by remember { mutableStateOf(false) }
     var bytes by remember { mutableLongStateOf(0) }
     var storageRefresh by remember { mutableIntStateOf(0) }
@@ -1085,6 +1087,84 @@ fun NativeSettings(
                                     }
                                 }
                             }
+
+                            if (account.userId != null) {
+                                item {
+                                    Surface(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        shape = RoundedCornerShape(18.dp),
+                                        color = LaterboxCard,
+                                        border = BorderStroke(1.dp, Color(0xFFEF4444).copy(alpha = 0.25f))
+                                    ) {
+                                        Column(
+                                            modifier = Modifier.padding(18.dp),
+                                            verticalArrangement = Arrangement.spacedBy(14.dp)
+                                        ) {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Warning,
+                                                    contentDescription = null,
+                                                    tint = Color(0xFFEF4444),
+                                                    modifier = Modifier.size(18.dp)
+                                                )
+                                                Text(
+                                                    text = "Danger Zone",
+                                                    fontSize = 12.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = Color(0xFFEF4444)
+                                                )
+                                            }
+
+                                            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                                Text(
+                                                    text = "Delete Account & Cloud Data",
+                                                    fontWeight = FontWeight.SemiBold,
+                                                    fontSize = 15.sp,
+                                                    color = LaterboxTextPrimary
+                                                )
+                                                Text(
+                                                    text = "Permanently delete your LaterBox account, cloud sync data, attachments in Cloudflare, and remote vault records. This action cannot be undone.",
+                                                    fontSize = 12.sp,
+                                                    color = LaterboxTextSecondary,
+                                                    lineHeight = 17.sp
+                                                )
+                                            }
+
+                                            Button(
+                                                onClick = { showingDeleteAccountDialog = true },
+                                                enabled = !isDeletingAccount,
+                                                modifier = Modifier.fillMaxWidth(),
+                                                shape = RoundedCornerShape(12.dp),
+                                                colors = ButtonDefaults.buttonColors(
+                                                    containerColor = Color(0xFFEF4444),
+                                                    contentColor = Color.White
+                                                )
+                                            ) {
+                                                if (isDeletingAccount) {
+                                                    CircularProgressIndicator(
+                                                        modifier = Modifier.size(16.dp),
+                                                        strokeWidth = 2.dp,
+                                                        color = Color.White
+                                                    )
+                                                    Spacer(Modifier.width(8.dp))
+                                                    Text("Deleting Account…")
+                                                } else {
+                                                    Icon(
+                                                        imageVector = Icons.Default.DeleteForever,
+                                                        contentDescription = null,
+                                                        modifier = Modifier.size(16.dp)
+                                                    )
+                                                    Spacer(Modifier.width(8.dp))
+                                                    Text("Delete Account")
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                         }
 
                         SettingsSubpage.STORAGE -> {
@@ -1395,6 +1475,69 @@ fun NativeSettings(
             },
             dismissButton = {
                 TextButton(onClick = { signOut = false }) { Text("Cancel") }
+            }
+        )
+    }
+
+    if (showingDeleteAccountDialog) {
+        AlertDialog(
+            onDismissRequest = { if (!isDeletingAccount) showingDeleteAccountDialog = false },
+            title = {
+                Text(
+                    text = "Delete Account & Cloud Data?",
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFFEF4444)
+                )
+            },
+            text = {
+                Text(
+                    text = "This permanently deletes your account, cloud records, Cloudflare attachments, and local account data. This cannot be undone.",
+                    fontSize = 13.sp,
+                    color = LaterboxTextSecondary,
+                    lineHeight = 18.sp
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        isDeletingAccount = true
+                        scope.launch {
+                            try {
+                                AccountService.deleteAccount(context)
+                                showingDeleteAccountDialog = false
+                                message = "Account and all cloud attachments have been permanently deleted."
+                                activeSubpage = null
+                            } catch (e: Exception) {
+                                message = e.message ?: "Failed to delete account. Please try again."
+                            } finally {
+                                isDeletingAccount = false
+                            }
+                        }
+                    },
+                    enabled = !isDeletingAccount,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFFEF4444),
+                        contentColor = Color.White
+                    )
+                ) {
+                    if (isDeletingAccount) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(14.dp),
+                            strokeWidth = 2.dp,
+                            color = Color.White
+                        )
+                        Spacer(Modifier.width(6.dp))
+                    }
+                    Text("Delete Everything")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showingDeleteAccountDialog = false },
+                    enabled = !isDeletingAccount
+                ) {
+                    Text("Cancel")
+                }
             }
         )
     }
