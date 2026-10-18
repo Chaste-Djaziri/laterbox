@@ -40,8 +40,17 @@ object GoogleAuthService {
     }
 
     suspend fun link(activity: Activity) {
-        // Google identity linking is completed by the same ID-token exchange while
-        // the existing Supabase session is active; Supabase preserves the user ID.
-        signIn(activity)
+        val credentialManager = CredentialManager.create(activity)
+        val option = GetGoogleIdOption.Builder()
+            .setServerClientId(webClientId)
+            .setFilterByAuthorizedAccounts(false)
+            .setAutoSelectEnabled(false)
+            .build()
+        val result = credentialManager.getCredential(activity, GetCredentialRequest.Builder().addCredentialOption(option).build())
+        val credential = GoogleIdTokenCredential.createFrom(result.credential.data)
+        val token = credential.idToken.trim()
+        check(token.isNotEmpty()) { "Google did not return an ID token." }
+        SupabaseClient.client.auth.linkIdentityWithIdToken(provider = Google, idToken = token)
+        AccountService.refresh()
     }
 }
