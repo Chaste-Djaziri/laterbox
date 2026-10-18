@@ -150,14 +150,6 @@ fun NativeSettings(
         else -> "Synced"
     }
 
-    val secure = remember { SecureSettings(context) }
-    val nanoStatus by NanoAIService.status.collectAsState()
-    LaunchedEffect(Unit) { NanoAIService.refresh() }
-    val aiProvider = remember(aiSettings, account.pro) { secure.provider }
-    val aiModel = remember(aiSettings, account.pro) {
-        if (!account.pro) "Gemini Nano (when ready), local fallback" else secure.model
-    }
-
     val notificationsEnabled = remember {
         NotificationManagerCompat.from(context).areNotificationsEnabled()
     }
