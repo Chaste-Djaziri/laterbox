@@ -63,6 +63,7 @@ import com.example.laterbox.theme.LaterboxTextPrimary
 import com.example.laterbox.theme.LaterboxTextSecondary
 import com.example.laterbox.ui.components.SystemStatusIndicator
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
     repository: DataRepository,
