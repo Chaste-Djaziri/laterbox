@@ -2072,15 +2072,6 @@ fun InboxBottomStatusBar(
                                 }
                             }
 
-                            Text(
-                                text = if (isPulling) "Pulling latest changes from cloud…" else if (isPushing) "Pushing local edits to cloud…" else "Resolving conflicts & syncing…",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Normal,
-                                color = LaterboxTextSecondary,
-                                maxLines = 1,
-                                softWrap = false,
-                                overflow = TextOverflow.Ellipsis
-                            )
                         }
 
                         Surface(
