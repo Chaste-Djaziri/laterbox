@@ -12,11 +12,23 @@ BASE = "https://api.appstoreconnect.apple.com"
 BUNDLE = "pro.micorp.laterbox"
 APP_ID = "6804139119"
 
+def asc_key_content():
+    if "ASC_KEY_PATH" in os.environ and Path(os.environ["ASC_KEY_PATH"]).exists():
+        return Path(os.environ["ASC_KEY_PATH"]).read_text()
+    key_id = os.environ.get("APP_STORE_CONNECT_KEY_ID", "")
+    default_path = Path.home() / f".appstoreconnect/private_keys/AuthKey_{key_id}.p8"
+    if default_path.exists():
+        return default_path.read_text()
+    if "APP_STORE_CONNECT_API_KEY_BASE64" in os.environ:
+        import base64
+        return base64.b64decode(os.environ["APP_STORE_CONNECT_API_KEY_BASE64"]).decode("utf-8")
+    raise KeyError("ASC_KEY_PATH")
+
 def request(path, method="GET", data=None):
     now = int(time.time())
     token = jwt.encode({"iss": os.environ["APP_STORE_CONNECT_ISSUER_ID"], "iat": now,
                         "exp": now + 600, "aud": "appstoreconnect-v1"},
-                       Path(os.environ["ASC_KEY_PATH"]).read_text(), algorithm="ES256",
+                       asc_key_content(), algorithm="ES256",
                        headers={"kid": os.environ["APP_STORE_CONNECT_KEY_ID"]})
     url = path if path.startswith(BASE + "/") else BASE + path
     if not url.startswith(BASE + "/"): raise ValueError("Unexpected pagination URL")
